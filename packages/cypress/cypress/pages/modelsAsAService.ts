@@ -7,6 +7,10 @@ class TierTableRow extends TableRow {
     return this.find().find('[data-label="Name"]');
   }
 
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]').findByTestId('table-row-title-description');
+  }
+
   findLevel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Level"]');
   }
@@ -26,11 +30,19 @@ class TierTableRow extends TableRow {
   findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findKebabAction('Delete tier');
   }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Edit tier');
+  }
+
+  findViewDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('View details');
+  }
 }
 
 class TiersPage {
   visit(): void {
-    cy.visitWithLogin('/maas/tiers');
+    cy.visitWithLogin('/maas/tiers/?devFeatureFlags=modelAsService=true');
     this.wait();
   }
 
@@ -84,6 +96,14 @@ class TiersPage {
   findViewDetailsButton() {
     return cy.findByRole('menuitem', { name: 'View details' });
   }
+
+  findDeleteButton() {
+    return cy.findByRole('menuitem', { name: 'Delete tier' });
+  }
+
+  findEditButton(name: string) {
+    return this.getRow(name).findKebabAction('Edit tier');
+  }
 }
 
 class CreateTierPage {
@@ -117,6 +137,14 @@ class CreateTierPage {
   // Level field
   findLevelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tier-level').find('input[type="number"]');
+  }
+
+  findLevelMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level').findByRole('button', { name: 'Minus' });
+  }
+
+  findLevelPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level').findByRole('button', { name: 'Plus' });
   }
 
   // Groups MultiSelection
@@ -164,6 +192,18 @@ class CreateTierPage {
     return cy.findByTestId(`tier-token-rate-limit-${index}-remove`);
   }
 
+  findTokenRateLimitPlusButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`tier-token-rate-limit-${index}-count`)
+      .findByRole('button', { name: 'Plus' });
+  }
+
+  findTokenRateLimitMinusButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`tier-token-rate-limit-${index}-count`)
+      .findByRole('button', { name: 'Minus' });
+  }
+
   // Request rate limit checkbox and controls
   findRequestRateLimitCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tier-request-rate-limit');
@@ -192,6 +232,18 @@ class CreateTierPage {
 
   findRequestRateLimitRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`tier-request-rate-limit-${index}-remove`);
+  }
+
+  findRequestRateLimitPlusButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`tier-request-rate-limit-${index}-count`)
+      .findByRole('button', { name: 'Plus' });
+  }
+
+  findRequestRateLimitMinusButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`tier-request-rate-limit-${index}-count`)
+      .findByRole('button', { name: 'Minus' });
   }
 
   findNameTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -227,6 +279,14 @@ class TierDetailsPage {
     cy.testA11y();
   }
 
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-name-value');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-description-value');
+  }
+
   findLevel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tier-level-value');
   }
@@ -241,6 +301,14 @@ class TierDetailsPage {
 
   findActionsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tier-actions');
+  }
+
+  findActionsEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-tier-action');
+  }
+
+  findActionsDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-tier-action');
   }
 }
 

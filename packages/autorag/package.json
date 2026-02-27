@@ -4,7 +4,7 @@
   "description": "AutoRAG plugin.",
   "version": "0.0.0",
   "module-federation": {
-    "name": "autoRag",
+    "name": "autorag",
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
     "tls": false,

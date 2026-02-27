@@ -14,7 +14,7 @@ interface ManifestTestConfig {
   excludedSubstrings?: string[];
 }
 
-describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -37,7 +37,15 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-327',
+        '@ODS-492',
+        '@Dashboard',
+        '@RHOAIENG-9235',
+        '@Bug',
+      ],
     },
     () => {
       const manifestsDir = '../../manifests';

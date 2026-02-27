@@ -30,7 +30,7 @@ let servingRuntime: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-50666] Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -66,7 +66,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing'],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);
