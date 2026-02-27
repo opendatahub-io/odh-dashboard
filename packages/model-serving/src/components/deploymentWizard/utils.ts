@@ -1,4 +1,8 @@
-import { ServingRuntimeKind, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  MetadataAnnotation,
+  ServingRuntimeKind,
+  type SecretKind,
+} from '@odh-dashboard/internal/k8sTypes';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
@@ -95,6 +99,14 @@ export const deployModel = async (
   if (!projectName) {
     throw new Error('Project is required');
   }
+  if (!deployMethod) {
+    throw new Error('Deploy method is required. Model serving platform could be missing.');
+  }
+
+  // If connection name doesn't exist yet, it will fail the dry run
+  const dryRunModelResource = structuredClone(modelResource);
+  delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
+
   // Dry runs
   const [dryRunSecret] = await Promise.all([
     handleConnectionCreation(
@@ -107,11 +119,11 @@ export const deployModel = async (
     ),
     ...(!overwrite
       ? [
-          deployMethod?.deploy(
+          deployMethod.deploy(
             wizardState,
             projectName,
             existingDeployment,
-            modelResource,
+            dryRunModelResource,
             serverResource,
             serverResourceTemplateName,
             true,
@@ -142,7 +154,7 @@ export const deployModel = async (
   const actualSecretName = newSecret?.metadata.name ?? realSecretName;
 
   // Create deployment
-  const deploymentResult = await deployMethod?.deploy(
+  const deploymentResult = await deployMethod.deploy(
     wizardState,
     projectName,
     existingDeployment,
@@ -157,7 +169,7 @@ export const deployModel = async (
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML
-  if (newSecret && actualSecretName && deploymentResult && wizardState.modelLocationData.data) {
+  if (newSecret && actualSecretName && wizardState.modelLocationData.data) {
     await handleSecretOwnerReferencePatch(
       wizardState.createConnectionData.data,
       deploymentResult.model,

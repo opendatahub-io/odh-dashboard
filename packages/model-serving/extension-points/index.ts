@@ -24,7 +24,6 @@ import type {
   WizardField,
 } from '../src/components/deploymentWizard/types';
 import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
-import type { DeploymentWizardResources } from '../src/components/deploymentWizard/yaml/useFormToResourcesTransformer';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -282,6 +281,9 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
  * This is used by WizardFieldApplyExtension to apply field-specific data to deployments.
  */
 export type DeploymentAssemblyFn<D extends Deployment = Deployment> = (deployment: D) => D;
+export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
+  model?: D['model'];
+};
 
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
@@ -289,7 +291,10 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     platform: D['modelServingPlatformId'];
     isActive:
       | CodeRef<
-          (wizardData: WizardFormData['state'], resources?: DeploymentWizardResources) => boolean
+          (
+            wizardData: WizardFormData['state'],
+            resources?: DeploymentAssemblyResources<D>,
+          ) => boolean
         >
       | true;
     priority: number | 0;

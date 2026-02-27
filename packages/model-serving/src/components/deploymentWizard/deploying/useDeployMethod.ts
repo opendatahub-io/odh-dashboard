@@ -3,17 +3,17 @@ import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../types';
 import {
+  DeploymentAssemblyResources,
   isModelServingDeploy,
   type Deployment,
   type ModelServingDeploy,
 } from '../../../../extension-points';
-import { DeploymentWizardResources } from '../yaml/useFormToResourcesTransformer';
 
 export type DeployExtension = ResolvedExtension<ModelServingDeploy<Deployment>>['properties'];
 
 export const useDeployMethod = (
   wizardData: WizardFormData['state'],
-  resources?: DeploymentWizardResources,
+  resources?: DeploymentAssemblyResources,
 ): {
   deployMethod?: ResolvedExtension<ModelServingDeploy<Deployment>>;
   deployMethodLoaded: boolean;
