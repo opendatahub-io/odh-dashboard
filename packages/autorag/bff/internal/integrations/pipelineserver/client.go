@@ -14,6 +14,7 @@ import (
 // PipelineServerClientInterface defines the interface for interacting with Kubeflow Pipelines API
 type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
+	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
 }
 
 // ListRunsParams contains parameters for listing pipeline runs
@@ -91,4 +92,41 @@ func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRun
 	}
 
 	return &response, nil
+}
+
+// GetRun retrieves a single pipeline run by ID from the Kubeflow Pipelines API
+func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	if runID == "" {
+		return nil, fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add auth token if provided
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var run models.KFPipelineRun
+	if err := json.NewDecoder(resp.Body).Decode(&run); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &run, nil
 }

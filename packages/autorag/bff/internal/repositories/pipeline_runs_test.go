@@ -14,7 +14,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -25,30 +25,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
 		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, "", 20, "")
-
-		assert.NoError(t, err)
-		assert.NotNil(t, runsData)
-		// Mock returns all runs regardless of filter
-		assert.Len(t, runsData.Runs, 3)
-	})
-
-	t.Run("should handle run ID filtering", func(t *testing.T) {
-		runID := "abc123-def456-ghi789"
-
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", runID, 20, "")
-
-		assert.NoError(t, err)
-		assert.NotNil(t, runsData)
-		// Mock returns all runs regardless of filter
-		assert.Len(t, runsData.Runs, 3)
-	})
-
-	t.Run("should handle both pipeline version ID and run ID filtering", func(t *testing.T) {
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
-		runID := "abc123-def456-ghi789"
-
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, runID, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -57,14 +34,14 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", "", 10, "page-token-123")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -101,7 +78,7 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should build filter with pipeline version ID", func(t *testing.T) {
 		pipelineVersionID := "v1-version-id-12345"
 
-		filter := buildFilter(pipelineVersionID, "")
+		filter := buildFilter(pipelineVersionID)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, pipelineVersionID)
 		assert.Contains(t, filter, "pipeline_version_id")
@@ -110,42 +87,18 @@ func TestBuildFilter(t *testing.T) {
 		assert.Contains(t, filter, "AVAILABLE")
 	})
 
-	t.Run("should build filter with run ID", func(t *testing.T) {
-		runID := "run-id-12345"
-
-		filter := buildFilter("", runID)
+	t.Run("should always include storage_state filter", func(t *testing.T) {
+		filter := buildFilter("")
 		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, runID)
-		assert.Contains(t, filter, "run_id")
-		assert.Contains(t, filter, "predicates")
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
-	})
-
-	t.Run("should build filter with both pipeline version ID and run ID", func(t *testing.T) {
-		pipelineVersionID := "v1-version-id-12345"
-		runID := "run-id-12345"
-
-		filter := buildFilter(pipelineVersionID, runID)
-		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, pipelineVersionID)
-		assert.Contains(t, filter, runID)
-		assert.Contains(t, filter, "pipeline_version_id")
-		assert.Contains(t, filter, "run_id")
 		assert.Contains(t, filter, "predicates")
-		assert.Contains(t, filter, "storage_state")
-		assert.Contains(t, filter, "AVAILABLE")
-	})
-
-	t.Run("should return empty filter when no filters provided", func(t *testing.T) {
-		filter := buildFilter("", "")
-		assert.Empty(t, filter)
 	})
 
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
 		pipelineVersionID := "test-version-id"
 
-		filter := buildFilter(pipelineVersionID, "")
+		filter := buildFilter(pipelineVersionID)
 		// Should be valid JSON
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")

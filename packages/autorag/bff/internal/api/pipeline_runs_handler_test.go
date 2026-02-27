@@ -20,7 +20,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace",
 			nil,
 		)
 		assert.NoError(t, err)
@@ -49,58 +49,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineVersionId="+pipelineVersionID,
-			nil,
-		)
-		assert.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-
-		app.PipelineRunsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response PipelineRunsEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.NotNil(t, response.Data)
-	})
-
-	t.Run("should filter by run ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "abc123-def456-ghi789"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&runId="+runID,
-			nil,
-		)
-		assert.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-
-		app.PipelineRunsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response PipelineRunsEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.NotNil(t, response.Data)
-	})
-
-	t.Run("should filter by both pipeline version ID and run ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
-		runID := "abc123-def456-ghi789"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineVersionId="+pipelineVersionID+"&runId="+runID,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId="+pipelineVersionID,
 			nil,
 		)
 		assert.NoError(t, err)
@@ -124,7 +73,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pageSize=10&nextPageToken=token123",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=10&nextPageToken=token123",
 			nil,
 		)
 		assert.NoError(t, err)
@@ -147,7 +96,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace",
 			nil,
 		)
 		assert.NoError(t, err)
@@ -169,7 +118,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace",
 			nil,
 		)
 		assert.NoError(t, err)
@@ -203,7 +152,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace",
 			nil,
 		)
 		assert.NoError(t, err)

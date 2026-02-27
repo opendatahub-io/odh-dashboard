@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,7 +13,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -101,8 +110,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 // AttachPipelineServerClient middleware creates a Pipeline Server client and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
-// The pipelineServerId is extracted from query parameters and used to discover
-// the Pipeline Server's URL from the DSPipelineApplication CR in the namespace.
+// Automatically discovers the first ready DSPipelineApplication in the namespace.
 func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -114,50 +122,87 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			return
 		}
 
-		// Get pipeline server ID from query params
-		pipelineServerId := r.URL.Query().Get("pipelineServerId")
-		if pipelineServerId == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing required parameter: pipelineServerId"))
-			return
-		}
-
 		logger := helper.GetContextLoggerFromReq(r)
 
 		// Create pipeline server client (mock or real based on configuration)
 		if app.config.MockPipelineServerClient {
-			logger.Debug("MOCK MODE: creating mock Pipeline Server client",
-				"namespace", namespace,
-				"pipelineServerId", pipelineServerId)
+			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 		} else {
-			// Construct the Pipeline Server API URL
-			// Check for override URL (for local development/testing)
-			var baseURL string
-			if app.config.PipelineServerURL != "" {
-				baseURL = app.config.PipelineServerURL
-				logger.Debug("Using override Pipeline Server URL from config", "baseURL", baseURL)
-			} else {
-				// Service discovery and validation is available via the /api/v1/pipeline-servers endpoint
-				// Here we construct the URL based on Kubernetes service DNS naming convention
-				baseURL = fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", pipelineServerId, namespace)
+			// Get Kubernetes client
+			client, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				logger.Error("Failed to create Kubernetes client", "error", err)
+				app.serverErrorResponse(w, r, err)
+				return
 			}
 
-			// Extract auth token from request to forward to Pipeline Server
-			authToken := ""
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-				authToken = strings.TrimPrefix(authHeader, "Bearer ")
-				logger.Debug("Extracted auth token from Authorization header", "tokenLength", len(authToken))
+			// Discover ready DSPA in the namespace
+			dspa, err := app.discoverReadyDSPA(ctx, client, namespace, logger)
+			if err != nil {
+				logger.Error("Failed to discover ready DSPipelineApplication",
+					"namespace", namespace,
+					"error", err)
+				app.notFoundResponse(w, r)
+				return
+			}
+
+			if dspa == nil {
+				logger.Warn("No ready Pipeline Server found in namespace", "namespace", namespace)
+				app.serviceUnavailableResponse(w, r, fmt.Errorf("no ready pipeline server found in namespace"))
+				return
+			}
+
+			logger.Debug("Discovered ready Pipeline Server",
+				"namespace", namespace,
+				"pipelineServerId", dspa.Metadata.Name,
+				"ready", dspa.Status.Ready)
+
+			// Get the API URL from the DSPA status (same as dashboard: resource.status.components.apiServer.url)
+			var baseURL string
+			if app.config.PipelineServerURL != "" {
+				// Override URL for local development/testing
+				baseURL = app.config.PipelineServerURL
+				logger.Debug("Using override Pipeline Server URL from config", "baseURL", baseURL)
+			} else if dspa.Status.Components != nil &&
+				dspa.Status.Components.APIServer != nil &&
+				dspa.Status.Components.APIServer.URL != "" {
+				// Read from status.components.apiServer.url (preferred, set by operator)
+				baseURL = dspa.Status.Components.APIServer.URL
+				logger.Debug("Using Pipeline Server URL from DSPA status", "baseURL", baseURL)
 			} else {
-				logger.Debug("No Authorization header found or invalid format", "hasAuthHeader", authHeader != "")
+				// Fallback: construct URL (should be rare, operator normally sets this)
+				baseURL = fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", dspa.Metadata.Name, namespace)
+				logger.Warn("DSPA status.components.apiServer.url not set, using fallback constructed URL",
+					"baseURL", baseURL,
+					"namespace", namespace,
+					"pipelineServerId", dspa.Metadata.Name)
+			}
+
+			// Extract auth token from request identity to forward to Pipeline Server
+			// This works for both internal auth (kubeflow-userid) and user_token auth (Authorization header)
+			authToken := ""
+			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
+				// Use token from request identity (set by InjectRequestIdentity middleware)
+				authToken = identity.Token
+				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
+			} else {
+				// Fallback: try reading Authorization header directly (for local testing)
+				authHeader := r.Header.Get("Authorization")
+				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+					authToken = strings.TrimPrefix(authHeader, "Bearer ")
+					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
+				} else {
+					logger.Debug("No auth token available from identity or Authorization header")
+				}
 			}
 
 			insecureSkipVerify := app.config.InsecureSkipVerify
 
 			logger.Debug("Creating Pipeline Server client",
 				"namespace", namespace,
-				"pipelineServerId", pipelineServerId,
+				"pipelineServerId", dspa.Metadata.Name,
 				"baseURL", baseURL,
 				"hasToken", authToken != "")
 
@@ -173,4 +218,248 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		r = r.WithContext(ctx)
 		next(w, r, ps)
 	}
+}
+
+const (
+	dsPipelineGroup    = "datasciencepipelinesapplications.opendatahub.io"
+	dsPipelineResource = "datasciencepipelinesapplications"
+)
+
+// isAPIServerReady checks if the Pipeline Server API is ready
+// This matches the dashboard's check: conditions.find(c => c.type === 'APIServerReady' && c.status === 'True')
+func isAPIServerReady(dspa *models.DSPipelineApplication) bool {
+	if dspa == nil || dspa.Status.Conditions == nil {
+		return false
+	}
+
+	for _, condition := range dspa.Status.Conditions {
+		if condition.Type == "APIServerReady" && condition.Status == "True" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// listDSPipelineApplications lists all DSPipelineApplication CRs in a namespace
+func listDSPipelineApplications(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	mockK8Client bool,
+	logger *slog.Logger,
+) ([]models.DSPipelineApplication, error) {
+	// Check if we're running in mock K8s mode
+	if mockK8Client {
+		// Running with mock K8s client - return mock data
+		return getMockDSPipelineApplications(namespace), nil
+	}
+
+	// Get rest.Config from the injected client (proper dependency injection)
+	config := client.GetRestConfig()
+	if config == nil {
+		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
+	}
+
+	// Create dynamic client using the injected config
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	// Discover the preferred API version for DSPipelineApplication
+	gvr, err := discoverDSPipelineApplicationGVR(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
+	}
+
+	// List DSPipelineApplication CRs
+	unstructuredList, err := dynamicClient.Resource(gvr).
+		Namespace(namespace).
+		List(ctx, metav1.ListOptions{})
+	if err != nil {
+		// Check for specific Kubernetes error types
+		if k8serrors.IsNotFound(err) {
+			// Namespace doesn't exist or resource type not found
+			return nil, fmt.Errorf("namespace not found: %s", namespace)
+		}
+		if k8serrors.IsForbidden(err) {
+			// No permission to list resources in this namespace
+			return nil, fmt.Errorf("forbidden: cannot list DSPipelineApplications in namespace %s", namespace)
+		}
+		// Other unexpected errors
+		return nil, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
+	}
+
+	// Convert to our models
+	dspas := make([]models.DSPipelineApplication, 0, len(unstructuredList.Items))
+	for _, item := range unstructuredList.Items {
+		dspa, err := unstructuredToDSPipelineApplication(&item)
+		if err != nil {
+			// Log warning with context and continue with other items
+			logger.Warn("Failed to convert DSPipelineApplication",
+				"namespace", item.GetNamespace(),
+				"name", item.GetName(),
+				"uid", item.GetUID(),
+				"error", err)
+			continue
+		}
+		dspas = append(dspas, *dspa)
+	}
+
+	return dspas, nil
+}
+
+// unstructuredToDSPipelineApplication converts an unstructured object to DSPipelineApplication model
+func unstructuredToDSPipelineApplication(obj *unstructured.Unstructured) (*models.DSPipelineApplication, error) {
+	// Marshal to JSON then unmarshal to our struct
+	jsonBytes, err := obj.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal unstructured object: %w", err)
+	}
+
+	var dspa models.DSPipelineApplication
+	if err := json.Unmarshal(jsonBytes, &dspa); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal to DSPipelineApplication: %w", err)
+	}
+
+	return &dspa, nil
+}
+
+// discoverDSPipelineApplicationGVR discovers the preferred API version for DSPipelineApplication
+func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config) (schema.GroupVersionResource, error) {
+	// Create dynamic client once before the loop
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	// Try known versions in order of preference (newer to older)
+	knownVersions := []string{"v1", "v1beta1", "v1alpha1"}
+
+	for _, version := range knownVersions {
+		gvr := schema.GroupVersionResource{
+			Group:    dsPipelineGroup,
+			Version:  version,
+			Resource: dsPipelineResource,
+		}
+
+		// Test if we can access the resource with this version
+		// We do a simple list with limit=1 to check availability
+		_, err := dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 1})
+		if err == nil {
+			// Successfully accessed the resource
+			return gvr, nil
+		}
+		// Continue trying other versions if NotFound or Forbidden
+		if k8serrors.IsNotFound(err) || k8serrors.IsForbidden(err) {
+			continue
+		}
+		// Return unexpected errors
+		return schema.GroupVersionResource{}, fmt.Errorf("unexpected error discovering DSPipelineApplication GVR: %w", err)
+	}
+
+	// If none of the known versions work, default to v1
+	return schema.GroupVersionResource{
+		Group:    dsPipelineGroup,
+		Version:  "v1",
+		Resource: dsPipelineResource,
+	}, nil
+}
+
+// getMockDSPipelineApplications returns mock DSPipelineApplication data for development
+func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplication {
+	return []models.DSPipelineApplication{
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa",
+				Namespace: namespace,
+			},
+			Spec: models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+			},
+			Status: models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "Deployment has minimum availability",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         fmt.Sprintf("https://ds-pipeline-dspa.%s.svc.cluster.local:8443", namespace),
+						ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-%s.apps.cluster.local", namespace),
+					},
+				},
+			},
+		},
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-test",
+				Namespace: namespace,
+			},
+			Spec: models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+			},
+			Status: models.DSPipelineApplicationStatus{
+				Ready: false,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "False",
+						Reason:  "PodNotReady",
+						Message: "Waiting for pods to become ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         fmt.Sprintf("https://ds-pipeline-dspa-test.%s.svc.cluster.local:8443", namespace),
+						ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-test-%s.apps.cluster.local", namespace),
+					},
+				},
+			},
+		},
+	}
+}
+
+// discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace
+// Returns the first DSPA with APIServerReady == True, or nil if none are ready
+func (app *App) discoverReadyDSPA(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	logger *slog.Logger,
+) (*models.DSPipelineApplication, error) {
+	// List all DSPAs in the namespace
+	dspas, err := listDSPipelineApplications(ctx, client, namespace, app.config.MockK8Client, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list DSPipelineApplications: %w", err)
+	}
+
+	// Find the first ready DSPA
+	for _, dspa := range dspas {
+		if isAPIServerReady(&dspa) {
+			logger.Info("Found ready Pipeline Server",
+				"namespace", namespace,
+				"name", dspa.Metadata.Name)
+			return &dspa, nil
+		}
+	}
+
+	// No ready DSPA found
+	logger.Warn("No ready Pipeline Server found",
+		"namespace", namespace,
+		"total_dspas", len(dspas))
+	return nil, nil
 }

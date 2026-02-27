@@ -43,6 +43,16 @@ type APIServer struct {
 type DSPipelineApplicationStatus struct {
 	Ready      bool                             `json:"ready"`
 	Conditions []DSPipelineApplicationCondition `json:"conditions,omitempty"`
+	Components *DSPipelineApplicationComponents `json:"components,omitempty"`
+}
+
+type DSPipelineApplicationComponents struct {
+	APIServer *DSPipelineApplicationAPIServerStatus `json:"apiServer,omitempty"`
+}
+
+type DSPipelineApplicationAPIServerStatus struct {
+	URL         string `json:"url,omitempty"`
+	ExternalURL string `json:"externalUrl,omitempty"`
 }
 
 type DSPipelineApplicationCondition struct {

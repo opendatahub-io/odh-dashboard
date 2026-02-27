@@ -38,9 +38,10 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 
 	return &InternalKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
-			Token:  NewBearerToken(kubeconfig.BearerToken),
+			Client:     clientset,
+			Logger:     logger,
+			Token:      NewBearerToken(kubeconfig.BearerToken),
+			RestConfig: kubeconfig,
 		},
 	}, nil
 }

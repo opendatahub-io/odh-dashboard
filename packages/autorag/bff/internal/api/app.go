@@ -26,14 +26,13 @@ import (
 )
 
 const (
-	Version             = "1.0.0"
-	PathPrefix          = "/autorag"
-	ApiPathPrefix       = "/api/v1"
-	HealthCheckPath     = "/healthcheck"
-	UserPath            = ApiPathPrefix + "/user"
-	NamespacePath       = ApiPathPrefix + "/namespaces"
-	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
-	PipelineServersPath = ApiPathPrefix + "/pipeline-servers"
+	Version          = "1.0.0"
+	PathPrefix       = "/autorag"
+	ApiPathPrefix    = "/api/v1"
+	HealthCheckPath  = "/healthcheck"
+	UserPath         = ApiPathPrefix + "/user"
+	NamespacePath    = ApiPathPrefix + "/namespaces"
+	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
 type App struct {
@@ -129,7 +128,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories:                repositories.NewRepositories(cfg.PipelineServerURL),
+		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
 	}
@@ -157,8 +156,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
-	// Pipeline Server API endpoints
-	apiRouter.GET(PipelineServersPath, app.AttachNamespace(app.PipelineServersHandler))
+	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunHandler)))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunsHandler)))
 
 	// App Router

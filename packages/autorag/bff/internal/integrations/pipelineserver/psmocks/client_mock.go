@@ -83,6 +83,10 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 				CreatedAt:      "2026-02-23T14:00:00Z",
 				ScheduledAt:    "2026-02-23T14:00:00Z",
 				FinishedAt:     "2026-02-23T14:30:00Z",
+				Error: &models.ErrorInfo{
+					Code:    500,
+					Message: "Pipeline execution failed: unable to connect to data source",
+				},
 				StateHistory: []models.RuntimeStatus{
 					{
 						UpdateTime: "2026-02-23T14:00:00Z",
@@ -91,6 +95,10 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 					{
 						UpdateTime: "2026-02-23T14:30:00Z",
 						State:      "FAILED",
+						Error: &models.ErrorInfo{
+							Code:    500,
+							Message: "Pipeline execution failed: unable to connect to data source",
+						},
 					},
 				},
 			},
@@ -98,6 +106,38 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 		TotalSize:     3,
 		NextPageToken: "",
 	}, nil
+}
+
+// GetRun returns a mock pipeline run by ID
+func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	// Return mock data based on the run ID
+	mockRun := &models.KFPipelineRun{
+		RunID:        runID,
+		DisplayName:  "AutoRAG Optimization Run",
+		Description:  "Test optimization run",
+		ExperimentID: "exp-123",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        "pipeline-xyz",
+			PipelineVersionID: "version-v1",
+		},
+		State:          "SUCCEEDED",
+		StorageState:   "AVAILABLE",
+		ServiceAccount: "pipeline-runner-dspa",
+		CreatedAt:      "2026-02-24T10:30:00Z",
+		ScheduledAt:    "2026-02-24T10:30:00Z",
+		FinishedAt:     "2026-02-24T11:15:00Z",
+		StateHistory: []models.RuntimeStatus{
+			{
+				UpdateTime: "2026-02-24T10:30:00Z",
+				State:      "RUNNING",
+			},
+			{
+				UpdateTime: "2026-02-24T11:15:00Z",
+				State:      "SUCCEEDED",
+			},
+		},
+	}
+	return mockRun, nil
 }
 
 // MockClientFactory creates mock pipeline server clients

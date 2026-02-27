@@ -4,6 +4,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 )
 
 const ComponentLabelValue = "autorag"
@@ -15,4 +16,6 @@ type KubernetesClientInterface interface {
 	GetUser(identity *RequestIdentity) (string, error)
 	// GetClientset returns the underlying kubernetes.Interface for advanced operations
 	GetClientset() interface{}
+	// GetRestConfig returns the rest.Config for creating specialized clients (e.g., dynamic client)
+	GetRestConfig() *rest.Config
 }

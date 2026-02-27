@@ -15,6 +15,7 @@ type PipelineRun struct {
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
+	Error                    *ErrorInfo                `json:"error,omitempty"`
 }
 
 // PipelineVersionReference contains pipeline and version IDs
@@ -53,6 +54,7 @@ type KFPipelineRun struct {
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
+	Error                    *ErrorInfo                `json:"error,omitempty"`
 }
 
 // RuntimeConfig represents the runtime configuration

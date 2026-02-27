@@ -17,18 +17,17 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID or run ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
-	runID string,
 	pageSize int32,
 	pageToken string,
 ) (*models.PipelineRunsData, error) {
 
-	// Build filter for pipeline version ID and/or run ID if provided
-	filter := buildFilter(pipelineVersionID, runID)
+	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
+	filter := buildFilter(pipelineVersionID)
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -67,6 +66,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 			ScheduledAt:              kfRun.ScheduledAt,
 			FinishedAt:               kfRun.FinishedAt,
 			StateHistory:             kfRun.StateHistory,
+			Error:                    kfRun.Error,
 		}
 		runs = append(runs, run)
 	}
@@ -78,13 +78,11 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}, nil
 }
 
-// buildFilter creates a Kubeflow Pipelines API filter string for pipeline version ID and/or run ID
+// buildFilter creates a Kubeflow Pipelines API filter string for pipeline version ID
 // The filter follows the format: {"predicates": [{"key": "...", "operation": "EQUALS", "string_value": "..."}]}
-func buildFilter(pipelineVersionID string, runID string) string {
-	if pipelineVersionID == "" && runID == "" {
-		return ""
-	}
-
+// Always filters for storage_state: AVAILABLE to exclude archived runs
+func buildFilter(pipelineVersionID string) string {
+	// Always include storage_state filter to exclude archived runs
 	predicates := []map[string]interface{}{
 		{
 			"key":          "storage_state",
@@ -102,15 +100,6 @@ func buildFilter(pipelineVersionID string, runID string) string {
 		})
 	}
 
-	// Add run ID filter if provided
-	if runID != "" {
-		predicates = append(predicates, map[string]interface{}{
-			"key":          "run_id",
-			"operation":    "EQUALS",
-			"string_value": runID,
-		})
-	}
-
 	filter := map[string]interface{}{
 		"predicates": predicates,
 	}
@@ -121,4 +110,40 @@ func buildFilter(pipelineVersionID string, runID string) string {
 	}
 
 	return string(filterJSON)
+}
+
+// GetPipelineRun retrieves a single pipeline run by ID
+func (r *PipelineRunsRepository) GetPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) (*models.PipelineRun, error) {
+	// Query pipeline server for single run
+	kfRun, err := client.GetRun(ctx, runID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching pipeline run: %w", err)
+	}
+
+	if kfRun == nil {
+		return nil, fmt.Errorf("pipeline run not found")
+	}
+
+	// Transform Kubeflow format to our stable API format
+	run := &models.PipelineRun{
+		RunID:                    kfRun.RunID,
+		DisplayName:              kfRun.DisplayName,
+		Description:              kfRun.Description,
+		ExperimentID:             kfRun.ExperimentID,
+		PipelineVersionReference: kfRun.PipelineVersionReference,
+		State:                    kfRun.State,
+		StorageState:             kfRun.StorageState,
+		ServiceAccount:           kfRun.ServiceAccount,
+		CreatedAt:                kfRun.CreatedAt,
+		ScheduledAt:              kfRun.ScheduledAt,
+		FinishedAt:               kfRun.FinishedAt,
+		StateHistory:             kfRun.StateHistory,
+		Error:                    kfRun.Error,
+	}
+
+	return run, nil
 }

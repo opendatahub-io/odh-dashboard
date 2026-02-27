@@ -12,9 +12,10 @@ import (
 )
 
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
+type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
-// Returns pipeline runs from a specific Pipeline Server filtered by pipeline version ID or run ID
+// Returns pipeline runs from a specific Pipeline Server filtered by pipeline version ID
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -31,13 +32,10 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Get pipeline version ID from query params (optional)
 	pipelineVersionID := query.Get("pipelineVersionId")
 
-	// Get run ID from query params (optional)
-	runID := query.Get("runId")
-
 	// Parse pagination parameters
 	pageSize := int32(20) // default
-	if ps := query.Get("pageSize"); ps != "" {
-		parsed, err := strconv.ParseInt(ps, 10, 32)
+	if pageSizeStr := query.Get("pageSize"); pageSizeStr != "" {
+		parsed, err := strconv.ParseInt(pageSizeStr, 10, 32)
 		if err != nil {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be a valid integer"))
 			return
@@ -56,7 +54,6 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		client,
 		ctx,
 		pipelineVersionID,
-		runID,
 		pageSize,
 		pageToken,
 	)
@@ -68,6 +65,43 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Wrap in envelope response
 	response := PipelineRunsEnvelope{
 		Data: runsData,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// PipelineRunHandler handles GET /api/v1/pipeline-runs/:runId
+// Returns a single pipeline run by ID
+func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	ctx := r.Context()
+
+	// Get pipeline server client from context (added by middleware)
+	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	if !ok {
+		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	// Get run ID from URL path parameter
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return
+	}
+
+	// Call repository to get the pipeline run
+	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return
+	}
+
+	// Wrap in envelope response
+	response := PipelineRunEnvelope{
+		Data: run,
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, response, nil)
