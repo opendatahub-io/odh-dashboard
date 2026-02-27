@@ -114,7 +114,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: 'maasmodels',
       title: 'Models as a service',
-      component: () => import('../app/AIAssets/AIAssetsMaaSTabWrapper').then((m) => m.default),
+      component: () => import('../app/AIAssets/AIAssetsMaaSTab').then((m) => m.default),
     },
   },
 ];
