@@ -25,7 +25,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'autorag',
-      title: 'AutoRAG',
+      title: 'Autorag',
       href: '/gen-ai-studio/autorag',
       section: 'gen-ai-studio',
       path: '/gen-ai-studio/autorag/*',

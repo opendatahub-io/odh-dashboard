@@ -2,9 +2,9 @@ import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoragCreate from '../components/create/AutoragCreate';
-import InvalidProject from '../components/empty-states/InvalidProject';
-import { autoragExperimentsPathname } from '../utilities/routes';
+import AutoragCreate from '~/app/components/create/AutoragCreate';
+import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 
 function AutoragCreatePage(): React.JSX.Element {
   const { namespace } = useParams();
