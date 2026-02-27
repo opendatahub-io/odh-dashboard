@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-llamastack-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a Minimal Agent with LlamaStack'
+  description: >-
+    Create a lightweight agent using the llama-stack-client directly
+    with no additional framework dependencies. The simplest path to
+    a working AI agent on OpenShift AI.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/base/llamastack_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

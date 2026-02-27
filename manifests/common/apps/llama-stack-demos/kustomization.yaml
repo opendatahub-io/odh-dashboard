@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - llama-stack-demos-app.yaml
+  - llama-stack-demos-rag-tutorial.yaml
+  - llama-stack-demos-tools-tutorial.yaml
+  - llama-stack-demos-multiagent-tutorial.yaml
+  - llama-stack-demos-knowledge-assistant.yaml
+  - llama-stack-demos-code-assistant.yaml

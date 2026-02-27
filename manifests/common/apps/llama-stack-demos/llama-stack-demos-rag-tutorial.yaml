@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: llama-stack-demos-rag-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'RAG with Llama Stack and Milvus'
+  description: >-
+    Build a retrieval-augmented generation pipeline using Llama Stack with
+    Milvus or FAISS vector databases and all-MiniLM-L6-v2 embeddings for
+    knowledge-grounded responses.
+  url: 'https://github.com/opendatahub-io/llama-stack-demos/tree/main/demos/03_rag'
+  provider: Open Data Hub
+  appName: llama-stack-demos
