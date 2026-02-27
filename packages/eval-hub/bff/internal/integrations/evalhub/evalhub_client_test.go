@@ -15,7 +15,7 @@ func TestEvalHubClient_HealthCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/health", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(HealthResponse{Status: "healthy"})
+		assert.NoError(t, json.NewEncoder(w).Encode(HealthResponse{Status: "healthy"}))
 	}))
 	defer server.Close()
 
@@ -29,7 +29,8 @@ func TestEvalHubClient_HealthCheck(t *testing.T) {
 func TestEvalHubClient_HealthCheck_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		_, err := w.Write([]byte("internal error"))
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -66,7 +67,7 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		assert.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -124,7 +125,8 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("service unavailable"))
+		_, err := w.Write([]byte("service unavailable"))
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -150,7 +152,8 @@ func TestEvalHubClient_ConnectionError(t *testing.T) {
 func TestEvalHubClient_NotFoundError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("not found"))
+		_, err := w.Write([]byte("not found"))
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
@@ -166,7 +169,8 @@ func TestEvalHubClient_NotFoundError(t *testing.T) {
 func TestEvalHubClient_UnauthorizedError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("unauthorized"))
+		_, err := w.Write([]byte("unauthorized"))
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
