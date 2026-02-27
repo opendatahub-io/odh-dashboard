@@ -239,8 +239,13 @@ class ProjectDetails {
    *
    * @param timeout - Total time to wait before failing (ms). Default 300000.
    * @param refreshTimeout - Time to wait for the button on each attempt before reloading (ms). Default 10000.
+   * @param options.onBeforeReload - Optional callback run before each reload (e.g. to log pipeline server status via oc).
    */
-  findImportPipelineButton(timeout = 300000, refreshTimeout = 10000) {
+  findImportPipelineButton(
+    timeout = 300000,
+    refreshTimeout = 10000,
+    options?: { onBeforeReload?: () => void },
+  ) {
     const startTime = Date.now();
 
     const attempt = (attemptStart: number = startTime): Cypress.Chainable<JQuery<HTMLElement>> => {
@@ -255,6 +260,7 @@ class ProjectDetails {
         }
         const attemptElapsed = Date.now() - attemptStart;
         if (attemptElapsed >= refreshTimeout) {
+          options?.onBeforeReload?.();
           return cy.reload().then(() => attempt(Date.now()));
         }
         // Poll interval: Cypress can't catch command timeout to retry, so we recheck after a short delay
