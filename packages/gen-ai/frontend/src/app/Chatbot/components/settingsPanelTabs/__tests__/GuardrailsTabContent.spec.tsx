@@ -12,6 +12,16 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+// Mock FieldGroupHelpLabelIcon to avoid React hook conflicts
+jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+  __esModule: true,
+  default: ({ onClick }: { content: string; onClick?: () => void }) => (
+    <button aria-label="More info" onClick={onClick}>
+      Help
+    </button>
+  ),
+}));
+
 describe('GuardrailsTabContent', () => {
   const defaultProps = {
     configId: 'default',
