@@ -76,7 +76,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
                   maxLength={NAME_CHARACTER_LIMIT}
                 />
 
-                <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
+                <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={name.length} />
               </FormGroup>
             </StackItem>
             <StackItem>
@@ -91,7 +91,10 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
                   maxLength={DESCRIPTION_CHARACTER_LIMIT}
                 />
 
-                <CharLimitHelperText limit={DESCRIPTION_CHARACTER_LIMIT} />
+                <CharLimitHelperText
+                  limit={DESCRIPTION_CHARACTER_LIMIT}
+                  currentLength={description.length}
+                />
               </FormGroup>
             </StackItem>
             {error && (
