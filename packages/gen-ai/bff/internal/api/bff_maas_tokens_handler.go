@@ -40,15 +40,17 @@ func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request,
 	// If no body, tokenRequest remains empty (TTL="") and MaaS BFF will use default
 
 	// Call MaaS BFF to issue token
-	var tokenResponse models.MaaSTokenResponse
-	err := maasClient.Call(ctx, "POST", "/tokens", tokenRequest, &tokenResponse)
+	// MaaS BFF returns response wrapped in envelope: {"data": {...}}
+	var bffResponse models.MaaSBFFTokenResponse
+	err := maasClient.Call(ctx, "POST", "/tokens", tokenRequest, &bffResponse)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
 		return
 	}
 
+	// Re-wrap the response in our envelope format
 	tokenResponseEnvelope := Envelope[models.MaaSTokenResponse, None]{
-		Data: tokenResponse,
+		Data: bffResponse.Data,
 	}
 
 	err = app.WriteJSON(w, http.StatusCreated, tokenResponseEnvelope, nil)

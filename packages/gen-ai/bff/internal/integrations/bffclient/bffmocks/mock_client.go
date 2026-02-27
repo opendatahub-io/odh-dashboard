@@ -56,9 +56,12 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 	switch {
 	case path == "/tokens" && method == "POST":
 		// Mock token creation response
+		// MaaS BFF wraps responses in {"data": ...} envelope
 		tokenResp := map[string]interface{}{
-			"token":     "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
-			"expiresAt": time.Now().Add(4 * time.Hour).Unix(),
+			"data": map[string]interface{}{
+				"token":     "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"expiresAt": time.Now().Add(4 * time.Hour).Unix(),
+			},
 		}
 		return marshalToResponse(tokenResp, response)
 
@@ -154,6 +157,11 @@ func NewMockClientFactory(logger *slog.Logger) bffclient.BFFClientFactory {
 
 // CreateClient creates a new mock BFF client for the specified target
 func (f *MockClientFactory) CreateClient(target bffclient.BFFTarget, authToken string) bffclient.BFFClientInterface {
+	return f.CreateClientWithHeaders(target, authToken, nil)
+}
+
+// CreateClientWithHeaders creates a new mock BFF client (headers are ignored in mock)
+func (f *MockClientFactory) CreateClientWithHeaders(target bffclient.BFFTarget, authToken string, headers map[string]string) bffclient.BFFClientInterface {
 	// Return cached client if exists
 	if client, ok := f.clients[target]; ok {
 		return client
