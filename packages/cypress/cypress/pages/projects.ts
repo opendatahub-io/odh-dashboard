@@ -232,8 +232,37 @@ class ProjectDetails {
     return cy.findByTestId('delete-project-action');
   }
 
-  findImportPipelineButton(timeout?: number) {
-    return cy.findByTestId('import-pipeline-button', { timeout });
+  /**
+   * Polls for the Import pipeline button. Each attempt waits up to refreshTimeout for the
+   * button (like findByTestId with that timeout); if not found, reloads and tries again
+   * until the button appears or the total timeout is reached.
+   *
+   * @param timeout - Total time to wait before failing (ms). Default 300000.
+   * @param refreshTimeout - Time to wait for the button on each attempt before reloading (ms). Default 10000.
+   */
+  findImportPipelineButton(timeout = 300000, refreshTimeout = 10000) {
+    const startTime = Date.now();
+
+    const attempt = (attemptStart: number = startTime): Cypress.Chainable<JQuery<HTMLElement>> => {
+      return cy.get('body').then(($body) => {
+        const button = $body.find('[data-testid="import-pipeline-button"]');
+        if (button.length > 0) {
+          return cy.findByTestId('import-pipeline-button');
+        }
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= timeout) {
+          return cy.findByTestId('import-pipeline-button', { timeout: 1 });
+        }
+        const attemptElapsed = Date.now() - attemptStart;
+        if (attemptElapsed >= refreshTimeout) {
+          return cy.reload().then(() => attempt(Date.now()));
+        }
+        // Poll interval: Cypress can't catch command timeout to retry, so we recheck after a short delay
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(500).then(() => attempt(attemptStart));
+      });
+    };
+    return attempt();
   }
 
   findSelectPlatformButton(platform: string) {
