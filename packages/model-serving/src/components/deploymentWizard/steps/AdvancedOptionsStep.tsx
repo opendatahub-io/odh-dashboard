@@ -15,7 +15,6 @@ import {
   FormSection,
   Spinner,
 } from '@patternfly/react-core';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
