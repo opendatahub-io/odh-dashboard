@@ -229,6 +229,52 @@ func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace st
 	return secretList.Items, nil
 }
 
+// GetSecret retrieves a specific secret by name from a namespace.
+func (kc *InternalKubernetesClient) GetSecret(ctx context.Context, namespace, secretName string, identity *RequestIdentity) (*corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Verify the namespace exists first
+	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
+	}
+
+	// Check if user has permission to get the secret in the namespace
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "get",
+				Resource:  "secrets",
+				Namespace: namespace,
+				Name:      secretName,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check secret get permissions", "namespace", namespace, "secretName", secretName, "user", identity.UserID, "error", err)
+		return nil, fmt.Errorf("failed to check permissions to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	if !response.Status.Allowed {
+		kc.Logger.Warn("user not allowed to get secret", "namespace", namespace, "secretName", secretName, "user", identity.UserID)
+		return nil, fmt.Errorf("user %s does not have permission to get secret %s in namespace %s", identity.UserID, secretName, namespace)
+	}
+
+	secret, err := kc.Client.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get secret", "namespace", namespace, "secretName", secretName, "error", err)
+		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	return secret, nil
+}
+
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
