@@ -1,12 +1,5 @@
-import {
-  Checkbox,
-  Spinner,
-  Tab,
-  TabContentBody,
-  Tabs,
-  TabTitleText,
-  Title,
-} from '@patternfly/react-core';
+import { Spinner, Tab, TabContentBody, Tabs, TabTitleText, Title } from '@patternfly/react-core';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import { LlamaStackModelType } from '~/app/types';
@@ -47,7 +40,7 @@ const ExperimentSettingsModelSelection: React.FC = () => {
 
   return (
     <div data-testid="model-selection-section">
-      <Title headingLevel="h2">Model selection</Title>
+      <Title headingLevel="h2">Models to test</Title>
       {isLoading ? (
         <Spinner size="md" aria-label="Loading models" />
       ) : (
@@ -62,6 +55,24 @@ const ExperimentSettingsModelSelection: React.FC = () => {
         >
           {MODEL_TABS.map(({ modelType, label, testId }) => {
             const { field, models } = tabData[modelType];
+            const selectedModels = field.value ?? [];
+            const allSelected =
+              models.length > 0 &&
+              models.every((model) =>
+                selectedModels.some((selectedModel) => selectedModel.model === model.id),
+              );
+
+            const handleSelectAll = (isSelecting: boolean) => {
+              field.onChange(isSelecting ? models.map((model) => ({ model: model.id })) : []);
+            };
+
+            const handleToggleModel = (modelId: string, isSelecting: boolean) => {
+              field.onChange(
+                isSelecting
+                  ? [...selectedModels, { model: modelId }]
+                  : selectedModels.filter((selectedModel) => selectedModel.model !== modelId),
+              );
+            };
 
             return (
               <Tab
@@ -74,25 +85,36 @@ const ExperimentSettingsModelSelection: React.FC = () => {
                   {models.length === 0 ? (
                     <p>No models available.</p>
                   ) : (
-                    models.map((model) => (
-                      <Checkbox
-                        key={model.id}
-                        id={`model-${modelType}-${model.id}`}
-                        label={model.id}
-                        isChecked={(field.value ?? []).some(
-                          (selectedModel) => selectedModel.model === model.id,
-                        )}
-                        onChange={(_, checked) => {
-                          const current = field.value ?? [];
-                          field.onChange(
-                            checked
-                              ? [...current, { model: model.id }]
-                              : current.filter((selectedModel) => selectedModel.model !== model.id),
-                          );
-                        }}
-                        data-testid={`model-checkbox-${model.id}`}
-                      />
-                    ))
+                    <Table aria-label={`${label} table`} data-testid={`${modelType}-models-table`}>
+                      <Thead>
+                        <Tr>
+                          <Th
+                            select={{
+                              isSelected: allSelected,
+                              onSelect: (_, isSelecting) => handleSelectAll(isSelecting),
+                            }}
+                          />
+                          <Th>Name</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {models.map((model, rowIndex) => (
+                          <Tr key={model.id} data-testid={`model-row-${model.id}`}>
+                            <Td
+                              select={{
+                                rowIndex,
+                                isSelected: selectedModels.some(
+                                  (selectedModel) => selectedModel.model === model.id,
+                                ),
+                                onSelect: (_, isSelecting) =>
+                                  handleToggleModel(model.id, isSelecting),
+                              }}
+                            />
+                            <Td dataLabel="Name">{model.id}</Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
                   )}
                 </TabContentBody>
               </Tab>
