@@ -6,7 +6,7 @@ import {
   APIOptions,
   NotReadyError,
 } from 'mod-arch-core';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { MaaSModel } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
