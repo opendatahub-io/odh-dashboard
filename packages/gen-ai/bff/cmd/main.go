@@ -68,6 +68,9 @@ func main() {
 	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "Port for MaaS BFF service")
 	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", false), "Enable TLS for MaaS BFF communication")
 	flag.StringVar(&cfg.BFFMaaSDevURL, "bff-maas-dev-url", getEnvAsString("BFF_MAAS_DEV_URL", ""), "Developer override URL for MaaS BFF (e.g., http://localhost:4000/api/v1)")
+	flag.StringVar(&cfg.BFFMaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
 
 	// Initialize klog flags before parsing
 	klog.InitFlags(nil)

@@ -55,10 +55,22 @@ func (f *RealClientFactory) CreateClientWithHeaders(target BFFTarget, authToken 
 	f.logger.Debug("Creating BFF client",
 		"target", target,
 		"baseURL", baseURL,
+		"authMethod", serviceConfig.AuthMethod,
+		"authTokenHeader", serviceConfig.AuthTokenHeader,
 		"hasAuthToken", authToken != "",
 		"hasHeaders", len(headers) > 0)
 
-	return NewHTTPBFFClientWithHeaders(baseURL, target, authToken, headers, f.insecureSkipVerify, f.rootCAs)
+	// Pass auth configuration from service config to the client
+	return NewHTTPBFFClientWithConfig(
+		baseURL,
+		target,
+		authToken,
+		headers,
+		serviceConfig.AuthTokenHeader,
+		serviceConfig.AuthTokenPrefix,
+		f.insecureSkipVerify,
+		f.rootCAs,
+	)
 }
 
 // GetConfig returns the configuration for a specific target

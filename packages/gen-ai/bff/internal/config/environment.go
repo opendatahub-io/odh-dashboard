@@ -10,12 +10,15 @@ const (
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
 
-	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
-	DefaultAuthTokenHeader = "Authorization"
+	// DefaultAuthTokenHeader is the default header for token extraction.
+	// For ODH/RHOAI deployments, this is 'x-forwarded-access-token'.
+	// For standard Bearer token auth, use 'Authorization'.
+	DefaultAuthTokenHeader = "x-forwarded-access-token"
 
-	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
-	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
-	DefaultAuthTokenPrefix = "Bearer "
+	// DefaultAuthTokenPrefix is the prefix to strip from the token header value.
+	// For ODH/RHOAI ('x-forwarded-access-token'), this is empty.
+	// For standard Bearer token auth ('Authorization'), use "Bearer ".
+	DefaultAuthTokenPrefix = ""
 )
 
 type EnvConfig struct {
@@ -101,4 +104,17 @@ type EnvConfig struct {
 	// BFFMaaSDevURL is a developer override URL for MaaS BFF (local development).
 	// When set, overrides service discovery. Example: "http://localhost:4000/api/v1"
 	BFFMaaSDevURL string
+
+	// BFFMaaSAuthMethod specifies the auth method used by the target MaaS BFF.
+	// Supported values: "internal" (kubeflow-userid header), "user_token" (token in header)
+	// Default: "user_token" (recommended for ODH/RHOAI)
+	BFFMaaSAuthMethod string
+
+	// BFFMaaSAuthTokenHeader specifies the header MaaS BFF expects for user_token auth.
+	// Default: "x-forwarded-access-token" (ODH standard)
+	BFFMaaSAuthTokenHeader string
+
+	// BFFMaaSAuthTokenPrefix specifies the prefix MaaS BFF expects in the token header.
+	// Default: "" (empty for ODH's x-forwarded-access-token)
+	BFFMaaSAuthTokenPrefix string
 }

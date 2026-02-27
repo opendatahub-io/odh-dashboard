@@ -33,30 +33,39 @@ type BFFClientInterface interface {
 
 // HTTPBFFClient implements BFFClientInterface using HTTP requests
 type HTTPBFFClient struct {
-	baseURL       string
-	target        BFFTarget
-	httpClient    *http.Client
-	authToken     string
-	customHeaders map[string]string
+	baseURL         string
+	target          BFFTarget
+	httpClient      *http.Client
+	authToken       string
+	customHeaders   map[string]string
+	authTokenHeader string // Header to send auth token in (e.g., "x-forwarded-access-token")
+	authTokenPrefix string // Prefix for auth token (e.g., "" or "Bearer ")
 }
 
 // NewHTTPBFFClient creates a new HTTP-based BFF client
 func NewHTTPBFFClient(baseURL string, target BFFTarget, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
-	return NewHTTPBFFClientWithHeaders(baseURL, target, authToken, nil, insecureSkipVerify, rootCAs)
+	return NewHTTPBFFClientWithConfig(baseURL, target, authToken, nil, "", "", insecureSkipVerify, rootCAs)
 }
 
 // NewHTTPBFFClientWithHeaders creates a new HTTP-based BFF client with custom headers
 func NewHTTPBFFClientWithHeaders(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
+	return NewHTTPBFFClientWithConfig(baseURL, target, authToken, customHeaders, "", "", insecureSkipVerify, rootCAs)
+}
+
+// NewHTTPBFFClientWithConfig creates a new HTTP-based BFF client with full auth configuration
+func NewHTTPBFFClientWithConfig(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, authTokenHeader string, authTokenPrefix string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
 
 	return &HTTPBFFClient{
-		baseURL:       baseURL,
-		target:        target,
-		authToken:     authToken,
-		customHeaders: customHeaders,
+		baseURL:         baseURL,
+		target:          target,
+		authToken:       authToken,
+		customHeaders:   customHeaders,
+		authTokenHeader: authTokenHeader,
+		authTokenPrefix: authTokenPrefix,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -90,9 +99,13 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	}
 	req.Header.Set("Accept", "application/json")
 
-	// Forward auth token
+	// Forward auth token using configured header and prefix
 	if c.authToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
+		header := c.authTokenHeader
+		if header == "" {
+			header = "x-forwarded-access-token" // Default for ODH
+		}
+		req.Header.Set(header, c.authTokenPrefix+c.authToken)
 	}
 
 	// Set custom headers (e.g., kubeflow-userid for MaaS BFF)
