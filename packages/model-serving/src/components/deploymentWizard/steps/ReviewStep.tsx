@@ -171,7 +171,9 @@ const getStatusSections = (
                   );
                 })}
                 {additionalFields.modelPath && <>Model path: {additionalFields.modelPath}</>}
-                {additionalFields.modelUri && <>Model URI: {additionalFields.modelUri}</>}
+                {additionalFields.modelUri && !fields.URI && (
+                  <>Model URI: {additionalFields.modelUri}</>
+                )}
               </>
             );
           },
