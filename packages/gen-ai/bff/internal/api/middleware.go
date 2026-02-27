@@ -453,8 +453,18 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 			authToken = identity.Token
 		}
 
-		// Create BFF client for MaaS target
-		client := app.bffClientFactory.CreateClient("maas", authToken)
+		// Extract identity headers to forward to MaaS BFF
+		// MaaS BFF uses kubeflow-userid/kubeflow-groups for internal auth
+		forwardHeaders := make(map[string]string)
+		if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+			forwardHeaders["kubeflow-userid"] = userID
+		}
+		if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+			forwardHeaders["kubeflow-groups"] = groups
+		}
+
+		// Create BFF client for MaaS target with forwarded headers
+		client := app.bffClientFactory.CreateClientWithHeaders("maas", authToken, forwardHeaders)
 		if client == nil {
 			logger.Warn("Failed to create MaaS BFF client")
 			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)

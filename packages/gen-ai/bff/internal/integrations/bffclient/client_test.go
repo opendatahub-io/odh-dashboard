@@ -71,8 +71,8 @@ func TestHTTPBFFClient_Call_NoBody(t *testing.T) {
 
 func TestHTTPBFFClient_Call_ErrorResponses(t *testing.T) {
 	tests := []struct {
-		name           string
-		statusCode     int
+		name            string
+		statusCode      int
 		expectedErrCode string
 	}{
 		{"BadRequest", http.StatusBadRequest, ErrCodeBadRequest},

@@ -9,25 +9,23 @@ The inter-BFF communication allows Gen-AI BFF to call MaaS BFF endpoints for ope
 1. **Gen-AI BFF** (`/api/v1/bff/maas/tokens`) - Calls MaaS BFF via the `bffclient` package
 2. **MaaS BFF** (`/api/v1/tokens`) - Stub implementation that returns mock tokens
 
-## Testing Options
+## Quick Start
 
-### Option 1: Mock Mode (Recommended for Development)
+### Option 1: Full Mock Mode (Recommended)
 
-Run Gen-AI BFF with mock BFF clients enabled. This uses in-memory mocks instead of making real HTTP calls.
+The easiest way to test - uses in-memory mocks for all external dependencies:
 
 ```bash
-cd packages/gen-ai/bff
-go run ./cmd/... \
-  --mock-k8s-client \
-  --mock-bff-clients \
-  --auth-method=disabled \
-  --port=8143
+cd packages/gen-ai
+make dev-bff-mock
 ```
+
+This starts Gen-AI BFF on **port 8080** with all mocks enabled.
 
 Test the endpoint:
 ```bash
-# Issue token via BFF client (mock)
-curl -X POST "http://localhost:8143/api/v1/bff/maas/tokens?namespace=default" \
+# Issue token via BFF client (mock response)
+curl -X POST "http://localhost:8080/api/v1/bff/maas/tokens?namespace=default" \
   -H "Content-Type: application/json" \
   -d '{"expiration": "30m"}'
 
@@ -35,51 +33,47 @@ curl -X POST "http://localhost:8143/api/v1/bff/maas/tokens?namespace=default" \
 # {"data":{"token":"mock-ephemeral-token-...","expiresAt":1234567890}}
 
 # Revoke tokens via BFF client (mock)
-curl -X DELETE "http://localhost:8143/api/v1/bff/maas/tokens?namespace=default"
+curl -X DELETE "http://localhost:8080/api/v1/bff/maas/tokens?namespace=default"
 # Expected: 204 No Content
 ```
 
-### Option 2: End-to-End with Both BFFs Running
+### Option 2: End-to-End with Both BFFs
 
-Run both BFFs locally to test actual HTTP communication.
+Test actual HTTP communication between Gen-AI BFF and MaaS BFF.
 
 **Terminal 1 - Start MaaS BFF:**
+
 ```bash
-cd packages/maas/bff
-go run ./cmd/... \
-  --mock-k8s-client \
-  --mock-http-client \
-  --auth-method=disabled \
-  --port=8243
+cd packages/maas
+make dev-bff
 ```
 
-**Terminal 2 - Start Gen-AI BFF with dev URL override:**
+This starts MaaS BFF on **port 4000** with mocks enabled.
+
+**Terminal 2 - Start Gen-AI BFF:**
+
 ```bash
-cd packages/gen-ai/bff
-go run ./cmd/... \
-  --mock-k8s-client \
-  --mock-ls-client \
-  --auth-method=disabled \
-  --bff-maas-dev-url="http://localhost:8243/api/v1" \
-  --port=8143
+cd packages/gen-ai
+make dev-bff-inter-bff
 ```
 
-**Terminal 3 - Test the endpoints:**
+This starts Gen-AI BFF on **port 8080** configured to call MaaS BFF at `http://localhost:4000/api/v1`.
+
+**Terminal 3 - Test the flow:**
+
 ```bash
 # Test MaaS BFF directly
-curl -X POST "http://localhost:8243/api/v1/tokens" \
+curl -X POST "http://localhost:4000/api/v1/tokens" \
   -H "Content-Type: application/json" \
   -d '{"expiration": "2h"}'
 
-# Test Gen-AI BFF calling MaaS BFF
-curl -X POST "http://localhost:8143/api/v1/bff/maas/tokens?namespace=default" \
+# Test Gen-AI BFF → MaaS BFF communication
+curl -X POST "http://localhost:8080/api/v1/bff/maas/tokens?namespace=default" \
   -H "Content-Type: application/json" \
   -d '{"expiration": "2h"}'
 ```
 
 ### Option 3: Unit Tests
-
-Run the unit tests to verify the implementation:
 
 ```bash
 # Gen-AI BFF tests
@@ -91,6 +85,17 @@ go test ./internal/integrations/bffclient/... -v
 cd packages/maas/bff
 go test ./internal/api/... -run "Token" -v
 ```
+
+## Available Makefile Targets
+
+From `packages/gen-ai/`:
+
+| Target                     | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `make dev-bff-mock`        | Run with all mocks (K8s, LlamaStack, MaaS, MCP, MLflow, BFF clients) |
+| `make dev-bff-inter-bff`   | Run with mock K8s but real HTTP to MaaS BFF on localhost:4000        |
+| `make dev-bff-mock-debug`  | Same as mock but with Delve debugger on port 2345                    |
+| `make dev-start-mock`      | Run both frontend and BFF with all mocks                             |
 
 ## Configuration Options
 
