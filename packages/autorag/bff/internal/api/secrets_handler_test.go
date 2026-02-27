@@ -31,6 +31,18 @@ func (m *mockKubernetesClientForSecrets) GetSecrets(ctx context.Context, namespa
 	return m.secrets, nil
 }
 
+func (m *mockKubernetesClientForSecrets) GetSecret(ctx context.Context, namespace, secretName string, identity *kubernetes.RequestIdentity) (*corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	for i := range m.secrets {
+		if m.secrets[i].Name == secretName && m.secrets[i].Namespace == namespace {
+			return &m.secrets[i], nil
+		}
+	}
+	return nil, fmt.Errorf("secret '%s' not found in namespace '%s'", secretName, namespace)
+}
+
 func (m *mockKubernetesClientForSecrets) IsClusterAdmin(identity *kubernetes.RequestIdentity) (bool, error) {
 	return false, nil
 }

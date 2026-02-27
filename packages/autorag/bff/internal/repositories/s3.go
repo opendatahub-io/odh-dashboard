@@ -58,18 +58,14 @@ func (r *S3Repository) GetS3Credentials(
 	secretData := secret.Data
 
 	// Helper to get value from secret data case-insensitively
-	getValue := func(keys ...string) string {
-		for _, key := range keys {
-			if val, exists := secretData[key]; exists {
-				return string(val)
-			}
-			// Try lowercase
-			if val, exists := secretData[toLowerCase(key)]; exists {
-				return string(val)
-			}
-			// Try uppercase
-			if val, exists := secretData[toUpperCase(key)]; exists {
-				return string(val)
+	getValue := func(targetKeys ...string) string {
+		// Check all keys in the secret against the target keys (case-insensitive)
+		for secretKey, secretValue := range secretData {
+			secretKeyLower := toLowerCase(secretKey)
+			for _, targetKey := range targetKeys {
+				if secretKeyLower == toLowerCase(targetKey) {
+					return string(secretValue)
+				}
 			}
 		}
 		return ""
