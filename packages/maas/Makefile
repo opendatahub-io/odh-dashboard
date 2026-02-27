@@ -88,9 +88,9 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff
-dev-bff:
+dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token
 
 .PHONY: dev-frontend
 dev-frontend:

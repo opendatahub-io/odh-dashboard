@@ -36,6 +36,19 @@ type BFFServiceConfig struct {
 
 	// DevOverrideURL allows local development override
 	DevOverrideURL string
+
+	// ─── AUTH CONFIGURATION ─────────────────────────────────
+	// AuthMethod specifies the auth method the target BFF uses
+	// Supported values: "internal" (kubeflow-userid), "user_token" (token in header)
+	AuthMethod string
+
+	// AuthTokenHeader is the header the target BFF expects for user_token auth
+	// e.g., "x-forwarded-access-token" or "Authorization"
+	AuthTokenHeader string
+
+	// AuthTokenPrefix is the prefix the target BFF expects in the token header
+	// e.g., "" (empty) or "Bearer "
+	AuthTokenPrefix string
 }
 
 // BFFClientConfig holds configuration for the BFF client system
@@ -60,25 +73,34 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 		MockBFFClients: false,
 		ServiceConfigs: map[BFFTarget]*BFFServiceConfig{
 			BFFTargetMaaS: {
-				Target:      BFFTargetMaaS,
-				ServiceName: "odh-dashboard",
-				Port:        8243,
-				PathPrefix:  "/api/v1",
-				TLSEnabled:  false,
+				Target:          BFFTargetMaaS,
+				ServiceName:     "odh-dashboard",
+				Port:            8243,
+				PathPrefix:      "/api/v1",
+				TLSEnabled:      false,
+				AuthMethod:      "user_token",
+				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenPrefix: "",
 			},
 			BFFTargetGenAI: {
-				Target:      BFFTargetGenAI,
-				ServiceName: "odh-dashboard",
-				Port:        8143,
-				PathPrefix:  "/api/v1",
-				TLSEnabled:  false,
+				Target:          BFFTargetGenAI,
+				ServiceName:     "odh-dashboard",
+				Port:            8143,
+				PathPrefix:      "/api/v1",
+				TLSEnabled:      false,
+				AuthMethod:      "user_token",
+				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenPrefix: "",
 			},
 			BFFTargetModelRegistry: {
-				Target:      BFFTargetModelRegistry,
-				ServiceName: "odh-dashboard",
-				Port:        8043,
-				PathPrefix:  "/api/v1",
-				TLSEnabled:  false,
+				Target:          BFFTargetModelRegistry,
+				ServiceName:     "odh-dashboard",
+				Port:            8043,
+				PathPrefix:      "/api/v1",
+				TLSEnabled:      false,
+				AuthMethod:      "user_token",
+				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenPrefix: "",
 			},
 		},
 		PodNamespace:       "",
