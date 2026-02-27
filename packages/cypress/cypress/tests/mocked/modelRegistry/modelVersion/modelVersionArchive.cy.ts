@@ -224,7 +224,9 @@ describe('Archiving version', () => {
   });
 
   it('Cannot archive version that has a deployment from versions table', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.interceptK8sList(
       InferenceServiceModel,
       mockK8sResourceList([
@@ -235,10 +237,13 @@ describe('Archiving version', () => {
           },
         }),
       ]),
-    );
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
+
+    // Wait for deployments to load before checking the kebab menu
+    cy.wait(['@getProjects', '@getInferenceServices']);
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
     modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
