@@ -474,6 +474,7 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click({ force: true });
+      cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
@@ -506,6 +507,7 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click({ force: true });
+      cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
     }
     return cy.wrap($el).parent().findByTestId(testId);
   });
