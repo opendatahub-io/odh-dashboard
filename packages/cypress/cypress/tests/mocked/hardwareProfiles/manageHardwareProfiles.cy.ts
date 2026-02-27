@@ -102,8 +102,8 @@ function makeProfile({ withLocalQueue = false } = {}) {
   });
 }
 
-function setupIntercepts({ disableKueue = false, isPresent = true, withLocalQueue = false } = {}) {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableKueue }));
+function setupIntercepts({ kueue = true, isPresent = true, withLocalQueue = false } = {}) {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ kueue }));
 
   cy.interceptK8sList(
     { model: WorkloadPriorityClassModel },
@@ -128,7 +128,7 @@ describe('Manage Hardware Profile', () => {
   });
 
   it('create hardware profile', () => {
-    initIntercepts({});
+    setupIntercepts({});
     createHardwareProfile.visit();
     createHardwareProfile.findSubmitButton().should('be.disabled');
 
@@ -179,7 +179,7 @@ describe('Manage Hardware Profile', () => {
   });
 
   it('test node resources section', () => {
-    initIntercepts({});
+    setupIntercepts({});
     createHardwareProfile.visit();
     createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
@@ -374,12 +374,12 @@ describe('Manage Hardware Profile', () => {
   });
 
   it('test node selectors section', () => {
-    initIntercepts({});
+    setupIntercepts({ kueue: false });
     createHardwareProfile.visit();
     createHardwareProfile.findSubmitButton().should('be.disabled');
     createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
-    // test node selectors empty state
+    // test node selectors empty state (with kueue disabled, node strategy is the only option so buttons are visible)
     createHardwareProfile.findNodeSelectorTable().should('not.exist');
     // open node selector modal
     createHardwareProfile.findAddNodeSelectorButton().click();
@@ -438,12 +438,12 @@ describe('Manage Hardware Profile', () => {
   });
 
   it('test tolerations section', () => {
-    initIntercepts({});
+    setupIntercepts({ kueue: false });
     createHardwareProfile.visit();
     createHardwareProfile.findSubmitButton().should('be.disabled');
     createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
-    // test tolerations empty state
+    // test tolerations empty state (with kueue disabled, node strategy is the only option so buttons are visible)
     createHardwareProfile.findTolerationTable().should('not.exist');
     // open toleration modal
     createHardwareProfile.findAddTolerationButton().click();
@@ -736,7 +736,7 @@ describe('Manage Hardware Profile', () => {
   });
 
   describe('Kueue enabled', () => {
-    beforeEach(() => setupIntercepts({ disableKueue: false }));
+    beforeEach(() => setupIntercepts({ kueue: true }));
 
     it('creating a new hardware profile', () => {
       createHardwareProfile.visit();
@@ -888,7 +888,7 @@ describe('Manage Hardware Profile', () => {
 
   describe('Kueue disabled', () => {
     it('creating a new hardware profile', () => {
-      setupIntercepts({ disableKueue: true });
+      setupIntercepts({ kueue: false });
       createHardwareProfile.visit();
       createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('Test hardware profile');
 
@@ -927,7 +927,7 @@ describe('Manage Hardware Profile', () => {
     });
 
     it('editing a preexisting hardware profile with local queue/workload priority', () => {
-      setupIntercepts({ disableKueue: true, withLocalQueue: true });
+      setupIntercepts({ kueue: false, withLocalQueue: true });
 
       editHardwareProfile.visit('test-hardware-profile');
 
@@ -975,7 +975,7 @@ describe('Manage Hardware Profile', () => {
     });
 
     it('editing a preexisting hardware profile with node selector and tolerations', () => {
-      setupIntercepts({ disableKueue: true });
+      setupIntercepts({ kueue: false });
 
       editHardwareProfile.visit('test-hardware-profile');
 

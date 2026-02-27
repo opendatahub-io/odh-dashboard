@@ -1297,7 +1297,7 @@ export type DashboardCommonConfig = {
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
   disableLMEval: boolean;
-  disableKueue: boolean;
+  kueue?: boolean;
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;

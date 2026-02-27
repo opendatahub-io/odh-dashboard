@@ -54,7 +54,7 @@ export const applyNamespaceChange = async (
   let labels = {};
   let checkPermissionsFn = null;
   const config = getDashboardConfig(request);
-  const isKueueDisabled = config.spec.dashboardConfig.disableKueue;
+  const isKueueDisabled = config.spec.dashboardConfig.kueue;
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       {
