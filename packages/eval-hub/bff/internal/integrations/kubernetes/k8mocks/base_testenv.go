@@ -48,15 +48,24 @@ type TestEnvInput struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	// ENVTEST_ASSETS is set by "make run"/"make test"; fallback only applies when running without make (e.g. IDE, ad-hoc go test).
+	var binaryAssetsDir string
+	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
+		binaryAssetsDir = envtestAssets
+		input.Logger.Info("Using ENVTEST_ASSETS environment variable", slog.String("path", binaryAssetsDir))
+	} else {
+		projectRoot, err := getProjectRoot()
+		if err != nil {
+			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
+			input.Cancel()
+			os.Exit(1)
+		}
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
+		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
 
 	testEnv := &envtest.Environment{
-		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 	}
 
 	cfg, err := testEnv.Start()

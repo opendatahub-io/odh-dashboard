@@ -27,7 +27,7 @@ Cypress.Keyboard.defaults({
 beforeEach(() => {
   if (Cypress.env('MOCK')) {
     // fallback: return 404 for all api requests
-    cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
+    cy.intercept({ pathname: '/eval-hub/api/**' }, { statusCode: 404 });
 
     cy.interceptApi(
       'GET /api/:apiVersion/user',
