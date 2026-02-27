@@ -313,7 +313,7 @@ export const initMockModelAuthIntercepts = ({
         }
       : {
           statusCode: getResponse,
-          body: mockSecretK8sResource({ name: `${modelName}-sa`, namespace }),
+          body: mockServiceAccountK8sResource({ name: `${modelName}-sa`, namespace }),
         },
   ).as('getServiceAccount');
 

@@ -78,16 +78,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
-  const { resources: formResources } = useFormToResourcesTransformer(
-    wizardFormData,
-    existingDeployment,
-  );
-  const {
-    yaml,
-    setYaml,
-    resources: finalResources, // will be from yaml or wizard depending view mode
-    error: yamlError,
-  } = useFormYamlResources(formResources);
   const secretName =
     wizardFormData.state.modelLocationData.data?.connection ??
     wizardFormData.state.createConnectionData.data.nameDesc?.k8sName.value ??
@@ -116,6 +106,18 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       });
     }
   }, [secretName, wizardFormData.state.createConnectionData]);
+
+  const { resources: formResources } = useFormToResourcesTransformer(
+    wizardFormData,
+    existingDeployment,
+    secretName, // todo remove
+  );
+  const {
+    yaml,
+    setYaml,
+    resources: finalResources, // will be from yaml or wizard depending view mode
+    error: yamlError,
+  } = useFormYamlResources(formResources);
 
   const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
