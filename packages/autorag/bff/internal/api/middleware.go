@@ -97,3 +97,62 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		next(w, r, ps)
 	}
 }
+
+// AttachPipelineServerClient middleware creates a Pipeline Server client and attaches it to context.
+// This middleware must be used after AttachNamespace middleware.
+//
+// The pipelineServerId is extracted from query parameters and used to discover
+// the Pipeline Server's URL from the DSPipelineApplication CR in the namespace.
+func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
+			return
+		}
+
+		// Get pipeline server ID from query params
+		pipelineServerId := r.URL.Query().Get("pipelineServerId")
+		if pipelineServerId == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required parameter: pipelineServerId"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Create pipeline server client (mock or real based on configuration)
+		if app.config.MockPipelineServerClient {
+			logger.Debug("MOCK MODE: creating mock Pipeline Server client",
+				"namespace", namespace,
+				"pipelineServerId", pipelineServerId)
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
+			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+		} else {
+			// Construct the Pipeline Server API URL
+			// Service discovery and validation is available via the /api/v1/pipeline-servers endpoint
+			// Here we construct the URL based on Kubernetes service DNS naming convention
+			baseURL := fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", pipelineServerId, namespace)
+			authToken := ""
+			insecureSkipVerify := app.config.InsecureSkipVerify
+
+			logger.Debug("Creating Pipeline Server client",
+				"namespace", namespace,
+				"pipelineServerId", pipelineServerId,
+				"baseURL", baseURL)
+
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
+				baseURL,
+				authToken,
+				insecureSkipVerify,
+				app.rootCAs,
+			)
+			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+		}
+
+		r = r.WithContext(ctx)
+		next(w, r, ps)
+	}
+}

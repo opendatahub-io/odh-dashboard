@@ -5,12 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
@@ -59,4 +62,40 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		return empty, nil, err
 	}
 	return out, res, nil
+}
+
+// newTestApp creates a test app with mocked Kubernetes client for unit testing
+func newTestApp(t *testing.T) *App {
+	t.Helper()
+
+	logger := slog.Default()
+	cfg := config.EnvConfig{
+		MockK8Client: true,
+		AuthMethod:   config.AuthMethodInternal,
+	}
+
+	// Create a mock Kubernetes client factory
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		Logger: logger,
+		Ctx:    ctx,
+		Cancel: cancel,
+	})
+	if err != nil {
+		t.Fatalf("failed to setup test environment: %v", err)
+	}
+	t.Cleanup(func() {
+		if testEnv != nil {
+			_ = testEnv.Stop()
+		}
+	})
+
+	k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+	if err != nil {
+		t.Fatalf("failed to create mock k8s factory: %v", err)
+	}
+
+	return NewTestApp(cfg, logger, k8sFactory, nil)
 }
