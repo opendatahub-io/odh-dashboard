@@ -1119,7 +1119,6 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.findSubmitButton().should('be.enabled');
     pipelineVersionImportModal.submit();
 
-    // Verify error appears
     pipelineVersionImportModal.findImportModalError().should('exist');
     pipelineVersionImportModal.findImportModalError().contains('Unsupported pipeline version');
   });
