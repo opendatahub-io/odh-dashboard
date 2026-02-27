@@ -11,6 +11,7 @@ const ComponentLabelValue = "autorag"
 // KubernetesClientInterface exposes only the minimal surface needed by the starter project.
 type KubernetesClientInterface interface {
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error)
+	GetSecrets(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error)
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
 }

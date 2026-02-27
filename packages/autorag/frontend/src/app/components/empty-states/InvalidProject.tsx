@@ -5,7 +5,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import ProjectSelectorNavigator from '../common/ProjectSelectorNavigator';
+import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 
 interface InvalidProjectProps {
   namespace?: string;
