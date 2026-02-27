@@ -1,6 +1,7 @@
 import {
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sListResource,
   K8sResourceCommon,
   k8sUpdateResource,
@@ -9,7 +10,7 @@ import axios from '#~/utilities/axios';
 import { CustomWatchK8sResult } from '#~/types';
 import { K8sAPIOptions, ProjectKind } from '#~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';
-import { throwErrorFromAxios } from '#~/api/errorUtils';
+import { K8sStatusError, throwErrorFromAxios } from '#~/api/errorUtils';
 import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
@@ -37,6 +38,29 @@ export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<P
       opts,
     ),
   ).then((listResource) => listResource.items);
+
+export const getProject = (name: string, opts?: K8sAPIOptions): Promise<ProjectKind> =>
+  k8sGetResource<ProjectKind>(
+    applyK8sAPIOptions(
+      {
+        model: ProjectModel,
+        queryOptions: { name },
+      },
+      opts,
+    ),
+  );
+
+export const isProjectNameAvailable = async (name: string): Promise<boolean> => {
+  try {
+    await getProject(name);
+    return false; // Project exists, name is NOT available
+  } catch (e) {
+    if (e instanceof K8sStatusError && e.statusObject.code === 404) {
+      return true; // 404 = name is available
+    }
+    throw e; // Re-throw other errors
+  }
+};
 
 export const createProject = (
   username: string,

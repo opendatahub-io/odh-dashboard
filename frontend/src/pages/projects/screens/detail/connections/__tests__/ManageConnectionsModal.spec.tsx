@@ -39,6 +39,34 @@ describe('Create connection modal', () => {
     expect(screen.getByRole('textbox', { name: 'Short text' })).toBeVisible();
   });
 
+  it('should not show name availability validation feedback (no nameChecker)', async () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'test type',
+            fields: [],
+          }),
+        ]}
+      />,
+    );
+
+    const nameInput = screen.getByRole('textbox', { name: 'Connection name' });
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'test-connection' } });
+    });
+
+    // Verify no name availability feedback is shown (no nameChecker is passed)
+    expect(screen.queryByText('Resource name available')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checking resource name availability...')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/A project with this resource name already exists/),
+    ).not.toBeInTheDocument();
+  });
+
   it('should list connection types and select one', async () => {
     render(
       <ManageConnectionModal

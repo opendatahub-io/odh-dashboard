@@ -2,6 +2,7 @@ import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { NameAvailabilityStatus } from './K8sNameDescriptionField';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
 
@@ -50,6 +51,28 @@ export const HelperTextItemResourceNameTaken: React.FC<{
       data-testid="resource-name-taken-error"
     >
       {resourceNameTakenMessage}
+    </HelperTextItem>
+  );
+};
+
+export const HelperTextUniqueName: React.FC<{
+  nameAvailabilityStatus: NameAvailabilityStatus;
+}> = ({ nameAvailabilityStatus }) => {
+  // Only show if there's an actual status (not UNCHECKED)
+  if (nameAvailabilityStatus === NameAvailabilityStatus.UNCHECKED) {
+    return null;
+  }
+
+  let variant: Variants = 'indeterminate';
+  if (nameAvailabilityStatus === NameAvailabilityStatus.VALID) {
+    variant = 'success';
+  } else if (nameAvailabilityStatus === NameAvailabilityStatus.INVALID) {
+    variant = 'error';
+  }
+
+  return (
+    <HelperTextItem variant={variant} data-testid="resource-name-unique">
+      Must be unique
     </HelperTextItem>
   );
 };

@@ -19,11 +19,13 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
+  NameAvailabilityStatus,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { isProjectNameAvailable } from '#~/api/k8s/projects';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -33,6 +35,11 @@ type ManageProjectModalProps = {
 const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData, onClose }) => {
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
+  const defaultNameValidation = editProjectData
+    ? NameAvailabilityStatus.VALID
+    : NameAvailabilityStatus.UNCHECKED;
+  const [nameAvailabilityValidation, setNameAvailabilityValidation] =
+    React.useState(defaultNameValidation);
   const [error, setError] = React.useState<Error | undefined>();
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
     initialData: editProjectData,
@@ -40,7 +47,13 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   });
   const { username } = useUser();
 
-  const canSubmit = !fetching && isK8sNameDescriptionDataValid(k8sNameDescriptionData.data);
+  const canSubmit =
+    !fetching &&
+    isK8sNameDescriptionDataValid(k8sNameDescriptionData.data) &&
+    nameAvailabilityValidation === NameAvailabilityStatus.VALID;
+
+  // resource name checking is only applicable for creation; as
+  // while we are editing the resource name *cannot* be changed
 
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
@@ -81,6 +94,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
     }
   };
 
+  const nameChecker = React.useCallback(async (value: string) => {
+    return isProjectNameAvailable(value);
+  }, []);
+
   return (
     <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
       <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
@@ -98,6 +115,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
                 dataTestId="manage-project-modal"
                 maxLength={250}
                 maxLengthDesc={5500}
+                nameChecker={editProjectData ? undefined : nameChecker}
+                onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
                 {...k8sNameDescriptionData}
               />
             </Form>
