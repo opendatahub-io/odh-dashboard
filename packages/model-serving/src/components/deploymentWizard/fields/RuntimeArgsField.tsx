@@ -55,7 +55,7 @@ type RuntimeArgsFieldProps = {
 export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
   data = { enabled: false, args: [] },
   onChange,
-  allowCreate = false,
+  allowCreate = true,
   predefinedArgs,
 }) => {
   const handleCheckboxChange = (event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
