@@ -145,6 +145,7 @@ export type WizardFormData = {
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
+    canCreateRoleBindings: boolean;
   } & Record<string, unknown>;
 };
 

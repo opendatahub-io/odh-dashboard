@@ -33,11 +33,11 @@ dev-install-dependencies:
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
+	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone PORT=9105 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -81,7 +81,7 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false EVAL_HUB_URL=$${EVAL_HUB_URL} DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && EVAL_HUB_URL=${EVAL_HUB_URL} make run PORT=4002 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

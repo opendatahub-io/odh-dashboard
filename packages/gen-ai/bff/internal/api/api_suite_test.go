@@ -29,15 +29,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
-	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
 // Package-level test infrastructure - initialized once, shared by all tests.
@@ -204,28 +198,7 @@ var _ = BeforeSuite(func() {
 	openAPIHandler, err := NewOpenAPIHandler(logger)
 	Expect(err).NotTo(HaveOccurred())
 
-	memStore := cache.NewMemoryStore()
-	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
-
-	mcpFactory := mcpmocks.NewMockedMCPClientFactory(cfg, logger)
-	// Create app manually to avoid NewApp() starting a second envtest instance
-	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
-		openAPI:                 openAPIHandler,
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		maasClientFactory:       maasmocks.NewMockClientFactory(),
-		mcpClientFactory:        mcpFactory,
-		mlflowClientFactory:     mlflowmocks.NewMockClientFactory(),
-		dashboardNamespace:      "opendatahub",
-		memoryStore:             memStore,
-		rootCAs:                 nil,
-		clusterDomain:           "",
-		fileUploadJobTracker:    fileUploadJobTracker,
-		testEnvState:            nil,
-	}
+	app := NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
 
 	err = os.Chdir(originalWd)
 	Expect(err).NotTo(HaveOccurred())

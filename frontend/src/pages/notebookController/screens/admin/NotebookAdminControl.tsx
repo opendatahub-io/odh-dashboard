@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   EmptyState,
+  EmptyStateBody,
   EmptyStateVariant,
   Spinner,
   Stack,
@@ -13,6 +14,7 @@ import { Table } from '#~/components/table';
 import ExternalLink from '#~/components/ExternalLink';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { UserIcon } from '#~/images/icons';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
@@ -60,27 +62,41 @@ const NotebookAdminControl: React.FC = () => {
           <Title headingLevel="h2">Users</Title>
         </StackItem>
         <StackItem>
-          <Table
-            aria-label="Users table"
-            variant="compact"
-            data={users}
-            data-testid="administration-users-table"
-            enablePagination
-            columns={columns}
-            rowRenderer={(user) => (
-              <Tr key={user.name}>
-                {columns.map((column) => (
-                  <Td
-                    key={column.field}
-                    dataLabel={column.field}
-                    isActionCell={column.field === 'actions'}
-                  >
-                    <UserTableCellTransform user={user} userProperty={column.field} />
-                  </Td>
-                ))}
-              </Tr>
-            )}
-          />
+          {users.length === 0 ? (
+            <EmptyState
+              headingLevel="h3"
+              icon={UserIcon}
+              titleText="No users"
+              variant={EmptyStateVariant.sm}
+              data-testid="administration-users-empty-state"
+            >
+              <EmptyStateBody>
+                Users will appear here once they create a basic workbench.
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <Table
+              aria-label="Users table"
+              variant="compact"
+              data={users}
+              data-testid="administration-users-table"
+              enablePagination
+              columns={columns}
+              rowRenderer={(user) => (
+                <Tr key={user.name}>
+                  {columns.map((column) => (
+                    <Td
+                      key={column.field}
+                      dataLabel={column.field}
+                      isActionCell={column.field === 'actions'}
+                    >
+                      <UserTableCellTransform user={user} userProperty={column.field} />
+                    </Td>
+                  ))}
+                </Tr>
+              )}
+            />
+          )}
         </StackItem>
       </Stack>
     </ApplicationsPage>

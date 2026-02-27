@@ -181,15 +181,16 @@ describe('Administration Tab', () => {
     notebookController.findAppTitle().should('not.contain', 'Administration');
   });
 
-  it('The table should load and be empty when there are no allowed users', () => {
+  it('The table should show empty state when there are no allowed users', () => {
     initIntercepts({ allowedUsers: [] });
     notebookController.visit();
     notebookController.findAdministrationTab().click();
-    administration.findRows().should('have.length', 0);
-    administration.findTableHeaderButton('User').should('exist');
-    administration.findTableHeaderButton('Privilege').should('exist');
-    administration.findTableHeaderButton('Last activity').should('exist');
-    administration.findTableHeaderButton('Workbench status').should('exist');
+    administration.findEmptyState().should('exist');
+    administration.findEmptyState().should('contain', 'No users');
+    administration
+      .findEmptyState()
+      .should('contain', 'Users will appear here once they create a basic workbench.');
+    cy.findByTestId('administration-users-table').should('not.exist');
   });
 
   it('Validate that clicking on "Stop all workbenches" button will show dialog for stopping multiple workbenches', () => {

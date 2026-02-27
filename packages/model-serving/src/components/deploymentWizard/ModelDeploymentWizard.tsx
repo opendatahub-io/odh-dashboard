@@ -297,8 +297,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 wizardState.loaded.advancedOptionsLoaded ? (
                   <AdvancedSettingsStepContent
                     wizardState={wizardState}
-                    projectName={currentProjectName}
                     externalData={externalData}
+                    allowCreate={wizardState.state.canCreateRoleBindings}
                   />
                 ) : (
                   <Spinner data-testid="spinner" />
