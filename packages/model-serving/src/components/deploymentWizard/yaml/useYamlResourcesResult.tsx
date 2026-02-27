@@ -6,6 +6,7 @@ type UseFormYamlResourcesResult = {
   yaml?: string;
   setYaml: (yaml: string) => void;
   resources: DeploymentWizardResources;
+  error?: Error;
 };
 
 /**
@@ -17,22 +18,30 @@ type UseFormYamlResourcesResult = {
 export const useFormYamlResources = (
   formResources: DeploymentWizardResources,
 ): UseFormYamlResourcesResult => {
-  const formAsYaml = React.useMemo(() => {
+  const { formAsYaml, formAsYamlError } = React.useMemo(() => {
     try {
-      return stringify(formResources.model);
+      return { formAsYaml: stringify(formResources.model) };
     } catch (error) {
-      return undefined;
+      return {
+        formAsYaml: undefined,
+        formAsYamlError:
+          error instanceof Error ? error : new Error('Failed to convert form resources to YAML'),
+      };
     }
   }, [formResources]);
 
   const [editorYaml, setEditorYaml] = React.useState<string | undefined>(formAsYaml);
 
   const lastUpdatedSource = React.useRef<'form' | 'editor'>('form');
-  const yamlResources = React.useMemo<DeploymentWizardResources>(() => {
+  const { yamlResources, yamlResourcesError } = React.useMemo(() => {
     try {
-      return editorYaml ? { model: parse(editorYaml) } : {};
+      return { yamlResources: editorYaml ? { model: parse(editorYaml) } : {} };
     } catch (error) {
-      return {};
+      return {
+        yamlResources: {},
+        yamlResourcesError:
+          error instanceof Error ? error : new Error('Failed to parse invalid YAML'),
+      };
     }
   }, [editorYaml]);
 
@@ -44,12 +53,20 @@ export const useFormYamlResources = (
     [setEditorYaml],
   );
 
-  return React.useMemo(
-    () => ({
+  return React.useMemo(() => {
+    return {
       yaml: lastUpdatedSource.current === 'editor' ? editorYaml : formAsYaml,
       setYaml,
       resources: lastUpdatedSource.current === 'editor' ? yamlResources : formResources,
-    }),
-    [editorYaml, formAsYaml, setYaml, yamlResources, formResources],
-  );
+      error: lastUpdatedSource.current === 'editor' ? yamlResourcesError : formAsYamlError,
+    };
+  }, [
+    editorYaml,
+    formAsYaml,
+    setYaml,
+    yamlResources,
+    formResources,
+    yamlResourcesError,
+    formAsYamlError,
+  ]);
 };

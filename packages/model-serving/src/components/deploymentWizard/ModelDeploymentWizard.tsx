@@ -86,8 +86,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     yaml,
     setYaml,
     resources: finalResources, // will be from yaml or wizard depending view mode
+    error: yamlError,
   } = useFormYamlResources(formResources);
-
   const secretName =
     wizardFormData.state.modelLocationData.data?.connection ??
     wizardFormData.state.createConnectionData.data.nameDesc?.k8sName.value ??
@@ -209,7 +209,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 onOverwrite={onOverwrite}
                 onRefresh={onRefresh}
                 isLoading={isLoading}
-                error={submitError}
+                error={submitError ?? yamlError}
                 clearError={clearSubmitError}
               />
             </PageSection>

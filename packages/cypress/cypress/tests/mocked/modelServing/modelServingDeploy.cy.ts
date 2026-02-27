@@ -1811,9 +1811,10 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
 
       // Edit metadata.name in the YAML editor and verify the change propagates to the request
-      yamlEditor.replaceInYAMLEditor('name: test-model', 'name: yaml-edited-model');
+      yamlEditor.replaceInEditor('name: test-model', 'name: yaml-edited-model');
       yamlEditor.containsText('name: yaml-edited-model');
 
+      modelServingWizard.findErrorMessageAlert().should('not.exist');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       // Verify LLMInferenceService was created with the edited name (dry run + actual)
@@ -1886,11 +1887,17 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
       modelServingWizard.findSubmitButton().should('be.disabled');
 
-      // Type a valid LLMInferenceService YAML directly into the Monaco editor.
-      // The {enter}{home}{shift+end}{del} sequence between lines ensures each new line
-      // starts at column 0 regardless of Monaco's YAML auto-indent behaviour,
-      // then explicit leading spaces set the correct indentation.
-      const yamlLines = [
+      // First enter invalid YAML to trigger error
+      modelServingWizard.findYAMLCodeEditor().setValue('invalid: yaml:');
+      modelServingWizard.findErrorMessageAlert().should('exist');
+
+      // Clear the invalid YAML
+      modelServingWizard.findYAMLCodeEditor().clear();
+      modelServingWizard.findErrorMessageAlert().should('not.exist');
+
+      // Set a valid LLMInferenceService YAML directly via the Monaco API to avoid
+      // headless browser keyboard-simulation issues with the Monaco editor.
+      const yamlContent = [
         'apiVersion: serving.kserve.io/v1alpha1',
         'kind: LLMInferenceService',
         'metadata:',
@@ -1900,13 +1907,10 @@ describe('Model Serving Deploy Wizard', () => {
         '  model:',
         '    uri: hf://test/model',
         '    name: yaml-only-model',
-      ];
-      modelServingWizard
-        .findYAMLCodeEditor()
-        .find()
-        .type(yamlLines.join('{enter}{home}{shift+end}{del}'));
+      ].join('\n');
+      modelServingWizard.findYAMLCodeEditor().setValue(yamlContent);
 
-      // Submit button becomes enabled once Monaco fires onChange with the YAML content
+      modelServingWizard.findErrorMessageAlert().should('not.exist');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       // Verify only LLMInferenceService was created (dry run + actual) – no other resources

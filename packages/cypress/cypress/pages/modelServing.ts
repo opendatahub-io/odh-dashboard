@@ -5,7 +5,7 @@ import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescr
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
-import { YamlEditor } from './components/YamlEditor';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -1348,7 +1348,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    return new YamlEditor();
+    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor').find('.monaco-editor'));
   }
 
   findYAMLEditorEmptyState() {
