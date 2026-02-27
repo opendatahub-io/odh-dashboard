@@ -141,6 +141,7 @@ export const assembleLLMdDeployment = (
   wizardData: WizardFormData,
   existingDeployment?: LLMdDeployment,
   applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
+  connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
 ): LLMdDeployment => {
   let result: LLMdDeployment = {
     modelServingPlatformId: LLMD_SERVING_ID,
@@ -164,7 +165,7 @@ export const assembleLLMdDeployment = (
         tokenAuthentication: wizardData.state.tokenAuthentication.data,
       },
       existingDeployment?.model,
-      wizardData.state.createConnectionData.data.nameDesc?.k8sName.value,
+      connectionSecretName,
       false,
     ),
   };
@@ -179,35 +180,19 @@ export const assembleLLMdDeployment = (
  * - Update: When updating with overwrite=false (merge patch with removal handling)
  */
 const deployLLMInferenceService = async (
-  params: CreateLLMInferenceServiceParams,
-  existingDeployment: LLMInferenceServiceKind | undefined,
-  connectionSecretName: string | undefined,
+  llmInferenceService: LLMInferenceServiceKind,
+  existingLLMInferenceService?: LLMInferenceServiceKind,
   opts?: { dryRun?: boolean; overwrite?: boolean },
-  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMInferenceServiceKind> => {
-  let newResource = assembleLLMInferenceService(
-    params,
-    existingDeployment,
-    connectionSecretName,
-    opts?.dryRun,
-  );
-
-  // Apply field data from wizard field extensions during assembly
-  if (applyFieldData) {
-    const assembledDeployment = applyFieldData({
-      modelServingPlatformId: LLMD_SERVING_ID,
-      model: newResource,
-    });
-    newResource = assembledDeployment.model;
-  }
-
-  if (!existingDeployment) {
-    return createLLMInferenceService(newResource, { dryRun: opts?.dryRun });
+  if (!existingLLMInferenceService) {
+    return createLLMInferenceService(llmInferenceService, { dryRun: opts?.dryRun });
   }
   if (opts?.overwrite) {
-    return patchLLMInferenceService(existingDeployment, newResource, { dryRun: opts.dryRun });
+    return patchLLMInferenceService(existingLLMInferenceService, llmInferenceService, {
+      dryRun: opts.dryRun,
+    });
   }
-  return updateLLMInferenceService(newResource, { dryRun: opts?.dryRun });
+  return updateLLMInferenceService(llmInferenceService, { dryRun: opts?.dryRun });
 };
 
 /**
@@ -217,39 +202,24 @@ export const deployLLMdDeployment = async (
   wizardData: WizardFormData['state'],
   projectName: string,
   existingDeployment?: LLMdDeployment,
+  modelResource?: LLMdDeployment['model'],
   serverResource?: LLMdDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
   connectionSecretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMdDeployment> => {
-  const params: CreateLLMInferenceServiceParams = {
-    projectName,
-    k8sName: wizardData.k8sNameDesc.data.k8sName.value,
-    displayName: wizardData.k8sNameDesc.data.name,
-    description: wizardData.k8sNameDesc.data.description,
-    hardwareProfile: wizardData.hardwareProfileConfig.formData,
-    modelLocationData: wizardData.modelLocationData.data ?? {
-      type: ModelLocationType.NEW,
-      fieldValues: {},
-      additionalFields: {},
-    },
-    createConnectionData: wizardData.createConnectionData.data,
-    replicas: wizardData.numReplicas.data,
-    runtimeArgs: wizardData.runtimeArgs.data,
-    environmentVariables: wizardData.environmentVariables.data,
-    modelAvailability: wizardData.modelAvailability.data,
-    tokenAuthentication: wizardData.tokenAuthentication.data,
-  };
+  const llmInferenceService = modelResource;
+
+  if (!llmInferenceService) {
+    throw new Error('LLMInferenceService is required');
+  }
 
   const llmdInferenceService = await deployLLMInferenceService(
-    params,
+    llmInferenceService,
     existingDeployment?.model,
-    connectionSecretName,
     { dryRun, overwrite },
-    applyFieldData,
   );
 
   const createTokenAuth =
@@ -259,8 +229,8 @@ export const deployLLMdDeployment = async (
   if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
-      wizardData.k8sNameDesc.data.k8sName.value,
-      projectName,
+      llmInferenceService.metadata.name,
+      llmInferenceService.metadata.namespace,
       createTokenAuth,
       llmdInferenceService,
       initialWizardData?.existingAuthTokens,

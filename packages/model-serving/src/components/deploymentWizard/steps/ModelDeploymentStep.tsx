@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
@@ -17,6 +17,10 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
 }) => {
+  if (!wizardState.loaded.modelDeploymentLoaded) {
+    return <Spinner data-testid="spinner" />;
+  }
+
   return (
     <Form>
       <FormSection title="Model deployment">

@@ -1,7 +1,12 @@
 import React from 'react';
-import { Spinner, ToggleGroup, ToggleGroupItem, Wizard, WizardStep } from '@patternfly/react-core';
+import {
+  PageSection,
+  ToggleGroup,
+  ToggleGroupItem,
+  Wizard,
+  WizardStep,
+} from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getGeneratedSecretName,
@@ -9,7 +14,6 @@ import {
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { Deployment } from 'extension-points';
-import { deployModel } from './utils';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -17,17 +21,20 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
-import { useDeployMethod } from './useDeployMethod';
-import { useWizardFieldApply } from './useWizardFieldApply';
 import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
 import { DeploymentWizardYAMLView } from './yaml/DeploymentWizardYAMLView';
-import { StepContentToggle } from './ModelDeploymentStepContentToggle';
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
-import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
+import { useModelDeploymentSubmit } from './deploying/useModelDeploymentSubmit';
+import {
+  ModelDeploymentFooter,
+  ModelDeploymentWizardFooter,
+} from '../generic/WizardFooterWithDisablingNext';
+
+export type ModelDeploymentWizardViewMode = 'form' | 'yaml-preview' | 'yaml-edit';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -50,44 +57,38 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   returnRoute,
   cancelReturnRoute,
 }) => {
-  const [viewMode, setViewMode] = React.useState<'form' | 'yaml-preview' | 'yaml-edit'>('form');
-  const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const onRefresh = useRefreshWizardPage(existingDeployment);
   const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
     useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
 
+  const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
+  const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>('form');
+
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
-  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
-  const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
-  const currentProjectName = wizardState.state.project.projectName ?? undefined;
+  const wizardFormData = useModelDeploymentWizard(
+    existingData,
+    project?.metadata.name,
+    externalData,
+  );
+  const validation = useModelDeploymentWizardValidation(
+    wizardFormData.state,
+    wizardFormData.fields,
+  );
+  const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
-  const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
-  // TODO in same jira, replace deployMethod with applyFieldData for all other fields
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(wizardState.state);
-
-  const { resources } = useFormToResourcesTransformer(wizardState, existingDeployment);
-  const { yaml } = useFormYamlResources(resources);
-
-  const secretName = React.useMemo(() => {
-    return (
-      wizardState.state.modelLocationData.data?.connection ??
-      wizardState.state.createConnectionData.data.nameDesc?.k8sName.value ??
-      getGeneratedSecretName()
-    );
-  }, [
-    wizardState.state.modelLocationData.data?.connection,
-    wizardState.state.createConnectionData.data.nameDesc?.k8sName.value,
-  ]);
-
+  const secretName =
+    wizardFormData.state.modelLocationData.data?.connection ??
+    wizardFormData.state.createConnectionData.data.nameDesc?.k8sName.value ??
+    getGeneratedSecretName();
   React.useEffect(() => {
-    const current = wizardState.state.createConnectionData.data.nameDesc;
+    const current = wizardFormData.state.createConnectionData.data.nameDesc;
     const shouldSync = !current?.name || isGeneratedSecretName(current.name);
 
     if (shouldSync && current?.k8sName.value !== secretName) {
-      wizardState.state.createConnectionData.setData({
-        ...wizardState.state.createConnectionData.data,
+      wizardFormData.state.createConnectionData.setData({
+        ...wizardFormData.state.createConnectionData.data,
         nameDesc: {
           name: secretName,
           description: current?.description || '',
@@ -104,96 +105,48 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         },
       });
     }
-  }, [secretName, wizardState.state.createConnectionData]);
+  }, [secretName, wizardFormData.state.createConnectionData]);
 
-  const [submitError, setSubmitError] = React.useState<Error | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  const onSave = React.useCallback(
-    async (overwrite?: boolean) => {
-      setSubmitError(null);
-      setIsLoading(true);
-
-      try {
-        if (
-          !validation.isModelSourceStepValid ||
-          !validation.isModelDeploymentStepValid ||
-          !deployMethodLoaded ||
-          !deployMethod ||
-          !applyExtensionsLoaded
-        ) {
-          // shouldn't happen, but just in case
-          throw new Error('Invalid form data');
-        }
-        if (!currentProjectName) {
-          throw new Error('Select a project before deploying.');
-        }
-
-        const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
-        const allModelServerTemplates =
-          wizardState.state.modelFormatState.templatesFilteredForModelType;
-        const serverResource = serverResourceTemplateName
-          ? getServingRuntimeFromTemplate(
-              allModelServerTemplates?.find(
-                (template) => template.metadata.name === serverResourceTemplateName,
-              ),
-            )
-          : undefined;
-
-        await deployModel(
-          wizardState,
-          secretName,
-          exitWizardOnSubmit,
-          deployMethod.properties.deploy,
-          existingDeployment,
-          serverResource,
-          serverResourceTemplateName,
-          overwrite,
-          wizardState.initialData,
-          applyFieldData,
-        );
-      } catch (error) {
-        setSubmitError(error instanceof Error ? error : new Error(String(error)));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [
-      applyExtensionsLoaded,
-      applyFieldData,
-      deployMethod,
-      deployMethodLoaded,
-      existingDeployment,
-      exitWizardOnSubmit,
-      currentProjectName,
-      secretName,
-      validation.isModelDeploymentStepValid,
-      validation.isModelSourceStepValid,
-      wizardState,
-    ],
+  const { resources: formResources } = useFormToResourcesTransformer(
+    wizardFormData,
+    existingDeployment,
+    secretName, // todo remove
   );
+  const {
+    yaml,
+    setYaml,
+    resources: finalResources, // will be from yaml or wizard depending view mode
+    error: yamlError,
+  } = useFormYamlResources(formResources);
+
+  const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
+    useModelDeploymentSubmit(
+      wizardFormData.state,
+      finalResources,
+      validation,
+      exitWizardOnSubmit,
+      viewMode,
+      wizardFormData.initialData,
+      existingDeployment,
+      secretName,
+    );
 
   const wizardFooter = React.useMemo(
     () => (
-      <WizardFooterWithDisablingNext
+      <ModelDeploymentWizardFooter
         error={submitError}
-        clearError={() => setSubmitError(null)}
+        clearError={clearSubmitError}
         isLoading={isLoading}
         submitButtonText={primaryButtonText}
-        overwriteSupported={deployMethod?.properties.supportsOverwrite}
-        onSave={onSave}
+        onOverwrite={onOverwrite}
         onRefresh={onRefresh}
       />
     ),
-    [
-      submitError,
-      isLoading,
-      primaryButtonText,
-      deployMethod?.properties.supportsOverwrite,
-      onSave,
-      onRefresh,
-    ],
+    [submitError, clearSubmitError, isLoading, primaryButtonText, onRefresh, onOverwrite],
   );
+
+  // preserve the last step index when switching between yaml view
+  const lastStepIndex = React.useRef<number>();
 
   return (
     <>
@@ -218,120 +171,107 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 buttonId="form-view"
                 isSelected={viewMode === 'form'}
                 onChange={() => setViewMode('form')}
+                isDisabled={viewMode === 'yaml-edit'}
               />
               <ToggleGroupItem
                 data-testid="yaml-view"
                 text="YAML"
                 buttonId="yaml-view"
-                isSelected={viewMode === 'yaml-preview'}
-                onChange={() => setViewMode('yaml-preview')}
+                isSelected={viewMode !== 'form'}
+                onChange={() => (viewMode === 'form' ? setViewMode('yaml-preview') : undefined)}
               />
             </ToggleGroup>
           ) : undefined
         }
       >
         <ExternalDataLoader
-          fields={wizardState.fields}
+          fields={wizardFormData.fields}
           initialData={existingData}
           setExternalData={setExternalData}
         />
         {isExitModalOpen && (
           <ExitDeploymentModal onClose={closeExitModal} onConfirm={handleExitConfirm} />
         )}
-        <Wizard
-          onClose={openExitModal}
-          onSave={() => onSave()}
-          footer={wizardFooter}
-          startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
-          onStepChange={(event, currentStep, prevStep, scope) =>
-            scope === 'nav' ? setViewMode('form') : undefined
-          }
-        >
-          <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
-            <StepContentToggle
-              viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
-              contentView={
-                wizardState.loaded.modelSourceLoaded ? (
-                  <ModelSourceStepContent
-                    wizardState={wizardState}
-                    validation={validation.modelSource}
-                  />
-                ) : (
-                  <Spinner data-testid="spinner" />
-                )
-              }
-            />
-          </WizardStep>
-          <WizardStep
-            name={WizardStepTitle.MODEL_DEPLOYMENT}
-            id="model-deployment-step"
-            isDisabled={!validation.isModelSourceStepValid}
+        {viewMode !== 'form' ? (
+          <>
+            <PageSection isFilled hasBodyWrapper={false} style={{ paddingTop: 0, marginBottom: 0 }}>
+              <DeploymentWizardYAMLView
+                code={yaml}
+                setCode={setYaml}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                canEnterYAMLEditMode={existingDeployment?.model.kind !== 'InferenceService'}
+              />
+            </PageSection>
+            <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
+              <ModelDeploymentFooter
+                isSubmitDisabled={viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid}
+                onSave={onSave}
+                onCancel={openExitModal}
+                onOverwrite={onOverwrite}
+                onRefresh={onRefresh}
+                isLoading={isLoading}
+                error={submitError ?? yamlError}
+                clearError={clearSubmitError}
+              />
+            </PageSection>
+          </>
+        ) : (
+          <Wizard
+            onClose={openExitModal}
+            onSave={() => onSave()}
+            footer={wizardFooter}
+            startIndex={lastStepIndex.current ?? wizardFormData.initialData?.wizardStartIndex ?? 1}
+            onStepChange={(_, currentStep) => {
+              lastStepIndex.current = currentStep.index;
+            }}
           >
-            <StepContentToggle
-              viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
-              contentView={
-                wizardState.loaded.modelDeploymentLoaded ? (
-                  <ModelDeploymentStepContent
-                    projectName={currentProjectName}
-                    wizardState={wizardState}
-                  />
-                ) : (
-                  <Spinner data-testid="spinner" />
-                )
+            <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
+              <ModelSourceStepContent
+                wizardState={wizardFormData}
+                validation={validation.modelSource}
+              />
+            </WizardStep>
+            <WizardStep
+              name={WizardStepTitle.MODEL_DEPLOYMENT}
+              id="model-deployment-step"
+              isDisabled={!validation.isModelSourceStepValid}
+            >
+              <ModelDeploymentStepContent
+                projectName={currentProjectName}
+                wizardState={wizardFormData}
+              />
+            </WizardStep>
+            <WizardStep
+              name={WizardStepTitle.ADVANCED_SETTINGS}
+              id="advanced-options-step"
+              isDisabled={
+                !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
               }
-            />
-          </WizardStep>
-          <WizardStep
-            name={WizardStepTitle.ADVANCED_SETTINGS}
-            id="advanced-options-step"
-            isDisabled={
-              !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
-            }
-          >
-            <StepContentToggle
-              viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
-              contentView={
-                wizardState.loaded.advancedOptionsLoaded ? (
-                  <AdvancedSettingsStepContent
-                    wizardState={wizardState}
-                    externalData={externalData}
-                    allowCreate={wizardState.state.canCreateRoleBindings}
-                  />
-                ) : (
-                  <Spinner data-testid="spinner" />
-                )
+            >
+              <AdvancedSettingsStepContent
+                wizardState={wizardFormData}
+                externalData={externalData}
+                allowCreate={wizardFormData.state.canCreateRoleBindings}
+              />
+            </WizardStep>
+            <WizardStep
+              name={WizardStepTitle.REVIEW}
+              id="summary-step"
+              isDisabled={
+                !validation.isModelSourceStepValid ||
+                !validation.isModelDeploymentStepValid ||
+                !validation.isAdvancedSettingsStepValid
               }
-            />
-          </WizardStep>
-          <WizardStep
-            name={WizardStepTitle.REVIEW}
-            id="summary-step"
-            isDisabled={
-              !validation.isModelSourceStepValid ||
-              !validation.isModelDeploymentStepValid ||
-              !validation.isAdvancedSettingsStepValid
-            }
-          >
-            <StepContentToggle
-              viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
-              contentView={
-                wizardState.loaded.summaryLoaded ? (
-                  <ReviewStepContent
-                    wizardState={wizardState}
-                    projectName={currentProjectName}
-                    externalData={externalData}
-                  />
-                ) : (
-                  <Spinner data-testid="spinner" />
-                )
-              }
-            />
-          </WizardStep>
-        </Wizard>
+            >
+              <ReviewStepContent
+                wizardState={wizardFormData}
+                projectName={currentProjectName}
+                externalData={externalData}
+              />
+            </WizardStep>
+          </Wizard>
+        )}
       </ApplicationsPage>
     </>
   );

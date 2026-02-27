@@ -54,6 +54,7 @@ export const mockModelServingPlatform = ({
     id,
     manage: {
       namespaceApplicationCase,
+      priority: 0,
       projectRequirements: enabledProjectMetadata,
     },
     enableCardText: {

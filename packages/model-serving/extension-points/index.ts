@@ -79,7 +79,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
-      priority?: number; // larger numbers are higher priority
+      priority: number | 0; // larger numbers are higher priority
       default?: boolean; // if true, this platform will be the default if no other has priority
       projectRequirements: {
         annotations?: {
@@ -281,20 +281,30 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
  * This is used by WizardFieldApplyExtension to apply field-specific data to deployments.
  */
 export type DeploymentAssemblyFn<D extends Deployment = Deployment> = (deployment: D) => D;
+export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
+  model?: D['model'];
+};
 
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
     platform: D['modelServingPlatformId'];
-    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
-    priority?: number;
+    isActive:
+      | CodeRef<
+          (
+            wizardData: WizardFormData['state'],
+            resources?: DeploymentAssemblyResources<D>,
+          ) => boolean
+        >
+      | true;
+    priority: number | 0;
     supportsOverwrite?: boolean;
-    assembleDeployment?: CodeRef<(wizardData: WizardFormData, existingDeployment?: D) => D>;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
         projectName: string,
         existingDeployment?: D,
+        modelResource?: D['model'],
         serverResource?: D['server'],
         serverResourceTemplateName?: string,
         dryRun?: boolean,
@@ -306,10 +316,30 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     >;
   }
 >;
-
 export const isModelServingDeploy = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deployment/deploy';
+
+export type AssembleModelResourceFn<D extends Deployment = Deployment> = (
+  wizardData: WizardFormData,
+  existingDeployment?: D,
+  applyFieldData?: DeploymentAssemblyFn<D>,
+  connectionSecretName?: string, // todo remove
+) => D;
+
+export type AssembleModelResourceExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/assemble-model-resource',
+  {
+    platform: D['modelServingPlatformId'];
+    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    priority: number | 0;
+    assemble: CodeRef<AssembleModelResourceFn<D>>;
+  }
+>;
+export const isAssembleModelResourceExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is AssembleModelResourceExtension<D> =>
+  extension.type === 'model-serving.deployment/assemble-model-resource';
 
 // Deployment Wizard Fields
 export type DeploymentWizardFieldExtension<D extends Deployment = Deployment> = Extension<
