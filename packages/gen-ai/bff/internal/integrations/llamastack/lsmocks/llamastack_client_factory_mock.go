@@ -2,35 +2,44 @@ package lsmocks
 
 import (
 	"crypto/x509"
-	"sync"
+	"os"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
-// MockClientFactory creates LlamaStack clients pointing to a local Llama Stack instance.
-// Unlike the previous mock that returned fake in-memory data, this connects to a real
-// local Llama Stack server started via uv, matching the MLflow envtest philosophy.
-type MockClientFactory struct {
-	client llamastack.LlamaStackClientInterface
-	mu     sync.Mutex
-}
+// MockClientFactory creates LlamaStack clients for mock mode.
+// It auto-detects the environment: when TEST_LLAMA_STACK_PORT is set (e.g., during
+// make test), it connects to the real local Llama Stack server. Otherwise, it falls
+// back to an in-memory mock client with hardcoded fake data — enabling contract tests,
+// Cypress tests, and local dev to run without a server.
+type MockClientFactory struct{}
 
-// NewMockClientFactory creates a factory that connects to local Llama Stack.
+// NewMockClientFactory creates a mock factory that auto-detects the environment.
 func NewMockClientFactory() llamastack.LlamaStackClientFactory {
 	return &MockClientFactory{}
 }
 
-// CreateClient returns a shared LlamaStack client connected to the local instance.
-// The baseURL, authToken, and other params are ignored — the local server URL is used instead.
+// CreateClient returns a real test client if TEST_LLAMA_STACK_PORT is set,
+// otherwise falls back to an in-memory mock.
 func (f *MockClientFactory) CreateClient(_ string, _ string, _ bool, _ *x509.CertPool, _ string) llamastack.LlamaStackClientInterface {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if f.client != nil {
-		return f.client
+	if client := TryCreateTestClient(); client != nil {
+		return client
 	}
+	return NewMockLlamaStackClient()
+}
 
-	f.client = NewTestLlamaStackClient(testutil.GetTestLlamaStackURL(), llamaStackTestID())
-	return f.client
+// TryCreateTestClient returns a TestLlamaStackClient connected to a local server
+// if the required env vars are set (e.g., during make test), or nil if unavailable
+// (e.g., during contract tests or CI without a server).
+func TryCreateTestClient() llamastack.LlamaStackClientInterface {
+	port := os.Getenv("TEST_LLAMA_STACK_PORT")
+	if port == "" {
+		return nil
+	}
+	url := "http://127.0.0.1:" + port
+	testID := os.Getenv("LLAMA_STACK_TEST_ID")
+	if testID == "" {
+		testID = "test"
+	}
+	return NewTestLlamaStackClient(url, testID)
 }

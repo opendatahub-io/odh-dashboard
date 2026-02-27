@@ -29,7 +29,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! As an AI, I don't experience feelings or states of being in the same way humans do, but I am functioning perfectly and ready to assist you.\n\nHow are you doing today?",
+                "content": "Hello! I'm functioning perfectly, thank you for asking.\n\nHow are you doing today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +46,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 41,
+            "completion_tokens": 20,
             "prompt_tokens": 7,
-            "total_tokens": 318,
+            "total_tokens": 110,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

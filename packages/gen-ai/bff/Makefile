@@ -74,8 +74,9 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 test: fmt vet envtest uv ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
-  LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
+	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
 	TEST_LLAMA_STACK_PORT=$(TEST_LLAMA_STACK_PORT) TEST_LLAMA_STACK_VERSION=$(TEST_LLAMA_STACK_VERSION) \
+	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
 	TEST_LLAMA_STACK_MODEL=$(TEST_LLAMA_STACK_MODEL) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
@@ -92,7 +93,6 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 run: fmt vet envtest uv ## Runs the project.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
-	TEST_LLAMA_STACK_PORT=$(TEST_LLAMA_STACK_PORT) TEST_LLAMA_STACK_VERSION=$(TEST_LLAMA_STACK_VERSION) \
 	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
@@ -139,6 +139,7 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	LLAMA_STACK_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
 	LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server \
 	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
+	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \

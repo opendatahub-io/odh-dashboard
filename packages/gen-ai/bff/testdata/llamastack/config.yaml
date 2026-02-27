@@ -9,8 +9,8 @@ apis:
 - vector_io
 providers:
   inference:
-  - provider_id: gemini
-    provider_type: remote::gemini
+  - provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    provider_type: remote::${env.TEST_LLAMA_STACK_PROVIDER}
     config:
       api_key: ${env.GEMINI_API_KEY}
   vector_io:
@@ -78,10 +78,10 @@ registered_resources:
   models:
   - model_id: ${env.TEST_LLAMA_STACK_MODEL_ID}
     model_type: llm
-    provider_id: gemini
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
   - model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
     model_type: embedding
-    provider_id: gemini
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
     metadata:
       embedding_dimension: ${env.TEST_LLAMA_STACK_EMBEDDING_DIMENSION}
   shields:
@@ -96,11 +96,11 @@ registered_resources:
   - toolgroup_id: builtin::rag
     provider_id: rag-runtime
 server:
-  port: 8321
+  port: ${env.TEST_LLAMA_STACK_PORT}
 vector_stores:
   default_provider_id: milvus
   default_embedding_model:
-    provider_id: gemini
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
     model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
 safety:
   default_shield_id: llama-guard
