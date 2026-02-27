@@ -398,11 +398,17 @@ describe('MaaS Deployment Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
+    // Wait for connection types to load
+    cy.wait('@getConnectionTypes');
+
     // Quick setup: Model source and deployment
-    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
     modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
     modelServingWizard.findNextButton().click();
 
     modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
