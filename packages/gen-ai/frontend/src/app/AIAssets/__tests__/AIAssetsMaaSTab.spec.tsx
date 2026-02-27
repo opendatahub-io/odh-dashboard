@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import type { MaaSModel } from '~/odh/extension-points';
+import { MaaSModel } from '~/app/types';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
