@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -93,7 +94,8 @@ func (r *S3Repository) GetS3Credentials(
 	return creds, nil
 }
 
-// GetS3Object retrieves an object from S3 and returns a reader for the content
+// GetS3Object retrieves an object from S3 using transfer manager for optimized downloading
+// and returns a reader for the content. Uses concurrent multipart downloads for large files.
 func (r *S3Repository) GetS3Object(
 	ctx context.Context,
 	creds *S3Credentials,
@@ -113,10 +115,21 @@ func (r *S3Repository) GetS3Object(
 		o.UsePathStyle = true
 	})
 
-	// Get the object
-	result, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	// Create transfer manager for optimized downloads
+	transferClient := transfermanager.New(s3Client)
+
+	// Get the object using transfer manager
+	// This automatically handles multipart downloads for large files with concurrency
+	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
+	}, func(o *transfermanager.Options) {
+		// Configure for optimal streaming performance
+		o.Concurrency = 10                  // 10 concurrent part downloads
+		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
+		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
+		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
+		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
@@ -128,7 +141,8 @@ func (r *S3Repository) GetS3Object(
 		contentType = *result.ContentType
 	}
 
-	return result.Body, contentType, nil
+	// Transfer manager's GetObject returns io.Reader, wrap it with NopCloser for io.ReadCloser
+	return io.NopCloser(result.Body), contentType, nil
 }
 
 // Helper functions for case conversion

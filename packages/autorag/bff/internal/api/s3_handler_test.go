@@ -84,7 +84,6 @@ func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-
 func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
 	// Mock client returns empty secrets list
 	mockClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{}}
