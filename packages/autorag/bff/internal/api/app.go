@@ -31,6 +31,7 @@ const (
 	UserPath        = ApiPathPrefix + "/user"
 	NamespacePath   = ApiPathPrefix + "/namespaces"
 	SecretsPath     = ApiPathPrefix + "/secrets"
+	S3FilePath      = ApiPathPrefix + "/s3/file"
 )
 
 type App struct {
@@ -142,6 +143,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
+
+	// S3 operations
+	apiRouter.GET(S3FilePath, app.GetS3FileHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
