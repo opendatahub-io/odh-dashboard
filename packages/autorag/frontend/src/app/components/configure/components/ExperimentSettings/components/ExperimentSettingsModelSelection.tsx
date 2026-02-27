@@ -30,13 +30,11 @@ const ExperimentSettingsModelSelection: React.FC = () => {
   const { control } = useFormContext<ConfigureSchema>();
   const { data: llamaStackModels, isLoading } = useLlamaStackModelsQuery();
 
-  // eslint-disable-next-line camelcase
   const { field: generationModelField } = useController({
     control,
     name: 'generation_constraints',
   });
 
-  // eslint-disable-next-line camelcase
   const { field: embeddingModelField } = useController({
     control,
     name: 'embeddings_constraints',
@@ -81,13 +79,15 @@ const ExperimentSettingsModelSelection: React.FC = () => {
                         key={model.id}
                         id={`model-${modelType}-${model.id}`}
                         label={model.id}
-                        isChecked={(field.value ?? []).some((c) => c.model === model.id)}
+                        isChecked={(field.value ?? []).some(
+                          (selectedModel) => selectedModel.model === model.id,
+                        )}
                         onChange={(_, checked) => {
                           const current = field.value ?? [];
                           field.onChange(
                             checked
                               ? [...current, { model: model.id }]
-                              : current.filter((c) => c.model !== model.id),
+                              : current.filter((selectedModel) => selectedModel.model !== model.id),
                           );
                         }}
                         data-testid={`model-checkbox-${model.id}`}

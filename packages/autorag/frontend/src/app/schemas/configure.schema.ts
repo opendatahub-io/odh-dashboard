@@ -13,22 +13,12 @@ const dataReferenceDefault = {
   path: '',
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function getBaseSchema() {
   return z.object({
     name: z.string().min(1),
-    description: z.string().optional(),
     input_data_reference: dataReferenceSchema.default(dataReferenceDefault),
     test_data_reference: dataReferenceSchema.default(dataReferenceDefault),
     results_reference: dataReferenceSchema.default(dataReferenceDefault),
-    vector_database_id: z.string().optional(),
-    mlflow_config: z
-      .object({
-        tracking_uri: z.string(),
-        experiment_name: z.string(),
-        enabled: z.boolean(),
-      })
-      .optional(),
     optimization: z
       .object({
         max_number_of_rag_patterns: z.number().min(1).max(10),
@@ -38,15 +28,6 @@ function getBaseSchema() {
         max_number_of_rag_patterns: 4,
         metric: 'faithfulness',
       }),
-    chunking_constraints: z
-      .array(
-        z.object({
-          method: z.string(),
-          chunk_size: z.number(),
-          chunk_overlap: z.number(),
-        }),
-      )
-      .optional(),
     embeddings_constraints: z
       .array(
         z.object({
@@ -67,21 +48,6 @@ function getBaseSchema() {
                 name: z.string(),
               }),
             )
-            .optional(),
-        }),
-      )
-      .optional(),
-    retrieval_constraints: z
-      .array(
-        z.object({
-          method: z.string(),
-          number_of_chunks: z.number(),
-          hybrid_ranker: z
-            .object({
-              strategy: z.string(),
-              alpha: z.number(),
-              k: z.number().optional(),
-            })
             .optional(),
         }),
       )
