@@ -37,7 +37,8 @@ class AppChrome {
           }
         });
     }
-    return this.findSideBar().findByRole('link', { name });
+    const testId = `nav-item-${name.toLowerCase().replace(/\s+/g, '-')}`;
+    return this.findSideBar().findByTestId(testId);
   }
 }
 
