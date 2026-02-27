@@ -23,7 +23,7 @@ func TestGetS3FileHandler_MissingNamespace(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?secretName=aws-secret-1&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -40,7 +40,7 @@ func TestGetS3FileHandler_MissingSecretName(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -50,14 +50,14 @@ func TestGetS3FileHandler_MissingSecretName(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileHandler_MissingPath(t *testing.T) {
+func TestGetS3FileHandler_MissingBucket(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -67,14 +67,14 @@ func TestGetS3FileHandler_MissingPath(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileHandler_InvalidPathFormat_NoBucket(t *testing.T) {
+func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&path=invalid-path-no-slash",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -84,39 +84,6 @@ func TestGetS3FileHandler_InvalidPathFormat_NoBucket(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileHandler_InvalidPathFormat_EmptyBucket(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	_, res, err := setupApiTest[HTTPError](
-		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&path=/file.pdf",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
-
-func TestGetS3FileHandler_InvalidPathFormat_EmptyKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	_, res, err := setupApiTest[HTTPError](
-		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&path=my-bucket/",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
 
 func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
 	// Mock client returns empty secrets list
@@ -126,7 +93,7 @@ func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent-secret&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -157,7 +124,7 @@ func TestGetS3FileHandler_SecretMissingRequiredFields(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=incomplete-secret&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=incomplete-secret&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -184,7 +151,7 @@ func TestGetS3FileHandler_NamespaceNotFound(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -211,7 +178,7 @@ func TestGetS3FileHandler_ForbiddenError(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,
@@ -238,7 +205,7 @@ func TestGetS3FileHandler_UnauthorizedError(t *testing.T) {
 
 	_, res, err := setupApiTest[HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&path=my-bucket/file.pdf",
+		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
 		factory,
 		identity,

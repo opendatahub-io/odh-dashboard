@@ -18,7 +18,8 @@ import (
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
 //   - secretName (required): The name of the Kubernetes secret containing S3 credentials
-//   - path (required): The S3 object path/key to retrieve (format: bucket/path/to/file)
+//   - bucket (required): The S3 bucket name
+//   - key (required): The S3 object key to retrieve
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -43,24 +44,15 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	path := queryParams.Get("path")
-	if path == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'path' is required"))
+	bucket := queryParams.Get("bucket")
+	if bucket == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'bucket' is required"))
 		return
 	}
 
-	// Parse the path to extract bucket and key
-	// Expected format: bucket/path/to/file or bucket/file
-	pathParts := strings.SplitN(path, "/", 2)
-	if len(pathParts) < 2 {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid path format, expected 'bucket/key' but got '%s'", path))
-		return
-	}
-	bucket := pathParts[0]
-	key := pathParts[1]
-
-	if bucket == "" || key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid path format, bucket and key cannot be empty"))
+	key := queryParams.Get("key")
+	if key == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required"))
 		return
 	}
 
@@ -138,7 +130,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		}
 
 		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s'", path))
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", bucket, key))
 			return
 		}
 

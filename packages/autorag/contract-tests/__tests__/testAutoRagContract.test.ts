@@ -228,7 +228,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?secretName=test-secret&path=bucket/file.pdf',
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -238,7 +238,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&path=bucket/file.pdf',
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -246,9 +246,19 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 when path parameter is missing', async () => {
+      it('should return 400 when bucket parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -265,10 +275,10 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Error Cases - Invalid Path Format', () => {
-      it('should return 400 for path without bucket (no slash)', async () => {
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=invalid-path-no-slash',
+          '/api/v1/s3/file?namespace=&secretName=test-secret&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -276,9 +286,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for path with empty bucket', async () => {
+      it('should return 400 for empty secretName', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=/file.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -286,9 +296,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for path with empty key', async () => {
+      it('should return 400 for empty bucket', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -296,9 +306,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for path with only slash', async () => {
+      it('should return 400 for empty key', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=/',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -310,7 +320,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Secret Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&path=bucket/file.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -320,7 +330,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 404 when namespace does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&path=bucket/file.pdf',
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -329,54 +339,22 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Error Cases - Empty Parameters', () => {
-      it('should return 400 for empty namespace', async () => {
+    describe('Key Format Variations', () => {
+      it('should handle nested key structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=&secretName=test-secret&path=bucket/file.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
         );
+        // Will fail if secret doesn't exist or S3 object doesn't exist, but key format should be valid
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for empty secretName', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=&path=bucket/file.pdf',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for empty path', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-    });
-
-    describe('Path Format Variations', () => {
-      it('should handle nested path structure', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/folder/subfolder/file.pdf',
-        );
-        // Will fail if secret doesn't exist or S3 object doesn't exist, but path format should be valid
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          // Should be 404 (not found) not 400 (bad request) since path format is valid
+          // Should be 404 (not found) not 400 (bad request) since key format is valid
           expect([404, 500]).toContain(result.error.status);
         }
       });
 
-      it('should handle path with special characters', async () => {
+      it('should handle key with special characters', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/my-file_v2.0.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -384,10 +362,10 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should handle URL-encoded path', async () => {
-        const encodedPath = encodeURIComponent('bucket/documents/my file.pdf');
+      it('should handle URL-encoded key', async () => {
+        const encodedKey = encodeURIComponent('documents/my file.pdf');
         const result = await apiClient.get(
-          `/api/v1/s3/file?namespace=default&secretName=test-secret&path=${encodedPath}`,
+          `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -396,12 +374,12 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Valid Path Formats', () => {
-      it('should accept simple bucket/key format', async () => {
+    describe('Valid Bucket and Key Formats', () => {
+      it('should accept simple key format', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=mybucket/file.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
         );
-        // Will fail without actual S3 setup, but validates path parsing
+        // Will fail without actual S3 setup, but validates parameter parsing
         expect(result.success).toBe(false);
         if (!result.success) {
           // Should not be 400 (bad request) since format is valid
@@ -409,9 +387,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should accept bucket with multiple path segments', async () => {
+      it('should accept key with multiple path segments', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=mybucket/documents/2024/file.pdf',
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
         );
         expect(result.success).toBe(false);
         if (!result.success) {

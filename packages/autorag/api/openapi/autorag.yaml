@@ -163,10 +163,17 @@ paths:
           schema:
             type: string
           example: aws-secret-1
-        - name: path
+        - name: bucket
           in: query
           required: true
-          description: The S3 object path/key to retrieve
+          description: The S3 bucket name
+          schema:
+            type: string
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: The S3 object key to retrieve
           schema:
             type: string
           example: documents/myfile.pdf
