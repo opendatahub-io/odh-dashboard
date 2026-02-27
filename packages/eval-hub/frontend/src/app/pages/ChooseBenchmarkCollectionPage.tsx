@@ -9,7 +9,6 @@ import {
   CardFooter,
   CardTitle,
   Content,
-  Divider,
   Drawer,
   DrawerActions,
   DrawerCloseButton,
@@ -19,8 +18,6 @@ import {
   DrawerPanelBody,
   DrawerPanelContent,
   Gallery,
-  Label,
-  LabelGroup,
   Panel,
   PanelMain,
   PanelMainBody,
@@ -47,43 +44,35 @@ const CollectionDrawerPanel: React.FC<{
   return (
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
       <DrawerHead>
-        <Title headingLevel="h2" size="xl">
-          {collection.name}
-        </Title>
+        <Stack hasGutter>
+          <StackItem>
+            <Title headingLevel="h2" size="xl">
+              {collection.name}
+            </Title>
+          </StackItem>
+          <StackItem>
+            {collection.benchmarks && collection.benchmarks.length > 0 && (
+              <Content component="small">
+                <strong>
+                  {collection.benchmarks.length} benchmark
+                  {collection.benchmarks.length !== 1 ? 's' : ''}
+                </strong>
+              </Content>
+            )}
+          </StackItem>
+          {collection.description && (
+            <StackItem>
+              <Content component="p">{collection.description}</Content>
+            </StackItem>
+          )}
+        </Stack>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
 
-      <Divider />
-
       <DrawerPanelBody>
         <Stack hasGutter>
-          {collection.description && (
-            <StackItem>
-              <Stack>
-                <StackItem>
-                  <Content component="h4">Description</Content>
-                </StackItem>
-                <StackItem>
-                  <Content component="p">{collection.description}</Content>
-                </StackItem>
-              </Stack>
-            </StackItem>
-          )}
-
-          {collection.tags && collection.tags.length > 0 && (
-            <StackItem>
-              <LabelGroup>
-                {collection.tags.map((tag) => (
-                  <Label key={tag} isCompact variant="outline">
-                    {tag}
-                  </Label>
-                ))}
-              </LabelGroup>
-            </StackItem>
-          )}
-
           {collection.benchmarks && collection.benchmarks.length > 0 && (
             <StackItem>
               <Stack hasGutter>
@@ -200,15 +189,6 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           )}
                           {collection.description && (
                             <Content component="p">{collection.description}</Content>
-                          )}
-                          {collection.tags && collection.tags.length > 0 && (
-                            <LabelGroup>
-                              {collection.tags.map((tag) => (
-                                <Label key={tag} isCompact variant="outline">
-                                  {tag}
-                                </Label>
-                              ))}
-                            </LabelGroup>
                           )}
                         </CardBody>
                         <CardFooter>

@@ -122,7 +122,7 @@ const BenchmarkDrawerPanel: React.FC<{
                   <Content component="h4">Metrics evaluated</Content>
                 </StackItem>
                 <StackItem>
-                  <LabelGroup>
+                  <LabelGroup numLabels={benchmark.metrics.length} isCompact>
                     {benchmark.metrics.map((metric) => (
                       <Label key={metric} isCompact variant="outline">
                         {metric}
@@ -171,7 +171,7 @@ const BenchmarkCard: React.FC<{
         {benchmark.metrics && benchmark.metrics.length > 0 && (
           // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
           <div onClick={(e) => e.stopPropagation()}>
-            <LabelGroup numLabels={VISIBLE_METRICS_COUNT}>
+            <LabelGroup numLabels={VISIBLE_METRICS_COUNT} isCompact>
               {benchmark.metrics.map((metric) => (
                 <Label key={metric} isCompact variant="outline">
                   {metric}
