@@ -68,7 +68,10 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
     <Modal
       variant={ModalVariant.medium}
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        revertChanges();
+        onClose();
+      }}
       data-testid="experiment-settings-modal"
     >
       <ModalHeader title="Experiment settings" />
