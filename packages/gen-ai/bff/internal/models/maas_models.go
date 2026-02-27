@@ -43,3 +43,9 @@ type MaaSTokenResponse struct {
 	Key       string `json:"key"`
 	ExpiresAt string `json:"expiresAt,omitempty"`
 }
+
+// MaaSBFFTokenResponse wraps the token response as returned by MaaS BFF
+// MaaS BFF returns responses in an envelope: {"data": {...}}
+type MaaSBFFTokenResponse struct {
+	Data MaaSTokenResponse `json:"data"`
+}

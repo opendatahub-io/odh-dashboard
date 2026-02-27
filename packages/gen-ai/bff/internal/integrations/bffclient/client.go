@@ -33,23 +33,30 @@ type BFFClientInterface interface {
 
 // HTTPBFFClient implements BFFClientInterface using HTTP requests
 type HTTPBFFClient struct {
-	baseURL    string
-	target     BFFTarget
-	httpClient *http.Client
-	authToken  string
+	baseURL       string
+	target        BFFTarget
+	httpClient    *http.Client
+	authToken     string
+	customHeaders map[string]string
 }
 
 // NewHTTPBFFClient creates a new HTTP-based BFF client
 func NewHTTPBFFClient(baseURL string, target BFFTarget, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
+	return NewHTTPBFFClientWithHeaders(baseURL, target, authToken, nil, insecureSkipVerify, rootCAs)
+}
+
+// NewHTTPBFFClientWithHeaders creates a new HTTP-based BFF client with custom headers
+func NewHTTPBFFClientWithHeaders(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
 
 	return &HTTPBFFClient{
-		baseURL:   baseURL,
-		target:    target,
-		authToken: authToken,
+		baseURL:       baseURL,
+		target:        target,
+		authToken:     authToken,
+		customHeaders: customHeaders,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -86,6 +93,11 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	// Forward auth token
 	if c.authToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+
+	// Set custom headers (e.g., kubeflow-userid for MaaS BFF)
+	for key, value := range c.customHeaders {
+		req.Header.Set(key, value)
 	}
 
 	resp, err := c.httpClient.Do(req)
