@@ -52,6 +52,7 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
+import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
@@ -184,7 +185,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         color = RegularColor.var;
     }
 
-    const kueueTitle = showKueueMessage ? kueueStatus.message?.trim() || kueueStatus.status : null;
+    const kueueTitle = showKueueMessage
+      ? getHumanReadableKueueMessage(kueueStatus.status, kueueStatus.message, kueueStatus.queueName)
+      : null;
     const workbenchTitle =
       notebookStatus?.currentEvent ||
       (isStarting

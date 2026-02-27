@@ -14,6 +14,8 @@ export enum KueueWorkloadStatus {
 export type KueueWorkloadStatusWithMessage = {
   status: KueueWorkloadStatus;
   message?: string;
+  timestamp?: string;
+  queueName?: string;
 };
 
 export type KueueStatusInfo = {
