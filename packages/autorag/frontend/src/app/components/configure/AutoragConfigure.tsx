@@ -18,7 +18,7 @@ import {
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import {autoragResultsPathname} from '~/app/utilities/routes';
+import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 
 function AutoragConfigure(): React.JSX.Element {
