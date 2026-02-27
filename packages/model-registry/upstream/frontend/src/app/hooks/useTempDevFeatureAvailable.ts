@@ -15,6 +15,7 @@
 
 import * as React from 'react';
 import { useBrowserStorage } from 'mod-arch-core';
+import { useOdhDevFeatureFlagOverrides } from '~/odh/extension-points';
 
 declare global {
   interface Window {
@@ -29,7 +30,11 @@ export enum TempDevFeature {
 }
 
 export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => {
-  const [isAvailable, setIsAvailable] = useBrowserStorage(feature, false);
+  const [localStorageValue, setIsAvailable] = useBrowserStorage(feature, false);
+
+  // Check for ODH dev feature flag overrides from context
+  const overrides = useOdhDevFeatureFlagOverrides();
+  const contextOverride = overrides?.[feature];
 
   // Expose setter to window for easy toggling via browser console
   React.useEffect(() => {
@@ -43,5 +48,6 @@ export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => 
     }
   }, [feature, setIsAvailable]);
 
-  return isAvailable;
+  // Context override takes precedence, then localStorage
+  return contextOverride ?? localStorageValue;
 };
