@@ -15,7 +15,7 @@ const dataReferenceDefault = {
 
 function getBaseSchema() {
   return z.object({
-    name: z.string().min(1),
+    name: z.string().min(1).default(''),
     input_data_reference: dataReferenceSchema.default(dataReferenceDefault),
     test_data_reference: dataReferenceSchema.default(dataReferenceDefault),
     results_reference: dataReferenceSchema.default(dataReferenceDefault),

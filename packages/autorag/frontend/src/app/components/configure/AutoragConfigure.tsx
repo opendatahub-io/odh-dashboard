@@ -18,16 +18,32 @@ import {
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FormProvider, useForm } from 'react-hook-form';
+import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import ExperimentSettings from './components/ExperimentSettings/ExperimentSettings';
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
-
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+
+  const configureSchema = createConfigureSchema();
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema),
+    defaultValues: configureSchema.parse({}),
+  });
+
+  const saveExperimentSettingsChanges = () => {
+    // TODO: add form update logic once ready
+    setIsExperimentSettingsOpen(false);
+  };
 
   return (
-    <>
+    <FormProvider {...form}>
       <Panel isScrollable={false}>
         <PanelMain tabIndex={0}>
           <PanelMainBody>
@@ -108,7 +124,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-optimization-metric"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={() => setIsExperimentSettingsOpen(true)}
                                   >
                                     Edit
                                   </Button>,
@@ -129,7 +145,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-considered-models"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={() => setIsExperimentSettingsOpen(true)}
                                   >
                                     Edit
                                   </Button>,
@@ -167,7 +183,13 @@ function AutoragConfigure(): React.JSX.Element {
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
       />
-    </>
+      <ExperimentSettings
+        isOpen={isExperimentSettingsOpen}
+        onClose={() => setIsExperimentSettingsOpen(false)}
+        revertChanges={() => form.reset()}
+        saveChanges={saveExperimentSettingsChanges}
+      />
+    </FormProvider>
   );
 }
 
