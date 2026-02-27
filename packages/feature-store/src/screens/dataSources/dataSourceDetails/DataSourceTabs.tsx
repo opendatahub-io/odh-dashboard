@@ -141,7 +141,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
         })),
       };
     });
-  }, [featureViews, dataSource.name, dataSource.project, currentProject]);
+  }, [featureViews, dataSource.project, currentProject]);
 
   const emptyState = (
     <EmptyState>

@@ -1,3 +1,4 @@
+// TODO: Fix no-restricted-imports violation
 import React from 'react';
 import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { z } from 'zod';
@@ -5,10 +6,12 @@ import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
@@ -102,12 +105,9 @@ export const useModelFormatField = (
     return tmpModelFormat;
   }, [modelType, tmpModelFormat]);
 
-  const handleSetModelFormat = React.useCallback(
-    (newFormat: SupportedModelFormats) => {
-      setTmpModelFormat(newFormat);
-    },
-    [tmpModelFormat],
-  );
+  const handleSetModelFormat = React.useCallback((newFormat: SupportedModelFormats) => {
+    setTmpModelFormat(newFormat);
+  }, []);
 
   return {
     modelFormatOptions,
