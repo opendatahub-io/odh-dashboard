@@ -30,7 +30,7 @@ func TestHTTPBFFClient_Call_Success(t *testing.T) {
 		// Return response
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(expectedResponse)
+		_ = json.NewEncoder(w).Encode(expectedResponse)
 	}))
 	defer server.Close()
 
@@ -54,7 +54,7 @@ func TestHTTPBFFClient_Call_NoBody(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"object": "list",
 			"data":   []interface{}{},
 		})
@@ -88,7 +88,7 @@ func TestHTTPBFFClient_Call_ErrorResponses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte("error message"))
+				_, _ = w.Write([]byte("error message"))
 			}))
 			defer server.Close()
 
