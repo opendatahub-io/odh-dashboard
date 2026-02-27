@@ -223,4 +223,201 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
   });
+
+  describe('S3 File Endpoint', () => {
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?secretName=test-secret&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when path parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when all parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/file');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Invalid Path Format', () => {
+      it('should return 400 for path without bucket (no slash)', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=invalid-path-no-slash',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for path with empty bucket', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for path with empty key', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for path with only slash', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=/',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=&secretName=test-secret&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secretName', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=&path=bucket/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty path', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Path Format Variations', () => {
+      it('should handle nested path structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/folder/subfolder/file.pdf',
+        );
+        // Will fail if secret doesn't exist or S3 object doesn't exist, but path format should be valid
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          // Should be 404 (not found) not 400 (bad request) since path format is valid
+          expect([404, 500]).toContain(result.error.status);
+        }
+      });
+
+      it('should handle path with special characters', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=bucket/my-file_v2.0.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect([404, 500]).toContain(result.error.status);
+        }
+      });
+
+      it('should handle URL-encoded path', async () => {
+        const encodedPath = encodeURIComponent('bucket/documents/my file.pdf');
+        const result = await apiClient.get(
+          `/api/v1/s3/file?namespace=default&secretName=test-secret&path=${encodedPath}`,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect([404, 500]).toContain(result.error.status);
+        }
+      });
+    });
+
+    describe('Valid Path Formats', () => {
+      it('should accept simple bucket/key format', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=mybucket/file.pdf',
+        );
+        // Will fail without actual S3 setup, but validates path parsing
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          // Should not be 400 (bad request) since format is valid
+          expect(result.error.status).not.toBe(400);
+        }
+      });
+
+      it('should accept bucket with multiple path segments', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&path=mybucket/documents/2024/file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      });
+    });
+  });
 });
