@@ -1,4 +1,12 @@
-import { Spinner, Tab, TabContentBody, Tabs, TabTitleText, Title } from '@patternfly/react-core';
+import {
+  Checkbox,
+  Spinner,
+  Tab,
+  TabContentBody,
+  Tabs,
+  TabTitleText,
+  Title,
+} from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { useController, useFormContext } from 'react-hook-form';
@@ -40,7 +48,9 @@ const ExperimentSettingsModelSelection: React.FC = () => {
 
   return (
     <div data-testid="model-selection-section">
-      <Title headingLevel="h2">Models to test</Title>
+      <Title headingLevel="h4" className="pf-v6-u-mb-sm">
+        Models to test
+      </Title>
       {isLoading ? (
         <Spinner size="md" aria-label="Loading models" />
       ) : (
@@ -81,40 +91,48 @@ const ExperimentSettingsModelSelection: React.FC = () => {
                 title={<TabTitleText>{label}</TabTitleText>}
                 data-testid={testId}
               >
-                <TabContentBody hasPadding>
+                <TabContentBody className="pf-v6-u-pt-md">
                   {models.length === 0 ? (
                     <p>No models available.</p>
                   ) : (
-                    <Table aria-label={`${label} table`} data-testid={`${modelType}-models-table`}>
-                      <Thead>
-                        <Tr>
-                          <Th
-                            select={{
-                              isSelected: allSelected,
-                              onSelect: (_, isSelecting) => handleSelectAll(isSelecting),
-                            }}
-                          />
-                          <Th>Name</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {models.map((model, rowIndex) => (
-                          <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                            <Td
-                              select={{
-                                rowIndex,
-                                isSelected: selectedModels.some(
-                                  (selectedModel) => selectedModel.model === model.id,
-                                ),
-                                onSelect: (_, isSelecting) =>
-                                  handleToggleModel(model.id, isSelecting),
-                              }}
-                            />
-                            <Td dataLabel="Name">{model.id}</Td>
+                    <>
+                      <Checkbox
+                        id={`select-all-${modelType}`}
+                        label="All available models"
+                        isChecked={allSelected}
+                        onChange={(_, checked) => handleSelectAll(checked)}
+                        className="pf-v6-u-mb-sm"
+                        data-testid={`select-all-${modelType}`}
+                      />
+                      <Table
+                        aria-label={`${label} table`}
+                        data-testid={`${modelType}-models-table`}
+                      >
+                        <Thead>
+                          <Tr>
+                            <Th />
+                            <Th>Name</Th>
                           </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
+                        </Thead>
+                        <Tbody>
+                          {models.map((model, rowIndex) => (
+                            <Tr key={model.id} data-testid={`model-row-${model.id}`}>
+                              <Td
+                                select={{
+                                  rowIndex,
+                                  isSelected: selectedModels.some(
+                                    (selectedModel) => selectedModel.model === model.id,
+                                  ),
+                                  onSelect: (_, isSelecting) =>
+                                    handleToggleModel(model.id, isSelecting),
+                                }}
+                              />
+                              <Td dataLabel="Name">{model.id}</Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    </>
                   )}
                 </TabContentBody>
               </Tab>

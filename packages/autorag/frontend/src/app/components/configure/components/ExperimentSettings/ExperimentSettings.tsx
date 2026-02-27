@@ -13,6 +13,8 @@ import {
   ModalVariant,
   NumberInput,
   Radio,
+  Stack,
+  StackItem,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
@@ -29,17 +31,17 @@ const OPTIMIZATION_METRICS: {
 }[] = [
   {
     value: 'faithfulness',
-    label: 'Faithfulness',
+    label: 'Answer faithfulness',
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
     value: 'answer_correctness',
-    label: 'Answer Correctness',
+    label: 'Answer correctness',
     description: 'How correct the generated answer is compared to the ground truth.',
   },
   {
     value: 'context_correctness',
-    label: 'Context Correctness',
+    label: 'Context correctness',
     description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
@@ -64,78 +66,90 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
 
   return (
     <Modal
-      variant={ModalVariant.large}
+      variant={ModalVariant.medium}
       isOpen={isOpen}
       onClose={onClose}
       data-testid="experiment-settings-modal"
     >
       <ModalHeader title="Experiment settings" />
       <ModalBody>
-        <ExperimentSettingsModelSelection />
-        <Grid hasGutter>
-          <GridItem span={8}>
-            <Title headingLevel="h2">Metric to optimize</Title>
-            <Controller
-              control={control}
-              name="optimization.metric"
-              render={({ field }) => (
-                <>
-                  {OPTIMIZATION_METRICS.map((metric) => (
-                    <Radio
-                      key={metric.value}
-                      id={`metric-${metric.value}`}
-                      name="optimization.metric"
-                      label={
-                        <span>
-                          {metric.label}{' '}
-                          <Tooltip content={metric.description}>
-                            <OutlinedQuestionCircleIcon />
-                          </Tooltip>
-                        </span>
-                      }
-                      isChecked={field.value === metric.value}
-                      onChange={() => field.onChange(metric.value)}
-                      data-testid={`metric-radio-${metric.value}`}
-                    />
-                  ))}
-                </>
-              )}
-            />
-          </GridItem>
-          <GridItem span={4}>
-            <Controller
-              control={control}
-              name="optimization.max_number_of_rag_patterns"
-              render={({ field, fieldState }) => (
-                <FormGroup fieldId="max-rag-patterns" label="Max RAG patterns">
-                  <NumberInput
-                    id="max-rag-patterns"
-                    value={field.value}
-                    min={MIN_RAG_PATTERNS}
-                    max={MAX_RAG_PATTERNS}
-                    validated={fieldState.error ? 'error' : 'default'}
-                    onMinus={() => field.onChange(field.value - 1)}
-                    onPlus={() => field.onChange(field.value + 1)}
-                    onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                      const selectedMaxRagPatterns = parseInt(event.currentTarget.value, 10);
-                      if (!Number.isNaN(selectedMaxRagPatterns)) {
-                        field.onChange(selectedMaxRagPatterns);
-                      }
-                    }}
-                    data-testid="max-rag-patterns-input"
-                  />
-                  {fieldState.error && (
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem variant="error">{fieldState.error.message}</HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
+        <Stack hasGutter>
+          <StackItem>
+            <ExperimentSettingsModelSelection />
+          </StackItem>
+          <StackItem className="pf-v6-u-mt-lg">
+            <Grid hasGutter>
+              <GridItem span={8}>
+                <Title headingLevel="h4" className="pf-v6-u-mb-md">
+                  Metric to optimize
+                </Title>
+                <Controller
+                  control={control}
+                  name="optimization.metric"
+                  render={({ field }) => (
+                    <Stack hasGutter>
+                      {OPTIMIZATION_METRICS.map((metric) => (
+                        <StackItem key={metric.value}>
+                          <Radio
+                            id={`metric-${metric.value}`}
+                            name="optimization.metric"
+                            label={
+                              <span>
+                                {metric.label}
+                                {'  '}
+                                <Tooltip content={metric.description}>
+                                  <OutlinedQuestionCircleIcon className="pf-v6-u-ml-xs" />
+                                </Tooltip>
+                              </span>
+                            }
+                            isChecked={field.value === metric.value}
+                            onChange={() => field.onChange(metric.value)}
+                            data-testid={`metric-radio-${metric.value}`}
+                          />
+                        </StackItem>
+                      ))}
+                    </Stack>
                   )}
-                </FormGroup>
-              )}
-            />
-          </GridItem>
-        </Grid>
+                />
+              </GridItem>
+              <GridItem span={4}>
+                <Controller
+                  control={control}
+                  name="optimization.max_number_of_rag_patterns"
+                  render={({ field, fieldState }) => (
+                    <FormGroup fieldId="max-rag-patterns" label="Max RAG patterns">
+                      <NumberInput
+                        id="max-rag-patterns"
+                        value={field.value}
+                        min={MIN_RAG_PATTERNS}
+                        max={MAX_RAG_PATTERNS}
+                        validated={fieldState.error ? 'error' : 'default'}
+                        onMinus={() => field.onChange(field.value - 1)}
+                        onPlus={() => field.onChange(field.value + 1)}
+                        onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                          const selectedMaxRagPatterns = parseInt(event.currentTarget.value, 10);
+                          if (!Number.isNaN(selectedMaxRagPatterns)) {
+                            field.onChange(selectedMaxRagPatterns);
+                          }
+                        }}
+                        data-testid="max-rag-patterns-input"
+                      />
+                      {fieldState.error && (
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem variant="error">
+                              {fieldState.error.message}
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
+                      )}
+                    </FormGroup>
+                  )}
+                />
+              </GridItem>
+            </Grid>
+          </StackItem>
+        </Stack>
       </ModalBody>
       <ModalFooter>
         <Button variant="primary" onClick={saveChanges} data-testid="experiment-settings-save">
