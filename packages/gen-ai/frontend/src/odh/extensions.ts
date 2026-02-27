@@ -106,6 +106,17 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
     },
   },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'maasmodels',
+      title: 'Models as a service',
+      component: () => import('../app/AIAssets/AIAssetsMaaSTab').then((m) => m.default),
+    },
+  },
 ];
 
 export default extensions;

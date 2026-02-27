@@ -8,7 +8,7 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import type { BFFConfig, LlamaStackDistributionModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { MaaSModel } from '~/app/types';
 
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
