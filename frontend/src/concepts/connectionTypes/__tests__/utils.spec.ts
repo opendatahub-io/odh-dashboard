@@ -11,10 +11,13 @@ import {
   TextField,
 } from '#~/concepts/connectionTypes/types';
 import {
+  AutoragCompatibleTypes,
   defaultValueToString,
   fieldNameToEnvVar,
   fieldTypeToString,
+  getAutoragCompatibility,
   getModelServingCompatibility,
+  isAutoragCompatible,
   isModelServingCompatible,
   isModelServingEnvVar,
   isValidEnvVar,
@@ -492,6 +495,197 @@ describe('getModelServingCompatibility', () => {
         mockConnection({
           data: {
             OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('isAutoragCompatible', () => {
+  it('should identify autorag compatible connections (S3 only)', () => {
+    expect(isAutoragCompatible(mockConnection({}))).toBe(false);
+    expect(isAutoragCompatible(mockConnection({}), AutoragCompatibleTypes.S3ObjectStorage)).toBe(
+      false,
+    );
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'keyid',
+            AWS_SECRET_ACCESS_KEY: 'accesskey',
+            AWS_S3_ENDPOINT: 'endpoint',
+            AWS_S3_BUCKET: 'bucket',
+          },
+        }),
+        AutoragCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          connectionType: 'test',
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          managed: false,
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          data: {
+            URI: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isAutoragCompatible(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            ACCESS_TYPE: 'Push',
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should identify autorag compatible env vars (S3 only)', () => {
+    expect(isAutoragCompatible(['AWS_ACCESS_KEY_ID'], AutoragCompatibleTypes.S3ObjectStorage)).toBe(
+      false,
+    );
+    expect(
+      isAutoragCompatible(
+        ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
+        AutoragCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
+    expect(isAutoragCompatible(['URI'], AutoragCompatibleTypes.S3ObjectStorage)).toBe(false);
+  });
+
+  it('should identify autorag compatible connection types (S3 only)', () => {
+    expect(isAutoragCompatible(mockConnection({}), AutoragCompatibleTypes.S3ObjectStorage)).toBe(
+      false,
+    );
+    expect(
+      isAutoragCompatible(
+        mockConnectionTypeConfigMapObj({
+          fields: mockModelServingFields,
+        }),
+        AutoragCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('getAutoragCompatibility', () => {
+  it('should identify autorag compatible connections (S3 only)', () => {
+    expect(getAutoragCompatibility(mockConnection({}))).toEqual([]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([AutoragCompatibleTypes.S3ObjectStorage]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          connectionType: 'test',
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          managed: false,
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          data: {
+            URI: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+            URI: 'test',
+          },
+        }),
+      ),
+    ).toEqual([AutoragCompatibleTypes.S3ObjectStorage]);
+    expect(
+      getAutoragCompatibility(
+        mockConnection({
+          data: {
+            ACCESS_TYPE: window.btoa('["Pull"]'),
+            OCI_HOST: 'quay.io',
+            '.dockerconfigjson': '{stuff}',
           },
         }),
       ),

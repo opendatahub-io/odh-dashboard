@@ -7,7 +7,11 @@ import createExperimentSchema from '~/app/schemas/experiment.schema';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
-function AutoragCreate(): React.JSX.Element {
+type Props = {
+  namespace: string;
+};
+
+function AutoragCreate({ namespace }: Props): React.JSX.Element {
   const navigate = useNavigate();
 
   const experimentSchema = createExperimentSchema();
@@ -63,7 +67,7 @@ function AutoragCreate(): React.JSX.Element {
             isDisabled={!form.formState.isValid}
             onClick={async () => {
               form.handleSubmit(() => {
-                navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
+                navigate(`${autoragConfigurePathname}/${namespace}/FAKE_EXPERIMENT_ID`);
               })();
             }}
           >

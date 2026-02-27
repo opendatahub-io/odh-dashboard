@@ -269,7 +269,7 @@ export const ConnectionSection: React.FC<Props> = ({
   pvcs,
   connectionTypeFilter = () => true,
 }) => {
-  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
+  const [modelServingConnectionTypes] = useWatchConnectionTypes({ modelServingCompatible: true });
 
   const connectionTypes = React.useMemo(
     () => modelServingConnectionTypes.filter(connectionTypeFilter),

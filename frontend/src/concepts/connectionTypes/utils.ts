@@ -277,6 +277,78 @@ export const filterModelServingConnectionTypes = (
     })
     .filter((t) => t != null);
 
+export enum AutoragCompatibleTypes {
+  S3ObjectStorage = 'S3 compatible object storage',
+}
+
+const autoragCompatibleTypesMetadata: Record<
+  AutoragCompatibleTypes,
+  {
+    name: string;
+    resource: string;
+    envVars: string[];
+    managedType: string;
+    protocol: string;
+  }
+> = {
+  [AutoragCompatibleTypes.S3ObjectStorage]: {
+    name: AutoragCompatibleTypes.S3ObjectStorage,
+    resource: 's3',
+    envVars: S3ConnectionTypeKeys,
+    managedType: 's3',
+    protocol: 's3',
+  },
+};
+
+export const isAutoragCompatible = (
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
+  type?: AutoragCompatibleTypes,
+): boolean => {
+  if (!type) {
+    return getAutoragCompatibility(input).length > 0;
+  }
+  if (isSecretKind(input) && isConnection(input)) {
+    const { managedType, protocol } = autoragCompatibleTypesMetadata[type];
+    if (
+      managedType &&
+      !(
+        input.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
+        input.metadata.labels['opendatahub.io/managed'] === 'true'
+      )
+    ) {
+      return false;
+    }
+
+    const connectionProtocol =
+      input.metadata.annotations['opendatahub.io/connection-type-protocol'];
+    if (connectionProtocol && connectionProtocol === protocol) {
+      return true;
+    }
+
+    return autoragCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      Object.keys(input.data || input.stringData || []).includes(envVar),
+    );
+  }
+  if (isConnectionType(input)) {
+    const fieldEnvs = input.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+    return autoragCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      fieldEnvs?.includes(envVar),
+    );
+  }
+  return autoragCompatibleTypesMetadata[type].envVars.every((envVar) => input.includes(envVar));
+};
+
+export const getAutoragCompatibility = (
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
+): AutoragCompatibleTypes[] => {
+  return enumIterator(AutoragCompatibleTypes).reduce<AutoragCompatibleTypes[]>((acc, [, value]) => {
+    if (isAutoragCompatible(input, value)) {
+      acc.push(value);
+    }
+    return acc;
+  }, []);
+};
+
 export const getDefaultValues = (
   connectionType: ConnectionTypeConfigMapObj,
 ): { [key: string]: ConnectionTypeValueType } => {

@@ -94,7 +94,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
-  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
+  const [modelServingConnectionTypes] = useWatchConnectionTypes({ modelServingCompatible: true });
 
   // Filtered types for the dropdown so only enabled types are shown
   const filteredModelServingConnectionTypes = React.useMemo(() => {

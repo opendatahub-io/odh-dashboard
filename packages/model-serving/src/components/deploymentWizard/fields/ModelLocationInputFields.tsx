@@ -49,7 +49,9 @@ export const useModelLocationData = (
   existingData?: ModelLocationData,
 ): ModelLocationDataField => {
   // Gets all connection types, even disabled ones
-  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes({
+    modelServingCompatible: true,
+  });
   const pvcs = usePvcs(projectName);
   const pvcsLoaded = pvcs.loaded;
   const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);

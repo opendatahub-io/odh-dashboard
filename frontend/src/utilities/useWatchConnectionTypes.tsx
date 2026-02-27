@@ -1,12 +1,16 @@
 import React from 'react';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { isModelServingCompatible } from '#~/concepts/connectionTypes/utils';
+import { isModelServingCompatible, isAutoragCompatible } from '#~/concepts/connectionTypes/utils';
 import { fetchConnectionTypes } from '#~/services/connectionTypesService';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
-export const useWatchConnectionTypes = (
-  modelServingCompatible?: boolean,
-): FetchState<ConnectionTypeConfigMapObj[]> => {
+export const useWatchConnectionTypes = ({
+  modelServingCompatible = false,
+  autoragCompatible = false,
+}: {
+  modelServingCompatible?: boolean;
+  autoragCompatible?: boolean;
+} = {}): FetchState<ConnectionTypeConfigMapObj[]> => {
   const callback = React.useCallback<
     FetchStateCallbackPromise<ConnectionTypeConfigMapObj[]>
   >(async () => {
@@ -14,9 +18,12 @@ export const useWatchConnectionTypes = (
     if (modelServingCompatible) {
       connectionTypes = connectionTypes.filter((ct) => isModelServingCompatible(ct));
     }
+    if (autoragCompatible) {
+      connectionTypes = connectionTypes.filter((ct) => isAutoragCompatible(ct));
+    }
 
     return connectionTypes;
-  }, [modelServingCompatible]);
+  }, [modelServingCompatible, autoragCompatible]);
 
   return useFetchState<ConnectionTypeConfigMapObj[]>(callback, []);
 };
