@@ -54,7 +54,7 @@ make run LOG_LEVEL=DEBUG
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` or `user_token` (default `user_token`) |
+| `-auth-method` | `AUTH_METHOD` | `disabled`, `internal`, or `user_token` (default `user_token`) |
 | `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
 | `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
 | `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
@@ -102,10 +102,11 @@ GET /api/v1/namespaces   (dev / mock mode only)
 
 ### Authentication modes
 
-Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
+Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
+- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_LS_CLIENT=true`). Useful for local testing. **Not recommended for production.**
 
 ### Sample local calls
 

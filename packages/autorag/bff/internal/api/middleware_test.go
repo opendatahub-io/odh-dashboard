@@ -378,7 +378,7 @@ func TestRequireAccessToService(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "token is required")
 	})
 
-	t.Run("should skip namespace authorization when namespace is not in context", func(t *testing.T) {
+	t.Run("should return bad request when namespace is not in context", func(t *testing.T) {
 		mockFactory := k8smocks.NewMockTokenClientFactory()
 		app := App{
 			kubernetesClientFactory: mockFactory,
@@ -390,14 +390,12 @@ func TestRequireAccessToService(t *testing.T) {
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
-		handlerCalled := false
 		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			handlerCalled = true
-			w.WriteHeader(http.StatusOK)
+			t.Fatal("Handler should not be called when namespace is missing")
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.True(t, handlerCalled, "Next handler should be called when namespace is not present")
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing namespace in context")
 	})
 
 	t.Run("should return server error when k8sClient.GetClient fails", func(t *testing.T) {
