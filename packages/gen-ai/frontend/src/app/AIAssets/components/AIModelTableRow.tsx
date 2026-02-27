@@ -5,8 +5,7 @@ import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@pattern
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
