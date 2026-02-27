@@ -46,6 +46,7 @@ export const useDevFlags: () => string[] = () => {
  */
 const useDevFeatureFlags = (
   dashboardConfig?: DashboardConfigKind | null,
+  refreshConfig?: () => Promise<void>,
 ): {
   dashboardConfig: DashboardConfigKind | null;
 } & DevFeatureFlags => {
@@ -194,8 +195,17 @@ const useDevFeatureFlags = (
     (turnOff: boolean) => {
       setSessionFlags(turnOff ? null : {});
       setBannerVisible(false);
+
+      // Clear the axios header immediately so the next config fetch
+      // from the server returns clean (un-overridden) values.
+      if (turnOff) {
+        delete axios.defaults.headers.common[HEADER_NAME];
+      } else {
+        axios.defaults.headers.common[HEADER_NAME] = JSON.stringify({});
+      }
+      refreshConfig?.();
     },
-    [setSessionFlags, setBannerVisible],
+    [setSessionFlags, setBannerVisible, refreshConfig],
   );
 
   const setDevFeatureFlag = React.useCallback(

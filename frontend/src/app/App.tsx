@@ -60,10 +60,13 @@ const App: React.FC = () => {
     dashboardConfig: dashboardConfigFromServer,
     loaded: configLoaded,
     loadError: fetchConfigError,
+    refresh,
   } = useApplicationSettings();
 
-  const { dashboardConfig, ...devFeatureFlagsProps } =
-    useDevFeatureFlags(dashboardConfigFromServer);
+  const { dashboardConfig, ...devFeatureFlagsProps } = useDevFeatureFlags(
+    dashboardConfigFromServer,
+    refresh,
+  );
 
   const [storageClasses] = useStorageClasses();
 
