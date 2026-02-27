@@ -1,0 +1,85 @@
+name: Test / EvalHub Frontend Tests
+on:
+  push:
+    paths:
+      - 'packages/eval-hub/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/eval-hub/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+            ~/.cache/Cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/eval-hub/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+
+      - name: Install root level dependencies
+        run: npm install
+
+      - name: Install dependencies
+        working-directory: packages/eval-hub/frontend
+        run: npm install
+
+      - name: Lint
+        working-directory: packages/eval-hub/frontend
+        run: npm run test:lint
+
+      - name: Type check
+        working-directory: packages/eval-hub/frontend
+        run: npm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/eval-hub/frontend
+        run: npm run test:unit
+
+      - name: Cypress mock tests
+        working-directory: packages/eval-hub/frontend
+        run: npm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/eval-hub/frontend
+        run: npm run build:clean
+
+      - name: Run build
+        working-directory: packages/eval-hub/frontend
+        run: npm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/eval-hub/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
