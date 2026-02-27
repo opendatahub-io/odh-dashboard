@@ -10,6 +10,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -212,4 +213,88 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
+}
+
+// CanListEvalHubInstances performs a SubjectAccessReview on behalf of the identified user
+// to check whether they have permission to list EvalHub CRs in the given namespace.
+func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     EvalHubCRDGroup,
+				Resource:  EvalHubCRDResource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform EvalHub list SAR", "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub list permissions: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+// GetEvalHubServiceURL lists EvalHub CRs in the namespace using the service-account credentials
+// (internal client) and returns status.serviceURL from the first found instance labelled for ODH.
+func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Build a dynamic client from the service-account kubeconfig.
+	kubeconfig, err := helper.GetKubeconfig()
+	if err != nil {
+		kc.Logger.Error("failed to get kubeconfig for dynamic EvalHub CR lookup", "error", err)
+		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	dynClient, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		kc.Logger.Error("failed to create dynamic client for EvalHub CR lookup", "error", err)
+		return "", fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	labelSelector := fmt.Sprintf("%s=true", OpenDataHubDashboardLabel)
+	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
+		return "", fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
+	}
+
+	if len(list.Items) == 0 {
+		return "", fmt.Errorf("no EvalHub instance found in namespace %q", namespace)
+	}
+
+	if len(list.Items) > 1 {
+		kc.Logger.Warn("multiple EvalHub instances found in namespace, using first",
+			"namespace", namespace, "count", len(list.Items))
+	}
+
+	item := list.Items[0]
+	status, ok := item.Object["status"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status field", item.GetName(), namespace)
+	}
+
+	serviceURL, ok := status["serviceURL"].(string)
+	if !ok || serviceURL == "" {
+		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.serviceURL", item.GetName(), namespace)
+	}
+
+	kc.Logger.Debug("discovered EvalHub service URL from CR",
+		"namespace", namespace,
+		"crName", item.GetName(),
+		"serviceURL", serviceURL)
+
+	return serviceURL, nil
 }
