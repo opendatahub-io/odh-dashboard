@@ -1,4 +1,4 @@
-PORT ?= 4000
+PORT ?= 4001
 MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
