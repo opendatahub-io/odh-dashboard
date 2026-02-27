@@ -6,7 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind } from '~/app/types';
+import { NamespaceKind, SecretListItem } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -31,3 +31,21 @@ export const getNamespaces =
       }
       throw new Error('Invalid response format');
     });
+
+export const getSecrets =
+  (hostPath: string) =>
+  (namespace: string, type?: 'storage' | 'lls') =>
+  (opts: APIOptions): Promise<SecretListItem[]> => {
+    const queryParams: Record<string, string> = { resource: namespace };
+    if (type) {
+      queryParams.type = type;
+    }
+    return handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, queryParams, opts),
+    ).then((response) => {
+      if (isModArchResponse<SecretListItem[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };

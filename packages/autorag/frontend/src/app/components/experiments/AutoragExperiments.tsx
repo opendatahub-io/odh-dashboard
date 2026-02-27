@@ -2,7 +2,7 @@ import { Button } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { autoragCreatePathname } from '~/app/utilities/routes';
-import { useExperimentsQuery } from '../../hooks/queries';
+import { useExperimentsQuery } from '~/app/hooks/queries';
 
 function AutoragExperiments(): React.JSX.Element {
   const navigate = useNavigate();

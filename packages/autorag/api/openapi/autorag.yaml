@@ -73,6 +73,145 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/secrets:
+    summary: Path used to retrieve and filter secrets from a namespace.
+    description: >-
+      The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
+      Supports pagination via limit and offset parameters.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          description: The namespace name to query secrets from
+          schema:
+            type: string
+          example: default
+        - name: type
+          in: query
+          required: false
+          description: >-
+            Secret type filter (key matching is case-insensitive):
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url)
+            - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
+            - Omit for all secrets
+          schema:
+            type: string
+            enum:
+              - storage
+              - lls
+          example: storage
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of secrets to return (default 10, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of secrets to skip for pagination (default 0)
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecrets
+      summary: Get filtered secrets
+      description: >-
+        Retrieves secrets from a specified namespace with optional filtering by type.
+        Supports pagination via limit and offset parameters. All key matching is case-insensitive.
+        Type filtering includes:
+        - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url)
+        - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
+        - No type: Returns all secrets in the namespace with their detected types
+  /api/v1/s3/file:
+    summary: Path used to get a file from S3.
+    description: >-
+      The REST endpoint/path used to retrieve an arbitrary file from S3 storage.
+      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
+      Returns the file with transfer-encoding: chunked for efficient streaming.
+    get:
+      tags:
+        - S3Operation
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: The name of the Kubernetes secret containing S3 credentials
+          schema:
+            type: string
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: true
+          description: The S3 bucket name
+          schema:
+            type: string
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: The S3 object key to retrieve
+          schema:
+            type: string
+          example: documents/myfile.pdf
+      responses:
+        "200":
+          description: File retrieved successfully
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+                description: The binary content of the requested file
+          headers:
+            Transfer-Encoding:
+              description: Set to 'chunked' for streaming large files
+              schema:
+                type: string
+                example: chunked
+            Content-Type:
+              description: The MIME type of the file
+              schema:
+                type: string
+                example: application/pdf
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getS3File
+      summary: Get file from S3
+      description: >-
+        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
+        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
+        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key,
+        aws_region_name, endpoint_url).
 components:
   schemas:
     Config:
@@ -87,6 +226,30 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+    SecretListItem:
+      description: A Kubernetes secret with its UUID, name, and type classification
+      required:
+        - uuid
+        - name
+        - type
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The Kubernetes UID of the secret
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: The name of the secret
+          example: aws-secret-1
+        type:
+          type: string
+          description: >-
+            The detected type of the secret based on its keys:
+            - 's3': S3 storage secret (has required S3 keys)
+            - 'lls': Llama Stack secret (has required LLS keys)
+            - '': Empty string if the secret doesn't match any recognized type
+          example: s3
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -202,6 +365,60 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+    SecretsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                description: List of filtered secrets
+                maxItems: 100
+                items:
+                  $ref: "#/components/schemas/SecretListItem"
+          examples:
+            storageSecrets:
+              summary: Example response with storage (S3) secrets
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: aws-secret-1
+                    type: s3
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: aws-secret-2
+                    type: s3
+            llsSecrets:
+              summary: Example response with LLS (Llama Stack) secrets
+              value:
+                data:
+                  - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
+                    name: llama-stack-secret-1
+                    type: lls
+                  - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
+                    name: llama-stack-secret-2
+                    type: lls
+            allSecrets:
+              summary: Example response with all secrets (no type filter)
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: s3-secret
+                    type: s3
+                  - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
+                    name: lls-secret
+                    type: lls
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: other-secret
+                    type: ""
+            emptyList:
+              summary: Example response with no matching secrets
+              value:
+                data: []
+      description: A response containing a list of filtered secret items
     ConflictResponse:
       content:
         application/json:
@@ -313,3 +530,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: S3Operation
+    description: Operation performed on S3 storage

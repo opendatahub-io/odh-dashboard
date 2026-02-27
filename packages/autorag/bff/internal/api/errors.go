@@ -39,6 +39,14 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, message string) {
+	// Log the detailed error message as a warning
+	app.logger.Warn("Access unauthorized", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
+
+	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: strconv.Itoa(http.StatusUnauthorized), Message: "Access unauthorized"}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, httpErr *HTTPError) {
 	err := app.WriteJSON(w, httpErr.StatusCode, httpErr, nil)
 	if err != nil {
