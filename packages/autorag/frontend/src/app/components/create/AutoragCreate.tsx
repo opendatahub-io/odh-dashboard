@@ -8,7 +8,7 @@ import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
 type Props = {
-  namespace?: string;
+  namespace: string;
 };
 
 function AutoragCreate({ namespace }: Props): React.JSX.Element {

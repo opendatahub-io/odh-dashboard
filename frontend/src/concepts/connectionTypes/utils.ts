@@ -308,7 +308,7 @@ export const isAutoragCompatible = (
     return getAutoragCompatibility(input).length > 0;
   }
   if (isSecretKind(input) && isConnection(input)) {
-    const { managedType, protocol } = modelServingCompatibleTypesMetadata[type];
+    const { managedType, protocol } = autoragCompatibleTypesMetadata[type];
     if (
       managedType &&
       !(

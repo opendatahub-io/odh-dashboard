@@ -25,7 +25,7 @@ import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx'
 import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
 
 type Props = {
-  namespace?: string;
+  namespace: string;
 };
 
 function AutoragConfigure({ namespace }: Props): React.JSX.Element {
@@ -173,7 +173,7 @@ function AutoragConfigure({ namespace }: Props): React.JSX.Element {
       {isConnectionModalOpen && (
         <AutoragConnectionModal
           connectionTypes={connectionTypes}
-          project={namespace ?? ''}
+          project={namespace}
           onClose={() => {
             setIsConnectionModalOpen(false);
           }}

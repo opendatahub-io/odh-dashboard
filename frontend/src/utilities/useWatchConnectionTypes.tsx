@@ -23,7 +23,7 @@ export const useWatchConnectionTypes = ({
     }
 
     return connectionTypes;
-  }, [modelServingCompatible]);
+  }, [modelServingCompatible, autoragCompatible]);
 
   return useFetchState<ConnectionTypeConfigMapObj[]>(callback, []);
 };

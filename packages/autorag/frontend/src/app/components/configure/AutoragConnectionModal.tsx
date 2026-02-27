@@ -68,20 +68,41 @@ export const AutoragConnectionModal: React.FC<Props> = ({
     [key: string]: boolean | string;
   }>({});
 
-  const isFormValid = React.useMemo(
-    () =>
+  const isFormValid = React.useMemo(() => {
+    const hasMissingRequiredField = selectedConnectionType?.data?.fields?.find((field) => {
+      if (
+        !isConnectionTypeDataField(field) ||
+        !field.required ||
+        field.type === ConnectionTypeFieldType.Boolean
+      ) {
+        return false;
+      }
+      const value = connectionValues[field.envVar];
+      if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
+        return true;
+      }
+      if (
+        field.type === ConnectionTypeFieldType.Dropdown &&
+        Array.isArray(value) &&
+        value.length === 0
+      ) {
+        return true;
+      }
+      return false;
+    });
+    return (
       !!connectionTypeName &&
       isK8sNameDescriptionDataValid(nameDescData) &&
-      !selectedConnectionType.data?.fields?.find(
-        (field) =>
-          isConnectionTypeDataField(field) &&
-          field.required &&
-          !connectionValues[field.envVar] &&
-          field.type !== ConnectionTypeFieldType.Boolean,
-      ) &&
-      !Object.values(connectionErrors).find((e) => !!e),
-    [connectionTypeName, selectedConnectionType, nameDescData, connectionValues, connectionErrors],
-  );
+      !hasMissingRequiredField &&
+      !Object.values(connectionErrors).find((e) => !!e)
+    );
+  }, [
+    connectionTypeName,
+    selectedConnectionType,
+    nameDescData,
+    connectionValues,
+    connectionErrors,
+  ]);
 
   const protocolType = selectedConnectionType
     ? getConnectionProtocolType(selectedConnectionType)
