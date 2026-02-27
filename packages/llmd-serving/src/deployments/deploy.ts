@@ -141,6 +141,7 @@ export const assembleLLMdDeployment = (
   wizardData: WizardFormData,
   existingDeployment?: LLMdDeployment,
   applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
+  connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
 ): LLMdDeployment => {
   let result: LLMdDeployment = {
     modelServingPlatformId: LLMD_SERVING_ID,
@@ -164,7 +165,7 @@ export const assembleLLMdDeployment = (
         tokenAuthentication: wizardData.state.tokenAuthentication.data,
       },
       existingDeployment?.model,
-      wizardData.state.createConnectionData.data.nameDesc?.k8sName.value,
+      connectionSecretName,
       false,
     ),
   };

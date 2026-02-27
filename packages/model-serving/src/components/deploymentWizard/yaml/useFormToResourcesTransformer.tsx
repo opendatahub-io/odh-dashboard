@@ -43,6 +43,7 @@ const useAssembleDeploymentFn = (
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
   existingDeployment?: Deployment,
+  connectionSecretName?: string, // todo remove
 ): { resources: DeploymentAssemblyResources<Deployment>; loaded: boolean; errors?: Error[] } => {
   // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
   // applyFieldData is then used to apply the field data to the deployment.
@@ -62,7 +63,12 @@ export const useFormToResourcesTransformer = (
     if (!assembleDeploymentFn) {
       return { resources: {}, loaded, errors };
     }
-    let deployment = assembleDeploymentFn(formData, existingDeployment);
+    let deployment = assembleDeploymentFn(
+      formData,
+      existingDeployment,
+      undefined,
+      connectionSecretName,
+    );
     deployment = applyFieldData(deployment);
 
     return {
@@ -72,5 +78,13 @@ export const useFormToResourcesTransformer = (
       loaded,
       errors,
     };
-  }, [assembleDeploymentFn, formData, existingDeployment, applyFieldData, loaded, errors]);
+  }, [
+    assembleDeploymentFn,
+    formData,
+    existingDeployment,
+    applyFieldData,
+    loaded,
+    errors,
+    connectionSecretName,
+  ]);
 };
