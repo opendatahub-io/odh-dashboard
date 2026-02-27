@@ -18,12 +18,21 @@ import {
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
 
-function AutoragConfigure(): React.JSX.Element {
+type Props = {
+  namespace?: string;
+};
+
+function AutoragConfigure({ namespace }: Props): React.JSX.Element {
   const navigate = useNavigate();
 
+  const [connectionTypes] = useWatchConnectionTypes({ autoragCompatible: true });
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
 
   return (
@@ -49,7 +58,7 @@ function AutoragConfigure(): React.JSX.Element {
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
@@ -161,6 +170,19 @@ function AutoragConfigure(): React.JSX.Element {
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutoragConnectionModal
+          connectionTypes={connectionTypes}
+          project={namespace ?? ''}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          onSubmit={(connection: Connection) => {
+            // select connection and add to list of existing connections
+          }}
+        />
+      )}
       <FileExplorer
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}

@@ -29,7 +29,7 @@ function AutoragCreatePage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoragCreate />
+      <AutoragCreate namespace={namespace} />
     </ApplicationsPage>
   );
 }

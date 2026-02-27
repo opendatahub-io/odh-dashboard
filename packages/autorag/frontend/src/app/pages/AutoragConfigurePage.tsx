@@ -6,7 +6,7 @@ import { useExperimentQuery } from '../hooks/queries';
 import InvalidExperiment from '../components/empty-states/InvalidExperiment';
 
 function AutoragConfigurePage(): React.JSX.Element {
-  const { experimentId } = useParams();
+  const { namespace, experimentId } = useParams();
 
   const { data: experiment, ...experimentQuery } = useExperimentQuery(experimentId);
 
@@ -19,10 +19,9 @@ function AutoragConfigurePage(): React.JSX.Element {
       emptyStatePage={<InvalidExperiment />}
       loadError={experimentQuery.error ?? undefined}
       loaded={experimentQuery.isFetched}
-      provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoragConfigure />
+      <AutoragConfigure namespace={namespace} />
     </ApplicationsPage>
   );
 }

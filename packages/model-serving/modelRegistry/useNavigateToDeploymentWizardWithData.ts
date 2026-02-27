@@ -20,7 +20,9 @@ export const useNavigateToDeploymentWizardWithData = (
   const maxLength = resourceTypeLimits[LimitNameResourceType.MODEL_DEPLOYMENT];
   const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName, { maxLength });
 
-  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes({
+    modelServingCompatible: true,
+  });
   const uri = deployPrefillData.modelUri;
   let connectionTypeName = ConnectionTypeRefs.URI;
 

@@ -61,7 +61,9 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
     connections,
   );
 
-  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes({
+    modelServingCompatible: true,
+  });
 
   // Extract form data from registry using the hook
   const { formData: registryFormData, loaded: registryFormDataLoaded } =
