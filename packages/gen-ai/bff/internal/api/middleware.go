@@ -453,14 +453,23 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 			authToken = identity.Token
 		}
 
-		// Extract identity headers to forward to MaaS BFF
-		// MaaS BFF uses kubeflow-userid/kubeflow-groups for internal auth
+		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
-		if userID := r.Header.Get("kubeflow-userid"); userID != "" {
-			forwardHeaders["kubeflow-userid"] = userID
-		}
-		if groups := r.Header.Get("kubeflow-groups"); groups != "" {
-			forwardHeaders["kubeflow-groups"] = groups
+		maasConfig := app.bffClientFactory.GetConfig("maas")
+
+		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
+			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
+			if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+				forwardHeaders["kubeflow-userid"] = userID
+			}
+			if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+				forwardHeaders["kubeflow-groups"] = groups
+			}
+			logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
+		} else {
+			// For user_token auth mode (default for ODH), the token is sent via
+			// the configured auth header by the client itself
+			logger.Debug("Using user_token auth mode for MaaS BFF")
 		}
 
 		// Create BFF client for MaaS target with forwarded headers

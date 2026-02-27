@@ -24,7 +24,8 @@ func TestHTTPBFFClient_Call_Success(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/api/v1/tokens", r.URL.Path)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		assert.Equal(t, "Bearer test-auth-token", r.Header.Get("Authorization"))
+		// Default header for ODH is x-forwarded-access-token (no prefix)
+		assert.Equal(t, "test-auth-token", r.Header.Get("x-forwarded-access-token"))
 
 		// Return response
 		w.Header().Set("Content-Type", "application/json")
@@ -33,7 +34,7 @@ func TestHTTPBFFClient_Call_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create client
+	// Create client (uses default x-forwarded-access-token header)
 	client := NewHTTPBFFClient(server.URL+"/api/v1", BFFTargetMaaS, "test-auth-token", true, nil)
 
 	// Make request
