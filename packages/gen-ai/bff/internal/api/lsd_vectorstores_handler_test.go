@@ -33,9 +33,15 @@ func uploadTestFile(baseURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, _ = part.Write([]byte("test file content for deletion"))
-	_ = writer.WriteField("purpose", "assistants")
-	_ = writer.Close()
+	if _, err := part.Write([]byte("test file content for deletion")); err != nil {
+		return "", fmt.Errorf("write form file: %w", err)
+	}
+	if err := writer.WriteField("purpose", "assistants"); err != nil {
+		return "", fmt.Errorf("write field: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return "", fmt.Errorf("close multipart writer: %w", err)
+	}
 
 	req, err := http.NewRequest("POST", baseURL+"/v1/files", &buf)
 	if err != nil {
@@ -43,7 +49,10 @@ func uploadTestFile(baseURL string) (string, error) {
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if testID := os.Getenv("LLAMA_STACK_TEST_ID"); testID != "" {
-		headerBytes, _ := json.Marshal(map[string]string{"__test_id": testID})
+		headerBytes, err := json.Marshal(map[string]string{"__test_id": testID})
+		if err != nil {
+			return "", fmt.Errorf("marshal provider data: %w", err)
+		}
 		req.Header.Set("X-LlamaStack-Provider-Data", string(headerBytes))
 	}
 
@@ -54,7 +63,10 @@ func uploadTestFile(baseURL string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response body: %w", err)
+	}
 	if resp.StatusCode >= 400 {
 		return "", fmt.Errorf("upload failed: %s", string(body))
 	}
@@ -63,7 +75,10 @@ func uploadTestFile(baseURL string) (string, error) {
 	if err := json.Unmarshal(body, &result); err != nil {
 		return "", err
 	}
-	id, _ := result["id"].(string)
+	id, ok := result["id"].(string)
+	if !ok || id == "" {
+		return "", fmt.Errorf("upload response missing 'id' field: %s", string(body))
+	}
 	return id, nil
 }
 

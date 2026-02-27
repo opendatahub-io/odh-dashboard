@@ -1,5 +1,5 @@
 {
-  "test_id": null,
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -278,6 +278,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Nano Banana Pro"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.1-flash-image-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Nano Banana 2"
         }
       },
       {

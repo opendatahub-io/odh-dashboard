@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -410,6 +411,14 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
+		if _, ok := err.(*lsmocks.MockStreamError); ok {
+			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
+				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
+					mockClient.HandleMockStreaming(ctx, w, flusher, params)
+					return
+				}
+			}
+		}
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}

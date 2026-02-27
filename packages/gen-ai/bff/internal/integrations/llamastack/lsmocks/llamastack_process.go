@@ -44,7 +44,13 @@ type LlamaStackState struct {
 // SetupLlamaStack starts a local Llama Stack server as a child process in replay mode.
 // If Llama Stack is already running on the target port, it reuses that instance.
 // The caller is responsible for calling CleanupLlamaStackState on shutdown.
-func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
+func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("llama stack setup failed: %v", r)
+		}
+	}()
+
 	port := testutil.GetTestLlamaStackPort()
 
 	if isLlamaStackHealthy(port) {

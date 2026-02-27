@@ -88,34 +88,39 @@ func SeedData(baseURL string, testID string, logger *slog.Logger) (*SeedResult, 
 // Llama Stack processes file embeddings asynchronously; this avoids a race where
 // knowledge_search returns 0 chunks because the index isn't ready yet.
 func waitForFileReady(ctx context.Context, client *TestLlamaStackClient, vectorStoreID, fileID string, logger *slog.Logger) error {
-	deadline := time.Now().Add(fileReadyTimeout)
-
 	logger.Debug("Polling vector store file status until embedding completes...",
 		slog.String("vector_store_id", vectorStoreID),
 		slog.String("file_id", fileID),
 	)
 
-	for time.Now().Before(deadline) {
+	ticker := time.NewTicker(fileReadyPollInterval)
+	defer ticker.Stop()
+	timer := time.NewTimer(fileReadyTimeout)
+	defer timer.Stop()
+
+	for {
 		vsFile, err := client.GetVectorStoreFile(ctx, vectorStoreID, fileID)
 		if err != nil {
 			logger.Debug("File status check failed, retrying...", slog.String("error", err.Error()))
-			time.Sleep(fileReadyPollInterval)
-			continue
+		} else {
+			status := string(vsFile.Status)
+			logger.Debug("File status", slog.String("status", status))
+
+			switch status {
+			case "completed":
+				logger.Info("File embedding completed", slog.String("file_id", fileID))
+				return nil
+			case "failed", "cancelled":
+				return fmt.Errorf("file processing ended with status %q", status)
+			}
 		}
 
-		status := string(vsFile.Status)
-		logger.Debug("File status", slog.String("status", status))
-
-		switch status {
-		case "completed":
-			logger.Info("File embedding completed", slog.String("file_id", fileID))
-			return nil
-		case "failed", "cancelled":
-			return fmt.Errorf("file processing ended with status %q", status)
-		default:
-			time.Sleep(fileReadyPollInterval)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled while waiting for file %s: %w", fileID, ctx.Err())
+		case <-timer.C:
+			return fmt.Errorf("timed out after %v waiting for file %s to reach 'completed' status", fileReadyTimeout, fileID)
+		case <-ticker.C:
 		}
 	}
-
-	return fmt.Errorf("timed out after %v waiting for file %s to reach 'completed' status", fileReadyTimeout, fileID)
 }
