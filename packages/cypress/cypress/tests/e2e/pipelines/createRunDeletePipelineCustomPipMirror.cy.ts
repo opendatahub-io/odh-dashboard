@@ -8,6 +8,7 @@ import { pipelinesGlobal, pipelineDeleteModal } from '../../../pages/pipelines/p
 import { pipelinesTable } from '../../../pages/pipelines/pipelinesTable';
 import { pipelineDetails, pipelineRunDetails } from '../../../pages/pipelines/topology';
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { logDspaStatus } from '../../../utils/oc_commands/dspa';
 import { getIrisPipelinePath } from '../../../utils/fileImportUtils';
 import { createOpenShiftConfigMap } from '../../../utils/oc_commands/configmap';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -50,7 +51,11 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
       cy.step('Import a pipeline from a yaml local file');
       // Increasing the timeout to ~5mins so the DSPA can be loaded
-      projectDetails.findImportPipelineButton(300000).click();
+      projectDetails
+        .findImportPipelineButton(300000, 10000, {
+          onBeforeReload: () => logDspaStatus(projectName),
+        })
+        .click();
       // Fill the Import Pipeline modal
       pipelineImportModal.findPipelineNameInput().type(testPipelineIrisName);
       pipelineImportModal.findUploadPipelineRadio().click();

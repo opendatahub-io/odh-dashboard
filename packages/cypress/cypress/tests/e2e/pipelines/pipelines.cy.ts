@@ -5,6 +5,7 @@ import { pipelineImportModal } from '../../../pages/pipelines/pipelineImportModa
 import { createRunPage } from '../../../pages/pipelines/createRunPage';
 import { pipelineDetails, pipelineRunDetails } from '../../../pages/pipelines/topology';
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { logDspaStatus } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 
@@ -38,7 +39,11 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
       cy.step('Import a pipeline by URL');
       // Increasing the timeout to ~5mins so the DSPA can be loaded
-      projectDetails.findImportPipelineButton(300000).click();
+      projectDetails
+        .findImportPipelineButton(300000, 10000, {
+          onBeforeReload: () => logDspaStatus(projectName),
+        })
+        .click();
       // Fill the Import Pipeline modal
       pipelineImportModal.findPipelineNameInput().type(testPipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
