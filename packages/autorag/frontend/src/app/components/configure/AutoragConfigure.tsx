@@ -17,14 +17,18 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector from '~/app/shared/SecretSelector';
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
-
+  const { namespace } = useParams();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [selectedSecret, setSelectedSecret] = useState<
+    { uuid: string; name: string } | undefined
+  >();
 
   return (
     <>
@@ -41,9 +45,25 @@ function AutoragConfigure(): React.JSX.Element {
                         Select or add an S3 connection to upload files or browse existing files.
                       </StackItem>
                       <StackItem>
-                        <Split>
-                          <SplitItem isFilled data-temp-placeholder>
-                            Connections dropdown
+                        <Split
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                          }}
+                        >
+                          <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
+                            {Boolean(namespace) && (
+                              <SecretSelector
+                                namespace={String(namespace)}
+                                type="storage"
+                                value={selectedSecret?.uuid}
+                                onChange={(secret) => setSelectedSecret(secret)}
+                                label="S3 connection"
+                                placeholder="Select connection"
+                                toggleWidth="16rem"
+                                dataTestId="aws-secret-selector"
+                              />
+                            )}
                           </SplitItem>
                           <SplitItem>
                             <Button
@@ -56,26 +76,31 @@ function AutoragConfigure(): React.JSX.Element {
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {Boolean(selectedSecret?.uuid) && (
+                        <>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected connection
+                          </StackItem>
+                          <StackItem>
+                            <Label onClose={() => setSelectedSecret(undefined)}>
+                              {selectedSecret?.name}
+                            </Label>
+                          </StackItem>
 
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label onClose={() => null}>S3 connection test</Label>
-                      </StackItem>
-
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected files
-                      </StackItem>
-                      <StackItem>
-                        <Button
-                          key="select-files"
-                          variant="secondary"
-                          onClick={() => setIsFileExplorerOpen(true)}
-                        >
-                          Select files
-                        </Button>
-                      </StackItem>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected files
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="select-files"
+                              variant="secondary"
+                              onClick={() => setIsFileExplorerOpen(true)}
+                            >
+                              Select files
+                            </Button>
+                          </StackItem>
+                        </>
+                      )}
                     </Stack>
                   </CardBody>
                 </Card>
