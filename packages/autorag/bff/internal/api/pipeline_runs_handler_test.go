@@ -7,10 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPipelineRunsHandler_Success(t *testing.T) {
@@ -198,5 +200,188 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 				assert.NotEmpty(t, run.StateHistory[0].State, "StateHistory State should not be empty")
 			}
 		}
+	})
+}
+
+// TestPipelineRunHandler tests the GET /api/v1/pipeline-runs/:runId endpoint
+func TestPipelineRunHandler_Success(t *testing.T) {
+	app := newTestApp(t)
+
+	t.Run("should return single pipeline run by ID", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-abc123-def456"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Attach mock client to context
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		// Create params with runId
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response PipelineRunEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.NotNil(t, response.Data)
+		assert.Equal(t, runID, response.Data.RunID)
+	})
+
+	t.Run("should return properly formatted envelope response", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-test-123"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		// Verify envelope structure
+		dataField, exists := response["data"]
+		assert.True(t, exists, "Response should have 'data' field")
+		assert.NotNil(t, dataField)
+	})
+
+	t.Run("should include all required fields in pipeline run", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-complete-test"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response struct {
+			Data models.PipelineRun `json:"data"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		run := response.Data
+		// Verify required fields
+		assert.Equal(t, runID, run.RunID)
+		assert.NotEmpty(t, run.DisplayName, "DisplayName should not be empty")
+		assert.NotEmpty(t, run.State, "State should not be empty")
+		assert.NotEmpty(t, run.CreatedAt, "CreatedAt should not be empty")
+
+		// Verify enhanced fields
+		assert.NotEmpty(t, run.ExperimentID, "ExperimentID should not be empty")
+		assert.NotNil(t, run.PipelineVersionReference, "PipelineVersionReference should not be nil")
+		if run.PipelineVersionReference != nil {
+			assert.NotEmpty(t, run.PipelineVersionReference.PipelineID)
+			assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID)
+		}
+		assert.NotEmpty(t, run.StorageState, "StorageState should not be empty")
+		assert.NotEmpty(t, run.ServiceAccount, "ServiceAccount should not be empty")
+
+		// Verify state history
+		assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
+	})
+}
+
+func TestPipelineRunHandler_ErrorCases(t *testing.T) {
+	app := newTestApp(t)
+
+	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-test-123"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Don't attach client to context
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should fail with empty runId", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/",
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		// Pass empty runId
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: ""},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Contains(t, response.Error.Message, "missing runId parameter")
 	})
 }

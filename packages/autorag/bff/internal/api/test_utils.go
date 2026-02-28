@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
+	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
@@ -98,5 +99,8 @@ func newTestApp(t *testing.T) *App {
 		t.Fatalf("failed to create mock k8s factory: %v", err)
 	}
 
-	return NewTestApp(cfg, logger, k8sFactory, nil)
+	// Create a mock Pipeline Server client factory
+	psFactory := psmocks.NewMockClientFactory()
+
+	return NewTestApp(cfg, logger, k8sFactory, psFactory, nil)
 }

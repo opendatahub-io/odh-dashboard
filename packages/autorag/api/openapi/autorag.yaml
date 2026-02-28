@@ -79,10 +79,11 @@ paths:
   # =============================================================================
 
   /api/v1/pipeline-runs:
-    summary: Query pipeline runs for a specific pipeline version
+    summary: Query pipeline runs from auto-discovered Pipeline Server
     description: >-
-      Lists pipeline runs from a specified Pipeline Server, optionally filtered by pipeline version.
-      Requires namespace and pipelineServerId parameters for proper isolation.
+      Lists pipeline runs from the Pipeline Server in the specified namespace.
+      The Pipeline Server (DSPipelineApplication) is automatically discovered.
+      Results can be optionally filtered by pipeline version.
     get:
       tags:
         - PipelineOperation
@@ -90,13 +91,6 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
-        - name: pipelineServerId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: ID/name of the Pipeline Server (DSPipelineApplication name)
-          example: "dspa"
         - name: pipelineVersionId
           in: query
           required: false
@@ -104,13 +98,6 @@ paths:
             type: string
           description: ID of the pipeline version to filter runs by
           example: "22e57c06-030f-4c63-900d-0a808d577899"
-        - name: runId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: ID of a specific pipeline run to retrieve
-          example: "abc123-def456-ghi789"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/nextPageToken"
       responses:
@@ -126,32 +113,8 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
-      description: Returns pipeline runs optionally filtered by pipeline version ID or run ID
+      description: Returns pipeline runs optionally filtered by pipeline version ID
 
-  /api/v1/pipeline-servers:
-    summary: List available Pipeline Servers in a namespace
-    description: >-
-      Returns all Pipeline Servers (DSPipelineApplications) in the specified namespace.
-      This allows users to discover which Pipeline Servers are available.
-    get:
-      tags:
-        - PipelineOperation
-      security:
-        - Bearer: []
-      parameters:
-        - $ref: "#/components/parameters/namespace"
-      responses:
-        "200":
-          $ref: "#/components/responses/PipelineServersResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      operationId: getPipelineServers
-      summary: Get Pipeline Servers
-      description: Returns all available Pipeline Servers in a namespace
 components:
   schemas:
     Config:
@@ -233,6 +196,18 @@ components:
           format: date-time
           description: Completion timestamp (ISO 8601)
           example: "2026-02-24T11:15:00Z"
+        error:
+          type: object
+          description: Error information if the run failed
+          nullable: true
+          properties:
+            code:
+              type: integer
+              format: int32
+              description: Error code
+            message:
+              type: string
+              description: Error message
         state_history:
           type: array
           description: History of state changes
@@ -281,48 +256,6 @@ components:
           type: string
           description: Token for retrieving the next page
           example: "eyJwYWdlIjoyfQ=="
-
-    # Pipeline Server Schemas
-    PipelineServer:
-      type: object
-      description: Pipeline Server information
-      required:
-        - name
-        - namespace
-        - ready
-      properties:
-        name:
-          type: string
-          description: Pipeline Server name (DSPipelineApplication CR name)
-          example: "dspa"
-        namespace:
-          type: string
-          description: Kubernetes namespace
-          example: "my-namespace"
-        ready:
-          type: boolean
-          description: Whether the Pipeline Server is ready
-          example: true
-        api_url:
-          type: string
-          description: Pipeline Server API URL
-          example: "https://ds-pipeline-dspa.my-namespace.svc.cluster.local:8443"
-        ui_url:
-          type: string
-          description: Pipeline Server UI URL (if exposed)
-          example: "https://ds-pipeline-ui-dspa-my-namespace.apps.cluster.local"
-
-    PipelineServersData:
-      type: object
-      description: List of available Pipeline Servers
-      required:
-        - servers
-      properties:
-        servers:
-          type: array
-          description: Array of Pipeline Servers
-          items:
-            $ref: '#/components/schemas/PipelineServer'
 
     BaseResource:
       allOf:
@@ -476,27 +409,6 @@ components:
                       state: "SUCCEEDED"
               total_size: 1
               next_page_token: ""
-
-    PipelineServersResponse:
-      description: Successful response containing available Pipeline Servers
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              metadata:
-                type: object
-                description: Response metadata
-              data:
-                $ref: '#/components/schemas/PipelineServersData'
-          example:
-            metadata: {}
-            data:
-              servers:
-                - name: "dspa"
-                  namespace: "my-namespace"
-                  ready: true
-                  api_url: "https://ds-pipeline-dspa.my-namespace.svc.cluster.local:8443"
 
     ConflictResponse:
       content:

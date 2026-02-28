@@ -428,14 +428,17 @@ func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config, 
 }
 
 // getMockDSPipelineApplications returns mock DSPipelineApplication data for development
+// Only returns DSPAs that match the requested namespace to simulate realistic K8s behavior
 func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplication {
-	return []models.DSPipelineApplication{
+	// All mock DSPAs across all namespaces
+	allMockDSPAs := []models.DSPipelineApplication{
+		// Ready DSPA in test-namespace
 		{
 			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
 			Kind:       "DSPipelineApplication",
 			Metadata: models.DSPipelineApplicationMetadata{
 				Name:      "dspa",
-				Namespace: namespace,
+				Namespace: "test-namespace",
 			},
 			Spec: models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
@@ -460,18 +463,19 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				},
 				Components: &models.DSPipelineApplicationComponents{
 					APIServer: &models.DSPipelineApplicationAPIServerStatus{
-						URL:         fmt.Sprintf("https://ds-pipeline-dspa.%s.svc.cluster.local:8443", namespace),
-						ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-%s.apps.cluster.local", namespace),
+						URL:         "https://ds-pipeline-dspa.test-namespace.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-test-namespace.apps.cluster.local",
 					},
 				},
 			},
 		},
+		// Not ready DSPA in test-namespace
 		{
 			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
 			Kind:       "DSPipelineApplication",
 			Metadata: models.DSPipelineApplicationMetadata{
 				Name:      "dspa-test",
-				Namespace: namespace,
+				Namespace: "test-namespace",
 			},
 			Spec: models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
@@ -496,13 +500,23 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				},
 				Components: &models.DSPipelineApplicationComponents{
 					APIServer: &models.DSPipelineApplicationAPIServerStatus{
-						URL:         fmt.Sprintf("https://ds-pipeline-dspa-test.%s.svc.cluster.local:8443", namespace),
-						ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-test-%s.apps.cluster.local", namespace),
+						URL:         "https://ds-pipeline-dspa-test.test-namespace.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-test-test-namespace.apps.cluster.local",
 					},
 				},
 			},
 		},
 	}
+
+	// Filter DSPAs to only return those in the requested namespace
+	var result []models.DSPipelineApplication
+	for _, dspa := range allMockDSPAs {
+		if dspa.Metadata.Namespace == namespace {
+			result = append(result, dspa)
+		}
+	}
+
+	return result
 }
 
 // discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace
