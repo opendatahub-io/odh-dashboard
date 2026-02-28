@@ -41,7 +41,7 @@ dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -72,7 +72,7 @@ dev-frontend-kubeflow:
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
 # Note: BFF runs on port 4001 to avoid conflict with ODH backend (port 4000)

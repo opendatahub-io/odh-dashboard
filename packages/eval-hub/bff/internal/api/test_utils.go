@@ -15,6 +15,7 @@ import (
 	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var testLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -52,7 +53,7 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 	}
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, EvalHubURL: "http://mock-evalhub:8080"},
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, EvalHubURL: "http://mock-evalhub:8080", MockEvalHubClient: true},
 		logger:                  testLogger,
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    mockFactory,
@@ -60,9 +61,6 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
-	if ehClient != nil {
-		ctx = context.WithValue(ctx, constants.EvalHubClientKey, ehClient)
-	}
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -87,7 +85,7 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 type testK8sFactory struct{}
 
 func (f *testK8sFactory) GetClient(_ context.Context) (kubernetes.KubernetesClientInterface, error) {
-	return nil, nil
+	return &testK8sClient{}, nil
 }
 
 func (f *testK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.RequestIdentity, error) {
@@ -100,6 +98,30 @@ func (f *testK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.Requ
 
 func (f *testK8sFactory) ValidateRequestIdentity(identity *kubernetes.RequestIdentity) error {
 	return nil
+}
+
+// testK8sClient is a minimal implementation of KubernetesClientInterface for unit tests.
+// It allows all EvalHub access checks and returns safe zero values for unused methods.
+type testK8sClient struct{}
+
+func (c *testK8sClient) GetNamespaces(_ context.Context, _ *kubernetes.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, nil
+}
+
+func (c *testK8sClient) IsClusterAdmin(_ *kubernetes.RequestIdentity) (bool, error) {
+	return false, nil
+}
+
+func (c *testK8sClient) GetUser(_ *kubernetes.RequestIdentity) (string, error) {
+	return "test-user@example.com", nil
+}
+
+func (c *testK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
+func (c *testK8sClient) GetEvalHubServiceURL(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (string, error) {
+	return "http://mock-evalhub:8080", nil
 }
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
