@@ -16,7 +16,7 @@ import (
 func TestIsAPIServerReady(t *testing.T) {
 	t.Run("should return true when APIServerReady condition is True", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
 					{
 						Type:   "APIServerReady",
@@ -32,7 +32,7 @@ func TestIsAPIServerReady(t *testing.T) {
 
 	t.Run("should return false when APIServerReady condition is False", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
 					{
 						Type:   "APIServerReady",
@@ -48,7 +48,7 @@ func TestIsAPIServerReady(t *testing.T) {
 
 	t.Run("should return false when APIServerReady condition is missing", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
 					{
 						Type:   "Ready",
@@ -64,7 +64,7 @@ func TestIsAPIServerReady(t *testing.T) {
 
 	t.Run("should return false when conditions array is nil", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Conditions: nil,
 			},
 		}
@@ -80,7 +80,7 @@ func TestIsAPIServerReady(t *testing.T) {
 
 	t.Run("should find APIServerReady among multiple conditions", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
 					{
 						Type:   "Ready",

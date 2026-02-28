@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
@@ -35,7 +36,10 @@ type RealPipelineServerClient struct {
 // NewRealPipelineServerClient creates a new pipeline server client
 func NewRealPipelineServerClient(baseURL string, authToken string, httpClient *http.Client) *RealPipelineServerClient {
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		// Use a client with timeout instead of http.DefaultClient (which has no timeout)
+		httpClient = &http.Client{
+			Timeout: 30 * time.Second,
+		}
 	}
 	return &RealPipelineServerClient{
 		baseURL:    baseURL,

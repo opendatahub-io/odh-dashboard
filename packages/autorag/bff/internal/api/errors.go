@@ -79,6 +79,6 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 
-	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: err.Error()}}
+	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: "service temporarily unavailable"}}
 	app.errorResponse(w, r, httpError)
 }

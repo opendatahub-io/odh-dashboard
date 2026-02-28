@@ -157,7 +157,7 @@ In production, the BFF will automatically:
 
 The API URL for each Pipeline Server is constructed using the standard Kubernetes service DNS pattern:
 
-```
+```text
 https://ds-pipeline-{name}.{namespace}.svc.cluster.local:8443
 ```
 

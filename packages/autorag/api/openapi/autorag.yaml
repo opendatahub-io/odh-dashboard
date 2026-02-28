@@ -470,6 +470,9 @@ components:
       schema:
         type: integer
         format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
       in: query
       required: false
     nextPageToken:

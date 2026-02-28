@@ -6,8 +6,8 @@ type DSPipelineApplication struct {
 	APIVersion string                        `json:"apiVersion"`
 	Kind       string                        `json:"kind"`
 	Metadata   DSPipelineApplicationMetadata `json:"metadata"`
-	Spec       DSPipelineApplicationSpec     `json:"spec,omitempty"`
-	Status     DSPipelineApplicationStatus   `json:"status,omitempty"`
+	Spec       *DSPipelineApplicationSpec    `json:"spec,omitempty"`
+	Status     *DSPipelineApplicationStatus  `json:"status,omitempty"`
 }
 
 type DSPipelineApplicationMetadata struct {

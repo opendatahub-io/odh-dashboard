@@ -245,7 +245,7 @@ In production, the BFF will automatically:
 3. Extract the Pipeline Server API URL from the DSPipelineApplication status
 4. Establish secure TLS connections to the Pipeline Server API
 5. Forward the user's authentication token to the Pipeline Server
-6. Apply proper error handling and retries
+6. Apply proper error handling
 
 ### Pipeline Server Auto-Discovery
 

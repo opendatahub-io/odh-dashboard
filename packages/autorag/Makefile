@@ -32,11 +32,11 @@ dev-install-dependencies:
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server)
-	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal
+	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff-mock-debug
 dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal
+	cd bff && make debug LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff
 dev-bff:

@@ -69,6 +69,13 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
+
+		// Verify the filter parameter was passed to the client
+		require.NotNil(t, mockClient.LastListRunsParams, "Handler should have called ListRuns")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
+			"Filter should include pipeline_version_id key")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
+			"Filter should include the requested pipeline version ID")
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
@@ -88,6 +95,13 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		app.PipelineRunsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// Verify pagination parameters were passed to the client
+		require.NotNil(t, mockClient.LastListRunsParams, "Handler should have called ListRuns")
+		assert.Equal(t, int32(10), mockClient.LastListRunsParams.PageSize,
+			"PageSize should be forwarded to client")
+		assert.Equal(t, "token123", mockClient.LastListRunsParams.PageToken,
+			"NextPageToken should be forwarded to client")
 	})
 }
 
@@ -142,7 +156,9 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		dataField, exists := response["data"]
 		assert.True(t, exists, "Response should have 'data' field")
 
-		dataMap := dataField.(map[string]interface{})
+		dataMap, ok := dataField.(map[string]interface{})
+		assert.True(t, ok, "Data field should be a map[string]interface{}")
+
 		_, hasRuns := dataMap["runs"]
 		assert.True(t, hasRuns, "Data should have 'runs' field")
 
@@ -238,6 +254,10 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 
 		assert.NotNil(t, response.Data)
 		assert.Equal(t, runID, response.Data.RunID)
+
+		// Verify the runID was passed to the client
+		assert.Equal(t, runID, mockClient.LastGetRunID,
+			"Handler should have called GetRun with the requested runID")
 	})
 
 	t.Run("should return properly formatted envelope response", func(t *testing.T) {

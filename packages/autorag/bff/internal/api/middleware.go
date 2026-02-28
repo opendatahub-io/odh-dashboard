@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 	"strings"
 
@@ -24,6 +25,19 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
+
+// dns1123LabelRegex matches valid DNS-1123 labels
+// Rules: lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars
+var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+
+// isValidDNS1123Label validates a string against DNS-1123 label rules
+// Returns true if the label is valid, false otherwise
+func isValidDNS1123Label(label string) bool {
+	if len(label) == 0 || len(label) > 63 {
+		return false
+	}
+	return dns1123LabelRegex.MatchString(label)
+}
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +112,12 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 		if namespace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			return
+		}
+
+		// Validate namespace against DNS-1123 label rules
+		if !isValidDNS1123Label(namespace) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: must be a valid DNS-1123 label (lowercase alphanumeric or '-', start/end with alphanumeric, max 63 chars)"))
 			return
 		}
 
@@ -188,6 +208,43 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+		} else if app.config.PipelineServerURL != "" {
+			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
+			baseURL := app.config.PipelineServerURL
+			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
+				"baseURL", baseURL,
+				"namespace", namespace)
+
+			// Extract auth token from request identity to forward to Pipeline Server
+			authToken := ""
+			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
+				authToken = identity.Token
+				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
+			} else {
+				// Fallback: try reading Authorization header directly (for local testing)
+				authHeader := r.Header.Get("Authorization")
+				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+					authToken = strings.TrimPrefix(authHeader, "Bearer ")
+					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
+				} else {
+					logger.Debug("No auth token available from identity or Authorization header")
+				}
+			}
+
+			insecureSkipVerify := app.config.InsecureSkipVerify
+
+			logger.Debug("Creating Pipeline Server client with override URL",
+				"namespace", namespace,
+				"baseURL", baseURL,
+				"hasToken", authToken != "")
+
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
+				baseURL,
+				authToken,
+				insecureSkipVerify,
+				app.rootCAs,
+			)
+			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -203,7 +260,19 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				logger.Error("Failed to discover ready DSPipelineApplication",
 					"namespace", namespace,
 					"error", err)
-				app.notFoundResponse(w, r)
+
+				// Map error type to appropriate HTTP response
+				errMsg := err.Error()
+				if strings.Contains(errMsg, "forbidden") {
+					// Permission/authorization error
+					app.forbiddenResponse(w, r, "insufficient permissions to access pipeline servers in this namespace")
+				} else if strings.Contains(errMsg, "namespace not found") {
+					// Namespace doesn't exist
+					app.notFoundResponse(w, r)
+				} else {
+					// Server/transient errors (connection issues, API errors, etc.)
+					app.serverErrorResponse(w, r, err)
+				}
 				return
 			}
 
@@ -216,15 +285,12 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			logger.Debug("Discovered ready Pipeline Server",
 				"namespace", namespace,
 				"pipelineServerId", dspa.Metadata.Name,
-				"ready", dspa.Status.Ready)
+				"ready", dspa.Status != nil && dspa.Status.Ready)
 
 			// Get the API URL from the DSPA status (same as dashboard: resource.status.components.apiServer.url)
 			var baseURL string
-			if app.config.PipelineServerURL != "" {
-				// Override URL for local development/testing
-				baseURL = app.config.PipelineServerURL
-				logger.Debug("Using override Pipeline Server URL from config", "baseURL", baseURL)
-			} else if dspa.Status.Components != nil &&
+			if dspa.Status != nil &&
+				dspa.Status.Components != nil &&
 				dspa.Status.Components.APIServer != nil &&
 				dspa.Status.Components.APIServer.URL != "" {
 				// Read from status.components.apiServer.url (preferred, set by operator)
@@ -287,7 +353,7 @@ const (
 // isAPIServerReady checks if the Pipeline Server API is ready
 // This matches the dashboard's check: conditions.find(c => c.type === 'APIServerReady' && c.status === 'True')
 func isAPIServerReady(dspa *models.DSPipelineApplication) bool {
-	if dspa == nil || dspa.Status.Conditions == nil {
+	if dspa == nil || dspa.Status == nil || dspa.Status.Conditions == nil {
 		return false
 	}
 
@@ -419,12 +485,8 @@ func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config, 
 		return schema.GroupVersionResource{}, fmt.Errorf("unexpected error discovering DSPipelineApplication GVR: %w", err)
 	}
 
-	// If none of the known versions work, default to v1
-	return schema.GroupVersionResource{
-		Group:    dsPipelineGroup,
-		Version:  "v1",
-		Resource: dsPipelineResource,
-	}, nil
+	// If none of the known versions work, return an error instead of defaulting
+	return schema.GroupVersionResource{}, fmt.Errorf("no available version of DSPipelineApplication found in namespace %s (tried: %v)", namespace, knownVersions)
 }
 
 // getMockDSPipelineApplications returns mock DSPipelineApplication data for development
@@ -440,12 +502,12 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				Name:      "dspa",
 				Namespace: "test-namespace",
 			},
-			Spec: models.DSPipelineApplicationSpec{
+			Spec: &models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
 					Deploy: true,
 				},
 			},
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Ready: true,
 				Conditions: []models.DSPipelineApplicationCondition{
 					{
@@ -477,12 +539,12 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				Name:      "dspa-test",
 				Namespace: "test-namespace",
 			},
-			Spec: models.DSPipelineApplicationSpec{
+			Spec: &models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
 					Deploy: true,
 				},
 			},
-			Status: models.DSPipelineApplicationStatus{
+			Status: &models.DSPipelineApplicationStatus{
 				Ready: false,
 				Conditions: []models.DSPipelineApplicationCondition{
 					{

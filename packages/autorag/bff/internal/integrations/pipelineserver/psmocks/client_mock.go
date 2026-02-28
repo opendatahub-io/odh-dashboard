@@ -9,7 +9,12 @@ import (
 )
 
 // MockPipelineServerClient provides mock data for development
-type MockPipelineServerClient struct{}
+type MockPipelineServerClient struct {
+	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
+	LastListRunsParams *pipelineserver.ListRunsParams
+	// LastGetRunID records the last runID passed to GetRun for test assertions
+	LastGetRunID string
+}
 
 // NewMockPipelineServerClient creates a new mock pipeline server client
 func NewMockPipelineServerClient() *MockPipelineServerClient {
@@ -18,6 +23,8 @@ func NewMockPipelineServerClient() *MockPipelineServerClient {
 
 // ListRuns returns mock pipeline run data
 func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelineserver.ListRunsParams) (*models.KFPipelineRunResponse, error) {
+	// Record params for test assertions
+	m.LastListRunsParams = params
 	// Return mock data with enhanced fields
 	return &models.KFPipelineRunResponse{
 		Runs: []models.KFPipelineRun{
@@ -110,6 +117,9 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 
 // GetRun returns a mock pipeline run by ID
 func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	// Record runID for test assertions
+	m.LastGetRunID = runID
+
 	// Return mock data based on the run ID
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,

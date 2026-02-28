@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -106,7 +107,14 @@ func buildFilter(pipelineVersionID string) string {
 
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
-		return ""
+		// Log the marshal error with context
+		slog.Error("Failed to marshal filter in buildFilter",
+			"error", err,
+			"pipelineVersionID", pipelineVersionID)
+
+		// Return a minimal safe JSON filter that excludes archived runs
+		// This ensures archived runs are never returned even if marshaling fails
+		return `{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}`
 	}
 
 	return string(filterJSON)
