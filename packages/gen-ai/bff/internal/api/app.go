@@ -48,10 +48,8 @@ type App struct {
 	rootCAs                 *x509.CertPool
 	clusterDomain           string
 	fileUploadJobTracker    *services.FileUploadJobTracker
-	// Used only when MockK8sClient is enabled
-	testEnvState *k8smocks.TestEnvState
-	// Used only when MockMLflowClient is enabled and MLflow is started as a child process
-	mlflowState *mlflowmocks.MLflowState
+	// cleanupFuncs holds shutdown callbacks for mock processes (envtest, MLflow, LlamaStack)
+	cleanupFuncs []func()
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -100,10 +98,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	logger.Info("Detected dashboard namespace", "namespace", dashboardNamespace)
 
+	// Track cleanup functions for mock processes
+	var cleanupFuncs []func()
+
 	// Initialize LlamaStack client factory - clients will be created per request
 	var llamaStackClientFactory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
-		logger.Info("Using mock LlamaStack client factory")
+		lsState, err := lsmocks.SetupLlamaStack(logger)
+		if err != nil {
+			logger.Warn("Llama Stack mock server not available, LlamaStack endpoints will fail on request", "error", err)
+		} else {
+			cleanupFuncs = append(cleanupFuncs, func() {
+				logger.Info("stopping Llama Stack server...")
+				lsmocks.CleanupLlamaStackState(lsState,
+					func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+					func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+				)
+			})
+		}
 		llamaStackClientFactory = lsmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
@@ -127,12 +139,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	var k8sFactory k8s.KubernetesClientFactory
-	var testEnvState *k8smocks.TestEnvState
 	if cfg.MockK8sClient {
 		logger.Info("Using mocked Kubernetes client")
 		var ctrlClient client.Client
 		ctx, cancel := context.WithCancel(context.Background())
-		testEnvState, ctrlClient, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+		testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 			Users:  k8smocks.DefaultTestUsers,
 			Logger: logger,
 			Ctx:    ctx,
@@ -145,6 +156,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			cancel()
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
+		cleanupFuncs = append(cleanupFuncs, func() {
+			logger.Info("stopping test environment...")
+			k8smocks.CleanupTestEnvState(testEnvState,
+				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+			)
+		})
 		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, cfg, logger)
 		if err != nil {
 			// Clean up partially initialized test environment
@@ -176,11 +194,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize MLflow client factory
 	var mlflowFactory mlflowpkg.MLflowClientFactory
-	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
-		mlflowState, err = mlflowmocks.SetupMLflow(logger)
+		mlflowState, err := mlflowmocks.SetupMLflow(logger)
 		if err != nil {
 			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
+		} else {
+			cleanupFuncs = append(cleanupFuncs, func() {
+				logger.Info("stopping MLflow server...")
+				mlflowmocks.CleanupMLflowState(mlflowState,
+					func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+					func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+				)
+			})
 		}
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else if cfg.MLflowURL != "" {
@@ -225,41 +250,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		rootCAs:                 rootCAs,
 		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
-		testEnvState:            testEnvState,
-		mlflowState:             mlflowState,
+		cleanupFuncs:            cleanupFuncs,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
-
-	if app.testEnvState != nil {
-		app.logger.Info("stopping test environment...")
-		k8smocks.CleanupTestEnvState(
-			app.testEnvState,
-			func(format string, args ...interface{}) {
-				app.logger.Error(fmt.Sprintf(format, args...))
-			},
-			func(format string, args ...interface{}) {
-				app.logger.Info(fmt.Sprintf(format, args...))
-			},
-		)
+	for _, cleanup := range app.cleanupFuncs {
+		cleanup()
 	}
-
-	if app.mlflowState != nil {
-		app.logger.Info("stopping MLflow server...")
-		mlflowmocks.CleanupMLflowState(
-			app.mlflowState,
-			func(format string, args ...any) {
-				app.logger.Error(fmt.Sprintf(format, args...))
-			},
-			func(format string, args ...any) {
-				app.logger.Info(fmt.Sprintf(format, args...))
-			},
-		)
-	}
-
 	return nil
 }
 

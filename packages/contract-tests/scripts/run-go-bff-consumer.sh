@@ -198,9 +198,12 @@ fi
 
 log_info "Starting Mock BFF server on port $PORT..."
 
-log_info "Starting Mock BFF server with go run"
+BFF_BINARY="$(mktemp -d)/bff-test"
+log_info "Building Mock BFF binary..."
+go build -o "$BFF_BINARY" ./cmd
 
-go run ./cmd $BFF_MOCK_FLAGS --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
+log_info "Starting Mock BFF server"
+"$BFF_BINARY" $BFF_MOCK_FLAGS --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 
 BFF_PID=$!
 echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
@@ -215,6 +218,7 @@ cleanup() {
     sleep 2
     kill -9 "$BFF_PID" 2>/dev/null || true
   fi
+  rm -f "$BFF_BINARY"
 }
 trap cleanup EXIT INT TERM
 

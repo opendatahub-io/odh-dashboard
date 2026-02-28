@@ -9,11 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openai/openai-go/v2/packages/ssestream"
-	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 )
 
 // ModerationChunk represents a chunk of text awaiting or completed moderation
@@ -287,15 +284,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
-		// Check if this is a mock streaming error - delegate to mock client
-		if _, ok := err.(*lsmocks.MockStreamError); ok {
-			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
-				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
-					mockClient.HandleMockStreaming(ctx, w, flusher, params)
-					return
-				}
-			}
-		}
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
@@ -566,7 +554,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 }
 
 // streamWithoutModeration handles streaming when moderation is disabled
-func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream *ssestream.Stream[responses.ResponseStreamEventUnion], ctx context.Context) {
+func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream llamastack.ResponseStreamIterator, ctx context.Context) {
 	sendEvent := func(eventData []byte) error {
 		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {
