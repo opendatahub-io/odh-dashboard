@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 // FilterPageValues extracts pagination-related query parameters from URL values
@@ -28,12 +29,35 @@ func FilterPageValues(values url.Values) url.Values {
 
 // UrlWithParams appends query parameters to a URL
 // Returns the URL with encoded query string, or the original URL if values is empty
+// Properly handles URLs that already contain query strings or fragments
 func UrlWithParams(url string, values url.Values) string {
 	queryString := values.Encode()
 	if queryString == "" {
 		return url
 	}
-	return fmt.Sprintf("%s?%s", url, queryString)
+
+	// Check if URL contains a fragment
+	if fragmentIndex := strings.Index(url, "#"); fragmentIndex != -1 {
+		// Split URL at fragment to insert query params before it
+		baseURL := url[:fragmentIndex]
+		fragment := url[fragmentIndex:]
+
+		// Determine separator based on whether baseURL already has query params
+		separator := "?"
+		if strings.Contains(baseURL, "?") {
+			separator = "&"
+		}
+
+		return fmt.Sprintf("%s%s%s%s", baseURL, separator, queryString, fragment)
+	}
+
+	// No fragment - check if URL already has query params
+	separator := "?"
+	if strings.Contains(url, "?") {
+		separator = "&"
+	}
+
+	return fmt.Sprintf("%s%s%s", url, separator, queryString)
 }
 
 // UrlWithPageParams appends only pagination-related query parameters to a URL

@@ -284,6 +284,7 @@ components:
         runs:
           type: array
           description: Array of pipeline runs
+          maxItems: 100
           items:
             $ref: '#/components/schemas/PipelineRun'
         total_size:

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
@@ -42,6 +44,10 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		}
 		if parsed <= 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be greater than 0"))
+			return
+		}
+		if parsed > 100 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must not exceed 100"))
 			return
 		}
 		pageSize = int32(parsed)
@@ -95,6 +101,12 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	// Call repository to get the pipeline run
 	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
 	if err != nil {
+		// Check if this is a "not found" error and return 404
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		// For all other errors, return 500
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
 		return
 	}

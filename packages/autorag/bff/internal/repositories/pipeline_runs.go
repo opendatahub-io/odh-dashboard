@@ -3,12 +3,17 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
+
+// ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
+var ErrPipelineRunNotFound = errors.New("pipeline run not found")
 
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
@@ -58,22 +63,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		run := models.PipelineRun{
-			RunID:                    kfRun.RunID,
-			DisplayName:              kfRun.DisplayName,
-			Description:              kfRun.Description,
-			ExperimentID:             kfRun.ExperimentID,
-			PipelineVersionReference: kfRun.PipelineVersionReference,
-			State:                    kfRun.State,
-			StorageState:             kfRun.StorageState,
-			ServiceAccount:           kfRun.ServiceAccount,
-			CreatedAt:                kfRun.CreatedAt,
-			ScheduledAt:              kfRun.ScheduledAt,
-			FinishedAt:               kfRun.FinishedAt,
-			StateHistory:             kfRun.StateHistory,
-			Error:                    kfRun.Error,
-		}
-		runs = append(runs, run)
+		runs = append(runs, toPipelineRun(&kfRun))
 	}
 
 	return &models.PipelineRunsData{
@@ -124,29 +114,9 @@ func buildFilter(pipelineVersionID string) string {
 	return string(filterJSON)
 }
 
-// GetPipelineRun retrieves a single pipeline run by ID
-func (r *PipelineRunsRepository) GetPipelineRun(
-	client ps.PipelineServerClientInterface,
-	ctx context.Context,
-	runID string,
-) (*models.PipelineRun, error) {
-	// Guard against nil client to prevent panic
-	if client == nil {
-		return nil, fmt.Errorf("pipeline server client is nil")
-	}
-
-	// Query pipeline server for single run
-	kfRun, err := client.GetRun(ctx, runID)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching pipeline run: %w", err)
-	}
-
-	if kfRun == nil {
-		return nil, fmt.Errorf("pipeline run not found")
-	}
-
-	// Transform Kubeflow format to our stable API format
-	run := &models.PipelineRun{
+// toPipelineRun transforms a Kubeflow pipeline run to our stable API format
+func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
+	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
 		Description:              kfRun.Description,
@@ -161,6 +131,36 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 	}
+}
 
-	return run, nil
+// GetPipelineRun retrieves a single pipeline run by ID
+func (r *PipelineRunsRepository) GetPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) (*models.PipelineRun, error) {
+	// Guard against nil client to prevent panic
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	// Query pipeline server for single run
+	kfRun, err := client.GetRun(ctx, runID)
+	if err != nil {
+		// Check if this is a 404 error from the pipeline server
+		if strings.Contains(err.Error(), "pipeline server returned 404") ||
+			strings.Contains(err.Error(), "not found") ||
+			strings.Contains(err.Error(), "ResourceNotFoundError") {
+			return nil, ErrPipelineRunNotFound
+		}
+		return nil, fmt.Errorf("error fetching pipeline run: %w", err)
+	}
+
+	if kfRun == nil {
+		return nil, ErrPipelineRunNotFound
+	}
+
+	// Transform Kubeflow format to our stable API format
+	run := toPipelineRun(kfRun)
+	return &run, nil
 }
