@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 
 	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 )
 
@@ -23,7 +22,7 @@ type LlamaStackClientInterface interface {
 	GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
-	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)
+	CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error)
 	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
 	// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
 	// Returns the SDK type directly for simplicity.

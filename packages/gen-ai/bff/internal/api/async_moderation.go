@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openai/openai-go/v2/packages/ssestream"
-	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
@@ -556,7 +554,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 }
 
 // streamWithoutModeration handles streaming when moderation is disabled
-func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream *ssestream.Stream[responses.ResponseStreamEventUnion], ctx context.Context) {
+func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream llamastack.ResponseStreamIterator, ctx context.Context) {
 	sendEvent := func(eventData []byte) error {
 		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {

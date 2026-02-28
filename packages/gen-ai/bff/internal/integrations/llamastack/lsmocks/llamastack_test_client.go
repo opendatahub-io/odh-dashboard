@@ -8,7 +8,6 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
@@ -129,7 +128,7 @@ func (c *TestLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 	return c.inner.CreateResponse(ctx, params)
 }
 
-func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
 	return c.inner.CreateResponseStream(ctx, params)
 }
 

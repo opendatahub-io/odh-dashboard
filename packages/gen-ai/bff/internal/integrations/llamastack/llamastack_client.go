@@ -15,7 +15,6 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 )
@@ -548,7 +547,7 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 }
 
 // CreateResponseStream creates an AI response stream using the specified parameters.
-func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error) {
 	apiParams, err := c.prepareResponseParams(params)
 	if err != nil {
 		return nil, err
