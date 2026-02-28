@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -645,7 +646,6 @@ var _ = Describe("StreamingContextCancellation", func() {
 
 		rr := &testResponseRecorder{
 			ResponseRecorder: httptest.NewRecorder(),
-			writeCount:       0,
 		}
 
 		done := make(chan bool)
@@ -656,7 +656,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 
 		time.Sleep(500 * time.Millisecond)
 
-		writesBefore := rr.writeCount
+		writesBefore := rr.writeCount.Load()
 
 		cancel()
 
@@ -666,7 +666,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 			Fail("Handler did not exit after context cancellation")
 		}
 
-		assert.Greater(t, writesBefore, 0, "Should have written some events before cancellation")
+		assert.Greater(t, writesBefore, int32(0), "Should have written some events before cancellation")
 
 		body := rr.Body.String()
 		assert.NotEmpty(t, body, "Should have some response data")
@@ -760,11 +760,11 @@ var _ = Describe("StreamingContextCancellation", func() {
 // testResponseRecorder wraps httptest.ResponseRecorder and tracks write count
 type testResponseRecorder struct {
 	*httptest.ResponseRecorder
-	writeCount int
+	writeCount atomic.Int32
 }
 
 func (trr *testResponseRecorder) Write(buf []byte) (int, error) {
-	trr.writeCount++
+	trr.writeCount.Add(1)
 	return trr.ResponseRecorder.Write(buf)
 }
 

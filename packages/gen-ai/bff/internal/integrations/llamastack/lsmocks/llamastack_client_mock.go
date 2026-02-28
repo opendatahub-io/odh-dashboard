@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -298,363 +296,120 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 	return mockResponse, nil
 }
 
-// MockStreamError indicates mock streaming mode and provides response data
-type MockStreamError struct {
-	Message      string
-	ResponseText string
-	Params       llamastack.CreateResponseParams
-}
-
-func (e *MockStreamError) Error() string {
-	return e.Message
-}
-
-// ModerationChunkSize is the number of words to buffer before running moderation
-const ModerationChunkSize = 30
-
-// GuardrailViolationMessage is the message shown when content is blocked by guardrails
-const GuardrailViolationMessage = "I apologize, but I cannot provide a response to this request as it may contain content that violates our safety guidelines."
-
-func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
-	sleepWithContext := func(d time.Duration) bool {
-		select {
-		case <-ctx.Done():
-			return false // Context cancelled
-		case <-time.After(d):
-			return true // Sleep completed
-		}
-	}
-
-	// Set hardened headers for Server-Sent Events (same as real handler)
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	// Mock identifiers
+// CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
+// The handler's normal streaming loop processes these events identically to real streams.
+// Input moderation is handled here; output moderation is handled by the handler's async moderation system.
+func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
 	responseID := "resp_mock_stream123"
 	itemID := "msg_mock_stream123"
-
-	// Helper function to send SSE event
-	sendEvent := func(eventData interface{}) {
-		if data, err := json.Marshal(eventData); err == nil {
-			fmt.Fprintf(w, "data: %s\n\n", data)
-		}
-	}
-
-	// Helper function to send input guardrail violation in streaming format
-	// Uses OpenAI standard refusal content type and streaming events
-	sendInputBlockedError := func() {
-		// Send response.created event
-		sendEvent(map[string]interface{}{
-			"type":            "response.created",
-			"sequence_number": 0,
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      params.Model,
-				"status":     "in_progress",
-				"created_at": 1234567890.0,
-			},
-		})
-		flusher.Flush()
-
-		// Send delta with guardrail violation message
-		sendEvent(map[string]interface{}{
-			"type":            "response.refusal.delta",
-			"sequence_number": 1,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"delta":           GuardrailViolationMessage,
-		})
-		flusher.Flush()
-
-		// Send response.refusal.done (OpenAI standard)
-		sendEvent(map[string]interface{}{
-			"type":            "response.refusal.done",
-			"sequence_number": 2,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"refusal":         GuardrailViolationMessage,
-		})
-		flusher.Flush()
-
-		// Send response.completed with refusal content type (OpenAI standard)
-		sendEvent(map[string]interface{}{
-			"type":            "response.completed",
-			"sequence_number": 3,
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      params.Model,
-				"status":     "completed",
-				"created_at": 1234567890.0,
-				"output": []map[string]interface{}{
-					{
-						"id":     itemID,
-						"type":   "message",
-						"role":   "assistant",
-						"status": "completed",
-						"content": []map[string]interface{}{
-							{
-								"type":    "refusal",
-								"refusal": GuardrailViolationMessage,
-							},
-						},
-					},
-				},
-			},
-		})
-		flusher.Flush()
-	}
+	guardrailMessage := constants.InputGuardrailViolationMessage
 
 	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
 	if params.InputShieldID != "" {
 		inputModResult, err := m.CreateModeration(ctx, params.Input, params.InputShieldID)
 		if err == nil && len(inputModResult.Results) > 0 && inputModResult.Results[0].Flagged {
-			// Input blocked by guardrails
-			sendInputBlockedError()
-			return
+			// Return refusal events for blocked input
+			events := buildRefusalEvents(responseID, itemID, params.Model, guardrailMessage)
+			return NewMockStreamIterator(events), nil
 		}
 	}
-	// Track start time for metrics
-	streamStartTime := time.Now()
 
-	// Determine response text based on whether RAG is used
+	// Determine response text
 	responseText := "This is a mock response to your query: " + params.Input
 	if len(params.VectorStoreIDs) > 0 {
 		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
 	}
-
-	// If previous response ID is provided, acknowledge it in the response
 	if params.PreviousResponseID != "" {
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
 
-	// Helper function to send guardrail violation and complete response using OpenAI standard refusal events
-	sendGuardrailViolation := func(sequenceNum int) {
-		// Send response.refusal.delta with the guardrail violation message (OpenAI standard)
-		sendEvent(map[string]interface{}{
-			"type":            "response.refusal.delta",
-			"sequence_number": sequenceNum,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"delta":           GuardrailViolationMessage,
-		})
-		flusher.Flush()
-
-		// Send response.refusal.done (OpenAI standard)
-		sendEvent(map[string]interface{}{
-			"type":            "response.refusal.done",
-			"sequence_number": sequenceNum + 1,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"refusal":         GuardrailViolationMessage,
-		})
-
-		// Response completed with refusal content type (OpenAI standard)
-		sendEvent(map[string]interface{}{
-			"type":            "response.completed",
-			"sequence_number": 0,
-			"item_id":         "",
-			"output_index":    0,
-			"delta":           "",
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      params.Model,
-				"status":     "completed",
-				"created_at": 1234567890.0,
-				"output": []map[string]interface{}{
-					{
-						"id":     itemID,
-						"type":   "message",
-						"role":   "assistant",
-						"status": "completed",
-						"content": []map[string]interface{}{
-							{
-								"type":    "refusal",
-								"refusal": GuardrailViolationMessage,
-							},
-						},
-					},
-				},
-			},
-		})
-	}
+	var events []responses.ResponseStreamEventUnion
+	sequenceNum := 0
 
 	// 1. Response created event
-	sendEvent(map[string]interface{}{
+	events = append(events, unmarshalEvent(map[string]interface{}{
 		"type":            "response.created",
-		"sequence_number": 0,
-		"item_id":         "",
-		"output_index":    0,
-		"delta":           "",
+		"sequence_number": sequenceNum,
 		"response": map[string]interface{}{
 			"id":         responseID,
 			"model":      params.Model,
 			"status":     "in_progress",
 			"created_at": 1234567890.0,
 		},
-	})
-
-	// Small delay after creation
-	if !sleepWithContext(200 * time.Millisecond) {
-		return
-	}
-	flusher.Flush()
+	}))
+	sequenceNum++
 
 	// 2. If MCP tools provided, simulate MCP tool processing
-	sequenceNum := 1
 	if len(params.Tools) > 0 {
-		// Simulate MCP list tools event
-		sendEvent(map[string]interface{}{
+		events = append(events, unmarshalEvent(map[string]interface{}{
 			"type":            "mcp_list_tools",
 			"sequence_number": sequenceNum,
 			"item_id":         "mcp_list_mock123",
 			"output_index":    0,
-			"delta":           "",
 			"server_label":    params.Tools[0].ServerLabel,
-		})
+		}))
 		sequenceNum++
-		if !sleepWithContext(300 * time.Millisecond) {
-			return
-		}
-		flusher.Flush()
 
-		// Simulate MCP tool call event
 		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
-		sendEvent(map[string]interface{}{
+		events = append(events, unmarshalEvent(map[string]interface{}{
 			"type":            "mcp_call",
 			"sequence_number": sequenceNum,
 			"item_id":         "call_mock456",
 			"output_index":    0,
-			"delta":           "",
 			"server_label":    params.Tools[0].ServerLabel,
 			"name":            "get_latest_release",
 			"arguments":       `{"owner":"llamastack","repo":"llama-stack"}`,
 			"output":          mcpOutput,
-		})
+		}))
 		sequenceNum++
-		if !sleepWithContext(500 * time.Millisecond) {
-			return
-		}
-		flusher.Flush()
 
-		// Update response text to reflect MCP tool usage
 		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
 	}
 
-	// 3. If vector stores provided, simulate RAG processing
+	// 3. If vector stores provided, skip sequence numbers for RAG processing
 	if len(params.VectorStoreIDs) > 0 {
-		// RAG processing happens in background (skip some sequence numbers)
-		sequenceNum += 3 // Skip some numbers for RAG background processing
-		if !sleepWithContext(500 * time.Millisecond) {
-			return
-		}
+		sequenceNum += 3
 	}
 
 	// 4. Content part added event
-	sendEvent(map[string]interface{}{
+	events = append(events, unmarshalEvent(map[string]interface{}{
 		"type":            "response.content_part.added",
 		"sequence_number": sequenceNum,
 		"item_id":         itemID,
 		"output_index":    0,
-		"delta":           "",
-	})
+	}))
+	sequenceNum++
 
-	// Small delay before starting text generation
-	if !sleepWithContext(150 * time.Millisecond) {
-		return
-	}
-	flusher.Flush()
-
-	// 5. Chunked streaming with moderation
-	// Split text into words and process in chunks for moderation
+	// 5. Text delta events (word by word)
 	words := strings.Fields(responseText)
-	var wordBuffer []string    // Buffer for current chunk
-	var accumulatedText string // All text accumulated so far (for moderation)
-	var streamedText string    // Text that has been streamed to client
-	deltaSequenceNum := sequenceNum + 1
-
 	for i, word := range words {
-		// Build the chunk with proper spacing
 		chunk := word
 		if i > 0 {
 			chunk = " " + word
 		}
-
-		// Add to buffers
-		wordBuffer = append(wordBuffer, chunk)
-		accumulatedText += chunk
-
-		// Check if we've accumulated enough words for a moderation check
-		if len(wordBuffer) >= ModerationChunkSize || i == len(words)-1 {
-			// OUTPUT MODERATION: Only run if OutputShieldID is configured
-			if params.OutputShieldID != "" {
-				moderationResult, err := m.CreateModeration(ctx, accumulatedText, params.OutputShieldID)
-				if err != nil {
-					// If moderation fails, log but continue (fail open for mock)
-				} else if len(moderationResult.Results) > 0 && moderationResult.Results[0].Flagged {
-					// Content flagged! Stop streaming and send guardrail violation
-					sendGuardrailViolation(deltaSequenceNum)
-					return
-				}
-			}
-
-			// Moderation passed - stream the buffered words
-			for _, bufferedChunk := range wordBuffer {
-				sendEvent(map[string]interface{}{
-					"type":            "response.output_text.delta",
-					"sequence_number": deltaSequenceNum,
-					"item_id":         itemID,
-					"output_index":    0,
-					"delta":           bufferedChunk,
-				})
-				deltaSequenceNum++
-
-				// Add delay between chunks for realistic streaming effect
-				if !sleepWithContext(50 * time.Millisecond) {
-					return
-				}
-				flusher.Flush()
-			}
-
-			// Update streamed text and clear buffer
-			streamedText = accumulatedText
-			wordBuffer = nil
-		}
-	}
-
-	// Use streamedText for final response (same as responseText if all passed)
-	finalText := streamedText
-	if finalText == "" {
-		finalText = responseText
+		events = append(events, unmarshalEvent(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": sequenceNum,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           chunk,
+		}))
+		sequenceNum++
 	}
 
 	// 6. Content part done event
-	sendEvent(map[string]interface{}{
+	events = append(events, unmarshalEvent(map[string]interface{}{
 		"type":            "response.content_part.done",
-		"sequence_number": deltaSequenceNum,
+		"sequence_number": sequenceNum,
 		"item_id":         itemID,
 		"output_index":    0,
-		"delta":           "",
-	})
+	}))
+	sequenceNum++
 
-	// Brief delay before completion
-	if !sleepWithContext(100 * time.Millisecond) {
-		return
-	}
-	flusher.Flush()
-
-	// 7. Response completed event
+	// 7. Response completed event with output items
 	var outputItems []map[string]interface{}
 
-	// Add MCP tool outputs to completed response if MCP tools were used
 	if len(params.Tools) > 0 {
-		// Add MCP list tools output
 		outputItems = append(outputItems, map[string]interface{}{
 			"id":           "mcp_list_mock123",
 			"type":         "mcp_list_tools",
@@ -662,8 +417,6 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 			"server_label": params.Tools[0].ServerLabel,
 			"output":       "",
 		})
-
-		// Add MCP tool call output
 		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
 		outputItems = append(outputItems, map[string]interface{}{
 			"id":           "call_mock456",
@@ -676,7 +429,6 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		})
 	}
 
-	// Add tool call to completed response if vector stores were used
 	if len(params.VectorStoreIDs) > 0 {
 		outputItems = append(outputItems, map[string]interface{}{
 			"id":      "call_mock123",
@@ -694,7 +446,6 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		})
 	}
 
-	// Add message content
 	outputItems = append(outputItems, map[string]interface{}{
 		"id":     itemID,
 		"type":   "message",
@@ -703,17 +454,14 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		"content": []map[string]interface{}{
 			{
 				"type": "output_text",
-				"text": finalText,
+				"text": responseText,
 			},
 		},
 	})
 
-	sendEvent(map[string]interface{}{
+	events = append(events, unmarshalEvent(map[string]interface{}{
 		"type":            "response.completed",
-		"sequence_number": 0,
-		"item_id":         "",
-		"output_index":    0,
-		"delta":           "",
+		"sequence_number": sequenceNum,
 		"response": map[string]interface{}{
 			"id":         responseID,
 			"model":      params.Model,
@@ -726,45 +474,73 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 				"total_tokens":  35,
 			},
 		},
-	})
+	}))
 
-	// Send response.metrics event (simulates BFF metrics tracking)
-	elapsedMs := time.Since(streamStartTime).Milliseconds()
-	sendEvent(map[string]interface{}{
-		"type": "response.metrics",
-		"metrics": map[string]interface{}{
-			"latency_ms":             elapsedMs,
-			"time_to_first_token_ms": 100, // Mock TTFT
-			"usage": map[string]interface{}{
-				"input_tokens":  10,
-				"output_tokens": 25,
-				"total_tokens":  35,
-			},
-		},
-	})
+	return NewMockStreamIterator(events), nil
 }
 
-// CreateResponseStream returns an error that indicates mock streaming mode
-func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
-	// Use the same response text logic as non-streaming mock
-	responseText := "This is a mock response to your query: " + params.Input
-	if len(params.VectorStoreIDs) > 0 {
-		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+// buildRefusalEvents creates the event sequence for a guardrail refusal.
+func buildRefusalEvents(responseID, itemID, model, message string) []responses.ResponseStreamEventUnion {
+	return []responses.ResponseStreamEventUnion{
+		unmarshalEvent(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      model,
+				"status":     "in_progress",
+				"created_at": 1234567890.0,
+			},
+		}),
+		unmarshalEvent(map[string]interface{}{
+			"type":            "response.refusal.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"delta":           message,
+		}),
+		unmarshalEvent(map[string]interface{}{
+			"type":            "response.refusal.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"refusal":         message,
+		}),
+		unmarshalEvent(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 3,
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      model,
+				"status":     "completed",
+				"created_at": 1234567890.0,
+				"output": []map[string]interface{}{
+					{
+						"id":     itemID,
+						"type":   "message",
+						"role":   "assistant",
+						"status": "completed",
+						"content": []map[string]interface{}{
+							{
+								"type":    "refusal",
+								"refusal": message,
+							},
+						},
+					},
+				},
+			},
+		}),
 	}
+}
 
-	// If previous response ID is provided, acknowledge it in the response
-	if params.PreviousResponseID != "" {
-		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
-	}
-
-	// Return a special error that the handler can detect and delegate back to the mock
-	mockError := &MockStreamError{
-		Message:      "mock_streaming_mode",
-		ResponseText: responseText,
-		Params:       params,
-	}
-
-	return nil, mockError
+// unmarshalEvent constructs a ResponseStreamEventUnion via JSON round-trip.
+func unmarshalEvent(data map[string]interface{}) responses.ResponseStreamEventUnion {
+	jsonBytes, _ := json.Marshal(data)
+	var event responses.ResponseStreamEventUnion
+	_ = json.Unmarshal(jsonBytes, &event)
+	return event
 }
 
 // DeleteVectorStore returns success for mock deletion
