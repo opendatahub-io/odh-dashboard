@@ -163,8 +163,9 @@ func TestMyHandler(t *testing.T) {
     }
     logger := slog.Default()
     mockK8sFactory := &MockKubernetesClientFactory{}
+    mockPSFactory := &MockPipelineServerClientFactory{}
 
-    app := api.NewTestApp(cfg, logger, mockK8sFactory, nil)
+    app := api.NewTestApp(cfg, logger, mockK8sFactory, mockPSFactory, nil)
 
     // Test your handler with the app
 }

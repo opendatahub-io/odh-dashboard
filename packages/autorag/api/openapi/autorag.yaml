@@ -73,6 +73,87 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+
+  # =============================================================================
+  # PIPELINE RUNS ENDPOINTS
+  # =============================================================================
+
+  /api/v1/pipeline-runs:
+    summary: Query pipeline runs from auto-discovered Pipeline Server
+    description: >-
+      Lists pipeline runs from the Pipeline Server in the specified namespace.
+      The Pipeline Server (DSPipelineApplication) is automatically discovered.
+      Results can be optionally filtered by pipeline version.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineVersionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID of the pipeline version to filter runs by
+          example: "22e57c06-030f-4c63-900d-0a808d577899"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRuns
+      summary: Get Pipeline Runs
+      description: Returns pipeline runs optionally filtered by pipeline version ID
+
+  /api/v1/pipeline-runs/{runId}:
+    summary: Get a single pipeline run by ID
+    description: >-
+      Retrieves a single pipeline run by its unique identifier from the
+      Pipeline Server in the specified namespace. The Pipeline Server
+      (DSPipelineApplication) is automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRunById
+      summary: Get Pipeline Run by ID
+      description: Returns a single pipeline run by its unique identifier
+
 components:
   schemas:
     Config:
@@ -87,6 +168,135 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+
+    # Pipeline Run Schemas
+    PipelineRun:
+      type: object
+      description: Kubeflow Pipeline Run information
+      required:
+        - run_id
+        - display_name
+        - state
+        - created_at
+      properties:
+        run_id:
+          type: string
+          description: Unique pipeline run identifier
+          example: "abc123-def456-ghi789"
+        display_name:
+          type: string
+          description: Human-readable run name
+          example: "AutoRAG Optimization Run 1"
+        description:
+          type: string
+          description: Run description
+          example: "Optimizing RAG parameters for dataset X"
+        experiment_id:
+          type: string
+          description: ID of the experiment this run belongs to
+          example: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+        pipeline_version_reference:
+          type: object
+          description: Reference to pipeline and version
+          properties:
+            pipeline_id:
+              type: string
+              description: ID of the pipeline
+              example: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+            pipeline_version_id:
+              type: string
+              description: ID of the pipeline version
+              example: "22e57c06-030f-4c63-900d-0a808d577899"
+        state:
+          type: string
+          enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+          description: Current run state
+          example: "SUCCEEDED"
+        storage_state:
+          type: string
+          description: Storage state of the run
+          example: "AVAILABLE"
+        service_account:
+          type: string
+          description: Service account used to run the pipeline
+          example: "pipeline-runner-dspa"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2026-02-24T10:30:00Z"
+        scheduled_at:
+          type: string
+          format: date-time
+          description: Scheduled timestamp (ISO 8601)
+          example: "2026-02-24T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: Completion timestamp (ISO 8601)
+          example: "2026-02-24T11:15:00Z"
+        error:
+          type: object
+          description: Error information if the run failed
+          nullable: true
+          properties:
+            code:
+              type: integer
+              format: int32
+              description: Error code
+            message:
+              type: string
+              description: Error message
+        state_history:
+          type: array
+          description: History of state changes
+          items:
+            type: object
+            properties:
+              update_time:
+                type: string
+                format: date-time
+                description: When the state changed
+                example: "2026-02-24T10:30:00Z"
+              state:
+                type: string
+                description: The state at this time
+                example: "RUNNING"
+              error:
+                type: object
+                description: Optional error information if the state change was due to an error
+                nullable: true
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    description: Error code
+                  message:
+                    type: string
+                    description: Error message
+
+    PipelineRunsData:
+      type: object
+      description: List of pipeline runs with pagination support
+      required:
+        - runs
+      properties:
+        runs:
+          type: array
+          description: Array of pipeline runs
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PipelineRun'
+        total_size:
+          type: integer
+          format: int32
+          description: Total number of runs matching the filter
+          example: 42
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page
+          example: "eyJwYWdlIjoyfQ=="
+
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -190,6 +400,12 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       description: Unexpected internal server error
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Service temporarily unavailable
     ConfigResponse:
       content:
         application/json:
@@ -202,6 +418,78 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+
+    PipelineRunsResponse:
+      description: Successful response containing pipeline runs
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRunsData'
+          example:
+            metadata: {}
+            data:
+              runs:
+                - run_id: "abc123-def456"
+                  display_name: "AutoRAG Optimization Run 1"
+                  description: "Optimizing RAG parameters for dataset X"
+                  experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+                  pipeline_version_reference:
+                    pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                    pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+                  state: "SUCCEEDED"
+                  storage_state: "AVAILABLE"
+                  service_account: "pipeline-runner-dspa"
+                  created_at: "2026-02-24T10:30:00Z"
+                  scheduled_at: "2026-02-24T10:30:00Z"
+                  finished_at: "2026-02-24T11:15:00Z"
+                  state_history:
+                    - update_time: "2026-02-24T10:30:00Z"
+                      state: "RUNNING"
+                    - update_time: "2026-02-24T11:15:00Z"
+                      state: "SUCCEEDED"
+              total_size: 1
+              next_page_token: ""
+
+    PipelineRunResponse:
+      description: Successful response containing a single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "AutoRAG Optimization Run 1"
+              description: "Optimizing RAG parameters for dataset X"
+              experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              state: "SUCCEEDED"
+              storage_state: "AVAILABLE"
+              service_account: "pipeline-runner-dspa"
+              created_at: "2026-02-24T10:30:00Z"
+              scheduled_at: "2026-02-24T10:30:00Z"
+              finished_at: "2026-02-24T11:15:00Z"
+              state_history:
+                - update_time: "2026-02-24T10:30:00Z"
+                  state: "RUNNING"
+                - update_time: "2026-02-24T11:15:00Z"
+                  state: "SUCCEEDED"
+
     ConflictResponse:
       content:
         application/json:
@@ -256,11 +544,15 @@ components:
     pageSize:
       examples:
         pageSize:
-          value: "100"
+          value: 100
       name: pageSize
       description: Number of entities in each page.
       schema:
-        type: string
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
       in: query
       required: false
     nextPageToken:
@@ -300,7 +592,7 @@ components:
       schema:
         type: string
       in: query
-      required: false
+      required: true
 
   securitySchemes:
     Bearer:
@@ -313,3 +605,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: PipelineOperation
+    description: Operations for querying Kubeflow Pipeline runs
