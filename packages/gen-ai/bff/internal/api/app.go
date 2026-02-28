@@ -10,6 +10,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -43,6 +45,7 @@ type App struct {
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	bffClientFactory        bffclient.BFFClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -191,6 +194,46 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
 	}
 
+	// Initialize BFF client factory for inter-BFF communication
+	var bffFactory bffclient.BFFClientFactory
+	bffConfig := bffclient.NewDefaultBFFClientConfig()
+	bffConfig.MockBFFClients = cfg.MockBFFClients
+	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	bffConfig.PodNamespace = dashboardNamespace
+
+	// Apply MaaS BFF configuration overrides
+	if maasConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS); maasConfig != nil {
+		if cfg.BFFMaaSServiceName != "" {
+			maasConfig.ServiceName = cfg.BFFMaaSServiceName
+		}
+		if cfg.BFFMaaSServicePort > 0 {
+			maasConfig.Port = cfg.BFFMaaSServicePort
+		}
+		maasConfig.TLSEnabled = cfg.BFFMaaSTLSEnabled
+		maasConfig.DevOverrideURL = cfg.BFFMaaSDevURL
+
+		// Apply auth configuration for inter-BFF communication
+		if cfg.BFFMaaSAuthMethod != "" {
+			maasConfig.AuthMethod = cfg.BFFMaaSAuthMethod
+		}
+		if cfg.BFFMaaSAuthTokenHeader != "" {
+			maasConfig.AuthTokenHeader = cfg.BFFMaaSAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
+	}
+
+	if cfg.MockBFFClients {
+		logger.Info("Using mock BFF client factory")
+		bffFactory = bffmocks.NewMockClientFactory(logger)
+	} else {
+		logger.Info("Using real BFF client factory",
+			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
+			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+	}
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -220,6 +263,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
+		bffClientFactory:        bffFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -352,9 +396,13 @@ func (app *App) Routes() http.Handler {
 	// Models (MaaS)
 	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS)
+	// Tokens (MaaS) - direct calls to MaaS controller
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// Inter-BFF Communication routes - calls to MaaS BFF service
+	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
+	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))

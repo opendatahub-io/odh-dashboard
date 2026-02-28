@@ -38,8 +38,16 @@ func NewMockedKubernetesClientFactory(clientset client.Client, testEnvState *Tes
 		}
 		return k8sFactory, nil
 
+	case config.AuthMethodDisabled:
+		// When auth is disabled, use the default envtest client without impersonation
+		k8sFactory, err := NewDisabledAuthClientFactory(clientset, testEnvState.Env.Config, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create disabled auth client factory: %w", err)
+		}
+		return k8sFactory, nil
+
 	default:
-		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
+		return nil, fmt.Errorf("invalid auth method: %q (must be %s or %s)", cfg.AuthMethod, config.AuthMethodUser, config.AuthMethodDisabled)
 	}
 }
 
@@ -144,6 +152,79 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
+}
+
+// ─── DISABLED AUTH FACTORY (envtest + "DISABLED" auth) ──────────────────────────
+//
+// DisabledAuthClientFactory creates a Kubernetes client without authentication.
+// This is useful for inter-BFF testing where authentication is disabled.
+// It uses the default envtest credentials without any impersonation.
+type DisabledAuthClientFactory struct {
+	logger     *slog.Logger
+	clientset  client.Client
+	restConfig *rest.Config
+	client     k8s.KubernetesClientInterface
+	initOnce   sync.Once
+}
+
+// NewDisabledAuthClientFactory creates a factory that bypasses authentication
+func NewDisabledAuthClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	return &DisabledAuthClientFactory{
+		logger:     logger,
+		clientset:  ctrlClient,
+		restConfig: restConfig,
+	}, nil
+}
+
+func (f *DisabledAuthClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
+	// For disabled auth, return a dummy identity
+	return &integrations.RequestIdentity{Token: "disabled-auth-token"}, nil
+}
+
+func (f *DisabledAuthClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	// For disabled auth, always valid
+	return nil
+}
+
+func (f *DisabledAuthClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	var initErr error
+	f.initOnce.Do(func() {
+		// Create a scheme with all required types
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := lsdapi.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1beta1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+
+		ctrlClient, err := client.New(f.restConfig, client.Options{Scheme: scheme})
+		if err != nil {
+			initErr = fmt.Errorf("failed to create client: %w", err)
+			return
+		}
+
+		f.client = newMockedTokenKubernetesClientFromClientset(ctrlClient, f.restConfig, f.logger)
+	})
+
+	if initErr != nil {
+		return nil, initErr
+	}
+	return f.client, nil
 }
 
 // ─── MOCK FACTORIES FOR TESTING ───────────────────────────────────────────────

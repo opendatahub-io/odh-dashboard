@@ -560,6 +560,122 @@ paths:
       operationId: revokeAllMaaSTokens
 
   # =============================================================================
+  # INTER-BFF COMMUNICATION ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/bff/maas/tokens:
+    summary: Manage MaaS BFF tokens via inter-BFF communication
+    description: >-
+      Issue new ephemeral tokens and revoke existing tokens by communicating with
+      the MaaS BFF service. This uses inter-BFF communication for playground session
+      token management, allowing Gen-AI playground to request tokens from the MaaS BFF
+      without direct cluster access.
+    post:
+      tags:
+        - Inter-BFF
+        - MaaS
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      summary: Issue Token via MaaS BFF
+      description: >-
+        Request a new ephemeral token from the MaaS BFF service. The token is issued
+        by calling the MaaS BFF's token endpoint, which handles the actual token
+        creation logic. This endpoint is used for playground session authentication.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiration:
+                  type: string
+                  description: Token time-to-live in Go duration format (ns, us, ms, s, m, h).
+                  default: '4h'
+                  example: '30m'
+                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+            example:
+              expiration: '30m'
+      responses:
+        '201':
+          description: Token created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: Generated JWT token for MaaS API authentication
+                        example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'
+                      expiresAt:
+                        type: integer
+                        format: int64
+                        description: Token expiration timestamp as Unix timestamp
+                        example: 1735406400
+                    required:
+                      - token
+                      - expiresAt
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: MaaS BFF service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: issueBFFMaaSToken
+    delete:
+      tags:
+        - Inter-BFF
+        - MaaS
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      summary: Revoke All Tokens via MaaS BFF
+      description: >-
+        Revoke all tokens for the current user by calling the MaaS BFF service.
+        This is useful for invalidating playground session tokens.
+      responses:
+        '204':
+          description: All tokens revoked successfully (no content)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: MaaS BFF service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: revokeAllBFFMaaSTokens
+
+  # =============================================================================
   # MLFLOW ENDPOINTS
   # =============================================================================
 
@@ -4570,6 +4686,15 @@ tags:
   - name: MaaS
     description: |
       Model as a Service operations
+
+  # =============================================================================
+  # INTER-BFF COMMUNICATION OPERATIONS
+  # =============================================================================
+  - name: Inter-BFF
+    description: |
+      Inter-BFF communication operations for service-to-service calls.
+      These endpoints use the BFF client to communicate with other BFF services
+      (MaaS BFF, Model Registry BFF) for operations like playground session tokens.
 
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) OPERATIONS

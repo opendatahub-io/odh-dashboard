@@ -13,4 +13,8 @@ const (
 	APIKeyByIDPath    = ApiPathPrefix + "/api-key/:id"
 	APIKeyCreatePath  = ApiPathPrefix + "/api-key"
 	APIKeysDeletePath = ApiPathPrefix + "/api-keys"
+
+	// Inter-BFF token routes (for Gen-AI BFF playground sessions)
+	// These endpoints are called by Gen-AI BFF to issue ephemeral tokens
+	TokensPath = ApiPathPrefix + "/tokens"
 )
