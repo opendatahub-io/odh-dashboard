@@ -214,3 +214,46 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
 }
+
+// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+// Uses impersonation SubjectAccessReview since internal client uses service account credentials
+func (kc *InternalKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "datasciencepipelinesapplications.opendatahub.io",
+				Resource:  "datasciencepipelinesapplications",
+				Namespace: namespace,
+			},
+			User:   identity.UserID,
+			Groups: identity.Groups,
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check permissions for listing pipeline servers",
+			"user", identity.UserID,
+			"namespace", namespace,
+			"error", err)
+		return false, err
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user does not have permission to list pipeline servers in namespace",
+			"user", identity.UserID,
+			"namespace", namespace)
+		return false, nil
+	}
+
+	return true, nil
+}

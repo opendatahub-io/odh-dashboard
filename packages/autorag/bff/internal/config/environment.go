@@ -7,10 +7,12 @@ import (
 )
 
 const (
+	// AuthMethodDisabled disables authentication, useful for testing and development.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
 	// This uses kubeflow-userid header to carry the user identity.
 	AuthMethodInternal = "internal"
 

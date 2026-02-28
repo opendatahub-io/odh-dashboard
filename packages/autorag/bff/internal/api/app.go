@@ -157,8 +157,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunHandler)))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunsHandler)))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

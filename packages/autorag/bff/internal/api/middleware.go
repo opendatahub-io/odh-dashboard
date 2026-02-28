@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -102,6 +103,64 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
 		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// RequireAccessToPipelineServers enforces RBAC-based authorization for Pipeline Server access in the namespace.
+// This middleware performs a proactive SubjectAccessReview to check if the user can list DSPipelineApplications
+// in the requested namespace before attempting service discovery.
+func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled skip RBAC checks.
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get request identity
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		// Get Kubernetes client to perform RBAC check
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		// Perform SubjectAccessReview to check if user can list DSPipelineApplications
+		allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access pipeline servers in this namespace")
+			return
+		}
+
+		logger.Debug("User authorized to access pipeline servers in namespace", "namespace", namespace)
 
 		next(w, r, ps)
 	}
@@ -268,7 +327,7 @@ func listDSPipelineApplications(
 	}
 
 	// Discover the preferred API version for DSPipelineApplication
-	gvr, err := discoverDSPipelineApplicationGVR(ctx, config)
+	gvr, err := discoverDSPipelineApplicationGVR(ctx, config, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
 	}
@@ -327,7 +386,8 @@ func unstructuredToDSPipelineApplication(obj *unstructured.Unstructured) (*model
 }
 
 // discoverDSPipelineApplicationGVR discovers the preferred API version for DSPipelineApplication
-func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config) (schema.GroupVersionResource, error) {
+// This function uses namespace-scoped queries to avoid requiring cluster-admin permissions
+func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config, namespace string) (schema.GroupVersionResource, error) {
 	// Create dynamic client once before the loop
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -345,8 +405,8 @@ func discoverDSPipelineApplicationGVR(ctx context.Context, config *rest.Config) 
 		}
 
 		// Test if we can access the resource with this version
-		// We do a simple list with limit=1 to check availability
-		_, err := dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 1})
+		// IMPORTANT: Use namespace-scoped query to respect RBAC and avoid cluster-admin requirement
+		_, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
 		if err == nil {
 			// Successfully accessed the resource
 			return gvr, nil
@@ -391,6 +451,12 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 						Reason:  "MinimumReplicasAvailable",
 						Message: "Deployment has minimum availability",
 					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
 				},
 				Components: &models.DSPipelineApplicationComponents{
 					APIServer: &models.DSPipelineApplicationAPIServerStatus{
@@ -420,6 +486,12 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 						Status:  "False",
 						Reason:  "PodNotReady",
 						Message: "Waiting for pods to become ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "False",
+						Reason:  "Deploying",
+						Message: "API Server is deploying",
 					},
 				},
 				Components: &models.DSPipelineApplicationComponents{

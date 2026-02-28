@@ -18,4 +18,6 @@ type KubernetesClientInterface interface {
 	GetClientset() interface{}
 	// GetRestConfig returns the rest.Config for creating specialized clients (e.g., dynamic client)
 	GetRestConfig() *rest.Config
+	// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+	CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 }
