@@ -19,7 +19,7 @@ paths:
         - K8SOperation
       responses:
         "200":
-          description: "Ok"
+          $ref: "#/components/responses/HealthCheckResponse"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: healthcheck
@@ -34,21 +34,7 @@ paths:
         - K8SOperation
       responses:
         "200":
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  metadata:
-                    type: object
-                    description: Metadata about the response
-                  data:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                        example: default-namespace
+          $ref: "#/components/responses/NamespacesResponse"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getNamespaces
@@ -75,6 +61,34 @@ paths:
       description: Gets the configuration information needed for the UI [TBD]
 components:
   schemas:
+    HealthCheck:
+      required:
+        - status
+        - system_info
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        system_info:
+          type: object
+          required:
+            - version
+          properties:
+            version:
+              type: string
+              example: 1.0.0
+    Namespace:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: default
+        displayName:
+          type: string
+          example: default
     Config:
       required:
         - userId
@@ -166,6 +180,25 @@ components:
       type: string
 
   responses:
+    HealthCheckResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HealthCheck"
+      description: Successful health check response.
+    NamespacesResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Namespace"
+            required:
+              - data
+      description: A response containing a list of available namespaces.
     NotFound:
       content:
         application/json:

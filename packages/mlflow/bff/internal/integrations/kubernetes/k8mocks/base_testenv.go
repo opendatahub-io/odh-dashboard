@@ -48,15 +48,21 @@ type TestEnvInput struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	var binaryAssetsDir string
+	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
+		binaryAssetsDir = envtestAssets
+	} else {
+		projectRoot, err := getProjectRoot()
+		if err != nil {
+			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
+			input.Cancel()
+			os.Exit(1)
+		}
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
 	testEnv := &envtest.Environment{
-		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 	}
 
 	cfg, err := testEnv.Start()
