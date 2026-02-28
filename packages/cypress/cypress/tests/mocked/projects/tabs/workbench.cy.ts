@@ -26,7 +26,7 @@ import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
 import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
+import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
@@ -621,7 +621,7 @@ describe('Workbench page', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -1953,7 +1953,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });

@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-core';
 import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import { useNavigate } from 'react-router-dom';
 import {
   featureDataSourceRoute,
   featureEntityRoute,
@@ -63,16 +62,19 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   featureViewName,
 }) => {
   const { currentProject } = useFeatureStoreProject();
-  const navigate = useNavigate();
+  const { getLastClickPosition } = useLineageClick();
 
   // Conditional rendering after all hooks
   if (!node || !isVisible || !currentProject) {
     return null;
   }
 
-  const { getLastClickPosition } = useLineageClick();
   const clickPosition = getLastClickPosition();
   const triggerElement = clickPosition?.pillElement;
+  const detailsRoute = goToDetailsPage(node, currentProject);
+  const allFeaturesSearchParams = new URLSearchParams();
+  allFeaturesSearchParams.set('featureView', node.name);
+  const allFeaturesHref = `/develop-train/feature-store/features/${currentProject}?${allFeaturesSearchParams.toString()}`;
 
   if (!triggerElement) {
     return null;
@@ -161,12 +163,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
             <FlexItem>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  const route = goToDetailsPage(node, currentProject);
-                  if (route) {
-                    navigate(route);
-                  }
-                }}
+                component="a"
+                href={detailsRoute ?? '#'}
+                isDisabled={!detailsRoute}
               >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} page
               </Button>
@@ -174,16 +173,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
           )}
           {node.fsObjectTypes === 'feature_view' && (
             <FlexItem>
-              <Button
-                variant="link"
-                onClick={() => {
-                  const searchParams = new URLSearchParams();
-                  searchParams.set('featureView', node.name);
-                  navigate(
-                    `/develop-train/feature-store/features/${currentProject}?${searchParams.toString()}`,
-                  );
-                }}
-              >
+              <Button variant="link" component="a" href={allFeaturesHref}>
                 View all features
               </Button>
             </FlexItem>

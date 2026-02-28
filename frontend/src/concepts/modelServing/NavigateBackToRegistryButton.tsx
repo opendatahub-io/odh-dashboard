@@ -1,6 +1,6 @@
 import { Button, EmptyStateActions, type ButtonProps } from '@patternfly/react-core';
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions.ts';
 
 /**
@@ -11,7 +11,6 @@ import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions.ts';
 export const NavigateBackToRegistryButton: React.FC<
   ButtonProps & { isEmptyStateAction?: boolean }
 > = ({ isEmptyStateAction, ...props }) => {
-  const navigate = useNavigate();
   const [queryParams] = useSearchParams();
   const modelVersionId = queryParams.get('modelVersionId');
   const registeredModelId = queryParams.get('registeredModelId');
@@ -21,13 +20,14 @@ export const NavigateBackToRegistryButton: React.FC<
     return null;
   }
 
+  const registryHref = modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName);
+
   const button = (
     <Button
       {...props}
       variant="link"
-      onClick={() =>
-        navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
-      }
+      component="a"
+      href={registryHref}
       data-testid="deploy-from-registry"
     >
       Deploy model from model registry

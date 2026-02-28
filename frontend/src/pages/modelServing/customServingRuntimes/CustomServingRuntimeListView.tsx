@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { TemplateKind } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
@@ -21,7 +20,6 @@ const CustomServingRuntimeListView: React.FC = () => {
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
-  const navigate = useNavigate();
 
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
 
@@ -63,7 +61,8 @@ const CustomServingRuntimeListView: React.FC = () => {
           <ToolbarItem>
             <Button
               data-testid="add-serving-runtime-button"
-              onClick={() => navigate('/settings/model-resources-operations/serving-runtimes/add')}
+              component="a"
+              href="/settings/model-resources-operations/serving-runtimes/add"
             >
               Add serving runtime
             </Button>

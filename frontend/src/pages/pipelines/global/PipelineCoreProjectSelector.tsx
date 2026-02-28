@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Alert, Button, Content, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { SupportedArea } from '#~/concepts/areas/types';
@@ -18,7 +17,6 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
   queryParamNamespace,
   objectType,
 }) => {
-  const navigate = useNavigate();
   const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
 
   return (
@@ -38,7 +36,8 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
                 data-testid="embedded-mlflow-experiments-link"
                 variant="link"
                 isInline
-                onClick={() => navigate(mlflowExperimentsPath)}
+                component="a"
+                href={mlflowExperimentsPath}
               >
                 <strong>Experiments page</strong>
               </Button>

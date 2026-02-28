@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, ExpandableSection } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
@@ -21,7 +20,6 @@ import { ExperimentContext } from '#~/pages/pipelines/global/experiments/Experim
 const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const navigate = useNavigate();
   const { runs, loaded } = useCompareRuns();
   const [isExpanded, setExpanded] = React.useState(true);
   const [, setFilter] = React.useState<PipelinesFilter | undefined>();
@@ -54,6 +52,11 @@ const CompareRunsRunList: React.FC = () => {
       );
     });
   }, [runs, filterToolbarProps]);
+  const manageRunsHref = manageCompareRunsRoute(
+    namespace,
+    runs.map((r) => r.run_id),
+    experiment?.experiment_id,
+  );
 
   return (
     <ExpandableSection
@@ -81,15 +84,8 @@ const CompareRunsRunList: React.FC = () => {
               <Button
                 key="manage-runs-button"
                 variant="primary"
-                onClick={() =>
-                  navigate(
-                    manageCompareRunsRoute(
-                      namespace,
-                      runs.map((r) => r.run_id),
-                      experiment?.experiment_id,
-                    ),
-                  )
-                }
+                component="a"
+                href={manageRunsHref}
               >
                 Manage runs
               </Button>,

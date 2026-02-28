@@ -122,10 +122,10 @@ const ProjectsSection: React.FC = () => {
             <FlexItem>
               <Button
                 data-testid="goto-projects-link"
-                // Should not use component="a" due to no href
                 variant="link"
                 isInline
-                onClick={() => navigate('/projects')}
+                component="a"
+                href="/projects"
               >
                 Go to <b>Projects</b>
               </Button>

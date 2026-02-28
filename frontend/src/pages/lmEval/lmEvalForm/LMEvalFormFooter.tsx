@@ -64,9 +64,8 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) 
             <Button
               variant="link"
               data-testid="lm-evaluation-cancel-button"
-              onClick={() => {
-                navigate('/develop-train/evaluations');
-              }}
+              component="a"
+              href="/develop-train/evaluations"
             >
               Cancel
             </Button>

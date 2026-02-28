@@ -9,7 +9,6 @@ import {
   Gallery,
   Content,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -42,7 +41,6 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   showFailed,
   onClearFilters,
 }) => {
-  const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const [inferenceServiceStates, setInferenceServiceStates] =
@@ -100,6 +98,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   );
 
   const shownServices = filteredServices.slice(0, 5);
+  const modelServerHref = `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`;
 
   if (filteredServices.length === 0 && deployedModels.length > 0) {
     return (
@@ -140,14 +139,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
           </Content>
         </FlexItem>
         <FlexItem>
-          <Button
-            variant="link"
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`,
-              )
-            }
-          >
+          <Button variant="link" component="a" href={modelServerHref}>
             View all
           </Button>
         </FlexItem>

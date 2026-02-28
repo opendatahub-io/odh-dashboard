@@ -12,10 +12,6 @@ jest.mock('#~/pages/pipelines/global/modelCustomization/startRunModal/useContinu
   useContinueState: jest.fn(),
 }));
 
-jest.mock('react-router', () => ({
-  useNavigate: jest.fn(() => jest.fn()),
-}));
-
 describe('MissingConditionAlert', () => {
   const TEST_PROJECT = 'test-project';
 
@@ -45,6 +41,7 @@ describe('MissingConditionAlert', () => {
 
     renderComponent();
     expect(screen.queryByTestId('missing-condition-alert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('go-to-pipelines')).not.toBeInTheDocument();
   });
 
   it('should not render the alert when it is still loading', () => {
@@ -80,24 +77,18 @@ describe('MissingConditionAlert', () => {
     },
   );
 
-  it('should navigate to pipelines when the button is clicked', async () => {
+  it('should render a link to pipeline definitions', async () => {
     useContinueStateMock.mockReturnValue({
       canContinue: false,
       isLoading: false,
       unmetCondition: 'pipelineServerConfigured',
     });
 
-    const navigateMock = jest.fn();
-    jest.mocked(require('react-router').useNavigate).mockReturnValue(navigateMock);
-
     renderComponent();
 
     await waitFor(() => expect(screen.getByTestId('missing-condition-alert')).toBeInTheDocument());
     const button = screen.getByTestId('go-to-pipelines');
+    expect(button).toHaveAttribute('href', `/develop-train/pipelines/definitions/${TEST_PROJECT}`);
     await userEvent.click(button);
-
-    expect(navigateMock).toHaveBeenCalledWith(
-      `/develop-train/pipelines/definitions/${TEST_PROJECT}`,
-    );
   });
 });

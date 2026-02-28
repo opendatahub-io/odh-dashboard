@@ -82,6 +82,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
   const { username } = useUser();
+  const workbenchesHref = `/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`;
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const {
@@ -113,7 +114,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     refreshNotebooks();
     refreshConnections();
 
-    navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
+    navigate(workbenchesHref);
   };
   const handleError = (e: K8sStatusError) => {
     fireFormTrackingEvent('Workbench Created', {
@@ -307,13 +308,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           <ActionListItem>
             <Button
               variant="link"
+              component="a"
+              href={workbenchesHref}
               id="cancel-button"
               data-testid="cancel-button"
               onClick={() => {
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
-                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
               }}
             >
               Cancel

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useHref } from 'react-router-dom';
 import ModelsEmptyState from './EmptyStates/NoData';
 
 const GenAiCoreNoProjects: React.FC = () => {
-  const navigate = useNavigate();
+  const projectsHref = useHref('/projects');
 
   return (
     <ModelsEmptyState
@@ -30,9 +30,7 @@ const GenAiCoreNoProjects: React.FC = () => {
         </Content>
       }
       actionButtonText="Go to Projects page"
-      handleActionButtonClick={() => {
-        navigate(`/projects`);
-      }}
+      actionButtonHref={projectsHref}
     />
   );
 };

@@ -1,8 +1,9 @@
 import React from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import { experimentRunsRoute, experimentsRootPath } from '#~/routes/pipelines/experiments';
 import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
+import { pipelinesRootPath } from '#~/routes/pipelines/global';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useRedirect } from '#~/utilities/useRedirect';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
@@ -17,7 +18,6 @@ import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 const PipelinesSdkRedirects: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const createRedirectPath = React.useCallback(() => {
     if (!namespace) {
@@ -54,13 +54,10 @@ const PipelinesSdkRedirects: React.FC = () => {
           errorMessage={error?.message}
           actions={
             <>
-              <Button
-                variant="link"
-                onClick={() => navigate('/develop-train/pipelines/definitions')}
-              >
+              <Button variant="link" component="a" href={pipelinesRootPath}>
                 Go to Pipeline definitions
               </Button>
-              <Button variant="link" onClick={() => navigate('/develop-train/experiments')}>
+              <Button variant="link" component="a" href={experimentsRootPath}>
                 Go to Experiments
               </Button>
             </>

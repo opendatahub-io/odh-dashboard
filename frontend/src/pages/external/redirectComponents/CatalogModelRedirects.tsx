@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
@@ -14,7 +14,6 @@ import { modelCatalogRoute } from '#~/routes/modelCatalog/catalogModelDetails';
  */
 const CatalogModelRedirects: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const createRedirectPath = React.useCallback(() => {
     // Extract the path after /external/catalog/
@@ -54,7 +53,7 @@ const CatalogModelRedirects: React.FC = () => {
           title="Error redirecting to catalog model"
           errorMessage={error?.message}
           actions={
-            <Button variant="link" onClick={() => navigate(modelCatalogRoute)}>
+            <Button variant="link" component="a" href={modelCatalogRoute}>
               Go to Model Catalog
             </Button>
           }

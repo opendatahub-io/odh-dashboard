@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useNavigate } from 'react-router-dom';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
@@ -40,8 +39,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
-
-  const navigate = useNavigate();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
@@ -129,9 +126,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotEmptyState

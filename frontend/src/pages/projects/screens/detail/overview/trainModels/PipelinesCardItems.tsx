@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import { ProjectKind } from '#~/k8sTypes';
@@ -20,8 +19,6 @@ const PipelineCardItems: React.FC<PipelineCardItemsProps> = ({
   totalCount = 0,
   currentProject,
 }) => {
-  const navigate = useNavigate();
-
   if (!loaded || error) {
     return [];
   }
@@ -45,11 +42,8 @@ const PipelineCardItems: React.FC<PipelineCardItemsProps> = ({
             id="pipelines-view-all"
             aria-labelledby="pipelines-view-all Pipelines-title"
             variant="link"
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PIPELINES}`,
-              )
-            }
+            component="a"
+            href={`/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PIPELINES}`}
           >
             View all
           </Button>

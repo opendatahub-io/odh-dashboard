@@ -23,6 +23,7 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
   return (
     <ProjectSelector
       {...projectSelectorProps}
+      getSelectionHref={(projectName) => getRedirectPath(projectName)}
       onSelection={(projectName) => {
         const match = projectName ? projects.find(byName(projectName)) ?? null : null;
         updatePreferredProject(match);

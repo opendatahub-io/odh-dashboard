@@ -8,7 +8,6 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { TemplateKind } from '#~/k8sTypes';
 import { getServingRuntimeNameFromTemplate } from './utils';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';
@@ -18,7 +17,6 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
   const {
     servingRuntimeTemplates: [data],
   } = React.useContext(CustomServingRuntimeContext);
-  const navigate = useNavigate();
   const { servingRuntimeName } = useParams();
   const ref = React.useRef<TemplateKind>();
   if (!ref.current) {
@@ -39,7 +37,8 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
           <EmptyStateFooter>
             <Button
               variant="primary"
-              onClick={() => navigate(`/settings/model-resources-operations/serving-runtimes`)}
+              component="a"
+              href="/settings/model-resources-operations/serving-runtimes"
             >
               Return to the list
             </Button>

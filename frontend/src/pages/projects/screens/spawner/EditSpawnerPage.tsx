@@ -9,7 +9,6 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -20,7 +19,6 @@ const EditSpawnerPage: React.FC = () => {
     currentProject,
     notebooks: { data, loaded, error },
   } = React.useContext(ProjectDetailsContext);
-  const navigate = useNavigate();
   const { notebookName } = useParams();
   const ref = React.useRef<NotebookState>();
   if (!ref.current) {
@@ -39,7 +37,7 @@ const EditSpawnerPage: React.FC = () => {
         >
           <EmptyStateBody>{error.message}</EmptyStateBody>
           <EmptyStateFooter>
-            <Button variant="primary" onClick={() => navigate('/projects')}>
+            <Button variant="primary" component="a" href="/projects">
               View my projects
             </Button>
           </EmptyStateFooter>
@@ -73,7 +71,8 @@ const EditSpawnerPage: React.FC = () => {
             <Button
               data-testid="return-to-project-button"
               variant="primary"
-              onClick={() => navigate(`/projects/${currentProject.metadata.name}`)}
+              component="a"
+              href={`/projects/${currentProject.metadata.name}`}
             >
               Return to {getDisplayNameFromK8sResource(currentProject)}
             </Button>

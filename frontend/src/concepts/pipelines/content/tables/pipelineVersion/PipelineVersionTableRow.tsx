@@ -40,6 +40,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
   const isCreateDisabled = isArgoWorkflow(version.pipeline_spec);
+  const runsHref = globalPipelineRunsVersionRoute(namespace, version.pipeline_version_id);
 
   return (
     <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
@@ -72,15 +73,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
         <PipelinesTableRowTime date={createdDate} />
       </Td>
       <Td>
-        <Button
-          component="a"
-          isInline
-          data-testid="runs-route-link"
-          variant="link"
-          onClick={() =>
-            navigate(globalPipelineRunsVersionRoute(namespace, version.pipeline_version_id))
-          }
-        >
+        <Button component="a" href={runsHref} isInline data-testid="runs-route-link" variant="link">
           View runs
         </Button>
       </Td>
