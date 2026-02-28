@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/openai/openai-go/v2"
 )
+
+type httpError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Body)
+}
 
 // EvalHubError represents EvalHub-specific errors.
 type EvalHubError struct {
@@ -56,10 +63,6 @@ func NewInvalidRequestError(message string) *EvalHubError {
 func NewNotFoundError(message string) *EvalHubError {
 	return NewEvalHubError(ErrCodeNotFound, message, 404)
 }
-
-// wrapClientError wraps errors from the EvalHub client into EvalHubError for
-// consistent error handling. Network errors become ConnectionError, API errors
-// are mapped by status code, matching the gen-ai llamastack pattern.
 func wrapClientError(err error, operation string) *EvalHubError {
 	if err == nil {
 		return nil
@@ -71,15 +74,16 @@ func wrapClientError(err error, operation string) *EvalHubError {
 		return NewConnectionError(message)
 	}
 
-	var apiErr *openai.Error
-	if errors.As(err, &apiErr) {
-		msg := apiErr.Message
-		if msg == "" {
-			msg = apiErr.Error()
+	// HTTP-level errors (non-2xx responses from the EvalHub service)
+	var httpErr *httpError
+	if errors.As(err, &httpErr) {
+		body := httpErr.Body
+		if body == "" {
+			body = fmt.Sprintf("HTTP %d", httpErr.StatusCode)
 		}
-		message := fmt.Sprintf("EvalHub error on operation %s: %s", operation, msg)
+		message := fmt.Sprintf("EvalHub error on operation %s: %s", operation, body)
 
-		switch apiErr.StatusCode {
+		switch httpErr.StatusCode {
 		case http.StatusBadRequest:
 			return NewInvalidRequestError(message)
 		case http.StatusUnauthorized:
@@ -89,9 +93,10 @@ func wrapClientError(err error, operation string) *EvalHubError {
 		case http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusRequestTimeout:
 			return NewServerUnavailableError(message)
 		default:
-			return NewEvalHubError(ErrCodeInternalError, message, apiErr.StatusCode)
+			return NewEvalHubError(ErrCodeInternalError, message, httpErr.StatusCode)
 		}
 	}
 
+	// Catch-all for unexpected errors
 	return NewEvalHubError(ErrCodeInternalError, fmt.Sprintf("unexpected error on operation %s: %s", operation, err.Error()), 0)
 }

@@ -1,6 +1,7 @@
 package k8mocks
 
 import (
+	"context"
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
@@ -34,6 +35,18 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 // BearerToken always returns a fake token for tests
 func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE-BEARER-TOKEN", nil
+}
+
+// CanListEvalHubInstances always returns true in tests — envtest SAR responses are unreliable.
+func (m *TokenKubernetesClientMock) CanListEvalHubInstances(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
+// GetEvalHubServiceURL returns a deterministic fake URL for test environments.
+// The real implementation uses a dynamic client that requires a live rest.Config,
+// which is not available in envtest / unit-test contexts.
+func (m *TokenKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
+	return "http://mock-evalhub.test.svc.cluster.local", nil
 }
 
 // GetGroups removed in minimal starter.
