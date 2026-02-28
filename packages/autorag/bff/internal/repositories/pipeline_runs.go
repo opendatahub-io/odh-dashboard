@@ -26,6 +26,10 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	pageSize int32,
 	pageToken string,
 ) (*models.PipelineRunsData, error) {
+	// Guard against nil client to prevent panic
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
 
 	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
 	filter := buildFilter(pipelineVersionID)
@@ -126,6 +130,11 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 	ctx context.Context,
 	runID string,
 ) (*models.PipelineRun, error) {
+	// Guard against nil client to prevent panic
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
 	// Query pipeline server for single run
 	kfRun, err := client.GetRun(ctx, runID)
 	if err != nil {

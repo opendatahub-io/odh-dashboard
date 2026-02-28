@@ -212,7 +212,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
 			baseURL := app.config.PipelineServerURL
 			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
-				"baseURL", baseURL,
 				"namespace", namespace)
 
 			// Extract auth token from request identity to forward to Pipeline Server
@@ -235,7 +234,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 
 			logger.Debug("Creating Pipeline Server client with override URL",
 				"namespace", namespace,
-				"baseURL", baseURL,
 				"hasToken", authToken != "")
 
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
@@ -295,12 +293,11 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				dspa.Status.Components.APIServer.URL != "" {
 				// Read from status.components.apiServer.url (preferred, set by operator)
 				baseURL = dspa.Status.Components.APIServer.URL
-				logger.Debug("Using Pipeline Server URL from DSPA status", "baseURL", baseURL)
+				logger.Debug("Using Pipeline Server URL from DSPA status")
 			} else {
 				// Fallback: construct URL (should be rare, operator normally sets this)
 				baseURL = fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", dspa.Metadata.Name, namespace)
 				logger.Warn("DSPA status.components.apiServer.url not set, using fallback constructed URL",
-					"baseURL", baseURL,
 					"namespace", namespace,
 					"pipelineServerId", dspa.Metadata.Name)
 			}
@@ -328,7 +325,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			logger.Debug("Creating Pipeline Server client",
 				"namespace", namespace,
 				"pipelineServerId", dspa.Metadata.Name,
-				"baseURL", baseURL,
 				"hasToken", authToken != "")
 
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(

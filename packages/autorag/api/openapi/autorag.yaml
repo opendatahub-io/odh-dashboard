@@ -111,9 +111,48 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: Returns pipeline runs optionally filtered by pipeline version ID
+
+  /api/v1/pipeline-runs/{runId}:
+    summary: Get a single pipeline run by ID
+    description: >-
+      Retrieves a single pipeline run by its unique identifier from the
+      Pipeline Server in the specified namespace. The Pipeline Server
+      (DSPipelineApplication) is automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRunById
+      summary: Get Pipeline Run by ID
+      description: Returns a single pipeline run by its unique identifier
 
 components:
   schemas:
@@ -360,6 +399,12 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       description: Unexpected internal server error
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Service temporarily unavailable
     ConfigResponse:
       content:
         application/json:
@@ -409,6 +454,40 @@ components:
                       state: "SUCCEEDED"
               total_size: 1
               next_page_token: ""
+
+    PipelineRunResponse:
+      description: Successful response containing a single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "AutoRAG Optimization Run 1"
+              description: "Optimizing RAG parameters for dataset X"
+              experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              state: "SUCCEEDED"
+              storage_state: "AVAILABLE"
+              service_account: "pipeline-runner-dspa"
+              created_at: "2026-02-24T10:30:00Z"
+              scheduled_at: "2026-02-24T10:30:00Z"
+              finished_at: "2026-02-24T11:15:00Z"
+              state_history:
+                - update_time: "2026-02-24T10:30:00Z"
+                  state: "RUNNING"
+                - update_time: "2026-02-24T11:15:00Z"
+                  state: "SUCCEEDED"
 
     ConflictResponse:
       content:

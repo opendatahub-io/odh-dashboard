@@ -5,6 +5,8 @@ import (
 	"net/url"
 )
 
+// FilterPageValues extracts pagination-related query parameters from URL values
+// Returns a new url.Values containing only pageSize, orderBy, sortOrder, and nextPageToken
 func FilterPageValues(values url.Values) url.Values {
 	result := url.Values{}
 
@@ -24,6 +26,8 @@ func FilterPageValues(values url.Values) url.Values {
 	return result
 }
 
+// UrlWithParams appends query parameters to a URL
+// Returns the URL with encoded query string, or the original URL if values is empty
 func UrlWithParams(url string, values url.Values) string {
 	queryString := values.Encode()
 	if queryString == "" {
@@ -32,6 +36,8 @@ func UrlWithParams(url string, values url.Values) string {
 	return fmt.Sprintf("%s?%s", url, queryString)
 }
 
+// UrlWithPageParams appends only pagination-related query parameters to a URL
+// Filters values using FilterPageValues before appending to ensure only pagination params are included
 func UrlWithPageParams(url string, values url.Values) string {
 	pageValues := FilterPageValues(values)
 	return UrlWithParams(url, pageValues)

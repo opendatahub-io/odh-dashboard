@@ -18,6 +18,10 @@ type PipelineServerClientInterface interface {
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
 }
 
+// maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion
+// Error messages from upstream pipeline servers are capped at 64KB
+const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
+
 // ListRunsParams contains parameters for listing pipeline runs
 type ListRunsParams struct {
 	PageSize  int32
@@ -86,8 +90,19 @@ func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRun
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, string(body))
+		// Use bounded read to prevent memory exhaustion from large error responses
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		body, _ := io.ReadAll(limitedReader)
+
+		// Drain and close the body properly
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(body)
+		// Indicate truncation if we hit the size limit
+		if len(body) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, errorMsg)
 	}
 
 	var response models.KFPipelineRunResponse
@@ -123,8 +138,19 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, string(body))
+		// Use bounded read to prevent memory exhaustion from large error responses
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		body, _ := io.ReadAll(limitedReader)
+
+		// Drain and close the body properly
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(body)
+		// Indicate truncation if we hit the size limit
+		if len(body) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, errorMsg)
 	}
 
 	var run models.KFPipelineRun
