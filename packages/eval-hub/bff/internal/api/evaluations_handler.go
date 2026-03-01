@@ -3,11 +3,14 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
+
+const maxLimit = 100
 
 type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, None]
 
@@ -21,6 +24,22 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 	}
 
 	q := r.URL.Query()
+
+	if limitStr := q.Get("limit"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit < 0 || limit > maxLimit {
+			app.badRequestResponse(w, r, fmt.Errorf("limit must be a number between 0 and %d", maxLimit))
+			return
+		}
+	}
+	if offsetStr := q.Get("offset"); offsetStr != "" {
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || offset < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("offset must be a non-negative number"))
+			return
+		}
+	}
+
 	params := evalhub.ListEvaluationJobsParams{
 		Namespace: q.Get("namespace"),
 		Limit:     q.Get("limit"),

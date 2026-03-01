@@ -389,6 +389,7 @@ components:
       required:
         - resource
         - status
+        - results
         - model
         - benchmarks
       properties:
