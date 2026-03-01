@@ -34,7 +34,7 @@ func TestEvaluationJobsHandlerWithQueryParams(t *testing.T) {
 
 	result, response, err := setupApiTestWithEvalHub[EvaluationJobsEnvelope](
 		http.MethodGet,
-		EvaluationJobsPath+"?limit=10&offset=0&status=running&name=test&tags=safety",
+		EvaluationJobsPath+"?namespace=test-ns&limit=10&offset=0&status=running&name=test&tags=safety",
 		nil, nil, identity, mockClient,
 	)
 

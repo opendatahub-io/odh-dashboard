@@ -1,8 +1,16 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '../EvaluationsTable';
+
+const renderTable = (props: { evaluations: EvaluationJob[]; loaded: boolean }) =>
+  render(
+    <MemoryRouter>
+      <EvaluationsTable {...props} />
+    </MemoryRouter>,
+  );
 
 const mockJobs: EvaluationJob[] = [
   mockEvaluationJob({
@@ -34,17 +42,17 @@ const mockJobs: EvaluationJob[] = [
 
 describe('EvaluationsTable', () => {
   it('should return null when not loaded', () => {
-    const { container } = render(<EvaluationsTable evaluations={[]} loaded={false} />);
+    const { container } = renderTable({ evaluations: [], loaded: false });
     expect(container.firstChild).toBeNull();
   });
 
   it('should render the toolbar', () => {
-    render(<EvaluationsTable evaluations={mockJobs} loaded />);
+    renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('evaluations-table-toolbar')).toBeInTheDocument();
   });
 
   it('should render the table with rows', () => {
-    render(<EvaluationsTable evaluations={mockJobs} loaded />);
+    renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
@@ -52,13 +60,13 @@ describe('EvaluationsTable', () => {
   });
 
   it('should render the New evaluation button', () => {
-    render(<EvaluationsTable evaluations={mockJobs} loaded />);
+    renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent('New evaluation');
   });
 
   describe('filtering', () => {
     it('should filter by evaluation name', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'Alpha' } });
 
@@ -67,7 +75,7 @@ describe('EvaluationsTable', () => {
     });
 
     it('should show empty filter state when no matches', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
@@ -76,7 +84,7 @@ describe('EvaluationsTable', () => {
     });
 
     it('should clear filters and show all rows', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
@@ -88,7 +96,7 @@ describe('EvaluationsTable', () => {
     });
 
     it('should be case-insensitive', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'alpha' } });
 
@@ -98,13 +106,13 @@ describe('EvaluationsTable', () => {
 
   describe('pagination', () => {
     it('should render pagination controls', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const toolbar = screen.getByTestId('evaluations-table-toolbar');
       expect(toolbar.querySelector('.pf-v6-c-pagination')).toBeInTheDocument();
     });
 
     it('should show all rows when count is below perPage', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
       expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
       expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
@@ -118,7 +126,7 @@ describe('EvaluationsTable', () => {
           createdAt: `2026-02-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
         }),
       );
-      render(<EvaluationsTable evaluations={manyJobs} loaded />);
+      renderTable({ evaluations: manyJobs, loaded: true });
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
       expect(screen.getByTestId('evaluation-row-19')).toBeInTheDocument();
       expect(screen.queryByTestId('evaluation-row-20')).not.toBeInTheDocument();
@@ -127,7 +135,7 @@ describe('EvaluationsTable', () => {
 
   describe('column headers', () => {
     it('should render all expected column headers in the table', () => {
-      render(<EvaluationsTable evaluations={mockJobs} loaded />);
+      renderTable({ evaluations: mockJobs, loaded: true });
       const table = screen.getByTestId('evaluations-table');
       expect(table).toHaveTextContent('Evaluation name');
       expect(table).toHaveTextContent('Status');
