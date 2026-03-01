@@ -21,6 +21,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
 import EvaluationsTableRow from './EvaluationsTableRow';
@@ -83,6 +84,7 @@ type EvaluationsTableProps = {
 };
 
 const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded }) => {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
@@ -207,7 +209,11 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
           </ToolbarToggleGroup>
           <ToolbarGroup>
             <ToolbarItem>
-              <Button variant="primary" data-testid="create-evaluation-button">
+              <Button
+                variant="primary"
+                data-testid="create-evaluation-button"
+                onClick={() => navigate('create')}
+              >
                 New evaluation
               </Button>
             </ToolbarItem>

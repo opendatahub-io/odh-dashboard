@@ -13,7 +13,7 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const [evaluations, loaded, error] = useEvaluationJobs();
+  const [evaluations, loaded, error] = useEvaluationJobs({ namespace });
 
   return (
     <ApplicationsPage
