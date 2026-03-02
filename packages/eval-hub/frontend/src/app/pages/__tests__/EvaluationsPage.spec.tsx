@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import EvaluationsPage from '../EvaluationsPage';
+import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
 const mockUseEvaluationJobs = jest.fn<[EvaluationJob[], boolean, Error | undefined], []>();
 
@@ -70,7 +70,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should render the evaluations table when evaluations exist', () => {
-    const jobs = [mockEvaluationJob({ id: 'job-1', tenant: 'Test Eval', state: 'completed' })];
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
     mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined]);
     renderPage('test-project');
 

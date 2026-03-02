@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import EvaluationsTableRow from '../EvaluationsTableRow';
+import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
@@ -16,12 +16,17 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
 };
 
 describe('EvaluationsTableRow', () => {
-  it('should render the evaluation name from tenant', () => {
-    renderRow({ tenant: 'My Evaluation' });
+  it('should render the evaluation name', () => {
+    renderRow({ name: 'My Evaluation' });
     expect(screen.getByTestId('evaluation-name')).toHaveTextContent('My Evaluation');
   });
 
-  it('should fall back to resource id when tenant is not set', () => {
+  it('should fall back to tenant when name is not set', () => {
+    renderRow({ tenant: 'Tenant Eval' });
+    expect(screen.getByTestId('evaluation-name')).toHaveTextContent('Tenant Eval');
+  });
+
+  it('should fall back to resource id when neither name nor tenant is set', () => {
     renderRow({ id: 'eval-fallback-id' });
     expect(screen.getByTestId('evaluation-name')).toHaveTextContent('eval-fallback-id');
   });
@@ -47,8 +52,8 @@ describe('EvaluationsTableRow', () => {
     expect(dateCell.textContent).toContain('2026');
   });
 
-  it('should render result percentage when metrics exist', () => {
-    renderRow({ metrics: { score: 0.85 } });
+  it('should render result percentage when score exists', () => {
+    renderRow({ score: 0.85 });
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('85%');
   });
 

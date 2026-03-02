@@ -2,13 +2,14 @@ import { EvaluationJob, EvaluationJobState } from '~/app/types';
 
 type MockEvaluationJobOptions = {
   id?: string;
+  name?: string;
   tenant?: string;
   state?: EvaluationJobState;
   modelName?: string;
   benchmarkId?: string;
   providerId?: string;
   createdAt?: string;
-  metrics?: Record<string, number>;
+  score?: number;
 };
 
 /* eslint-disable camelcase */
@@ -23,11 +24,13 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
     state: options.state ?? 'completed',
   },
   results: {
-    total_evaluations: options.metrics ? 1 : 0,
-    benchmarks: options.metrics
-      ? [{ id: options.benchmarkId ?? 'bench-1', metrics: options.metrics }]
-      : [],
+    benchmarks:
+      options.score != null
+        ? [{ id: options.benchmarkId ?? 'bench-1', test: { primary_score: options.score } }]
+        : [],
+    test: options.score != null ? { score: options.score } : undefined,
   },
+  name: options.name,
   model: {
     name: options.modelName ?? 'test-model',
   },

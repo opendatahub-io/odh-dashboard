@@ -63,12 +63,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel state={job.status.state} />
         </Td>
-        <Td dataLabel="Collection/Benchmark" data-testid="evaluation-benchmark">
+        <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip content={benchmarkName}>
             <span>{benchmarkName}</span>
           </Tooltip>
         </Td>
-        <Td dataLabel="Type" data-testid="evaluation-type">
+        <Td dataLabel="Evaluated" data-testid="evaluation-type">
           {job.model.name}
         </Td>
         <Td dataLabel="Run date" data-testid="evaluation-run-date">

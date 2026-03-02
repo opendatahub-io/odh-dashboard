@@ -9,6 +9,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   EvaluationJob,
+  EvaluationJobsResponse,
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
@@ -65,8 +66,9 @@ export const getEvaluationJobs =
     return handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
     ).then((response) => {
-      if (isModArchResponse<EvaluationJob[]>(response)) {
-        return response.data;
+      if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
       }
       throw new Error('Invalid response format');
     });
