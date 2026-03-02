@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
+
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
 
@@ -24,7 +26,8 @@ func NewMockClientFactory() mlflow.MLflowClientFactory {
 }
 
 // GetClient returns a shared MLflow client connected to the local MLflow instance.
-func (f *MockClientFactory) GetClient(_ context.Context) (mlflow.ClientInterface, error) {
+// Token and namespace are ignored — local MLflow has no auth or workspace isolation.
+func (f *MockClientFactory) GetClient(_ context.Context, _, _ string) (mlflow.ClientInterface, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -37,7 +40,10 @@ func (f *MockClientFactory) GetClient(_ context.Context) (mlflow.ClientInterface
 		trackingURI = fmt.Sprintf("http://127.0.0.1:%d", mlflowPort())
 	}
 
-	client, err := mlflow.NewClient(trackingURI, true)
+	client, err := mlflow.NewClient(
+		sdkmlflow.WithTrackingURI(trackingURI),
+		sdkmlflow.WithInsecure(),
+	)
 	if err != nil {
 		return nil, err
 	}
