@@ -19,10 +19,12 @@ import {
   useNamespaceSelector,
   useSettings,
 } from 'mod-arch-core';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 import NavBar from '~/app/standalone/NavBar';
 import AppNavSidebar from '~/app/standalone/AppNavSidebar';
+import { evalHubRootPath } from '~/app/utilities/routes';
 
 const App: React.FC = () => {
   const {
@@ -108,7 +110,10 @@ const App: React.FC = () => {
         }
         sidebar={isStandalone ? <AppNavSidebar /> : undefined}
       >
-        <AppRoutes />
+        <Routes>
+          <Route path={`${evalHubRootPath}/*`} element={<AppRoutes />} />
+          <Route path="*" element={<Navigate to={evalHubRootPath} replace />} />
+        </Routes>
       </Page>
     </AppContext.Provider>
   );
