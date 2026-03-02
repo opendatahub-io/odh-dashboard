@@ -53,6 +53,72 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 						State:      "SUCCEEDED",
 					},
 				},
+				RunDetails: &models.RunDetails{
+					TaskDetails: []models.TaskDetail{
+					{
+						RunID:       "run-abc123-def456",
+						TaskID:      "task-data-preprocessing",
+						DisplayName: "Data Preprocessing",
+						CreateTime:  "2026-02-24T10:30:00Z",
+						StartTime:   "2026-02-24T10:30:05Z",
+						EndTime:     "2026-02-24T10:35:00Z",
+						State:       "SUCCEEDED",
+						Inputs: map[string]interface{}{
+							"dataset_path": "s3://bucket/data/input.csv",
+						},
+						Outputs: map[string]interface{}{
+							"processed_data": "s3://bucket/data/processed.csv",
+							"row_count":      1000,
+						},
+						ChildTasks: []models.ChildTask{
+							{PodName: "data-preprocessing-pod-abc123"},
+						},
+					},
+					{
+						RunID:       "run-abc123-def456",
+						TaskID:      "task-model-training",
+						DisplayName: "Model Training",
+						CreateTime:  "2026-02-24T10:30:00Z",
+						StartTime:   "2026-02-24T10:35:10Z",
+						EndTime:     "2026-02-24T11:10:00Z",
+						State:       "SUCCEEDED",
+						Inputs: map[string]interface{}{
+							"training_data": "s3://bucket/data/processed.csv",
+							"epochs":        50,
+						},
+						Outputs: map[string]interface{}{
+							"model_path": "s3://bucket/models/model.pkl",
+							"accuracy":   0.95,
+						},
+						ChildTasks: []models.ChildTask{
+							{PodName: "model-training-pod-def456"},
+						},
+					},
+					{
+						RunID:       "run-abc123-def456",
+						TaskID:      "task-model-evaluation",
+						DisplayName: "Model Evaluation",
+						CreateTime:  "2026-02-24T10:30:00Z",
+						StartTime:   "2026-02-24T11:10:10Z",
+						EndTime:     "2026-02-24T11:15:00Z",
+						State:       "SUCCEEDED",
+						Inputs: map[string]interface{}{
+							"model_path": "s3://bucket/models/model.pkl",
+							"test_data":  "s3://bucket/data/test.csv",
+						},
+						Outputs: map[string]interface{}{
+							"metrics": map[string]interface{}{
+								"accuracy":  0.94,
+								"precision": 0.93,
+								"recall":    0.95,
+							},
+						},
+						ChildTasks: []models.ChildTask{
+							{PodName: "model-evaluation-pod-ghi789"},
+						},
+					},
+					},
+				},
 			},
 			{
 				RunID:        "run-ghi789-jkl012",
@@ -72,6 +138,33 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 					{
 						UpdateTime: "2026-02-24T12:00:00Z",
 						State:      "RUNNING",
+					},
+				},
+				RunDetails: &models.RunDetails{
+					TaskDetails: []models.TaskDetail{
+					{
+						RunID:       "run-ghi789-jkl012",
+						TaskID:      "task-data-loading",
+						DisplayName: "Data Loading",
+						CreateTime:  "2026-02-24T12:00:00Z",
+						StartTime:   "2026-02-24T12:00:05Z",
+						EndTime:     "2026-02-24T12:02:00Z",
+						State:       "SUCCEEDED",
+						ChildTasks: []models.ChildTask{
+							{PodName: "data-loading-pod-xyz123"},
+						},
+					},
+					{
+						RunID:       "run-ghi789-jkl012",
+						TaskID:      "task-feature-engineering",
+						DisplayName: "Feature Engineering",
+						CreateTime:  "2026-02-24T12:00:00Z",
+						StartTime:   "2026-02-24T12:02:10Z",
+						State:       "RUNNING",
+						ChildTasks: []models.ChildTask{
+							{PodName: "feature-engineering-pod-xyz456"},
+						},
+					},
 					},
 				},
 			},
@@ -108,6 +201,38 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 						},
 					},
 				},
+				RunDetails: &models.RunDetails{
+					TaskDetails: []models.TaskDetail{
+					{
+						RunID:       "run-mno345-pqr678",
+						TaskID:      "task-data-validation",
+						DisplayName: "Data Validation",
+						CreateTime:  "2026-02-23T14:00:00Z",
+						StartTime:   "2026-02-23T14:00:05Z",
+						EndTime:     "2026-02-23T14:05:00Z",
+						State:       "SUCCEEDED",
+						ChildTasks: []models.ChildTask{
+							{PodName: "data-validation-pod-abc987"},
+						},
+					},
+					{
+						RunID:       "run-mno345-pqr678",
+						TaskID:      "task-data-fetch",
+						DisplayName: "Data Fetch",
+						CreateTime:  "2026-02-23T14:00:00Z",
+						StartTime:   "2026-02-23T14:05:10Z",
+						EndTime:     "2026-02-23T14:30:00Z",
+						State:       "FAILED",
+						Error: &models.ErrorInfo{
+							Code:    500,
+							Message: "Unable to connect to data source: connection timeout",
+						},
+						ChildTasks: []models.ChildTask{
+							{PodName: "data-fetch-pod-def654"},
+						},
+					},
+					},
+				},
 			},
 		},
 		TotalSize:     3,
@@ -116,9 +241,28 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 }
 
 // GetRun returns a mock pipeline run by ID
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
 func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
 	// Record runID for test assertions
 	m.LastGetRunID = runID
+
+	// Simulate 404 error for non-existent run
+	if runID == "non-existent-run-id" {
+		return nil, &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    `{"code":5, "message":"Failed to get a run: Failed to fetch run non-existent-run-id: ResourceNotFoundError: Run non-existent-run-id not found"}`,
+		}
+	}
+
+	// Simulate 500 error for server errors
+	if runID == "server-error-run-id" {
+		return nil, &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
 
 	// Return mock data based on the run ID
 	mockRun := &models.KFPipelineRun{
@@ -144,6 +288,48 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 			{
 				UpdateTime: "2026-02-24T11:15:00Z",
 				State:      "SUCCEEDED",
+			},
+		},
+		RunDetails: &models.RunDetails{
+			TaskDetails: []models.TaskDetail{
+			{
+				RunID:       runID,
+				TaskID:      "task-prepare-data",
+				DisplayName: "Prepare Data",
+				CreateTime:  "2026-02-24T10:30:00Z",
+				StartTime:   "2026-02-24T10:30:05Z",
+				EndTime:     "2026-02-24T10:32:00Z",
+				State:       "SUCCEEDED",
+				Inputs: map[string]interface{}{
+					"source": "s3://data/raw/input.csv",
+				},
+				Outputs: map[string]interface{}{
+					"prepared_data": "s3://data/prepared/data.csv",
+				},
+				ChildTasks: []models.ChildTask{
+					{PodName: "prepare-data-pod"},
+				},
+			},
+			{
+				RunID:       runID,
+				TaskID:      "task-train-model",
+				DisplayName: "Train Model",
+				CreateTime:  "2026-02-24T10:30:00Z",
+				StartTime:   "2026-02-24T10:32:10Z",
+				EndTime:     "2026-02-24T11:15:00Z",
+				State:       "SUCCEEDED",
+				Inputs: map[string]interface{}{
+					"training_data": "s3://data/prepared/data.csv",
+					"learning_rate": 0.001,
+				},
+				Outputs: map[string]interface{}{
+					"model_uri": "s3://models/trained-model.pkl",
+					"accuracy":  0.96,
+				},
+				ChildTasks: []models.ChildTask{
+					{PodName: "train-model-pod"},
+				},
+			},
 			},
 		},
 	}

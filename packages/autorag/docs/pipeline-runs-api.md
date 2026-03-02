@@ -4,11 +4,18 @@
 
 The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for filtering by pipeline version ID. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
 
-## Endpoint
+**API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
+
+## Endpoints
 
 ```http
 GET /api/v1/pipeline-runs
+GET /api/v1/pipeline-runs/:runId
 ```
+
+The API provides two endpoints:
+- **List Runs**: Query multiple pipeline runs with optional filtering and pagination
+- **Get Run**: Retrieve a single pipeline run by its ID with full task details
 
 ## Authentication
 
@@ -102,7 +109,46 @@ The endpoint returns a JSON response with the following structure:
             "update_time": "2026-02-24T11:15:00Z",
             "state": "SUCCEEDED"
           }
-        ]
+        ],
+        "run_details": {
+          "task_details": [
+            {
+              "run_id": "abc123-def456-ghi789",
+              "task_id": "task-data-preprocessing-123",
+              "display_name": "Data Preprocessing",
+              "create_time": "2026-02-24T10:30:00Z",
+              "start_time": "2026-02-24T10:30:05Z",
+              "end_time": "2026-02-24T10:35:00Z",
+              "state": "SUCCEEDED",
+              "state_history": [
+                {
+                  "update_time": "2026-02-24T10:30:05Z",
+                  "state": "PENDING"
+                },
+                {
+                  "update_time": "2026-02-24T10:30:10Z",
+                  "state": "RUNNING"
+                },
+                {
+                  "update_time": "2026-02-24T10:35:00Z",
+                  "state": "SUCCEEDED"
+                }
+              ],
+              "inputs": {
+                "dataset_path": "s3://bucket/data/input.csv"
+              },
+              "outputs": {
+                "processed_data": "s3://bucket/data/processed.csv",
+                "row_count": 1000
+              },
+              "child_tasks": [
+                {
+                  "pod_name": "data-preprocessing-pod-abc123"
+                }
+              ]
+            }
+          ]
+        }
       }
     ],
     "total_size": 1,
@@ -130,6 +176,7 @@ The endpoint returns a JSON response with the following structure:
 | `finished_at` | string | Completion timestamp in ISO 8601 format (if finished) |
 | `error` | object | Optional error information if the run failed (contains `code` and `message` fields) |
 | `state_history` | array | History of state changes (see below) |
+| `run_details` | object | Detailed task execution information (see below) |
 
 #### PipelineVersionReference Object
 
@@ -146,6 +193,35 @@ The endpoint returns a JSON response with the following structure:
 | `state` | string | The state at this time |
 | `error` | object | Optional error information (if the state change was due to an error) |
 
+#### RunDetails Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_details` | array | Array of TaskDetail objects representing individual task executions |
+
+#### TaskDetail Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `run_id` | string | ID of the parent pipeline run |
+| `task_id` | string | Unique identifier for this task |
+| `display_name` | string | Human-readable task name |
+| `create_time` | string | Task creation timestamp in ISO 8601 format |
+| `start_time` | string | Task execution start timestamp in ISO 8601 format |
+| `end_time` | string | Task completion timestamp in ISO 8601 format (if finished) |
+| `state` | string | Current task state (UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED) |
+| `state_history` | array | History of state changes for this task (same format as run state_history) |
+| `inputs` | object | Task input parameters as key-value pairs |
+| `outputs` | object | Task output values as key-value pairs |
+| `child_tasks` | array | Array of ChildTask objects (see below) |
+| `error` | object | Optional error information if the task failed |
+
+#### ChildTask Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pod_name` | string | Kubernetes pod name that executed this task |
+
 #### PipelineRunsData Object
 
 | Field | Type | Description |
@@ -153,6 +229,124 @@ The endpoint returns a JSON response with the following structure:
 | `runs` | array | Array of PipelineRun objects |
 | `total_size` | integer | Total number of runs matching the filter |
 | `next_page_token` | string | Token for retrieving the next page (empty if no more pages) |
+
+## Get Single Pipeline Run
+
+### Endpoint
+
+```http
+GET /api/v1/pipeline-runs/:runId
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to retrieve |
+
+### Request Example
+
+```bash
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns a single PipelineRun object with full details including task execution information:
+
+```json
+{
+  "metadata": {},
+  "data": {
+    "run_id": "abc123-def456-ghi789",
+    "display_name": "AutoRAG Optimization Run",
+    "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
+    "pipeline_version_reference": {
+      "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
+      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+    },
+    "state": "SUCCEEDED",
+    "storage_state": "AVAILABLE",
+    "service_account": "pipeline-runner-dspa",
+    "created_at": "2026-02-24T10:30:00Z",
+    "scheduled_at": "2026-02-24T10:30:00Z",
+    "finished_at": "2026-02-24T11:15:00Z",
+    "state_history": [
+      {
+        "update_time": "2026-02-24T10:30:00Z",
+        "state": "RUNNING"
+      },
+      {
+        "update_time": "2026-02-24T11:15:00Z",
+        "state": "SUCCEEDED"
+      }
+    ],
+    "run_details": {
+      "task_details": [
+        {
+          "run_id": "abc123-def456-ghi789",
+          "task_id": "task-prepare-data",
+          "display_name": "Prepare Data",
+          "create_time": "2026-02-24T10:30:00Z",
+          "start_time": "2026-02-24T10:30:05Z",
+          "end_time": "2026-02-24T10:32:00Z",
+          "state": "SUCCEEDED",
+          "inputs": {
+            "source": "s3://data/raw/input.csv"
+          },
+          "outputs": {
+            "prepared_data": "s3://data/prepared/data.csv"
+          },
+          "child_tasks": [
+            {
+              "pod_name": "prepare-data-pod"
+            }
+          ]
+        },
+        {
+          "run_id": "abc123-def456-ghi789",
+          "task_id": "task-train-model",
+          "display_name": "Train Model",
+          "create_time": "2026-02-24T10:30:00Z",
+          "start_time": "2026-02-24T10:32:10Z",
+          "end_time": "2026-02-24T11:15:00Z",
+          "state": "SUCCEEDED",
+          "inputs": {
+            "training_data": "s3://data/prepared/data.csv",
+            "learning_rate": 0.001
+          },
+          "outputs": {
+            "model_uri": "s3://models/trained-model.pkl",
+            "accuracy": 0.96
+          },
+          "child_tasks": [
+            {
+              "pod_name": "train-model-pod"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Error Responses
+
+In addition to the common error responses listed above:
+
+#### 404 Not Found - Run Not Found
+
+Returned when the specified run ID does not exist:
+
+```json
+{
+  "code": "NOT_FOUND",
+  "message": "the requested resource could not be found"
+}
+```
 
 ## Pipeline Filtering
 
@@ -230,11 +424,27 @@ go run cmd/main.go --mock-pipeline-server-client
 
 ### Mock Data
 
-Mock mode returns 3 sample pipeline runs with various states:
+Mock mode returns 3 sample pipeline runs with various states and task details:
 
-1. **Succeeded Run** - Completed optimization run with `exp-123` experiment ID
-2. **Running Run** - Currently executing run with `exp-456` experiment ID
-3. **Failed Run** - Failed baseline run with `exp-123` experiment ID
+1. **Succeeded Run** (`run-abc123-def456`) - Completed optimization run with 3 tasks:
+   - Data Preprocessing (SUCCEEDED)
+   - Model Training (SUCCEEDED)
+   - Model Evaluation (SUCCEEDED)
+
+2. **Running Run** (`run-ghi789-jkl012`) - Currently executing run with 2 tasks:
+   - Data Loading (SUCCEEDED)
+   - Feature Engineering (RUNNING)
+
+3. **Failed Run** (`run-mno345-pqr678`) - Failed baseline run with 2 tasks:
+   - Data Validation (SUCCEEDED)
+   - Data Fetch (FAILED)
+
+Each task includes detailed information such as:
+- Task execution timeline (create_time, start_time, end_time)
+- Task state and state history
+- Input and output parameters
+- Pod names executing the tasks
+- Error information (for failed tasks)
 
 ## Production Deployment
 
@@ -265,16 +475,19 @@ This auto-discovery approach:
 
 ## Integration with AutoRAG Frontend
 
-The AutoRAG frontend can use this endpoint to:
+The AutoRAG frontend can use these endpoints to:
 
 1. List all runs for a specific pipeline version
 2. Display run status and results
 3. Implement pagination for large result sets
 4. Access run state history and metadata
+5. View detailed task execution information for each run
+6. Track individual task progress, inputs, and outputs
 
 ### Example Frontend Integration
 
 ```javascript
+// List pipeline runs with optional filtering
 async function fetchPipelineRuns(namespace, pipelineVersionId, token) {
   const params = new URLSearchParams({
     namespace,
@@ -294,6 +507,39 @@ async function fetchPipelineRuns(namespace, pipelineVersionId, token) {
 
   const data = await response.json();
   return data.data.runs;
+}
+
+// Get a single run with full task details
+async function fetchPipelineRun(namespace, runId, token) {
+  const params = new URLSearchParams({ namespace });
+
+  const response = await fetch(`/api/v1/pipeline-runs/${runId}?${params}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Access task details from a run
+function displayTaskDetails(run) {
+  if (run.run_details?.task_details) {
+    run.run_details.task_details.forEach(task => {
+      console.log(`Task: ${task.display_name}`);
+      console.log(`  State: ${task.state}`);
+      console.log(`  Duration: ${task.start_time} to ${task.end_time}`);
+      console.log(`  Inputs:`, task.inputs);
+      console.log(`  Outputs:`, task.outputs);
+
+      if (task.child_tasks) {
+        task.child_tasks.forEach(child => {
+          console.log(`  Pod: ${child.pod_name}`);
+        });
+      }
+    });
+  }
 }
 ```
 

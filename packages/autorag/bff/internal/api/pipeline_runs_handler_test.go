@@ -215,7 +215,50 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 				assert.NotEmpty(t, run.StateHistory[0].UpdateTime, "StateHistory UpdateTime should not be empty")
 				assert.NotEmpty(t, run.StateHistory[0].State, "StateHistory State should not be empty")
 			}
+
+			// Verify run details are present
+			assert.NotNil(t, run.RunDetails, "RunDetails should not be nil")
 		}
+	})
+
+	t.Run("should include task details in listed runs", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response struct {
+			Data models.PipelineRunsData `json:"data"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Verify at least one run has task details
+		foundTaskDetails := false
+		for _, run := range response.Data.Runs {
+			if run.RunDetails != nil && run.RunDetails.TaskDetails != nil && len(run.RunDetails.TaskDetails) > 0 {
+				foundTaskDetails = true
+				// Verify task structure
+				task := run.RunDetails.TaskDetails[0]
+				assert.NotEmpty(t, task.TaskID, "Task ID should not be empty")
+				assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
+				assert.NotEmpty(t, task.State, "Task state should not be empty")
+				break
+			}
+		}
+		assert.True(t, foundTaskDetails, "At least one run should have task details")
 	})
 }
 
@@ -341,6 +384,66 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 
 		// Verify state history
 		assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
+
+		// Verify run details and task details
+		assert.NotNil(t, run.RunDetails, "RunDetails should not be nil")
+		if run.RunDetails != nil && len(run.RunDetails.TaskDetails) > 0 {
+			task := run.RunDetails.TaskDetails[0]
+			assert.NotEmpty(t, task.TaskID, "Task ID should not be empty")
+			assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
+			assert.NotEmpty(t, task.State, "Task state should not be empty")
+		}
+	})
+
+	t.Run("should include task details with inputs and outputs", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-with-tasks"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response struct {
+			Data models.PipelineRun `json:"data"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		// Verify run details and task details are present
+		assert.NotNil(t, response.Data.RunDetails, "RunDetails should be present")
+		require.NotNil(t, response.Data.RunDetails, "RunDetails required for further checks")
+		assert.Greater(t, len(response.Data.RunDetails.TaskDetails), 0, "Should have at least one task")
+
+		// Verify task structure
+		if len(response.Data.RunDetails.TaskDetails) > 0 {
+			task := response.Data.RunDetails.TaskDetails[0]
+			assert.NotEmpty(t, task.TaskID)
+			assert.NotEmpty(t, task.DisplayName)
+			assert.NotEmpty(t, task.State)
+
+			// Verify inputs/outputs are present
+			if task.Inputs != nil {
+				assert.Greater(t, len(task.Inputs), 0, "Task should have inputs")
+			}
+			if task.Outputs != nil {
+				assert.Greater(t, len(task.Outputs), 0, "Task should have outputs")
+			}
+		}
 	})
 }
 
@@ -403,5 +506,79 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, response.Error.Message, "missing runId parameter")
+	})
+
+	t.Run("should return 404 for non-existent run ID", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "non-existent-run-id" // Special ID that triggers 404 in mock
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 404 Not Found
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "could not be found")
+	})
+
+	t.Run("should return 500 for pipeline server errors", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "server-error-run-id" // Special ID that triggers 500 in mock
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient()
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 500 Internal Server Error
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "500", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "server encountered a problem")
 	})
 }

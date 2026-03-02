@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
+	"net/http"
 
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -130,6 +130,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		FinishedAt:               kfRun.FinishedAt,
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
+		RunDetails:               kfRun.RunDetails,
 	}
 }
 
@@ -147,10 +148,9 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 	// Query pipeline server for single run
 	kfRun, err := client.GetRun(ctx, runID)
 	if err != nil {
-		// Check if this is a 404 error from the pipeline server
-		if strings.Contains(err.Error(), "pipeline server returned 404") ||
-			strings.Contains(err.Error(), "not found") ||
-			strings.Contains(err.Error(), "ResourceNotFoundError") {
+		// Check if this is a 404 error from the pipeline server using structured error type
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusNotFound {
 			return nil, ErrPipelineRunNotFound
 		}
 		return nil, fmt.Errorf("error fetching pipeline run: %w", err)

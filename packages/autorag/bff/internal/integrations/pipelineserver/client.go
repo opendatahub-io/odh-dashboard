@@ -12,6 +12,22 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
+// HTTPError represents an HTTP error response from the pipeline server
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+// Error implements the error interface
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
+}
+
+// Status returns the HTTP status code
+func (e *HTTPError) Status() int {
+	return e.StatusCode
+}
+
 // PipelineServerClientInterface defines the interface for interacting with Kubeflow Pipelines API
 type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
@@ -102,7 +118,10 @@ func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRun
 		if len(body) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}
-		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, errorMsg)
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
 	}
 
 	var response models.KFPipelineRunResponse
@@ -150,7 +169,10 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		if len(body) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}
-		return nil, fmt.Errorf("pipeline server returned %d: %s", resp.StatusCode, errorMsg)
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
 	}
 
 	var run models.KFPipelineRun
