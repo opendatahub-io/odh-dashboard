@@ -16,7 +16,7 @@ func TestEvaluationJobsHandler(t *testing.T) {
 
 	result, response, err := setupApiTestWithEvalHub[EvaluationJobsEnvelope](
 		http.MethodGet,
-		EvaluationJobsPath,
+		EvaluationJobsPath+"?namespace=test-ns",
 		nil, nil, identity, mockClient,
 	)
 

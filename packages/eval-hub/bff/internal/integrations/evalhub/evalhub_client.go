@@ -5,17 +5,22 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/openai/openai-go/v2"
 )
 
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context) ([]EvaluationJob, error)
+	// ListCollections retrieves all benchmark collections.
+	ListCollections(ctx context.Context) (CollectionsResponse, error)
+	// ListProviders retrieves all evaluation providers with their benchmark catalogues.
+	// limit: maximum number of providers to return (1-100, default 50).
+	// offset: pagination offset (default 0).
+	ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error)
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -95,6 +100,135 @@ type JobBenchmark struct {
 	Parameters map[string]any `json:"parameters,omitempty"`
 }
 
+// CollectionsResponse is the response from the EvalHub API.
+type CollectionsResponse struct {
+	Items []Collection `json:"items"`
+}
+
+// ProvidersResponse is the paginated response for the providers endpoint.
+type ProvidersResponse struct {
+	Items      []Provider `json:"items"`
+	TotalCount int        `json:"total_count,omitempty"`
+}
+
+// ProviderEnvVar is a name/value environment variable pair used in runtime config.
+type ProviderEnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// ProviderK8sRuntime holds Kubernetes-specific runtime configuration for a provider.
+type ProviderK8sRuntime struct {
+	Image         string           `json:"image,omitempty"`
+	Entrypoint    []string         `json:"entrypoint,omitempty"`
+	CPURequest    string           `json:"cpu_request,omitempty"`
+	MemoryRequest string           `json:"memory_request,omitempty"`
+	CPULimit      string           `json:"cpu_limit,omitempty"`
+	MemoryLimit   string           `json:"memory_limit,omitempty"`
+	Env           []ProviderEnvVar `json:"env,omitempty"`
+}
+
+// ProviderLocalRuntime holds local-execution runtime configuration for a provider.
+type ProviderLocalRuntime struct {
+	Command string           `json:"command,omitempty"`
+	Env     []ProviderEnvVar `json:"env,omitempty"`
+}
+
+// ProviderRuntime describes how the provider executes benchmarks (k8s or local).
+type ProviderRuntime struct {
+	K8s   *ProviderK8sRuntime   `json:"k8s,omitempty"`
+	Local *ProviderLocalRuntime `json:"local,omitempty"`
+}
+
+// Provider represents an evaluation provider from eval-hub.
+type Provider struct {
+	Resource    ProviderResource    `json:"resource"`
+	Name        string              `json:"name"`
+	Title       string              `json:"title,omitempty"`
+	Description string              `json:"description,omitempty"`
+	Tags        []string            `json:"tags,omitempty"`
+	Runtime     *ProviderRuntime    `json:"runtime,omitempty"`
+	Benchmarks  []ProviderBenchmark `json:"benchmarks,omitempty"`
+}
+
+// ProviderResource holds the resource metadata for a provider.
+type ProviderResource struct {
+	ID        string `json:"id"`
+	Tenant    string `json:"tenant,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReadOnly  bool   `json:"read_only,omitempty"`
+	Owner     string `json:"owner,omitempty"`
+}
+
+// ProviderBenchmark represents an individual benchmark within a provider's catalogue.
+// Fields match the official eval-hub API spec exactly.
+type ProviderBenchmark struct {
+	ID           string                         `json:"id"`
+	Name         string                         `json:"name"`
+	Description  string                         `json:"description,omitempty"`
+	Category     string                         `json:"category,omitempty"`
+	Metrics      []string                       `json:"metrics,omitempty"`
+	Tags         []string                       `json:"tags,omitempty"`
+	NumFewShot   int                            `json:"num_few_shot,omitempty"`
+	DatasetSize  int                            `json:"dataset_size,omitempty"`
+	PrimaryScore *ProviderBenchmarkScore        `json:"primary_score,omitempty"`
+	PassCriteria *ProviderBenchmarkPassCriteria `json:"pass_criteria,omitempty"`
+}
+
+// ProviderBenchmarkScore defines the primary scoring metric for a provider benchmark.
+type ProviderBenchmarkScore struct {
+	Metric        string `json:"metric"`
+	LowerIsBetter bool   `json:"lower_is_better"`
+}
+
+// ProviderBenchmarkPassCriteria defines the passing threshold for a provider benchmark.
+type ProviderBenchmarkPassCriteria struct {
+	Threshold float64 `json:"threshold"`
+}
+
+// Collection represents a benchmark collection from eval-hub.
+type Collection struct {
+	Resource     CollectionResource      `json:"resource"`
+	Name         string                  `json:"name"`
+	Description  string                  `json:"description,omitempty"`
+	Tags         []string                `json:"tags,omitempty"`
+	Custom       map[string]any          `json:"custom,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
+// CollectionResource holds the resource metadata for a collection.
+type CollectionResource struct {
+	ID        string `json:"id"`
+	Tenant    string `json:"tenant,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReadOnly  bool   `json:"read_only,omitempty"`
+	Owner     string `json:"owner,omitempty"`
+}
+
+// CollectionBenchmark represents a BenchmarkConfig entry within a collection.
+type CollectionBenchmark struct {
+	ID           string                  `json:"id"`
+	ProviderID   string                  `json:"provider_id,omitempty"`
+	Weight       float64                 `json:"weight,omitempty"`
+	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Parameters   map[string]any          `json:"parameters,omitempty"`
+}
+
+// CollectionPrimaryScore defines the primary scoring metric for a benchmark.
+type CollectionPrimaryScore struct {
+	Metric        string `json:"metric"`
+	LowerIsBetter bool   `json:"lower_is_better"`
+}
+
+// CollectionPassCriteria defines the passing threshold for a benchmark.
+type CollectionPassCriteria struct {
+	Threshold float64 `json:"threshold"`
+}
+
 type EvalHubClient struct {
 	httpClient *http.Client
 	baseURL    string
@@ -140,6 +274,30 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context) ([]EvaluationJob
 	return resp.Items, nil
 }
 
+// ListCollections retrieves all benchmark collections from EvalHub.
+func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
+	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
+	if err != nil {
+		return CollectionsResponse{}, wrapClientError(err, "ListCollections")
+	}
+	return *resp, nil
+}
+
+// ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
+// limit controls page size (1-100); offset controls pagination start index.
+// Passing 0 for both uses the upstream defaults (limit=50, offset=0).
+func (c *EvalHubClient) ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error) {
+	path := "/evaluations/providers"
+	if limit > 0 || offset > 0 {
+		path = fmt.Sprintf("%s?limit=%d&offset=%d", path, limit, offset)
+	}
+	resp, err := get[ProvidersResponse](c, ctx, path)
+	if err != nil {
+		return ProvidersResponse{}, wrapClientError(err, "ListProviders")
+	}
+	return *resp, nil
+}
+
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) {
@@ -164,9 +322,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &openai.Error{
+		return nil, &httpError{
 			StatusCode: resp.StatusCode,
-			Message:    string(body),
+			Body:       string(body),
 		}
 	}
 

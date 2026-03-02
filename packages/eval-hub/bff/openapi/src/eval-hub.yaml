@@ -109,6 +109,30 @@ paths:
   # EVALHUB EVALUATION ENDPOINTS
   # =============================================================================
 
+  /eval-hub/api/v1/evaluations/collections:
+    summary: List benchmark collections
+    description: >-
+      Lists all benchmark collections from the EvalHub control plane.
+      Returns collections with their benchmarks, tags, and metadata.
+      When the upstream EvalHub API is unavailable, mock data is returned in mock mode.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listCollections
+      summary: List Collections
+      description: Gets a list of all benchmark collections from the EvalHub server.
+
   /eval-hub/api/v1/evaluations/jobs:
     summary: List evaluation jobs
     description: >-
@@ -264,6 +288,106 @@ components:
         $ref: '#/components/schemas/EvaluationJob'
       description: Array of evaluation jobs
 
+    CollectionResource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'collection-001'
+        tenant:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        read_only:
+          type: boolean
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+
+    CollectionPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+        lower_is_better:
+          type: boolean
+
+    CollectionPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+
+    CollectionBenchmark:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 'arc_challenge'
+        provider_id:
+          type: string
+          nullable: true
+        weight:
+          type: number
+          nullable: true
+        primary_score:
+          $ref: '#/components/schemas/CollectionPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        parameters:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    Collection:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/CollectionResource'
+        name:
+          type: string
+          example: 'Open LLM Leaderboard v2'
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        custom:
+          type: object
+          additionalProperties: true
+          nullable: true
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
+          nullable: true
+
+    CollectionsData:
+      type: array
+      items:
+        $ref: '#/components/schemas/Collection'
+      description: Array of benchmark collections
+
     Error:
       type: object
       required:
@@ -378,6 +502,31 @@ components:
                 labels:
                   category: 'benchmark'
 
+    CollectionsResponse:
+      description: List of benchmark collections from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionsData'
+          example:
+            data:
+              - resource:
+                  id: 'collection-001'
+                name: 'Open LLM Leaderboard v2'
+                description: 'Comprehensive evaluation suite for general-purpose language models.'
+                tags:
+                  - 'Comprehensive'
+                  - 'Industry Standard'
+                benchmarks:
+                  - id: 'arc_challenge'
+                    provider_id: 'lm_evaluation_harness'
+                    weight: 1
+
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
       content:
@@ -448,3 +597,5 @@ tags:
     description: User identity and authentication
   - name: Evaluations
     description: LLM evaluation job management via EvalHub
+  - name: Collections
+    description: Benchmark collection management via EvalHub
