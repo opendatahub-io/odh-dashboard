@@ -37,7 +37,7 @@ describe('EvalHub API Contract Tests', () => {
   });
   describe('Evaluation Jobs Endpoint', () => {
     it('should list evaluation jobs from EvalHub', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/evaluations/jobs');
+      const result = await apiClient.get('/eval-hub/api/v1/evaluations/jobs?namespace=default');
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/EvaluationJobsResponse/content/application/json/schema',
         status: 200,
