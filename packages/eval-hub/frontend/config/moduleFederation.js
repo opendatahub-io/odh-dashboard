@@ -13,9 +13,6 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
-    '@openshift/dynamic-plugin-sdk': {
-      singleton: true,
-    },
     '@odh-dashboard/plugin-core': {
       singleton: true,
       requiredVersion: '0.0.0',
@@ -27,7 +24,7 @@ const moduleFederationConfig = {
   },
   runtime: false,
   // Enable runtime for proper HMR in development
-  dts: false,
+  dts: true,
 };
 
 module.exports = {
