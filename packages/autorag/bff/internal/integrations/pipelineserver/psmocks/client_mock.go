@@ -3,6 +3,9 @@ package psmocks
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
+	"fmt"
+	"strconv"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -21,21 +24,21 @@ func NewMockPipelineServerClient() *MockPipelineServerClient {
 	return &MockPipelineServerClient{}
 }
 
-// ListRuns returns mock pipeline run data
+// ListRuns returns mock pipeline run data with support for filtering and pagination
 func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelineserver.ListRunsParams) (*models.KFPipelineRunResponse, error) {
 	// Record params for test assertions
 	m.LastListRunsParams = params
-	// Return mock data with enhanced fields
-	return &models.KFPipelineRunResponse{
-		Runs: []models.KFPipelineRun{
+
+	// Build full list of mock runs
+	allRuns := []models.KFPipelineRun{
 			{
 				RunID:        "run-abc123-def456",
 				DisplayName:  "AutoRAG Optimization Run 1",
 				Description:  "Test optimization run",
 				ExperimentID: "exp-123",
 				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "pipeline-xyz",
-					PipelineVersionID: "version-v1",
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
 				},
 				State:          "SUCCEEDED",
 				StorageState:   "AVAILABLE",
@@ -126,7 +129,7 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 				Description:  "Another test run",
 				ExperimentID: "exp-456",
 				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "pipeline-xyz",
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
 					PipelineVersionID: "version-v2",
 				},
 				State:          "RUNNING",
@@ -174,8 +177,8 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 				Description:  "Baseline comparison run",
 				ExperimentID: "exp-123",
 				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "pipeline-xyz",
-					PipelineVersionID: "version-v1",
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
 				},
 				State:          "FAILED",
 				StorageState:   "AVAILABLE",
@@ -234,10 +237,87 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 					},
 				},
 			},
-		},
-		TotalSize:     3,
-		NextPageToken: "",
+	}
+
+	// Apply filtering if filter parameter is provided
+	filteredRuns := allRuns
+	if params != nil && params.Filter != "" {
+		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
+		if pipelineVersionID != "" {
+			var matched []models.KFPipelineRun
+			for _, run := range allRuns {
+				if run.PipelineVersionReference != nil &&
+					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
+					matched = append(matched, run)
+				}
+			}
+			filteredRuns = matched
+		}
+	}
+
+	// Apply pagination
+	pageSize := int32(20) // default page size
+	if params != nil && params.PageSize > 0 {
+		pageSize = params.PageSize
+	}
+
+	// Parse page token to get offset
+	offset := int32(0)
+	if params != nil && params.PageToken != "" {
+		if parsedOffset, err := strconv.ParseInt(params.PageToken, 10, 32); err == nil {
+			offset = int32(parsedOffset)
+		}
+	}
+
+	// Calculate slice bounds
+	start := offset
+	end := offset + pageSize
+	totalSize := int32(len(filteredRuns))
+
+	// Ensure bounds are within range
+	if start > totalSize {
+		start = totalSize
+	}
+	if end > totalSize {
+		end = totalSize
+	}
+
+	// Get the page slice
+	pagedRuns := filteredRuns[start:end]
+
+	// Calculate next page token
+	nextPageToken := ""
+	if end < totalSize {
+		nextPageToken = fmt.Sprintf("%d", end)
+	}
+
+	return &models.KFPipelineRunResponse{
+		Runs:          pagedRuns,
+		TotalSize:     totalSize,
+		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// extractPipelineVersionIDFromFilter parses the filter JSON and extracts pipeline_version_id if present
+func extractPipelineVersionIDFromFilter(filter string) string {
+	var filterObj struct {
+		Predicates []struct {
+			Key         string `json:"key"`
+			StringValue string `json:"string_value"`
+		} `json:"predicates"`
+	}
+
+	if err := json.Unmarshal([]byte(filter), &filterObj); err != nil {
+		return ""
+	}
+
+	for _, predicate := range filterObj.Predicates {
+		if predicate.Key == "pipeline_version_id" {
+			return predicate.StringValue
+		}
+	}
+
+	return ""
 }
 
 // GetRun returns a mock pipeline run by ID
@@ -271,8 +351,8 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		Description:  "Test optimization run",
 		ExperimentID: "exp-123",
 		PipelineVersionReference: &models.PipelineVersionReference{
-			PipelineID:        "pipeline-xyz",
-			PipelineVersionID: "version-v1",
+			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
 		},
 		State:          "SUCCEEDED",
 		StorageState:   "AVAILABLE",

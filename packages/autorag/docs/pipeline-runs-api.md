@@ -390,18 +390,20 @@ Returned when the authenticated user does not have permission to access pipeline
 
 ### 404 Not Found
 
-Returned when no ready Pipeline Server (DSPipelineApplication) is found in the specified namespace.
+Returned when the specified namespace does not exist in the cluster.
 
 ### 500 Internal Server Error
 
 Returned when:
-- Pipeline Server API is unavailable
 - Internal processing error occurs
-- RBAC permission check fails
+- Unable to communicate with Kubernetes API
+- Unable to communicate with Pipeline Server API
 
 ### 503 Service Unavailable
 
-Returned when no ready Pipeline Server is found in the namespace (Pipeline Server exists but is not ready).
+Returned when no ready Pipeline Server (DSPipelineApplication) is found in the namespace. This occurs when:
+- No DSPipelineApplication resources exist in the namespace, OR
+- DSPipelineApplication(s) exist but none have the `APIServerReady` condition set to `True`
 
 ## Development Mode
 
@@ -555,28 +557,33 @@ If you receive a 403 error:
 2. Check user's RBAC roles and role bindings in the namespace
 3. Ensure the user is a member of the correct groups
 
-### 404 Not Found - No Pipeline Server
+### 404 Not Found - Namespace Not Found
 
 If you receive a 404 error:
+1. Verify the namespace exists:
+   ```bash
+   kubectl get namespace <namespace>
+   ```
+2. Check that the namespace name in your request is correct
+3. Verify you have permission to access the namespace
+
+### 503 Service Unavailable - No Ready Pipeline Server
+
+If you receive a 503 error:
 1. Verify a DSPipelineApplication exists in the namespace:
    ```bash
    kubectl get dspipelineapplication -n <namespace>
    ```
-2. Check if the DSPA has `APIServerReady` condition set to `True`:
+2. If no DSPA exists, create one following the Data Science Pipelines documentation
+3. If DSPA exists, check if it has `APIServerReady` condition set to `True`:
    ```bash
    kubectl get dspipelineapplication -n <namespace> -o jsonpath='{.items[*].status.conditions[?(@.type=="APIServerReady")]}'
    ```
-3. Check BFF logs for discovery details
-
-### 503 Service Unavailable - Pipeline Server Not Ready
-
-If you receive a 503 error:
-1. A Pipeline Server exists but is not ready
-2. Check the DSPA status and conditions:
+4. If not ready, check the DSPA status and conditions:
    ```bash
    kubectl describe dspipelineapplication -n <namespace>
    ```
-3. Wait for the Pipeline Server to become ready
+5. Wait for the Pipeline Server to become ready or troubleshoot the DSPA deployment
 
 ### No Runs Returned
 

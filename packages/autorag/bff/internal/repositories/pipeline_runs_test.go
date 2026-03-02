@@ -29,8 +29,8 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock returns all runs regardless of filter
-		assert.Len(t, runsData.Runs, 3)
+		// Mock now filters by pipeline version ID - 2 runs have this version ID
+		assert.Len(t, runsData.Runs, 2)
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
