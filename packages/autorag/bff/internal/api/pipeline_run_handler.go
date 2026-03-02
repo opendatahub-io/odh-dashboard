@@ -12,7 +12,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
-type CreatePipelineRunEnvelope Envelope[*models.KFPipelineRun, None]
+type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // CreatePipelineRunHandler handles POST /api/v1/pipeline-runs
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

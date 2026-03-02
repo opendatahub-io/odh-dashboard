@@ -220,19 +220,24 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	req models.CreateAutoRAGRunRequest,
-) (*models.KFPipelineRun, error) {
+) (*models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
 	if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
 		return nil, err
 	}
 
 	kfpRequest := BuildKFPRunRequest(req)
 
-	runResponse, err := client.CreateRun(ctx, kfpRequest)
+	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
 
-	return runResponse, nil
+	run := toPipelineRun(kfRun)
+	return &run, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID

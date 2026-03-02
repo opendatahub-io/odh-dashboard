@@ -95,10 +95,8 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-		assert.NotNil(t, response.Data.RuntimeConfig)
-		metric, ok := response.Data.RuntimeConfig.Parameters["optimization_metric"]
-		assert.True(t, ok)
-		assert.Equal(t, "faithfulness", metric)
+		assert.NotEmpty(t, response.Data.RunID)
+		assert.Equal(t, "PENDING", response.Data.State)
 	})
 
 	t.Run("should accept answer_correctness metric", func(t *testing.T) {
@@ -138,11 +136,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.NotNil(t, response.Data.RuntimeConfig)
-		params := response.Data.RuntimeConfig.Parameters
-		assert.NotNil(t, params["embeddings_models"])
-		assert.NotNil(t, params["generation_models"])
-		assert.Equal(t, "vectordb-1", params["vector_database_id"])
+		assert.NotEmpty(t, response.Data.RunID)
+		assert.Equal(t, "test-run", response.Data.DisplayName)
+		assert.Equal(t, "PENDING", response.Data.State)
+		assert.NotNil(t, response.Data.PipelineVersionReference)
 	})
 }
 
