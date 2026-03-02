@@ -30,7 +30,7 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
 
   it(
     'Create, Edit and Delete a Hardware Profile',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@HardwareProfilesCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

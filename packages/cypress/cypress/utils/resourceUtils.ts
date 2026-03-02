@@ -1,6 +1,8 @@
 import { createCustomResource, deleteCustomResource } from './oc_commands/customResources';
-import type { ResourcesData } from '../types';
+import { maskSensitiveInfo } from './maskSensitiveInfo';
 import { resources } from '../pages/resources';
+
+import type { ResourcesData } from '../types';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
@@ -49,7 +51,12 @@ export const cleanupCustomResources = (resourcesData: ResourcesData): Cypress.Ch
     const resource = resourcesData.resources[resourceType][0];
     return deleteCustomResource(applicationNamespace, resource.kind, resource.labelSelector).then(
       (result) => {
-        cy.log(`Command execution result: ${JSON.stringify(result)}`);
+        // Mask usernames in error messages before logging
+        const maskedResult = {
+          ...result,
+          stderr: maskSensitiveInfo(result.stderr || ''),
+        };
+        cy.log(`Command execution result: ${JSON.stringify(maskedResult)}`);
         expect(result.code).to.equal(0);
         cy.log('Custom resource deleted successfully.');
       },

@@ -256,15 +256,17 @@ export const deployLLMdDeployment = async (
     (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
     false;
 
-  await setUpTokenAuth(
-    wizardData.tokenAuthentication.data,
-    wizardData.k8sNameDesc.data.k8sName.value,
-    projectName,
-    createTokenAuth,
-    llmdInferenceService,
-    initialWizardData?.existingAuthTokens,
-    { dryRun },
-  );
+  if (wizardData.canCreateRoleBindings) {
+    await setUpTokenAuth(
+      wizardData.tokenAuthentication.data,
+      wizardData.k8sNameDesc.data.k8sName.value,
+      projectName,
+      createTokenAuth,
+      llmdInferenceService,
+      initialWizardData?.existingAuthTokens,
+      { dryRun },
+    );
+  }
 
   return {
     modelServingPlatformId: LLMD_SERVING_ID,

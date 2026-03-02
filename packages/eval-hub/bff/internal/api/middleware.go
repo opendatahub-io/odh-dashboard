@@ -12,6 +12,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	helper "github.com/opendatahub-io/eval-hub/bff/internal/helpers"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -81,6 +83,123 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.
+//
+// Priority for resolving the EvalHub service URL:
+//  1. MOCK_EVAL_HUB_CLIENT=true  → mock client (test/dev mode, no URL needed)
+//  2. EVAL_HUB_URL env var set   → developer override, use the explicit URL
+//  3. Namespace in context       → auto-discover URL from EvalHub CR (status.serviceURL)
+//
+// Auto-discovery requires AttachNamespace middleware to have run first (namespace in context).
+func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var client evalhub.EvalHubClientInterface
+
+		if app.config.MockEvalHubClient {
+			logger.Debug("MOCK MODE: creating mock EvalHub client")
+			client = app.evalHubClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
+		} else {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			var serviceURL string
+
+			if app.config.EvalHubURL != "" {
+				// Priority 2: explicit developer override
+				serviceURL = app.config.EvalHubURL
+				logger.Debug("Using EVAL_HUB_URL environment variable (developer override)",
+					"serviceURL", serviceURL)
+			} else {
+				// Priority 3: auto-discover from EvalHub CR in the namespace
+				namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+				if !ok || namespace == "" {
+					app.badRequestResponse(w, r, fmt.Errorf(
+						"namespace query parameter is required for EvalHub CR auto-discovery when EVAL_HUB_URL is not set"))
+					return
+				}
+
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				discoveredURL, err := k8sClient.GetEvalHubServiceURL(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover EvalHub service URL from CR: %w", err))
+					return
+				}
+
+				serviceURL = discoveredURL
+				logger.Debug("Using auto-discovered EvalHub service URL from CR",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
+			}
+
+			client = app.evalHubClientFactory.CreateClient(
+				serviceURL,
+				identity.Token,
+				app.config.InsecureSkipVerify,
+				app.rootCAs,
+				"/api/v1",
+			)
+		}
+
+		ctx = context.WithValue(ctx, constants.EvalHubClientKey, client)
+		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+// RequireAccessToService validates that the user has permission to list EvalHub CRs in the
+// namespace that was injected by the AttachNamespace middleware.
+// This middleware must be placed after both InjectRequestIdentity and AttachNamespace.
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			// No namespace in context — skip the access check (namespace-less endpoints).
+			next(w, r, ps)
+			return
+		}
+
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		allowed, err := k8sClient.CanListEvalHubInstances(ctx, identity, namespace)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check EvalHub access: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access EvalHub in this namespace")
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to access EvalHub in namespace", "namespace", namespace)
+
+		next(w, r, ps)
+	}
 }
 
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {

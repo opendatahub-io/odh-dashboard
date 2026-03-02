@@ -40,7 +40,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('ModelServing - tolerations tests', () => {
+describe('[Product Bug: RHOAIENG-50666] ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -112,12 +112,13 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
+        '@Bug',
       ],
     },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions

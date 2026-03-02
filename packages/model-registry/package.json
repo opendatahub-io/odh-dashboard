@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "51d585361d5c4f822599c09cc6d82a0dea06d80a"
+    "commit": "9c11666d05d4bc189b32498a9086fe034f02bbc0"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -45,6 +45,7 @@
       "port": 8043
     }
   },
+  "// #e2eCiTags": "TODO: Enable CI e2e tests once https://issues.redhat.com/browse/RHOAIENG-44444 completes. Steps: 1) Add e2eCiTags: ['@ModelRegistryCI'] to this package.json, 2) Add @ModelRegistryCI tag to relevant test files in packages/cypress/cypress/tests/e2e/modelRegistry/",
   "exports": {
     "./extensions": "./extensions.ts",
     "./model-catalog-deploy": {

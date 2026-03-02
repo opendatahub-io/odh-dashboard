@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Truncate,
   MenuToggle,
   // eslint-disable-next-line no-restricted-imports
   Select,
@@ -138,7 +137,16 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             isFullWidth={isFullWidth}
             {...toggleProps}
           >
-            {toggleLabel || <Truncate content={selectedLabel} className="truncate-no-min-width" />}
+            {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
+                caused Safari flex layout bugs (labels clipped when space was available). */}
+            {(() => {
+              const displayedLabel = toggleLabel ?? selectedLabel;
+              return (
+                <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
+                  {displayedLabel}
+                </span>
+              );
+            })()}
           </MenuToggle>
         )}
         shouldFocusToggleOnSelect

@@ -85,7 +85,7 @@ data:
         ]
       },
       {
-        "name": "mlflow",
+        "name": "mlflowEmbedded",
         "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
         "authorize": true,
         "tls": true,

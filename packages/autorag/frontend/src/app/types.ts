@@ -27,3 +27,5 @@ export type NamespaceKind = {
   name: string;
   displayName?: string;
 };
+
+export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;

@@ -1470,6 +1470,78 @@ paths:
       summary: Get MCP Server Status by URL
       description: Gets the connection status of the MCP server specified by URL.
 
+  /gen-ai/api/v1/aaa/vectorstores:
+    get:
+      tags:
+        - AIAssets
+      operationId: listAAVectorStores
+      summary: List External Vector Stores from AI Available Assets
+      description: >-
+        Lists external vector stores configured in the gen-ai-aa-vector-stores ConfigMap.
+        Returns a flat array of vector store summaries with embedding model availability.
+        Sensitive fields (credentials, TLS secrets, provider config) are stripped.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/AAVectorStoresResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /gen-ai/api/v1/vectorstores/external:
+    get:
+      tags:
+        - VectorStores
+      operationId: listExternalVectorStores
+      summary: List External Vector Stores with ConfigMap Metadata
+      description: >-
+        Lists external vector stores with full operational metadata including
+        ConfigMap source info and total count. Used by the vector stores management page.
+        Sensitive fields (credentials, TLS secrets, provider config) are stripped.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExternalVectorStoresListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /gen-ai/api/v1/aaa/mcps:
     get:
       tags:
@@ -3451,7 +3523,7 @@ components:
           example: 2
           description: Total number of MCP servers in the ConfigMap
         config_map_info:
-          $ref: '#/components/schemas/MCPConfigMapInfo'
+          $ref: '#/components/schemas/ConfigMapInfo'
           description: Metadata about the source ConfigMap
 
     MCPServerSummary:
@@ -3493,7 +3565,7 @@ components:
           example: 'healthy'
           description: Server status based on ConfigMap data only (no MCP calls made)
 
-    MCPConfigMapInfo:
+    ConfigMapInfo:
       type: object
       required:
         - name
@@ -3502,17 +3574,96 @@ components:
       properties:
         name:
           type: string
-          example: 'gen-ai-aa-mcp-servers-e'
-          description: Name of the ConfigMap containing MCP server configurations
+          example: 'gen-ai-aa-vector-stores'
+          description: Name of the source ConfigMap
         namespace:
           type: string
-          example: 'mcp-servers'
+          example: 'llama-stack'
           description: Kubernetes namespace containing the ConfigMap
         last_updated:
           type: string
           format: date-time
           example: '2024-01-15T10:30:00Z'
           description: ISO 8601 timestamp when the ConfigMap was last updated
+
+    ExternalVectorStoreSummary:
+      type: object
+      required:
+        - name
+        - provider_type
+        - collection
+        - embedding
+        - embedding_model_available
+      properties:
+        name:
+          type: string
+          example: 'pgvector-store'
+          description: Vector store name from ConfigMap
+        displayName:
+          type: string
+          example: 'Product Embeddings (PGVector)'
+          description: Human-readable display name
+        provider_type:
+          type: string
+          example: 'remote::pgvector'
+          description: Vector store provider type (e.g., remote::pgvector, remote::qdrant, remote::milvus)
+        collection:
+          type: string
+          example: 'product_embeddings'
+          description: Name of the collection/table in the vector database
+        description:
+          type: string
+          example: 'Product catalog embeddings for semantic search'
+          description: Description of the vector store purpose
+        owner:
+          type: string
+          example: 'platform-team'
+          description: Team or user that owns this vector store
+        domain:
+          type: string
+          example: 'e-commerce'
+          description: Business domain this vector store serves
+        embedding:
+          $ref: '#/components/schemas/EmbeddingConfig'
+        embedding_model_available:
+          type: boolean
+          example: true
+          description: Whether the embedding model is registered in the LlamaStack config
+
+    EmbeddingConfig:
+      type: object
+      required:
+        - model_id
+        - dimension
+      properties:
+        model_id:
+          type: string
+          example: 'ibm-granite/granite-embedding-125m-english'
+          description: Embedding model identifier used for ingestion
+        dimension:
+          type: integer
+          example: 768
+          description: Embedding vector dimension
+
+    ExternalVectorStoresListData:
+      type: object
+      required:
+        - vector_stores
+        - total_count
+        - config_map_info
+      properties:
+        vector_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalVectorStoreSummary'
+          description: Array of external vector store summaries
+        total_count:
+          type: integer
+          example: 3
+          description: Total number of external vector stores
+        config_map_info:
+          $ref: '#/components/schemas/ConfigMapInfo'
+          description: Metadata about the source ConfigMap
 
     MCPServerStatus:
       type: object
@@ -3626,6 +3777,77 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AAModelsData'
+
+    AAVectorStoresResponse:
+      description: List of external vector stores as a flat array
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExternalVectorStoreSummary'
+          example:
+            data:
+              - name: 'pgvector-store'
+                displayName: 'Product Embeddings (PGVector)'
+                provider_type: 'remote::pgvector'
+                collection: 'product_embeddings'
+                description: 'Product catalog embeddings for semantic search'
+                owner: 'platform-team'
+                domain: 'e-commerce'
+                embedding:
+                  model_id: 'ibm-granite/granite-embedding-125m-english'
+                  dimension: 768
+                embedding_model_available: true
+
+    ExternalVectorStoresListResponse:
+      description: List of external vector stores with ConfigMap metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/ExternalVectorStoresListData'
+          examples:
+            success_response:
+              summary: Successful External Vector Stores List
+              value:
+                data:
+                  vector_stores:
+                    - name: 'pgvector-store'
+                      displayName: 'Product Embeddings (PGVector)'
+                      provider_type: 'remote::pgvector'
+                      collection: 'product_embeddings'
+                      description: 'Product catalog embeddings for semantic search'
+                      owner: 'platform-team'
+                      domain: 'e-commerce'
+                      embedding:
+                        model_id: 'ibm-granite/granite-embedding-125m-english'
+                        dimension: 768
+                      embedding_model_available: true
+                  total_count: 1
+                  config_map_info:
+                    name: 'gen-ai-aa-vector-stores'
+                    namespace: 'llama-stack'
+                    last_updated: '2026-02-19T07:32:38Z'
+            empty_response:
+              summary: Empty ConfigMap
+              value:
+                data:
+                  vector_stores: []
+                  total_count: 0
+                  config_map_info:
+                    name: 'gen-ai-aa-vector-stores'
+                    namespace: 'llama-stack'
+                    last_updated: '2026-02-19T07:32:38Z'
 
     VectorStoresResponse:
       description: List of vector stores with pagination support

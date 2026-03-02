@@ -66,9 +66,9 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: 'featureStore-data-sources',
         title: 'Data sources',
-        href: '/develop-train/feature-store/datasources',
+        href: '/develop-train/feature-store/data-sources',
         section: 'feature-store',
-        path: '/develop-train/feature-store/datasources/*',
+        path: '/develop-train/feature-store/data-sources/*',
       },
     },
     {

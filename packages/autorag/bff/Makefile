@@ -1,4 +1,4 @@
-PORT ?= 4000
+PORT ?= 4001
 MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
@@ -76,7 +76,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.0.2
-ENVTEST_VERSION ?= release-0.17
+ENVTEST_VERSION ?= release-0.19
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.

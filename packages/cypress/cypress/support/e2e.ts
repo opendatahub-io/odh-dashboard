@@ -26,6 +26,7 @@ import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 import { asProjectAdminUser } from '../utils/mockUsers';
+import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
@@ -236,22 +237,6 @@ Cypress.on('command:start', function handleCommandStart(command) {
 Cypress.on('command:end', function handleCommandEnd() {
   commandStack.pop();
 });
-
-/**
- * Masks sensitive information in command strings before logging
- * @param command - The command string to mask
- * @returns The masked command string
- */
-function maskSensitiveInfo(command: string): string {
-  let masked = command;
-  // Mask usernames in oc login commands
-  // Pattern: -u "username" or -u 'username' or -u username
-  masked = masked.replace(/-u\s+(['"]?)([^\s'"]+)\1/g, '-u $1***$1');
-  // Mask passwords in oc login commands
-  // Pattern: -p "password" or -p 'password' or -p password
-  masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
-  return masked;
-}
 
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {

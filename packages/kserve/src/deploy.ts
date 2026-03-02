@@ -67,15 +67,18 @@ export const deployKServeDeployment = async (
 
   const createTokenAuth =
     (inferenceServiceData.tokenAuth && inferenceServiceData.tokenAuth.length > 0) ?? false;
-  await setUpTokenAuth(
-    inferenceServiceData,
-    inferenceServiceData.k8sName,
-    projectName,
-    createTokenAuth,
-    inferenceService,
-    initialWizardData?.existingAuthTokens,
-    { dryRun: dryRun ?? false },
-  );
+
+  if (wizardData.canCreateRoleBindings) {
+    await setUpTokenAuth(
+      inferenceServiceData,
+      inferenceServiceData.k8sName,
+      projectName,
+      createTokenAuth,
+      inferenceService,
+      initialWizardData?.existingAuthTokens,
+      { dryRun: dryRun ?? false },
+    );
+  }
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',

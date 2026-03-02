@@ -234,8 +234,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
         cy.step('Click settings button on Model 1 pane');
         chatbotPage.openPaneSettings(0);
 
-        cy.step('Verify settings panel shows Configure Model 1');
-        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure Model 1');
+        cy.step('Verify settings panel shows Configure - 1');
+        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure - 1');
       },
     );
 
@@ -246,8 +246,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
         cy.step('Click settings button on Model 2 pane');
         chatbotPage.openPaneSettings(1);
 
-        cy.step('Verify settings panel shows Configure Model 2');
-        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure Model 2');
+        cy.step('Verify settings panel shows Configure - 2');
+        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure - 2');
       },
     );
   });

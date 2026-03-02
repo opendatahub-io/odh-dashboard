@@ -28,6 +28,8 @@ import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/proj
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ConfigMapModel,
   ClusterQueueModel,
@@ -42,6 +44,7 @@ import {
   StorageClassModel,
   HardwareProfileModel,
   LocalQueueModel,
+  WorkloadModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { be } from '../../../../utils/should';
@@ -562,6 +565,54 @@ const initKueueEnabledForStatusModal = () => {
   cy.interceptK8s(
     { model: ClusterQueueModel, name: 'test-cluster-queue' },
     mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
+};
+
+const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
+  initIntercepts({ notebooks: [notebookWithKueueQueue] });
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: { managementState: 'Unmanaged' },
+      },
+    }),
+  );
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+  );
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+  cy.interceptK8sList(
+    { model: LocalQueueModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+    ]),
+  );
+  cy.interceptK8s(
+    { model: ClusterQueueModel, name: 'test-cluster-queue' },
+    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
+  const workload = mockWorkloadK8sResource({
+    k8sName: 'workload-test-notebook',
+    namespace: 'test-project',
+    ownerName: 'test-notebook',
+    mockStatus: workloadStatus,
+  });
+  if (workload.metadata) {
+    workload.metadata.labels = {
+      ...workload.metadata.labels,
+      'kueue.x-k8s.io/job-name': 'test-notebook',
+    };
+  }
+  cy.interceptK8sList(
+    { model: WorkloadModel, ns: 'test-project' },
+    mockK8sResourceList([workload]),
   );
 };
 
@@ -2475,5 +2526,43 @@ describe('Workbench page', () => {
     workbenchStatusModal.findQueueValue().should('contain.text', 'test-cluster-queue');
     workbenchStatusModal.findQuotasSection().should('be.visible');
     workbenchStatusModal.findQuotaSourceValue().should('be.visible');
+  });
+
+  describe('Kueue workbench status', () => {
+    it('displays Queued when workload has QuotaReserved=False (pending)', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Queued');
+    });
+
+    it('displays Failed when workload has Finished with failed reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Failed);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Failed');
+    });
+
+    it('displays Preempted when workload has Evicted condition', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Preempted');
+    });
+
+    it('displays Inadmissible when workload is inadmissible', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Inadmissible);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Inadmissible');
+    });
   });
 });

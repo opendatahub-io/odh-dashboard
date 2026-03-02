@@ -464,7 +464,7 @@ class ChatbotPage {
     this.findPaneSettingsButton(index).click({ force: true });
   }
 
-  // Find settings panel header (shows "Configure Model 1" or "Configure Model 2")
+  // Find settings panel header (shows "Configure - 1" or "Configure - 2")
   findSettingsPanelHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
     // Wait for the drawer to be visible before finding the header
     return cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 });

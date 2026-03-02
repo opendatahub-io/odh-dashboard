@@ -23,6 +23,7 @@
       "port": 8043
     }
   },
+  "// #e2eCiTags": "TODO: Enable CI e2e tests once https://issues.redhat.com/browse/RHOAIENG-44444 completes. Steps: 1) Add e2eCiTags: ['@GenAICI'] to this package.json, 2) Add @GenAICI tag to relevant test files in packages/cypress/cypress/tests/e2e/gen-ai/",
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client --mock-mlflow-client' odh-ct-bff-consumer --bff-dir bff",
