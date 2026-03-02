@@ -41,6 +41,4 @@ export type LlamaStackModel = {
 
 export type LlamaStackModelsResponse = {
   models: LlamaStackModel[];
-  llm: LlamaStackModel[];
-  embedding: LlamaStackModel[];
 };

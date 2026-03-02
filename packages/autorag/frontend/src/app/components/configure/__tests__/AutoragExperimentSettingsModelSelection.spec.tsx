@@ -8,12 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
+import { LlamaStackModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
 
 const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
 
-const MOCK_LLM_MODELS = [
+const MOCK_MODELS = [
   { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
   {
     id: 'llama-70b',
@@ -21,9 +22,6 @@ const MOCK_LLM_MODELS = [
     provider: 'ollama',
     resource_path: 'ollama://llama-70b',
   },
-];
-
-const MOCK_EMBEDDING_MODELS = [
   {
     id: 'minilm-v2',
     type: 'embedding' as const,
@@ -31,6 +29,14 @@ const MOCK_EMBEDDING_MODELS = [
     resource_path: 'ollama://minilm-v2',
   },
 ];
+
+const mockModelsImplementation = (modelType?: LlamaStackModelType) =>
+  ({
+    data: {
+      models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,
+    },
+    isLoading: false,
+  }) as unknown as ReturnType<typeof useLlamaStackModelsQuery>;
 
 const configureSchema = createConfigureSchema();
 
@@ -52,14 +58,7 @@ const renderComponent = () =>
 describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseLlamaStackModelsQuery.mockReturnValue({
-      data: {
-        models: [],
-        llm: MOCK_LLM_MODELS,
-        embedding: MOCK_EMBEDDING_MODELS,
-      },
-      isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+    mockUseLlamaStackModelsQuery.mockImplementation(mockModelsImplementation);
   });
 
   describe('Rendering', () => {
@@ -144,11 +143,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
   describe('Empty state', () => {
     it('should show empty message when no models are available', () => {
       mockUseLlamaStackModelsQuery.mockReturnValue({
-        data: {
-          models: [],
-          llm: [],
-          embedding: [],
-        },
+        data: { models: [] },
         isLoading: false,
       } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
 

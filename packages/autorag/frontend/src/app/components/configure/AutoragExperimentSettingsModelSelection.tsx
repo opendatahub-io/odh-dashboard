@@ -29,7 +29,11 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
   const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
 
   const { control } = useFormContext<ConfigureSchema>();
-  const { data: llamaStackModels, isLoading } = useLlamaStackModelsQuery();
+  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery('llm');
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } =
+    useLlamaStackModelsQuery('embedding');
+
+  const isLoading = isLlmLoading || isEmbeddingLoading;
 
   const { field: generationModelField } = useController({
     control,
@@ -42,8 +46,8 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
   });
 
   const tabData = {
-    llm: { field: generationModelField, models: llamaStackModels?.llm ?? [] },
-    embedding: { field: embeddingModelField, models: llamaStackModels?.embedding ?? [] },
+    llm: { field: generationModelField, models: llmModelsData?.models ?? [] },
+    embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
   };
 
   return (
