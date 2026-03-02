@@ -10,7 +10,7 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discov
 
 ```http
 GET /api/v1/pipeline-runs
-GET /api/v1/pipeline-runs/:runId
+GET /api/v1/pipeline-runs/{runId}
 ```
 
 The API provides two endpoints:
@@ -235,7 +235,7 @@ The endpoint returns a JSON response with the following structure:
 ### Endpoint
 
 ```http
-GET /api/v1/pipeline-runs/:runId
+GET /api/v1/pipeline-runs/{runId}
 ```
 
 ### Parameters
