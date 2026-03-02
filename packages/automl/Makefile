@@ -94,7 +94,7 @@ dev-bff-federated:
 # These targets are used by the GitHub Actions e2e workflow to start BFFs
 # Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
 
-E2E_BFF_PORT ?= 9106
+E2E_BFF_PORT ?= 4001
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
