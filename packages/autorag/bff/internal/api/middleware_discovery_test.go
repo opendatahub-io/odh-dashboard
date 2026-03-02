@@ -145,8 +145,8 @@ func TestDiscoverReadyDSPA(t *testing.T) {
 		// Test with namespace that has no DSPAs in mock data
 		dspa, err := app.discoverReadyDSPA(ctx, k8sClient, "no-dspas-namespace", logger)
 
-		require.NoError(t, err)
-		assert.Nil(t, dspa, "Should return nil when no DSPAs exist in namespace")
+		require.ErrorIs(t, err, ErrNoDSPAFound, "Should return ErrNoDSPAFound when no DSPAs exist in namespace")
+		assert.Nil(t, dspa, "Should return nil DSPA when none exist")
 	})
 
 	t.Run("should return first ready DSPA", func(t *testing.T) {

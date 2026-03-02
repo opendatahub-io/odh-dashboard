@@ -31,33 +31,33 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 
 	// Build full list of mock runs
 	allRuns := []models.KFPipelineRun{
-			{
-				RunID:        "run-abc123-def456",
-				DisplayName:  "AutoRAG Optimization Run 1",
-				Description:  "Test optimization run",
-				ExperimentID: "exp-123",
-				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		{
+			RunID:        "run-abc123-def456",
+			DisplayName:  "AutoRAG Optimization Run 1",
+			Description:  "Test optimization run",
+			ExperimentID: "exp-123",
+			PipelineVersionReference: &models.PipelineVersionReference{
+				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			},
+			State:          "SUCCEEDED",
+			StorageState:   "AVAILABLE",
+			ServiceAccount: "pipeline-runner-dspa",
+			CreatedAt:      "2026-02-24T10:30:00Z",
+			ScheduledAt:    "2026-02-24T10:30:00Z",
+			FinishedAt:     "2026-02-24T11:15:00Z",
+			StateHistory: []models.RuntimeStatus{
+				{
+					UpdateTime: "2026-02-24T10:30:00Z",
+					State:      "RUNNING",
 				},
-				State:          "SUCCEEDED",
-				StorageState:   "AVAILABLE",
-				ServiceAccount: "pipeline-runner-dspa",
-				CreatedAt:      "2026-02-24T10:30:00Z",
-				ScheduledAt:    "2026-02-24T10:30:00Z",
-				FinishedAt:     "2026-02-24T11:15:00Z",
-				StateHistory: []models.RuntimeStatus{
-					{
-						UpdateTime: "2026-02-24T10:30:00Z",
-						State:      "RUNNING",
-					},
-					{
-						UpdateTime: "2026-02-24T11:15:00Z",
-						State:      "SUCCEEDED",
-					},
+				{
+					UpdateTime: "2026-02-24T11:15:00Z",
+					State:      "SUCCEEDED",
 				},
-				RunDetails: &models.RunDetails{
-					TaskDetails: []models.TaskDetail{
+			},
+			RunDetails: &models.RunDetails{
+				TaskDetails: []models.TaskDetail{
 					{
 						RunID:       "run-abc123-def456",
 						TaskID:      "task-data-preprocessing",
@@ -120,31 +120,31 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 							{PodName: "model-evaluation-pod-ghi789"},
 						},
 					},
-					},
 				},
 			},
-			{
-				RunID:        "run-ghi789-jkl012",
-				DisplayName:  "AutoRAG Optimization Run 2",
-				Description:  "Another test run",
-				ExperimentID: "exp-456",
-				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-					PipelineVersionID: "version-v2",
+		},
+		{
+			RunID:        "run-ghi789-jkl012",
+			DisplayName:  "AutoRAG Optimization Run 2",
+			Description:  "Another test run",
+			ExperimentID: "exp-456",
+			PipelineVersionReference: &models.PipelineVersionReference{
+				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+				PipelineVersionID: "version-v2",
+			},
+			State:          "RUNNING",
+			StorageState:   "AVAILABLE",
+			ServiceAccount: "pipeline-runner-dspa",
+			CreatedAt:      "2026-02-24T12:00:00Z",
+			ScheduledAt:    "2026-02-24T12:00:00Z",
+			StateHistory: []models.RuntimeStatus{
+				{
+					UpdateTime: "2026-02-24T12:00:00Z",
+					State:      "RUNNING",
 				},
-				State:          "RUNNING",
-				StorageState:   "AVAILABLE",
-				ServiceAccount: "pipeline-runner-dspa",
-				CreatedAt:      "2026-02-24T12:00:00Z",
-				ScheduledAt:    "2026-02-24T12:00:00Z",
-				StateHistory: []models.RuntimeStatus{
-					{
-						UpdateTime: "2026-02-24T12:00:00Z",
-						State:      "RUNNING",
-					},
-				},
-				RunDetails: &models.RunDetails{
-					TaskDetails: []models.TaskDetail{
+			},
+			RunDetails: &models.RunDetails{
+				TaskDetails: []models.TaskDetail{
 					{
 						RunID:       "run-ghi789-jkl012",
 						TaskID:      "task-data-loading",
@@ -168,44 +168,44 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 							{PodName: "feature-engineering-pod-xyz456"},
 						},
 					},
+				},
+			},
+		},
+		{
+			RunID:        "run-mno345-pqr678",
+			DisplayName:  "AutoRAG Baseline Run",
+			Description:  "Baseline comparison run",
+			ExperimentID: "exp-123",
+			PipelineVersionReference: &models.PipelineVersionReference{
+				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			},
+			State:          "FAILED",
+			StorageState:   "AVAILABLE",
+			ServiceAccount: "pipeline-runner-dspa",
+			CreatedAt:      "2026-02-23T14:00:00Z",
+			ScheduledAt:    "2026-02-23T14:00:00Z",
+			FinishedAt:     "2026-02-23T14:30:00Z",
+			Error: &models.ErrorInfo{
+				Code:    500,
+				Message: "Pipeline execution failed: unable to connect to data source",
+			},
+			StateHistory: []models.RuntimeStatus{
+				{
+					UpdateTime: "2026-02-23T14:00:00Z",
+					State:      "RUNNING",
+				},
+				{
+					UpdateTime: "2026-02-23T14:30:00Z",
+					State:      "FAILED",
+					Error: &models.ErrorInfo{
+						Code:    500,
+						Message: "Pipeline execution failed: unable to connect to data source",
 					},
 				},
 			},
-			{
-				RunID:        "run-mno345-pqr678",
-				DisplayName:  "AutoRAG Baseline Run",
-				Description:  "Baseline comparison run",
-				ExperimentID: "exp-123",
-				PipelineVersionReference: &models.PipelineVersionReference{
-					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
-				},
-				State:          "FAILED",
-				StorageState:   "AVAILABLE",
-				ServiceAccount: "pipeline-runner-dspa",
-				CreatedAt:      "2026-02-23T14:00:00Z",
-				ScheduledAt:    "2026-02-23T14:00:00Z",
-				FinishedAt:     "2026-02-23T14:30:00Z",
-				Error: &models.ErrorInfo{
-					Code:    500,
-					Message: "Pipeline execution failed: unable to connect to data source",
-				},
-				StateHistory: []models.RuntimeStatus{
-					{
-						UpdateTime: "2026-02-23T14:00:00Z",
-						State:      "RUNNING",
-					},
-					{
-						UpdateTime: "2026-02-23T14:30:00Z",
-						State:      "FAILED",
-						Error: &models.ErrorInfo{
-							Code:    500,
-							Message: "Pipeline execution failed: unable to connect to data source",
-						},
-					},
-				},
-				RunDetails: &models.RunDetails{
-					TaskDetails: []models.TaskDetail{
+			RunDetails: &models.RunDetails{
+				TaskDetails: []models.TaskDetail{
 					{
 						RunID:       "run-mno345-pqr678",
 						TaskID:      "task-data-validation",
@@ -234,9 +234,9 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 							{PodName: "data-fetch-pod-def654"},
 						},
 					},
-					},
 				},
 			},
+		},
 	}
 
 	// Apply filtering if filter parameter is provided
@@ -372,44 +372,44 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		},
 		RunDetails: &models.RunDetails{
 			TaskDetails: []models.TaskDetail{
-			{
-				RunID:       runID,
-				TaskID:      "task-prepare-data",
-				DisplayName: "Prepare Data",
-				CreateTime:  "2026-02-24T10:30:00Z",
-				StartTime:   "2026-02-24T10:30:05Z",
-				EndTime:     "2026-02-24T10:32:00Z",
-				State:       "SUCCEEDED",
-				Inputs: map[string]interface{}{
-					"source": "s3://data/raw/input.csv",
+				{
+					RunID:       runID,
+					TaskID:      "task-prepare-data",
+					DisplayName: "Prepare Data",
+					CreateTime:  "2026-02-24T10:30:00Z",
+					StartTime:   "2026-02-24T10:30:05Z",
+					EndTime:     "2026-02-24T10:32:00Z",
+					State:       "SUCCEEDED",
+					Inputs: map[string]interface{}{
+						"source": "s3://data/raw/input.csv",
+					},
+					Outputs: map[string]interface{}{
+						"prepared_data": "s3://data/prepared/data.csv",
+					},
+					ChildTasks: []models.ChildTask{
+						{PodName: "prepare-data-pod"},
+					},
 				},
-				Outputs: map[string]interface{}{
-					"prepared_data": "s3://data/prepared/data.csv",
+				{
+					RunID:       runID,
+					TaskID:      "task-train-model",
+					DisplayName: "Train Model",
+					CreateTime:  "2026-02-24T10:30:00Z",
+					StartTime:   "2026-02-24T10:32:10Z",
+					EndTime:     "2026-02-24T11:15:00Z",
+					State:       "SUCCEEDED",
+					Inputs: map[string]interface{}{
+						"training_data": "s3://data/prepared/data.csv",
+						"learning_rate": 0.001,
+					},
+					Outputs: map[string]interface{}{
+						"model_uri": "s3://models/trained-model.pkl",
+						"accuracy":  0.96,
+					},
+					ChildTasks: []models.ChildTask{
+						{PodName: "train-model-pod"},
+					},
 				},
-				ChildTasks: []models.ChildTask{
-					{PodName: "prepare-data-pod"},
-				},
-			},
-			{
-				RunID:       runID,
-				TaskID:      "task-train-model",
-				DisplayName: "Train Model",
-				CreateTime:  "2026-02-24T10:30:00Z",
-				StartTime:   "2026-02-24T10:32:10Z",
-				EndTime:     "2026-02-24T11:15:00Z",
-				State:       "SUCCEEDED",
-				Inputs: map[string]interface{}{
-					"training_data": "s3://data/prepared/data.csv",
-					"learning_rate": 0.001,
-				},
-				Outputs: map[string]interface{}{
-					"model_uri": "s3://models/trained-model.pkl",
-					"accuracy":  0.96,
-				},
-				ChildTasks: []models.ChildTask{
-					{PodName: "train-model-pod"},
-				},
-			},
 			},
 		},
 	}

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -25,6 +26,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
+
+// ErrNoDSPAFound is returned when no DSPipelineApplication resources exist in the namespace
+var ErrNoDSPAFound = errors.New("no DSPipelineApplication found in namespace")
 
 // dns1123LabelRegex matches valid DNS-1123 labels
 // Rules: lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars
@@ -260,6 +264,12 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"error", err)
 
 				// Map error type to appropriate HTTP response
+				if errors.Is(err, ErrNoDSPAFound) {
+					// No DSPA exists in namespace - return 404 with specific message
+					app.notFoundResponseWithMessage(w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
+					return
+				}
+
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "forbidden") {
 					// Permission/authorization error
@@ -275,8 +285,11 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			}
 
 			if dspa == nil {
-				logger.Warn("No ready Pipeline Server found in namespace", "namespace", namespace)
-				app.serviceUnavailableResponse(w, r, fmt.Errorf("no ready pipeline server found in namespace"))
+				// DSPA exists but is not ready - return 503 with specific message
+				logger.Warn("DSPipelineApplication exists but is not ready", "namespace", namespace)
+				app.serviceUnavailableResponseWithMessage(w, r,
+					fmt.Errorf("pipeline server exists but is not ready"),
+					"Pipeline Server exists but is not ready - check that the APIServer component is running")
 				return
 			}
 
@@ -564,6 +577,43 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				},
 			},
 		},
+		// Not ready DSPA in not-ready-namespace (for testing 503 errors)
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-not-ready",
+				Namespace: "not-ready-namespace",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: false,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "False",
+						Reason:  "APIServerNotReady",
+						Message: "Waiting for API Server to become ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "False",
+						Reason:  "PodCrashLoopBackOff",
+						Message: "API Server pod is in CrashLoopBackOff",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-dspa-not-ready.not-ready-namespace.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-not-ready-not-ready-namespace.apps.cluster.local",
+					},
+				},
+			},
+		},
 	}
 
 	// Filter DSPAs to only return those in the requested namespace
@@ -601,8 +651,15 @@ func (app *App) discoverReadyDSPA(
 		}
 	}
 
-	// No ready DSPA found
-	logger.Warn("No ready Pipeline Server found",
+	// No ready DSPA found - distinguish between "no DSPAs exist" and "DSPAs exist but not ready"
+	if len(dspas) == 0 {
+		logger.Warn("No DSPipelineApplications found in namespace",
+			"namespace", namespace)
+		return nil, ErrNoDSPAFound
+	}
+
+	// DSPAs exist but none are ready
+	logger.Warn("DSPipelineApplications exist but none are ready",
 		"namespace", namespace,
 		"total_dspas", len(dspas))
 	return nil, nil
