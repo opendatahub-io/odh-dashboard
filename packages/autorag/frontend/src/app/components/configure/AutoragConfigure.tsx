@@ -186,7 +186,11 @@ function AutoragConfigure(): React.JSX.Element {
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => setIsExperimentSettingsOpen(false)}
-        revertChanges={() => form.reset()}
+        revertChanges={() => {
+          //TODO: Add proper form snapshotting logic for a baseline to reset the experiment settings to
+          //once more of the configure form flow is clarified and developed
+          setIsExperimentSettingsOpen(false);
+        }}
         saveChanges={saveExperimentSettingsChanges}
       />
     </FormProvider>

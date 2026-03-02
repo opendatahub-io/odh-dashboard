@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 
-export const MIN_RAG_PATTERNS = 1;
-export const MAX_RAG_PATTERNS = 10;
+export const MIN_RAG_PATTERNS = 4;
+export const MAX_RAG_PATTERNS = 20;
 
 export const EXPERIMENT_SETTINGS_FIELDS = [
   'optimization',
@@ -37,7 +37,7 @@ function getBaseSchema() {
         metric: z.enum(['faithfulness', 'answer_correctness', 'context_correctness']),
       })
       .default({
-        max_number_of_rag_patterns: 4,
+        max_number_of_rag_patterns: 8,
         metric: 'faithfulness',
       }),
     embeddings_constraints: z

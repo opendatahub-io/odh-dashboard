@@ -71,7 +71,7 @@ describe('AutoragExperimentSettings', () => {
       expect(faithfulnessRadio).toBeChecked();
     });
 
-    it('should render the max RAG patterns input with default value 4', () => {
+    it('should render the max RAG patterns input with default value 8', () => {
       renderComponent();
       expect(screen.getByTestId('max-rag-patterns-input')).toBeInTheDocument();
     });
@@ -118,7 +118,7 @@ describe('AutoragExperimentSettings', () => {
 
     it('should disable the Save button when there are field errors', async () => {
       renderComponent();
-      changeMaxRagPatterns('11');
+      changeMaxRagPatterns('21');
 
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
@@ -127,25 +127,25 @@ describe('AutoragExperimentSettings', () => {
 
     it('should show error message when max RAG patterns exceeds the maximum', async () => {
       renderComponent();
-      changeMaxRagPatterns('11');
+      changeMaxRagPatterns('21');
 
       await waitFor(() => {
-        expect(screen.getByText('Maximum number of RAG patterns is 10')).toBeInTheDocument();
+        expect(screen.getByText('Maximum number of RAG patterns is 20')).toBeInTheDocument();
       });
     });
 
     it('should show error message when max RAG patterns is below the minimum', async () => {
       renderComponent();
-      changeMaxRagPatterns('0');
+      changeMaxRagPatterns('3');
 
       await waitFor(() => {
-        expect(screen.getByText('Minimum number of RAG patterns is 1')).toBeInTheDocument();
+        expect(screen.getByText('Minimum number of RAG patterns is 4')).toBeInTheDocument();
       });
     });
 
     it('should re-enable the Save button when a field error is corrected', async () => {
       renderComponent();
-      changeMaxRagPatterns('11');
+      changeMaxRagPatterns('21');
 
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
