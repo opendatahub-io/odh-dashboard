@@ -16,7 +16,7 @@ jest.mock('@odh-dashboard/internal/components/table/Table', () => {
   }) => (
     <div data-testid={dataTestId ?? 'mock-table'}>
       {data.map((run) => (
-        <div key={run.id} data-testid={`table-row-${run.id}`}>
+        <div key={run.run_id} data-testid={`table-row-${run.run_id}`}>
           {rowRenderer(run)}
         </div>
       ))}
@@ -32,26 +32,20 @@ jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', 
 
 const mockRuns: PipelineRun[] = [
   {
-    id: 'r1',
-    name: 'Run One',
+    run_id: 'r1',
+    display_name: 'Run One',
     description: 'First run',
-    tags: ['prod'],
-    stats: '1h',
-    pipeline_id: 'p1',
-    pipeline_name: 'Pipeline 1',
-    status: 'Succeeded',
+    state: 'SUCCEEDED',
     created_at: '2025-01-17',
+    pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   },
   {
-    id: 'r2',
-    name: 'Run Two',
+    run_id: 'r2',
+    display_name: 'Run Two',
     description: 'Second run',
-    tags: ['test'],
-    stats: '30m',
-    pipeline_id: 'p2',
-    pipeline_name: 'Pipeline 2',
-    status: 'Running',
+    state: 'RUNNING',
     created_at: '2025-01-16',
+    pipeline_version_reference: { pipeline_id: 'p2', pipeline_version_id: 'v1' },
   },
 ];
 

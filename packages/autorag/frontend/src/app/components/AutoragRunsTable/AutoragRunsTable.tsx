@@ -21,7 +21,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({ runs, toolbarConten
     defaultSortColumn={0}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent}
-    rowRenderer={(run) => <AutoragRunsTableRow key={run.id} run={run} />}
+    rowRenderer={(run) => <AutoragRunsTableRow key={run.run_id} run={run} />}
   />
 );
 

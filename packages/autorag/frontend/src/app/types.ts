@@ -37,14 +37,46 @@ export type PipelineDefinition = {
   description?: string;
 };
 
-export type PipelineRun = {
-  id: string;
-  name: string;
-  description?: string;
-  tags?: string[];
-  stats?: string;
+/** Pipeline reference embedded in a run (API schema). */
+export type PipelineVersionReference = {
   pipeline_id: string;
-  pipeline_name: string;
-  status: string;
+  pipeline_version_id: string;
+};
+
+export type PipelineRunRuntimeConfig = {
+  parameters?: Record<string, string>;
+  pipeline_root?: string;
+};
+
+export type PipelineRunErrorDetail = {
+  '@type'?: string;
+  type_url?: string;
+  value?: string;
+  [key: string]: unknown;
+};
+
+export type PipelineRunError = {
+  code: number;
+  message: string;
+  details?: PipelineRunErrorDetail[];
+};
+
+export type PipelineSpec = Record<string, unknown>;
+
+export type PipelineRun = {
+  run_id: string;
+  display_name: string;
   created_at: string;
+  state: string;
+  experiment_id?: string;
+  storage_state?: string;
+  description?: string;
+  pipeline_version_id?: string;
+  pipeline_spec?: PipelineSpec;
+  pipeline_version_reference?: PipelineVersionReference;
+  runtime_config?: PipelineRunRuntimeConfig;
+  service_account?: string;
+  scheduled_at?: string;
+  finished_at?: string;
+  error?: PipelineRunError;
 };

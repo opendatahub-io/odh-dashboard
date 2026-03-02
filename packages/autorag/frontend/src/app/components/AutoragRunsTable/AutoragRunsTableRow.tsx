@@ -4,24 +4,34 @@ import { Td, Tr } from '@patternfly/react-table';
 import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
 
+/** Run state values (API / display). Use lowercase for case-insensitive matching. */
+export const RUN_STATE = {
+  SUCCEEDED: 'succeeded',
+  FAILED: 'failed',
+  RUNNING: 'running',
+  PENDING: 'pending',
+  INCOMPLETE: 'incomplete',
+  COMPLETE: 'complete',
+} as const;
+
 type AutoragRunsTableRowProps = {
   run: PipelineRun;
 };
 
 const getStatusLabelProps = (
-  status: string | undefined,
+  state: string | undefined,
 ): { status?: LabelProps['status']; color?: LabelProps['color'] } => {
-  const s = (status ?? '').toLowerCase();
-  if (s === 'succeeded' || s === 'complete') {
+  const s = (state ?? '').toLowerCase();
+  if (s === RUN_STATE.SUCCEEDED || s === RUN_STATE.COMPLETE || s.includes(RUN_STATE.SUCCEEDED)) {
     return { status: 'success' };
   }
-  if (s === 'failed') {
+  if (s === RUN_STATE.FAILED || s.includes(RUN_STATE.FAILED)) {
     return { status: 'danger' };
   }
-  if (s === 'running') {
+  if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
     return { status: 'info' };
   }
-  if (s === 'incomplete' || s === 'pending') {
+  if (s === RUN_STATE.INCOMPLETE || s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
     return { status: 'warning' };
   }
   return { color: 'grey' };
@@ -30,13 +40,13 @@ const getStatusLabelProps = (
 const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run }) => (
   <Tr>
     <Td dataLabel={autoragRunsColumns[0].label}>
-      <span data-testid={`run-name-${run.id}`}>{run.name}</span>
+      <span data-testid={`run-name-${run.run_id}`}>{run.display_name}</span>
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
-      {run.status ? (
-        <Label isCompact {...getStatusLabelProps(run.status)}>
-          {run.status}
+      {run.state ? (
+        <Label isCompact {...getStatusLabelProps(run.state)}>
+          {run.state}
         </Label>
       ) : (
         '—'

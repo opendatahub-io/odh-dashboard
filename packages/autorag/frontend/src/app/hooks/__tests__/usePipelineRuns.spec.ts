@@ -20,15 +20,12 @@ const mockPipelineDefinitions: PipelineDefinition[] = [
 
 const mockRuns: PipelineRun[] = [
   {
-    id: 'r1',
-    name: 'Run 1',
+    run_id: 'r1',
+    display_name: 'Run 1',
     description: 'Run desc',
-    tags: ['tag1'],
-    stats: '1h',
-    pipeline_id: 'p1',
-    pipeline_name: 'Pipeline 1',
-    status: 'Succeeded',
+    state: 'SUCCEEDED',
     created_at: '2025-01-17',
+    pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   },
 ];
 
