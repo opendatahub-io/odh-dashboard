@@ -159,6 +159,23 @@ describe('AutoragExperimentSettings', () => {
     });
   });
 
+  describe('Dirty state detection', () => {
+    it('should disable the Save button when a field is changed back to its default value', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByTestId('metric-radio-answer_correctness'));
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+
+      await user.click(screen.getByTestId('metric-radio-faithfulness'));
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+    });
+  });
+
   describe('Save and Cancel actions', () => {
     it('should call saveChanges when Save is clicked', async () => {
       const user = userEvent.setup();

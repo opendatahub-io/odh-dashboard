@@ -72,7 +72,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
         >
           {MODEL_TABS.map(({ modelType, label, testId }) => {
             const { field, models } = tabData[modelType];
-            const selectedModels = field.value ?? [];
+            const selectedModels = field.value;
             const allSelected =
               models.length > 0 &&
               models.every((model) =>
@@ -80,16 +80,15 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
               );
 
             const handleSelectAll = (isSelecting: boolean) => {
-              field.onChange(
-                isSelecting ? models.map((model) => ({ model: model.id })) : undefined,
-              );
+              field.onChange(isSelecting ? models.map((model) => ({ model: model.id })) : []);
             };
 
             const handleToggleModel = (modelId: string, isSelecting: boolean) => {
-              const updatedModels = isSelecting
-                ? [...selectedModels, { model: modelId }]
-                : selectedModels.filter((selectedModel) => selectedModel.model !== modelId);
-              field.onChange(updatedModels.length > 0 ? updatedModels : undefined);
+              field.onChange(
+                isSelecting
+                  ? [...selectedModels, { model: modelId }]
+                  : selectedModels.filter((selectedModel) => selectedModel.model !== modelId),
+              );
             };
 
             return (

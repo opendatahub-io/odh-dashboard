@@ -16,12 +16,13 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragResultsPathname } from '~/app/utilities/routes';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
@@ -30,12 +31,33 @@ function AutoragConfigure(): React.JSX.Element {
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
 
+  const { data: allModelsData } = useLlamaStackModelsQuery();
+  const modelsInitialized = useRef(false);
+
   const configureSchema = createConfigureSchema();
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema),
     defaultValues: configureSchema.parse({}),
   });
+
+  useEffect(() => {
+    //Initialize available generation and embedding models into the form data
+    if (allModelsData?.models && !modelsInitialized.current) {
+      modelsInitialized.current = true;
+      form.reset({
+        ...form.getValues(),
+        // eslint-disable-next-line camelcase
+        generation_constraints: allModelsData.models
+          .filter((model) => model.type === 'llm')
+          .map((model) => ({ model: model.id })),
+        // eslint-disable-next-line camelcase
+        embeddings_constraints: allModelsData.models
+          .filter((model) => model.type === 'embedding')
+          .map((model) => ({ model: model.id })),
+      });
+    }
+  }, [allModelsData, form]);
 
   const saveExperimentSettingsChanges = () => {
     // TODO: add form update logic once ready

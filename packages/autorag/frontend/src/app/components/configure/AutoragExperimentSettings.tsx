@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { isEqual } from 'es-toolkit';
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import {
@@ -65,10 +66,13 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
 }) => {
   const {
     control,
-    formState: { errors, dirtyFields },
+    formState: { errors, defaultValues },
+    watch,
   } = useFormContext<ConfigureSchema>();
 
-  const areFieldsDirty = EXPERIMENT_SETTINGS_FIELDS.some((field) => dirtyFields[field]);
+  const areFieldsDirty = EXPERIMENT_SETTINGS_FIELDS.some(
+    (field) => !isEqual(watch(field), defaultValues?.[field]),
+  );
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
 
   return (

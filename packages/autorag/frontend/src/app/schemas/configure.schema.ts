@@ -46,24 +46,25 @@ function getBaseSchema() {
           model: z.string(),
         }),
       )
-      .optional(),
+      .min(1)
+      .default([]),
     generation_constraints: z
       .array(
         z.object({
           model: z.string(),
-          context_template_text: z.string().optional(),
-          messages: z
-            .array(
-              z.object({
-                role: z.string(),
-                content: z.string(),
-                name: z.string(),
-              }),
-            )
-            .optional(),
         }),
       )
-      .optional(),
+      .min(1)
+      .default([]),
+    retrieval_constraints: z
+      .array(
+        z.object({
+          method: z.string(),
+          number_of_chunks: z.number(),
+        }),
+      )
+      .min(1)
+      .default([]),
   });
 }
 

@@ -42,8 +42,17 @@ const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
+    mode: 'onChange',
     resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+    defaultValues: {
+      ...configureSchema.parse({}),
+      generation_constraints: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => ({
+        model: m.id,
+      })),
+      embeddings_constraints: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => ({
+        model: m.id,
+      })),
+    },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -107,36 +116,44 @@ describe('AutoragExperimentSettingsModelSelection', () => {
   });
 
   describe('Model selection', () => {
-    it('should select a model when its row checkbox is clicked', async () => {
-      const user = userEvent.setup();
+    it('should render all models as selected by default', () => {
       renderComponent();
 
       const row = screen.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
-      expect(checkbox).not.toBeChecked();
-
-      await user.click(checkbox!);
       expect(checkbox).toBeChecked();
     });
 
-    it('should deselect a model when its checkbox is clicked again', async () => {
+    it('should deselect a model when its checkbox is clicked', async () => {
       const user = userEvent.setup();
       renderComponent();
 
       const row = screen.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
-
-      await user.click(checkbox!);
       expect(checkbox).toBeChecked();
 
       await user.click(checkbox!);
       expect(checkbox).not.toBeChecked();
     });
 
-    it('should render the select-all checkbox as unchecked by default', () => {
+    it('should reselect a model when its checkbox is clicked again', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      const row = screen.getByTestId('model-row-llama-8b');
+      const checkbox = row.querySelector('input[type="checkbox"]');
+
+      await user.click(checkbox!);
+      expect(checkbox).not.toBeChecked();
+
+      await user.click(checkbox!);
+      expect(checkbox).toBeChecked();
+    });
+
+    it('should render the select-all checkbox as checked by default', () => {
       renderComponent();
       const selectAllCheckbox = screen.getByRole('checkbox', { name: 'All available models' });
-      expect(selectAllCheckbox).not.toBeChecked();
+      expect(selectAllCheckbox).toBeChecked();
     });
   });
 
