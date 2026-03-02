@@ -156,7 +156,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
       }
       handlers.handleSearchChange(event, value);
     },
-    [handlers.handleSearchChange],
+    [handlers],
   );
 
   const renderSearchInput = (): React.ReactElement => {

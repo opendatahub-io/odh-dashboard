@@ -12,7 +12,11 @@ import {
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
+// TODO: fix lint error:
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
+// TODO: fix lint error:
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../types';
 
@@ -27,8 +31,10 @@ const NewConnectionField: React.FC<Props> = ({
   setModelLocationData,
   modelLocationData,
   connectionType,
-  connections,
+  connections: _connections,
 }) => {
+  void _connections;
+
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
     return modelLocationData.fieldValues;
@@ -105,7 +111,7 @@ const NewConnectionField: React.FC<Props> = ({
       });
     }
     return connectionType.data?.fields;
-  }, [connectionType, connections, modelLocationData?.connection]);
+  }, [connectionType]);
 
   return (
     <FormGroup>
