@@ -30,7 +30,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
-describe('[Automation Bug: RHOAIENG-50666] Verify models can be deployed from model registry', () => {
+describe('[Product Bug: RHOAIENG-50666] Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
   skipSuiteIfBYOIDC('Multiple permissions management tests are not supported on BYOIDC clusters');
 

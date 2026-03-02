@@ -40,7 +40,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('ModelServing - tolerations tests', () => {
+describe('[Product Bug: RHOAIENG-50666] ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -112,6 +112,7 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
+        '@Bug',
       ],
     },
     () => {
