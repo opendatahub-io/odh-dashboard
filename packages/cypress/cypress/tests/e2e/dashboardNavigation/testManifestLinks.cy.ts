@@ -14,7 +14,7 @@ interface ManifestTestConfig {
   excludedSubstrings?: string[];
 }
 
-describe('[Automation Bug: RHOAIENG-50668] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {

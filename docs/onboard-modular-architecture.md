@@ -22,22 +22,10 @@ cd packages
 Start a new modular architecture project using the installer. Replace `<your-module-name>` with the desired name for your module.
 
 ```bash
-npx mod-arch-installer <your-module-name> --flavor default
+npx mod-arch-installer -n <your-module-name>
 ```
 
-### 3. Adapt the Module Name
-
-After initialization, you need to update the generated code to match your specific module name. Search for occurrences of `mod-arch` and `modArch` in your new package and replace them with your module's identifier.
-
-Key files to check:
-
-- `package.json`
-- `frontend/src/odh/extensions.ts` (or similar entry point to change the nav)
-- `frontend/config/moduleFederation.js`
-
-In BFF you can do a replace-all searching for `mod-arch` and will change the package name.
-
-### 4. Configure the Port
+### 3. Configure the Port
 
 By default, the modular architecture component runs on port `9103`. If you need to use a different port or want to ensure it doesn't conflict with other modules:
 
@@ -60,7 +48,7 @@ By default, the modular architecture component runs on port `9103`. If you need 
    }
    ```
 
-### 5. Add Feature Flag
+### 4. Add Feature Flag
 
 To enable your module in the main dashboard, you need to add a feature flag.
 
@@ -75,7 +63,7 @@ To enable your module in the main dashboard, you need to add a feature flag.
    } satisfies Partial<DashboardCommonConfig>;
    ```
 
-### 6. Run the Application
+### 5. Run the Application
 
 Now that your project is configured, you can run the entire stack (backend, frontend, and your new module).
 
