@@ -7,7 +7,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import ExperimentSettingsModelSelection from '~/app/components/configure/components/ExperimentSettings/components/ExperimentSettingsModelSelection';
+import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 
 jest.mock('~/app/hooks/queries');
 
@@ -45,11 +45,11 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const renderComponent = () =>
   render(
     <FormWrapper>
-      <ExperimentSettingsModelSelection />
+      <AutoragExperimentSettingsModelSelection />
     </FormWrapper>,
   );
 
-describe('ExperimentSettingsModelSelection', () => {
+describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseLlamaStackModelsQuery.mockReturnValue({

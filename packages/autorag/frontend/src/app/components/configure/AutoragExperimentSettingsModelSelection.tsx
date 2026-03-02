@@ -25,7 +25,7 @@ const MODEL_TABS: ModelTab[] = [
   { modelType: 'embedding', label: 'Embedding Models', testId: 'embedding-models-tab' },
 ];
 
-const ExperimentSettingsModelSelection: React.FC = () => {
+const AutoragExperimentSettingsModelSelection: React.FC = () => {
   const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
 
   const { control } = useFormContext<ConfigureSchema>();
@@ -148,4 +148,4 @@ const ExperimentSettingsModelSelection: React.FC = () => {
   );
 };
 
-export default ExperimentSettingsModelSelection;
+export default AutoragExperimentSettingsModelSelection;

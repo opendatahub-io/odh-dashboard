@@ -26,7 +26,7 @@ import {
   MIN_RAG_PATTERNS,
   MAX_RAG_PATTERNS,
 } from '~/app/schemas/configure.schema';
-import ExperimentSettingsModelSelection from './components/ExperimentSettingsModelSelection';
+import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
 
 const OPTIMIZATION_METRICS: {
   value: ConfigureSchema['optimization']['metric'];
@@ -50,14 +50,14 @@ const OPTIMIZATION_METRICS: {
   },
 ];
 
-type ExperimentSettingsProps = {
+type AutoragExperimentSettingsProps = {
   isOpen: boolean;
   onClose: () => void;
   revertChanges: () => void;
   saveChanges: () => void;
 };
 
-const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
+const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   isOpen,
   onClose,
   revertChanges,
@@ -85,7 +85,7 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            <ExperimentSettingsModelSelection />
+            <AutoragExperimentSettingsModelSelection />
           </StackItem>
           <StackItem className="pf-v6-u-mt-lg">
             <Grid hasGutter>
@@ -191,4 +191,4 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
   );
 };
 
-export default ExperimentSettings;
+export default AutoragExperimentSettings;

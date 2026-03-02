@@ -23,7 +23,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import ExperimentSettings from './components/ExperimentSettings/ExperimentSettings';
+import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
@@ -183,7 +183,7 @@ function AutoragConfigure(): React.JSX.Element {
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
       />
-      <ExperimentSettings
+      <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => setIsExperimentSettingsOpen(false)}
         revertChanges={() => form.reset()}

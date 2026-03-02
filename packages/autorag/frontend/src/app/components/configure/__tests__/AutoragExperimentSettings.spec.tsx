@@ -5,15 +5,12 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import createConfigureSchema from '~/app/schemas/configure.schema';
-import ExperimentSettings from '~/app/components/configure/components/ExperimentSettings/ExperimentSettings';
+import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
 
-jest.mock(
-  '~/app/components/configure/components/ExperimentSettings/components/ExperimentSettingsModelSelection',
-  () => {
-    const MockModelSelection = () => <div data-testid="mock-model-selection">Model Selection</div>;
-    return { __esModule: true, default: MockModelSelection };
-  },
-);
+jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
+  const MockModelSelection = () => <div data-testid="mock-model-selection">Model Selection</div>;
+  return { __esModule: true, default: MockModelSelection };
+});
 
 const configureSchema = createConfigureSchema();
 
@@ -36,11 +33,11 @@ const defaultProps = {
 const renderComponent = (props = {}) =>
   render(
     <FormWrapper>
-      <ExperimentSettings {...defaultProps} {...props} />
+      <AutoragExperimentSettings {...defaultProps} {...props} />
     </FormWrapper>,
   );
 
-describe('ExperimentSettings', () => {
+describe('AutoragExperimentSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
