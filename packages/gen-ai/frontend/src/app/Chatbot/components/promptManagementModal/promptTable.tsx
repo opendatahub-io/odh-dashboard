@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Button,
   Toolbar,
@@ -21,9 +21,10 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  debounce,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
@@ -34,19 +35,33 @@ type PromptTableProps = {
 };
 
 export default function PromptTable({ onClickLoad, onClose }: PromptTableProps): React.ReactNode {
-  const { prompts: rows, isLoading: isLoadingList, error: listError } = usePromptsList();
+  const [perPage, setPerPage] = useState(10);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const [page] = useState(1);
-  const [perPage] = useState(10);
+  const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [filterName, setFilterName] = useState('');
+  const [debouncedFilterName, setDebouncedFilterName] = useState('');
+
+  const debouncedSetFilterName = useMemo(
+    () => debounce((value: string) => setDebouncedFilterName(value), 300),
+    [],
+  );
+
+  const {
+    hasNextPage,
+    fetchNextPage,
+    prompts: rows,
+    isLoading: isLoadingList,
+    isFetchingNextPage,
+    error: listError,
+  } = usePromptsList({ maxResults: perPage, filterName: debouncedFilterName });
   const {
     versions: selectedPromptVersions,
     isLoading: isLoadingDetails,
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
-
+  const thisPage = rows.slice((activePage - 1) * perPage, activePage * perPage);
   useEffect(() => {
     if (selectedPromptVersions.length > 0 && selectedVersion === null) {
       setSelectedVersion(selectedPromptVersions[0].version);
@@ -68,27 +83,11 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   function handleVersionChange(version: number) {
     setSelectedVersion(version);
   }
-  // const handleSetPage = (
-  //   _evt: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-  //   newPage: number,
-  //   _perPage: number,
-  //   startIdx: number,
-  //   endIdx: number,
-  // ) => {
-  //   setPaginatedRows(rows.slice(startIdx, endIdx));
-  //   setPage(newPage);
-  // };
-  // const handlePerPageSelect = (
-  //   _evt: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-  //   newPerPage: number,
-  //   newPage: number,
-  //   startIdx: number,
-  //   endIdx: number,
-  // ) => {
-  //   setPaginatedRows(rows.slice(startIdx, endIdx));
-  //   setPage(newPage);
-  //   setPerPage(newPerPage);
-  // };
+
+  function handlePerPageSelect(newPerPage: number) {
+    setPerPage(newPerPage);
+  }
+
   function buildFooter() {
     return (
       <Flex
@@ -128,11 +127,16 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
       <Pagination
         isStatic
         isCompact={isCompact}
-        itemCount={rows.length}
-        page={page}
+        itemCount={hasNextPage ? rows.length + 1 : rows.length}
+        page={activePage}
         perPage={perPage}
-        // onSetPage={handleSetPage}
-        // onPerPageSelect={handlePerPageSelect}
+        onSetPage={(_, newPage) => {
+          setActivePage(newPage);
+          if (newPage > rows.length / perPage) {
+            fetchNextPage();
+          }
+        }}
+        onPerPageSelect={(_, newPerPage) => handlePerPageSelect(newPerPage)}
         variant={variant}
         titles={{
           paginationAriaLabel: `${variant} pagination`,
@@ -178,8 +182,14 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
               aria-label="Search prompts"
               placeholder="Find by name"
               value={filterName}
-              onChange={(_event, value) => setFilterName(value)}
-              onClear={() => setFilterName('')}
+              onChange={(_event, value) => {
+                setFilterName(value);
+                debouncedSetFilterName(value);
+              }}
+              onClear={() => {
+                setFilterName('');
+                setDebouncedFilterName('');
+              }}
             />
           </ToolbarItem>
         </ToolbarGroup>
@@ -188,7 +198,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     </Toolbar>
   );
 
-  if (isLoadingList) {
+  if (isLoadingList || isFetchingNextPage) {
     return (
       <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ minHeight: '400px' }}>
         <Spinner aria-label="Loading prompts" />
@@ -209,16 +219,19 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     );
   }
 
-  if (rows.length === 0) {
+  if (thisPage.length === 0) {
     return (
-      <EmptyState
-        titleText="No prompts found"
-        icon={SearchIcon}
-        headingLevel="h4"
-        variant={EmptyStateVariant.sm}
-      >
-        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
-      </EmptyState>
+      <>
+        {tableToolbar}
+        <EmptyState
+          titleText="No prompts found"
+          icon={SearchIcon}
+          headingLevel="h4"
+          variant={EmptyStateVariant.sm}
+        >
+          <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+        </EmptyState>
+      </>
     );
   }
 
@@ -232,45 +245,47 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
       >
         <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
           {tableToolbar}
-          <Table variant="compact" aria-label="Paginated Table">
-            <Thead>
-              <Tr>
-                {columns.map((column, columnIndex) => (
-                  <Th key={columnIndex}>{column}</Th>
-                ))}
-              </Tr>
-            </Thead>
-            <Tbody>
-              {rows.map((row, rowIndex) => (
-                <Tr
-                  key={rowIndex}
-                  isClickable
-                  isRowSelected={selectedRow?.name === row.name}
-                  onClick={() => handleRowClick(row)}
-                >
-                  <Td dataLabel={columns[0]}>{row.name}</Td>
-                  <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                  {!selectedVersion && (
-                    <>
-                      <Td dataLabel={columns[2]}>
-                        <Timestamp
-                          date={new Date(row.creation_timestamp)}
-                          dateFormat={TimestampFormat.full}
-                        />
-                      </Td>
-                      <Td dataLabel={columns[3]}>
-                        <LabelGroup>
-                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                          ))}
-                        </LabelGroup>
-                      </Td>
-                    </>
-                  )}
+          <InnerScrollContainer style={{ maxHeight: '400px' }}>
+            <Table variant="compact" aria-label="Paginated Table">
+              <Thead>
+                <Tr>
+                  {columns.map((column, columnIndex) => (
+                    <Th key={columnIndex}>{column}</Th>
+                  ))}
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {thisPage.map((row, rowIndex) => (
+                  <Tr
+                    key={rowIndex}
+                    isClickable
+                    isRowSelected={selectedRow?.name === row.name}
+                    onClick={() => handleRowClick(row)}
+                  >
+                    <Td dataLabel={columns[0]}>{row.name}</Td>
+                    <Td dataLabel={columns[1]}>{row.latest_version}</Td>
+                    {!selectedVersion && (
+                      <>
+                        <Td dataLabel={columns[2]}>
+                          <Timestamp
+                            date={new Date(row.creation_timestamp)}
+                            dateFormat={TimestampFormat.full}
+                          />
+                        </Td>
+                        <Td dataLabel={columns[3]}>
+                          <LabelGroup>
+                            {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                            ))}
+                          </LabelGroup>
+                        </Td>
+                      </>
+                    )}
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </InnerScrollContainer>
         </PageSection>
       </PromptDrawer>
       {buildFooter()}

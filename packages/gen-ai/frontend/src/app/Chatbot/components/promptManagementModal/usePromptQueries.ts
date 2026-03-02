@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import { MLflowPrompt, MLflowPromptsResponse, MLflowPromptVersion } from '~/app/types';
 
 type UsePromptsListOptions = {
   maxResults?: number;
@@ -10,6 +10,9 @@ type UsePromptsListOptions = {
 type UsePromptsListResult = {
   prompts: MLflowPrompt[];
   isLoading: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => void;
   error: Error | null;
 };
 
@@ -17,28 +20,44 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
   const { api, apiAvailable } = useGenAiAPI();
   const { maxResults, filterName } = options;
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['prompts', 'list', { maxResults, filterName }],
-    queryFn: async () => {
-      const queryParams: Record<string, unknown> = {};
-      if (maxResults !== undefined) {
-        // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-        queryParams.max_results = maxResults;
-      }
-      if (filterName !== undefined) {
-        // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-        queryParams.filter_name = filterName;
-      }
-      const response = await api.listMLflowPrompts(queryParams);
-      return response.prompts;
-    },
-    enabled: apiAvailable,
-    staleTime: 60000,
-  });
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error } =
+    useInfiniteQuery<
+      MLflowPromptsResponse,
+      Error,
+      MLflowPrompt[],
+      [string, string, { maxResults?: number; filterName?: string }],
+      string | undefined
+    >({
+      queryKey: ['prompts', 'list', { maxResults, filterName }],
+      queryFn: async ({ pageParam }) => {
+        const queryParams: Record<string, unknown> = {};
+        if (maxResults !== undefined) {
+          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+          queryParams.max_results = maxResults;
+        }
+        if (filterName !== undefined) {
+          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+          queryParams.filter_name = filterName;
+        }
+        if (pageParam) {
+          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+          queryParams.page_token = pageParam;
+        }
+        return api.listMLflowPrompts(queryParams);
+      },
+      initialPageParam: undefined,
+      getNextPageParam: (lastPage) => lastPage.next_page_token,
+      select: (queryData) => queryData.pages.flatMap((page) => page.prompts),
+      enabled: apiAvailable,
+      staleTime: 60000,
+    });
 
   return {
     prompts: data ?? [],
     isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     error: error ?? null,
   };
 }
