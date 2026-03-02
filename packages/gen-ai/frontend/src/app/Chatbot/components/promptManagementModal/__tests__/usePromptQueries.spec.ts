@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import {
@@ -15,6 +15,7 @@ jest.mock('~/app/utilities/const', () => ({
 
 jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(),
+  useInfiniteQuery: jest.fn(),
 }));
 
 const mockListMLflowPrompts = jest.fn();
@@ -33,6 +34,7 @@ jest.mock('~/app/hooks/useGenAiAPI', () => ({
 }));
 
 const mockUseQuery = jest.mocked(useQuery);
+const mockUseInfiniteQuery = jest.mocked(useInfiniteQuery);
 
 const mockPrompts: MLflowPrompt[] = [
   {
@@ -73,16 +75,21 @@ const mockVersions: MLflowPromptVersion[] = [
 ];
 
 describe('usePromptsList', () => {
+  const mockFetchNextPage = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should return loading state initially', () => {
-    mockUseQuery.mockReturnValue({
+    mockUseInfiniteQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
       error: null,
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
 
     const { result } = testHook(usePromptsList)();
 
@@ -92,11 +99,14 @@ describe('usePromptsList', () => {
   });
 
   it('should return prompts when loaded successfully', () => {
-    mockUseQuery.mockReturnValue({
+    mockUseInfiniteQuery.mockReturnValue({
       data: mockPrompts,
       isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
       error: null,
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
 
     const { result } = testHook(usePromptsList)();
 
@@ -106,11 +116,14 @@ describe('usePromptsList', () => {
   });
 
   it('should return empty array when no prompts exist', () => {
-    mockUseQuery.mockReturnValue({
+    mockUseInfiniteQuery.mockReturnValue({
       data: [],
       isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
       error: null,
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
 
     const { result } = testHook(usePromptsList)();
 
@@ -121,11 +134,14 @@ describe('usePromptsList', () => {
 
   it('should return error when API fails', () => {
     const mockError = new Error('Failed to fetch prompts');
-    mockUseQuery.mockReturnValue({
+    mockUseInfiniteQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
       error: mockError,
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
 
     const { result } = testHook(usePromptsList)();
 
@@ -136,30 +152,50 @@ describe('usePromptsList', () => {
 
   it('should pass filter options to query', async () => {
     mockListMLflowPrompts.mockResolvedValue({ prompts: [] });
-    mockUseQuery.mockReturnValue({
+    mockUseInfiniteQuery.mockReturnValue({
       data: [],
       isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
       error: null,
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
 
     testHook(usePromptsList)({ maxResults: 10, filterName: 'test' });
 
-    expect(mockUseQuery).toHaveBeenCalledWith(
+    expect(mockUseInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
         queryKey: ['prompts', 'list', { maxResults: 10, filterName: 'test' }],
       }),
     );
 
     // Extract and invoke queryFn to verify API call parameters
-    const queryOptions = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<unknown>;
+    const queryOptions = mockUseInfiniteQuery.mock.calls[0][0] as unknown as {
+      queryFn: (context: { pageParam: string | undefined }) => Promise<unknown>;
     };
-    await queryOptions.queryFn();
+    await queryOptions.queryFn({ pageParam: undefined });
 
     expect(mockListMLflowPrompts).toHaveBeenCalledWith({
       max_results: 10,
       filter_name: 'test',
     });
+  });
+
+  it('should expose pagination state', () => {
+    mockUseInfiniteQuery.mockReturnValue({
+      data: mockPrompts,
+      isLoading: false,
+      isFetchingNextPage: true,
+      hasNextPage: true,
+      fetchNextPage: mockFetchNextPage,
+      error: null,
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
+
+    const { result } = testHook(usePromptsList)();
+
+    expect(result.current.isFetchingNextPage).toBe(true);
+    expect(result.current.hasNextPage).toBe(true);
+    expect(result.current.fetchNextPage).toBe(mockFetchNextPage);
   });
 });
 
