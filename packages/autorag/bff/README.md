@@ -149,8 +149,14 @@ When testing the BFF locally against Kubeflow Pipelines running in a cluster, yo
 
 **Terminal 1: Set up port-forward**
 ```shell
-kubectl port-forward -n <namespace> svc/ds-pipeline-dspa 8888:8443
+kubectl port-forward -n <namespace> svc/<service-name> 8888:8443
 ```
+
+**Note:** Replace `<service-name>` with your actual Pipeline Server service name. To discover the service name in your namespace, run:
+```shell
+kubectl get svc -n <namespace>
+```
+Look for the service associated with your DSPipelineApplication (typically named like `ds-pipeline-<dspa-name>`).
 
 **Terminal 2: Run BFF with override URL and skip TLS verification**
 ```shell
