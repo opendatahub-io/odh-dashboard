@@ -1,4 +1,5 @@
 import * as React from 'react';
+/* eslint-disable @odh-dashboard/no-restricted-imports */
 import {
   Form,
   getUniqueId,
@@ -9,6 +10,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
+/* eslint-enable @odh-dashboard/no-restricted-imports */
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   createNIMPVC,
@@ -37,53 +39,53 @@ import {
   useAccessReview,
 } from '#~/api';
 import type { CreateNIMServiceParams } from '#~/api';
-import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/useNIMServicesEnabled';
-import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
-import {
-  isNIMOperatorManaged,
-  getNIMServiceName,
-} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
-import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import {
-  InferenceServiceStorageType,
-  ServingRuntimeEditInfo,
-} from '#~/pages/modelServing/screens/types';
-import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
-import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelListSection';
-import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
-import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import {
   getDisplayNameFromK8sResource,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
-import NIMPVCSizeSection, {
-  PVCMode,
-} from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMPVCSizeSection';
-import {
-  getNIMServingRuntimeTemplate,
-  updateServingRuntimeTemplate,
-} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
-import { useNIMPVC } from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
-import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/nim/useNIMTemplateName';
-import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
-import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
-import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
-import { getKServeContainerEnvVarStrs, setUpTokenAuth } from '#~/pages/modelServing/utils';
-import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
   MODEL_SERVING_VISIBILITY,
   getInferenceServiceHardwareProfilePaths,
 } from '#~/concepts/hardwareProfiles/const';
+import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import {
+  InferenceServiceStorageType,
+  ServingRuntimeEditInfo,
+} from '#~/pages/modelServing/screens/types';
+import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
+import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
+import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
+import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import { getKServeContainerEnvVarStrs, setUpTokenAuth } from '#~/pages/modelServing/utils';
+import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelListSection';
+import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
+import NIMPVCSizeSection, {
+  PVCMode,
+} from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMPVCSizeSection';
+import { useNIMPVC } from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
+import {
+  getNIMServingRuntimeTemplate,
+  updateServingRuntimeTemplate,
+} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
+import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/nim/useNIMServicesEnabled';
+import {
+  isNIMOperatorManaged,
+  getNIMServiceName,
+} from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
+import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/nim/useNIMTemplateName';
+import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';

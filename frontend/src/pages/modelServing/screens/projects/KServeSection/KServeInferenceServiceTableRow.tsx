@@ -19,7 +19,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   isNIMOperatorManaged,
   getModelNameFromNIMInferenceService,
-} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+} from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 type KServeInferenceServiceTableRowProps = {
   project?: string;

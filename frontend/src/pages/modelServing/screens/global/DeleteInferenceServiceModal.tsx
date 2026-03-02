@@ -14,7 +14,7 @@ import {
   getNIMOperatorResourcesToDelete,
   isProjectNIMSupported,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
-import { getNIMServiceOwner } from './nimOperatorUtils';
+import { getNIMServiceOwner } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;

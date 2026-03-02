@@ -37,17 +37,17 @@ import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utili
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
-  isNIMOperatorManaged,
-  getModelNameFromNIMInferenceService,
-  filterNIMSystemEnvVars,
-  getInferenceServiceDisplayName,
-} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
-import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import {
+  isNIMOperatorManaged,
+  getModelNameFromNIMInferenceService,
+  filterNIMSystemEnvVars,
+  getInferenceServiceDisplayName,
+} from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>

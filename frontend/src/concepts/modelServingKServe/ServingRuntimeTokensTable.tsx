@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { InferenceServiceKind, isInferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { TokensDescriptionItem } from '#~/concepts/modelServing/ModelRow/TokensDescriptionItem';
-import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind | InferenceServiceKind;

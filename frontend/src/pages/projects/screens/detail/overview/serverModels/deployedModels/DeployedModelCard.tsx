@@ -21,7 +21,7 @@ import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceSer
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
 import { SupportedArea } from '#~/concepts/areas/types.ts';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
-import { useInferenceServiceDisplayName } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { useInferenceServiceDisplayName } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;

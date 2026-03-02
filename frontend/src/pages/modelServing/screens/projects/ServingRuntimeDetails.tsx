@@ -22,7 +22,7 @@ import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
-import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { isNIMOperatorManaged } from './nim/nimOperatorUtils';
 
 type ServingRuntimeDetailsProps = {
   project?: string;

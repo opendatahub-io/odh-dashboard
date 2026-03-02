@@ -1,6 +1,6 @@
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,

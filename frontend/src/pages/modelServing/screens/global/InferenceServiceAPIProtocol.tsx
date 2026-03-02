@@ -3,7 +3,7 @@ import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getAPIProtocolFromServingRuntime } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeAPIProtocol } from '#~/types';
-import { isNIMOperatorManaged } from './nimOperatorUtils';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;

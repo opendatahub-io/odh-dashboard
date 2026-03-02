@@ -17,6 +17,7 @@ import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import { useInferenceServiceDisplayName } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -24,7 +25,6 @@ import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import { ColumnField } from './data';
 import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
-import { useInferenceServiceDisplayName } from './nimOperatorUtils';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
