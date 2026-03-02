@@ -1,21 +1,22 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
+#
 metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-dashboard-ci
+    appstudio.openshift.io/component: odh-mod-arch-autorag-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-dashboard-on-pull-request
+  name: odh-mod-arch-autorag-ci-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -24,16 +25,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-dashboard:odh-pr
+    value: quay.io/opendatahub/odh-mod-arch-autorag:odh-pr
   - name: dockerfile
-    value: Dockerfile
+    value: packages/autorag/Dockerfile.workspace
   - name: path-context
     value: .
+  - name: pipeline-type
+    value: pull-request
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-  - name: pipeline-type
-    value: pull-request
   pipelineRef:
     resolver: git
     params:
@@ -44,7 +45,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-dashboard
+    serviceAccountName: build-pipeline-sa-odh-mod-arch-autorag
   workspaces:
   - name: git-auth
     secret:
