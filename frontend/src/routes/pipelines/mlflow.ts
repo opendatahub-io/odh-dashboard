@@ -14,15 +14,18 @@ export const globMlflowAll = `${mlflowRootPath}/*`;
 export const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 export const WORKSPACE_QUERY_PARAM = 'workspace';
 
+const withWorkspace = (basePath: string, namespace?: string): string => {
+  if (!namespace) {
+    return basePath;
+  }
+  return `${basePath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+};
+
 export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
-  !namespace
-    ? mlflowExperimentsPath
-    : `${mlflowExperimentsPath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+  withWorkspace(mlflowExperimentsPath, namespace);
 
 export const promptManagementPath = '/gen-ai-studio/prompts';
 export const globPromptManagementAll = `${promptManagementPath}/*`;
 
 export const mlflowPromptManagementBaseRoute = (namespace?: string): string =>
-  !namespace
-    ? promptManagementPath
-    : `${promptManagementPath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+  withWorkspace(promptManagementPath, namespace);

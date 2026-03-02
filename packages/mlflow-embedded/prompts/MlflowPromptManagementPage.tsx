@@ -16,6 +16,7 @@ import {
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
+import { PROMPT_MANAGEMENT_PAGE_TITLE } from '../shared/const';
 
 const MlflowPromptManagementPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -42,7 +43,7 @@ const MlflowPromptManagementPage: React.FC = () => {
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
             <FlexItem>
               <Title headingLevel="h1" data-testid="page-title">
-                Prompts
+                {PROMPT_MANAGEMENT_PAGE_TITLE}
               </Title>
             </FlexItem>
             <FlexItem>

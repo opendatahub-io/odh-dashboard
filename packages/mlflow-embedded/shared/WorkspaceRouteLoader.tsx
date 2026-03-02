@@ -51,7 +51,7 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
 }) => {
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get(WORKSPACE_QUERY_PARAM);
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, preferredProject, loaded } = React.useContext(ProjectsContext);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
 
@@ -84,7 +84,7 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
     <ApplicationsPage
       title={title}
       {...renderStateProps}
-      loaded
+      loaded={loaded}
       headerContent={
         <PipelineCoreProjectSelector
           getRedirectPath={getRedirectPath}

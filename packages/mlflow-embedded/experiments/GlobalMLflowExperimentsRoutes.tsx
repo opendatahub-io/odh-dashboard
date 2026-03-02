@@ -14,7 +14,7 @@ import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { mlflowExperimentsBaseRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MlflowExperimentsPage from './MlflowExperimentsPage';
-import { EXPERIMENTS_PAGE_TITLE, EXPERIMENTS_NO_PROJECTS_MESSAGE } from '../shared/constants';
+import { EXPERIMENTS_PAGE_TITLE, EXPERIMENTS_NO_PROJECTS_MESSAGE } from '../shared/const';
 import WorkspaceRouteLoader from '../shared/WorkspaceRouteLoader';
 
 const GlobalMLflowExperimentsRoutes: React.FC = () => (

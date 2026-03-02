@@ -21,15 +21,15 @@ import {
   mlflowExperimentsPath,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { EXPERIMENTS_PAGE_TITLE } from '../shared/constants';
+import { EXPERIMENTS_PAGE_TITLE } from '../shared/const';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
-import MlflowBreadcrumbs from '../shared/MlflowBreadcrumbs';
+import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 
 const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
-  const [breadcrumbs, setBreadcrumbs] = React.useState<{ label: string; path: string }[]>([]);
+  const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
 
   const loadWrapper = useMemo(
     () => () =>

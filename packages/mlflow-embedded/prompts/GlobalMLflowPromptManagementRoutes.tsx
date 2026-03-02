@@ -1,7 +1,5 @@
 import * as React from 'react';
 import { Route } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
@@ -10,7 +8,7 @@ import MlflowPromptManagementPage from './MlflowPromptManagementPage';
 import {
   PROMPT_MANAGEMENT_PAGE_TITLE,
   PROMPT_MANAGEMENT_NO_PROJECTS_MESSAGE,
-} from '../shared/constants';
+} from '../shared/const';
 import WorkspaceRouteLoader from '../shared/WorkspaceRouteLoader';
 
 const GlobalMLflowPromptManagementRoutes: React.FC = () => (
@@ -32,7 +30,6 @@ const GlobalMLflowPromptManagementRoutes: React.FC = () => (
         />
       }
     />
-    <Route path="*" element={<NotFound />} />
   </ProjectsRoutes>
 );
 

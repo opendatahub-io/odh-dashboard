@@ -11,7 +11,7 @@ import {
   promptManagementPath,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 // eslint-disable-next-line no-restricted-syntax
-import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/constants';
+import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
 
 /**
  * MLflow host-side extensions.

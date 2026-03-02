@@ -1,7 +1,7 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { MLFLOW_UNAVAILABLE_TITLE, MLFLOW_UNAVAILABLE_MESSAGE } from './constants';
+import { MLFLOW_UNAVAILABLE_TITLE, MLFLOW_UNAVAILABLE_MESSAGE } from './const';
 
 const MLflowUnavailable: React.FC = () => (
   <EmptyState

@@ -31,6 +31,7 @@ const MlflowBreadcrumbs: React.FC<{
               <Button
                 variant="link"
                 isInline
+                component="a"
                 href={fullPath}
                 onClick={(e) => {
                   e.preventDefault();
