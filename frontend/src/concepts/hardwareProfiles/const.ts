@@ -1,6 +1,6 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility, InferenceServiceKind } from '#~/k8sTypes.ts';
-import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import { CrPathConfig, HardwareProfileBindingConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =

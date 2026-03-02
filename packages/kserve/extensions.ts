@@ -148,9 +148,9 @@ const extensions: (
         import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
       // eslint-disable-next-line @odh-dashboard/no-restricted-imports
       extractModelFormat: () =>
-        import('@odh-dashboard/internal/pages/modelServing/screens/global/extractModelFormat').then(
-          (m) => m.extractKServeModelFormatWithNIM,
-        ),
+        import(
+          '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/extractModelFormat'
+        ).then((m) => m.extractKServeModelFormatWithNIM),
       extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>

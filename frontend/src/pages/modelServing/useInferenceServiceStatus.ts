@@ -6,7 +6,12 @@ import {
 import { ModelDeploymentState, ModelServingState } from '#~/pages/modelServing/screens/types';
 import useModelPodStatus from '#~/pages/modelServing/useModelPodStatus';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
-import { InferenceServiceKind } from '#~/k8sTypes.ts';
+import { InferenceServiceKind, NIMServiceState } from '#~/k8sTypes.ts';
+import { getNIMService } from '#~/api';
+import {
+  isNIMOperatorManaged,
+  getNIMServiceName,
+} from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import { getInferenceServiceStoppedStatus } from './utils';
 
 type InferenceServiceStatus = ModelServingState & {
@@ -37,10 +42,53 @@ export const useInferenceServiceStatus = (
   }, [modelPod]);
 
   // Refresh pod status when InferenceService updates
-  // This ensures we pick up pod changes when the InferenceService reports state changes
   React.useEffect(() => {
     refreshModelPodStatus();
   }, [inferenceService.status?.modelStatus?.states, refreshModelPodStatus]);
+
+  // NIM Operator status: poll the parent NIMService for accurate state
+  const isNIMManaged = isNIMOperatorManaged(inferenceService);
+  const nimServiceName = isNIMManaged ? getNIMServiceName(inferenceService) : undefined;
+  const [nimServiceReady, setNimServiceReady] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    if (!isNIMManaged || !nimServiceName) {
+      setNimServiceReady(null);
+      return undefined;
+    }
+
+    // Already confirmed ready — no need to poll further
+    if (nimServiceReady === true) {
+      return undefined;
+    }
+
+    let stale = false;
+
+    const checkNIMServiceStatus = async () => {
+      try {
+        const nimService = await getNIMService(nimServiceName, inferenceService.metadata.namespace);
+        const state = nimService.status?.state;
+        if (!stale) {
+          setNimServiceReady(state === NIMServiceState.Ready);
+        }
+      } catch {
+        if (!stale) {
+          setNimServiceReady(null);
+        }
+      }
+    };
+
+    checkNIMServiceStatus();
+
+    const interval = setInterval(checkNIMServiceStatus, FAST_POLL_INTERVAL);
+
+    return () => {
+      stale = true;
+      clearInterval(interval);
+    };
+  }, [isNIMManaged, nimServiceName, inferenceService.metadata.namespace, nimServiceReady]);
+
+  const nimServiceNotReady = isNIMManaged && nimServiceReady === false;
 
   // Manual polling when isStopping is true
   React.useEffect(() => {
@@ -126,10 +174,11 @@ export const useInferenceServiceStatus = (
 
   return {
     ...baseStatus,
-    isStarting: isStarting || isNewlyDeployed || isIncorrectlyReportedAsLoaded,
+    isStarting:
+      isStarting || isNewlyDeployed || isIncorrectlyReportedAsLoaded || nimServiceNotReady,
     isStopping,
     isStopped,
-    isRunning: isRunning && !isIncorrectlyReportedAsLoaded,
+    isRunning: isRunning && !isIncorrectlyReportedAsLoaded && !nimServiceNotReady,
     isFailed: modelDeploymentState === ModelDeploymentState.FAILED_TO_LOAD,
     setIsStarting,
     setIsStopping,

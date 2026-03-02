@@ -17,7 +17,7 @@ import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRu
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
 import { SupportedArea } from '#~/concepts/areas/types.ts';
-import { isNIMOperatorManaged } from './nimOperatorUtils';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;

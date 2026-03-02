@@ -10,8 +10,11 @@ import {
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { relativeTime } from '#~/utilities/time';
-import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/useNIMServicesEnabled';
-import { useNIMCompatiblePVCs, NIMPVCInfo } from './useNIMCompatiblePVCs';
+import {
+  useNIMCompatiblePVCs,
+  NIMPVCInfo,
+} from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMCompatiblePVCs';
+import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/nim/useNIMServicesEnabled';
 
 type NIMPVCSelectorProps = {
   selectedModel: string;

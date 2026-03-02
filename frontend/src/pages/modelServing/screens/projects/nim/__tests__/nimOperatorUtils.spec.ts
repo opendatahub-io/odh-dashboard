@@ -6,7 +6,7 @@ import {
   getModelNameFromNIMInferenceService,
   getNIMServiceName,
   filterNIMSystemEnvVars,
-} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+} from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 describe('nimOperatorUtils', () => {
   describe('getNIMServiceOwner', () => {
