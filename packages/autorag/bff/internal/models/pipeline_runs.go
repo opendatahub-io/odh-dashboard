@@ -85,18 +85,16 @@ type RunDetails struct {
 
 // TaskDetail represents a single task/component execution within a pipeline run
 type TaskDetail struct {
-	RunID        string                 `json:"run_id,omitempty"`
-	TaskID       string                 `json:"task_id"`
-	DisplayName  string                 `json:"display_name,omitempty"`
-	CreateTime   string                 `json:"create_time,omitempty"`
-	StartTime    string                 `json:"start_time,omitempty"`
-	EndTime      string                 `json:"end_time,omitempty"`
-	State        string                 `json:"state,omitempty"`
-	StateHistory []RuntimeStatus        `json:"state_history,omitempty"`
-	Inputs       map[string]interface{} `json:"inputs,omitempty"`
-	Outputs      map[string]interface{} `json:"outputs,omitempty"`
-	ChildTasks   []ChildTask            `json:"child_tasks,omitempty"`
-	Error        *ErrorInfo             `json:"error,omitempty"`
+	RunID        string          `json:"run_id,omitempty"`
+	TaskID       string          `json:"task_id"`
+	DisplayName  string          `json:"display_name,omitempty"`
+	CreateTime   string          `json:"create_time,omitempty"`
+	StartTime    string          `json:"start_time,omitempty"`
+	EndTime      string          `json:"end_time,omitempty"`
+	State        string          `json:"state,omitempty"`
+	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
+	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`
+	Error        *ErrorInfo      `json:"error,omitempty"`
 }
 
 // ChildTask represents a child task reference

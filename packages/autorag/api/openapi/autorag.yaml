@@ -274,6 +274,74 @@ components:
                   message:
                     type: string
                     description: Error message
+        run_details:
+          type: object
+          description: Detailed information about the pipeline run including task execution details
+          nullable: true
+          properties:
+            task_details:
+              type: array
+              description: List of tasks executed as part of this pipeline run
+              items:
+                type: object
+                properties:
+                  run_id:
+                    type: string
+                    description: ID of the pipeline run this task belongs to
+                    example: "abc123-def456"
+                  task_id:
+                    type: string
+                    description: Unique identifier for this task
+                    example: "task-data-preprocessing"
+                  display_name:
+                    type: string
+                    description: Human-readable task name
+                    example: "Data Preprocessing"
+                  create_time:
+                    type: string
+                    format: date-time
+                    description: When the task was created
+                    example: "2026-02-24T10:30:00Z"
+                  start_time:
+                    type: string
+                    format: date-time
+                    description: When the task started executing
+                    example: "2026-02-24T10:30:05Z"
+                  end_time:
+                    type: string
+                    format: date-time
+                    description: When the task completed
+                    example: "2026-02-24T10:35:00Z"
+                  state:
+                    type: string
+                    enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+                    description: Current task state
+                    example: "SUCCEEDED"
+                  state_history:
+                    type: array
+                    description: History of state changes for this task
+                    items:
+                      type: object
+                      properties:
+                        update_time:
+                          type: string
+                          format: date-time
+                          description: When the state changed
+                          example: "2026-02-24T10:30:00Z"
+                        state:
+                          type: string
+                          description: The state at this time
+                          example: "RUNNING"
+                  child_tasks:
+                    type: array
+                    description: Child tasks or pods created by this task
+                    items:
+                      type: object
+                      properties:
+                        pod_name:
+                          type: string
+                          description: Name of the Kubernetes pod running this task
+                          example: "data-preprocessing-pod-abc123"
 
     PipelineRunsData:
       type: object
@@ -489,6 +557,36 @@ components:
                   state: "RUNNING"
                 - update_time: "2026-02-24T11:15:00Z"
                   state: "SUCCEEDED"
+              run_details:
+                task_details:
+                  - run_id: "abc123-def456"
+                    task_id: "task-data-preprocessing"
+                    display_name: "Data Preprocessing"
+                    create_time: "2026-02-24T10:30:00Z"
+                    start_time: "2026-02-24T10:30:05Z"
+                    end_time: "2026-02-24T10:35:00Z"
+                    state: "SUCCEEDED"
+                    state_history:
+                      - update_time: "2026-02-24T10:30:05Z"
+                        state: "RUNNING"
+                      - update_time: "2026-02-24T10:35:00Z"
+                        state: "SUCCEEDED"
+                    child_tasks:
+                      - pod_name: "data-preprocessing-pod-abc123"
+                  - run_id: "abc123-def456"
+                    task_id: "task-model-training"
+                    display_name: "Model Training"
+                    create_time: "2026-02-24T10:30:00Z"
+                    start_time: "2026-02-24T10:35:10Z"
+                    end_time: "2026-02-24T11:10:00Z"
+                    state: "SUCCEEDED"
+                    state_history:
+                      - update_time: "2026-02-24T10:35:10Z"
+                        state: "RUNNING"
+                      - update_time: "2026-02-24T11:10:00Z"
+                        state: "SUCCEEDED"
+                    child_tasks:
+                      - pod_name: "model-training-pod-def456"
 
     ConflictResponse:
       content:

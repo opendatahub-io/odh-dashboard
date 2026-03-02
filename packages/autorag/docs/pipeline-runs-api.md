@@ -134,13 +134,6 @@ The endpoint returns a JSON response with the following structure:
                   "state": "SUCCEEDED"
                 }
               ],
-              "inputs": {
-                "dataset_path": "s3://bucket/data/input.csv"
-              },
-              "outputs": {
-                "processed_data": "s3://bucket/data/processed.csv",
-                "row_count": 1000
-              },
               "child_tasks": [
                 {
                   "pod_name": "data-preprocessing-pod-abc123"
@@ -211,8 +204,6 @@ The endpoint returns a JSON response with the following structure:
 | `end_time` | string | Task completion timestamp in ISO 8601 format (if finished) |
 | `state` | string | Current task state (UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED) |
 | `state_history` | array | History of state changes for this task (same format as run state_history) |
-| `inputs` | object | Task input parameters as key-value pairs |
-| `outputs` | object | Task output values as key-value pairs |
 | `child_tasks` | array | Array of ChildTask objects (see below) |
 | `error` | object | Optional error information if the task failed |
 
@@ -293,12 +284,6 @@ Returns a single PipelineRun object with full details including task execution i
           "start_time": "2026-02-24T10:30:05Z",
           "end_time": "2026-02-24T10:32:00Z",
           "state": "SUCCEEDED",
-          "inputs": {
-            "source": "s3://data/raw/input.csv"
-          },
-          "outputs": {
-            "prepared_data": "s3://data/prepared/data.csv"
-          },
           "child_tasks": [
             {
               "pod_name": "prepare-data-pod"
@@ -313,14 +298,6 @@ Returns a single PipelineRun object with full details including task execution i
           "start_time": "2026-02-24T10:32:10Z",
           "end_time": "2026-02-24T11:15:00Z",
           "state": "SUCCEEDED",
-          "inputs": {
-            "training_data": "s3://data/prepared/data.csv",
-            "learning_rate": 0.001
-          },
-          "outputs": {
-            "model_uri": "s3://models/trained-model.pkl",
-            "accuracy": 0.96
-          },
           "child_tasks": [
             {
               "pod_name": "train-model-pod"
@@ -464,7 +441,6 @@ Mock mode returns 3 sample pipeline runs with various states and task details:
 Each task includes detailed information such as:
 - Task execution timeline (create_time, start_time, end_time)
 - Task state and state history
-- Input and output parameters
 - Pod names executing the tasks
 - Error information (for failed tasks)
 
@@ -504,7 +480,7 @@ The AutoRAG frontend can use these endpoints to:
 3. Implement pagination for large result sets
 4. Access run state history and metadata
 5. View detailed task execution information for each run
-6. Track individual task progress, inputs, and outputs
+6. Track individual task progress and status
 
 ### Example Frontend Integration
 
@@ -552,8 +528,6 @@ function displayTaskDetails(run) {
       console.log(`Task: ${task.display_name}`);
       console.log(`  State: ${task.state}`);
       console.log(`  Duration: ${task.start_time} to ${task.end_time}`);
-      console.log(`  Inputs:`, task.inputs);
-      console.log(`  Outputs:`, task.outputs);
 
       if (task.child_tasks) {
         task.child_tasks.forEach(child => {

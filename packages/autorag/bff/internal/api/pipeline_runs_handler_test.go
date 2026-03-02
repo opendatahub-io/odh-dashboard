@@ -435,14 +435,6 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 			assert.NotEmpty(t, task.TaskID)
 			assert.NotEmpty(t, task.DisplayName)
 			assert.NotEmpty(t, task.State)
-
-			// Verify inputs/outputs are present
-			if task.Inputs != nil {
-				assert.Greater(t, len(task.Inputs), 0, "Task should have inputs")
-			}
-			if task.Outputs != nil {
-				assert.Greater(t, len(task.Outputs), 0, "Task should have outputs")
-			}
 		}
 	})
 }

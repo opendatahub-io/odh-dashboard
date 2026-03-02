@@ -66,13 +66,6 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 						StartTime:   "2026-02-24T10:30:05Z",
 						EndTime:     "2026-02-24T10:35:00Z",
 						State:       "SUCCEEDED",
-						Inputs: map[string]interface{}{
-							"dataset_path": "s3://bucket/data/input.csv",
-						},
-						Outputs: map[string]interface{}{
-							"processed_data": "s3://bucket/data/processed.csv",
-							"row_count":      1000,
-						},
 						ChildTasks: []models.ChildTask{
 							{PodName: "data-preprocessing-pod-abc123"},
 						},
@@ -85,14 +78,6 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 						StartTime:   "2026-02-24T10:35:10Z",
 						EndTime:     "2026-02-24T11:10:00Z",
 						State:       "SUCCEEDED",
-						Inputs: map[string]interface{}{
-							"training_data": "s3://bucket/data/processed.csv",
-							"epochs":        50,
-						},
-						Outputs: map[string]interface{}{
-							"model_path": "s3://bucket/models/model.pkl",
-							"accuracy":   0.95,
-						},
 						ChildTasks: []models.ChildTask{
 							{PodName: "model-training-pod-def456"},
 						},
@@ -105,17 +90,6 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 						StartTime:   "2026-02-24T11:10:10Z",
 						EndTime:     "2026-02-24T11:15:00Z",
 						State:       "SUCCEEDED",
-						Inputs: map[string]interface{}{
-							"model_path": "s3://bucket/models/model.pkl",
-							"test_data":  "s3://bucket/data/test.csv",
-						},
-						Outputs: map[string]interface{}{
-							"metrics": map[string]interface{}{
-								"accuracy":  0.94,
-								"precision": 0.93,
-								"recall":    0.95,
-							},
-						},
 						ChildTasks: []models.ChildTask{
 							{PodName: "model-evaluation-pod-ghi789"},
 						},
@@ -380,12 +354,6 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 					StartTime:   "2026-02-24T10:30:05Z",
 					EndTime:     "2026-02-24T10:32:00Z",
 					State:       "SUCCEEDED",
-					Inputs: map[string]interface{}{
-						"source": "s3://data/raw/input.csv",
-					},
-					Outputs: map[string]interface{}{
-						"prepared_data": "s3://data/prepared/data.csv",
-					},
 					ChildTasks: []models.ChildTask{
 						{PodName: "prepare-data-pod"},
 					},
@@ -398,14 +366,6 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 					StartTime:   "2026-02-24T10:32:10Z",
 					EndTime:     "2026-02-24T11:15:00Z",
 					State:       "SUCCEEDED",
-					Inputs: map[string]interface{}{
-						"training_data": "s3://data/prepared/data.csv",
-						"learning_rate": 0.001,
-					},
-					Outputs: map[string]interface{}{
-						"model_uri": "s3://models/trained-model.pkl",
-						"accuracy":  0.96,
-					},
 					ChildTasks: []models.ChildTask{
 						{PodName: "train-model-pod"},
 					},
