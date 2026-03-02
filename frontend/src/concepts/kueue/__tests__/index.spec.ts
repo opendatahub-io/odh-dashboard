@@ -1,3 +1,14 @@
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  InProgressIcon,
+  OutlinedClockIcon,
+} from '@patternfly/react-icons';
+import {
+  t_global_color_status_warning_300 as WarningColorDesign,
+  t_global_text_color_status_danger_default as DangerColor,
+} from '@patternfly/react-tokens';
 import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 import { getKueueWorkloadStatusWithMessage, getKueueStatusInfo } from '#~/concepts/kueue';
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
@@ -325,55 +336,82 @@ describe('getKueueWorkloadStatusWithMessage', () => {
 describe('getKueueStatusInfo', () => {
   it('should return correct info for Queued', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Queued);
-    expect(info.label).toBe('Queued');
-    expect(info.color).toBe('grey');
-    expect(info.IconComponent).toBeDefined();
+    expect(info).toEqual({
+      label: 'Queued',
+      color: 'grey',
+      IconComponent: OutlinedClockIcon,
+      contentColor: WarningColorDesign.var,
+    });
   });
 
   it('should return correct info for Failed', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Failed);
-    expect(info.label).toBe('Failed');
-    expect(info.status).toBe('danger');
-    expect(info.color).toBe('red');
+    expect(info).toEqual({
+      label: 'Failed',
+      status: 'danger',
+      color: 'red',
+      IconComponent: ExclamationCircleIcon,
+      contentColor: DangerColor.var,
+    });
   });
 
   it('should return correct info for Preempted', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Preempted);
-    expect(info.label).toBe('Preempted');
-    expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
+    expect(info).toEqual({
+      label: 'Preempted',
+      color: 'orange',
+      status: 'warning',
+      IconComponent: ExclamationTriangleIcon,
+      contentColor: WarningColorDesign.var,
+    });
   });
 
   it('should return correct info for Inadmissible', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Inadmissible);
-    expect(info.label).toBe('Inadmissible');
-    expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
+    expect(info).toEqual({
+      label: 'Inadmissible',
+      color: 'orange',
+      status: 'warning',
+      IconComponent: ExclamationTriangleIcon,
+      contentColor: WarningColorDesign.var,
+    });
   });
 
   it('should return correct info for Running', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Running);
-    expect(info.label).toBe('Running');
-    expect(info.color).toBe('blue');
+    expect(info).toEqual({
+      label: 'Running',
+      color: 'blue',
+      IconComponent: InProgressIcon,
+    });
   });
 
   it('should return correct info for Admitted', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Admitted);
-    expect(info.label).toBe('Starting');
-    expect(info.color).toBe('blue');
-    expect(info.iconClassName).toBe('odh-u-spin');
+    expect(info).toEqual({
+      label: 'Starting',
+      color: 'blue',
+      IconComponent: InProgressIcon,
+      iconClassName: 'odh-u-spin',
+    });
   });
 
   it('should return correct info for Succeeded', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Succeeded);
-    expect(info.label).toBe('Complete');
-    expect(info.status).toBe('success');
-    expect(info.color).toBe('green');
+    expect(info).toEqual({
+      label: 'Complete',
+      status: 'success',
+      color: 'green',
+      IconComponent: CheckCircleIcon,
+    });
   });
 
   it('should return default for unknown status', () => {
     const info = getKueueStatusInfo('Unknown' as KueueWorkloadStatus);
-    expect(info.label).toBe('Unknown');
-    expect(info.color).toBe('grey');
+    expect(info).toEqual({
+      label: 'Unknown',
+      color: 'grey',
+      IconComponent: OutlinedClockIcon,
+    });
   });
 });
