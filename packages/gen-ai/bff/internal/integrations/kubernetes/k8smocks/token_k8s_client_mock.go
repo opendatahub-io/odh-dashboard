@@ -811,3 +811,58 @@ func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identit
 		},
 	}, nil
 }
+
+// GenerateProviderID generates a mock provider ID for testing
+func (m *TokenKubernetesClientMock) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	return "1", nil
+}
+
+// CreateExternalModelSecret creates a mock Secret for testing
+func (m *TokenKubernetesClientMock) CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"api_key": secretValue,
+		},
+	}
+	return m.Client.Create(ctx, secret)
+}
+
+// CreateOrUpdateExternalModelConfigMap creates or updates the mock external models ConfigMap for testing
+func (m *TokenKubernetesClientMock) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
+	// For mock, just create a simple ConfigMap
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gen-ai-aa-external-models",
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": "providers:\n  inference: []\nregistered_resources:\n  models: []\n",
+		},
+	}
+
+	// Check if ConfigMap exists
+	existingCM := &corev1.ConfigMap{}
+	err := m.Client.Get(ctx, client.ObjectKey{Name: configMap.Name, Namespace: namespace}, existingCM)
+	if err != nil {
+		// Create new ConfigMap
+		return m.Client.Create(ctx, configMap)
+	}
+	// Update existing ConfigMap
+	return m.Client.Update(ctx, configMap)
+}
+
+// DeleteSecret deletes a mock Secret for testing
+func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}
+	return m.Client.Delete(ctx, secret)
+}
