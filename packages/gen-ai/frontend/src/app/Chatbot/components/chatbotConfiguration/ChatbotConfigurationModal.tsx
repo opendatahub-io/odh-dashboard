@@ -1,6 +1,13 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant } from '@patternfly/react-core';
+import {
+  Alert,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { DashboardModalFooter } from 'mod-arch-shared';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -229,6 +236,16 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               Choose the models you want to make available in this playground from your AI assets.
               You can add additional models by making them available from the{' '}
               <Link to={`/modelServing/${namespace?.name}`}>Model Deployments page</Link>.
+              {error && (
+                <Alert
+                  variant="danger"
+                  title={alertTitle || 'Error configuring playground'}
+                  isInline
+                  style={{ marginTop: '1rem' }}
+                >
+                  {error.message}
+                </Alert>
+              )}
             </>
           }
         />
@@ -255,8 +272,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             submitLabel={isUpdate ? 'Update' : 'Create'}
             onSubmit={onSubmit}
             onCancel={onBeforeClose}
-            error={error}
-            alertTitle={alertTitle || 'Error configuring playground'}
           />
         </ModalFooter>
       )}

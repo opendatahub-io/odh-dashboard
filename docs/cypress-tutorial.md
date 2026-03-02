@@ -601,7 +601,7 @@ Configure `ODH_DASHBOARD_URL` in your `test-variables.yml`:
 
 ```yaml
 # Remote cluster (no dev server needed)
-ODH_DASHBOARD_URL: https://data-science-gateway.apps.my-cluster.test.redhat.com
+ODH_DASHBOARD_URL: https://rh-ai.apps.my-cluster.test.redhat.com
 
 # Or localhost (requires dev server)
 ODH_DASHBOARD_URL: http://localhost:4010

@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Run a command and return the result exitCode and output (including stderr).
@@ -249,7 +250,8 @@ export const deleteNotebook = (
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      throw new Error(`Command failed with code ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      throw new Error(`Command failed with code ${maskedStderr}`);
     }
     if (result.stdout.trim() === '') {
       cy.log('No notebooks found');

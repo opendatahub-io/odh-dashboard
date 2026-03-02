@@ -1,11 +1,11 @@
 - op: add
-  path: /spec/template/spec/containers/0/env
+  path: /spec/template/spec/containers/0/env/-
   value:
-    - name: MODULE_FEDERATION_CONFIG
-      valueFrom:
-        configMapKeyRef:
-          key: module-federation-config.json
-          name: federation-config
+    name: MODULE_FEDERATION_CONFIG
+    valueFrom:
+      configMapKeyRef:
+        key: module-federation-config.json
+        name: federation-config
 - op: add
   path: /spec/template/spec/containers/-
   value:
@@ -71,6 +71,9 @@
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
+    env:
+      - name: GATEWAY_DOMAIN
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -140,7 +143,9 @@
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
-
+    env:
+      - name: GATEWAY_DOMAIN
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -212,6 +217,8 @@
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
     env:
+      - name: GATEWAY_DOMAIN
+        value: ""
       - name: TIERS_CONFIGMAP_NS
         valueFrom:
           fieldRef:

@@ -41,7 +41,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
@@ -79,9 +79,9 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
     () => {
-      cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
@@ -151,6 +151,12 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -164,7 +170,9 @@ describe('Verify a model can be deployed from a PVC', () => {
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(modelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       modelServingSection.findModelMetricsLink(modelName);
     },
   );

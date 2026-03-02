@@ -71,7 +71,7 @@ describe('Workbenches - tolerations tests', () => {
     'Verify Workbench Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -117,7 +117,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations for a stopped workbench',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -150,7 +150,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

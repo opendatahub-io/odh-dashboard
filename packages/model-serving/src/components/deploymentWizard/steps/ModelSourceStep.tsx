@@ -39,13 +39,13 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         modelLocation={wizardState.state.modelLocationData.data?.type}
         validationProps={validation.getFieldValidationProps(['modelLocation', 'modelLocationData'])}
         validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
-        projectName={wizardState.state.project.projectName}
         modelLocationData={wizardState.state.modelLocationData.data}
         setModelLocationData={wizardState.state.modelLocationData.setData}
         resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
         connections={wizardState.state.modelLocationData.connections}
         setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
         selectedConnection={wizardState.state.modelLocationData.selectedConnection}
+        pvcs={wizardState.state.modelLocationData.pvcs}
       />
       <CreateConnectionInputFields
         createConnectionData={wizardState.state.createConnectionData.data}

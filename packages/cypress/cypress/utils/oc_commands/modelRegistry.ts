@@ -5,6 +5,7 @@
 import { applyOpenShiftYaml } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { replacePlaceholdersInYaml } from '../yaml_files';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Get the model registry namespace based on the environment
@@ -38,7 +39,8 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
 
   return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`Failed to check operator memory limit: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to check operator memory limit: ${maskedStderr}`);
       return cy.wrap(false);
     }
 
@@ -159,7 +161,8 @@ export const waitForModelRegistryDatabase = (
         cy.log(`Database wait result: ${result.stdout}`);
       }
       if (result.stderr) {
-        cy.log(`Database wait stderr: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`Database wait stderr: ${maskedStderr}`);
       }
       return cy.wrap(result.code === 0);
     });
@@ -260,7 +263,8 @@ export const waitForPostgresDatabase = (databaseName: string): Cypress.Chainable
         cy.log(`PostgreSQL database wait result: ${result.stdout}`);
       }
       if (result.stderr) {
-        cy.log(`PostgreSQL database wait stderr: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`PostgreSQL database wait stderr: ${maskedStderr}`);
       }
       return cy.wrap(result.code === 0);
     });
@@ -315,7 +319,8 @@ export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<
       return cy
         .exec(deleteCommand, { failOnNonZeroExit: false })
         .then((result: CommandLineResult) => {
-          cy.log(`Delete command output: ${result.stdout || result.stderr}`);
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          cy.log(`Delete command output: ${result.stdout || maskedStderr}`);
 
           // poll until the database is gone
           const checkDeletionComplete = (): Cypress.Chainable<boolean> => {
@@ -397,7 +402,8 @@ export const deleteModelRegistryDatabase = (
       return cy
         .exec(deleteCommand, { failOnNonZeroExit: false })
         .then((result: CommandLineResult) => {
-          cy.log(`Delete command output: ${result.stdout || result.stderr}`);
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          cy.log(`Delete command output: ${result.stdout || maskedStderr}`);
 
           // poll until the database is gone
           const checkDeletionComplete = (): Cypress.Chainable<boolean> => {
@@ -479,7 +485,8 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
         cy.log(`Wait result: ${result.stdout}`);
       }
       if (result.stderr) {
-        cy.log(`Wait stderr: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`Wait stderr: ${maskedStderr}`);
       }
       return cy.wrap(result.code === 0);
     })
@@ -574,7 +581,8 @@ export const getModelRegistryDatabaseConfig = (
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`Failed to get ModelRegistry CR: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to get ModelRegistry CR: ${maskedStderr}`);
       return cy.wrap({
         host: '',
         port: 0,
@@ -791,7 +799,8 @@ export const waitForDefaultDatabase = (registryName: string): Cypress.Chainable<
         cy.log(`Default database wait result: ${result.stdout}`);
       }
       if (result.stderr) {
-        cy.log(`Default database wait stderr: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`Default database wait stderr: ${maskedStderr}`);
       }
       return cy.wrap(result.code === 0);
     });
@@ -827,7 +836,8 @@ export const deleteDefaultDatabase = (registryName: string): Cypress.Chainable<b
       return cy
         .exec(deleteCommand, { failOnNonZeroExit: false })
         .then((result: CommandLineResult) => {
-          cy.log(`Delete command output: ${result.stdout || result.stderr}`);
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          cy.log(`Delete command output: ${result.stdout || maskedStderr}`);
 
           // poll until the database is gone
           const checkDeletionComplete = (): Cypress.Chainable<boolean> => {

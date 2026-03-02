@@ -31,6 +31,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          env:
+            - name: GATEWAY_DOMAIN
+              value: ""
           resources:
             requests:
               cpu: 500m

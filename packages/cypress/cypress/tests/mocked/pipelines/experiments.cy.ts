@@ -96,7 +96,7 @@ describe('Experiments', () => {
       experimentsTabs.visit(projectName);
       experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
       experimentsPage.findEmbeddedMLflowExperimentsLink().should('exist').click();
-      cy.url().should('contain', '/develop-train/experiments-mlflow');
+      cy.url().should('contain', '/develop-train/mlflow/experiments');
     });
 
     it('experiments table time', () => {

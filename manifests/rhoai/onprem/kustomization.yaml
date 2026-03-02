@@ -49,3 +49,17 @@ vars:
       fieldpath: data.gateway-name
 configurations:
   - params.yaml
+replacements:
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: rhods-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=rhods-dashboard].env.[name=GATEWAY_DOMAIN].value
+          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
+          - spec.template.spec.containers.[name=model-registry-ui].env.[name=GATEWAY_DOMAIN].value
+          - spec.template.spec.containers.[name=maas-ui].env.[name=GATEWAY_DOMAIN].value

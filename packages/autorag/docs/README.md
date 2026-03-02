@@ -3,9 +3,9 @@
 [Kubeflow development]: ./kubeflow-development-guide.md
 [Starter install]: ./install.md
 
-# Mod Arch UI Docs
+# AutoRAG Docs
 
-This directory contains documentation for the Mod Arch UI.
+This directory contains documentation for the AutoRAG package.
 
 ## Local Deployment Guide
 

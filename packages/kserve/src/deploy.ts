@@ -3,6 +3,7 @@ import type {
   InitialWizardFormData,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
+import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
@@ -18,6 +19,7 @@ export const deployKServeDeployment = async (
   secretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
+  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
 ): Promise<KServeDeployment> => {
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
@@ -56,7 +58,7 @@ export const deployKServeDeployment = async (
     inferenceServiceData,
     existingDeployment?.model,
     secretName,
-    initialWizardData?.transformData,
+    applyFieldData,
     {
       dryRun,
       overwrite,
@@ -65,15 +67,18 @@ export const deployKServeDeployment = async (
 
   const createTokenAuth =
     (inferenceServiceData.tokenAuth && inferenceServiceData.tokenAuth.length > 0) ?? false;
-  await setUpTokenAuth(
-    inferenceServiceData,
-    inferenceServiceData.k8sName,
-    projectName,
-    createTokenAuth,
-    inferenceService,
-    initialWizardData?.existingAuthTokens,
-    { dryRun: dryRun ?? false },
-  );
+
+  if (wizardData.canCreateRoleBindings) {
+    await setUpTokenAuth(
+      inferenceServiceData,
+      inferenceServiceData.k8sName,
+      projectName,
+      createTokenAuth,
+      inferenceService,
+      initialWizardData?.existingAuthTokens,
+      { dryRun: dryRun ?? false },
+    );
+  }
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',

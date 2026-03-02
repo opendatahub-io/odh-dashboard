@@ -98,9 +98,8 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
 
   return (
     <Toolbar
-      // Only show "Clear all filters" button when there are visible chips to clear
       {...(onResetAllFilters && hasVisibleChips
-        ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: 'Reset all defaults' }
+        ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: 'Reset all filters' }
         : {})}
     >
       <ToolbarContent rowWrap={{ default: 'wrap' }}>

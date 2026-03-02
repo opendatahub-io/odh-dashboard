@@ -130,6 +130,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
+        modelDisplayName={messagesHook.modelDisplayName}
       />
     </MessageBox>
   );

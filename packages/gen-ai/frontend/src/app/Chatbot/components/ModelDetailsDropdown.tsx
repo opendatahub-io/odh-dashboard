@@ -18,12 +18,14 @@ interface ModelDetailsDropdownProps {
   selectedModel: string;
   onModelChange: (value: string) => void;
   style?: React.CSSProperties;
+  testId?: string;
 }
 
 const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> = ({
   selectedModel,
   onModelChange,
   style,
+  testId = 'model-selector-toggle',
 }) => {
   const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -58,7 +60,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
           style={style}
           onClick={() => setIsOpen(!isOpen)}
           isExpanded={isOpen}
-          data-testid="model-selector-toggle"
+          data-testid={testId}
         >
           {getLlamaModelDisplayName(selectedModel, aiModels) || placeholder}
         </MenuToggle>

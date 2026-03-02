@@ -1,4 +1,7 @@
-import { getGroupsConfig } from '../../../../utils/oc_commands/groupConfig';
+import {
+  getGroupsConfig,
+  restoreDefaultGroupsConfig,
+} from '../../../../utils/oc_commands/groupConfig';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { userManagement } from '../../../../pages/userManagement';
 import { retryableBeforeEach } from '../../../../utils/retryableHooks';
@@ -17,36 +20,8 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
   });
 
   after(() => {
-    // Clear cookies and local storage
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
-    // Reload the page forcefully
-    cy.reload(true);
-
-    // Authentication and navigation
-    cy.step('Login as an Admin and restore settings');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-    // Visit User Management
-    cy.step('Visit User Management');
-    userManagement.visit();
-
-    cy.step('Clear the current Data Science User Groups');
-    userManagement.getUserGroupSection().clearMultiChipItem();
-    const userGroupSection = userManagement.getUserGroupSection();
-
-    cy.step('Select system:authenticated and save it');
-    // Click the text field to open the dropdown
-    userGroupSection.findMultiGroupSelectButton().click();
-    // Click the 'system:authenticated' option from the dropdown
-    userGroupSection.findMultiGroupOptions('system:authenticated').click();
-    // Click outside the dropdown to close it
-    cy.findByTestId('app-page-title').click();
-    // Submit the form
-    userManagement.findSubmitButton().click();
-    // Validate that changes were saved successfully
-    userManagement.shouldHaveSuccessAlertMessage();
+    cy.step('Restore default groups configuration');
+    restoreDefaultGroupsConfig();
   });
 
   it(

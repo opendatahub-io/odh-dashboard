@@ -5,13 +5,18 @@ export type MockDsciStatus = {
   conditions?: K8sCondition[];
   requiredCapabilities?: StackCapability[];
   phase?: string;
+  monitoringNamespace?: string;
 };
 
 export const mockDsciStatus = ({
   conditions = [],
   requiredCapabilities = [],
   phase = 'Ready',
+  monitoringNamespace = 'opendatahub',
 }: MockDsciStatus): DataScienceClusterInitializationKindStatus => ({
+  monitoring: {
+    namespace: monitoringNamespace,
+  },
   conditions: [
     ...[
       {

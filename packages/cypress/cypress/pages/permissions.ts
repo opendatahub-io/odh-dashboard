@@ -19,6 +19,14 @@ class PermissionsTab {
     cy.testA11y();
   }
 
+  getAddUserButtonSelector() {
+    return '[data-testid="add-button user"]';
+  }
+
+  getAddGroupButtonSelector() {
+    return '[data-testid="add-button group"]';
+  }
+
   findAddUserButton() {
     return cy.findByTestId('add-button user');
   }

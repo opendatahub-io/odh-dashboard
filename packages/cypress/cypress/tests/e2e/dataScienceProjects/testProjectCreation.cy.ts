@@ -59,7 +59,8 @@ describe('Verify Project - Creation and Deletion', () => {
         '@ODS-1783',
         '@ODS-1775',
         '@Dashboard',
-        '@ci-dashboard-set-1',
+        '@ci-dashboard-regression-tags',
+        '@ProjectsCI',
       ],
     },
     () => {
@@ -109,7 +110,17 @@ describe('Verify Project - Creation and Deletion', () => {
   );
   it(
     'Verify users cannot create a project with Empty title',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-1875',
+        '@ODS-1783',
+        '@ODS-1775',
+        '@Dashboard',
+        '@ProjectsCI',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -134,7 +145,17 @@ describe('Verify Project - Creation and Deletion', () => {
   );
   it(
     'Verify User cannot create a project using special characters or long names in the Resource name field',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-1875',
+        '@ODS-1783',
+        '@ODS-1775',
+        '@Dashboard',
+        '@ProjectsCI',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -175,7 +196,17 @@ describe('Verify Project - Creation and Deletion', () => {
   );
   it(
     'Verify 250 character limit is enforced for Name and Description fields',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-1875',
+        '@ODS-1783',
+        '@ODS-1775',
+        '@Dashboard',
+        '@ProjectsCI',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

@@ -124,6 +124,12 @@ describe(
 
         cy.step('Step 2: Model deployment');
         modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
+        modelServingWizard.findResourceNameButton().click();
+        modelServingWizard
+          .findResourceNameInput()
+          .should('be.visible')
+          .invoke('val')
+          .as('resourceName');
         modelServingWizard.findModelFormatSelectOption(modelFormat).click();
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
         modelServingWizard.findNextButton().click();
@@ -136,8 +142,9 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        // Verify model deployment is ready
-        checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
+        cy.get<string>('@resourceName').then((resourceName) => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );

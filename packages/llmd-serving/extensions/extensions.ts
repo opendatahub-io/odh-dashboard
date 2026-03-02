@@ -102,6 +102,8 @@ const extensions: (
       priority: 100,
       supportsOverwrite: true,
       isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
+      assembleDeployment: () =>
+        import('../src/deployments/deploy').then((m) => m.assembleLLMdDeployment),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
     flags: {

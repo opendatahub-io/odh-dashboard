@@ -23,8 +23,10 @@ import { type ModuleFederationConfig, getModuleFederationURL } from '@odh-dashbo
 import './commands';
 import '../utils/moduleFederationMock';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 import { asProjectAdminUser } from '../utils/mockUsers';
+import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
@@ -245,7 +247,8 @@ Cypress.on('command:enqueued', (command) => {
       cy.task('log', `${command.args[0]}`);
     }
   } else if (command.name === 'exec') {
-    cy.task('log', `[EXEC] ${command.args[0]}`);
+    const maskedCommand = maskSensitiveInfo(command.args[0]);
+    cy.task('log', `[EXEC] ${maskedCommand}`);
   } else if (command.name === 'log') {
     cy.task('log', `${command.args[0]}`);
   }
@@ -391,6 +394,7 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     });
 
     // Default intercepts.
+    cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
   }

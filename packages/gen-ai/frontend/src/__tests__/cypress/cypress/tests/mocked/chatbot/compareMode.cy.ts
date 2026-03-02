@@ -82,10 +82,7 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     cy.wait('@aaModels');
 
     // Verify model is selected
-    cy.findAllByTestId('model-selector-toggle')
-      .first()
-      .should('be.visible')
-      .and('contain', 'Llama');
+    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   afterEach(() => {
@@ -237,8 +234,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
         cy.step('Click settings button on Model 1 pane');
         chatbotPage.openPaneSettings(0);
 
-        cy.step('Verify settings panel shows Configure Model 1');
-        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure Model 1');
+        cy.step('Verify settings panel shows Configure - 1');
+        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure - 1');
       },
     );
 
@@ -249,8 +246,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
         cy.step('Click settings button on Model 2 pane');
         chatbotPage.openPaneSettings(1);
 
-        cy.step('Verify settings panel shows Configure Model 2');
-        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure Model 2');
+        cy.step('Verify settings panel shows Configure - 2');
+        chatbotPage.findSettingsPanelHeader().should('contain.text', 'Configure - 2');
       },
     );
   });

@@ -40,7 +40,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('ModelServing - tolerations tests', () => {
+describe('[Product Bug: RHOAIENG-50666] ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -102,7 +102,7 @@ describe('ModelServing - tolerations tests', () => {
   });
 
   it(
-    '[Automation Bug: RHOAIENG-48809] Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
+    'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     {
@@ -112,13 +112,13 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
-        '@Maintain',
+        '@Bug',
       ],
     },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions
@@ -147,6 +147,12 @@ describe('ModelServing - tolerations tests', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
@@ -164,7 +170,9 @@ describe('ModelServing - tolerations tests', () => {
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(modelName, projectName);
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(modelName);
@@ -172,16 +180,18 @@ describe('ModelServing - tolerations tests', () => {
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
-      validateInferenceServiceTolerations(
-        projectName,
-        modelName, // InferenceService name
-        {
-          key: 'test-taint',
-          operator: 'Equal',
-          effect: tolerationValue,
-        },
-      ).then(() => {
-        cy.log(`✅ Toleration value "${tolerationValue}" displays in the pod as expected`);
+      cy.get<string>('@resourceName').then((resourceName) => {
+        validateInferenceServiceTolerations(
+          projectName,
+          resourceName, // InferenceService name
+          {
+            key: 'test-taint',
+            operator: 'Equal',
+            effect: tolerationValue,
+          },
+        ).then(() => {
+          cy.log(`✅ Toleration value "${tolerationValue}" displays in the pod as expected`);
+        });
       });
     },
   );

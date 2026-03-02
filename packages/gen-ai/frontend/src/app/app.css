@@ -59,3 +59,8 @@ body,
 .pf-v6-c-accordion__item.pf-m-expanded:hover .pf-v6-c-accordion__toggle {
   background-color: transparent !important;
 }
+
+/* Add padding to inline-compact clipboard copy inside popovers */
+.pf-v6-c-popover .pf-v6-c-clipboard-copy.pf-m-inline {
+  padding: var(--pf-t--global--spacer--xs);
+}

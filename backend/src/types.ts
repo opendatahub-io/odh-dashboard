@@ -51,12 +51,14 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
-      autoRag: boolean;
+      automl: boolean;
+      autorag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
       maasApiKeys: boolean;
+      deploymentWizardYAMLViewer: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -999,10 +1001,17 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
+  monitoring?: {
+    namespace?: string;
+  };
 };
 
 export type DataScienceClusterInitializationKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: {
+    monitoring?: {
+      namespace?: string;
+    };
+  };
   status: DataScienceClusterInitializationKindStatus;
 };
 

@@ -83,5 +83,16 @@ data:
             }
           }
         ]
+      },
+      {
+        "name": "mlflowEmbedded",
+        "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
+        "authorize": true,
+        "tls": true,
+        "service": {
+            "name": "mlflow",
+            "namespace": "opendatahub",
+            "port": 8443
+        }
       }
     ]

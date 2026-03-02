@@ -213,6 +213,19 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
+export type CreateModelTransferJob = (
+  opts: APIOptions,
+  data: CreateModelTransferJobData,
+) => Promise<ModelTransferJob>;
+
+export type UpdateModelTransferJob = (
+  opts: APIOptions,
+  jobId: string,
+  data: Partial<ModelTransferJob>,
+) => Promise<ModelTransferJob>;
+
+export type DeleteModelTransferJob = (opts: APIOptions, jobId: string) => Promise<void>;
+
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersionForRegisteredModel: CreateModelVersionForRegisteredModel;
@@ -227,6 +240,9 @@ export type ModelRegistryAPIs = {
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;
   listModelTransferJobs: GetListModelTransferJobs;
+  createModelTransferJob: CreateModelTransferJob;
+  updateModelTransferJob: UpdateModelTransferJob;
+  deleteModelTransferJob: DeleteModelTransferJob;
 };
 
 // Model Transfer Job Types
@@ -260,6 +276,8 @@ export type ModelTransferJobS3Source = {
   type: ModelTransferJobSourceType.S3;
   bucket: string;
   key: string;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
   region?: string;
   endpoint?: string;
 };
@@ -267,6 +285,9 @@ export type ModelTransferJobS3Source = {
 export type ModelTransferJobOCISource = {
   type: ModelTransferJobSourceType.OCI;
   uri: string;
+  username: string;
+  password: string;
+  email?: string;
   registry?: string;
 };
 
@@ -291,6 +312,9 @@ export type ModelTransferJobS3Destination = {
 export type ModelTransferJobOCIDestination = {
   type: ModelTransferJobDestinationType.OCI;
   uri: string;
+  username: string;
+  password: string;
+  email?: string;
   registry?: string;
 };
 
@@ -307,17 +331,30 @@ export type ModelTransferJob = {
   uploadIntent: ModelTransferJobUploadIntent;
   registeredModelId?: string;
   registeredModelName?: string;
+  modelDescription?: string;
   modelVersionId?: string;
   modelVersionName?: string;
+  versionDescription?: string;
   modelArtifactId?: string;
   modelArtifactName?: string;
+  sourceModelFormat?: string;
+  sourceModelFormatVersion?: string;
   namespace?: string;
   author?: string;
   status: ModelTransferJobStatus;
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
   errorMessage?: string;
+  modelCustomProperties?: ModelRegistryCustomProperties;
+  versionCustomProperties?: ModelRegistryCustomProperties;
+  sourceSecretName?: string;
+  destSecretName?: string;
 };
+
+export type CreateModelTransferJobData = Omit<
+  ModelTransferJob,
+  'id' | 'createTimeSinceEpoch' | 'lastUpdateTimeSinceEpoch'
+>;
 
 export type ModelTransferJobList = ModelRegistryListParams & { items: ModelTransferJob[] };
 

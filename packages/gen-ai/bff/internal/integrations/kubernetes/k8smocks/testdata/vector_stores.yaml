@@ -1,0 +1,43 @@
+version: 1
+vectorStores:
+  - name: pgvector-store
+    displayName: "Product Embeddings (PGVector)"
+    provider_type: "remote::pgvector"
+    collection: product_embeddings
+    config:
+      host: pgvector.databases.svc.cluster.local
+      port: 5432
+      db: embeddings
+    credentialSecret:
+      name: pgvector-credentials
+      key: connection-string
+    embedding:
+      model_id: ibm-granite/granite-embedding-125m-english
+      dimension: 768
+    description: "Product catalog embeddings for semantic search"
+    owner: platform-team
+    domain: e-commerce
+  - name: qdrant-store
+    displayName: "Document Search (Qdrant)"
+    provider_type: "remote::qdrant"
+    collection: documents
+    config:
+      url: https://qdrant.vector.svc.cluster.local:6334
+    tlsSecretRef:
+      name: qdrant-tls
+      key: ca.crt
+    embedding:
+      model_id: ibm-granite/granite-embedding-125m-english
+      dimension: 768
+    description: "Document search index for internal knowledge base"
+    owner: data-team
+    domain: knowledge-management
+  - name: milvus-store
+    provider_type: "remote::milvus"
+    collection: code_vectors
+    config:
+      uri: http://milvus.vector.svc.cluster.local:19530
+    embedding:
+      model_id: unknown-embedding-model
+      dimension: 384
+    description: "Code embeddings for repository search"

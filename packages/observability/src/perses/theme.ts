@@ -27,7 +27,6 @@ import {
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 
 // Override eChart defaults with PatternFly colors.
-const patternflyBlue300 = '#2b9af3';
 const patternflyBlue400 = '#0066cc';
 const patternflyBlue500 = '#004080';
 const patternflyBlue600 = '#002952';
@@ -408,7 +407,8 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
 
 export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChartsTheme } => {
   const { theme: contextTheme } = useThemeContext();
-  const theme: PatternFlyTheme = contextTheme === 'dark' ? 'dark' : 'light';
+  const isDark = contextTheme === 'dark';
+  const theme: PatternFlyTheme = isDark ? 'dark' : 'light';
 
   return React.useMemo(() => {
     const muiTheme = getTheme(theme, {
@@ -418,6 +418,9 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
       ...mapPatterflyThemeToMUI(theme),
     });
 
+    // PatternFly default text color as hex (ECharts does not resolve CSS variables)
+    const defaultTextColor = isDark ? t_color_white.value : t_color_gray_95.value;
+
     const chartsTheme: PersesChartsTheme = generateChartsTheme(muiTheme, {
       echartsTheme: {
         color: patternflyChartsMultiUnorderedPalette,
@@ -426,11 +429,11 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
         },
       },
       thresholds: {
-        defaultColor: patternflyBlue300,
+        defaultColor: defaultTextColor,
         palette: defaultPaletteColors,
       },
     });
 
     return { muiTheme, chartsTheme };
-  }, [theme]);
+  }, [theme, isDark]);
 };

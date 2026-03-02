@@ -28,8 +28,8 @@ const (
 	mockLSDName = "mock-lsd"
 )
 
-// generateMockShieldID creates a unique shield ID based on type, model name, and index
-func generateMockShieldID(shieldType, modelName string, index int) string {
+// generateMockShieldID creates a unique shield ID based on type and model name
+func generateMockShieldID(shieldType, modelName string, _ int) string {
 	// Sanitize model name for use in shield ID
 	sanitized := strings.ReplaceAll(modelName, "/", "_")
 	sanitized = strings.ReplaceAll(sanitized, " ", "_")
@@ -75,31 +75,13 @@ func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE_BEARER_TOKEN", nil
 }
 
-// GetNamespaces returns mock namespace data for testing
+// GetNamespaces lists namespaces from the envtest cluster
 func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error) {
-	// Return mock test namespaces instead of real cluster data
-	return []corev1.Namespace{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mock-test-namespace-1",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mock-test-namespace-2",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mock-test-namespace-3",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mock-test-namespace-4",
-			},
-		},
-	}, nil
+	var nsList corev1.NamespaceList
+	if err := m.Client.List(ctx, &nsList); err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+	return nsList.Items, nil
 }
 
 // GetAAModels returns mock AA models for testing, namespace-scoped
@@ -488,7 +470,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		Data: map[string]string{
 			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
 - datasetio
 - files
@@ -703,55 +685,6 @@ func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Con
 	}
 
 	return targetLSD, nil
-}
-
-func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
-	// Return mock ConfigMap for testing
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: map[string]string{
-			"brave": `{
-  "url": "http://localhost:9090/sse",
-  "transport": "sse",
-  "description": "Search the Internet using Brave Search."
-}`,
-			"kubernetes": `{
-  "url": "http://localhost:9091/mcp",
-  "description": "Manage resources in a Kubernetes cluster.",
-  "logo": "https://kubernetes.io/images/kubernetes-horizontal-color.png"
-}`,
-			"default-transport": `{
-  "url": "http://localhost:9092/default-transport",
-  "description": "Server with default transport (streamable-http)."
-}`,
-			"invalid-transport": `{
-  "url": "http://localhost:9093/invalid-transport",
-  "transport": "invalid-transport-type",
-  "description": "Server with invalid transport field."
-}`,
-			"unavailable-server": `{
-  "url": "https://mcp-unavailable:8080/sse",
-  "transport": "sse",
-  "description": "Server that is not reachable for testing error scenarios."
-}`,
-			"error-server": `{
-  "url": "https://mcp-error:8080/mcp",
-  "description": "Server that returns authentication errors for testing."
-}`,
-			"github-copilot": `{
-  "url": "https://api.githubcopilot.com/mcp",
-  "description": "GitHub Copilot MCP server with advanced kubectl tools.",
-			"logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
-		}`,
-			"high-tools-server": `{
-  "url": "http://localhost:9094/high-tools",
-  "description": "Server with 5 tools for testing"
-}`,
-		},
-	}, nil
 }
 
 // CanListLlamaStackDistributions returns mock permission check for testing

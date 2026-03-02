@@ -3,6 +3,11 @@ import {
   Alert,
   AlertVariant,
   Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Flex,
   FlexItem,
   Modal,
@@ -15,11 +20,13 @@ import {
   ProgressStep,
   ProgressStepper,
   ProgressStepVariant,
+  Skeleton,
   Stack,
   StackItem,
   Tab,
   Tabs,
   TabTitleText,
+  Title,
 } from '@patternfly/react-core';
 import {
   t_global_icon_color_brand_default as BrandIconColor,
@@ -35,12 +42,24 @@ import { InfoCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
+import useClusterQueue from '#~/utilities/useClusterQueue';
+import useAssignedFlavor from '#~/utilities/useAssignedFlavor';
+import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import {
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+  type KueueWorkloadStatusWithMessage,
+} from '#~/concepts/kueue/types';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
+const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
+const RESOURCES_TAB = 'Resources';
 
 const progressVariants = {
   [EventStatus.PENDING]: ProgressStepVariant.pending,
@@ -58,6 +77,7 @@ type StartNotebookModalProps = {
   isStopping: boolean;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
   onClose?: () => void;
   buttons: React.ReactNode;
 };
@@ -75,6 +95,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   isStarting,
   isRunning,
   isStopping,
+  kueueStatus: kueueStatusProp,
   onClose,
   buttons,
 }) => {
@@ -83,7 +104,37 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const notebookProgress = useNotebookProgress(notebook, isRunning, isStopping, isStopped, events);
   const inProgress = !isStopped && (isStarting || isStopping || !isRunning);
+  const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
+  const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
+  const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
+  const kueueStatus = kueueStatusProp;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+
+  React.useEffect(() => {
+    if (!showResourcesTab && activeTab === RESOURCES_TAB) {
+      setActiveTab(PROGRESS_TAB);
+    }
+  }, [showResourcesTab, activeTab]);
+  const localQueueName = notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
+  const clusterQueueName = getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
+  const shouldShowResources = Boolean(isProjectKueueEnabled && localQueueName && clusterQueueName);
+  const {
+    clusterQueue,
+    loaded: clusterQueueLoaded,
+    error: clusterQueueError,
+  } = useClusterQueue(shouldShowResources ? clusterQueueName : undefined);
+  const workloadNamespace =
+    shouldShowResources && project.metadata.name ? project.metadata.name : undefined;
+  const assignedFlavorName = useAssignedFlavor(
+    workloadNamespace,
+    localQueueName ?? undefined,
+    notebook != null ? notebook.metadata.name : undefined,
+  );
+  const quotaSource = clusterQueue?.spec.cohort ?? '-';
+  const consumedResources = clusterQueue
+    ? getAllConsumedResources(clusterQueue, assignedFlavorName)
+    : [];
+  const hasClusterQueueError = Boolean(clusterQueueError);
 
   React.useEffect(() => {
     if (isStarting && !isRunning) {
@@ -110,7 +161,14 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [isRunning, isStarting, notebookStatus]);
 
   const renderLastUpdate = () => {
-    if (isRunning || isStopped || (spawnStatus?.status !== AlertVariant.danger && !inProgress)) {
+    const showKueueMessage =
+      kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status);
+    const showKueueStatusWhenStopped = isStopped && showKueueMessage;
+    if (
+      isRunning ||
+      (isStopped && !showKueueMessage) ||
+      (spawnStatus?.status !== AlertVariant.danger && !inProgress && !showKueueStatusWhenStopped)
+    ) {
       return null;
     }
 
@@ -126,13 +184,15 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         color = RegularColor.var;
     }
 
-    const title =
+    const kueueTitle = showKueueMessage ? kueueStatus.message?.trim() || kueueStatus.status : null;
+    const workbenchTitle =
       notebookStatus?.currentEvent ||
       (isStarting
         ? 'Waiting for server request to start...'
         : isStopping
         ? 'Shutting down the server...'
         : 'Creating resources...');
+    const title = kueueTitle ?? workbenchTitle;
 
     return (
       <StackItem>
@@ -197,6 +257,96 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     </Panel>
   );
 
+  const renderResources = () => {
+    if (!isProjectKueueEnabled || !localQueueName || !clusterQueueName) {
+      return (
+        <Content data-testid="resources-no-queue">
+          No cluster queue information for this workbench.
+        </Content>
+      );
+    }
+
+    if (!clusterQueueLoaded && !hasClusterQueueError) {
+      return (
+        <Stack hasGutter>
+          <StackItem>
+            <Skeleton data-testid="cluster-queue-section" />
+          </StackItem>
+          <StackItem>
+            <Skeleton data-testid="quotas-section" />
+          </StackItem>
+        </Stack>
+      );
+    }
+
+    return (
+      <Stack hasGutter={false}>
+        <StackItem>
+          <DescriptionList
+            isHorizontal
+            horizontalTermWidthModifier={{ default: '5ch' }}
+            data-testid="cluster-queue-section"
+            isCompact
+          >
+            <Title headingLevel="h6" size="md">
+              Cluster queue
+            </Title>
+            <DescriptionListGroup>
+              <DescriptionListTerm style={{ fontWeight: 'normal' }}>Queue:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="queue-value">
+                {clusterQueueName}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        </StackItem>
+        <StackItem className="pf-v6-u-mt-md pf-v6-u-mb-md">
+          <Stack hasGutter data-testid="quotas-section">
+            <StackItem>
+              <Title headingLevel="h6" size="md">
+                Quotas and consumption
+              </Title>
+            </StackItem>
+            <StackItem>
+              <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '10ch' }}>
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+                    Quota source:
+                  </DescriptionListTerm>
+                  <DescriptionListDescription data-testid="quota-source-value">
+                    {hasClusterQueueError ? '-' : quotaSource}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            </StackItem>
+            {hasClusterQueueError ? (
+              <StackItem>
+                <Content>Unable to load consumption data.</Content>
+              </StackItem>
+            ) : (
+              consumedResources.map((resource) => (
+                <StackItem key={resource.name}>
+                  <Content component={ContentVariants.dd}>
+                    {resource.label.charAt(0).toUpperCase() + resource.label.slice(1)}
+                  </Content>
+                  <Stack hasGutter={false} className="pf-v6-u-pl-md">
+                    <StackItem>
+                      <Content>Total: {resource.total}</Content>
+                    </StackItem>
+                    <StackItem>
+                      <Content data-testid="consumed-quota-value">
+                        Consumed: {resource.consumed} ({resource.percentage}%)
+                      </Content>
+                    </StackItem>
+                  </Stack>
+                </StackItem>
+              ))
+            )}
+          </Stack>
+        </StackItem>
+      </Stack>
+    );
+  };
+
   const renderProgress = () => (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} style={{ height: '100%' }}>
       <FlexItem>
@@ -235,6 +385,19 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     </Flex>
   );
 
+  const renderActiveTabContent = (): React.ReactNode => {
+    switch (activeTab) {
+      case PROGRESS_TAB:
+        return renderProgress();
+      case EVENT_LOG_TAB:
+        return renderLogs();
+      case RESOURCES_TAB:
+        return renderResources();
+      default:
+        return renderProgress();
+    }
+  };
+
   return (
     <Modal
       appendTo={document.body}
@@ -254,6 +417,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 isStopping={isStopping}
                 isRunning={isRunning}
                 notebookStatus={notebookStatus}
+                kueueStatus={kueueStatus}
               />
             </FlexItem>
           </Flex>
@@ -281,10 +445,18 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
                 data-testid="expand-logs"
               />
+              {showResourcesTab && (
+                <Tab
+                  eventKey={RESOURCES_TAB}
+                  aria-label={RESOURCES_TAB}
+                  title={<TabTitleText>{RESOURCES_TAB}</TabTitleText>}
+                  data-testid="expand-resources"
+                />
+              )}
             </Tabs>
           </StackItem>
           <StackItem isFilled className="start-notebook-modal__filled-stack-item">
-            {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
+            {renderActiveTabContent()}
           </StackItem>
         </Stack>
       </ModalBody>

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Card, CardBody } from '@patternfly/react-core';
 import { ResponseMetrics } from '~/app/types';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 
 interface ChatbotPaneProps {
@@ -33,38 +34,42 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   children,
   metrics,
   isLoading,
-}) => (
-  <Card
-    isFullHeight
-    isPlain
-    style={{ boxShadow: 'none', display: 'flex', flexDirection: 'column', height: '100%' }}
-    data-testid={`chatbot-pane-${configId}`}
-    role="region"
-    aria-label={displayLabel}
-  >
-    <ChatbotPaneHeader
-      label={displayLabel}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      onSettingsClick={onSettingsClick}
-      onCloseClick={onClose}
-      metrics={metrics}
-      isLoading={isLoading}
-      hasDivider
-      testIdPrefix={`chatbot-pane-${configId}`}
-    />
-    <CardBody
-      style={{
-        padding: 0,
-        overflow: 'hidden',
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+}) => {
+  const isDarkMode = useDarkMode();
+  return (
+    <Card
+      isFullHeight
+      isPlain
+      style={{ boxShadow: 'none', display: 'flex', flexDirection: 'column', height: '100%' }}
+      data-testid={`chatbot-pane-${configId}`}
+      role="region"
+      aria-label={displayLabel}
     >
-      {children}
-    </CardBody>
-  </Card>
-);
+      <ChatbotPaneHeader
+        label={displayLabel}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        onSettingsClick={onSettingsClick}
+        onCloseClick={onClose}
+        metrics={metrics}
+        isLoading={isLoading}
+        hasDivider
+        testIdPrefix={`chatbot-pane-${configId}`}
+        isDarkMode={isDarkMode}
+      />
+      <CardBody
+        style={{
+          padding: 0,
+          overflow: 'hidden',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {children}
+      </CardBody>
+    </Card>
+  );
+};
 
 export default ChatbotPane;

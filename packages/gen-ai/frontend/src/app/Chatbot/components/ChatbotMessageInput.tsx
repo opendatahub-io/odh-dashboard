@@ -115,7 +115,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           }}
         />
       </div>
-      <div style={{ textAlign: 'center' }}>
+      <div style={{ paddingTop: '1rem', textAlign: 'center' }}>
         <ChatbotFootnote label="This chatbot uses AI. Check for mistakes." />
       </div>
     </div>

@@ -48,6 +48,7 @@ describe('NavigationBlockerModal', () => {
     render(<NavigationBlockerModal hasUnsavedChanges />);
 
     expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+    expect(screen.getByText('Warning alert:')).toBeInTheDocument();
     expect(
       screen.getByText(/One or more of your changes on this page are not saved yet/),
     ).toBeInTheDocument();

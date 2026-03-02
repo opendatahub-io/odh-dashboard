@@ -38,9 +38,13 @@ const initialFilterData: ModelTransferJobsFilterDataType = {
 
 type ModelTransferJobsListViewProps = {
   jobs: ModelTransferJob[];
+  onRequestDelete?: (job: ModelTransferJob) => void;
 };
 
-const ModelTransferJobsListView: React.FC<ModelTransferJobsListViewProps> = ({ jobs }) => {
+const ModelTransferJobsListView: React.FC<ModelTransferJobsListViewProps> = ({
+  jobs,
+  onRequestDelete,
+}) => {
   const [filterData, setFilterData] =
     React.useState<ModelTransferJobsFilterDataType>(initialFilterData);
 
@@ -52,7 +56,6 @@ const ModelTransferJobsListView: React.FC<ModelTransferJobsListViewProps> = ({ j
 
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), [setFilterData]);
 
-  // Filter jobs based on all filter criteria
   const filteredJobs = React.useMemo(() => {
     const jobNameFilter = filterData[ModelTransferJobsFilterOptions.jobName]?.toLowerCase();
     const modelNameFilter = filterData[ModelTransferJobsFilterOptions.modelName]?.toLowerCase();
@@ -172,6 +175,7 @@ const ModelTransferJobsListView: React.FC<ModelTransferJobsListViewProps> = ({ j
       jobs={filteredJobs}
       clearFilters={onClearFilters}
       toolbarContent={toggleGroupItems}
+      onRequestDelete={onRequestDelete}
     />
   );
 };
