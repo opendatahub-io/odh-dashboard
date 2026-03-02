@@ -487,8 +487,11 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
   Cypress.log({ displayName: 'findSelectOption', message: name });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
+      // Ensure element is stable before clicking
+      cy.wrap($el).should('exist').should('be.visible');
       cy.wrap($el).click({ force: true });
-      cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
+      // Wait for the menu to expand, with retry
+      cy.wrap($el, { timeout: 10000 }).should('have.attr', 'aria-expanded', 'true');
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
@@ -520,8 +523,11 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
   Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
+      // Ensure element is stable before clicking
+      cy.wrap($el).should('exist').should('be.visible');
       cy.wrap($el).click({ force: true });
-      cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
+      // Wait for the menu to expand, with retry
+      cy.wrap($el, { timeout: 10000 }).should('have.attr', 'aria-expanded', 'true');
     }
     return cy.wrap($el).parent().findByTestId(testId);
   });
