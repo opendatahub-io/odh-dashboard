@@ -1,6 +1,15 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 
+export const MIN_RAG_PATTERNS = 1;
+export const MAX_RAG_PATTERNS = 10;
+
+export const EXPERIMENT_SETTINGS_FIELDS = [
+  'optimization',
+  'embeddings_constraints',
+  'generation_constraints',
+] as const;
+
 const dataReferenceSchema = z.object({
   connection_id: z.string(),
   bucket: z.string(),
@@ -21,7 +30,10 @@ function getBaseSchema() {
     results_reference: dataReferenceSchema.default(dataReferenceDefault),
     optimization: z
       .object({
-        max_number_of_rag_patterns: z.number().min(1).max(10),
+        max_number_of_rag_patterns: z
+          .number()
+          .min(MIN_RAG_PATTERNS, `Minimum number of RAG patterns is ${MIN_RAG_PATTERNS}`)
+          .max(MAX_RAG_PATTERNS, `Maximum number of RAG patterns is ${MAX_RAG_PATTERNS}`),
         metric: z.enum(['faithfulness', 'answer_correctness', 'context_correctness']),
       })
       .default({

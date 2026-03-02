@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -19,6 +19,7 @@ const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
+    mode: 'onChange',
     resolver: zodResolver(configureSchema),
     defaultValues: configureSchema.parse({}),
   });
@@ -96,11 +97,77 @@ describe('ExperimentSettings', () => {
     });
   });
 
+  describe('Form validation', () => {
+    const changeMaxRagPatterns = (value: string) => {
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value } });
+    };
+
+    it('should disable the Save button when no changes have been made', () => {
+      renderComponent();
+      expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+    });
+
+    it('should enable the Save button when a field is changed', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByTestId('metric-radio-answer_correctness'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+    });
+
+    it('should disable the Save button when there are field errors', async () => {
+      renderComponent();
+      changeMaxRagPatterns('11');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+    });
+
+    it('should show error message when max RAG patterns exceeds the maximum', async () => {
+      renderComponent();
+      changeMaxRagPatterns('11');
+
+      await waitFor(() => {
+        expect(screen.getByText('Maximum number of RAG patterns is 10')).toBeInTheDocument();
+      });
+    });
+
+    it('should show error message when max RAG patterns is below the minimum', async () => {
+      renderComponent();
+      changeMaxRagPatterns('0');
+
+      await waitFor(() => {
+        expect(screen.getByText('Minimum number of RAG patterns is 1')).toBeInTheDocument();
+      });
+    });
+
+    it('should re-enable the Save button when a field error is corrected', async () => {
+      renderComponent();
+      changeMaxRagPatterns('11');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+
+      changeMaxRagPatterns('5');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+    });
+  });
+
   describe('Save and Cancel actions', () => {
     it('should call saveChanges when Save is clicked', async () => {
       const user = userEvent.setup();
       renderComponent();
 
+      await user.click(screen.getByTestId('metric-radio-answer_correctness'));
       await user.click(screen.getByTestId('experiment-settings-save'));
       expect(defaultProps.saveChanges).toHaveBeenCalledTimes(1);
     });

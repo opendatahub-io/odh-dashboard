@@ -1,6 +1,5 @@
 import {
   Button,
-  FormGroup,
   FormHelperText,
   Grid,
   GridItem,
@@ -21,7 +20,12 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  EXPERIMENT_SETTINGS_FIELDS,
+  MIN_RAG_PATTERNS,
+  MAX_RAG_PATTERNS,
+} from '~/app/schemas/configure.schema';
 import ExperimentSettingsModelSelection from './components/ExperimentSettingsModelSelection';
 
 const OPTIMIZATION_METRICS: {
@@ -46,9 +50,6 @@ const OPTIMIZATION_METRICS: {
   },
 ];
 
-const MIN_RAG_PATTERNS = 1;
-const MAX_RAG_PATTERNS = 10;
-
 type ExperimentSettingsProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -62,7 +63,13 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
   revertChanges,
   saveChanges,
 }) => {
-  const { control } = useFormContext<ConfigureSchema>();
+  const {
+    control,
+    formState: { errors, dirtyFields },
+  } = useFormContext<ConfigureSchema>();
+
+  const areFieldsDirty = EXPERIMENT_SETTINGS_FIELDS.some((field) => dirtyFields[field]);
+  const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
 
   return (
     <Modal
@@ -83,8 +90,11 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
           <StackItem className="pf-v6-u-mt-lg">
             <Grid hasGutter>
               <GridItem span={8}>
-                <Title headingLevel="h4" className="pf-v6-u-mb-md">
+                <Title headingLevel="h6" className="pf-v6-u-mb-md">
                   Metric to optimize
+                  <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                    {' *'}
+                  </span>
                 </Title>
                 <Controller
                   control={control}
@@ -116,11 +126,14 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
                 />
               </GridItem>
               <GridItem span={4}>
+                <Title headingLevel="h4" className="pf-v6-u-mb-md">
+                  Max RAG patterns
+                </Title>
                 <Controller
                   control={control}
                   name="optimization.max_number_of_rag_patterns"
                   render={({ field, fieldState }) => (
-                    <FormGroup fieldId="max-rag-patterns" label="Max RAG patterns">
+                    <>
                       <NumberInput
                         id="max-rag-patterns"
                         value={field.value}
@@ -146,7 +159,7 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
                           </HelperText>
                         </FormHelperText>
                       )}
-                    </FormGroup>
+                    </>
                   )}
                 />
               </GridItem>
@@ -155,7 +168,12 @@ const ExperimentSettings: React.FC<ExperimentSettingsProps> = ({
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={saveChanges} data-testid="experiment-settings-save">
+        <Button
+          variant="primary"
+          onClick={saveChanges}
+          isDisabled={!areFieldsDirty || hasFieldErrors}
+          data-testid="experiment-settings-save"
+        >
           Save
         </Button>
         <Button
