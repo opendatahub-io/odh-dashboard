@@ -8,18 +8,22 @@ jest.mock('@odh-dashboard/internal/components/table/Table', () => {
   const MockTable = ({
     data,
     rowRenderer,
+    emptyTableView,
     'data-testid': dataTestId,
   }: {
     data: PipelineRun[];
     rowRenderer: (run: PipelineRun) => React.ReactNode;
+    emptyTableView?: React.ReactNode;
     'data-testid'?: string;
   }) => (
     <div data-testid={dataTestId ?? 'mock-table'}>
-      {data.map((run) => (
-        <div key={run.run_id} data-testid={`table-row-${run.run_id}`}>
-          {rowRenderer(run)}
-        </div>
-      ))}
+      {data.length === 0 && emptyTableView
+        ? emptyTableView
+        : data.map((run) => (
+            <div key={run.run_id} data-testid={`table-row-${run.run_id}`}>
+              {rowRenderer(run)}
+            </div>
+          ))}
     </div>
   );
   return { __esModule: true, default: MockTable };
@@ -65,5 +69,13 @@ describe('AutoragRunsTable', () => {
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
     expect(screen.getByTestId('run-name-r2')).toHaveTextContent('Run Two');
+  });
+
+  it('should render empty view when there are no runs', () => {
+    render(<AutoragRunsTable runs={[]} />);
+
+    expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-view')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-view')).toHaveTextContent('Empty');
   });
 });
