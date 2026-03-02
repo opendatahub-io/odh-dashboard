@@ -27,7 +27,7 @@ Add the `bffConfig` object to your package's `package.json`:
   "bffConfig": {
     "enabled": true,
     "port": 9102,
-    "healthEndpoint": "/api/health",
+    "healthEndpoint": "/healthcheck",
     "startCommand": "make dev-bff-e2e-mock",
     "startCommandCluster": "make dev-bff-e2e-cluster"
   }
@@ -40,7 +40,7 @@ Add the `bffConfig` object to your package's `package.json`:
 |-------|----------|-------------|
 | `enabled` | Yes | Set to `true` to enable BFF auto-start |
 | `port` | Yes | Port the BFF listens on (must be unique per package) |
-| `healthEndpoint` | Yes | Endpoint to check BFF readiness (e.g., `/api/health`) |
+| `healthEndpoint` | Yes | Endpoint to check BFF readiness (e.g., `/healthcheck`) |
 | `startCommand` | Yes | Command to start BFF in mock mode (no cluster required) |
 | `startCommandCluster` | Yes | Command to start BFF connected to cluster |
 
@@ -96,7 +96,7 @@ Ensure your BFF has a health endpoint that returns HTTP 200 when ready. Example:
 
 ```go
 // In your BFF router setup
-router.GET("/api/health", func(c *gin.Context) {
+router.GET("/healthcheck", func(c *gin.Context) {
     c.JSON(200, gin.H{"status": "healthy"})
 })
 ```
@@ -140,15 +140,15 @@ npm run cypress:run -- --env grepTags="@YourPackageCI"
 
 Currently, the following packages have BFF E2E support:
 
-| Package | Port | CI Tag |
-|---------|------|--------|
-| automl | 9106 | @AutoMLCI |
-| autorag | 9107 | @AutoRAGCI |
-| eval-hub | 9105 | @EvalHubCI |
-| gen-ai | 9102 | @GenAICI |
-| maas | 9104 | @MaaSCI |
-| mlflow | 9110 | @MLflowCI |
-| model-registry | 9100 | @ModelRegistryCI |
+| Package | Frontend Port | BFF Port | CI Tag |
+|---------|---------------|----------|--------|
+| automl | 9106 | 4001 | @AutoMLCI |
+| autorag | 9107 | 4001 | @AutoRAGCI |
+| eval-hub | 9105 | 4002 | @EvalHubCI |
+| gen-ai | 9102 | 8080 | @GenAICI |
+| maas | 9104 | 8081 | @MaaSCI |
+| mlflow | 9110 | 4020 | @MLflowCI |
+| model-registry | 9100 | 4000 | @ModelRegistryCI |
 
 ## Troubleshooting
 
@@ -182,9 +182,9 @@ The CI pipeline uses dynamic port allocation based on `github.run_id`. If you en
 │  ┌──────────────┐                                                            │
 │  │   Frontend   │    BFF Services (started dynamically based on changes):    │
 │  │   Webpack    │    ┌─────────────────────────────────────────────────────┐ │
-│  │   :4000+     │    │ automl:9106  autorag:9107  eval-hub:9105            │ │
-│  └──────┬───────┘    │ gen-ai:9102  maas:9104     mlflow:9110              │ │
-│         │            │ model-registry:9100                                  │ │
+│  │   :4000+     │    │ automl:4001  autorag:4001  eval-hub:4002            │ │
+│  └──────┬───────┘    │ gen-ai:8080  maas:8081     mlflow:4020              │ │
+│         │            │ model-registry:4000                                  │ │
 │         │            └─────────────────────────────┬───────────────────────┘ │
 │         │                                          │                          │
 │         └──────────────────┬───────────────────────┘                          │
