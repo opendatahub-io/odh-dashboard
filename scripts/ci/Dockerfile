@@ -63,6 +63,7 @@ RUN dnf install --nodocs -y \
     dbus-x11 \
     dbus-daemon \
     procps-ng \
+    httpd-tools \
     "$CHROME"
 
 # Create D-Bus directories and socket for Cypress/Electron
