@@ -3,6 +3,7 @@ import {
   handleRestFailures,
   UserSettings,
   isModArchResponse,
+  restDELETE,
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
@@ -73,6 +74,33 @@ export const getEvaluationJobs =
       throw new Error('Invalid response format');
     });
   };
+
+export const cancelEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${jobId}`,
+        {},
+        { namespace },
+        opts,
+      ),
+    ).then(() => undefined);
+
+export const deleteEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${jobId}`,
+        {},
+        // eslint-disable-next-line camelcase
+        { namespace, hard_delete: 'true' },
+        opts,
+      ),
+    ).then(() => undefined);
 
 export const getCollections =
   (hostPath: string, namespace: string) =>

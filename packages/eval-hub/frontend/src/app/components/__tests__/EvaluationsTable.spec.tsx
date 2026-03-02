@@ -5,10 +5,12 @@ import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
+const mockOnRefresh = jest.fn();
+
 const renderTable = (props: { evaluations: EvaluationJob[]; loaded: boolean }) =>
   render(
     <MemoryRouter>
-      <EvaluationsTable {...props} />
+      <EvaluationsTable {...props} onRefresh={mockOnRefresh} />
     </MemoryRouter>,
   );
 

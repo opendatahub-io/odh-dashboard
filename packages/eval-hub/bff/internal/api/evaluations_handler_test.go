@@ -42,3 +42,33 @@ func TestEvaluationJobsHandlerWithQueryParams(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Len(t, result.Data, 5)
 }
+
+func TestCancelEvaluationJobHandler(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[CancelEvaluationJobEnvelope](
+		http.MethodDelete,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "ok", result.Data)
+}
+
+func TestCancelEvaluationJobHandlerHardDelete(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[CancelEvaluationJobEnvelope](
+		http.MethodDelete,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001?namespace=test-ns&hard_delete=true",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "ok", result.Data)
+}

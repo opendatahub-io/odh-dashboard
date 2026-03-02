@@ -81,9 +81,16 @@ const getFilterValue = (job: EvaluationJob, filterType: FilterOption): string =>
 type EvaluationsTableProps = {
   evaluations: EvaluationJob[];
   loaded: boolean;
+  namespace?: string;
+  onRefresh: () => void;
 };
 
-const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded }) => {
+const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
+  evaluations,
+  loaded,
+  namespace,
+  onRefresh,
+}) => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
@@ -298,7 +305,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
           </Thead>
           <Tbody>
             {paginatedEvaluations.map((job, rowIndex) => (
-              <EvaluationsTableRow key={job.resource.id} job={job} rowIndex={rowIndex} />
+              <EvaluationsTableRow
+                key={job.resource.id}
+                job={job}
+                rowIndex={rowIndex}
+                namespace={namespace}
+                onActionComplete={onRefresh}
+              />
             ))}
           </Tbody>
         </Table>

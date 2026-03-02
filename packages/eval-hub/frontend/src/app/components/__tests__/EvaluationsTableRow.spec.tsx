@@ -1,19 +1,41 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
+import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+
+jest.mock('~/app/api/k8s', () => ({
+  cancelEvaluationJob: jest.fn(),
+  deleteEvaluationJob: jest.fn(),
+}));
+
+const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
+const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
+
+const mockOnActionComplete = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
   return render(
     <Table aria-label="test">
       <Tbody>
-        <EvaluationsTableRow job={job} rowIndex={rowIndex} />
+        <EvaluationsTableRow
+          job={job}
+          rowIndex={rowIndex}
+          namespace="test-ns"
+          onActionComplete={mockOnActionComplete}
+        />
       </Tbody>
     </Table>,
   );
 };
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+});
 
 describe('EvaluationsTableRow', () => {
   it('should render the evaluation name', () => {
@@ -131,13 +153,82 @@ describe('EvaluationsTableRow', () => {
       expect(screen.queryByText('Delete evaluation run')).not.toBeInTheDocument();
     });
 
-    it('should close modal when Confirm is clicked', () => {
-      renderRow({ state: 'completed' });
+    it('should call cancelEvaluationJob when stop is confirmed', async () => {
+      renderRow({ state: 'running', id: 'eval-job-001' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Stop'));
+
+      fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
+
+      await waitFor(() => {
+        expect(mockCancelEvaluationJob).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001');
+      });
+      expect(mockOnActionComplete).toHaveBeenCalled();
+    });
+
+    it('should call deleteEvaluationJob when delete is confirmed', async () => {
+      renderRow({ state: 'completed', id: 'eval-job-002' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Delete'));
 
       fireEvent.click(screen.getByTestId('evaluation-delete-confirm'));
-      expect(screen.queryByText('Delete evaluation run')).not.toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(mockDeleteEvaluationJob).toHaveBeenCalledWith('', 'test-ns', 'eval-job-002');
+      });
+      expect(mockOnActionComplete).toHaveBeenCalled();
+    });
+
+    it('should show stopping status while cancel request is in flight', async () => {
+      let resolveCancel: () => void;
+      const cancelPromise = new Promise<void>((resolve) => {
+        resolveCancel = resolve;
+      });
+      mockCancelEvaluationJob.mockReturnValue(() => cancelPromise);
+
+      renderRow({ state: 'running', id: 'eval-job-004' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Stop'));
+      fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status-label-stopping')).toBeInTheDocument();
+      });
+
+      resolveCancel!();
+      await waitFor(() => {
+        expect(mockOnActionComplete).toHaveBeenCalled();
+      });
+    });
+
+    it('should revert to original state and reopen modal when cancel API fails', async () => {
+      mockCancelEvaluationJob.mockReturnValue(() => Promise.reject(new Error('Cancel failed')));
+
+      renderRow({ state: 'running', id: 'eval-job-005' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Stop'));
+      fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Cancel failed')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+      expect(mockOnActionComplete).not.toHaveBeenCalled();
+    });
+
+    it('should show error alert when delete API call fails', async () => {
+      mockDeleteEvaluationJob.mockReturnValue(() => Promise.reject(new Error('Network error')));
+
+      renderRow({ state: 'completed', id: 'eval-job-003' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Delete'));
+
+      fireEvent.click(screen.getByTestId('evaluation-delete-confirm'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Network error')).toBeInTheDocument();
+      });
+      expect(mockOnActionComplete).not.toHaveBeenCalled();
     });
   });
 });

@@ -13,6 +13,35 @@ import (
 const maxLimit = 100
 
 type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, None]
+type CancelEvaluationJobEnvelope Envelope[string, None]
+
+func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := ps.ByName("id")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("evaluation job id is required"))
+		return
+	}
+
+	hardDelete := r.URL.Query().Get("hard_delete") == "true"
+
+	if err := client.CancelEvaluationJob(ctx, id, hardDelete); err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to cancel evaluation job: %w", err))
+		return
+	}
+
+	envelope := CancelEvaluationJobEnvelope{Data: "ok"}
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
