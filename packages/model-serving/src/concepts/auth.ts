@@ -95,7 +95,7 @@ export const useDeploymentAuthTokens = (
       (secret) =>
         secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
     );
-  }, [projectSecrets, deployment?.model.metadata.name, deployment?.model.metadata.namespace]);
+  }, [projectSecrets, deployment]);
 
   return { data: deploymentSecrets, loaded, error, refresh };
 };

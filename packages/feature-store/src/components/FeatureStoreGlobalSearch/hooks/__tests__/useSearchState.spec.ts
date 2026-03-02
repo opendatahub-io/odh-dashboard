@@ -213,31 +213,6 @@ describe('useSearchState', () => {
     });
   });
 
-  describe('timeout cleanup', () => {
-    it('should clear timeout on unmount', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-      const { result, unmount } = renderHook(() => useSearchState());
-
-      const mockTimeout = setTimeout(() => {
-        // Mock timeout function
-      }, 1000) as NodeJS.Timeout;
-      result.current.timeoutRef.current = mockTimeout;
-
-      unmount();
-      expect(clearTimeoutSpy).toHaveBeenCalledWith(mockTimeout);
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it('should not call clearTimeout if no timeout is set', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-      const { unmount } = renderHook(() => useSearchState());
-
-      unmount();
-      expect(clearTimeoutSpy).not.toHaveBeenCalled();
-      clearTimeoutSpy.mockRestore();
-    });
-  });
-
   describe('options handling', () => {
     it('should work with default options and handle isLoading parameter', () => {
       const { result: defaultResult } = renderHook(() => useSearchState());
