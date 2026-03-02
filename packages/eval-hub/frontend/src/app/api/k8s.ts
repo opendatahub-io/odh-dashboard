@@ -6,7 +6,14 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { Collection, NamespaceKind, Provider, ProvidersResponse } from '~/app/types';
+import {
+  Collection,
+  EvaluationJob,
+  ListEvaluationJobsParams,
+  NamespaceKind,
+  Provider,
+  ProvidersResponse,
+} from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -32,6 +39,39 @@ export const getNamespaces =
       throw new Error('Invalid response format');
     });
 
+export const getEvaluationJobs =
+  (hostPath: string, params?: ListEvaluationJobsParams) =>
+  (opts: APIOptions): Promise<EvaluationJob[]> => {
+    const queryParams: Record<string, string> = {};
+    if (params?.namespace) {
+      queryParams.namespace = params.namespace;
+    }
+    if (params?.limit != null) {
+      queryParams.limit = String(params.limit);
+    }
+    if (params?.offset != null) {
+      queryParams.offset = String(params.offset);
+    }
+    if (params?.status) {
+      queryParams.status = params.status;
+    }
+    if (params?.name) {
+      queryParams.name = params.name;
+    }
+    if (params?.tags) {
+      queryParams.tags = params.tags;
+    }
+
+    return handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+    ).then((response) => {
+      if (isModArchResponse<EvaluationJob[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
 export const getCollections =
   (hostPath: string, namespace: string) =>
   (opts: APIOptions): Promise<Collection[]> =>
@@ -45,7 +85,6 @@ export const getCollections =
     ).then((response) => {
       if (isModArchResponse<{ items: Collection[] } | Collection[]>(response)) {
         const { data } = response;
-        // Guard: handle both raw array and envelope shapes.
         return Array.isArray(data) ? data : data.items;
       }
       throw new Error('Invalid response format');
@@ -64,7 +103,6 @@ export const getProviders =
     ).then((response) => {
       if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
         const { data } = response;
-        // Guard: handle both raw array and envelope shapes.
         return Array.isArray(data) ? data : data.items;
       }
       throw new Error('Invalid response format');
