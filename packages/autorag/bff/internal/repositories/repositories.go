@@ -14,9 +14,8 @@ type Repositories struct {
 }
 
 func NewRepositories(logger *slog.Logger) *Repositories {
-	if logger == nil {
-		logger = slog.Default()
-	}
+	// logger parameter is reserved for future use when repository constructors need logging
+	_ = logger
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),

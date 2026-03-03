@@ -14,8 +14,6 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 |-----------|------|----------|-------------|
 | `resource` | string | **Yes** | The namespace name to query secrets from |
 | `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `lls` for LLS (Llama Stack) secrets, or omit for all secrets |
-| `limit` | integer | No | Maximum number of secrets to return (default: all) |
-| `offset` | integer | No | Number of secrets to skip for pagination (default: 0) |
 
 ## Functionality
 
@@ -29,9 +27,8 @@ The endpoint:
    - The `type` field indicates which secret type matches (e.g., "s3", "lls")
    - If a secret doesn't match any known type, the `type` field is an empty string
    - If a secret matches multiple types, the first matching type is returned
-4. Supports pagination using `limit` and `offset` parameters for all filter types
-5. Requires authentication via the InjectRequestIdentity middleware
-6. Validates the `type` parameter and returns 400 Bad Request for invalid values
+4. Requires authentication via the InjectRequestIdentity middleware
+5. Validates the `type` parameter and returns 400 Bad Request for invalid values
 
 ### Secret Type Filtering
 
@@ -128,18 +125,6 @@ Response:
 }
 ```
 
-### List secrets with pagination
-
-```bash
-GET /api/v1/secrets?resource=my-namespace&limit=10&offset=0
-```
-
-### List storage secrets with pagination
-
-```bash
-GET /api/v1/secrets?resource=my-namespace&type=storage&limit=10&offset=0
-```
-
 ## Implementation Details
 
 ### Files Created/Modified
@@ -222,14 +207,6 @@ A secret missing any of these required keys would NOT match and would be exclude
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-insensitive, so `LLAMA_STACK_CLIENT_API_KEY` and `llama_stack_client_api_key` are treated as equivalent.
 
-### Pagination
-
-Pagination is implemented at the repository level:
-- `limit`: Specifies the maximum number of results to return
-- `offset`: Specifies the number of results to skip before returning data
-- If `limit` is 0 or not provided, all results after the offset are returned
-- If `offset` exceeds the number of available secrets, an empty list is returned
-
 ## Testing
 
 The implementation includes comprehensive tests covering:
@@ -238,10 +215,8 @@ The implementation includes comprehensive tests covering:
   - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-insensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
-- **Pagination**: Various combinations of limit and offset for all filter types (storage, LLS, and no type)
 - **Empty result sets**: No matching secrets for different filter types
 - **Error cases**: Missing parameters, invalid parameters
-- **Edge cases**: Offset beyond available data
 
 Run tests with:
 ```bash
