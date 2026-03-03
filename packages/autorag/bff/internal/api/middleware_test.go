@@ -60,7 +60,7 @@ func TestAttachNamespace(t *testing.T) {
 
 		var capturedNamespace string
 		app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			capturedNamespace = r.Context().Value(constants.NamespaceQueryParameterKey).(string)
+			capturedNamespace = r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
@@ -78,7 +78,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace))
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
 		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -103,7 +103,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -132,7 +132,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		reqCtx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		reqCtx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		reqCtx = context.WithValue(reqCtx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
 		req = req.WithContext(reqCtx)
 		rr := httptest.NewRecorder()
@@ -171,7 +171,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace))
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
 		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -196,7 +196,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -223,7 +223,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -250,7 +250,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -278,7 +278,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -328,7 +328,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testNamespace)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -410,7 +410,7 @@ func TestRequireAccessToService(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
 		// add a namespace so we enter block to test for namespace access
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
@@ -434,7 +434,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "invalid-token"})
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
@@ -457,7 +457,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
@@ -480,7 +480,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
@@ -503,7 +503,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 

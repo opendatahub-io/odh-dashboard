@@ -23,7 +23,6 @@ import (
 
 type TokenKubernetesClient struct {
 	SharedClientLogic
-	restConfig *rest.Config
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(_ *RequestIdentity) (bool, error) {
@@ -101,10 +100,9 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 			Client:        clientset,
 			RuntimeClient: runtimeClient,
 			Logger:        logger,
-			// Token is retained for follow-up calls; do not log it.
-			Token: NewBearerToken(token),
+			Token:         NewBearerToken(token),
+			RestConfig:    cfg,
 		},
-		restConfig: cfg,
 	}, nil
 }
 
@@ -112,7 +110,7 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 // This allows downstream code to access the underlying configuration
 // for creating additional clients (e.g., dynamic clients).
 func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
-	return kc.restConfig
+	return kc.RestConfig
 }
 
 // RequestIdentity is unused because the token already represents the user identity.
@@ -169,6 +167,37 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	}
 	if !resp.Status.Allowed {
 		kc.Logger.Error("self-SAR denied", "service", serviceName, "namespace", namespace)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+// RequestIdentity is unused because the token already represents the user identity.
+func (kc *TokenKubernetesClient) CanListDSPipelineApplications(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "datasciencepipelinesapplications.opendatahub.io",
+				Resource:  "datasciencepipelinesapplications",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check permissions for listing pipeline servers", "namespace", namespace, "error", err)
+		return false, err
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user does not have permission to list pipeline servers in namespace", "namespace", namespace)
 		return false, nil
 	}
 
@@ -238,7 +267,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.restConfig)
+	config := rest.CopyConfig(kc.RestConfig)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 

@@ -14,6 +14,8 @@ import (
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
+	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -27,20 +29,22 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/autorag"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	Version          = "1.0.0"
+	PathPrefix       = "/autorag"
+	ApiPathPrefix    = "/api/v1"
+	HealthCheckPath  = "/healthcheck"
+	UserPath         = ApiPathPrefix + "/user"
+	NamespacePath    = ApiPathPrefix + "/namespaces"
+	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
 type App struct {
-	config                  config.EnvConfig
-	logger                  *slog.Logger
-	kubernetesClientFactory k8s.KubernetesClientFactory
-	llamaStackClientFactory ls.LlamaStackClientFactory
-	repositories            *repositories.Repositories
+	config                      config.EnvConfig
+	logger                      *slog.Logger
+	kubernetesClientFactory     k8s.KubernetesClientFactory
+	llamaStackClientFactory     ls.LlamaStackClientFactory
+	pipelineServerClientFactory ps.PipelineServerClientFactory
+	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -123,14 +127,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClientFactory = ls.NewRealClientFactory()
 	}
 
+	// Initialize Pipeline Server client factory
+	var pipelineServerClientFactory ps.PipelineServerClientFactory
+	if cfg.MockPipelineServerClient {
+		logger.Info("Using mock Pipeline Server client factory")
+		pipelineServerClientFactory = psmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real Pipeline Server client factory")
+		pipelineServerClientFactory = ps.NewRealClientFactory()
+	}
+
 	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: llamaStackClientFactory,
-		repositories:            repositories.NewRepositories(),
-		testEnv:                 testEnv,
-		rootCAs:                 rootCAs,
+		config:                      cfg,
+		logger:                      logger,
+		kubernetesClientFactory:     k8sFactory,
+		llamaStackClientFactory:     llamaStackClientFactory,
+		pipelineServerClientFactory: pipelineServerClientFactory,
+		repositories:                repositories.NewRepositories(logger),
+		testEnv:                     testEnv,
+		rootCAs:                     rootCAs,
 	}
 	return app, nil
 }
@@ -156,10 +171,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
-	// LlamaStack API endpoints
-
 	//LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+
+	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
