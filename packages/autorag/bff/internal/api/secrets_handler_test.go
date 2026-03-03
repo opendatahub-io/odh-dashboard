@@ -139,9 +139,11 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 	assert.Equal(t, "uid-1", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-secret-1", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
+	assert.Equal(t, []string{"aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"}, envelope.Data[0].AvailableKeys)
 	assert.Equal(t, "uid-2", envelope.Data[1].UUID)
 	assert.Equal(t, "s3-secret-2", envelope.Data[1].Name)
 	assert.Equal(t, "s3", envelope.Data[1].Type)
+	assert.Equal(t, []string{"aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"}, envelope.Data[1].AvailableKeys)
 }
 
 func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
@@ -204,8 +206,11 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Len(t, envelope.Data, 3) // All 3 secrets should match (case-insensitive)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
+	assert.Equal(t, []string{"AWS_ACCESS_KEY_ID", "AWS_DEFAULT_REGION", "AWS_S3_ENDPOINT", "AWS_SECRET_ACCESS_KEY"}, envelope.Data[0].AvailableKeys)
 	assert.Equal(t, "s3", envelope.Data[1].Type)
+	assert.Equal(t, []string{"aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"}, envelope.Data[1].AvailableKeys)
 	assert.Equal(t, "s3", envelope.Data[2].Type)
+	assert.Equal(t, []string{"Aws_Access_Key_Id", "Aws_Default_Region", "Aws_S3_Endpoint", "Aws_Secret_Access_Key"}, envelope.Data[2].AvailableKeys)
 }
 
 func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
@@ -275,15 +280,19 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 	assert.Equal(t, "uid-1", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-secret", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
+	assert.Equal(t, []string{"aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"}, envelope.Data[0].AvailableKeys)
 	assert.Equal(t, "uid-lls", envelope.Data[1].UUID)
 	assert.Equal(t, "lls-secret", envelope.Data[1].Name)
 	assert.Equal(t, "lls", envelope.Data[1].Type)
+	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[1].AvailableKeys)
 	assert.Equal(t, "uid-2", envelope.Data[2].UUID)
 	assert.Equal(t, "other-secret", envelope.Data[2].Name)
 	assert.Equal(t, "", envelope.Data[2].Type)
+	assert.Equal(t, []string{"password"}, envelope.Data[2].AvailableKeys)
 	assert.Equal(t, "uid-3", envelope.Data[3].UUID)
 	assert.Equal(t, "database-secret", envelope.Data[3].Name)
 	assert.Equal(t, "", envelope.Data[3].Type)
+	assert.Equal(t, []string{"db_connection"}, envelope.Data[3].AvailableKeys)
 }
 
 func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
@@ -352,9 +361,11 @@ func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
 	assert.Equal(t, "uid-lls-1", envelope.Data[0].UUID)
 	assert.Equal(t, "lls-secret-1", envelope.Data[0].Name)
 	assert.Equal(t, "lls", envelope.Data[0].Type)
+	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[0].AvailableKeys)
 	assert.Equal(t, "uid-lls-2", envelope.Data[1].UUID)
 	assert.Equal(t, "lls-secret-2", envelope.Data[1].Name)
 	assert.Equal(t, "lls", envelope.Data[1].Type)
+	assert.Equal(t, []string{"llama_stack_client_api_key", "llama_stack_client_base_url"}, envelope.Data[1].AvailableKeys)
 }
 
 func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
@@ -411,8 +422,11 @@ func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Len(t, envelope.Data, 3) // All 3 secrets should match (case-insensitive)
 	assert.Equal(t, "lls", envelope.Data[0].Type)
+	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[0].AvailableKeys)
 	assert.Equal(t, "lls", envelope.Data[1].Type)
+	assert.Equal(t, []string{"llama_stack_client_api_key", "llama_stack_client_base_url"}, envelope.Data[1].AvailableKeys)
 	assert.Equal(t, "lls", envelope.Data[2].Type)
+	assert.Equal(t, []string{"Llama_Stack_Client_Api_Key", "Llama_Stack_Client_Base_Url"}, envelope.Data[2].AvailableKeys)
 }
 
 func TestGetSecretsHandler_TypeLls_EmptyList(t *testing.T) {
@@ -644,4 +658,117 @@ func TestGetSecretsHandler_UnauthorizedError(t *testing.T) {
 	assert.NoError(t, err)
 	// Unauthorized errors should return 401 status code
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+}
+
+func TestGetSecretsHandler_AvailableKeys_Sorted(t *testing.T) {
+	// Create a secret with keys in unsorted order to verify alphabetical sorting
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "unsorted-keys-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-unsorted"),
+			},
+			Data: map[string][]byte{
+				"zebra_key":  []byte("value1"),
+				"apple_key":  []byte("value2"),
+				"middle_key": []byte("value3"),
+				"banana_key": []byte("value4"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+
+	// Verify keys are sorted alphabetically
+	expectedKeys := []string{"apple_key", "banana_key", "middle_key", "zebra_key"}
+	assert.Equal(t, expectedKeys, envelope.Data[0].AvailableKeys, "Keys should be sorted alphabetically")
+}
+
+func TestGetSecretsHandler_AvailableKeys_EmptySecret(t *testing.T) {
+	// Create a secret with no keys
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "empty-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-empty"),
+			},
+			Data: map[string][]byte{},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+
+	// Verify empty secret returns empty array
+	assert.Equal(t, []string{}, envelope.Data[0].AvailableKeys, "Empty secret should return empty array of keys")
+}
+
+func TestGetSecretsHandler_AvailableKeys_DataAndStringData(t *testing.T) {
+	// Create a secret with keys in both Data and StringData
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mixed-data-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-mixed"),
+			},
+			Data: map[string][]byte{
+				"data_key_1": []byte("value1"),
+				"data_key_2": []byte("value2"),
+			},
+			StringData: map[string]string{
+				"string_key_1": "string_value1",
+				"string_key_2": "string_value2",
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+
+	// Verify all keys from both Data and StringData are included and sorted
+	expectedKeys := []string{"data_key_1", "data_key_2", "string_key_1", "string_key_2"}
+	assert.Equal(t, expectedKeys, envelope.Data[0].AvailableKeys, "Should include keys from both Data and StringData, sorted alphabetically")
 }

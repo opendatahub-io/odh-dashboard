@@ -222,11 +222,12 @@ components:
           example: true
 
     SecretListItem:
-      description: A Kubernetes secret with its UUID, name, and type classification
+      description: A Kubernetes secret with its UUID, name, type classification, and available keys
       required:
         - uuid
         - name
         - type
+        - availableKeys
       type: object
       properties:
         uuid:
@@ -246,6 +247,12 @@ components:
             - 'lls': Llama Stack secret (has required LLS keys)
             - '': Empty string if the secret doesn't match any recognized type
           example: s3
+        availableKeys:
+          type: array
+          items:
+            type: string
+          description: Sorted list of all keys available in the secret (without values). Keys are case-preserved and sorted alphabetically.
+          example: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
 
     # Pipeline Run Schemas
     PipelineRun:
@@ -593,9 +600,11 @@ components:
                   - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
                     name: aws-secret-1
                     type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: aws-secret-2
                     type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
             llsSecrets:
               summary: Example response with LLS (Llama Stack) secrets
               value:
@@ -603,9 +612,11 @@ components:
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
                     name: llama-stack-secret-1
                     type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
                   - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
                     name: llama-stack-secret-2
                     type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
             allSecrets:
               summary: Example response with all secrets (no type filter)
               value:
@@ -613,12 +624,15 @@ components:
                   - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
                     name: s3-secret
                     type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
                     name: lls-secret
                     type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: other-secret
                     type: ""
+                    availableKeys: ["password", "username"]
             emptyList:
               summary: Example response with no matching secrets
               value:

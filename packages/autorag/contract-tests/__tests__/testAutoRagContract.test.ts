@@ -50,6 +50,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+
+        // Verify availableKeys field exists and is an array
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
+        }
       });
 
       it('should retrieve storage secrets when type=storage', async () => {
@@ -58,6 +69,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+
+        // Verify availableKeys field exists and is an array
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
+        }
       });
 
       it('should retrieve lls secrets when type=lls', async () => {
@@ -66,6 +88,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+
+        // Verify availableKeys field exists and is an array
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
+        }
       });
     });
 

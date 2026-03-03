@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -91,10 +92,14 @@ func (r *SecretRepository) GetFilteredSecrets(
 			responseType = getSecretType(secret)
 		}
 
+		// Extract and sort available keys from the secret
+		availableKeys := extractAndSortKeys(secret)
+
 		secretListItems = append(secretListItems, models.NewSecretListItem(
 			string(secret.UID),
 			secret.Name,
 			responseType,
+			availableKeys,
 		))
 	}
 
@@ -181,4 +186,33 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 		}
 	}
 	return true
+}
+
+// extractAndSortKeys extracts all keys from a secret's Data and StringData fields,
+// removes duplicates, and returns them sorted alphabetically.
+// Keys are case-preserved (returned exactly as they appear in the secret).
+func extractAndSortKeys(secret corev1.Secret) []string {
+	// Use a map to track unique keys (case-preserved)
+	keySet := make(map[string]bool)
+
+	// Extract keys from Data
+	for key := range secret.Data {
+		keySet[key] = true
+	}
+
+	// Extract keys from StringData (avoiding duplicates)
+	for key := range secret.StringData {
+		keySet[key] = true
+	}
+
+	// Convert map to slice
+	keys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		keys = append(keys, key)
+	}
+
+	// Sort alphabetically
+	sort.Strings(keys)
+
+	return keys
 }
