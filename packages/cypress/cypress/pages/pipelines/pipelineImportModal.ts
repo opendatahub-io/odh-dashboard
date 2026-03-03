@@ -98,7 +98,7 @@ class PipelineImportModal extends Modal {
     // Use a longer timeout for files that take time to process/validate
     this.findSubmitButton()
       .should('not.be.disabled', { timeout: 20000 })
-      .should('not.have.class', 'pf-m-progress')
+      .should('not.have.class', 'pf-m-progress', { timeout: 20000 })
       .click();
   }
 }
