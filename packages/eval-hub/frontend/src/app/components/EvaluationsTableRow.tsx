@@ -22,7 +22,7 @@ import EvaluationStatusLabel from './EvaluationStatusLabel';
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
   rowIndex: number;
-  namespace?: string;
+  namespace: string;
   onActionComplete: () => void;
 };
 
@@ -33,7 +33,7 @@ type ConfirmAction = 'stop' | 'delete' | null;
 const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
   rowIndex,
-  namespace = '',
+  namespace,
   onActionComplete,
 }) => {
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
@@ -52,6 +52,10 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   }, [isInProgress]);
 
   const handleConfirm = async () => {
+    if (!namespace) {
+      setActionError('Namespace is required to perform this action');
+      return;
+    }
     const isStop = confirmAction === 'stop';
     setIsSubmitting(true);
     setActionError(null);
