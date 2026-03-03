@@ -813,8 +813,10 @@ func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identit
 }
 
 // GenerateProviderID generates a mock provider ID for testing
+// GenerateProviderID delegates to the real implementation to properly count existing providers
 func (m *TokenKubernetesClientMock) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
-	return "1", nil
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.GenerateProviderID(ctx, identity, namespace)
 }
 
 // CreateExternalModelSecret creates a mock Secret for testing
@@ -832,28 +834,11 @@ func (m *TokenKubernetesClientMock) CreateExternalModelSecret(ctx context.Contex
 	return m.Client.Create(ctx, secret)
 }
 
-// CreateOrUpdateExternalModelConfigMap creates or updates the mock external models ConfigMap for testing
+// CreateOrUpdateExternalModelConfigMap delegates to the real implementation
+// to properly test the ConfigMap creation logic
 func (m *TokenKubernetesClientMock) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
-	// For mock, just create a simple ConfigMap
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gen-ai-aa-external-models",
-			Namespace: namespace,
-		},
-		Data: map[string]string{
-			"config.yaml": "providers:\n  inference: []\nregistered_resources:\n  models: []\n",
-		},
-	}
-
-	// Check if ConfigMap exists
-	existingCM := &corev1.ConfigMap{}
-	err := m.Client.Get(ctx, client.ObjectKey{Name: configMap.Name, Namespace: namespace}, existingCM)
-	if err != nil {
-		// Create new ConfigMap
-		return m.Client.Create(ctx, configMap)
-	}
-	// Update existing ConfigMap
-	return m.Client.Update(ctx, configMap)
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req)
 }
 
 // DeleteSecret deletes a mock Secret for testing

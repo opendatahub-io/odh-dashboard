@@ -116,7 +116,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			{models.ProviderTypeVLLM, "llama-2"},
 		}
 
-		for _, p := range providers {
+		for i, p := range providers {
 			requestBody := models.ExternalModelRequest{
 				ModelID:          p.modelID,
 				ModelDisplayName: "Test Model",
@@ -132,8 +132,12 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
 			assert.NoError(t, err)
 
+			// Use different namespaces for each iteration
+			// Each namespace gets its own ConfigMap, so each will have provider ID 1 (which is correct)
+			namespaces := []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4"}
+			namespace := namespaces[i]
 			ctx := context.Background()
-			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 				Token: "FAKE_BEARER_TOKEN",
 			})
@@ -165,7 +169,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.NoError(t, err)
 
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})

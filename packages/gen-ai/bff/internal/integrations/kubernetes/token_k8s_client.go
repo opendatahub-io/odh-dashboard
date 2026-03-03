@@ -1955,11 +1955,11 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	}
 
 	if err := kc.Client.Create(ctx, secret); err != nil {
-		kc.Logger.Error("failed to create Secret", "error", err, "namespace", namespace, "secretName", secretName)
-		return fmt.Errorf("failed to create Secret: %w", err)
+		kc.Logger.Error("failed to create secret", "error", err, "namespace", namespace, "secretName", secretName)
+		return fmt.Errorf("failed to create secret: %w", err)
 	}
 
-	kc.Logger.Info("successfully created Secret", "namespace", namespace, "secretName", secretName)
+	kc.Logger.Info("successfully created secret", "namespace", namespace, "secretName", secretName)
 	return nil
 }
 
