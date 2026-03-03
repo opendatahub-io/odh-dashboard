@@ -83,7 +83,7 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
         aria-label={`Toggle ${row.displayName}`}
       />
       <Td dataLabel="Role">
-        <RoleDetailsLink roleRef={row.roleRef} role={row.role} showAssigneesTab={false} />
+        <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
       </Td>
       <Td dataLabel="Description">{getRoleDescription(row.roleRef, row.role) ?? '-'}</Td>
       <Td dataLabel="Role type">
