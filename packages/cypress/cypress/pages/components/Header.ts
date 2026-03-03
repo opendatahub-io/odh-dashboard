@@ -10,6 +10,10 @@ export class Header {
   findUnauthorizedErrorSection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[data-testid="unauthorized-error"]');
   }
+
+  findUnauthorizedErrorTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid="unauthorized-error-title"]');
+  }
 }
 
 export const header = new Header();

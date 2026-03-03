@@ -79,7 +79,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findModelRegistryRow(registryName).should('exist');
       modelRegistrySettings
         .findModelRegistryRow(registryName)
-        .contains('Available', { timeout: 120000 })
+        .contains(testData.statusAvailable, { timeout: 120000 })
         .should('be.visible');
 
       cy.step('Verify model registry is created on the backend');
@@ -87,7 +87,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
       cy.step('Delete the model registry');
       modelRegistrySettings.findModelRegistryRow(registryName).findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete model registry' }).click();
+      modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(registryName);
       modelRegistrySettings.findSubmitButton().click();
 
@@ -117,7 +117,10 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findDatabaseSourceExternalRadio().click();
       modelRegistrySettings.selectDatabaseType(DatabaseType.POSTGRES);
       modelRegistrySettings.findFormField(FormFieldSelector.HOST).type(postgresDbName);
-      modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('5432');
+      modelRegistrySettings
+        .findFormField(FormFieldSelector.PORT)
+        .clear()
+        .type(testData.defaultPostgresPort);
       modelRegistrySettings
         .findFormField(FormFieldSelector.USERNAME)
         .clear()
@@ -126,14 +129,14 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.DATABASE)
         .clear()
-        .type('model-registry');
+        .type(testData.defaultDatabaseName);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
       modelRegistrySettings.findModelRegistryRow(postgresRegistryName).should('exist');
       modelRegistrySettings
         .findModelRegistryRow(postgresRegistryName)
-        .contains('Available', { timeout: 120000 })
+        .contains(testData.statusAvailable, { timeout: 120000 })
         .should('be.visible');
 
       cy.step('Verify model registry is created on the backend');
@@ -141,7 +144,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
       cy.step('Delete the model registry');
       modelRegistrySettings.findModelRegistryRow(postgresRegistryName).findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete model registry' }).click();
+      modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(postgresRegistryName);
       modelRegistrySettings.findSubmitButton().click();
 
@@ -176,7 +179,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findModelRegistryRow(defaultDbName).should('exist');
       modelRegistrySettings
         .findModelRegistryRow(defaultDbName)
-        .contains('Available', { timeout: 300000 })
+        .contains(testData.statusAvailable, { timeout: 300000 })
         .should('be.visible');
 
       cy.step('Verify model registry is created on the backend');
@@ -188,7 +191,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
       cy.step('Delete the model registry with default database');
       modelRegistrySettings.findModelRegistryRow(defaultDbName).findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete model registry' }).click();
+      modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(defaultDbName);
       modelRegistrySettings.findSubmitButton().click();
 
