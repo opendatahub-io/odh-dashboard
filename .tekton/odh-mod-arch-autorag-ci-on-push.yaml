@@ -1,21 +1,24 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
+#
 metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" 
+      && target_branch == "main"
+      && ( "packages/autorag/**".pathChanged()
+            || ".tekton/odh-mod-arch-autorag-ci-on-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-mlflow
+    appstudio.openshift.io/component: odh-mod-arch-autorag-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-mlflow-on-pull-request
+  name: odh-mod-arch-autorag-ci-on-push
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -24,16 +27,11 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-mlflow:odh-pr
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/opendatahub/odh-mod-arch-autorag:odh-stable
   - name: dockerfile
-    value: packages/mlflow/Dockerfile.workspace
+    value: packages/autorag/Dockerfile.workspace
   - name: path-context
     value: .
-  - name: additional-tags
-    value:
-    - 'odh-pr-{{revision}}'
   pipelineRef:
     resolver: git
     params:
@@ -44,7 +42,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-mlflow
+    serviceAccountName: build-pipeline-odh-mod-arch-autorag-ci
   workspaces:
   - name: git-auth
     secret:
