@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -146,6 +147,12 @@ func (app *App) DeleteExternalModelHandler(w http.ResponseWriter, r *http.Reques
 	// Delete external model
 	err = app.repositories.ExternalModels.DeleteExternalModel(client, ctx, identity, namespace, modelID)
 	if err != nil {
+		// Check if the error is a "not found" error
+		if strings.Contains(err.Error(), "not found") {
+			// Return 404 when the model is not found
+			app.notFoundResponse(w, r)
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}

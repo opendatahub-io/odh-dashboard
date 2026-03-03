@@ -463,7 +463,7 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 		assert.Equal(t, http.StatusNoContent, deleteRR.Code)
 	})
 
-	It("should return 500 when trying to delete a non-existent model", func() {
+	It("should return 404 when trying to delete a non-existent model", func() {
 		t := GinkgoT()
 
 		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external/non-existent-model?namespace=mock-test-namespace-1", nil)
@@ -487,7 +487,8 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 
 		app.DeleteExternalModelHandler(deleteRR, deleteReq, mockParams)
 
-		assert.Equal(t, http.StatusInternalServerError, deleteRR.Code)
+		// Should return 404 when model is not found
+		assert.Equal(t, http.StatusNotFound, deleteRR.Code)
 
 		var response map[string]interface{}
 		err = json.Unmarshal(deleteRR.Body.Bytes(), &response)
@@ -501,7 +502,15 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 
 		code, codeExists := errorMap["code"]
 		assert.True(t, codeExists, "Error map should contain 'code' field")
-		assert.Equal(t, "500", code)
+		assert.Equal(t, "404", code)
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "could not be found")
 	})
 
 	It("should return 400 when namespace is missing", func() {

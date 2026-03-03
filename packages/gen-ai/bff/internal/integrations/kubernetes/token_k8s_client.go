@@ -2156,9 +2156,11 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	}
 
 	// Find and remove the provider, and get the secret name
+	providerFound := false
 	for i, provider := range config.Providers.Inference {
 		if provider.ProviderID == providerIDToDelete {
 			secretNameToDelete = provider.Config.CustomGenAI.APIKey.SecretRef.Name
+			providerFound = true
 
 			// Remove the provider from the list
 			config.Providers.Inference = append(
@@ -2167,6 +2169,10 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 			)
 			break
 		}
+	}
+
+	if !providerFound {
+		return fmt.Errorf("provider %s not found in ConfigMap (model exists but provider is missing)", providerIDToDelete)
 	}
 
 	// Update the ConfigMap with the modified config
@@ -2186,11 +2192,9 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	// Delete the associated Secret
 	if secretNameToDelete != "" {
 		if err := kc.DeleteSecret(ctx, identity, namespace, secretNameToDelete); err != nil {
-			// Log the error but don't fail the whole operation
-			kc.Logger.Warn("failed to delete associated secret", "error", err, "secretName", secretNameToDelete)
-		} else {
-			kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
+			return fmt.Errorf("failed to delete associated secret %s: %w", secretNameToDelete, err)
 		}
+		kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
 	}
 
 	return nil
