@@ -46,7 +46,6 @@ function getBaseSchema() {
           model: z.string(),
         }),
       )
-      .min(1)
       .default([]),
     generation_constraints: z
       .array(
@@ -54,7 +53,6 @@ function getBaseSchema() {
           model: z.string(),
         }),
       )
-      .min(1)
       .default([]),
     retrieval_constraints: z
       .array(
@@ -63,7 +61,6 @@ function getBaseSchema() {
           number_of_chunks: z.number(),
         }),
       )
-      .min(1)
       .default([]),
   });
 }

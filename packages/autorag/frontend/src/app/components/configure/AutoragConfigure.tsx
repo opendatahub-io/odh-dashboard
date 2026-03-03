@@ -26,6 +26,8 @@ import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
+const configureSchema = createConfigureSchema();
+
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
@@ -34,7 +36,6 @@ function AutoragConfigure(): React.JSX.Element {
   const { data: allModelsData } = useLlamaStackModelsQuery();
   const modelsInitialized = useRef(false);
 
-  const configureSchema = createConfigureSchema();
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema),
