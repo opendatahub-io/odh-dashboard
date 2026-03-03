@@ -382,7 +382,6 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	now := time.Now().UTC()
 	runID := uuid.New().String()
-	pipelineVersionID := uuid.New().String()
 
 	return &models.KFPipelineRun{
 		RunID:        runID,
@@ -392,7 +391,7 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 		StorageState: "AVAILABLE",
 		PipelineVersionReference: &models.PipelineVersionReference{
 			PipelineID:        request.PipelineVersionReference.PipelineID,
-			PipelineVersionID: pipelineVersionID,
+			PipelineVersionID: request.PipelineVersionReference.PipelineVersionID,
 		},
 		RuntimeConfig:  &request.RuntimeConfig,
 		ServiceAccount: "pipeline-runner-dspa",

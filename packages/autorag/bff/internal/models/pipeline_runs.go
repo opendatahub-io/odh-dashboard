@@ -8,6 +8,7 @@ type PipelineRun struct {
 	Description              string                    `json:"description,omitempty"`
 	ExperimentID             string                    `json:"experiment_id,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
 	State                    string                    `json:"state"`
 	StorageState             string                    `json:"storage_state,omitempty"`
 	ServiceAccount           string                    `json:"service_account,omitempty"`

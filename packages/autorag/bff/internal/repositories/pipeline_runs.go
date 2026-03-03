@@ -123,6 +123,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
+		RuntimeConfig:            kfRun.RuntimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -207,7 +208,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelin
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		PipelineVersionReference: models.PipelineVersionReference{
-			PipelineID: constants.AutoRAGPipelineID,
+			PipelineID:        constants.AutoRAGPipelineID,
+			PipelineVersionID: constants.AutoRAGPipelineVersionID,
 		},
 		RuntimeConfig: models.RuntimeConfig{
 			Parameters: params,

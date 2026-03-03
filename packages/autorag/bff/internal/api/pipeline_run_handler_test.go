@@ -79,6 +79,8 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.NotEmpty(t, response.Data.RunID)
 		assert.Equal(t, "test-run", response.Data.DisplayName)
 		assert.Equal(t, "PENDING", response.Data.State)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
 	})
 
 	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
@@ -97,6 +99,8 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.NotNil(t, response.Data)
 		assert.NotEmpty(t, response.Data.RunID)
 		assert.Equal(t, "PENDING", response.Data.State)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
 	})
 
 	t.Run("should accept answer_correctness metric", func(t *testing.T) {
@@ -140,6 +144,8 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "test-run", response.Data.DisplayName)
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["vector_database_id"])
 	})
 }
 
@@ -285,6 +291,27 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "test-run", response.Data.DisplayName)
 		assert.NotEmpty(t, response.Data.State)
 		assert.NotEmpty(t, response.Data.CreatedAt)
+	})
+
+	t.Run("should include runtime_config with submitted parameters", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		params := response.Data.RuntimeConfig.Parameters
+		assert.Equal(t, "test-secret", params["test_data_secret_name"])
+		assert.Equal(t, "test-bucket", params["test_data_bucket_name"])
+		assert.Equal(t, "test-key", params["test_data_key"])
+		assert.Equal(t, "input-secret", params["input_data_secret_name"])
+		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
+		assert.Equal(t, "input-key", params["input_data_key"])
+		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
+		assert.Equal(t, "faithfulness", params["optimization_metric"])
 	})
 
 	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
