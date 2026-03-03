@@ -2192,9 +2192,14 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	// Delete the associated Secret
 	if secretNameToDelete != "" {
 		if err := kc.DeleteSecret(ctx, identity, namespace, secretNameToDelete); err != nil {
-			return fmt.Errorf("failed to delete associated secret %s: %w", secretNameToDelete, err)
+			// If the secret is already gone, that's fine (idempotent)
+			if !apierrors.IsNotFound(err) {
+				return fmt.Errorf("failed to delete associated secret %s: %w", secretNameToDelete, err)
+			}
+			kc.Logger.Info("secret already deleted or not found", "secretName", secretNameToDelete)
+		} else {
+			kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
 		}
-		kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
 	}
 
 	return nil
