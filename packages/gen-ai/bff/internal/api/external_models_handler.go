@@ -1,13 +1,14 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -148,7 +149,7 @@ func (app *App) DeleteExternalModelHandler(w http.ResponseWriter, r *http.Reques
 	err = app.repositories.ExternalModels.DeleteExternalModel(client, ctx, identity, namespace, modelID)
 	if err != nil {
 		// Check if the error is a "not found" error
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, kubernetes.ErrExternalModelNotFound) {
 			// Return 404 when the model is not found
 			app.notFoundResponse(w, r)
 			return

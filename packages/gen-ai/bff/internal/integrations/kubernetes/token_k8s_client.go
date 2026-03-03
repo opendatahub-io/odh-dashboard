@@ -2152,7 +2152,7 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	}
 
 	if !modelFound {
-		return fmt.Errorf("model %s not found in ConfigMap", modelID)
+		return fmt.Errorf("model %s: %w", modelID, ErrExternalModelNotFound)
 	}
 
 	// Find and remove the provider, and get the secret name
