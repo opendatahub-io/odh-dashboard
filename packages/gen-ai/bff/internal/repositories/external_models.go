@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -45,18 +46,26 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
+	// Determine model source type based on URL
+	sourceType := models.ModelSourceTypeExternalProvider
+	if strings.Contains(req.BaseURL, ".svc.cluster.local") {
+		// TODO: Make this configurable from OdhDashboardConfig
+		sourceType = models.ModelSourceTypeExternalCluster
+	}
+
 	// Return AAModel structure for consistent API response
 	return &models.AAModel{
-		ModelName:      req.ModelID,
-		ModelID:        req.ModelID,
-		ServingRuntime: string(req.ProviderType),
-		APIProtocol:    "REST",
-		Version:        "",
-		Usecase:        req.UseCases,
-		Description:    "",
-		Endpoints:      []string{req.BaseURL},
-		Status:         "Running",
-		DisplayName:    req.ModelDisplayName,
-		SAToken:        models.SAToken{},
+		ModelName:       req.ModelID,
+		ModelID:         req.ModelID,
+		ServingRuntime:  string(req.ProviderType),
+		APIProtocol:     "REST",
+		Version:         "",
+		Usecase:         req.UseCases,
+		Description:     "",
+		Endpoints:       []string{req.BaseURL},
+		Status:          "Running",
+		DisplayName:     req.ModelDisplayName,
+		SAToken:         models.SAToken{},
+		ModelSourceType: sourceType,
 	}, nil
 }
