@@ -239,6 +239,22 @@ components:
               type: string
               description: ID of the pipeline version
               example: "22e57c06-030f-4c63-900d-0a808d577899"
+        runtime_config:
+          type: object
+          description: Runtime configuration used for this run, including pipeline parameters
+          nullable: true
+          properties:
+            parameters:
+              type: object
+              description: Key-value map of pipeline parameters
+              additionalProperties: true
+              example:
+                optimization_metric: "faithfulness"
+                test_data_secret_name: "minio-secret"
+                test_data_bucket_name: "autorag"
+            pipeline_root:
+              type: string
+              description: Root output directory for pipeline artifacts
         state:
           type: string
           enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
@@ -638,6 +654,19 @@ components:
               display_name: "my-optimization-run"
               state: "PENDING"
               created_at: "2026-02-25T10:30:00Z"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              runtime_config:
+                parameters:
+                  optimization_metric: "faithfulness"
+                  test_data_secret_name: "minio-secret"
+                  test_data_bucket_name: "autorag"
+                  test_data_key: "test_data.json"
+                  input_data_secret_name: "minio-secret"
+                  input_data_bucket_name: "autorag"
+                  input_data_key: "documents/"
+                  llama_stack_secret_name: "llama-secret"
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run
