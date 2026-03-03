@@ -75,6 +75,67 @@ paths:
       description: Gets the configuration information needed for the UI [TBD]
 
   # =============================================================================
+  # S3 Endpoints
+  # =============================================================================
+
+  /api/v1/s3/files:
+    summary: Retrieve a list of files from an S3 connection.
+    description: >-
+      Retrieves a list of files from an S3-compatible connection.
+      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
+      Returns the file with transfer-encoding: chunked for efficient streaming.
+    get:
+      tags:
+        - S3Operation
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secret_name
+          in: query
+          required: true
+          description: The name of the Kubernetes secret containing S3 credentials
+          schema:
+            type: string
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: true
+          description: The S3 bucket name
+          schema:
+            type: string
+          example: my-bucket
+        - name: path
+          in: query
+          required: true
+          description: The S3 path to filter the results
+          schema:
+            type: string
+          example: /
+      responses:
+        "200":
+          $ref: "#/components/responses/S3GetFilesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getS3Files
+      summary: Get files from S3
+      description: >-
+        Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
+        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
+        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url).
+
+
+  # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
 
@@ -595,6 +656,18 @@ components:
             $ref: "#/components/schemas/Error"
       description: Conflict - Role Binding with the same name already exists
 
+    S3GetFilesResponse:
+      description: S3 response when retrieving files successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                # TODO [Gustavo]: Make a model for this
+                type: object
+                additionalProperties: true
+
   parameters:
     kubeflowUserId:
       in: header
@@ -703,5 +776,7 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: S3Operation
+    description: Operation performed on S3 storage
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
