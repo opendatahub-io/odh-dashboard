@@ -50,7 +50,7 @@ func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, 
 func TestLlamaStackModelsHandler_Success(t *testing.T) {
 	app := newLSDHandlerTestApp(t)
 
-	t.Run("should return categorized models successfully", func(t *testing.T) {
+	t.Run("should return all models successfully", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackModelsHandler(rr, req, nil)
 
@@ -63,26 +63,12 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		// Verify envelope structure
-		assert.Contains(t, response, "data")
-
-		// Verify data structure contains all three arrays
-		dataField := response["data"].(map[string]interface{})
-		assert.Contains(t, dataField, "models")
-		assert.Contains(t, dataField, "llm_models")
-		assert.Contains(t, dataField, "embedding_models")
+		// Verify response contains models array
+		assert.Contains(t, response, "models")
 
 		// Verify models array contains all models (7 total from mock)
-		models := dataField["models"].([]interface{})
+		models := response["models"].([]interface{})
 		assert.Len(t, models, 7, "Should return all 7 models")
-
-		// Verify LLM models array (4 LLM models from mock)
-		llmModels := dataField["llm_models"].([]interface{})
-		assert.Len(t, llmModels, 4, "Should return 4 LLM models")
-
-		// Verify embedding models array (3 embedding models from mock)
-		embeddingModels := dataField["embedding_models"].([]interface{})
-		assert.Len(t, embeddingModels, 3, "Should return 3 embedding models")
 	})
 
 	t.Run("should have correct stable API model structure", func(t *testing.T) {
@@ -97,8 +83,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		dataField := response["data"].(map[string]interface{})
-		models := dataField["models"].([]interface{})
+		models := response["models"].([]interface{})
 
 		// Verify first model has stable public API structure
 		firstModel := models[0].(map[string]interface{})
@@ -114,29 +99,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		assert.Equal(t, "ollama://models/llama3.2:3b", firstModel["resource_path"])
 	})
 
-	t.Run("should correctly categorize LLM models", func(t *testing.T) {
-		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackModelsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response map[string]interface{}
-		body, err := io.ReadAll(rr.Result().Body)
-		assert.NoError(t, err)
-		defer rr.Result().Body.Close()
-		assert.NoError(t, json.Unmarshal(body, &response))
-
-		dataField := response["data"].(map[string]interface{})
-		llmModels := dataField["llm_models"].([]interface{})
-
-		// Verify all models in llm_models have type == "llm"
-		for _, model := range llmModels {
-			m := model.(map[string]interface{})
-			assert.Equal(t, "llm", m["type"].(string), "All models in llm_models should have type='llm'")
-		}
-	})
-
-	t.Run("should return empty arrays when LlamaStack has no models", func(t *testing.T) {
+	t.Run("should return empty array when LlamaStack has no models", func(t *testing.T) {
 		emptyApp := newLSDHandlerTestApp(t)
 		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
@@ -152,32 +115,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		dataField := response["data"].(map[string]interface{})
-		assert.Len(t, dataField["models"].([]interface{}), 0, "Should return empty models array")
-		assert.Len(t, dataField["llm_models"].([]interface{}), 0, "Should return empty llm_models array")
-		assert.Len(t, dataField["embedding_models"].([]interface{}), 0, "Should return empty embedding_models array")
-	})
-
-	t.Run("should correctly categorize embedding models", func(t *testing.T) {
-		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackModelsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response map[string]interface{}
-		body, err := io.ReadAll(rr.Result().Body)
-		assert.NoError(t, err)
-		defer rr.Result().Body.Close()
-		assert.NoError(t, json.Unmarshal(body, &response))
-
-		dataField := response["data"].(map[string]interface{})
-		embeddingModels := dataField["embedding_models"].([]interface{})
-
-		// Verify all models in embedding_models have type == "embedding"
-		for _, model := range embeddingModels {
-			m := model.(map[string]interface{})
-			assert.Equal(t, "embedding", m["type"].(string), "All models in embedding_models should have type='embedding'")
-		}
+		assert.Len(t, response["models"].([]interface{}), 0, "Should return empty models array")
 	})
 }
 

@@ -23,7 +23,5 @@ type LSDModel struct {
 // Note: Always create a bespoke type for list types, this creates minimal work later if implementing pagination
 // as the necessary metadata can be added at a later date without breaking the API.
 type LSDModelsData struct {
-	Models          []LSDModel `json:"models"`           // Complete list of all models
-	LLMModels       []LSDModel `json:"llm_models"`       // Pre-filtered LLM models (type == "llm")
-	EmbeddingModels []LSDModel `json:"embedding_models"` // Pre-filtered embedding models (type == "embedding")
+	Models []LSDModel `json:"models"` // Complete list of all models
 }

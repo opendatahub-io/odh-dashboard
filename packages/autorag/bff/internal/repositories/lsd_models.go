@@ -16,7 +16,7 @@ func NewLSDModelsRepository() *LSDModelsRepository {
 	return &LSDModelsRepository{}
 }
 
-// GetLSDModels retrieves all models from LlamaStack and categorizes them into LLM and embedding models.
+// GetLSDModels retrieves all models from LlamaStack.
 // Translates LlamaStack's native format into our stable public API format.
 func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDModelsData, error) {
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -39,23 +39,8 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 		allModels = append(allModels, lsdModel)
 	}
 
-	llmModels := []models.LSDModel{}
-	embeddingModels := []models.LSDModel{}
-
-	// Categorize models based on the type field
-	for _, model := range allModels {
-		switch model.Type {
-		case "llm":
-			llmModels = append(llmModels, model)
-		case "embedding":
-			embeddingModels = append(embeddingModels, model)
-		}
-	}
-
 	return &models.LSDModelsData{
-		Models:          allModels,
-		LLMModels:       llmModels,
-		EmbeddingModels: embeddingModels,
+		Models: allModels,
 	}, nil
 }
 

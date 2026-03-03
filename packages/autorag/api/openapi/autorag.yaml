@@ -82,7 +82,7 @@ paths:
     summary: List available LSD models
     description: >-
       Lists all available models from LlamaStack Distribution (LSD).
-      Returns models with their identifiers, types, provider information, and resource paths.
+      Returns a flat list of models with their identifiers, types, provider information, and resource paths.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
@@ -235,25 +235,13 @@ components:
           example: "ollama://models/llama3.2:3b"
     LSDModelsData:
       type: object
-      description: List of models with server-side categorization based on type field
+      description: List of all available models from LlamaStack Distribution
       required:
         - models
-        - llm_models
-        - embedding_models
       properties:
         models:
           type: array
           description: Complete list of all available models
-          items:
-            $ref: '#/components/schemas/LSDModel'
-        llm_models:
-          type: array
-          description: Pre-filtered LLM models (type == "llm")
-          items:
-            $ref: '#/components/schemas/LSDModel'
-        embedding_models:
-          type: array
-          description: Pre-filtered embedding models (type == "embedding")
           items:
             $ref: '#/components/schemas/LSDModel'
 
@@ -587,49 +575,25 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - data
-            properties:
-              data:
-                $ref: '#/components/schemas/LSDModelsData'
+            $ref: '#/components/schemas/LSDModelsData'
           example:
-            data:
-              models:
-                - id: "llama3.2:3b"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/llama3.2:3b"
-                - id: "mistral-7b-instruct"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/mistral-7b-instruct"
-                - id: "all-minilm:l6-v2"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/all-minilm:l6-v2"
-                - id: "nomic-embed-text"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/nomic-embed-text"
-              llm_models:
-                - id: "llama3.2:3b"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/llama3.2:3b"
-                - id: "mistral-7b-instruct"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/mistral-7b-instruct"
-              embedding_models:
-                - id: "all-minilm:l6-v2"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/all-minilm:l6-v2"
-                - id: "nomic-embed-text"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/nomic-embed-text"
+            models:
+              - id: "llama3.2:3b"
+                type: "llm"
+                provider: "ollama"
+                resource_path: "ollama://models/llama3.2:3b"
+              - id: "mistral-7b-instruct"
+                type: "llm"
+                provider: "ollama"
+                resource_path: "ollama://models/mistral-7b-instruct"
+              - id: "all-minilm:l6-v2"
+                type: "embedding"
+                provider: "ollama"
+                resource_path: "ollama://models/all-minilm:l6-v2"
+              - id: "nomic-embed-text"
+                type: "embedding"
+                provider: "ollama"
+                resource_path: "ollama://models/nomic-embed-text"
 
     PipelineRunsResponse:
       description: Successful response containing pipeline runs
