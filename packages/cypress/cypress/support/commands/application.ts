@@ -217,6 +217,8 @@ Cypress.Commands.addQuery(
           // Expand the root section if it's collapsed
           if ($rootSectionElement.attr('aria-expanded') === 'false') {
             $rootSectionElement.trigger('click');
+            // Wait for the section to expand
+            cy.wrap($rootSectionElement).should('have.attr', 'aria-expanded', 'true');
           }
           // Move to the expanded root section's content area
           $parent = $rootSectionElement.parent();
@@ -237,6 +239,8 @@ Cypress.Commands.addQuery(
           // Expand the sub-section if it's collapsed
           if ($subSectionElement.attr('aria-expanded') === 'false') {
             $subSectionElement.trigger('click');
+            // Wait for the section to expand
+            cy.wrap($subSectionElement).should('have.attr', 'aria-expanded', 'true');
           }
           // Move to the expanded sub-section's content area
           $parent = $subSectionElement.parent();
