@@ -268,7 +268,11 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 	// Add external models from ConfigMaps if they exist
 	externalModels, err := m.GetAAModelsFromExternalModels(ctx, identity, namespace)
 	if err != nil {
-		return nil, err
+		// Log error but don't fail - continue with namespace models only
+		m.Logger.Warn("failed to get external models, continuing with namespace models only",
+			"error", err,
+			"namespace", namespace)
+		externalModels = []models.AAModel{}
 	}
 	mockModels = append(mockModels, externalModels...)
 

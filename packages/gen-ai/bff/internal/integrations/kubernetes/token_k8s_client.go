@@ -579,7 +579,11 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	// Convert external models from ConfigMap to AAModel structs
 	aaModelsFromExternal, err := kc.GetAAModelsFromExternalModels(ctx, identity, namespace)
 	if err != nil {
-		return nil, err
+		// Log error but don't fail - continue with namespace models only
+		kc.Logger.Warn("failed to get external models, continuing with namespace models only",
+			"error", err,
+			"namespace", namespace)
+		aaModelsFromExternal = []models.AAModel{}
 	}
 
 	// Combine all lists
