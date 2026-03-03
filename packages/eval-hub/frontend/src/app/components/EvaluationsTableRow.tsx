@@ -45,6 +45,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
+  React.useEffect(() => {
+    if (!isInProgress) {
+      setIsStopping(false);
+    }
+  }, [isInProgress]);
+
   const handleConfirm = async () => {
     const isStop = confirmAction === 'stop';
     setIsSubmitting(true);
@@ -58,7 +64,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         setIsStopping(true);
       }
       await apiCall({});
-      setIsStopping(false);
       setConfirmAction(null);
       onActionComplete();
     } catch (e) {

@@ -72,3 +72,17 @@ func TestCancelEvaluationJobHandlerHardDelete(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, "ok", result.Data)
 }
+
+func TestCancelEvaluationJobHandlerInvalidHardDelete(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodDelete,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001?namespace=test-ns&hard_delete=tru",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+}

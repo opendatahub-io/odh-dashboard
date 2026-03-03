@@ -30,7 +30,17 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	hardDelete := r.URL.Query().Get("hard_delete") == "true"
+	hardDeleteVal := r.URL.Query().Get("hard_delete")
+	var hardDelete bool
+	switch hardDeleteVal {
+	case "", "false":
+		hardDelete = false
+	case "true":
+		hardDelete = true
+	default:
+		app.badRequestResponse(w, r, fmt.Errorf("hard_delete must be \"true\" or \"false\""))
+		return
+	}
 
 	if err := client.CancelEvaluationJob(ctx, id, hardDelete); err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to cancel evaluation job: %w", err))

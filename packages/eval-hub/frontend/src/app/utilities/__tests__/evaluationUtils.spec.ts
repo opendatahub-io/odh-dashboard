@@ -42,7 +42,7 @@ describe('getResultDisplay', () => {
     expect(getResultDisplay(job)).toBe('85%');
   });
 
-  it('should round down fractional percentages', () => {
+  it('should round fractional percentages to nearest integer', () => {
     const job = mockEvaluationJob({ score: 0.466 });
     expect(getResultDisplay(job)).toBe('47%');
   });

@@ -162,8 +162,8 @@ describe('EvaluationsTableRow', () => {
 
       await waitFor(() => {
         expect(mockCancelEvaluationJob).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001');
+        expect(mockOnActionComplete).toHaveBeenCalled();
       });
-      expect(mockOnActionComplete).toHaveBeenCalled();
     });
 
     it('should call deleteEvaluationJob when delete is confirmed', async () => {
@@ -175,8 +175,8 @@ describe('EvaluationsTableRow', () => {
 
       await waitFor(() => {
         expect(mockDeleteEvaluationJob).toHaveBeenCalledWith('', 'test-ns', 'eval-job-002');
+        expect(mockOnActionComplete).toHaveBeenCalled();
       });
-      expect(mockOnActionComplete).toHaveBeenCalled();
     });
 
     it('should show stopping status while cancel request is in flight', async () => {

@@ -81,7 +81,7 @@ export const cancelEvaluationJob =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${jobId}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
         {},
         { namespace },
         opts,
@@ -94,7 +94,7 @@ export const deleteEvaluationJob =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${jobId}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
         {},
         // eslint-disable-next-line camelcase
         { namespace, hard_delete: 'true' },
