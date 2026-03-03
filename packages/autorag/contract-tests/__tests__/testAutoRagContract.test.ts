@@ -43,6 +43,19 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   describe('Secrets Endpoint', () => {
+    // Helper to verify availableKeys field in secrets response
+    const verifyAvailableKeysField = (result: Awaited<ReturnType<typeof apiClient.get>>): void => {
+      if (result.success) {
+        const responseData = result.response.data as {
+          data?: Array<{ availableKeys?: unknown }>;
+        };
+        if (responseData.data && responseData.data.length > 0) {
+          expect(responseData.data[0].availableKeys).toBeDefined();
+          expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+        }
+      }
+    };
+
     describe('Success Cases', () => {
       it('should retrieve all secrets when no type filter is specified', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=default');
@@ -51,16 +64,7 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
 
-        // Verify availableKeys field exists and is an array
-        if (result.success) {
-          const responseData = result.response.data as {
-            data?: Array<{ availableKeys?: unknown }>;
-          };
-          if (responseData.data && responseData.data.length > 0) {
-            expect(responseData.data[0].availableKeys).toBeDefined();
-            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
-          }
-        }
+        verifyAvailableKeysField(result);
       });
 
       it('should retrieve storage secrets when type=storage', async () => {
@@ -70,16 +74,7 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
 
-        // Verify availableKeys field exists and is an array
-        if (result.success) {
-          const responseData = result.response.data as {
-            data?: Array<{ availableKeys?: unknown }>;
-          };
-          if (responseData.data && responseData.data.length > 0) {
-            expect(responseData.data[0].availableKeys).toBeDefined();
-            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
-          }
-        }
+        verifyAvailableKeysField(result);
       });
 
       it('should retrieve lls secrets when type=lls', async () => {
@@ -89,16 +84,7 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
 
-        // Verify availableKeys field exists and is an array
-        if (result.success) {
-          const responseData = result.response.data as {
-            data?: Array<{ availableKeys?: unknown }>;
-          };
-          if (responseData.data && responseData.data.length > 0) {
-            expect(responseData.data[0].availableKeys).toBeDefined();
-            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
-          }
-        }
+        verifyAvailableKeysField(result);
       });
     });
 

@@ -37,7 +37,17 @@ type SecretSelectorProps = Omit<
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   label?: string;
-  requiredKeys?: { [type: string]: string[] };
+  /**
+   * Additional keys that must be present in the secret for this specific use case.
+   * These are beyond the keys required for secret type classification (handled by the BFF).
+   *
+   * For example, S3 secrets are classified by keys like 'aws_access_key_id', 'aws_secret_access_key',
+   * etc., but a specific use case might additionally require 'aws_s3_bucket' to be present.
+   *
+   * @example
+   * additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+   */
+  additionalRequiredKeys?: { [type: string]: string[] };
 };
 
 const SecretSelector: React.FC<SecretSelectorProps> = ({
@@ -52,7 +62,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   previewDescription = false,
   toggleWidth = '100%',
   dataTestId = 'secret-selector',
-  requiredKeys,
+  additionalRequiredKeys,
   ...props
 }) => {
   const uniqueId = React.useId();
@@ -72,10 +82,10 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
 
-  // Validate if a secret has all required keys (case-insensitive)
+  // Validate if a secret has all additional required keys for this use case (case-insensitive)
   const validateSecretKeys = React.useCallback(
     (secret: SecretListItem): string[] => {
-      if (!requiredKeys) {
+      if (!additionalRequiredKeys) {
         return [];
       }
 
@@ -83,9 +93,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return [];
       }
 
-      const requiredKeysForType = requiredKeys[secret.type];
+      const requiredKeysForType = additionalRequiredKeys[secret.type];
       // TypeScript thinks this check is unnecessary because secret.type is typed as 's3' | 'lls' | '',
-      // and requiredKeys is typed as { [type: string]: string[] }. However, requiredKeys is optional
+      // and additionalRequiredKeys is typed as { [type: string]: string[] }. However, additionalRequiredKeys is optional
       // and may not contain entries for all possible secret types, so this runtime check is needed.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!requiredKeysForType) {
@@ -94,12 +104,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
       const availableKeysLower = secret.availableKeys.map((k) => k.toLowerCase());
       const missingKeys = requiredKeysForType.filter(
-        (requiredKey) => !availableKeysLower.includes(requiredKey.toLowerCase()),
+        (requiredKey: string) => !availableKeysLower.includes(requiredKey.toLowerCase()),
       );
 
       return missingKeys;
     },
-    [requiredKeys],
+    [additionalRequiredKeys],
   );
 
   // Clear validation error when value changes externally or becomes undefined
@@ -108,6 +118,16 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       setValidationError('');
     }
   }, [value]);
+
+  // Clear stale selection when secrets refresh and current value is no longer valid
+  React.useEffect(() => {
+    if (value && secretsList.length > 0) {
+      const isValueInList = secretsList.some((secret) => secret.uuid === value);
+      if (!isValueInList) {
+        onChange(undefined);
+      }
+    }
+  }, [secretsList, value, onChange]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
