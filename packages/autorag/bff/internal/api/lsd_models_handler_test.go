@@ -18,15 +18,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// newTestApp creates an App wired with a mock LlamaStack client factory and a discard logger.
+// newLSDHandlerTestApp creates a lightweight App wired with a mock LlamaStack client factory
+// and a discard logger, for testing LSD handler logic in isolation (no envtest needed).
 // A non-nil logger is required because error paths call app.logger.Error via serverErrorResponse.
-func newTestApp(t *testing.T) *App {
+func newLSDHandlerTestApp(t *testing.T) *App {
 	t.Helper()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return &App{
 		config:                  config.EnvConfig{Port: 4000},
-		logger:                  slog.New(slog.NewTextHandler(io.Discard, nil)),
+		logger:                  logger,
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositories(logger),
 	}
 }
 
@@ -46,7 +48,7 @@ func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, 
 }
 
 func TestLlamaStackModelsHandler_Success(t *testing.T) {
-	app := newTestApp(t)
+	app := newLSDHandlerTestApp(t)
 
 	t.Run("should return categorized models successfully", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
@@ -135,7 +137,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should return empty arrays when LlamaStack has no models", func(t *testing.T) {
-		emptyApp := newTestApp(t)
+		emptyApp := newLSDHandlerTestApp(t)
 		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
@@ -180,7 +182,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 }
 
 func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
-	app := newTestApp(t)
+	app := newLSDHandlerTestApp(t)
 
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -220,7 +222,7 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 500 when LlamaStack client returns error", func(t *testing.T) {
-		errApp := newTestApp(t)
+		errApp := newLSDHandlerTestApp(t)
 		errApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
@@ -237,7 +239,7 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 502 when LlamaStack client returns a connection error", func(t *testing.T) {
-		lsErrApp := newTestApp(t)
+		lsErrApp := newLSDHandlerTestApp(t)
 		lsErrApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockLlamaStackErrClient{})
 
 		rr, req := newHandlerTestRequest(t, lsErrApp)

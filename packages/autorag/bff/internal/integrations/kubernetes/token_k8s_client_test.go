@@ -18,9 +18,9 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		}
 
 		client := &TokenKubernetesClient{
-			restConfig: config,
 			SharedClientLogic: SharedClientLogic{
-				Logger: slog.Default(),
+				RestConfig: config,
+				Logger:     slog.Default(),
 			},
 		}
 
@@ -40,9 +40,9 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		}
 
 		client := &TokenKubernetesClient{
-			restConfig: config,
 			SharedClientLogic: SharedClientLogic{
-				Logger: slog.Default(),
+				RestConfig: config,
+				Logger:     slog.Default(),
 			},
 		}
 
@@ -66,9 +66,9 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		}
 
 		client := &TokenKubernetesClient{
-			restConfig: config,
 			SharedClientLogic: SharedClientLogic{
-				Logger: slog.Default(),
+				RestConfig: config,
+				Logger:     slog.Default(),
 			},
 		}
 
@@ -95,9 +95,9 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		}
 
 		client := &TokenKubernetesClient{
-			restConfig: config,
 			SharedClientLogic: SharedClientLogic{
-				Logger: slog.Default(),
+				RestConfig: config,
+				Logger:     slog.Default(),
 			},
 		}
 

@@ -74,7 +74,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		app := App{
 			config:                  config.EnvConfig{MockLSClient: true},
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
@@ -99,7 +99,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		app := App{
 			config:                  config.EnvConfig{LlamaStackURL: testLlamaStackURL},
 			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
@@ -128,7 +128,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			logger:                  slog.Default(),
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: mockLSFactory,
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
@@ -149,7 +149,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
 		app := App{
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
 		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
@@ -166,7 +166,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 	t.Run("should return error when RequestIdentity is missing from context (non-mock mode)", func(t *testing.T) {
 		app := App{
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 
@@ -191,7 +191,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			config:                  config.EnvConfig{},
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 
@@ -218,7 +218,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			config:                  config.EnvConfig{},
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 
@@ -245,7 +245,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			config:                  config.EnvConfig{},
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 
@@ -273,7 +273,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			config:                  config.EnvConfig{},
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 
@@ -323,7 +323,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			config:                  config.EnvConfig{},
 			kubernetesClientFactory: mockK8sFactory,
 			llamaStackClientFactory: mockLSFactory,
-			repositories:            repositories.NewRepositories(),
+			repositories:            repositories.NewRepositories(slog.Default()),
 			logger:                  slog.Default(),
 		}
 

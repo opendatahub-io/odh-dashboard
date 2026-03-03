@@ -75,7 +75,7 @@ paths:
       description: Gets the configuration information needed for the UI [TBD]
 
   # =============================================================================
-    # LSD ENDPOINTS
+  # LSD ENDPOINTS
   # =============================================================================
 
   /api/v1/lsd/models:

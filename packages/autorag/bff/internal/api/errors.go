@@ -83,7 +83,13 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
 	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
-	httpError := &HTTPError{StatusCode: http.StatusNotFound, Error: ErrorPayload{Code: strconv.Itoa(http.StatusNotFound), Message: message}}
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusNotFound,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusNotFound),
+			Message: message,
+		},
+	}
 	app.errorResponse(w, r, httpError)
 }
 
@@ -102,13 +108,25 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 
-	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: "service temporarily unavailable"}}
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusServiceUnavailable),
+			Message: "service temporarily unavailable",
+		},
+	}
 	app.errorResponse(w, r, httpError)
 }
 
 func (app *App) serviceUnavailableResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
 	app.LogError(r, err)
 
-	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: message}}
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusServiceUnavailable),
+			Message: message,
+		},
+	}
 	app.errorResponse(w, r, httpError)
 }
