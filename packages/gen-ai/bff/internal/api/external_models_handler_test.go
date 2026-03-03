@@ -270,8 +270,19 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		errorData := response["error"].(map[string]interface{})
-		assert.Contains(t, errorData["message"], "invalid provider_type")
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "invalid provider_type")
 	})
 
 	It("should return error when namespace is missing from context", func() {
@@ -302,9 +313,23 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		errorData := response["error"].(map[string]interface{})
-		assert.Equal(t, "400", errorData["code"])
-		assert.Contains(t, errorData["message"], "missing namespace in the context")
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		code, codeExists := errorMap["code"]
+		assert.True(t, codeExists, "Error map should contain 'code' field")
+		assert.Equal(t, "400", code)
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "missing namespace in the context")
 	})
 
 	It("should return error when RequestIdentity is missing from context", func() {
@@ -338,8 +363,22 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		errorData := response["error"].(map[string]interface{})
-		assert.Equal(t, "401", errorData["code"])
-		assert.Contains(t, errorData["message"], "missing RequestIdentity in context")
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		code, codeExists := errorMap["code"]
+		assert.True(t, codeExists, "Error map should contain 'code' field")
+		assert.Equal(t, "401", code)
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "missing RequestIdentity in context")
 	})
 })

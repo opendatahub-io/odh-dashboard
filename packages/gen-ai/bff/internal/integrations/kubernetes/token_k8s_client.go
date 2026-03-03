@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"gopkg.in/yaml.v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1916,7 +1918,7 @@ func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identit
 	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
 	if err != nil {
 		// If ConfigMap doesn't exist, start with ID 1
-		if strings.Contains(err.Error(), "not found") {
+		if apierrors.IsNotFound(err) {
 			return "1", nil
 		}
 		return "", fmt.Errorf("failed to get ConfigMap: %w", err)
@@ -1933,8 +1935,24 @@ func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identit
 		return "", fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
 	}
 
-	// Generate next ID
-	nextID := len(config.Providers.Inference) + 1
+	// Generate next ID by finding the maximum existing ID
+	// This prevents collisions when providers are deleted or reordered
+	maxID := 0
+	for _, provider := range config.Providers.Inference {
+		// Provider IDs are in format "external-model-provider-{id}"
+		// Extract the numeric ID part
+		idStr := strings.TrimPrefix(provider.ProviderID, "external-model-provider-")
+		if id, err := strconv.Atoi(idStr); err == nil {
+			if id > maxID {
+				maxID = id
+			}
+		} else {
+			// Log non-numeric IDs but continue
+			kc.Logger.Warn("skipping non-numeric provider ID", "providerID", provider.ProviderID, "error", err)
+		}
+	}
+
+	nextID := maxID + 1
 	return fmt.Sprintf("%d", nextID), nil
 }
 
@@ -1973,7 +1991,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 
 	var config models.ExternalModelsConfig
 	if err != nil {
-		if !strings.Contains(err.Error(), "not found") {
+		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to get ConfigMap: %w", err)
 		}
 		// ConfigMap doesn't exist, initialize empty config
@@ -2074,6 +2092,10 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		kc.Logger.Info("successfully created ConfigMap", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
 	} else {
 		// Update existing ConfigMap
+		// Initialize Data map if nil to prevent panic
+		if configMap.Data == nil {
+			configMap.Data = map[string]string{}
+		}
 		configMap.Data["config.yaml"] = string(configYAML)
 		if err := kc.Client.Update(ctx, configMap); err != nil {
 			kc.Logger.Error("failed to update ConfigMap", "error", err, "namespace", namespace)
