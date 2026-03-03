@@ -18,6 +18,13 @@ describe('checkModelStatus', () => {
     expect(result.failedToSchedule).toBe(false);
     expect(result.failureMessage).toBeNull();
   });
+  it('Should return false when pod is pending but has no conditions.', () => {
+    const pod = mockPodK8sResource({ isPending: true });
+    pod.status = { phase: 'Pending', conditions: [] };
+    const result = checkModelPodStatus(pod);
+    expect(result.failedToSchedule).toBe(false);
+    expect(result.failureMessage).toBeNull();
+  });
 });
 
 describe('getInferenceServiceStatusMessage', () => {
