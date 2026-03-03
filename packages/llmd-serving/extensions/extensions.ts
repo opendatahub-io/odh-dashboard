@@ -7,6 +7,7 @@ import type {
   ModelServingDeleteModal,
   ModelServingDeploymentTransformExtension,
   ModelServingStartStopAction,
+  AssembleModelResourceExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
@@ -22,6 +23,7 @@ const extensions: (
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
+  | AssembleModelResourceExtension<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
   | ModelServingStartStopAction<LLMdDeployment>
@@ -102,9 +104,19 @@ const extensions: (
       priority: 100,
       supportsOverwrite: true,
       isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
-      assembleDeployment: () =>
-        import('../src/deployments/deploy').then((m) => m.assembleLLMdDeployment),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/assemble-model-resource',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      priority: 100,
+      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
+      assemble: () => import('../src/deployments/deploy').then((m) => m.assembleLLMdDeployment),
     },
     flags: {
       required: [LLMD_SERVING_ID],
