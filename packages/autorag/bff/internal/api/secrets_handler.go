@@ -19,8 +19,6 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // Query parameters:
 //   - resource (required): The namespace name to query secrets from
 //   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
-//   - limit (optional): Maximum number of secrets to return (default: 10, max: 100)
-//   - offset (optional): Number of secrets to skip for pagination (default: 0)
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -47,32 +45,6 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Parse limit (optional, default to 10, max 100)
-	limit := 10
-	if limitStr := queryParams.Get("limit"); limitStr != "" {
-		var err error
-		limit, err = strconv.Atoi(limitStr)
-		if err != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'limit' must be a positive integer between 1 and 100"))
-			return
-		}
-		if limit < 1 || limit > 100 {
-			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'limit' must be a positive integer between 1 and 100"))
-			return
-		}
-	}
-
-	// Parse offset (optional, default to 0)
-	offset := 0
-	if offsetStr := queryParams.Get("offset"); offsetStr != "" {
-		var err error
-		offset, err = strconv.Atoi(offsetStr)
-		if err != nil || offset < 0 {
-			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'offset' must be a non-negative integer"))
-			return
-		}
-	}
-
 	// Get Kubernetes client
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -81,7 +53,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Fetch filtered secrets from repository
-	secrets, err := app.repositories.Secret.GetFilteredSecrets(client, ctx, namespace, identity, secretType, limit, offset)
+	secrets, err := app.repositories.Secret.GetFilteredSecrets(client, ctx, namespace, identity, secretType)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError

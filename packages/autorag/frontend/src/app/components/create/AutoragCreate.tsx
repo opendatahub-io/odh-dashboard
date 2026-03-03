@@ -19,6 +19,17 @@ function AutoragCreate(): React.JSX.Element {
     defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema.
   });
 
+  // Guard against missing namespace
+  React.useEffect(() => {
+    if (!namespace) {
+      navigate(autoragConfigurePathname);
+    }
+  }, [namespace, navigate]);
+
+  if (!namespace) {
+    return <div />;
+  }
+
   return (
     <div>
       <Form>

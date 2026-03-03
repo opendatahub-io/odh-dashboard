@@ -50,6 +50,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+
+        // Verify availableKeys field exists and is an array
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
+        }
       });
 
       it('should retrieve storage secrets when type=storage', async () => {
@@ -58,6 +69,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+
+        // Verify availableKeys field exists and is an array
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
+        }
       });
 
       it('should retrieve lls secrets when type=lls', async () => {
@@ -66,78 +88,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
-      });
 
-      it('should handle lls type filter with pagination', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=lls&limit=5');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-    });
-
-    describe('Pagination', () => {
-      it('should handle pagination with limit parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=10');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-
-      it('should handle pagination with offset parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&offset=5');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-
-      it('should handle pagination with both limit and offset', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=5&offset=2');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-
-      it('should return 400 for limit=0', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=0');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return default limit of 10 when no limit specified', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-        // Verify the default limit is actually applied
+        // Verify availableKeys field exists and is an array
         if (result.success) {
-          const responseData = result.response.data as { data: unknown[] };
-          expect(Array.isArray(responseData.data)).toBe(true);
-          expect(responseData.data.length).toBeLessThanOrEqual(10);
+          const responseData = result.response.data as {
+            data?: Array<{ availableKeys?: unknown }>;
+          };
+          if (responseData.data && responseData.data.length > 0) {
+            expect(responseData.data[0].availableKeys).toBeDefined();
+            expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          }
         }
-      });
-
-      it('should handle limit=100 (maximum allowed)', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=100');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-
-      it('should handle offset beyond available data', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&offset=99999');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
       });
     });
 
@@ -152,54 +113,6 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for invalid type parameter', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=default&type=invalid');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for invalid limit parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=invalid');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for negative limit parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=-1');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for invalid offset parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&offset=invalid');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for negative offset parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&offset=-1');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for limit exceeding maximum (101)', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=101');
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for limit exceeding maximum (999)', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=999');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);

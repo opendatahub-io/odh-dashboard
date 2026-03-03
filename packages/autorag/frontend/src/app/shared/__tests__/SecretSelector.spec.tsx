@@ -226,6 +226,7 @@ describe('SecretSelector', () => {
       expect(mockOnChange).toHaveBeenCalledWith({
         uuid: '2',
         name: 'aws-secret-2',
+        invalid: false,
       });
     });
 
@@ -542,6 +543,289 @@ describe('SecretSelector', () => {
       );
 
       expect(screen.getByTestId('test-selector')).toBeInTheDocument();
+    });
+  });
+
+  describe('required keys validation', () => {
+    it('should show error when selected secret is missing required keys', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'incomplete-secret',
+          availableKeys: ['aws_access_key_id', 'aws_secret_access_key', 'aws_default_region'],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('incomplete-secret'));
+
+      // Should show error message for missing key
+      expect(
+        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // onChange should be called with selection marked as invalid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'incomplete-secret',
+        invalid: true,
+      });
+    });
+
+    it('should show error when selected secret is missing multiple required keys', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'incomplete-secret',
+          availableKeys: ['aws_access_key_id', 'aws_secret_access_key'],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket', 'aws_default_region'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('incomplete-secret'));
+
+      // Should show error message for all missing keys
+      expect(
+        screen.getByText(
+          'Required keys "aws_s3_bucket", "aws_default_region" are not set in this secret',
+        ),
+      ).toBeInTheDocument();
+
+      // onChange should be called with selection marked as invalid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'incomplete-secret',
+        invalid: true,
+      });
+    });
+
+    it('should allow selection when secret has all required keys', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'complete-secret',
+          availableKeys: [
+            'aws_access_key_id',
+            'aws_secret_access_key',
+            'aws_default_region',
+            'aws_s3_endpoint',
+            'aws_s3_bucket',
+          ],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('complete-secret'));
+
+      // Should NOT show error message
+      expect(
+        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).not.toBeInTheDocument();
+
+      // onChange should be called with selection marked as valid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'complete-secret',
+        invalid: false,
+      });
+    });
+
+    it('should validate keys case-insensitively', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'uppercase-secret',
+          availableKeys: [
+            'AWS_ACCESS_KEY_ID',
+            'AWS_SECRET_ACCESS_KEY',
+            'AWS_DEFAULT_REGION',
+            'AWS_S3_ENDPOINT',
+            'AWS_S3_BUCKET',
+          ],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('uppercase-secret'));
+
+      // Should NOT show error - case-insensitive match
+      expect(
+        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).not.toBeInTheDocument();
+
+      // onChange should be called with selection marked as valid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'uppercase-secret',
+        invalid: false,
+      });
+    });
+
+    it('should not validate when no requiredKeys prop provided', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'any-secret',
+          availableKeys: ['aws_access_key_id'],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('any-secret'));
+
+      // Should NOT show any validation error
+      expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
+
+      // onChange should be called with selection marked as valid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'any-secret',
+        invalid: false,
+      });
+    });
+
+    it('should not validate when secret type is not in requiredKeys', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockLLSSecret({
+          uuid: '1',
+          name: 'lls-secret',
+          availableKeys: ['llama_stack_client_api_key', 'llama_stack_client_base_url'],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('lls-secret'));
+
+      // Should NOT show validation error - lls type not in requiredKeys
+      expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
+
+      // onChange should be called with selection marked as valid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'lls-secret',
+        invalid: false,
+      });
+    });
+
+    it('should clear validation error when value is cleared', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'valid-secret',
+          availableKeys: ['aws_access_key_id', 'aws_s3_bucket'],
+        }),
+        mockStorageSecret({
+          uuid: '2',
+          name: 'incomplete-secret',
+          availableKeys: ['aws_access_key_id'],
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      const { rerender } = render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value="1"
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Initially showing valid secret, no error
+      expect(
+        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).not.toBeInTheDocument();
+
+      // Select secret with missing keys
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('incomplete-secret'));
+
+      // Error should be visible
+      expect(
+        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // Clear selection by setting value to undefined
+      rerender(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Error should be cleared
+      expect(
+        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).not.toBeInTheDocument();
     });
   });
 });

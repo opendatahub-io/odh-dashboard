@@ -9,10 +9,19 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// InternalKubernetesClient uses the backend's service account credentials to perform
+// operations with user impersonation via SubjectAccessReview.
+//
+// This client validates namespace existence before permission checks in GetSecrets,
+// providing clearer error messages that distinguish "namespace not found" from
+// "permission denied". This is feasible because the service account has cluster-level
+// access. TokenKubernetesClient omits this check since it uses the user's token directly
+// and cannot distinguish these cases as easily.
 type InternalKubernetesClient struct {
 	SharedClientLogic
 }
@@ -38,9 +47,10 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 
 	return &InternalKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
-			Token:  NewBearerToken(kubeconfig.BearerToken),
+			Client:     clientset,
+			Logger:     logger,
+			Token:      NewBearerToken(kubeconfig.BearerToken),
+			RestConfig: kubeconfig,
 		},
 	}, nil
 }
@@ -189,7 +199,9 @@ func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace st
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Verify the namespace exists first
+	// Verify the namespace exists before permission checks to provide clearer error messages.
+	// The service account can distinguish "namespace not found" from "permission denied",
+	// improving UX compared to TokenKubernetesClient which cannot make this distinction.
 	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
@@ -217,7 +229,13 @@ func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace st
 
 	if !response.Status.Allowed {
 		kc.Logger.Warn("user not allowed to list secrets", "namespace", namespace, "user", identity.UserID)
-		return nil, fmt.Errorf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
 	}
 
 	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
@@ -303,4 +321,47 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
+}
+
+// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+// Uses impersonation SubjectAccessReview since internal client uses service account credentials
+func (kc *InternalKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "datasciencepipelinesapplications.opendatahub.io",
+				Resource:  "datasciencepipelinesapplications",
+				Namespace: namespace,
+			},
+			User:   identity.UserID,
+			Groups: identity.Groups,
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check permissions for listing pipeline servers",
+			"user", identity.UserID,
+			"namespace", namespace,
+			"error", err)
+		return false, err
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user does not have permission to list pipeline servers in namespace",
+			"user", identity.UserID,
+			"namespace", namespace)
+		return false, nil
+	}
+
+	return true, nil
 }

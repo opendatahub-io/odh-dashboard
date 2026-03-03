@@ -34,4 +34,5 @@ export type SecretListItem = {
   uuid: string;
   name: string;
   type: 's3' | 'lls' | '';
+  availableKeys: string[];
 };

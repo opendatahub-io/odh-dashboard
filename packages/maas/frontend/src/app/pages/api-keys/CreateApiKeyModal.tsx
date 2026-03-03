@@ -53,7 +53,7 @@ const dateToGoDuration = (selectedDate: Date): string => {
   if (minutes === 0) {
     return `${hours}h`;
   }
-  return `${hours}h ${minutes}m`;
+  return `${hours}h${minutes}m`;
 };
 
 const createApiKeySchema = z.object({
@@ -75,20 +75,27 @@ const createApiKeySchema = z.object({
         const dateAtMidnight = new Date(date);
         dateAtMidnight.setHours(0, 0, 0, 0);
         const today = getTodaysDate();
-        return dateAtMidnight > today;
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 1);
+        if (dateAtMidnight <= today) {
+          return false;
+        }
+        if (dateAtMidnight > maxDate) {
+          return false;
+        }
+        return true;
       },
-      { message: 'Date must be in the future (not today)' },
+      { message: 'Date must be in the future (not today) and not more than 1 year from today' },
     ),
 });
 
 type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
-  isOpen: boolean;
   onClose: () => void;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }) => {
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
@@ -104,31 +111,23 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
   );
 
   const dateValidator = (date: Date) => {
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() + 1);
     const dateAtMidnight = new Date(date);
     dateAtMidnight.setHours(0, 0, 0, 0);
     const today = getTodaysDate();
-    return dateAtMidnight <= today ? 'Date must be in the future (not today)' : '';
+    if (dateAtMidnight <= today) {
+      return 'Date must be in the future (not today)';
+    }
+    if (dateAtMidnight > maxDate) {
+      return 'Date must be not more than 1 year from today';
+    }
+    return '';
   };
 
   const isFormValid = () => {
     const result = createApiKeySchema.safeParse(formData);
     return result.success;
-  };
-
-  const clearForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      expirationDate: undefined,
-    });
-    setError(undefined);
-    setIsCreating(false);
-    setCreatedToken(undefined);
-  };
-
-  const handleClose = () => {
-    clearForm();
-    onClose();
   };
 
   const handleSubmit = async () => {
@@ -157,7 +156,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
   };
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen={isOpen} onClose={handleClose}>
+    <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -341,7 +340,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
           <Button
             key="close"
             variant="primary"
-            onClick={handleClose}
+            onClick={onClose}
             data-testid="close-api-key-button"
           >
             Close
@@ -358,7 +357,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
             >
               Create API key
             </Button>
-            <Button key="cancel" variant="link" onClick={handleClose} isDisabled={isCreating}>
+            <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
               Cancel
             </Button>
           </>

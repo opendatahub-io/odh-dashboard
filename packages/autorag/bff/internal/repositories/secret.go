@@ -3,12 +3,12 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // storageTypeRequiredKeys defines the required keys for each supported storage type.
@@ -17,9 +17,9 @@ import (
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
 		"aws_access_key_id",
-		"aws_region_name",
+		"aws_default_region",
 		"aws_secret_access_key",
-		"endpoint_url",
+		"aws_s3_endpoint",
 	},
 	// Future storage types can be added here:
 	// "azure": {"azure_storage_account", "azure_storage_key"},
@@ -41,7 +41,6 @@ func NewSecretRepository() *SecretRepository {
 }
 
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on the secretType.
-// It supports pagination using limit and offset parameters.
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
@@ -52,8 +51,6 @@ func (r *SecretRepository) GetFilteredSecrets(
 	namespace string,
 	identity *k8s.RequestIdentity,
 	secretType string,
-	limit int,
-	offset int,
 ) ([]models.SecretListItem, error) {
 	// Fetch all secrets from the namespace
 	secrets, err := client.GetSecrets(ctx, namespace, identity)
@@ -78,13 +75,10 @@ func (r *SecretRepository) GetFilteredSecrets(
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
-	// Apply pagination
-	paginatedSecrets := paginateSecrets(filteredSecrets, limit, offset)
-
 	// Convert to response models with type information
 	// Initialize as empty slice instead of nil to ensure JSON serialization returns [] instead of null
-	secretListItems := make([]models.SecretListItem, 0, len(paginatedSecrets))
-	for _, secret := range paginatedSecrets {
+	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
+	for _, secret := range filteredSecrets {
 		// Determine the type for this secret
 		var responseType string
 		switch secretType {
@@ -98,10 +92,14 @@ func (r *SecretRepository) GetFilteredSecrets(
 			responseType = getSecretType(secret)
 		}
 
+		// Extract and sort available keys from the secret
+		availableKeys := extractAndSortKeys(secret)
+
 		secretListItems = append(secretListItems, models.NewSecretListItem(
 			string(secret.UID),
 			secret.Name,
 			responseType,
+			availableKeys,
 		))
 	}
 
@@ -190,50 +188,31 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 	return true
 }
 
-// paginateSecrets applies limit and offset to a slice of secrets
-func paginateSecrets(secrets []corev1.Secret, limit int, offset int) []corev1.Secret {
-	// Defensively clamp offset to 0 if negative
-	if offset < 0 {
-		offset = 0
+// extractAndSortKeys extracts all keys from a secret's Data and StringData fields,
+// removes duplicates, and returns them sorted alphabetically.
+// Keys are case-preserved (returned exactly as they appear in the secret).
+func extractAndSortKeys(secret corev1.Secret) []string {
+	// Use a map to track unique keys (case-preserved)
+	keySet := make(map[string]bool)
+
+	// Extract keys from Data
+	for key := range secret.Data {
+		keySet[key] = true
 	}
 
-	// If offset is beyond the slice, return empty
-	if offset >= len(secrets) {
-		return []corev1.Secret{}
+	// Extract keys from StringData (avoiding duplicates)
+	for key := range secret.StringData {
+		keySet[key] = true
 	}
 
-	// Treat limit <= 0 as "no limit" - return all items from offset to end
-	if limit <= 0 {
-		limit = len(secrets) - offset
+	// Convert map to slice
+	keys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		keys = append(keys, key)
 	}
 
-	// Calculate end index and clamp to slice length
-	end := offset + limit
-	if end > len(secrets) {
-		end = len(secrets)
-	}
+	// Sort alphabetically
+	sort.Strings(keys)
 
-	return secrets[offset:end]
-}
-
-// GetSecretByUID retrieves a secret by its UID (for potential future use)
-func (r *SecretRepository) GetSecretByUID(
-	client k8s.KubernetesClientInterface,
-	ctx context.Context,
-	namespace string,
-	uid types.UID,
-	identity *k8s.RequestIdentity,
-) (*corev1.Secret, error) {
-	secrets, err := client.GetSecrets(ctx, namespace, identity)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
-	}
-
-	for _, secret := range secrets {
-		if secret.UID == uid {
-			return &secret, nil
-		}
-	}
-
-	return nil, fmt.Errorf("secret with UID %s not found in namespace %s", uid, namespace)
+	return keys
 }

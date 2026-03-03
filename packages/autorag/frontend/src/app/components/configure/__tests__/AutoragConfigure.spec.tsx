@@ -19,22 +19,28 @@ jest.mock('~/app/shared/SecretSelector', () => ({
     value,
     dataTestId,
   }: {
-    onChange: (secret: { uuid: string; name: string } | undefined) => void;
+    onChange: (secret: { uuid: string; name: string; invalid?: boolean } | undefined) => void;
     value?: string;
     dataTestId?: string;
   }) => (
     <div data-testid={dataTestId}>
       <button
         data-testid={`${dataTestId}-select-secret-1`}
-        onClick={() => onChange({ uuid: 'secret-1', name: 'Test Secret 1' })}
+        onClick={() => onChange({ uuid: 'secret-1', name: 'Test Secret 1', invalid: false })}
       >
         Select Secret 1
       </button>
       <button
         data-testid={`${dataTestId}-select-secret-2`}
-        onClick={() => onChange({ uuid: 'secret-2', name: 'Test Secret 2' })}
+        onClick={() => onChange({ uuid: 'secret-2', name: 'Test Secret 2', invalid: false })}
       >
         Select Secret 2
+      </button>
+      <button
+        data-testid={`${dataTestId}-select-invalid-secret`}
+        onClick={() => onChange({ uuid: 'secret-3', name: 'Invalid Secret', invalid: true })}
+      >
+        Select Invalid Secret
       </button>
       {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
     </div>
@@ -190,6 +196,101 @@ describe('AutoragConfigure', () => {
       // Verify sections are hidden
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();
       expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('invalid secret selection', () => {
+    it('should disable "Select files" button when selected secret is invalid', () => {
+      render(<AutoragConfigure />);
+
+      // Select an invalid secret
+      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
+      fireEvent.click(selectInvalidButton);
+
+      // Verify the "Select files" button is disabled
+      const selectFilesButton = screen.getByRole('button', { name: 'Select files' });
+      expect(selectFilesButton).toBeDisabled();
+    });
+
+    it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
+      render(<AutoragConfigure />);
+
+      // Select an invalid secret
+      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
+      fireEvent.click(selectInvalidButton);
+
+      // Find the Edit buttons
+      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+      const optimizationMetricEditButton = editButtons[0]; // First Edit button is for Optimization metric
+
+      // Verify it's disabled
+      expect(optimizationMetricEditButton).toBeDisabled();
+    });
+
+    it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
+      render(<AutoragConfigure />);
+
+      // Select an invalid secret
+      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
+      fireEvent.click(selectInvalidButton);
+
+      // Find the Edit buttons
+      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+      const modelsEditButton = editButtons[1]; // Second Edit button is for Models to consider
+
+      // Verify it's disabled
+      expect(modelsEditButton).toBeDisabled();
+    });
+
+    it('should disable "Run experiment" button when selected secret is invalid', () => {
+      render(<AutoragConfigure />);
+
+      // Select an invalid secret
+      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
+      fireEvent.click(selectInvalidButton);
+
+      // Verify the "Run experiment" button is disabled
+      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
+      expect(runExperimentButton).toBeDisabled();
+    });
+
+    it('should enable "Select files" button when selected secret is valid', () => {
+      render(<AutoragConfigure />);
+
+      // Select a valid secret
+      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
+      fireEvent.click(selectButton);
+
+      // Verify the "Select files" button is enabled
+      const selectFilesButton = screen.getByRole('button', { name: 'Select files' });
+      expect(selectFilesButton).toBeEnabled();
+    });
+
+    it('should enable "Edit" buttons when selected secret is valid', () => {
+      render(<AutoragConfigure />);
+
+      // Select a valid secret
+      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
+      fireEvent.click(selectButton);
+
+      // Find the Edit buttons
+      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+
+      // Verify both Edit buttons are enabled
+      expect(editButtons[0]).toBeEnabled(); // Optimization metric
+      expect(editButtons[1]).toBeEnabled(); // Models to consider
+    });
+
+    it('should enable "Run experiment" button when selected secret is valid', () => {
+      render(<AutoragConfigure />);
+
+      // Select a valid secret
+      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
+      fireEvent.click(selectButton);
+
+      // Verify the "Run experiment" button is enabled
+      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
+      expect(runExperimentButton).toBeEnabled();
     });
   });
 });

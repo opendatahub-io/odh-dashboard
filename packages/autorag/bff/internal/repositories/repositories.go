@@ -1,20 +1,28 @@
 package repositories
 
+import (
+	"log/slog"
+)
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck *HealthCheckRepository
-	User        *UserRepository
-	Namespace   *NamespaceRepository
-	Secret      *SecretRepository
-	S3          *S3Repository
+	HealthCheck  *HealthCheckRepository
+	User         *UserRepository
+	Namespace    *NamespaceRepository
+	Secret       *SecretRepository
+	S3           *S3Repository
+	PipelineRuns *PipelineRunsRepository
 }
 
-func NewRepositories() *Repositories {
+func NewRepositories(logger *slog.Logger) *Repositories {
+	// logger parameter is reserved for future use when repository constructors need logging
+	_ = logger
 	return &Repositories{
-		HealthCheck: NewHealthCheckRepository(),
-		User:        NewUserRepository(),
-		Namespace:   NewNamespaceRepository(),
-		Secret:      NewSecretRepository(),
-		S3:          NewS3Repository(),
+		HealthCheck:  NewHealthCheckRepository(),
+		User:         NewUserRepository(),
+		Namespace:    NewNamespaceRepository(),
+		Secret:       NewSecretRepository(),
+		S3:           NewS3Repository(),
+		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

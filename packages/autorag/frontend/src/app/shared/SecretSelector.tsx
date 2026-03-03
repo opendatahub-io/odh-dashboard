@@ -18,6 +18,7 @@ import { SecretListItem } from '~/app/types';
 export type SecretSelection = {
   uuid: string;
   name: string;
+  invalid?: boolean;
 };
 
 type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> & {
@@ -36,6 +37,7 @@ type SecretSelectorProps = Omit<
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   label?: string;
+  requiredKeys?: { [type: string]: string[] };
 };
 
 const SecretSelector: React.FC<SecretSelectorProps> = ({
@@ -50,9 +52,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   previewDescription = false,
   toggleWidth = '100%',
   dataTestId = 'secret-selector',
+  requiredKeys,
   ...props
 }) => {
   const uniqueId = React.useId();
+  const [validationError, setValidationError] = React.useState<string>('');
+
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
     (opts: APIOptions) => getSecrets('')(namespace, type)(opts),
     [namespace, type],
@@ -66,6 +71,43 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const isLoading = !loaded;
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
+
+  // Validate if a secret has all required keys (case-insensitive)
+  const validateSecretKeys = React.useCallback(
+    (secret: SecretListItem): string[] => {
+      if (!requiredKeys) {
+        return [];
+      }
+
+      if (secret.type === '') {
+        return [];
+      }
+
+      const requiredKeysForType = requiredKeys[secret.type];
+      // TypeScript thinks this check is unnecessary because secret.type is typed as 's3' | 'lls' | '',
+      // and requiredKeys is typed as { [type: string]: string[] }. However, requiredKeys is optional
+      // and may not contain entries for all possible secret types, so this runtime check is needed.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!requiredKeysForType) {
+        return [];
+      }
+
+      const availableKeysLower = secret.availableKeys.map((k) => k.toLowerCase());
+      const missingKeys = requiredKeysForType.filter(
+        (requiredKey) => !availableKeysLower.includes(requiredKey.toLowerCase()),
+      );
+
+      return missingKeys;
+    },
+    [requiredKeys],
+  );
+
+  // Clear validation error when value changes externally or becomes undefined
+  React.useEffect(() => {
+    if (!value) {
+      setValidationError('');
+    }
+  }, [value]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -106,23 +148,42 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         ) => {
           const uuid = String(selection);
           const secret = secretsList.find((s) => s.uuid === uuid);
+
           if (secret) {
-            onChange({ uuid: secret.uuid, name: secret.name });
+            // Validate if the secret has all required keys
+            const missingKeys = validateSecretKeys(secret);
+
+            if (missingKeys.length > 0) {
+              // Secret is missing required keys - set error and call onChange with invalid: true
+              const keyList = missingKeys.map((k) => `"${k}"`).join(', ');
+              const errorMsg =
+                missingKeys.length === 1
+                  ? `Required key ${keyList} is not set in this secret`
+                  : `Required keys ${keyList} are not set in this secret`;
+              setValidationError(errorMsg);
+              onChange({ uuid: secret.uuid, name: secret.name, invalid: true });
+            } else {
+              // Secret is valid - clear error and call onChange with selection
+              setValidationError('');
+              onChange({ uuid: secret.uuid, name: secret.name, invalid: false });
+            }
           } else {
+            setValidationError('');
             onChange(undefined);
           }
         }}
       />
-      {(hasError || hasNoSecrets) && (
+      {(hasError || hasNoSecrets || validationError) && (
         <FormHelperText>
           <HelperText>
             <HelperTextItem
-              variant={hasError ? 'error' : 'indeterminate'}
-              icon={hasError ? <ExclamationCircleIcon /> : undefined}
+              variant={hasError || validationError ? 'error' : 'indeterminate'}
+              icon={hasError || validationError ? <ExclamationCircleIcon /> : undefined}
             >
-              {hasError
-                ? 'Secrets could not be fetched'
-                : 'There are no secrets in the selected namespace'}
+              {validationError ||
+                (hasError
+                  ? 'Secrets could not be fetched'
+                  : 'There are no secrets in the selected namespace')}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>

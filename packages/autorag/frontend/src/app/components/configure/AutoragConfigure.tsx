@@ -27,8 +27,10 @@ function AutoragConfigure(): React.JSX.Element {
   const { namespace } = useParams();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<
-    { uuid: string; name: string } | undefined
+    { uuid: string; name: string; invalid?: boolean } | undefined
   >();
+
+  const formInvalid = selectedSecret?.invalid || false;
 
   return (
     <>
@@ -56,6 +58,7 @@ function AutoragConfigure(): React.JSX.Element {
                               <SecretSelector
                                 namespace={String(namespace)}
                                 type="storage"
+                                requiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
                                 value={selectedSecret?.uuid}
                                 onChange={(secret) => setSelectedSecret(secret)}
                                 label="S3 connection"
@@ -95,6 +98,7 @@ function AutoragConfigure(): React.JSX.Element {
                               key="select-files"
                               variant="secondary"
                               onClick={() => setIsFileExplorerOpen(true)}
+                              isDisabled={formInvalid}
                             >
                               Select files
                             </Button>
@@ -134,6 +138,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-optimization-metric"
                                     variant="secondary"
                                     onClick={() => null}
+                                    isDisabled={formInvalid}
                                   >
                                     Edit
                                   </Button>,
@@ -155,6 +160,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-considered-models"
                                     variant="secondary"
                                     onClick={() => null}
+                                    isDisabled={formInvalid}
                                   >
                                     Edit
                                   </Button>,
@@ -177,6 +183,7 @@ function AutoragConfigure(): React.JSX.Element {
         <PanelFooter>
           <Button
             variant="primary"
+            isDisabled={formInvalid}
             onClick={() => {
               navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
             }}
