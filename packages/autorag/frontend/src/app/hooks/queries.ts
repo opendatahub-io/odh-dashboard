@@ -29,7 +29,7 @@ export function useLlamaStackModelsQuery(
   modelType?: LlamaStackModelType,
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
-    queryKey: ['models'],
+    queryKey: ['models', modelType],
     // TODO: Replace with BFF call to "api/v1/lsd/models" once the endpoint is implemented.
     // eslint-disable-next-line camelcase
     queryFn: async (): Promise<LlamaStackModelsResponse> => ({
