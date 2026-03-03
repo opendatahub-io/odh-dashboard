@@ -12,6 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 )
 
 // mockKubernetesClientForSecrets is a mock implementation of KubernetesClientInterface for secrets testing
@@ -37,6 +38,18 @@ func (m *mockKubernetesClientForSecrets) IsClusterAdmin(identity *kubernetes.Req
 
 func (m *mockKubernetesClientForSecrets) GetUser(identity *kubernetes.RequestIdentity) (string, error) {
 	return "test-user", nil
+}
+
+func (m *mockKubernetesClientForSecrets) GetClientset() interface{} {
+	return nil
+}
+
+func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
+	return nil
+}
+
+func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+	return false, nil
 }
 
 // mockKubernetesClientFactoryForSecrets implements KubernetesClientFactory for testing
