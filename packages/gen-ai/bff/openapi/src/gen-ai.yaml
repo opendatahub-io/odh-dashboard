@@ -3895,7 +3895,7 @@ components:
               usecase: 'Classification, Image Generation'
               description: ''
               endpoints:
-                - 'https://generativelanguage.googleapis.com/v1beta/openapi/'
+                - 'https://generativelanguage.googleapis.com/v1beta/openai/'
               status: 'Running'
               display_name: 'Gemini 2.5 Flash Lite'
               sa_token:

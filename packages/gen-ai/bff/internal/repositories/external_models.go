@@ -38,7 +38,10 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	// Create or update ConfigMap with the new provider and model
 	if err := client.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req); err != nil {
 		// Clean up secret if ConfigMap creation fails
-		_ = client.DeleteSecret(ctx, identity, namespace, secretName)
+		if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
+			// Return both the original error and the cleanup error to surface leaked state
+			return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+		}
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
