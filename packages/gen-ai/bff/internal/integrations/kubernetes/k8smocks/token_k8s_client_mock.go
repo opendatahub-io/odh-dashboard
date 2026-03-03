@@ -811,3 +811,43 @@ func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identit
 		},
 	}, nil
 }
+
+// GenerateProviderID generates a mock provider ID for testing
+// GenerateProviderID delegates to the real implementation to properly count existing providers
+func (m *TokenKubernetesClientMock) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.GenerateProviderID(ctx, identity, namespace)
+}
+
+// CreateExternalModelSecret creates a mock Secret for testing
+func (m *TokenKubernetesClientMock) CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"api_key": secretValue,
+		},
+	}
+	return m.Client.Create(ctx, secret)
+}
+
+// CreateOrUpdateExternalModelConfigMap delegates to the real implementation
+// to properly test the ConfigMap creation logic
+func (m *TokenKubernetesClientMock) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req)
+}
+
+// DeleteSecret deletes a mock Secret for testing
+func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}
+	return m.Client.Delete(ctx, secret)
+}
