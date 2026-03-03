@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"net"
 	"net/http"
 	"time"
 
@@ -46,25 +45,25 @@ type RealClientFactory struct {
 // NewRealClientFactory creates a factory for real MLflow clients.
 // rootCAs and insecureSkipVerify configure TLS on the shared transport.
 func NewRealClientFactory(url string, rootCAs *x509.CertPool, insecureSkipVerify bool) MLflowClientFactory {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:            rootCAs,
-			InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // cluster-level config, matches other integrations
-		},
-		// Match Go's DefaultTransport pool settings
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:     90 * time.Second,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		RootCAs:            rootCAs,
+		InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // cluster-level config, matches other integrations
+		MinVersion:         tls.VersionTLS12,
 	}
+	transport.MaxIdleConnsPerHost = 10
 	return &RealClientFactory{url: url, transport: transport}
 }
 
 // GetClient creates a per-request MLflow client with the caller's auth token and workspace namespace.
 func (f *RealClientFactory) GetClient(_ context.Context, token, namespace string) (ClientInterface, error) {
+	if token == "" {
+		return nil, errors.New("mlflow auth token is required")
+	}
+	if namespace == "" {
+		return nil, errors.New("mlflow workspace namespace is required")
+	}
+
 	httpClient := &http.Client{
 		Transport: f.transport,
 		Timeout:   30 * time.Second,

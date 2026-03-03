@@ -150,12 +150,12 @@ MLflow autodiscovery is blocked by:
 
 `MLFLOW_URL` environment variable set at deployment time. The deployer (operator/Helm/kustomize) knows where MLflow lives and configures:
 
-```
+```bash
 MLFLOW_URL=https://mlflow.{mlflow-namespace}.svc:8443
 ```
 
 For local development:
-```
+```bash
 MLFLOW_URL=https://localhost:8443  # with port-forward
 ```
 

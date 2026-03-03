@@ -25,7 +25,7 @@ type Client struct {
 }
 
 // NewClient creates a new MLflow client with the given SDK options.
-// Callers pass WithTrackingURI, WithToken, WithHTTPClient, etc. directly.
+// Callers pass WithTrackingURI, WithHeaders, WithHTTPClient, etc. directly.
 func NewClient(opts ...sdkmlflow.Option) (*Client, error) {
 	sdk, err := sdkmlflow.NewClient(opts...)
 	if err != nil {
