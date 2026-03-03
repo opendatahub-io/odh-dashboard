@@ -40,5 +40,8 @@ module.exports = {
     'react/prop-types': 'off',
     'react-hooks/rules-of-hooks': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
+    '@odh-dashboard/require-effect-timer-cleanup': 'error',
+    '@odh-dashboard/require-effect-listener-cleanup': 'error',
+    '@odh-dashboard/require-effect-fetch-cleanup': 'error',
   },
 };
