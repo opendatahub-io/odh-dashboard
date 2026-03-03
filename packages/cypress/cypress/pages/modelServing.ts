@@ -5,6 +5,7 @@ import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescr
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -1347,11 +1348,23 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    return cy.findByTestId('yaml-editor');
+    const editor = new DashboardCodeEditor(() =>
+      cy.findByTestId('yaml-editor').find('.monaco-editor'),
+    );
+    editor.waitForReady();
+    return editor;
   }
 
   findYAMLEditorEmptyState() {
     return cy.findByTestId('yaml-editor-empty-state');
+  }
+
+  findManualEditModeButton() {
+    return cy.findByTestId('manual-edit-mode-button');
+  }
+
+  findSwitchToYAMLEditorConfirmButton() {
+    return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 }
 
