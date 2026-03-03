@@ -431,8 +431,55 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: createExternalModel
-      summary: Create External Model
-      description: Register an external model endpoint with secure credential storage.
+
+  /gen-ai/api/v1/models/external/{model_id}:
+    summary: Delete an external model endpoint
+    description: >-
+      Deletes an external model endpoint by removing its entry from the ConfigMap and deleting its associated Secret.
+      This operation permanently removes the external model registration.
+      Requires namespace parameter for proper multi-tenant isolation.
+    delete:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: model_id
+          in: path
+          description: Model ID to delete
+          required: true
+          schema:
+            type: string
+            example: 'gemini-2.5-flash-lite'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model is registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      responses:
+        '204':
+          description: External model successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to delete models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: External model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteExternalModel
 
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS

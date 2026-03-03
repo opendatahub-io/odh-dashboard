@@ -2107,6 +2107,95 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 	return nil
 }
 
+// DeleteExternalModel deletes an external model by removing its entry from the ConfigMap and deleting its Secret
+func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Get existing ConfigMap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+		}
+		return fmt.Errorf("failed to get ConfigMap: %w", err)
+	}
+
+	// Parse the ConfigMap
+	configYAML, ok := configMap.Data["config.yaml"]
+	if !ok || configYAML == "" {
+		return fmt.Errorf("ConfigMap has no config.yaml data")
+	}
+
+	var config models.ExternalModelsConfig
+	if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+		return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
+	}
+
+	// Find the provider that contains this model ID
+	var providerIDToDelete string
+	var secretNameToDelete string
+	modelFound := false
+
+	for i, model := range config.RegisteredResources.Models {
+		if model.ModelID == modelID {
+			modelFound = true
+			providerIDToDelete = model.ProviderID
+
+			// Remove the model from the list
+			config.RegisteredResources.Models = append(
+				config.RegisteredResources.Models[:i],
+				config.RegisteredResources.Models[i+1:]...,
+			)
+			break
+		}
+	}
+
+	if !modelFound {
+		return fmt.Errorf("model %s not found in ConfigMap", modelID)
+	}
+
+	// Find and remove the provider, and get the secret name
+	for i, provider := range config.Providers.Inference {
+		if provider.ProviderID == providerIDToDelete {
+			secretNameToDelete = provider.Config.CustomGenAI.APIKey.SecretRef.Name
+
+			// Remove the provider from the list
+			config.Providers.Inference = append(
+				config.Providers.Inference[:i],
+				config.Providers.Inference[i+1:]...,
+			)
+			break
+		}
+	}
+
+	// Update the ConfigMap with the modified config
+	updatedConfigYAML, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated config to YAML: %w", err)
+	}
+
+	configMap.Data["config.yaml"] = string(updatedConfigYAML)
+	if err := kc.Client.Update(ctx, configMap); err != nil {
+		kc.Logger.Error("failed to update ConfigMap", "error", err, "namespace", namespace)
+		return fmt.Errorf("failed to update ConfigMap: %w", err)
+	}
+
+	kc.Logger.Info("successfully removed model from ConfigMap", "namespace", namespace, "modelID", modelID)
+
+	// Delete the associated Secret
+	if secretNameToDelete != "" {
+		if err := kc.DeleteSecret(ctx, identity, namespace, secretNameToDelete); err != nil {
+			// Log the error but don't fail the whole operation
+			kc.Logger.Warn("failed to delete associated secret", "error", err, "secretName", secretNameToDelete)
+		} else {
+			kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
+		}
+	}
+
+	return nil
+}
+
 // DeleteSecret deletes a Kubernetes Secret
 func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)

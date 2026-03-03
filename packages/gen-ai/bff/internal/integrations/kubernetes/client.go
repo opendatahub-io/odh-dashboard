@@ -40,6 +40,7 @@ type KubernetesClientInterface interface {
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 	CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error
 	CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error
+	DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error
 	DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error
 
 	// Guardrails operations

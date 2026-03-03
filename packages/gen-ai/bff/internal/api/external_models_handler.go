@@ -110,3 +110,46 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 }
+
+// DeleteExternalModelHandler handles the deletion of external model endpoints
+func (app *App) DeleteExternalModelHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	// Get namespace from context
+	namespace, ok := r.Context().Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
+		return
+	}
+
+	// Get the request identity from context
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
+
+	// Get model_id from path parameter
+	modelID := ps.ByName("model_id")
+	if modelID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model_id path parameter is required"))
+		return
+	}
+
+	// Get Kubernetes client
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Delete external model
+	err = app.repositories.ExternalModels.DeleteExternalModel(client, ctx, identity, namespace, modelID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Return 204 No Content on successful deletion
+	w.WriteHeader(http.StatusNoContent)
+}
