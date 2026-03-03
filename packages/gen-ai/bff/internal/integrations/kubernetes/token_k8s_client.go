@@ -22,6 +22,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -606,7 +607,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 	err := kc.Client.List(ctx, &llmInferenceServiceList, listOptions)
 	if err != nil {
 		// If the CRD is not installed, gracefully return empty list
-		if apierrors.IsNotFound(err) || strings.Contains(err.Error(), "no matches for") {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
 			kc.Logger.Debug("LLMInferenceService CRD not installed or not found", "namespace", namespace)
 			return []models.AAModel{}, nil
 		}
@@ -645,7 +646,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 	err := kc.Client.List(ctx, &inferenceServiceList, listOptions)
 	if err != nil {
 		// If the CRD is not installed, gracefully return empty list
-		if apierrors.IsNotFound(err) || strings.Contains(err.Error(), "no matches for") {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
 			kc.Logger.Debug("InferenceService CRD not installed or not found", "namespace", namespace)
 			return []models.AAModel{}, nil
 		}
