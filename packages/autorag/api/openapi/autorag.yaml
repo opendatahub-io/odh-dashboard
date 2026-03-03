@@ -94,7 +94,7 @@ paths:
           required: false
           description: >-
             Secret type filter (key matching is case-insensitive):
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url)
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
             - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
             - Omit for all secrets
           schema:
@@ -136,7 +136,7 @@ paths:
         Retrieves secrets from a specified namespace with optional filtering by type.
         Supports pagination via limit and offset parameters. All key matching is case-insensitive.
         Type filtering includes:
-        - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url)
+        - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
         - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
         - No type: Returns all secrets in the namespace with their detected types
 components:

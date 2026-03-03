@@ -17,9 +17,9 @@ import (
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
 		"aws_access_key_id",
-		"aws_region_name",
+		"aws_default_region",
 		"aws_secret_access_key",
-		"endpoint_url",
+		"aws_s3_endpoint",
 	},
 	// Future storage types can be added here:
 	// "azure": {"azure_storage_account", "azure_storage_key"},

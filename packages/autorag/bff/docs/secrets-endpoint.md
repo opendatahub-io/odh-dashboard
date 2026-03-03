@@ -41,7 +41,7 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 | Storage Type | Required Keys |
 |--------------|---------------|
-| **S3** | `aws_access_key_id`, `aws_region_name`, `aws_secret_access_key`, `endpoint_url` |
+| **S3** | `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
@@ -162,9 +162,9 @@ The storage type configuration is defined in `internal/repositories/secret.go`:
 var storageTypeRequiredKeys = map[string][]string{
     "s3": {
         "aws_access_key_id",
-        "aws_region_name",
+        "aws_default_region",
         "aws_secret_access_key",
-        "endpoint_url",
+        "aws_s3_endpoint",
     },
     // Future storage types can be added here
 }
@@ -189,7 +189,7 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
    - A secret matches if it contains ALL required keys for at least ONE storage type
    - Currently configured storage types:
-     - **S3**: Requires `aws_access_key_id`, `aws_region_name`, `aws_secret_access_key`, `endpoint_url`
+     - **S3**: Requires `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint`
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
 
 3. **`type=lls`**: Filters for LLS (Llama Stack) secrets
@@ -205,8 +205,8 @@ Invalid type values result in a 400 Bad Request error.
 {
   "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
   "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "aws_region_name": "us-east-1",
-  "endpoint_url": "https://s3.amazonaws.com"
+  "aws_default_region": "us-east-1",
+  "aws_s3_endpoint": "https://s3.amazonaws.com"
 }
 ```
 

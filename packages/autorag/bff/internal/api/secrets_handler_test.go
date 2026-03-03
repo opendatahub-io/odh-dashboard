@@ -68,8 +68,8 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
 				"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-				"aws_region_name":       []byte("us-east-1"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -81,8 +81,8 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE2"),
 				"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY2"),
-				"aws_region_name":       []byte("us-west-2"),
-				"endpoint_url":          []byte("https://s3.us-west-2.amazonaws.com"),
+				"aws_default_region":    []byte("us-west-2"),
+				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
 			},
 		},
 		{
@@ -143,8 +143,8 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("key1"),
 				"AWS_SECRET_ACCESS_KEY": []byte("secret1"),
-				"AWS_REGION_NAME":       []byte("us-east-1"),
-				"ENDPOINT_URL":          []byte("https://s3.amazonaws.com"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -156,8 +156,8 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("key2"),
 				"aws_secret_access_key": []byte("secret2"),
-				"aws_region_name":       []byte("us-west-2"),
-				"endpoint_url":          []byte("https://s3.us-west-2.amazonaws.com"),
+				"aws_default_region":    []byte("us-west-2"),
+				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
 			},
 		},
 		{
@@ -169,8 +169,8 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 			Data: map[string][]byte{
 				"Aws_Access_Key_Id":     []byte("key3"),
 				"Aws_Secret_Access_Key": []byte("secret3"),
-				"Aws_Region_Name":       []byte("eu-west-1"),
-				"Endpoint_Url":          []byte("https://s3.eu-west-1.amazonaws.com"),
+				"Aws_Default_Region":    []byte("eu-west-1"),
+				"Aws_S3_Endpoint":       []byte("https://s3.eu-west-1.amazonaws.com"),
 			},
 		},
 	}
@@ -207,8 +207,8 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("key"),
 				"aws_secret_access_key": []byte("secret"),
-				"aws_region_name":       []byte("us-east-1"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -564,8 +564,8 @@ func TestGetSecretsHandler_TypeStorage_WithPagination(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("key1"),
 				"aws_secret_access_key": []byte("secret1"),
-				"aws_region_name":       []byte("us-east-1"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -577,8 +577,8 @@ func TestGetSecretsHandler_TypeStorage_WithPagination(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("key2"),
 				"aws_secret_access_key": []byte("secret2"),
-				"aws_region_name":       []byte("us-west-2"),
-				"endpoint_url":          []byte("https://s3.us-west-2.amazonaws.com"),
+				"aws_default_region":    []byte("us-west-2"),
+				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
 			},
 		},
 		{
@@ -590,8 +590,8 @@ func TestGetSecretsHandler_TypeStorage_WithPagination(t *testing.T) {
 			Data: map[string][]byte{
 				"aws_access_key_id":     []byte("key3"),
 				"aws_secret_access_key": []byte("secret3"),
-				"aws_region_name":       []byte("eu-west-1"),
-				"endpoint_url":          []byte("https://s3.eu-west-1.amazonaws.com"),
+				"aws_default_region":    []byte("eu-west-1"),
+				"aws_s3_endpoint":       []byte("https://s3.eu-west-1.amazonaws.com"),
 			},
 		},
 	}
@@ -708,7 +708,7 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 			},
 			Data: map[string][]byte{
 				"aws_access_key_id": []byte("key"),
-				// Missing aws_secret_access_key, aws_region_name, endpoint_url
+				// Missing aws_secret_access_key, aws_default_region, aws_s3_endpoint
 			},
 		},
 		{
