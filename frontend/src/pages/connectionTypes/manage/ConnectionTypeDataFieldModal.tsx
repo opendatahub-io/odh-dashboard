@@ -109,7 +109,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       title={isEdit ? 'Edit field' : 'Add field'}
       onClose={onClose}
       variant="medium"
-      dataTestId="archive-model-version-modal"
+      dataTestId="connection-type-data-field-modal"
       footerContent={
         <DashboardModalFooter
           onCancel={onClose}
