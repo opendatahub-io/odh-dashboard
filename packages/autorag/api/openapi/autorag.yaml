@@ -78,7 +78,6 @@ paths:
     summary: Path used to retrieve and filter secrets from a namespace.
     description: >-
       The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
-      Supports pagination via limit and offset parameters.
     get:
       tags:
         - K8SOperation
@@ -104,24 +103,6 @@ paths:
               - storage
               - lls
           example: storage
-        - name: limit
-          in: query
-          required: false
-          description: Maximum number of secrets to return (default 10, max 100)
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          example: 10
-        - name: offset
-          in: query
-          required: false
-          description: Number of secrets to skip for pagination (default 0)
-          schema:
-            type: integer
-            minimum: 0
-          example: 0
       responses:
         "200":
           $ref: "#/components/responses/SecretsResponse"
@@ -135,7 +116,7 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Supports pagination via limit and offset parameters. All key matching is case-insensitive.
+        All key matching is case-insensitive.
         Type filtering includes:
         - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
         - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
@@ -591,7 +572,6 @@ components:
               data:
                 type: array
                 description: List of filtered secrets
-                maxItems: 100
                 items:
                   $ref: "#/components/schemas/SecretListItem"
           examples:

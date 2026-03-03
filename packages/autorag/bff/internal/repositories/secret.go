@@ -41,7 +41,6 @@ func NewSecretRepository() *SecretRepository {
 }
 
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on the secretType.
-// It supports pagination using limit and offset parameters.
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
@@ -52,8 +51,6 @@ func (r *SecretRepository) GetFilteredSecrets(
 	namespace string,
 	identity *k8s.RequestIdentity,
 	secretType string,
-	limit int,
-	offset int,
 ) ([]models.SecretListItem, error) {
 	// Fetch all secrets from the namespace
 	secrets, err := client.GetSecrets(ctx, namespace, identity)
@@ -78,13 +75,10 @@ func (r *SecretRepository) GetFilteredSecrets(
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
-	// Apply pagination
-	paginatedSecrets := paginateSecrets(filteredSecrets, limit, offset)
-
 	// Convert to response models with type information
 	// Initialize as empty slice instead of nil to ensure JSON serialization returns [] instead of null
-	secretListItems := make([]models.SecretListItem, 0, len(paginatedSecrets))
-	for _, secret := range paginatedSecrets {
+	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
+	for _, secret := range filteredSecrets {
 		// Determine the type for this secret
 		var responseType string
 		switch secretType {
@@ -188,32 +182,6 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 		}
 	}
 	return true
-}
-
-// paginateSecrets applies limit and offset to a slice of secrets
-func paginateSecrets(secrets []corev1.Secret, limit int, offset int) []corev1.Secret {
-	// Defensively clamp offset to 0 if negative
-	if offset < 0 {
-		offset = 0
-	}
-
-	// If offset is beyond the slice, return empty
-	if offset >= len(secrets) {
-		return []corev1.Secret{}
-	}
-
-	// Treat limit <= 0 as "no limit" - return all items from offset to end
-	if limit <= 0 {
-		limit = len(secrets) - offset
-	}
-
-	// Calculate end index and clamp to slice length
-	end := offset + limit
-	if end > len(secrets) {
-		end = len(secrets)
-	}
-
-	return secrets[offset:end]
 }
 
 // GetSecretByUID retrieves a secret by its UID (for potential future use)
