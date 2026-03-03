@@ -185,7 +185,12 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		data := response["data"].(map[string]interface{})
+		dataField, exists := response["data"]
+		require.True(t, exists, "Response should contain 'data' field")
+
+		data, ok := dataField.(map[string]interface{})
+		require.True(t, ok, "Data should be a map")
+
 		assert.Equal(t, "text-embedding-3-small", data["model_id"])
 		assert.Equal(t, "OpenAI Text Embedding 3 Small", data["display_name"])
 		assert.Equal(t, "text-embedding-3-small", data["model_name"])
