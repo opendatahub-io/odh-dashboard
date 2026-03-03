@@ -43,29 +43,43 @@ module.exports = {
           return;
         }
 
-        const cleanupFn = getCleanupFunction(callback);
+        const cleanupFn = getCleanupFunction(callback, context);
 
         if (!cleanupFn) {
           // Check for conditional cleanup: the cleanup return may be inside an
           // if/else branch rather than at the top level of the callback body.
           // Only count cleanup calls inside actual returned functions, not bare calls.
-          const conditionalCleanups = findAllCleanupFunctions(callback.body);
-          const hasConditionalCleanup = conditionalCleanups.some(
-            (fn) =>
-              (hasSetTimeout && containsCallTo(fn.body, ['clearTimeout'])) ||
-              (hasSetInterval && containsCallTo(fn.body, ['clearInterval'])),
+          const conditionalCleanups = findAllCleanupFunctions(callback.body, context);
+          const conditionalHasClearTimeout = conditionalCleanups.some((fn) =>
+            containsCallTo(fn.body, ['clearTimeout']),
           );
+          const conditionalHasClearInterval = conditionalCleanups.some((fn) =>
+            containsCallTo(fn.body, ['clearInterval']),
+          );
+          const hasConditionalCleanup =
+            (!hasSetTimeout || conditionalHasClearTimeout) &&
+            (!hasSetInterval || conditionalHasClearInterval);
 
-          if (!hasConditionalCleanup) {
+          if (hasConditionalCleanup) {
+            return;
+          }
+
+          if (hasSetTimeout && !conditionalHasClearTimeout) {
             context.report({
               node: node.callee,
               messageId: 'missingCleanupReturn',
-              data: {
-                timerFn: hasSetInterval ? 'setInterval' : 'setTimeout',
-                cleanupFn: hasSetInterval ? 'clearInterval' : 'clearTimeout',
-              },
+              data: { timerFn: 'setTimeout', cleanupFn: 'clearTimeout' },
             });
           }
+
+          if (hasSetInterval && !conditionalHasClearInterval) {
+            context.report({
+              node: node.callee,
+              messageId: 'missingCleanupReturn',
+              data: { timerFn: 'setInterval', cleanupFn: 'clearInterval' },
+            });
+          }
+
           return;
         }
 

@@ -3,6 +3,100 @@
  */
 
 /**
+ * @param {import('estree').Node | null | undefined} node
+ * @returns {boolean}
+ */
+function isFunctionNode(node) {
+  return (
+    !!node &&
+    (node.type === 'ArrowFunctionExpression' ||
+      node.type === 'FunctionExpression' ||
+      node.type === 'FunctionDeclaration')
+  );
+}
+
+/**
+ * @param {ReturnType<import('eslint').Rule.RuleContext['getSourceCode']>['scopeManager']} scopeManager
+ * @param {import('estree').Node} node
+ * @returns {import('eslint').Scope.Scope | null}
+ */
+function getClosestScope(scopeManager, node) {
+  let current = node;
+  while (current) {
+    const acquired = scopeManager.acquire(current, true) || scopeManager.acquire(current, false);
+    if (acquired) {
+      return acquired;
+    }
+    current = current.parent || null;
+  }
+  return null;
+}
+
+/**
+ * @param {import('eslint').Scope.Scope | null} scope
+ * @param {string} name
+ * @returns {import('eslint').Scope.Variable | null}
+ */
+function findVariable(scope, name) {
+  let current = scope;
+  while (current) {
+    if (current.set && current.set.has(name)) {
+      return current.set.get(name);
+    }
+    current = current.upper;
+  }
+  return null;
+}
+
+/**
+ * Resolves an expression into a function node when possible.
+ * Supports direct function nodes, identifiers pointing to variable declarators,
+ * and identifiers pointing to function declarations.
+ * @param {import('estree').Node | null | undefined} expr
+ * @param {import('eslint').Scope.Scope | null} scope
+ * @param {Set<string>} visited
+ * @returns {import('estree').ArrowFunctionExpression | import('estree').FunctionExpression | import('estree').FunctionDeclaration | null}
+ */
+function resolveFunctionExpression(expr, scope, visited = new Set()) {
+  if (!expr) {
+    return null;
+  }
+
+  if (isFunctionNode(expr)) {
+    return expr;
+  }
+
+  if (expr.type !== 'Identifier') {
+    return null;
+  }
+
+  if (visited.has(expr.name)) {
+    return null;
+  }
+  visited.add(expr.name);
+
+  const variable = findVariable(scope, expr.name);
+  if (!variable) {
+    return null;
+  }
+
+  for (const def of variable.defs) {
+    if (def.type === 'FunctionName' && def.node && def.node.type === 'FunctionDeclaration') {
+      return def.node;
+    }
+
+    if (def.type === 'Variable' && def.node && def.node.type === 'VariableDeclarator') {
+      const resolved = resolveFunctionExpression(def.node.init, variable.scope, visited);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * @param {import('estree').CallExpression} node
  */
 function isEffectHook(node) {
@@ -129,20 +223,24 @@ function bodyContainsCallTo(callback, functionNames) {
 /**
  * Finds the cleanup function returned from an effect callback.
  * @param {import('estree').ArrowFunctionExpression | import('estree').FunctionExpression} callback
- * @returns {import('estree').ArrowFunctionExpression | import('estree').FunctionExpression | null}
+ * @param {import('eslint').Rule.RuleContext} context
+ * @returns {import('estree').ArrowFunctionExpression | import('estree').FunctionExpression | import('estree').FunctionDeclaration | null}
  */
-function getCleanupFunction(callback) {
+function getCleanupFunction(callback, context) {
   const { body } = callback;
   if (body.type !== 'BlockStatement') {
     return null;
   }
 
+  const { scopeManager } = context.getSourceCode();
+
   for (let i = body.body.length - 1; i >= 0; i--) {
     const stmt = body.body[i];
     if (stmt.type === 'ReturnStatement' && stmt.argument) {
-      const { argument } = stmt;
-      if (argument.type === 'ArrowFunctionExpression' || argument.type === 'FunctionExpression') {
-        return argument;
+      const scope = getClosestScope(scopeManager, stmt);
+      const resolved = resolveFunctionExpression(stmt.argument, scope);
+      if (resolved) {
+        return resolved;
       }
     }
   }
@@ -195,10 +293,12 @@ function containsNewExpression(node, constructorName) {
  * in the callback body, including inside conditional branches. Does not recurse
  * into nested function scopes.
  * @param {import('estree').Node} node
- * @returns {Array<import('estree').ArrowFunctionExpression | import('estree').FunctionExpression>}
+ * @param {import('eslint').Rule.RuleContext} context
+ * @returns {Array<import('estree').ArrowFunctionExpression | import('estree').FunctionExpression | import('estree').FunctionDeclaration>}
  */
-function findAllCleanupFunctions(node) {
+function findAllCleanupFunctions(node, context) {
   const cleanupFns = [];
+  const { scopeManager } = context.getSourceCode();
 
   function walk(n) {
     if (!n || typeof n !== 'object') {
@@ -214,9 +314,10 @@ function findAllCleanupFunctions(node) {
     }
 
     if (n.type === 'ReturnStatement' && n.argument) {
-      const { argument } = n;
-      if (argument.type === 'ArrowFunctionExpression' || argument.type === 'FunctionExpression') {
-        cleanupFns.push(argument);
+      const scope = getClosestScope(scopeManager, n);
+      const resolved = resolveFunctionExpression(n.argument, scope);
+      if (resolved) {
+        cleanupFns.push(resolved);
       }
     }
 

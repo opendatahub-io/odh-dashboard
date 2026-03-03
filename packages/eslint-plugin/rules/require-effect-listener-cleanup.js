@@ -40,13 +40,13 @@ module.exports = {
           return;
         }
 
-        const cleanupFn = getCleanupFunction(callback);
+        const cleanupFn = getCleanupFunction(callback, context);
 
         if (!cleanupFn) {
           // Check for conditional cleanup: the cleanup return may be inside an
           // if/else branch rather than at the top level of the callback body.
           // Only count cleanup calls inside actual returned functions, not bare calls.
-          const conditionalCleanups = findAllCleanupFunctions(callback.body);
+          const conditionalCleanups = findAllCleanupFunctions(callback.body, context);
           const hasConditionalCleanup = conditionalCleanups.some((fn) =>
             containsCallTo(fn.body, ['removeEventListener']),
           );
