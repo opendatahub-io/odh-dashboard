@@ -2032,6 +2032,10 @@ components:
           enum: ['Running', 'Stop']
           example: 'Running'
           description: Current status of the model (Running or Stop)
+        display_name:
+          type: string
+          example: 'Llama 3.2 3B Instruct'
+          description: Human-readable display name for the model
         sa_token:
           $ref: '#/components/schemas/SAToken'
 
