@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 
+	"gopkg.in/yaml.v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1908,4 +1911,219 @@ func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(confi
 	}
 
 	return guardrailModels
+}
+
+// GenerateProviderID generates a unique provider ID for external models
+func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
+		// If ConfigMap doesn't exist, start with ID 1
+		if apierrors.IsNotFound(err) {
+			return "1", nil
+		}
+		return "", fmt.Errorf("failed to get ConfigMap: %w", err)
+	}
+
+	// Parse existing config to count providers
+	configYAML, ok := configMap.Data["config.yaml"]
+	if !ok || configYAML == "" {
+		return "1", nil
+	}
+
+	var config models.ExternalModelsConfig
+	if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+		return "", fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
+	}
+
+	// Generate next ID by finding the maximum existing ID
+	// This prevents collisions when providers are deleted or reordered
+	maxID := 0
+	for _, provider := range config.Providers.Inference {
+		// Provider IDs are in format "external-model-provider-{id}"
+		// Extract the numeric ID part
+		idStr := strings.TrimPrefix(provider.ProviderID, "external-model-provider-")
+		if id, err := strconv.Atoi(idStr); err == nil {
+			if id > maxID {
+				maxID = id
+			}
+		} else {
+			// Log non-numeric IDs but continue
+			kc.Logger.Warn("skipping non-numeric provider ID", "providerID", provider.ProviderID, "error", err)
+		}
+	}
+
+	nextID := maxID + 1
+	return fmt.Sprintf("%d", nextID), nil
+}
+
+// CreateExternalModelSecret creates a Kubernetes Secret for the external model API key
+func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"api_key": secretValue,
+		},
+	}
+
+	if err := kc.Client.Create(ctx, secret); err != nil {
+		kc.Logger.Error("failed to create secret", "error", err, "namespace", namespace, "secretName", secretName)
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	kc.Logger.Info("successfully created secret", "namespace", namespace, "secretName", secretName)
+	return nil
+}
+
+// CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-external-models ConfigMap
+func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Try to get existing ConfigMap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
+
+	var config models.ExternalModelsConfig
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get ConfigMap: %w", err)
+		}
+		// ConfigMap doesn't exist, initialize empty config
+		config = models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{},
+			},
+		}
+	} else {
+		// ConfigMap exists, parse it
+		configYAML, ok := configMap.Data["config.yaml"]
+		if !ok || configYAML == "" {
+			// Initialize empty config if data is missing
+			config = models.ExternalModelsConfig{
+				Providers: models.ProvidersConfig{
+					Inference: []models.InferenceProvider{},
+				},
+				RegisteredResources: models.RegisteredResourcesConfig{
+					Models: []models.RegisteredModel{},
+				},
+			}
+		} else {
+			if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+				return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
+			}
+		}
+	}
+
+	// Add new provider
+	newProvider := models.InferenceProvider{
+		ProviderID:   fmt.Sprintf("external-model-provider-%s", providerID),
+		ProviderType: req.ProviderType,
+		Config: models.ProviderConfig{
+			BaseURL: req.BaseURL,
+			CustomGenAI: models.CustomGenAI{
+				APIKey: models.APIKeyConfig{
+					SecretRef: models.SecretRef{
+						Name: secretName,
+						Key:  "api_key",
+					},
+				},
+			},
+		},
+	}
+
+	// For Gemini and OpenAI providers with specific models, add allowed_models
+	if req.ProviderType == models.ProviderTypeGemini || req.ProviderType == models.ProviderTypeOpenAI {
+		newProvider.Config.AllowedModels = []string{req.ModelID}
+	}
+
+	config.Providers.Inference = append(config.Providers.Inference, newProvider)
+
+	// Add new registered model
+	newModel := models.RegisteredModel{
+		ProviderID: fmt.Sprintf("external-model-provider-%s", providerID),
+		ModelID:    req.ModelID,
+		ModelType:  req.ModelType,
+		Metadata: models.RegisteredModelMetadata{
+			DisplayName: req.ModelDisplayName,
+		},
+	}
+
+	// Add use_cases if provided
+	if req.UseCases != "" {
+		newModel.Metadata.CustomGenAI = &models.RegisteredModelCustomGenAI{
+			UseCases: req.UseCases,
+		}
+	}
+
+	config.RegisteredResources.Models = append(config.RegisteredResources.Models, newModel)
+
+	// Convert to YAML
+	configYAML, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config to YAML: %w", err)
+	}
+
+	// Create or update ConfigMap
+	if configMap == nil {
+		// Create new ConfigMap
+		newConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"config.yaml": string(configYAML),
+			},
+		}
+
+		if err := kc.Client.Create(ctx, newConfigMap); err != nil {
+			kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace)
+			return fmt.Errorf("failed to create ConfigMap: %w", err)
+		}
+		kc.Logger.Info("successfully created ConfigMap", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
+	} else {
+		// Update existing ConfigMap
+		// Initialize Data map if nil to prevent panic
+		if configMap.Data == nil {
+			configMap.Data = map[string]string{}
+		}
+		configMap.Data["config.yaml"] = string(configYAML)
+		if err := kc.Client.Update(ctx, configMap); err != nil {
+			kc.Logger.Error("failed to update ConfigMap", "error", err, "namespace", namespace)
+			return fmt.Errorf("failed to update ConfigMap: %w", err)
+		}
+		kc.Logger.Info("successfully updated ConfigMap", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
+	}
+
+	return nil
+}
+
+// DeleteSecret deletes a Kubernetes Secret
+func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}
+
+	if err := kc.Client.Delete(ctx, secret); err != nil {
+		kc.Logger.Error("failed to delete Secret", "error", err, "namespace", namespace, "secretName", secretName)
+		return fmt.Errorf("failed to delete Secret: %w", err)
+	}
+
+	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
+	return nil
 }

@@ -34,7 +34,7 @@ let servingRuntime: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-50666] A model can be stopped and started', () => {
+describe('A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -69,7 +69,7 @@ describe('[Product Bug: RHOAIENG-50666] A model can be stopped and started', () 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);

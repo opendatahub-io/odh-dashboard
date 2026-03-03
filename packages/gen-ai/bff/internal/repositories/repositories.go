@@ -22,6 +22,7 @@ type Repositories struct {
 	MCPClient              *MCPClientRepository
 	Guardrails             *GuardrailsRepository
 	MLflowPrompts          *MLflowPromptsRepository
+	ExternalModels         *ExternalModelsRepository
 }
 
 // NewRepositories creates domain-specific repositories.
@@ -41,6 +42,7 @@ func NewRepositories() *Repositories {
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
 		Guardrails:             NewGuardrailsRepository(),
 		MLflowPrompts:          NewMLflowPromptsRepository(),
+		ExternalModels:         NewExternalModelsRepository(),
 	}
 }
 

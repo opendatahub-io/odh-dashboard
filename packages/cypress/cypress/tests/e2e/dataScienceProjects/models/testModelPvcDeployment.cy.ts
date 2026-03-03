@@ -41,7 +41,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from a PVC', () => {
+describe('Verify a model can be deployed from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
@@ -79,7 +79,7 @@ describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from a PV
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
