@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useRef, useMemo, ReactNode } from 'react';
 
 export interface ClickPosition {
   x: number;
@@ -28,12 +28,15 @@ interface LineageClickProviderProps {
 export const LineageClickProvider: React.FC<LineageClickProviderProps> = ({ children }) => {
   const lastClickPositionRef = useRef<ClickPosition | null>(null);
 
-  const value: LineageClickContextType = {
-    getLastClickPosition: () => lastClickPositionRef.current,
-    setClickPosition: (position) => {
-      lastClickPositionRef.current = position;
-    },
-  };
+  const value: LineageClickContextType = useMemo(
+    () => ({
+      getLastClickPosition: () => lastClickPositionRef.current,
+      setClickPosition: (position) => {
+        lastClickPositionRef.current = position;
+      },
+    }),
+    [],
+  );
 
   return <LineageClickContext.Provider value={value}>{children}</LineageClickContext.Provider>;
 };

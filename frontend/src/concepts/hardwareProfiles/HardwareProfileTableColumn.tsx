@@ -78,7 +78,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
               nodeSelector={hardwareProfile?.spec.scheduling?.node?.nodeSelector}
               localQueueName={hardwareProfile?.spec.scheduling?.kueue?.localQueueName}
               priorityClass={hardwareProfile?.spec.scheduling?.kueue?.priorityClass}
-              tableView={true}
+              tableView
             />
           </FlexItem>
         )}
