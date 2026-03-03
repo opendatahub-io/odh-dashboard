@@ -129,6 +129,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       <Modal
         isOpen={confirmAction !== null}
         onClose={() => {
+          if (isSubmitting) {
+            return;
+          }
           setConfirmAction(null);
           setActionError(null);
         }}
