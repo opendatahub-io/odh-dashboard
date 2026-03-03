@@ -3,8 +3,10 @@ import { ActionGroup, Button, Form, FormGroup, TextArea, TextInput } from '@patt
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import { experimentSchema } from '~/app/schemas/experiment.schema';
+import { createExperimentSchema } from '~/app/schemas/experiment.schema';
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
+
+const experimentSchema = createExperimentSchema();
 
 function AutoragCreate(): React.JSX.Element {
   const navigate = useNavigate();
@@ -12,7 +14,7 @@ function AutoragCreate(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(experimentSchema),
-    defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema.
+    defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema
   });
 
   return (
