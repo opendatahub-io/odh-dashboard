@@ -309,7 +309,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 key={job.resource.id}
                 job={job}
                 rowIndex={rowIndex}
-                namespace={namespace}
+                namespace={namespace ?? ''}
                 onActionComplete={onRefresh}
               />
             ))}
