@@ -203,6 +203,9 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 }
 
 // GetSecrets lists secrets in a namespace. RequestIdentity is unused because the token already represents the user identity.
+// Note: Unlike InternalKubernetesClient, this does not pre-check namespace existence.
+// The user's token is used directly, so errors from List will already indicate whether
+// the namespace doesn't exist or the user lacks permissions.
 func (kc *TokenKubernetesClient) GetSecrets(ctx context.Context, namespace string, _ *RequestIdentity) ([]corev1.Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()

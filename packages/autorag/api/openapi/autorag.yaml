@@ -239,6 +239,7 @@ components:
           example: aws-secret-1
         type:
           type: string
+          enum: ["s3", "lls", ""]
           description: >-
             The detected type of the secret based on its keys:
             - 's3': S3 storage secret (has required S3 keys)

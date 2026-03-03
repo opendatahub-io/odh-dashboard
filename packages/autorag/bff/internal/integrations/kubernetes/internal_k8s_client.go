@@ -14,6 +14,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// InternalKubernetesClient uses the backend's service account credentials to perform
+// operations with user impersonation via SubjectAccessReview.
+//
+// This client validates namespace existence before permission checks in GetSecrets,
+// providing clearer error messages that distinguish "namespace not found" from
+// "permission denied". This is feasible because the service account has cluster-level
+// access. TokenKubernetesClient omits this check since it uses the user's token directly
+// and cannot distinguish these cases as easily.
 type InternalKubernetesClient struct {
 	SharedClientLogic
 }
@@ -191,7 +199,9 @@ func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace st
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Verify the namespace exists first
+	// Verify the namespace exists before permission checks to provide clearer error messages.
+	// The service account can distinguish "namespace not found" from "permission denied",
+	// improving UX compared to TokenKubernetesClient which cannot make this distinction.
 	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
