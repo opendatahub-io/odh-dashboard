@@ -377,7 +377,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 ### Request Example
 
 ```bash
-curl -X POST "http://localhost:4001/api/v1/pipeline-runs?namespace=my-namespace" \
+curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "kubeflow-userid: user@example.com" \
   -H "Content-Type: application/json" \
   -d '{
