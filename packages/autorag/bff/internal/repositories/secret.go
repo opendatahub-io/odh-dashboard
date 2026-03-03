@@ -8,7 +8,6 @@ import (
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // storageTypeRequiredKeys defines the required keys for each supported storage type.
@@ -182,26 +181,4 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 		}
 	}
 	return true
-}
-
-// GetSecretByUID retrieves a secret by its UID (for potential future use)
-func (r *SecretRepository) GetSecretByUID(
-	client k8s.KubernetesClientInterface,
-	ctx context.Context,
-	namespace string,
-	uid types.UID,
-	identity *k8s.RequestIdentity,
-) (*corev1.Secret, error) {
-	secrets, err := client.GetSecrets(ctx, namespace, identity)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
-	}
-
-	for _, secret := range secrets {
-		if secret.UID == uid {
-			return &secret, nil
-		}
-	}
-
-	return nil, fmt.Errorf("secret with UID %s not found in namespace %s", uid, namespace)
 }

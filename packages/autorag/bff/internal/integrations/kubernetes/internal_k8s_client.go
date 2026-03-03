@@ -9,6 +9,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -218,7 +219,13 @@ func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace st
 
 	if !response.Status.Allowed {
 		kc.Logger.Warn("user not allowed to list secrets", "namespace", namespace, "user", identity.UserID)
-		return nil, fmt.Errorf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
 	}
 
 	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
