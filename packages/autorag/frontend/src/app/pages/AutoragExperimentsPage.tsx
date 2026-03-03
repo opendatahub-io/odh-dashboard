@@ -3,7 +3,6 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React from 'react';
 import { useParams } from 'react-router';
 import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
-import { useAutoragMockPipelines } from '~/app/hooks/useAutoragMockPipelines';
 import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
 import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -15,14 +14,12 @@ function AutoragExperimentsPage(): React.JSX.Element {
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
-  const [useMock] = useAutoragMockPipelines();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
-  // When mock mode is on and no namespaces (e.g. no cluster), still show the table with mock data
-  const showEmpty = (noNamespaces && !useMock) || invalidNamespace;
+  const showEmpty = noNamespaces || invalidNamespace;
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 

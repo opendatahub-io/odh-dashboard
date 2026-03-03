@@ -7,10 +7,6 @@ jest.mock('~/app/api/pipelines', () => ({
   getPipelineDefinitions: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useAutoragMockPipelines', () => ({
-  useAutoragMockPipelines: () => [true, jest.fn()],
-}));
-
 const getPipelineDefinitionsMock = jest.mocked(getPipelineDefinitions);
 
 describe('usePipelineDefinitions', () => {
@@ -41,7 +37,7 @@ describe('usePipelineDefinitions', () => {
     expect(renderResult.result.current.pipelineDefinitions).toEqual(mockPipelines);
     expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
-    expect(getPipelineDefinitionsMock).toHaveBeenCalledWith(true, '', 'my-namespace');
+    expect(getPipelineDefinitionsMock).toHaveBeenCalledWith('', 'my-namespace');
   });
 
   it('should handle fetch errors', async () => {

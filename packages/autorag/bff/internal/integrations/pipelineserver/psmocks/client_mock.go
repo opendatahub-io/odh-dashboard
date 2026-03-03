@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -13,24 +14,137 @@ import (
 
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
+	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
+	Namespace string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
 }
 
-// NewMockPipelineServerClient creates a new mock pipeline server client
-func NewMockPipelineServerClient() *MockPipelineServerClient {
-	return &MockPipelineServerClient{}
+// NewMockPipelineServerClient creates a new mock pipeline server client.
+// baseURL can be "mock://namespace" to get namespace-specific mock data for UX testing.
+func NewMockPipelineServerClient(baseURL string) *MockPipelineServerClient {
+	namespace := ""
+	if strings.HasPrefix(baseURL, "mock://") {
+		namespace = strings.TrimPrefix(baseURL, "mock://")
+	}
+	return &MockPipelineServerClient{Namespace: namespace}
 }
 
-// ListRuns returns mock pipeline run data with support for filtering and pagination
+// getMockRunCount returns the number of runs per namespace for UX testing:
+// - default: 5 runs
+// - bella: 0 runs (empty state)
+// - bento: 30 runs (pagination testing, >25)
+// - test-namespace: 3 runs (for unit tests)
+// - other: 5 runs (fallback)
+func getMockRunCount(namespace string) int {
+	switch strings.ToLower(namespace) {
+	case "default":
+		return 5
+	case "bella-namespace":
+		return 0
+	case "bento-namespace":
+		return 30
+	case "test-namespace":
+		return 3
+	default:
+		return 5
+	}
+}
+
+// ListRuns returns mock pipeline run data with support for filtering and pagination.
+// Returns namespace-specific counts for UX testing: default=5, bella=0, bento=30.
 func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelineserver.ListRunsParams) (*models.KFPipelineRunResponse, error) {
 	// Record params for test assertions
 	m.LastListRunsParams = params
 
-	// Build full list of mock runs
-	allRuns := []models.KFPipelineRun{
+	// Get runs for this namespace (count varies for UX testing)
+	allRuns := getMockRunsForNamespace(m.Namespace)
+
+	// Apply filtering if filter parameter is provided
+	filteredRuns := allRuns
+	if params != nil && params.Filter != "" {
+		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
+		if pipelineVersionID != "" {
+			var matched []models.KFPipelineRun
+			for _, run := range allRuns {
+				if run.PipelineVersionReference != nil &&
+					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
+					matched = append(matched, run)
+				}
+			}
+			filteredRuns = matched
+		}
+	}
+
+	// Apply pagination
+	pageSize := int32(20) // default page size
+	if params != nil && params.PageSize > 0 {
+		pageSize = params.PageSize
+	}
+
+	// Parse page token to get offset
+	offset := int32(0)
+	if params != nil && params.PageToken != "" {
+		if parsedOffset, err := strconv.ParseInt(params.PageToken, 10, 32); err == nil {
+			offset = int32(parsedOffset)
+		}
+	}
+
+	// Calculate slice bounds
+	start := offset
+	end := offset + pageSize
+	totalSize := int32(len(filteredRuns))
+
+	// Ensure bounds are within range
+	if start > totalSize {
+		start = totalSize
+	}
+	if end > totalSize {
+		end = totalSize
+	}
+
+	// Get the page slice
+	pagedRuns := filteredRuns[start:end]
+
+	// Calculate next page token
+	nextPageToken := ""
+	if end < totalSize {
+		nextPageToken = fmt.Sprintf("%d", end)
+	}
+
+	return &models.KFPipelineRunResponse{
+		Runs:          pagedRuns,
+		TotalSize:     totalSize,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
+// getMockRunsForNamespace returns mock runs for the given namespace.
+// Uses getMockRunCount for UX testing: default=5, bella=0, bento=30.
+func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
+	count := getMockRunCount(namespace)
+	if count == 0 {
+		return nil
+	}
+	baseRuns := getBaseMockRuns()
+	if count <= len(baseRuns) {
+		return baseRuns[:count]
+	}
+	// Expand: cycle through base runs with unique IDs
+	result := make([]models.KFPipelineRun, 0, count)
+	for i := 0; i < count; i++ {
+		template := &baseRuns[i%len(baseRuns)]
+		run := cloneRunWithVariant(template, i)
+		result = append(result, run)
+	}
+	return result
+}
+
+// getBaseMockRuns returns the base run templates
+func getBaseMockRuns() []models.KFPipelineRun {
+	return []models.KFPipelineRun{
 		{
 			RunID:        "run-abc123-def456",
 			DisplayName:  "AutoRAG Optimization Run 1",
@@ -212,64 +326,22 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 			},
 		},
 	}
+}
 
-	// Apply filtering if filter parameter is provided
-	filteredRuns := allRuns
-	if params != nil && params.Filter != "" {
-		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
-		if pipelineVersionID != "" {
-			var matched []models.KFPipelineRun
-			for _, run := range allRuns {
-				if run.PipelineVersionReference != nil &&
-					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
-					matched = append(matched, run)
-				}
-			}
-			filteredRuns = matched
+// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index
+func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPipelineRun {
+	run := *template
+	suffix := fmt.Sprintf("-%d", index)
+	run.RunID = template.RunID + suffix
+	run.DisplayName = template.DisplayName + " " + suffix
+	if run.RunDetails != nil {
+		details := *run.RunDetails
+		for i := range details.TaskDetails {
+			details.TaskDetails[i].RunID = run.RunID
 		}
+		run.RunDetails = &details
 	}
-
-	// Apply pagination
-	pageSize := int32(20) // default page size
-	if params != nil && params.PageSize > 0 {
-		pageSize = params.PageSize
-	}
-
-	// Parse page token to get offset
-	offset := int32(0)
-	if params != nil && params.PageToken != "" {
-		if parsedOffset, err := strconv.ParseInt(params.PageToken, 10, 32); err == nil {
-			offset = int32(parsedOffset)
-		}
-	}
-
-	// Calculate slice bounds
-	start := offset
-	end := offset + pageSize
-	totalSize := int32(len(filteredRuns))
-
-	// Ensure bounds are within range
-	if start > totalSize {
-		start = totalSize
-	}
-	if end > totalSize {
-		end = totalSize
-	}
-
-	// Get the page slice
-	pagedRuns := filteredRuns[start:end]
-
-	// Calculate next page token
-	nextPageToken := ""
-	if end < totalSize {
-		nextPageToken = fmt.Sprintf("%d", end)
-	}
-
-	return &models.KFPipelineRunResponse{
-		Runs:          pagedRuns,
-		TotalSize:     totalSize,
-		NextPageToken: nextPageToken,
-	}, nil
+	return run
 }
 
 // extractPipelineVersionIDFromFilter parses the filter JSON and extracts pipeline_version_id if present
@@ -384,7 +456,8 @@ func NewMockClientFactory() *MockClientFactory {
 	return &MockClientFactory{}
 }
 
-// CreateClient creates a mock pipeline server client
+// CreateClient creates a mock pipeline server client.
+// When baseURL is "mock://namespace", returns namespace-specific mock data for UX testing.
 func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) pipelineserver.PipelineServerClientInterface {
-	return NewMockPipelineServerClient()
+	return NewMockPipelineServerClient(baseURL)
 }

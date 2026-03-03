@@ -8,10 +8,6 @@ jest.mock('~/app/api/pipelines', () => ({
   getPipelineRuns: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useAutoragMockPipelines', () => ({
-  useAutoragMockPipelines: () => [true, jest.fn()],
-}));
-
 const getPipelineRunsMock = jest.mocked(getPipelineRuns);
 
 const mockPipelineDefinitions: PipelineDefinition[] = [
@@ -44,15 +40,7 @@ describe('usePipelineRuns', () => {
     expect(getPipelineRunsMock).not.toHaveBeenCalled();
   });
 
-  it('should return empty runs when pipelineDefinitions is empty', async () => {
-    const renderResult = testHook(usePipelineRuns)('my-namespace', []);
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.runs).toEqual([]);
-    expect(getPipelineRunsMock).not.toHaveBeenCalled();
-  });
-
-  it('should fetch and return pipeline runs', async () => {
+  it('should fetch and return pipeline runs from BFF', async () => {
     getPipelineRunsMock.mockResolvedValue(mockRuns);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', mockPipelineDefinitions);
@@ -61,7 +49,18 @@ describe('usePipelineRuns', () => {
     expect(renderResult.result.current.runs).toEqual(mockRuns);
     expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
-    expect(getPipelineRunsMock).toHaveBeenCalledWith(true, '', 'my-namespace', ['p1']);
+    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace');
+  });
+
+  it('should fetch runs from BFF even with empty pipelineDefinitions', async () => {
+    getPipelineRunsMock.mockResolvedValue(mockRuns);
+
+    const renderResult = testHook(usePipelineRuns)('my-namespace', []);
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.runs).toEqual(mockRuns);
+    expect(renderResult.result.current.loaded).toBe(true);
+    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace');
   });
 
   it('should handle fetch errors', async () => {
