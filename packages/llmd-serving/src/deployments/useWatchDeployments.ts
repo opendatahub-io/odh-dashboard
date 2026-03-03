@@ -3,11 +3,7 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sType
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { getLLMdDeploymentEndpoints } from './endpoints';
-import {
-  calculateGracePeriod,
-  getLLMdDeploymentStatus,
-  useLLMInferenceServicePods,
-} from './status';
+import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import {
   LLMInferenceServiceModel,
   type LLMdDeployment,
@@ -50,18 +46,12 @@ export const useWatchDeployments = (
           pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name &&
           pod.metadata.labels['app.kubernetes.io/component'] === 'llminferenceservice-workload',
       );
-      const lastActivity = new Date(
-        llmInferenceService.status?.conditions?.find((c) => c.type === 'Ready')
-          ?.lastTransitionTime ?? '',
-      );
-
-      const gracePeriod = calculateGracePeriod(lastActivity);
       return {
         modelServingPlatformId: LLMD_SERVING_ID,
         model: llmInferenceService,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService, pods, gracePeriod),
+        status: getLLMdDeploymentStatus(llmInferenceService, pods),
       };
     });
   }, [filteredLLMInferenceServices, deploymentPods]);
