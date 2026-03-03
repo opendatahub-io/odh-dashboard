@@ -232,7 +232,7 @@ function getCleanupFunction(callback, context) {
     return null;
   }
 
-  const { scopeManager } = context.getSourceCode();
+  const { scopeManager } = context.sourceCode;
 
   for (let i = body.body.length - 1; i >= 0; i--) {
     const stmt = body.body[i];
@@ -298,7 +298,8 @@ function containsNewExpression(node, constructorName) {
  */
 function findAllCleanupFunctions(node, context) {
   const cleanupFns = [];
-  const { scopeManager } = context.getSourceCode();
+  const sourceCode = context.sourceCode || context.getSourceCode();
+  const { scopeManager } = sourceCode;
 
   function walk(n) {
     if (!n || typeof n !== 'object') {
