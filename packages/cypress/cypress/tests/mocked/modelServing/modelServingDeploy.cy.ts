@@ -1740,11 +1740,10 @@ describe('Model Serving Deploy Wizard', () => {
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
       modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard
-        .findYAMLCodeEditor()
-        .containsText('apiVersion: serving.kserve.io/v1alpha1');
-      modelServingWizard.findYAMLCodeEditor().containsText('kind: LLMInferenceService');
-      modelServingWizard.findYAMLCodeEditor().containsText('name: test-model');
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha1');
+      yamlEditor.containsText('kind: LLMInferenceService');
+      yamlEditor.containsText('name: test-model');
     });
 
     it('Switch to YAML edit mode on the last step and deploy', () => {
@@ -1887,16 +1886,19 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
       modelServingWizard.findSubmitButton().should('be.disabled');
 
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(1000);
       // First enter invalid YAML to trigger error
-      modelServingWizard.findYAMLCodeEditor().setValue('invalid: yaml:');
+      yamlEditor.setValue('invalid: yaml:');
       modelServingWizard.findErrorMessageAlert().should('exist');
 
       // Clear the invalid YAML
-      modelServingWizard.findYAMLCodeEditor().clear();
+      yamlEditor.clear();
       modelServingWizard.findErrorMessageAlert().should('not.exist');
 
-      // Set a valid LLMInferenceService YAML directly via the Monaco API to avoid
-      // headless browser keyboard-simulation issues with the Monaco editor.
+      // Set a valid LLMInferenceService YAML
       const yamlContent = [
         'apiVersion: serving.kserve.io/v1alpha1',
         'kind: LLMInferenceService',
@@ -1908,7 +1910,7 @@ describe('Model Serving Deploy Wizard', () => {
         '    uri: hf://test/model',
         '    name: yaml-only-model',
       ].join('\n');
-      modelServingWizard.findYAMLCodeEditor().setValue(yamlContent);
+      yamlEditor.setValue(yamlContent);
 
       modelServingWizard.findErrorMessageAlert().should('not.exist');
       modelServingWizard.findSubmitButton().should('be.enabled').click();

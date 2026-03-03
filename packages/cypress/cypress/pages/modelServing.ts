@@ -1348,7 +1348,11 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor').find('.monaco-editor'));
+    const editor = new DashboardCodeEditor(() =>
+      cy.findByTestId('yaml-editor').find('.monaco-editor'),
+    );
+    editor.waitForReady();
+    return editor;
   }
 
   findYAMLEditorEmptyState() {

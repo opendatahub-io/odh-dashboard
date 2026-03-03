@@ -10,7 +10,26 @@ interface MonacoWindow {
   };
 }
 
+/**
+ * Page object for the Dashboard Code Editor component.
+ * There are two ways to interact with the editor:
+ * 1. Interact with the HTML element directly
+ * 2. Use the Monaco API to interact with the editor.
+ *
+ * Interacting with the HTML element can be unreliable.
+ * The Monaco API is more reliable but you need to `cy.wait` for the editor to be ready if you try to use it right away.
+ */
 export class DashboardCodeEditor extends Contextual<HTMLElement> {
+  waitForReady(): this {
+    this.find().should(($el) => {
+      const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
+      const editors = win.monaco.editor.getEditors();
+      expect(editors).to.have.length.greaterThan(0);
+      expect(editors[0].getModel()).to.not.equal(null);
+    });
+    return this;
+  }
+
   findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('.view-lines.monaco-mouse-cursor-text');
   }
@@ -29,6 +48,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   setValue(value: string): void {
+    this.waitForReady();
     this.find().then(($el) => {
       const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
       const model = win.monaco.editor.getEditors()[0]?.getModel();
@@ -40,6 +60,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   replaceInEditor(oldText: string, newText: string): void {
+    this.waitForReady();
     this.find().then(($el) => {
       const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
       const model = win.monaco.editor.getEditors()[0]?.getModel();

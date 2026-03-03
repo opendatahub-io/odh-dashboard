@@ -215,7 +215,12 @@ describe('useFormToResourcesTransformer', () => {
 
     const renderResult = testHook(useFormToResourcesTransformer)(mockFormData);
 
-    expect(mockAssembleDeployment).toHaveBeenCalledWith(mockFormData, undefined);
+    expect(mockAssembleDeployment).toHaveBeenCalledWith(
+      mockFormData,
+      undefined,
+      undefined,
+      undefined,
+    );
     expect(mockApplyFieldData).toHaveBeenCalledWith(mockDeployment);
     expect(renderResult).hookToStrictEqual({
       resources: {
@@ -340,6 +345,11 @@ describe('useFormToResourcesTransformer', () => {
 
     testHook(useFormToResourcesTransformer)(mockFormData, existingDeployment);
 
-    expect(mockAssembleDeployment).toHaveBeenCalledWith(mockFormData, existingDeployment);
+    expect(mockAssembleDeployment).toHaveBeenCalledWith(
+      mockFormData,
+      existingDeployment,
+      undefined,
+      undefined,
+    );
   });
 });
