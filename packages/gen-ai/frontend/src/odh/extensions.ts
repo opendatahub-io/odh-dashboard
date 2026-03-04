@@ -109,7 +109,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
   {
     type: 'gen-ai.ai-assets/tab',
     flags: {
-      required: [PLUGIN_GEN_AI],
+      required: [PLUGIN_GEN_AI, 'modelAsService'],
     },
     properties: {
       id: 'maasmodels',
