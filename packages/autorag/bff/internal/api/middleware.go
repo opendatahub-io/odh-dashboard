@@ -637,7 +637,8 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 
 	// If no namespace-specific DSPA exists, return a synthetic ready DSPA for the requested namespace.
 	// This allows development with any namespace (e.g. "aistor") when using mock mode.
-	if len(result) == 0 && namespace != "" {
+	// Exclude "no-dspas-namespace" to allow testing the case where no DSPAs exist.
+	if len(result) == 0 && namespace != "" && namespace != "no-dspas-namespace" {
 		result = []models.DSPipelineApplication{
 			{
 				APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
