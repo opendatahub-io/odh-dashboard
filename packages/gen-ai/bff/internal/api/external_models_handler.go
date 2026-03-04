@@ -131,10 +131,10 @@ func (app *App) DeleteExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Get model_id from path parameter
-	modelID := ps.ByName("model_id")
+	// Get model_id from query parameter
+	modelID := r.URL.Query().Get("model_id")
 	if modelID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("model_id path parameter is required"))
+		app.badRequestResponse(w, r, fmt.Errorf("model_id query parameter is required"))
 		return
 	}
 
