@@ -33,11 +33,11 @@ dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MaaS, MCP, MLf
 
 .PHONY: dev-bff
 dev-bff:
-	cd bff && MAAS_URL=${MAAS_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
+	cd bff && MAAS_URL=${MAAS_URL} MLFLOW_URL=${MLFLOW_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
 
 .PHONY: dev-bff-debug
 dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delve installation, see readme)
-	cd bff && MAAS_URL=${MAAS_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
+	cd bff && MAAS_URL=${MAAS_URL} MLFLOW_URL=${MLFLOW_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
