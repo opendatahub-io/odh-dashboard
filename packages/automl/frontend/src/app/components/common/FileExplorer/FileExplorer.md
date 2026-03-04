@@ -30,7 +30,7 @@ The FileExplorer widget in the initial phase will make use primarily of a common
 **Alpha**:
 - [ ] Implement a basic rendering of the component completed in this autorag module
 - [ ] Implement a basic BFF integration (w/ mocks) for the S3 BFF
-- [ ] Once rendering and BFF are complete: integrate together
+- [ ] Once rendering and BFF are complete: integrate
 
 **Acceptance criteria**:
 - [ ] _Integration_: FileExplorer should be easy to integrate into a new UI.
