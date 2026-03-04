@@ -218,13 +218,7 @@ Cypress.Commands.add(
             message: `Root section '${rootSection}' not found`,
           });
           // Return a non-existent selector to allow graceful failure
-          return cy.wrap($el.find('__non_existent_selector__')).then(() => {
-            // Handle sub-section or return final result
-            if (subSection) {
-              return cy.wrap($el.find('__non_existent_selector__'));
-            }
-            return cy.wrap($el.find(`:contains('${args.name}')`).closest('a'));
-          });
+          return $el.find('__non_existent_selector__');
         }
 
         // Expand the root section if it's collapsed
@@ -244,7 +238,7 @@ Cypress.Commands.add(
                 message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
               });
               // Return a non-existent selector to allow graceful failure
-              return cy.wrap($parent.find('__non_existent_selector__'));
+              return $parent.find('__non_existent_selector__');
             }
 
             // Expand the sub-section if it's collapsed
