@@ -56,34 +56,47 @@ export const handleConnectionCreation = async (
   const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
   const formSecretName = createConnectionData.nameDesc?.k8sName.value;
   const actualSecretName = (() => {
-    if (dryRun && !createConnectionData.saveConnection) {
-      // Always generate a new name for non-saved secrets
-      return getGeneratedSecretName();
-    }
     if (createConnectionData.saveConnection && formSecretName) {
       return formSecretName;
     }
-    return secretName ?? formSecretName ?? getGeneratedSecretName();
+    const candidate = secretName ?? formSecretName;
+    if (!candidate || isGeneratedSecretName(candidate)) {
+      return getGeneratedSecretName();
+    }
+    return candidate;
   })();
-
   const description = createConnectionData.nameDesc?.description ?? '';
+
+  const nameDescForAssembly = (() => {
+    const stored = createConnectionData.nameDesc;
+    if (!stored || isGeneratedSecretName(stored.name)) {
+      return {
+        name: actualSecretName,
+        description,
+        k8sName: {
+          value: actualSecretName,
+          state: {
+            immutable: false,
+            invalidCharacters: false,
+            invalidLength: false,
+            maxLength: 0,
+            touched: false,
+          },
+        },
+      };
+    }
+    return {
+      ...stored,
+      k8sName: {
+        ...stored.k8sName,
+        value: translateDisplayNameForK8s(stored.name) || stored.k8sName.value,
+      },
+    };
+  })();
   const newConnection = assembleConnectionSecret(
     project,
     connectionTypeName,
-    createConnectionData.nameDesc ?? {
-      name: actualSecretName,
-      description,
-      k8sName: {
-        value: translateDisplayNameForK8s(actualSecretName),
-        state: {
-          immutable: false,
-          invalidCharacters: false,
-          invalidLength: false,
-          maxLength: 0,
-          touched: false,
-        },
-      },
-    },
+    nameDescForAssembly,
     modelLocationData.fieldValues,
   );
 
