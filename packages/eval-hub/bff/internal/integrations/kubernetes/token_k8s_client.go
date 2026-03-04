@@ -11,7 +11,6 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -169,15 +168,16 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	userClientset, err := kubernetes.NewForConfig(kc.restConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create user clientset", "error", err)
+		return nil, fmt.Errorf("failed to create user clientset: %w", err)
+	}
+
+	nsList, err := userClientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err == nil {
 		kc.Logger.Debug("user can list namespaces cluster-wide", "count", len(nsList.Items))
 		return nsList.Items, nil
-	}
-
-	if !apierrors.IsForbidden(err) {
-		kc.Logger.Error("unexpected error listing namespaces", "error", err)
-		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
 	kc.Logger.Debug("cluster-wide namespace list forbidden, falling back to OpenShift Projects API", "error", err)
@@ -202,13 +202,21 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 
 	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
 	for _, project := range projectList.Items {
-		namespaces = append(namespaces, corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        project.GetName(),
-				Annotations: project.GetAnnotations(),
-				Labels:      project.GetLabels(),
-			},
-		})
+		projectName := project.GetName()
+
+		ns, err := userClientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		if err != nil {
+			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
+			namespaces = append(namespaces, corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        projectName,
+					Annotations: project.GetAnnotations(),
+					Labels:      project.GetLabels(),
+				},
+			})
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
 	}
 
 	kc.Logger.Debug("listed namespaces via OpenShift Projects API", "count", len(namespaces))

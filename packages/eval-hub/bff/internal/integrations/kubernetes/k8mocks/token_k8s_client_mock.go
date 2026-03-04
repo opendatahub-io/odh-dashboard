@@ -38,7 +38,7 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, _ *k8s.RequestIdentity) ([]corev1.Namespace, error) {
 	nsList, err := m.SharedClientLogic.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list namespaces in mock: %w", err)
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 	return nsList.Items, nil
 }
