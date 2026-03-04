@@ -30,7 +30,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-mod-arch-gen-ai-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.3.0"
+    value: "3.3.1"
   - name: dockerfile
     value: Dockerfile.konflux.genai
   - name: path-context

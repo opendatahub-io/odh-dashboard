@@ -31,7 +31,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-mod-arch-maas-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.3.0"
+    value: "3.3.1"
   - name: prefetch-input
     value: '[{"path":".","type":"npm"},{"path":"packages/maas/frontend","type":"npm"},{"path":"packages/maas/bff","type":"gomod"}]'
   - name: build-image-index

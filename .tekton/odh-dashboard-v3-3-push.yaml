@@ -32,7 +32,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-dashboard-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.3.0"
+    value: "3.3.1"
   - name: build-platforms
     value:
     - linux/x86_64
