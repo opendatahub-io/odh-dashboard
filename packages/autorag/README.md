@@ -148,7 +148,7 @@ Docker deployment documentation is coming soon. For now, please use the local de
 Key environment variables for the BFF:
 
 | Variable            | Description                              | Default    |
-|---------------------|------------------------------------------|------------|
+| ------------------- | ---------------------------------------- | ---------- |
 | `PORT`              | HTTP server port                         | 4000       |
 | `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
 | `DEV_MODE`          | Enables development features             | false      |
