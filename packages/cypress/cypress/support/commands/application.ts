@@ -224,6 +224,8 @@ Cypress.Commands.add(
           // Expand the root section if it's collapsed
           cy.wrap($rootSectionElement).click();
           cy.wrap($rootSectionElement).should('have.attr', 'aria-expanded', 'true');
+          // Wait for the expansion animation to complete
+          cy.wrap($rootSectionElement).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
         }
       });
 
@@ -251,6 +253,8 @@ Cypress.Commands.add(
           if ($subSectionElement.attr('aria-expanded') === 'false') {
             cy.wrap($subSectionElement).click();
             cy.wrap($subSectionElement).should('have.attr', 'aria-expanded', 'true');
+            // Wait for the expansion animation to complete
+            cy.wrap($subSectionElement).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
           }
 
           return $subSectionElement.parent().find(`:contains('${args.name}')`).closest('a');
