@@ -107,6 +107,8 @@ spec:
                       type: boolean
                     autorag:
                       type: boolean
+                    automl:
+                      type: boolean
                     modelAsService:
                       type: boolean
                     mlflow:
