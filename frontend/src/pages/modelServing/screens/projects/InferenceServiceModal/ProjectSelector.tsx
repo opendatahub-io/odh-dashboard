@@ -57,6 +57,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 : 'Select target project'
             }
             searchPlaceholder="Project name"
+            appendTo={() => document.body}
           >
             {visibleProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
             {visibleProjects.map((project) => (

@@ -127,6 +127,11 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
+  // Ignore Monaco editor 'Canceled' errors thrown during editor disposal/cleanup
+  if (err.message === 'Canceled' || err.name === 'Canceled') {
+    return false;
+  }
+
   // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
