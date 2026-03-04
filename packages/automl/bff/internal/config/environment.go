@@ -7,10 +7,12 @@ import (
 )
 
 const (
+	// AuthMethodDisabled disables authentication, useful for testing and development.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
 	// This uses kubeflow-userid header to carry the user identity.
 	AuthMethodInternal = "internal"
 
@@ -73,16 +75,18 @@ func (d DeploymentMode) IsFederatedMode() bool {
 }
 
 type EnvConfig struct {
-	Port               int
-	MockK8Client       bool
-	MockHTTPClient     bool
-	DevMode            bool
-	DeploymentMode     DeploymentMode
-	DevModeClientPort  int
-	DevModeCatalogPort int
-	StaticAssetsDir    string
-	LogLevel           slog.Level
-	AllowedOrigins     []string
+	Port                     int
+	MockK8Client             bool
+	MockHTTPClient           bool
+	MockPipelineServerClient bool
+	PipelineServerURL        string
+	DevMode                  bool
+	DeploymentMode           DeploymentMode
+	DevModeClientPort        int
+	DevModeCatalogPort       int
+	StaticAssetsDir          string
+	LogLevel                 slog.Level
+	AllowedOrigins           []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.

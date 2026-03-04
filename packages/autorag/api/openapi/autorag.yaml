@@ -74,6 +74,72 @@ paths:
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
 
+  /api/v1/secrets:
+    summary: Path used to retrieve and filter secrets from a namespace.
+    description: >-
+      The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          description: The namespace name to query secrets from
+          schema:
+            type: string
+          example: default
+        - name: type
+          in: query
+          required: false
+          description: >-
+            Secret type filter (key matching is case-insensitive):
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+            - 'lls': Filters for Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
+            - Omit for all secrets
+
+            Note: Classification keys are used to identify the secret type. Additional optional keys (like aws_s3_bucket for S3 secrets)
+            may be present but are not required for type classification. The availableKeys field in the response lists all keys
+            present in each secret, allowing clients to validate additional requirements for their specific use cases.
+          schema:
+            type: string
+            enum:
+              - storage
+              - lls
+          example: storage
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecrets
+      summary: Get filtered secrets
+      description: >-
+        Retrieves secrets from a specified namespace with optional filtering by type.
+        All key matching is case-insensitive.
+
+        Secret Type Classification:
+        Secrets are classified based on the presence of specific classification keys:
+        - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+        - 'lls': Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
+
+        Optional Keys:
+        Secrets may contain additional optional keys beyond classification requirements (e.g., aws_s3_bucket for S3 secrets).
+        The availableKeys field lists all keys present, allowing clients to validate additional use-case-specific requirements.
+
+        Type filtering:
+        - 'storage': Returns only secrets classified as storage types (currently: s3)
+        - 'lls': Returns only secrets classified as LLS type
+        - No type: Returns all secrets with their detected type classification
+
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
@@ -168,6 +234,83 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+
+    SecretTypeSchema:
+      description: >-
+        Schema defining the classification and optional keys for a secret type.
+        Classification keys are used to identify the secret type.
+        Optional keys are commonly used but not required for type classification.
+      type: object
+      properties:
+        classificationKeys:
+          type: array
+          items:
+            type: string
+          description: Keys required for BFF to classify a secret as this type (case-insensitive matching)
+        commonOptionalKeys:
+          type: array
+          items:
+            type: string
+          description: Common optional keys that may be required for specific use cases but not for type classification
+
+    SecretTypeSchemas:
+      description: Reference documentation for secret type schemas
+      type: object
+      properties:
+        s3:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                commonOptionalKeys:
+                  example: ["aws_s3_bucket"]
+        lls:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+                commonOptionalKeys:
+                  example: []
+
+    SecretListItem:
+      description: A Kubernetes secret with its UUID, name, type classification, and available keys
+      required:
+        - uuid
+        - name
+        - type
+        - availableKeys
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The Kubernetes UID of the secret
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: The name of the secret
+          example: aws-secret-1
+        type:
+          type: string
+          enum: ["s3", "lls", ""]
+          description: >-
+            The detected type of the secret based on its classification keys (see SecretTypeSchemas):
+            - 's3': S3 storage secret (has all required S3 classification keys)
+            - 'lls': Llama Stack secret (has all required LLS classification keys)
+            - '': Empty string if the secret doesn't match any recognized type
+          example: s3
+        availableKeys:
+          type: array
+          items:
+            type: string
+          description: >-
+            Sorted list of all keys available in the secret (without values).
+            Keys are case-preserved and sorted alphabetically.
+            Use this field to validate that additional optional keys required for your use case are present.
+          example: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key", "aws_s3_bucket"]
 
     # Pipeline Run Schemas
     PipelineRun:
@@ -462,6 +605,12 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       description: Unauthorized
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Forbidden - insufficient permissions
     InternalServerError:
       content:
         application/json:
@@ -486,6 +635,67 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+
+    SecretsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                description: List of filtered secrets
+                items:
+                  $ref: "#/components/schemas/SecretListItem"
+          examples:
+            storageSecrets:
+              summary: Example response with storage (S3) secrets
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: aws-secret-1
+                    type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: aws-secret-2
+                    type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+            llsSecrets:
+              summary: Example response with LLS (Llama Stack) secrets
+              value:
+                data:
+                  - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
+                    name: llama-stack-secret-1
+                    type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+                  - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
+                    name: llama-stack-secret-2
+                    type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+            allSecrets:
+              summary: Example response with all secrets (no type filter)
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: s3-secret
+                    type: s3
+                    availableKeys: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+                  - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
+                    name: lls-secret
+                    type: lls
+                    availableKeys: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: other-secret
+                    type: ""
+                    availableKeys: ["password", "username"]
+            emptyList:
+              summary: Example response with no matching secrets
+              value:
+                data: []
+      description: A response containing a list of filtered secret items
 
     PipelineRunsResponse:
       description: Successful response containing pipeline runs
