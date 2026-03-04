@@ -33,18 +33,18 @@ const PER_PAGE_OPTIONS = [
   { title: '20', value: 20 },
 ];
 
-type FilterOption = 'name' | 'benchmark' | 'type';
+type FilterOption = 'name' | 'evaluation' | 'evaluated';
 
 const FILTER_LABELS: Record<FilterOption, string> = {
   name: 'Evaluation name',
-  benchmark: 'Collection/Benchmark',
-  type: 'Type',
+  evaluation: 'Evaluation',
+  evaluated: 'Evaluated',
 };
 
 const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
   name: 'Find by evaluation name',
-  benchmark: 'Find by collection/benchmark',
-  type: 'Find by type',
+  evaluation: 'Find by evaluation',
+  evaluated: 'Find by evaluated model',
 };
 
 type SortConfig = {
@@ -69,9 +69,9 @@ const getFilterValue = (job: EvaluationJob, filterType: FilterOption): string =>
   switch (filterType) {
     case 'name':
       return getEvaluationName(job).toLowerCase();
-    case 'benchmark':
+    case 'evaluation':
       return getBenchmarkName(job).toLowerCase();
-    case 'type':
+    case 'evaluated':
       return job.model.name.toLowerCase();
     default:
       return '';
@@ -81,9 +81,16 @@ const getFilterValue = (job: EvaluationJob, filterType: FilterOption): string =>
 type EvaluationsTableProps = {
   evaluations: EvaluationJob[];
   loaded: boolean;
+  namespace?: string;
+  onRefresh: () => void;
 };
 
-const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded }) => {
+const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
+  evaluations,
+  loaded,
+  namespace,
+  onRefresh,
+}) => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
@@ -172,7 +179,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
                   isOpen={isFilterSelectOpen}
                   onSelect={(_event, value: string | number | undefined) => {
                     const key = String(value);
-                    if (key === 'name' || key === 'benchmark' || key === 'type') {
+                    if (key === 'name' || key === 'evaluation' || key === 'evaluated') {
                       setActiveFilter(key);
                     }
                     setFilterValue('');
@@ -186,11 +193,11 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
                     <SelectOption value="name" data-testid="filter-option-name">
                       Evaluation name
                     </SelectOption>
-                    <SelectOption value="benchmark" data-testid="filter-option-benchmark">
-                      Collection/Benchmark
+                    <SelectOption value="evaluation" data-testid="filter-option-evaluation">
+                      Evaluation
                     </SelectOption>
-                    <SelectOption value="type" data-testid="filter-option-type">
-                      Type
+                    <SelectOption value="evaluated" data-testid="filter-option-evaluated">
+                      Evaluated
                     </SelectOption>
                   </SelectList>
                 </Select>
@@ -272,15 +279,15 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
                     'The benchmark collection or individual benchmark used for this evaluation',
                 }}
               >
-                Collection/Benchmark
+                Evaluation
               </Th>
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip: 'The type of evaluation performed',
+                  tooltip: 'The model evaluated in this run',
                 }}
               >
-                Type
+                Evaluated
               </Th>
               <Th sort={getSortParams(4)} modifier="nowrap">
                 Run date
@@ -298,7 +305,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({ evaluations, loaded
           </Thead>
           <Tbody>
             {paginatedEvaluations.map((job, rowIndex) => (
-              <EvaluationsTableRow key={job.resource.id} job={job} rowIndex={rowIndex} />
+              <EvaluationsTableRow
+                key={job.resource.id}
+                job={job}
+                rowIndex={rowIndex}
+                namespace={namespace ?? ''}
+                onActionComplete={onRefresh}
+              />
             ))}
           </Tbody>
         </Table>

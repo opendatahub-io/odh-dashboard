@@ -124,7 +124,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
-          isKserve={true} // Always KServe
+          isKserve // Always KServe
           modelState={{
             isStarting,
             isStopping,

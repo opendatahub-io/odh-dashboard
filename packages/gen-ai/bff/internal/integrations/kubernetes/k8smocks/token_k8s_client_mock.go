@@ -84,13 +84,15 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 	return nsList.Items, nil
 }
 
-// GetAAModels returns mock AA models for testing, namespace-scoped
+// GetAAModels returns mock AA models plus any external models from ConfigMaps
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
+	var mockModels []models.AAModel
+
 	// Return different mock AA models based on namespace
 	switch namespace {
 	case "mock-test-namespace-1":
 		// Return only LLMInferenceService models for testing llm-d architecture
-		return []models.AAModel{
+		mockModels = []models.AAModel{
 			{
 				ModelName:      "llm-d-codestral-22b",
 				ModelID:        "llm-d-codestral-22b",
@@ -103,8 +105,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llm-d-codestral-22b.%s.svc.cluster.local:80", namespace),
 					fmt.Sprintf("external: https://llm-d-codestral-22b-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "LLM-D Codestral 22B",
+				Status:          "Running",
+				DisplayName:     "LLM-D Codestral 22B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
@@ -117,12 +120,13 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://llm-d-deepseek-coder-33b.%s.svc.cluster.local:80", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "LLM-D DeepSeek Coder 33B",
+				Status:          "Running",
+				DisplayName:     "LLM-D DeepSeek Coder 33B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
-		}, nil
+		}
 	case "mock-test-namespace-2", "mock-test-namespace-3":
-		aaModels := []models.AAModel{
+		mockModels = []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
 				ModelID:        "granite-7b-code",
@@ -135,8 +139,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "Granite 7B code",
+				Status:          "Running",
+				DisplayName:     "Granite 7B code",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -150,8 +155,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "Llama 3.1 8B instruct",
+				Status:          "Running",
+				DisplayName:     "Llama 3.1 8B instruct",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -164,8 +170,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
-				Status:      "Stop",
-				DisplayName: "Mistral 7B instruct",
+				Status:          "Stop",
+				DisplayName:     "Mistral 7B instruct",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -179,8 +186,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "Ollama Llama 3.2 3B",
+				Status:          "Running",
+				DisplayName:     "Ollama Llama 3.2 3B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -194,8 +202,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "Ollama All MiniLM L6 v2",
+				Status:          "Running",
+				DisplayName:     "Ollama All MiniLM L6 v2",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 		}
 
@@ -213,8 +222,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llm-d-llama-3.1-70b.%s.svc.cluster.local:80", namespace),
 					fmt.Sprintf("external: https://llm-d-llama-3.1-70b-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "LLM-D Llama 3.1 70B",
+				Status:          "Running",
+				DisplayName:     "LLM-D Llama 3.1 70B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
@@ -228,8 +238,9 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llm-d-mixtral-8x7b.%s.svc.cluster.local:80", namespace),
 					fmt.Sprintf("external: https://llm-d-mixtral-8x7b-%s.example.com", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "LLM-D Mixtral 8x7B",
+				Status:          "Running",
+				DisplayName:     "LLM-D Mixtral 8x7B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
@@ -242,17 +253,30 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://llm-d-qwen2.5-72b.%s.svc.cluster.local:80", namespace),
 				},
-				Status:      "Running",
-				DisplayName: "LLM-D Qwen 2.5 72B",
+				Status:          "Running",
+				DisplayName:     "LLM-D Qwen 2.5 72B",
+				ModelSourceType: models.ModelSourceTypeNamespace,
 			},
 		}
 
 		// Append LLM-D models to the existing models
-		aaModels = append(aaModels, llmDModels...)
-		return aaModels, nil
+		mockModels = append(mockModels, llmDModels...)
 	default:
-		return []models.AAModel{}, nil
+		mockModels = []models.AAModel{}
 	}
+
+	// Add external models from ConfigMaps if they exist
+	externalModels, err := m.GetAAModelsFromExternalModels(ctx, identity, namespace)
+	if err != nil {
+		// Log error but don't fail - continue with namespace models only
+		m.Logger.Warn("failed to get external models, continuing with namespace models only",
+			"error", err,
+			"namespace", namespace)
+		externalModels = []models.AAModel{}
+	}
+	mockModels = append(mockModels, externalModels...)
+
+	return mockModels, nil
 }
 
 // IsClusterAdmin returns mock admin status for testing
@@ -839,6 +863,12 @@ func (m *TokenKubernetesClientMock) CreateExternalModelSecret(ctx context.Contex
 func (m *TokenKubernetesClientMock) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	// Use the real implementation from the embedded TokenKubernetesClient
 	return m.TokenKubernetesClient.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req)
+}
+
+// DeleteExternalModel delegates to the real implementation for proper testing
+func (m *TokenKubernetesClientMock) DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error {
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
 // DeleteSecret deletes a mock Secret for testing

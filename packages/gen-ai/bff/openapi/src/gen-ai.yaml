@@ -381,9 +381,9 @@ paths:
       description: Gets a list of all available AI Available Assets models from Kubernetes InferenceServices.
 
   /gen-ai/api/v1/models/external:
-    summary: Register external model endpoints
+    summary: Manage external model endpoints
     description: >-
-      Register external model endpoints (e.g., Gemini, OpenAI, Anthropic, or in-cluster models) for use in Gen AI Studio.
+      Register and manage external model endpoints (e.g., Gemini, OpenAI, Anthropic, or in-cluster models) for use in Gen AI Studio.
       Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
       Supports both external providers (data sent outside cluster) and in-cluster cross-namespace models.
       Requires namespace parameter for proper multi-tenant isolation.
@@ -431,8 +431,53 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: createExternalModel
-      summary: Create External Model
-      description: Register an external model endpoint with secure credential storage.
+    delete:
+      summary: Delete an external model endpoint
+      description: >-
+        Deletes an external model endpoint by removing its entry from the ConfigMap and deleting its associated Secret.
+        This operation permanently removes the external model registration.
+        Requires namespace parameter for proper multi-tenant isolation.
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: model_id
+          in: query
+          description: Model ID to delete (supports slashes, e.g. 'openai/gpt-4o' or 'ollama/llama3.2:3b')
+          required: true
+          schema:
+            type: string
+            example: 'gemini-2.5-flash-lite'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model is registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      responses:
+        '204':
+          description: External model successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to delete models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: External model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteExternalModel
 
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS
@@ -1996,6 +2041,7 @@ components:
         - version
         - endpoints
         - status
+        - model_source_type
       properties:
         model_name:
           type: string
@@ -2017,6 +2063,18 @@ components:
           type: string
           example: 'v2025.1'
           description: Version of the model
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - external_cluster
+            - external_provider
+          example: 'namespace'
+          description: >-
+            Source type of the model:
+            'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
+            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
+            'external_provider' for external models pointing to providers (outside cluster)
         description:
           type: string
           nullable: true
@@ -3902,6 +3960,7 @@ components:
               serving_runtime: 'remote::gemini'
               api_protocol: 'REST'
               version: ''
+              model_source_type: 'external_provider'
               usecase: 'Classification, Image Generation'
               description: ''
               endpoints:
