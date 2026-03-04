@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 
 	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -10,6 +11,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
 )
+
+// ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
+var ErrExternalModelNotFound = errors.New("external model not found")
 
 const ComponenetLabelValue = "llama-stack"
 
@@ -40,6 +44,7 @@ type KubernetesClientInterface interface {
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 	CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error
 	CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error
+	DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error
 	DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error
 
 	// Guardrails operations
