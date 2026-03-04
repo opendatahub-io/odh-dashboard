@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "5d3614d45b2dcae5d4df117e52a333a8e16bac82"
+    "commit": "3c123e7503485674e02cb235b94da4cbdecedb41"
   },
   "module-federation": {
     "name": "modelRegistry",
