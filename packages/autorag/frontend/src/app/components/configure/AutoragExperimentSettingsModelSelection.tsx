@@ -80,15 +80,20 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
               );
 
             const handleSelectAll = (isSelecting: boolean) => {
-              field.onChange(isSelecting ? models.map((model) => ({ model: model.id })) : []);
+              field.onChange(
+                isSelecting
+                  ? models
+                      .map((model) => ({ model: model.id }))
+                      .toSorted((a, b) => a.model.localeCompare(b.model))
+                  : [],
+              );
             };
 
             const handleToggleModel = (modelId: string, isSelecting: boolean) => {
-              field.onChange(
-                isSelecting
-                  ? [...selectedModels, { model: modelId }]
-                  : selectedModels.filter((selectedModel) => selectedModel.model !== modelId),
-              );
+              const updated = isSelecting
+                ? [...selectedModels, { model: modelId }]
+                : selectedModels.filter((selectedModel) => selectedModel.model !== modelId);
+              field.onChange(updated.toSorted((a, b) => a.model.localeCompare(b.model)));
             };
 
             return (

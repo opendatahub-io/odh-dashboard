@@ -18,7 +18,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { isEqual } from 'es-toolkit';
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import {
@@ -66,15 +65,10 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
 }) => {
   const {
     control,
-    formState: { errors, defaultValues },
-    watch,
+    formState: { isDirty, errors },
   } = useFormContext<ConfigureSchema>();
 
-  const areFieldsDirty = EXPERIMENT_SETTINGS_FIELDS.some(
-    (field) => !isEqual(watch(field), defaultValues?.[field]),
-  );
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
-
   return (
     <Modal
       variant={ModalVariant.medium}
@@ -175,7 +169,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
         <Button
           variant="primary"
           onClick={saveChanges}
-          isDisabled={!areFieldsDirty || hasFieldErrors}
+          isDisabled={!isDirty || hasFieldErrors}
           data-testid="experiment-settings-save"
         >
           Save

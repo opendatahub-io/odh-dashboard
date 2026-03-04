@@ -51,14 +51,22 @@ function AutoragConfigure(): React.JSX.Element {
         // eslint-disable-next-line camelcase
         generation_constraints: allModelsData.models
           .filter((model) => model.type === 'llm')
-          .map((model) => ({ model: model.id })),
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
         // eslint-disable-next-line camelcase
         embeddings_constraints: allModelsData.models
           .filter((model) => model.type === 'embedding')
-          .map((model) => ({ model: model.id })),
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
       });
     }
   }, [allModelsData, form]);
+
+  const openExperimentSettings = () => {
+    // Snapshot current form values as the "default" so reset() can revert to them
+    form.reset({ ...form.getValues() });
+    setIsExperimentSettingsOpen(true);
+  };
 
   const saveExperimentSettingsChanges = () => {
     // TODO: add form update logic once ready
@@ -147,7 +155,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-optimization-metric"
                                     variant="secondary"
-                                    onClick={() => setIsExperimentSettingsOpen(true)}
+                                    onClick={openExperimentSettings}
                                   >
                                     Edit
                                   </Button>,
@@ -168,7 +176,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-considered-models"
                                     variant="secondary"
-                                    onClick={() => setIsExperimentSettingsOpen(true)}
+                                    onClick={openExperimentSettings}
                                   >
                                     Edit
                                   </Button>,
@@ -208,10 +216,12 @@ function AutoragConfigure(): React.JSX.Element {
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
-        onClose={() => setIsExperimentSettingsOpen(false)}
+        onClose={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
         revertChanges={() => {
-          //TODO: Add proper form snapshotting logic for a baseline to reset the experiment settings to
-          //once more of the configure form flow is clarified and developed
+          form.reset();
           setIsExperimentSettingsOpen(false);
         }}
         saveChanges={saveExperimentSettingsChanges}
