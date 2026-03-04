@@ -182,4 +182,3 @@ func findTestUserByToken(token string) *TestUser {
 	}
 	return nil
 }
-
