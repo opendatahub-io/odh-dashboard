@@ -227,7 +227,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
         resolve(workbenchPath);
       }
     });
-  }, [workbenchNamespace, routeName, currentUserNotebookLink]);
+  }, [routeName, currentUserNotebookLink, workbenchPath]);
 };
 
 export const getEventTimestamp = (event: EventKind): string =>

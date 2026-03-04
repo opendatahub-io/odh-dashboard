@@ -81,7 +81,7 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
       return getModelPathFromUri(existingUriOption);
     }
     return '';
-  }, [selectedPVC, initialModelPath, pvcNameFromUri]);
+  }, [selectedPVC, initialModelPath, pvcNameFromUri, existingUriOption]);
 
   // If the user has manually edited the path, use the user input path instead of the computed path
   const [userHasEdited, setUserHasEdited] = React.useState(false);
