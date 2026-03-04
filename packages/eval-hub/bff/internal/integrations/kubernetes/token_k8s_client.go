@@ -198,7 +198,7 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	for _, project := range projectList.Items {
 		projectName := project.GetName()
 
-		ns, err := userClientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		ns, err := kc.Client.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
 			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
 			namespaces = append(namespaces, corev1.Namespace{
