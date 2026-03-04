@@ -15,7 +15,7 @@ type ErrorEnvelope struct {
 func (app *App) LogError(r *http.Request, err error) {
 	var (
 		method = r.Method
-		uri    = r.URL.RequestURI()
+		uri    = r.URL.Path
 	)
 
 	app.logger.Error(err.Error(), "method", method, "uri", uri)
@@ -38,6 +38,20 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusForbidden),
 			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, message string) {
+	// Log the detailed error message as a warning
+	app.logger.Warn("Access unauthorized", "message", message, "method", r.Method, "uri", r.URL.Path)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusUnauthorized,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusUnauthorized),
+			Message: "Access unauthorized",
 		},
 	}
 	app.errorResponse(w, r, httpError)
@@ -81,7 +95,7 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
+	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.Path)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,
@@ -105,7 +119,7 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
 	app.LogError(r, err)
 
 	httpError := &integrations.HTTPError{

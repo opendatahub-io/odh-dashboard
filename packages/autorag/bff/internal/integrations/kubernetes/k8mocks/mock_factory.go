@@ -21,11 +21,7 @@ type MockedKubernetesClientFactory interface {
 
 func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
-	case config.AuthMethodDisabled:
-		// When auth is disabled (testing mode), use no-op factory
-		return &MockedNoOpClientFactory{Logger: logger}, nil
-
-	case config.AuthMethodInternal:
+	case config.AuthMethodDisabled, config.AuthMethodInternal:
 		k8sFactory, err := NewStaticClientFactory(clientset, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create static client factory: %w", err)
@@ -187,24 +183,3 @@ func findTestUserByToken(token string) *TestUser {
 	return nil
 }
 
-// ─── MOCKED NO-OP FACTORY (DISABLED AUTH) ─────────────────────────────────────────
-// Used when auth is disabled (testing mode). All operations are no-ops.
-// This factory never returns a real client and should only be used when
-// middleware checks are also disabled (AuthMethodDisabled).
-type MockedNoOpClientFactory struct {
-	Logger *slog.Logger
-}
-
-func (f *MockedNoOpClientFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
-	return nil, fmt.Errorf("kubernetes client not available when auth is disabled")
-}
-
-func (f *MockedNoOpClientFactory) ExtractRequestIdentity(_ http.Header) (*k8s.RequestIdentity, error) {
-	// When auth is disabled, no identity extraction is needed
-	return nil, nil
-}
-
-func (f *MockedNoOpClientFactory) ValidateRequestIdentity(_ *k8s.RequestIdentity) error {
-	// When auth is disabled, no validation is needed
-	return nil
-}
