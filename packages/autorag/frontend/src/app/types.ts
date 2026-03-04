@@ -30,6 +30,19 @@ export type NamespaceKind = {
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
+export type LlamaStackModelType = 'llm' | 'embedding';
+
+export type LlamaStackModel = {
+  id: string;
+  type: LlamaStackModelType;
+  provider: string;
+  resource_path: string;
+};
+
+export type LlamaStackModelsResponse = {
+  models: LlamaStackModel[];
+};
+
 export type SecretListItem = {
   uuid: string;
   name: string;
