@@ -2116,7 +2116,7 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+			return fmt.Errorf("external models ConfigMap not found in namespace %s: %w", namespace, ErrExternalModelNotFound)
 		}
 		return fmt.Errorf("failed to get ConfigMap: %w", err)
 	}
@@ -2124,11 +2124,13 @@ func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identi
 	// Parse the ConfigMap
 	configYAML, ok := configMap.Data["config.yaml"]
 	if !ok || configYAML == "" {
+		kc.Logger.Warn("ConfigMap exists but has no config.yaml data", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
 		return fmt.Errorf("ConfigMap has no config.yaml data")
 	}
 
 	var config models.ExternalModelsConfig
 	if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+		kc.Logger.Warn("ConfigMap exists but config.yaml data is invalid", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
 		return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
 	}
 
