@@ -841,6 +841,12 @@ func (m *TokenKubernetesClientMock) CreateOrUpdateExternalModelConfigMap(ctx con
 	return m.TokenKubernetesClient.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req)
 }
 
+// DeleteExternalModel delegates to the real implementation for proper testing
+func (m *TokenKubernetesClientMock) DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error {
+	// Use the real implementation from the embedded TokenKubernetesClient
+	return m.TokenKubernetesClient.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
+
 // DeleteSecret deletes a mock Secret for testing
 func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error {
 	secret := &corev1.Secret{

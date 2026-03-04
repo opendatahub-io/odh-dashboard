@@ -60,3 +60,14 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		SAToken:        models.SAToken{},
 	}, nil
 }
+
+// DeleteExternalModel deletes an external model by removing its entry from the ConfigMap and deleting its Secret
+func (r *ExternalModelsRepository) DeleteExternalModel(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	modelID string,
+) error {
+	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
