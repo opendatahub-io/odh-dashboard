@@ -16,8 +16,10 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
+import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
@@ -25,14 +27,19 @@ import {
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragConfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector from '~/app/shared/SecretSelector';
 import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
+import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+
+const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
@@ -51,19 +58,59 @@ function AutoragConfigure(): React.JSX.Element {
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<
     { uuid: string; name: string; invalid?: boolean } | undefined
   >();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const modelsInitialized = useRef(false);
+  const { data: allModelsData } = useLlamaStackModelsQuery();
+
+  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
+
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema),
+    defaultValues: configureSchema.parse({}),
+  });
+
+  useEffect(() => {
+    //Initialize available generation and embedding models into the form data
+    if (allModelsData?.models && !modelsInitialized.current) {
+      modelsInitialized.current = true;
+      form.reset({
+        ...form.getValues(),
+        // eslint-disable-next-line camelcase
+        generation_constraints: allModelsData.models
+          .filter((model) => model.type === 'llm')
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
+        // eslint-disable-next-line camelcase
+        embeddings_constraints: allModelsData.models
+          .filter((model) => model.type === 'embedding')
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
+      });
+    }
+  }, [allModelsData, form]);
+
+  const openExperimentSettings = () => {
+    // Snapshot current form values as the "default" so reset() can revert to them
+    form.reset({ ...form.getValues() });
+    setIsExperimentSettingsOpen(true);
+  };
+
+  const saveExperimentSettingsChanges = () => {
+    // TODO: add form update logic once ready
+    setIsExperimentSettingsOpen(false);
+  };
 
   if (!namespace) {
     return <Navigate to={autoragConfigurePathname} replace />;
   }
 
-  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
-
   return (
-    <>
+    <FormProvider {...form}>
       <Panel isScrollable={false}>
         <PanelMain tabIndex={0}>
           <PanelMainBody>
@@ -171,7 +218,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-optimization-metric"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                     isDisabled={formInvalid}
                                   >
                                     Edit
@@ -193,7 +240,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-considered-models"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                     isDisabled={formInvalid}
                                   >
                                     Edit
@@ -260,7 +307,19 @@ function AutoragConfigure(): React.JSX.Element {
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
       />
-    </>
+      <AutoragExperimentSettings
+        isOpen={isExperimentSettingsOpen}
+        onClose={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        revertChanges={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        saveChanges={saveExperimentSettingsChanges}
+      />
+    </FormProvider>
   );
 }
 
