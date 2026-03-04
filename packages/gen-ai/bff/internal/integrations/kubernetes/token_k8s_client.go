@@ -1053,8 +1053,9 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 		}
 
 		// Determine model source type based on URL
+		// Use proper URL parsing to prevent manipulation via query params or paths
 		sourceType := models.ModelSourceTypeExternalProvider
-		if strings.Contains(provider.Config.BaseURL, ".svc.cluster.local") {
+		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
 			sourceType = models.ModelSourceTypeExternalCluster
 		}
 

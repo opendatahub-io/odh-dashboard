@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -47,9 +47,9 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Determine model source type based on URL
+	// Use proper URL parsing to prevent manipulation via query params or paths
 	sourceType := models.ModelSourceTypeExternalProvider
-	if strings.Contains(req.BaseURL, ".svc.cluster.local") {
-		// TODO: Make this configurable from OdhDashboardConfig
+	if helper.IsClusterLocalURL(req.BaseURL) {
 		sourceType = models.ModelSourceTypeExternalCluster
 	}
 
