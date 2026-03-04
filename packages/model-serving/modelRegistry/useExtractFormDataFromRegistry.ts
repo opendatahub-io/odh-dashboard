@@ -69,9 +69,8 @@ export const useExtractFormDataFromRegistry = (
   } | null,
 ): UseExtractFormDataFromRegistryReturn => {
   // Load connection types to determine the connectionTypeObject
-  const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes({
-    modelServingCompatible: true,
-  });
+  const [connectionTypes, connectionTypesLoaded, connectionTypesError] =
+    useWatchConnectionTypes(true);
 
   // Memoize the overall loading state (includes connection types loading)
   const loaded = React.useMemo(() => {

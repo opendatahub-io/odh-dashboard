@@ -20,6 +20,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
@@ -31,7 +36,18 @@ type Props = {
 function AutoragConfigure({ namespace }: Props): React.JSX.Element {
   const navigate = useNavigate();
 
-  const [connectionTypes] = useWatchConnectionTypes({ autoragCompatible: true });
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const autoragConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
 
@@ -172,7 +188,7 @@ function AutoragConfigure({ namespace }: Props): React.JSX.Element {
 
       {isConnectionModalOpen && (
         <AutoragConnectionModal
-          connectionTypes={connectionTypes}
+          connectionTypes={autoragConnectionTypes}
           project={namespace}
           onClose={() => {
             setIsConnectionModalOpen(false);

@@ -57,9 +57,8 @@ const usePrefillModelDeployModal = (
     modelDeployPrefillInfo?.modelArtifactUri,
     fetchedConnections,
   );
-  const [connectionTypes, connectionTypesLoaded, connectionTypeError] = useWatchConnectionTypes({
-    modelServingCompatible: true,
-  });
+  const [connectionTypes, connectionTypesLoaded, connectionTypeError] =
+    useWatchConnectionTypes(true);
   const [initialNewConnectionType, setInitialNewConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
   >(undefined);
