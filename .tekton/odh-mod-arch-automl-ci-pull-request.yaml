@@ -4,20 +4,21 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main" && ( "packages/mlflow/**".pathChanged()
-      || ".tekton/odh-mod-arch-mlflow-pull-request.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
-      )
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request"
+      && target_branch == "main"
+      && ( "packages/automl/**".pathChanged()
+            || ".tekton/odh-mod-arch-automl-ci-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-mlflow
+    appstudio.openshift.io/component: odh-mod-arch-automl-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-mlflow-on-pull-request
+  name: odh-mod-arch-automl-ci-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -26,13 +27,13 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-mlflow:odh-pr
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/opendatahub/odh-mod-arch-automl:odh-pr
   - name: dockerfile
-    value: packages/mlflow/Dockerfile.workspace
+    value: packages/automl/Dockerfile.workspace
   - name: path-context
     value: .
+  - name: pipeline-type
+    value: pull-request
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
@@ -46,7 +47,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-mlflow
+    serviceAccountName: build-pipeline-odh-mod-arch-automl-ci
   workspaces:
   - name: git-auth
     secret:
