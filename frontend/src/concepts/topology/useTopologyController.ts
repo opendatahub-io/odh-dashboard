@@ -43,11 +43,16 @@ const useTopologyController = (graphId: string): Visualization | null => {
       },
       false,
     );
-    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
+    const onGraphLayoutEnd = () => {
       visualizationController.getGraph().fit(75);
-    });
+    };
+    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onGraphLayoutEnd);
 
     setController(visualizationController);
+
+    return () => {
+      visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onGraphLayoutEnd);
+    };
   }, [graphId]);
 
   return controller;

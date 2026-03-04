@@ -16,11 +16,20 @@ import {
   createRoleBindingIfMissing,
 } from '@odh-dashboard/kserve/deployUtils';
 import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
-export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
-  return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
+export const isLLMdDeployActive = (
+  wizardData: WizardFormData['state'],
+  resources?: {
+    model?: ModelResourceType;
+  },
+): boolean => {
+  return (
+    wizardData.modelServer.data?.name === LLMD_SERVING_ID ||
+    resources?.model?.kind === 'LLMInferenceService'
+  );
 };
 
 export const generateRoleLLMInferenceService = (
