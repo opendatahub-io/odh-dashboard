@@ -13,7 +13,7 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const [evaluations, loaded, error] = useEvaluationJobs({ namespace });
+  const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs({ namespace });
 
   return (
     <ApplicationsPage
@@ -43,7 +43,12 @@ const EvaluationsPage: React.FC = () => {
       }
       provideChildrenPadding
     >
-      <EvaluationsTable evaluations={evaluations} loaded={loaded} />
+      <EvaluationsTable
+        evaluations={evaluations}
+        loaded={loaded}
+        namespace={namespace}
+        onRefresh={refreshEvaluations}
+      />
     </ApplicationsPage>
   );
 };
