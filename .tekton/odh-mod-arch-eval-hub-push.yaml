@@ -8,7 +8,9 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+      == "main" && ( " packages/eval-hub**".pathChanged()
+      || ".tekton/odh-mod-arch-eval-hub-push.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
+      )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -23,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-eval-hub:{{revision}}
+    value: quay.io/opendatahub/odh-mod-arch-eval-hub:odh-stable
   - name: dockerfile
     value: packages/eval-hub/Dockerfile.workspace
   - name: path-context

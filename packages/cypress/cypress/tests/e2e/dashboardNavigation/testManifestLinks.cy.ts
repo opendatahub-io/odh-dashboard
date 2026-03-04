@@ -14,7 +14,7 @@ interface ManifestTestConfig {
   excludedSubstrings?: string[];
 }
 
-describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -37,15 +37,7 @@ describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced i
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-327',
-        '@ODS-492',
-        '@Dashboard',
-        '@RHOAIENG-9235',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'],
     },
     () => {
       const manifestsDir = '../../manifests';
@@ -61,16 +53,6 @@ describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced i
             (urlLocation) => urlLocation.url && !isUrlExcluded(urlLocation.url, excludedSubstrings),
           );
 
-          const filteredUrls = filteredUrlLocations.map((location) => location.url);
-
-          cy.step(
-            `Found ${urlLocations.length} total URLs, filtered to ${
-              filteredUrlLocations.length
-            } URLs.\nValid status codes to check: ${Array.from(VALID_STATUS_CODES).join(
-              ', ',
-            )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
-          );
-
           const urlToLocationsMap = new Map<string, UrlLocation[]>();
           filteredUrlLocations.forEach((location) => {
             if (!urlToLocationsMap.has(location.url)) {
@@ -82,40 +64,41 @@ describe('[Automation Bug: RHOAIENG-51248] Verify that all the URLs referenced i
             }
           });
 
-          return cy
-            .task<UrlValidationResult[]>('validateHttpsUrls', filteredUrls)
-            .then((results) => {
-              const resultsWithLocation: UrlValidationResultWithLocation[] = results.map(
-                (result) => {
-                  const finalUrlLocations = urlToLocationsMap.get(result.url);
-                  const location =
-                    finalUrlLocations && finalUrlLocations.length > 0
-                      ? finalUrlLocations[0]
-                      : undefined;
+          const uniqueUrls = [...urlToLocationsMap.keys()];
 
-                  return {
-                    ...result,
-                    location,
-                  };
-                },
-              );
+          cy.step(
+            `Found ${urlLocations.length} total URLs, filtered to ${
+              filteredUrlLocations.length
+            } locations (${
+              uniqueUrls.length
+            } unique URLs).\nValid status codes to check: ${Array.from(VALID_STATUS_CODES).join(
+              ', ',
+            )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
+          );
 
-              return { resultsWithLocation, urlToLocationsMap };
+          return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
+            const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
+              const finalUrlLocations = urlToLocationsMap.get(result.url);
+              const location =
+                finalUrlLocations && finalUrlLocations.length > 0
+                  ? finalUrlLocations[0]
+                  : undefined;
+
+              return {
+                ...result,
+                location,
+              };
             });
+
+            return { resultsWithLocation, urlToLocationsMap };
+          });
         })
         .then(({ resultsWithLocation, urlToLocationsMap }) => {
           if (!Array.isArray(resultsWithLocation)) {
             throw new Error('Failed to validate URLs');
           }
 
-          const loggedUrls = new Set<string>();
-
           resultsWithLocation.forEach((result) => {
-            if (loggedUrls.has(result.url)) {
-              return;
-            }
-            loggedUrls.add(result.url);
-
             const isValid = VALID_STATUS_CODES.has(result.status);
             const logMessage = formatValidationMessage(result, urlToLocationsMap);
             const errorType = getErrorType(result.status, result.error);
