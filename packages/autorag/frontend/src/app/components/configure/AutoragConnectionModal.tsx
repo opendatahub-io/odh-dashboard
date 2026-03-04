@@ -109,15 +109,17 @@ export const AutoragConnectionModal: React.FC<Props> = ({
     : undefined;
 
   const handleConnectionTypeChange = (name: string) => {
-    const obj = connectionTypes.find((c) => c.metadata.name === name);
+    if (name === selectedConnectionType?.metadata.name) {
+      return;
+    }
+
+    const obj = enabledConnectionTypes.find((c) => c.metadata.name === name);
     if (!isModified) {
       setIsModified(true);
     }
     setSelectedConnectionType(obj);
-    if (obj) {
-      setConnectionValues(getDefaultValues(obj));
-      setConnectionErrors({});
-    }
+    setConnectionErrors({});
+    setConnectionValues(obj ? getDefaultValues(obj) : {});
   };
 
   return (
