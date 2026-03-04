@@ -72,23 +72,23 @@ func (r *S3Repository) GetS3Credentials(
 		return ""
 	}
 
-	creds.AccessKeyID = getValue("aws_access_key_id", "AWS_ACCESS_KEY_ID")
-	creds.SecretAccessKey = getValue("aws_secret_access_key", "AWS_SECRET_ACCESS_KEY")
-	creds.Region = getValue("aws_region_name", "AWS_REGION_NAME", "aws_region", "AWS_REGION")
-	creds.EndpointURL = getValue("endpoint_url", "ENDPOINT_URL")
+	creds.AccessKeyID = getValue("AWS_ACCESS_KEY_ID")
+	creds.SecretAccessKey = getValue("AWS_SECRET_ACCESS_KEY")
+	creds.Region = getValue("AWS_DEFAULT_REGION")
+	creds.EndpointURL = getValue("AWS_S3_ENDPOINT")
 
 	// Validate that all required fields are present
 	if creds.AccessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: aws_access_key_id", secretName)
+		return nil, fmt.Errorf("secret '%s' missing required field: AWS_ACCESS_KEY_ID", secretName)
 	}
 	if creds.SecretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: aws_secret_access_key", secretName)
+		return nil, fmt.Errorf("secret '%s' missing required field: AWS_SECRET_ACCESS_KEY", secretName)
 	}
 	if creds.Region == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: aws_region_name", secretName)
+		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
 	}
 	if creds.EndpointURL == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: endpoint_url", secretName)
+		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
 	}
 
 	return creds, nil

@@ -111,8 +111,8 @@ func TestGetS3FileHandler_SecretMissingRequiredFields(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id": []byte("AKIAIOSFODNN7EXAMPLE"),
-				// Missing aws_secret_access_key, aws_region_name, endpoint_url
+				"AWS_ACCESS_KEY_ID": []byte("AKIAIOSFODNN7EXAMPLE"),
+				// Missing AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT
 			},
 		},
 	}
@@ -231,8 +231,8 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 				Data: map[string][]byte{
 					"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
 					"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-					"AWS_REGION_NAME":       []byte("us-east-1"),
-					"ENDPOINT_URL":          []byte("https://s3.amazonaws.com"),
+					"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+					"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 				},
 			},
 		},
@@ -245,10 +245,10 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 					UID:       types.UID("uid-lower"),
 				},
 				Data: map[string][]byte{
-					"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
-					"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-					"aws_region_name":       []byte("us-east-1"),
-					"endpoint_url":          []byte("https://s3.amazonaws.com"),
+					"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+					"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+					"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 				},
 			},
 		},
@@ -263,8 +263,8 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 				Data: map[string][]byte{
 					"Aws_Access_Key_Id":     []byte("AKIAIOSFODNN7EXAMPLE"),
 					"Aws_Secret_Access_Key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-					"Aws_Region_Name":       []byte("us-east-1"),
-					"Endpoint_Url":          []byte("https://s3.amazonaws.com"),
+					"Aws_Default_Region":    []byte("us-east-1"),
+					"Aws_S3_Endpoint":       []byte("https://s3.amazonaws.com"),
 				},
 			},
 		},
@@ -302,10 +302,10 @@ func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
-				"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-				"aws_region_name":       []byte("us-east-1"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -358,9 +358,9 @@ func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_secret_access_key": []byte("secret"),
-				"aws_region_name":       []byte("us-east-1"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -373,7 +373,7 @@ func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.Contains(t, err.Error(), "aws_access_key_id")
+	assert.Contains(t, err.Error(), "AWS_ACCESS_KEY_ID")
 }
 
 func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
@@ -385,9 +385,9 @@ func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id": []byte("AKIAIOSFODNN7EXAMPLE"),
-				"aws_region_name":   []byte("us-east-1"),
-				"endpoint_url":      []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":  []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_DEFAULT_REGION": []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":    []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -400,7 +400,7 @@ func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.Contains(t, err.Error(), "aws_secret_access_key")
+	assert.Contains(t, err.Error(), "AWS_SECRET_ACCESS_KEY")
 }
 
 func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
@@ -412,9 +412,9 @@ func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
-				"aws_secret_access_key": []byte("secret"),
-				"endpoint_url":          []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -427,7 +427,7 @@ func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.Contains(t, err.Error(), "aws_region_name")
+	assert.Contains(t, err.Error(), "AWS_DEFAULT_REGION")
 }
 
 func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
@@ -439,9 +439,9 @@ func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_region_name":       []byte("us-east-1"),
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
 			},
 		},
 	}
@@ -454,7 +454,7 @@ func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.Contains(t, err.Error(), "endpoint_url")
+	assert.Contains(t, err.Error(), "AWS_S3_ENDPOINT")
 }
 
 func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
