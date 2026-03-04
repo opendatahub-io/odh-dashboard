@@ -3,9 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import EvaluationsPage from '../EvaluationsPage';
+import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
-const mockUseEvaluationJobs = jest.fn<[EvaluationJob[], boolean, Error | undefined], []>();
+const mockRefresh = jest.fn();
+const mockUseEvaluationJobs = jest.fn<
+  [EvaluationJob[], boolean, Error | undefined, jest.Mock],
+  []
+>();
 
 jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
@@ -17,6 +21,12 @@ jest.mock('mod-arch-core', () => ({
     updatePreferredNamespace: jest.fn(),
     namespacesLoaded: true,
   }),
+  asEnumMember: jest.fn((val: unknown) => val),
+  DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
+  handleRestFailures: jest.fn((p: Promise<unknown>) => p),
+  restDELETE: jest.fn(),
+  restGET: jest.fn(),
+  isModArchResponse: jest.fn(() => true),
 }));
 
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
@@ -46,7 +56,7 @@ describe('EvaluationsPage', () => {
     );
 
   beforeEach(() => {
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined]);
+    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
   });
 
   it('should render the page with correct title and description', () => {
@@ -70,8 +80,8 @@ describe('EvaluationsPage', () => {
   });
 
   it('should render the evaluations table when evaluations exist', () => {
-    const jobs = [mockEvaluationJob({ id: 'job-1', tenant: 'Test Eval', state: 'completed' })];
-    mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined]);
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
     renderPage('test-project');
 
     expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
@@ -79,7 +89,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should show empty state when evaluations is an empty array', () => {
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined]);
+    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     renderPage('test-project');
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
