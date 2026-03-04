@@ -1,9 +1,9 @@
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoragResults from '../components/results/AutoragResults';
-import { useExperimentQuery, usePipelineRunQuery } from '../hooks/queries';
-import InvalidPipelineRun from '../components/empty-states/InvalidPipelineRun';
+import AutoragResults from '~/app/components/results/AutoragResults';
+import { useExperimentQuery, usePipelineRunQuery } from '~/app/hooks/queries';
+import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { runId } = useParams();

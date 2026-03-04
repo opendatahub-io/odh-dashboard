@@ -65,10 +65,20 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		identity, error := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-		if error != nil {
-			app.badRequestResponse(w, r, error)
-			return
+		var identity *k8s.RequestIdentity
+		// If authentication is disabled, use a default identity for testing/development
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			identity = &k8s.RequestIdentity{
+				UserID: "user@example.com",
+				Groups: []string{"system:masters"},
+			}
+		} else {
+			var err error
+			identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
+			if err != nil {
+				app.badRequestResponse(w, r, err)
+				return
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)

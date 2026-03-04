@@ -14,7 +14,7 @@ import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
-import CompareChatModal from '~/app/Chatbot/components/CompareChatModal';
+import ChatModal from '~/app/Chatbot/components/ChatModal';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -251,10 +251,11 @@ const ChatbotMain: React.FunctionComponent = () => {
           }}
         />
       )}
-      <CompareChatModal
+      <ChatModal
         isOpen={isCompareChatModalOpen}
         onClose={() => setIsCompareChatModalOpen(false)}
         onConfirm={handleCompareConfirm}
+        variant="compare"
       />
     </>
   );

@@ -17,21 +17,28 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector from '~/app/shared/SecretSelector';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
+  const { namespace } = useParams();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [selectedSecret, setSelectedSecret] = useState<
+    { uuid: string; name: string; invalid?: boolean } | undefined
+  >();
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+
+  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
   const { data: allModelsData } = useLlamaStackModelsQuery();
   const modelsInitialized = useRef(false);
@@ -88,9 +95,26 @@ function AutoragConfigure(): React.JSX.Element {
                         Select or add an S3 connection to upload files or browse existing files.
                       </StackItem>
                       <StackItem>
-                        <Split>
-                          <SplitItem isFilled data-temp-placeholder>
-                            Connections dropdown
+                        <Split
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                          }}
+                        >
+                          <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
+                            {Boolean(namespace) && (
+                              <SecretSelector
+                                namespace={String(namespace)}
+                                type="storage"
+                                additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+                                value={selectedSecret?.uuid}
+                                onChange={(secret) => setSelectedSecret(secret)}
+                                label="S3 connection"
+                                placeholder="Select connection"
+                                toggleWidth="16rem"
+                                dataTestId="aws-secret-selector"
+                              />
+                            )}
                           </SplitItem>
                           <SplitItem>
                             <Button
@@ -103,26 +127,35 @@ function AutoragConfigure(): React.JSX.Element {
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {Boolean(selectedSecret?.uuid) && (
+                        <>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected connection
+                          </StackItem>
+                          <StackItem>
+                            <Label
+                              onClose={() => setSelectedSecret(undefined)}
+                              closeBtnAriaLabel="Clear selected connection"
+                            >
+                              {selectedSecret?.name}
+                            </Label>
+                          </StackItem>
 
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label onClose={() => null}>S3 connection test</Label>
-                      </StackItem>
-
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected files
-                      </StackItem>
-                      <StackItem>
-                        <Button
-                          key="select-files"
-                          variant="secondary"
-                          onClick={() => setIsFileExplorerOpen(true)}
-                        >
-                          Select files
-                        </Button>
-                      </StackItem>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected files
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="select-files"
+                              variant="secondary"
+                              onClick={() => setIsFileExplorerOpen(true)}
+                              isDisabled={formInvalid}
+                            >
+                              Select files
+                            </Button>
+                          </StackItem>
+                        </>
+                      )}
                     </Stack>
                   </CardBody>
                 </Card>
@@ -156,6 +189,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-optimization-metric"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
+                                    isDisabled={formInvalid}
                                   >
                                     Edit
                                   </Button>,
@@ -177,6 +211,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-considered-models"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
+                                    isDisabled={formInvalid}
                                   >
                                     Edit
                                   </Button>,
@@ -199,6 +234,7 @@ function AutoragConfigure(): React.JSX.Element {
         <PanelFooter>
           <Button
             variant="primary"
+            isDisabled={formInvalid}
             onClick={() => {
               navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
             }}

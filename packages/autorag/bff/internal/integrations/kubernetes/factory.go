@@ -15,7 +15,7 @@ import (
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 
-	case config.AuthMethodInternal:
+	case config.AuthMethodDisabled, config.AuthMethodInternal:
 		k8sFactory, err := NewStaticClientFactory(logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create static client factory: %w", err)
