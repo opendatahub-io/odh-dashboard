@@ -168,13 +168,7 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	userClientset, err := kubernetes.NewForConfig(kc.restConfig)
-	if err != nil {
-		kc.Logger.Error("failed to create user clientset", "error", err)
-		return nil, fmt.Errorf("failed to create user clientset: %w", err)
-	}
-
-	nsList, err := userClientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err == nil {
 		kc.Logger.Debug("user can list namespaces cluster-wide", "count", len(nsList.Items))
 		return nsList.Items, nil
