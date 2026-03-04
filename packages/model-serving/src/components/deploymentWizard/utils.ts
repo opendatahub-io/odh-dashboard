@@ -154,11 +154,16 @@ export const deployModel = async (
   const actualSecretName = newSecret?.metadata.name ?? realSecretName;
 
   // Create deployment
+  const modelResourceWithConnection = structuredClone(modelResource);
+  if (modelResourceWithConnection?.metadata.annotations) {
+    modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
+      actualSecretName ?? '';
+  }
   const deploymentResult = await deployMethod.deploy(
     wizardState,
     projectName,
     existingDeployment,
-    modelResource,
+    modelResourceWithConnection,
     serverResource,
     serverResourceTemplateName,
     false,
