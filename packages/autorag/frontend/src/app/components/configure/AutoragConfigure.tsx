@@ -28,7 +28,7 @@ import {
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import createConfigureSchema from '~/app/schemas/configure.schema';
-import { autoragConfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
@@ -106,7 +106,7 @@ function AutoragConfigure(): React.JSX.Element {
   };
 
   if (!namespace) {
-    return <Navigate to={autoragConfigurePathname} replace />;
+    return <Navigate to={autoragExperimentsPathname} replace />;
   }
 
   return (
