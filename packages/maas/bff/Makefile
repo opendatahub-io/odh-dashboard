@@ -4,9 +4,11 @@ MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
 DEPLOYMENT_MODE ?= kubeflow
-AUTH_METHOD ?= internal
-AUTH_TOKEN_HEADER ?= Authorization
-AUTH_TOKEN_PREFIX ?= Bearer
+# Authentication method: 'user_token' (default, recommended for ODH/RHOAI) or 'internal' (Kubeflow only)
+AUTH_METHOD ?= user_token
+# Default header for ODH is 'x-forwarded-access-token', use 'Authorization' for standard Bearer token
+AUTH_TOKEN_HEADER ?= x-forwarded-access-token
+AUTH_TOKEN_PREFIX ?=
 INSECURE_SKIP_VERIFY ?= false
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
