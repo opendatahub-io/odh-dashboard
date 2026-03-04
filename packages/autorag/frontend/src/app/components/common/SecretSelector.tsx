@@ -124,6 +124,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     }
     const secret = secretsList.find((s) => s.uuid === value);
     if (!secret) {
+      setValidationError('');
       return;
     }
     const missingKeys = validateSecretKeys(secret);
