@@ -27,7 +27,7 @@ type Props = {
   onSubmit: (connection: Connection) => void;
 };
 
-export const AutoragConnectionModal: React.FC<Props> = ({
+const AutoragConnectionModal: React.FC<Props> = ({
   connectionTypes,
   project,
   onClose,
@@ -202,3 +202,5 @@ export const AutoragConnectionModal: React.FC<Props> = ({
     </Modal>
   );
 };
+
+export default AutoragConnectionModal;

@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { useFetchState } from 'mod-arch-core';
 import { SecretListItem } from '~/app/types';
 import { mockStorageSecret, mockLLSSecret } from '~/__mocks__/mockSecretListItem';
-import SecretSelector from '~/app/shared/SecretSelector';
+import SecretSelector from '~/app/components/common/SecretSelector';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),

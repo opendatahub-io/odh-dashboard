@@ -33,8 +33,8 @@ import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector from '~/app/shared/SecretSelector';
-import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
+import SecretSelector from '~/app/components/common/SecretSelector';
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
