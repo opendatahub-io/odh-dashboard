@@ -30,14 +30,14 @@ The FileExplorer widget in the initial phase will make use primarily of a common
 **Alpha**:
 - [ ] Implement a basic rendering of the component completed in this autorag module
 - [ ] Implement a basic BFF integration (w/ mocks) for the S3 BFF
-- [ ] Once rendering is done + BFF is done: Integrate together
+- [ ] Once rendering and BFF are complete: integrate together
 
 **Acceptance criteria**:
-- [ ] _Integration_: FileExplorer should be painless to integrate into a new UI.
+- [ ] _Integration_: FileExplorer should be easy to integrate into a new UI.
 - [ ] _Flexibility_: FileExplorer's UI (labels, areas rendered, table sizing...etc.) should be configurable via props.
 - [ ] _Portability_: Since we know we need to move it out of the AutoRAG module eventually into a common area, it should be built with that in mind.
-- [ ] _Usability_: The table of files should at least allow radio selection (singular).
-- [ ] _Usability_: When a user interacts with a 'folder' file, it should allow drilling into the folder to see it's subcontents. Doing so will render breadcrumbs (Needs design input)
+- [ ] _Usability_: The table of files should at least allow single (radio) selection.
+- [ ] _Usability_: When a user interacts with a 'folder' file, it should allow drilling into the folder to see its subcontents. Doing so will render breadcrumbs (Needs design input)
 - [ ] _Clarity_: We should show as much information about the sources and files that we can to make selection clear:
   - [ ] Sources/Files should render with ellipses and `title` attributes to handle long file names
   - [ ] Files table should render columns: Name / Type (File or Folder) / Size 

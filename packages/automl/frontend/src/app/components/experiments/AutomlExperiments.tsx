@@ -17,7 +17,11 @@ function AutomlExperiments(): React.JSX.Element {
       ))}
       <Button
         variant="primary"
+        isDisabled={!namespace}
         onClick={() => {
+          if (!namespace) {
+            return;
+          }
           navigate(`${automlCreatePathname}/${namespace}`);
         }}
       >
