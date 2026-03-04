@@ -387,3 +387,224 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.Contains(t, messageStr, "missing RequestIdentity in context")
 	})
 })
+
+var _ = Describe("DeleteExternalModelHandler", func() {
+	var app App
+
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
+
+		llamaStackClientFactory := lsmocks.NewMockClientFactory()
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should successfully delete an existing external model", func() {
+		t := GinkgoT()
+
+		// First create an external model
+		createRequestBody := models.ExternalModelRequest{
+			ModelID:          "test-delete-model",
+			ModelDisplayName: "Test Delete Model",
+			BaseURL:          "https://api.test-delete.com/v1",
+			SecretValue:      "test-api-key",
+			ProviderType:     models.ProviderTypeOpenAI,
+			UseCases:         "Testing",
+			ModelType:        models.ModelTypeLLM,
+		}
+
+		createReqBody, err := json.Marshal(createRequestBody)
+		require.NoError(t, err)
+
+		createReq, err := http.NewRequest("POST", "/gen-ai/api/v1/models/external?namespace=mock-test-namespace-1", bytes.NewReader(createReqBody))
+		require.NoError(t, err)
+
+		createReq = createReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+		createReq = createReq.WithContext(context.WithValue(createReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		createRR := httptest.NewRecorder()
+		app.CreateExternalModelHandler(createRR, createReq, nil)
+
+		assert.Equal(t, http.StatusCreated, createRR.Code)
+
+		// Now delete the model
+		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external?model_id=test-delete-model&namespace=mock-test-namespace-1", nil)
+		require.NoError(t, err)
+
+		deleteReq = deleteReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+		deleteReq = deleteReq.WithContext(context.WithValue(deleteReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		deleteRR := httptest.NewRecorder()
+
+		app.DeleteExternalModelHandler(deleteRR, deleteReq, nil)
+
+		assert.Equal(t, http.StatusNoContent, deleteRR.Code)
+	})
+
+	It("should return 404 when trying to delete a non-existent model", func() {
+		t := GinkgoT()
+
+		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external?model_id=non-existent-model&namespace=mock-test-namespace-1", nil)
+		require.NoError(t, err)
+
+		deleteReq = deleteReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+		deleteReq = deleteReq.WithContext(context.WithValue(deleteReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		deleteRR := httptest.NewRecorder()
+
+		app.DeleteExternalModelHandler(deleteRR, deleteReq, nil)
+
+		// Should return 404 when model is not found
+		assert.Equal(t, http.StatusNotFound, deleteRR.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(deleteRR.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		code, codeExists := errorMap["code"]
+		assert.True(t, codeExists, "Error map should contain 'code' field")
+		assert.Equal(t, "404", code)
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "could not be found")
+	})
+
+	It("should return 400 when namespace is missing", func() {
+		t := GinkgoT()
+
+		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external?model_id=test-model", nil)
+		require.NoError(t, err)
+
+		deleteReq = deleteReq.WithContext(context.WithValue(deleteReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		deleteRR := httptest.NewRecorder()
+
+		app.DeleteExternalModelHandler(deleteRR, deleteReq, nil)
+
+		assert.Equal(t, http.StatusBadRequest, deleteRR.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(deleteRR.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		code, codeExists := errorMap["code"]
+		assert.True(t, codeExists, "Error map should contain 'code' field")
+		assert.Equal(t, "400", code)
+	})
+
+	It("should return 401 when RequestIdentity is missing", func() {
+		t := GinkgoT()
+
+		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external?model_id=test-model&namespace=mock-test-namespace-1", nil)
+		require.NoError(t, err)
+
+		deleteReq = deleteReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+
+		deleteRR := httptest.NewRecorder()
+
+		app.DeleteExternalModelHandler(deleteRR, deleteReq, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, deleteRR.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(deleteRR.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		code, codeExists := errorMap["code"]
+		assert.True(t, codeExists, "Error map should contain 'code' field")
+		assert.Equal(t, "401", code)
+
+		message, messageExists := errorMap["message"]
+		assert.True(t, messageExists, "Error map should contain 'message' field")
+
+		messageStr, isString := message.(string)
+		assert.True(t, isString, "Message should be a string")
+
+		assert.Contains(t, messageStr, "missing RequestIdentity in context")
+	})
+
+	It("should successfully delete a model with slashes in model_id", func() {
+		t := GinkgoT()
+
+		// First create an external model with slashes in the ID
+		createRequestBody := models.ExternalModelRequest{
+			ModelID:          "openai/gpt-4o",
+			ModelDisplayName: "OpenAI GPT-4o",
+			BaseURL:          "https://api.openai.com/v1",
+			SecretValue:      "test-api-key",
+			ProviderType:     models.ProviderTypeOpenAI,
+			UseCases:         "Testing slash support",
+			ModelType:        models.ModelTypeLLM,
+		}
+
+		createReqBody, err := json.Marshal(createRequestBody)
+		require.NoError(t, err)
+
+		createReq, err := http.NewRequest("POST", "/gen-ai/api/v1/models/external?namespace=mock-test-namespace-1", bytes.NewReader(createReqBody))
+		require.NoError(t, err)
+
+		createReq = createReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+		createReq = createReq.WithContext(context.WithValue(createReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		createRR := httptest.NewRecorder()
+		app.CreateExternalModelHandler(createRR, createReq, nil)
+
+		assert.Equal(t, http.StatusCreated, createRR.Code)
+
+		// Now delete the model using query parameter (supports slashes)
+		deleteReq, err := http.NewRequest("DELETE", "/gen-ai/api/v1/models/external?model_id=openai/gpt-4o&namespace=mock-test-namespace-1", nil)
+		require.NoError(t, err)
+
+		deleteReq = deleteReq.WithContext(context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1"))
+		deleteReq = deleteReq.WithContext(context.WithValue(deleteReq.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}))
+
+		deleteRR := httptest.NewRecorder()
+
+		app.DeleteExternalModelHandler(deleteRR, deleteReq, nil)
+
+		assert.Equal(t, http.StatusNoContent, deleteRR.Code)
+	})
+})
