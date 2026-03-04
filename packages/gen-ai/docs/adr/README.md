@@ -24,6 +24,10 @@ Architectural Decision Records (ADRs) are lightweight documents that capture imp
 | [0008](./0008-caching-strategy.md) | Caching Strategy | 2025-12-16 |
 | [0009](./0009-maas-service-autodiscovery.md) | MaaS Service Autodiscovery | 2025-12-16 |
 | [0010](./0010-kubernetes-client-architecture.md) | Kubernetes Client Architecture | 2025-12-16 |
+| [0011](./0011-mlflow-prompt-registry-integration.md) | MLflow Prompt Registry Integration | 2026-02-15 |
+| [0012](./0012-external-vector-stores.md) | External Vector Stores | 2026-02-15 |
+| [0013](./0013-envtest-over-hardcoded-mocks.md) | Envtest Over Hardcoded Mocks | 2026-02-15 |
+| [0014](./0014-mlflow-per-request-client-auth.md) | MLflow Per-Request Client with Auth and Workspace Isolation | 2026-02-28 |
 
 ## Creating a New ADR
 

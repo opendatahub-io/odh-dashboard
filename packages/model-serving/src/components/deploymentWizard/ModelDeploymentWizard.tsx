@@ -129,6 +129,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       wizardFormData.initialData,
       existingDeployment,
       secretName,
+      yamlError,
     );
 
   const wizardFooter = React.useMemo(
@@ -211,7 +212,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 onOverwrite={onOverwrite}
                 onRefresh={onRefresh}
                 isLoading={isLoading}
-                error={submitError ?? yamlError}
+                error={submitError}
                 clearError={clearSubmitError}
               />
             </PageSection>

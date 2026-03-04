@@ -206,6 +206,39 @@ paths:
       summary: List Evaluation Jobs
       description: Gets a list of all evaluation jobs from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/jobs/{id}:
+    summary: Cancel or delete an evaluation job
+    description: >-
+      Cancels a running evaluation job or permanently deletes it from
+      the EvalHub control plane. When hard_delete is false (default),
+      the job is cancelled. When hard_delete is true, the job is
+      permanently removed.
+    delete:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/hardDelete'
+      responses:
+        '200':
+          $ref: '#/components/responses/CancelEvaluationJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: cancelEvaluationJob
+      summary: Cancel or Delete Evaluation Job
+      description: >-
+        Cancels a running evaluation job (soft cancel) or permanently
+        deletes it (hard delete) depending on the hard_delete parameter.
+
 components:
   # =============================================================================
   # SCHEMAS
@@ -952,6 +985,21 @@ components:
                         - 'Format compliance'
               total_count: 20
 
+    CancelEvaluationJobResponse:
+      description: Evaluation job cancelled or deleted successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: string
+                example: 'ok'
+          example:
+            data: 'ok'
+
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
       content:
@@ -1042,6 +1090,24 @@ components:
         type: string
       required: false
       description: Tags to search for
+    evaluationJobId:
+      in: path
+      name: id
+      schema:
+        type: string
+      required: true
+      description: Unique identifier for the evaluation job
+      example: 'eval-job-001'
+    hardDelete:
+      in: query
+      name: hard_delete
+      schema:
+        type: boolean
+        default: false
+      required: false
+      description: >-
+        When false (default), cancels a running evaluation job.
+        When true, permanently deletes the evaluation job.
 
   # =============================================================================
   # SECURITY

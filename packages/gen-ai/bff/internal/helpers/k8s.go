@@ -2,6 +2,8 @@ package helper
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
@@ -41,4 +43,29 @@ func BuildScheme() (*runtime.Scheme, error) {
 	}
 
 	return scheme, nil
+}
+
+// IsClusterLocalURL checks if a URL points to a Kubernetes cluster-local service.
+// It properly parses the URL and checks only the hostname to prevent manipulation
+// via query parameters or path components.
+//
+// Examples:
+//   - "http://service.namespace.svc.cluster.local" -> true
+//   - "https://service.namespace.svc.cluster.local:8080/path" -> true
+//   - "https://evil.com/redirect?to=http://internal.svc.cluster.local" -> false
+//   - "https://api.openai.com" -> false
+//
+// If the URL cannot be parsed, it returns false (treats it as external for safety).
+func IsClusterLocalURL(rawURL string) bool {
+	// Parse the URL
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		// If we can't parse it, treat it as external for safety
+		return false
+	}
+
+	// Check if the hostname ends with .svc.cluster.local
+	hostname := parsed.Hostname()
+	return strings.HasSuffix(hostname, ".svc.cluster.local")
+	// TODO: Make this configurable from OdhDashboardConfig
 }

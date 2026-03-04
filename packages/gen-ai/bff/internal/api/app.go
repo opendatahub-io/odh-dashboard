@@ -175,6 +175,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize MLflow client factory
+	//
+	// TODO(mlflow-url-discovery): Refactor this three-way logic once MLflow URL discovery is resolved.
+	// Currently MLFLOW_URL must be set via env var. The UnavailableClientFactory fallback exists
+	// because production deployments don't have MLFLOW_URL configured yet (would break nightlies).
+	// Once we have a real URL strategy (operator ServiceURL, convention, or deployment config),
+	// this should be simplified — likely removing the UnavailableClientFactory path entirely.
+	// See ADR-0014 for full analysis of the discovery problem.
 	var mlflowFactory mlflowpkg.MLflowClientFactory
 	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
@@ -185,7 +192,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else if cfg.MLflowURL != "" {
 		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
-		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL)
+		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL, rootCAs, cfg.InsecureSkipVerify)
 	} else {
 		logger.Warn("MLflow URL not configured, MLflow endpoints will return 503")
 		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
@@ -317,6 +324,7 @@ func (app *App) Routes() http.Handler {
 	// AI Assets Models (Kubernetes)
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
