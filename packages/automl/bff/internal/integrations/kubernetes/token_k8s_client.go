@@ -210,6 +210,11 @@ func (kc *TokenKubernetesClient) GetSecrets(ctx context.Context, namespace strin
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	if strings.TrimSpace(namespace) == "" {
+		kc.Logger.Error("namespace must be provided")
+		return nil, fmt.Errorf("namespace must be provided")
+	}
+
 	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)

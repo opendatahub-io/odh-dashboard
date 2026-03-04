@@ -4,7 +4,7 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import createExperimentSchema from '~/app/schemas/experiment.schema';
-import { automlConfigurePathname } from '~/app/utilities/routes';
+import { automlConfigurePathname, automlExperimentsPathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
 function AutomlCreate(): React.JSX.Element {
@@ -20,7 +20,7 @@ function AutomlCreate(): React.JSX.Element {
   });
 
   if (!namespace) {
-    return <Navigate to={automlConfigurePathname} replace />;
+    return <Navigate to={automlExperimentsPathname} replace />;
   }
 
   return (

@@ -15,7 +15,7 @@ interface InvalidProjectProps {
 function InvalidProject(props: InvalidProjectProps): React.JSX.Element {
   return (
     <EmptyState titleText="Project not found" headingLevel="h4">
-      <EmptyStateBody>{`${props.namespace ? `Project ${props.namespace}` : 'The Project'} was not found.`}</EmptyStateBody>
+      <EmptyStateBody>{`${props.namespace ? `Project ${props.namespace}` : 'The project'} was not found.`}</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
           <ProjectSelectorNavigator
