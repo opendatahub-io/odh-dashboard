@@ -31,6 +31,6 @@ export type NamespaceKind = {
 export type SecretListItem = {
   uuid: string;
   name: string;
-  type: 's3' | 'lls' | '';
+  type: 's3' | '';
   availableKeys: string[];
 };

@@ -231,17 +231,6 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-secret",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lls"),
-			},
-			Data: map[string][]byte{
-				"LLAMA_STACK_CLIENT_API_KEY":  []byte("key"),
-				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama.example.com"),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
 				Name:      "other-secret",
 				Namespace: "test-namespace",
 				UID:       types.UID("uid-2"),
@@ -276,201 +265,19 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 4) // All secrets returned
+	assert.Len(t, envelope.Data, 3) // All secrets returned
 	assert.Equal(t, "uid-1", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-secret", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
 	assert.Equal(t, []string{"aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"}, envelope.Data[0].AvailableKeys)
-	assert.Equal(t, "uid-lls", envelope.Data[1].UUID)
-	assert.Equal(t, "lls-secret", envelope.Data[1].Name)
-	assert.Equal(t, "lls", envelope.Data[1].Type)
-	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[1].AvailableKeys)
-	assert.Equal(t, "uid-2", envelope.Data[2].UUID)
-	assert.Equal(t, "other-secret", envelope.Data[2].Name)
+	assert.Equal(t, "uid-2", envelope.Data[1].UUID)
+	assert.Equal(t, "other-secret", envelope.Data[1].Name)
+	assert.Equal(t, "", envelope.Data[1].Type)
+	assert.Equal(t, []string{"password"}, envelope.Data[1].AvailableKeys)
+	assert.Equal(t, "uid-3", envelope.Data[2].UUID)
+	assert.Equal(t, "database-secret", envelope.Data[2].Name)
 	assert.Equal(t, "", envelope.Data[2].Type)
-	assert.Equal(t, []string{"password"}, envelope.Data[2].AvailableKeys)
-	assert.Equal(t, "uid-3", envelope.Data[3].UUID)
-	assert.Equal(t, "database-secret", envelope.Data[3].Name)
-	assert.Equal(t, "", envelope.Data[3].Type)
-	assert.Equal(t, []string{"db_connection"}, envelope.Data[3].AvailableKeys)
-}
-
-func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
-	// Create mock secrets with all required LLS keys
-	mockSecrets := []corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-secret-1",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lls-1"),
-			},
-			Data: map[string][]byte{
-				"LLAMA_STACK_CLIENT_API_KEY":  []byte("sk-test-api-key-123"),
-				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama-stack.example.com"),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-secret-2",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lls-2"),
-			},
-			Data: map[string][]byte{
-				"llama_stack_client_api_key":  []byte("sk-test-api-key-456"), // lowercase
-				"llama_stack_client_base_url": []byte("https://llama-stack-2.example.com"),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "incomplete-secret",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lls-3"),
-			},
-			Data: map[string][]byte{
-				"LLAMA_STACK_CLIENT_API_KEY": []byte("incomplete"),
-				// Missing LLAMA_STACK_CLIENT_BASE_URL
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "other-secret",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lls-4"),
-			},
-			Data: map[string][]byte{
-				"password": []byte("some-password"),
-			},
-		},
-	}
-
-	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	envelope, res, err := setupApiTest[SecretsEnvelope](
-		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 2) // Only 2 secrets have all required LLS keys
-	assert.Equal(t, "uid-lls-1", envelope.Data[0].UUID)
-	assert.Equal(t, "lls-secret-1", envelope.Data[0].Name)
-	assert.Equal(t, "lls", envelope.Data[0].Type)
-	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[0].AvailableKeys)
-	assert.Equal(t, "uid-lls-2", envelope.Data[1].UUID)
-	assert.Equal(t, "lls-secret-2", envelope.Data[1].Name)
-	assert.Equal(t, "lls", envelope.Data[1].Type)
-	assert.Equal(t, []string{"llama_stack_client_api_key", "llama_stack_client_base_url"}, envelope.Data[1].AvailableKeys)
-}
-
-func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
-	// Test that LLS key matching is case-insensitive
-	mockSecrets := []corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-uppercase",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-upper"),
-			},
-			Data: map[string][]byte{
-				"LLAMA_STACK_CLIENT_API_KEY":  []byte("key1"),
-				"LLAMA_STACK_CLIENT_BASE_URL": []byte("url1"),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-lowercase",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-lower"),
-			},
-			Data: map[string][]byte{
-				"llama_stack_client_api_key":  []byte("key2"),
-				"llama_stack_client_base_url": []byte("url2"),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "lls-mixedcase",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-mixed"),
-			},
-			Data: map[string][]byte{
-				"Llama_Stack_Client_Api_Key":  []byte("key3"),
-				"Llama_Stack_Client_Base_Url": []byte("url3"),
-			},
-		},
-	}
-
-	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	envelope, res, err := setupApiTest[SecretsEnvelope](
-		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 3) // All 3 secrets should match (case-insensitive)
-	assert.Equal(t, "lls", envelope.Data[0].Type)
-	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[0].AvailableKeys)
-	assert.Equal(t, "lls", envelope.Data[1].Type)
-	assert.Equal(t, []string{"llama_stack_client_api_key", "llama_stack_client_base_url"}, envelope.Data[1].AvailableKeys)
-	assert.Equal(t, "lls", envelope.Data[2].Type)
-	assert.Equal(t, []string{"Llama_Stack_Client_Api_Key", "Llama_Stack_Client_Base_Url"}, envelope.Data[2].AvailableKeys)
-}
-
-func TestGetSecretsHandler_TypeLls_EmptyList(t *testing.T) {
-	// Create mock secrets without all required LLS keys
-	mockSecrets := []corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "incomplete-secret",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-1"),
-			},
-			Data: map[string][]byte{
-				"LLAMA_STACK_CLIENT_API_KEY": []byte("key"),
-				// Missing LLAMA_STACK_CLIENT_BASE_URL
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "other-secret",
-				Namespace: "test-namespace",
-				UID:       types.UID("uid-2"),
-			},
-			Data: map[string][]byte{
-				"password": []byte("some-password"),
-			},
-		},
-	}
-
-	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	envelope, res, err := setupApiTest[SecretsEnvelope](
-		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.NotNil(t, envelope.Data, "Data should not be nil, it should be an empty array")
-	assert.Empty(t, envelope.Data) // No secrets have all required LLS keys
+	assert.Equal(t, []string{"db_connection"}, envelope.Data[2].AvailableKeys)
 }
 
 func TestGetSecretsHandler_InvalidType_ReturnsBadRequest(t *testing.T) {

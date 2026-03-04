@@ -26,14 +26,6 @@ var storageTypeRequiredKeys = map[string][]string{
 	// "gcp": {"gcp_service_account_key"},
 }
 
-// llsTypeRequiredKeys defines the required keys for LLS (Llama Stack) secrets.
-// A secret must have ALL required keys to be considered an LLS secret.
-// Key matching is case-insensitive.
-var llsTypeRequiredKeys = []string{
-	"llama_stack_client_api_key",
-	"llama_stack_client_base_url",
-}
-
 type SecretRepository struct{}
 
 func NewSecretRepository() *SecretRepository {
@@ -44,7 +36,6 @@ func NewSecretRepository() *SecretRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "lls": filter for secrets matching LLS (Llama Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
 	client k8s.KubernetesClientInterface,
 	ctx context.Context,
@@ -67,9 +58,6 @@ func (r *SecretRepository) GetFilteredSecrets(
 	case "storage":
 		// Filter secrets that match any configured storage type
 		filteredSecrets = filterStorageSecrets(secrets)
-	case "lls":
-		// Filter secrets that match LLS requirements
-		filteredSecrets = filterLLSSecrets(secrets)
 	default:
 		// This should be caught by handler validation, but handle it here as well
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
@@ -82,13 +70,11 @@ func (r *SecretRepository) GetFilteredSecrets(
 		// Determine the type for this secret
 		var responseType string
 		switch secretType {
-		case "lls":
-			responseType = "lls"
 		case "storage":
 			// For storage type, determine which storage type it matches
 			responseType = getStorageType(secret)
 		default:
-			// For all secrets (no type filter), check if it matches a storage or LLS type
+			// For all secrets (no type filter), check if it matches a storage type
 			responseType = getSecretType(secret)
 		}
 
@@ -118,17 +104,6 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 	return filtered
 }
 
-// filterLLSSecrets filters secrets that match LLS (Llama Stack) requirements.
-// A secret matches if it contains ALL required LLS keys (case-insensitive).
-func filterLLSSecrets(secrets []corev1.Secret) []corev1.Secret {
-	var filtered []corev1.Secret
-	for _, secret := range secrets {
-		if isLLSSecret(secret) {
-			filtered = append(filtered, secret)
-		}
-	}
-	return filtered
-}
 
 // matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-insensitive).
 func matchesAnyStorageType(secret corev1.Secret) bool {
@@ -140,10 +115,6 @@ func matchesAnyStorageType(secret corev1.Secret) bool {
 	return false
 }
 
-// isLLSSecret checks if a secret contains all required LLS keys (case-insensitive).
-func isLLSSecret(secret corev1.Secret) bool {
-	return hasAllKeysCaseInsensitive(secret, llsTypeRequiredKeys)
-}
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
 // Returns the first matching storage type if the secret matches multiple types.
@@ -158,13 +129,9 @@ func getStorageType(secret corev1.Secret) string {
 }
 
 // getSecretType determines the type of a secret by checking all known secret type patterns.
-// Returns the first matching type, prioritizing LLS over storage types.
+// Returns the first matching storage type.
 func getSecretType(secret corev1.Secret) string {
-	// Check LLS first
-	if isLLSSecret(secret) {
-		return "lls"
-	}
-	// Then check storage types
+	// Check storage types
 	return getStorageType(secret)
 }
 

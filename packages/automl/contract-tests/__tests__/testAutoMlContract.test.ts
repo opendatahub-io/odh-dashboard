@@ -76,16 +76,6 @@ describe('AutoML API Contract Tests', () => {
 
         verifyAvailableKeysField(result);
       });
-
-      it('should retrieve lls secrets when type=lls', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=lls');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-
-        verifyAvailableKeysField(result);
-      });
     });
 
     describe('Error Cases', () => {

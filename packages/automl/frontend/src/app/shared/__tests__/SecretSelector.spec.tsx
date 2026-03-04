@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useFetchState } from 'mod-arch-core';
 import { SecretListItem } from '~/app/types';
-import { mockStorageSecret, mockLLSSecret } from '~/__mocks__/mockSecretListItem';
+import { mockStorageSecret } from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/shared/SecretSelector';
 
 jest.mock('mod-arch-core', () => ({
@@ -47,7 +47,6 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [
       mockStorageSecret({ uuid: '1', name: 'aws-secret-1' }),
       mockStorageSecret({ uuid: '2', name: 'aws-secret-2' }),
-      mockLLSSecret({ uuid: '3', name: 'lls-secret-1' }),
     ];
 
     it('should render dropdown with secrets when loaded', () => {
@@ -183,10 +182,9 @@ describe('SecretSelector', () => {
       const toggle = screen.getByTestId('test-selector');
       fireEvent.click(toggle);
 
-      // Should show all three secrets
+      // Should show both secrets
       expect(screen.getByText('aws-secret-1')).toBeInTheDocument();
       expect(screen.getByText('aws-secret-2')).toBeInTheDocument();
-      expect(screen.getByText('lls-secret-1')).toBeInTheDocument();
     });
 
     it('should display secret type as description', () => {
@@ -205,7 +203,6 @@ describe('SecretSelector', () => {
 
       // Type descriptions should be visible
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
-      expect(screen.getByText('Type: lls')).toBeInTheDocument();
     });
 
     it('should call onChange with uuid and name when secret is selected', () => {
@@ -461,7 +458,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="lls"
+          type={undefined}
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
@@ -740,10 +737,11 @@ describe('SecretSelector', () => {
 
     it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
-        mockLLSSecret({
+        mockStorageSecret({
           uuid: '1',
-          name: 'lls-secret',
-          availableKeys: ['llama_stack_client_api_key', 'llama_stack_client_base_url'],
+          name: 'empty-type-secret',
+          type: '',
+          availableKeys: ['some_key', 'another_key'],
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -759,15 +757,15 @@ describe('SecretSelector', () => {
       );
 
       fireEvent.click(screen.getByTestId('test-selector'));
-      fireEvent.click(screen.getByText('lls-secret'));
+      fireEvent.click(screen.getByText('empty-type-secret'));
 
-      // Should NOT show validation error - lls type not in additionalRequiredKeys
+      // Should NOT show validation error - empty type not in additionalRequiredKeys
       expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
       expect(mockOnChange).toHaveBeenCalledWith({
         uuid: '1',
-        name: 'lls-secret',
+        name: 'empty-type-secret',
         invalid: false,
       });
     });

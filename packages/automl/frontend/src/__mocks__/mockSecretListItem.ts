@@ -3,7 +3,7 @@ import { SecretListItem } from '~/app/types';
 type MockSecretListItemOptions = {
   uuid?: string;
   name?: string;
-  type?: 's3' | 'lls' | '';
+  type?: 's3' | '';
   availableKeys?: string[];
 };
 
@@ -33,12 +33,5 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
       'aws_default_region',
       'aws_s3_endpoint',
     ],
-    ...overrides,
-  });
-
-export const mockLLSSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
-  mockSecretListItem({
-    type: 'lls',
-    availableKeys: ['llama_stack_client_api_key', 'llama_stack_client_base_url'],
     ...overrides,
   });
