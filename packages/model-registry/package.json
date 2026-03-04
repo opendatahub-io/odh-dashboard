@@ -12,7 +12,7 @@
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
-    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
     "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
@@ -45,7 +45,14 @@
       "port": 8043
     }
   },
-  "// #e2eCiTags": "TODO: Enable CI e2e tests once https://issues.redhat.com/browse/RHOAIENG-44444 completes. Steps: 1) Add e2eCiTags: ['@ModelRegistryCI'] to this package.json, 2) Add @ModelRegistryCI tag to relevant test files in packages/cypress/cypress/tests/e2e/modelRegistry/",
+  "e2eCiTags": ["@ModelRegistryCI"],
+  "bffConfig": {
+    "enabled": true,
+    "port": 4000,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make -C upstream dev-bff-e2e-mock",
+    "startCommandCluster": "make -C upstream dev-bff-e2e-cluster"
+  },
   "exports": {
     "./extensions": "./extensions.ts",
     "./model-catalog-deploy": {
