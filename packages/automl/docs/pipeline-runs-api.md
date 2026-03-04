@@ -45,7 +45,7 @@ The endpoint enforces RBAC authorization checks to verify that the authenticated
 Get all pipeline runs from the auto-discovered Pipeline Server in a namespace:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -54,7 +54,7 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" 
 Get pipeline runs for a specific pipeline version:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -63,7 +63,7 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&p
 Get a specific page of results:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&nextPageToken=eyJwYWdlIjoyfQ==" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&nextPageToken=eyJwYWdlIjoyfQ==" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -72,7 +72,7 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&p
 If the BFF is configured with `--auth-method=internal`, use the `kubeflow-userid` header instead:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "kubeflow-userid: user@example.com"
 ```
 
@@ -239,7 +239,7 @@ GET /api/v1/pipeline-runs/{runId}
 ### Request Example
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -320,8 +320,10 @@ Returned when the specified run ID does not exist:
 
 ```json
 {
-  "code": "NOT_FOUND",
-  "message": "the requested resource could not be found"
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "the requested resource could not be found"
+  }
 }
 ```
 

@@ -12,7 +12,9 @@ export function getRequiredFields(schema: z.ZodType): string[] {
   if (!result.success) {
     for (const issue of result.error.issues) {
       const fieldPath = issue.path.join('.');
-      requiredFields.add(fieldPath);
+      if (fieldPath) {
+        requiredFields.add(fieldPath);
+      }
     }
   }
 

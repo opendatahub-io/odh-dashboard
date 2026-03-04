@@ -10,15 +10,15 @@ function AutomlConfigurePage(): React.JSX.Element {
 
   const { data: experiment, ...experimentQuery } = useExperimentQuery(experimentId);
 
-  const invalidExperimentId = experimentQuery.isError;
+  const invalidExperimentId = experimentQuery.isError || !experimentId;
 
   return (
     <ApplicationsPage
       title={experiment?.display_name}
       empty={invalidExperimentId}
       emptyStatePage={<InvalidExperiment />}
-      loadError={experimentQuery.error ?? undefined}
-      loaded={experimentQuery.isFetched}
+      loadError={!experimentId ? undefined : (experimentQuery.error ?? undefined)}
+      loaded={experimentQuery.isFetched || !experimentId}
       provideChildrenPadding
       removeChildrenTopPadding
     >

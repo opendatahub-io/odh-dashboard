@@ -27,8 +27,10 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorNavigatorProps> = ({
         fireMiscTrackingEvent('AutoML Project Dropdown Option Selected', {
           selectedProject: projectName,
         });
-        updatePreferredNamespace(match);
-        navigate(getRedirectPath(projectName));
+        if (match && projectName) {
+          updatePreferredNamespace(match);
+          navigate(getRedirectPath(projectName));
+        }
       }}
       namespace={namespace ?? ''}
       isLoading={!namespacesLoaded}

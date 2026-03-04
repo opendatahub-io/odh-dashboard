@@ -21,7 +21,7 @@ func main() {
 	var cfg config.EnvConfig
 	var certFile, keyFile string
 
-	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
+	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4003), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
