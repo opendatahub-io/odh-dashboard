@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import {
+  Alert,
   Button,
   Modal,
   ModalBody,
@@ -15,30 +16,73 @@ import {
   getEvaluationName,
   getResultDisplay,
 } from '~/app/utilities/evaluationUtils';
+import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
   rowIndex: number;
+  namespace: string;
+  onActionComplete: () => void;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending']);
 
 type ConfirmAction = 'stop' | 'delete' | null;
 
-const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex }) => {
+const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
+  job,
+  rowIndex,
+  namespace,
+  onActionComplete,
+}) => {
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isStopping, setIsStopping] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
   const benchmarkName = getBenchmarkName(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
+  const displayState = isStopping ? 'stopping' : job.status.state;
 
-  const handleConfirm = () => {
-    // TODO: call stop/delete API based on confirmAction
-    setConfirmAction(null);
+  React.useEffect(() => {
+    if (!isInProgress) {
+      setIsStopping(false);
+    }
+  }, [isInProgress]);
+
+  const handleConfirm = async () => {
+    if (!namespace) {
+      setActionError('Namespace is required to perform this action');
+      return;
+    }
+    const isStop = confirmAction === 'stop';
+    setIsSubmitting(true);
+    setActionError(null);
+    try {
+      const apiCall = isStop
+        ? cancelEvaluationJob('', namespace, job.resource.id)
+        : deleteEvaluationJob('', namespace, job.resource.id);
+      if (isStop) {
+        setConfirmAction(null);
+        setIsStopping(true);
+      }
+      await apiCall({});
+      setConfirmAction(null);
+      onActionComplete();
+    } catch (e) {
+      setIsStopping(false);
+      if (isStop) {
+        setConfirmAction('stop');
+      }
+      setActionError(e instanceof Error ? e.message : 'An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const actions: IAction[] = [
-    ...(isInProgress
+    ...(isInProgress && !isStopping
       ? [
           {
             title: 'Stop',
@@ -46,10 +90,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
           },
         ]
       : []),
-    {
-      title: 'Delete',
-      onClick: () => setConfirmAction('delete'),
-    },
+    ...(!isStopping
+      ? [
+          {
+            title: 'Delete',
+            onClick: () => setConfirmAction('delete'),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -61,14 +109,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
           </Button>
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={job.status.state} />
+          <EvaluationStatusLabel state={displayState} />
         </Td>
-        <Td dataLabel="Collection/Benchmark" data-testid="evaluation-benchmark">
+        <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip content={benchmarkName}>
             <span>{benchmarkName}</span>
           </Tooltip>
         </Td>
-        <Td dataLabel="Type" data-testid="evaluation-type">
+        <Td dataLabel="Evaluated" data-testid="evaluation-type">
           {job.model.name}
         </Td>
         <Td dataLabel="Run date" data-testid="evaluation-run-date">
@@ -78,13 +126,19 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
           {getResultDisplay(job)}
         </Td>
         <Td isActionCell data-testid="evaluation-kebab">
-          <ActionsColumn items={actions} />
+          {actions.length > 0 && <ActionsColumn items={actions} />}
         </Td>
       </Tr>
 
       <Modal
         isOpen={confirmAction !== null}
-        onClose={() => setConfirmAction(null)}
+        onClose={() => {
+          if (isSubmitting) {
+            return;
+          }
+          setConfirmAction(null);
+          setActionError(null);
+        }}
         variant="small"
         aria-label={confirmAction === 'stop' ? 'Stop evaluation run' : 'Delete evaluation run'}
         data-testid={`evaluation-${confirmAction}-modal`}
@@ -94,6 +148,15 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
           titleIconVariant="warning"
         />
         <ModalBody>
+          {actionError && (
+            <Alert
+              variant="danger"
+              isInline
+              isPlain
+              title={actionError}
+              className="pf-v6-u-mb-md"
+            />
+          )}
           {confirmAction === 'stop'
             ? 'By stopping this evaluation run you will cancel this evaluation process.'
             : 'By deleting this evaluation run you will be removing it from the list of evaluation reports.'}
@@ -103,13 +166,19 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({ job, rowIndex
             variant="primary"
             isDanger
             onClick={handleConfirm}
+            isLoading={isSubmitting}
+            isDisabled={isSubmitting}
             data-testid={`evaluation-${confirmAction}-confirm`}
           >
             Confirm
           </Button>
           <Button
             variant="link"
-            onClick={() => setConfirmAction(null)}
+            onClick={() => {
+              setConfirmAction(null);
+              setActionError(null);
+            }}
+            isDisabled={isSubmitting}
             data-testid={`evaluation-${confirmAction}-cancel`}
           >
             Cancel
