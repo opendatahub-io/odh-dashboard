@@ -104,7 +104,6 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 	return filtered
 }
 
-
 // matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-insensitive).
 func matchesAnyStorageType(secret corev1.Secret) bool {
 	for _, requiredKeys := range storageTypeRequiredKeys {
@@ -114,7 +113,6 @@ func matchesAnyStorageType(secret corev1.Secret) bool {
 	}
 	return false
 }
-
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
 // Returns the first matching storage type if the secret matches multiple types.
