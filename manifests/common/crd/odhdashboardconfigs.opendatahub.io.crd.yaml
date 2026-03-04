@@ -111,6 +111,8 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
+                    externalModels:
+                      type: boolean
                     mlflow:
                       type: boolean
                     projectRBAC:
@@ -263,3 +265,15 @@ spec:
                         - recreate
                     isLLMdDefault:
                       type: boolean
+                genAiStudioConfig:
+                  type: object
+                  properties:
+                    externalModelsConfig:
+                      type: object
+                      properties:
+                        externalProviders:
+                          type: boolean
+                        clusterDomains:
+                          type: array
+                          items:
+                            type: string

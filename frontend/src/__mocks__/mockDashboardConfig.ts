@@ -43,6 +43,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  externalModels?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -52,6 +53,12 @@ export type MockDashboardConfigType = {
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  genAiStudioConfig?: {
+    externalModelsConfig?: {
+      externalProviders?: boolean;
+      clusterDomains?: string[];
+    };
+  };
 };
 
 export const mockDashboardConfig = ({
@@ -67,6 +74,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  externalModels = true,
   maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -98,6 +106,12 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  genAiStudioConfig = {
+    externalModelsConfig: {
+      externalProviders: false,
+      clusterDomains: [],
+    },
+  },
   modelServerSizes = [
     {
       name: 'Small',
@@ -245,6 +259,7 @@ export const mockDashboardConfig = ({
       automl,
       autorag,
       modelAsService,
+      externalModels,
       maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
@@ -279,5 +294,6 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    genAiStudioConfig,
   },
 });
