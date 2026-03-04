@@ -1,6 +1,6 @@
 import React from 'react';
 import { z } from 'zod';
-import { Form } from '@patternfly/react-core';
+import { Form, Spinner } from '@patternfly/react-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
@@ -33,6 +33,10 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
 }) => {
+  if (!wizardState.loaded.modelSourceLoaded) {
+    return <Spinner data-testid="spinner" />;
+  }
+
   return (
     <Form>
       <ModelLocationSelectField

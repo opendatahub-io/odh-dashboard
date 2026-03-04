@@ -98,7 +98,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
           <InferenceServiceEndpoint
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
-            isKserve={true} // Always KServe
+            isKserve // Always KServe
             modelState={{ isStarting, isStopping, isStopped, isRunning, isFailed }}
           />
         </CardFooter>
