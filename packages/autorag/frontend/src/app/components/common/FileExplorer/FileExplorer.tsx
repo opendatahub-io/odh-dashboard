@@ -18,27 +18,49 @@ export interface File {
   name: string;
   size: string;
   path: string;
+  type: string;
 }
 export type Files = File[];
+export interface Directory {
+  name: string;
+  path: string;
+  childCount?: number;
+}
 
 // Globals -------------------------------------------------------------------->
+
+const defaults = {
+  labels: {
+    sourceSelector: 'Source Selector',
+    modalTitle: 'Select documents from connections',
+    modalDescription: 'Select which files to use for your data collection and evaluation sources',
+    modalPrimaryCTA: 'Select files',
+    modalSecondaryCTA: 'Cancel',
+    tableCaption: 'FooConnection (999)',
+    tableAriaLabel: 'Files table',
+    tableColumnName: 'Name',
+    tableColumnType: 'Type',
+    tableColumnSize: 'Size',
+  },
+};
 
 // Components ----------------------------------------------------------------->
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface SourceSelectorProps {}
 const SourceSelector: React.FC<SourceSelectorProps> = () => (
-  <div data-temp-placeholder>Source Selector</div>
+  <div data-temp-placeholder>{defaults.labels.sourceSelector}</div>
 );
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FilesTableProps {}
 const FilesTable: React.FC<FilesTableProps> = () => {
   const columns = {
-    name: 'Name',
-    type: 'Type',
-    size: 'Size',
+    name: defaults.labels.tableColumnName,
+    type: defaults.labels.tableColumnType,
+    size: defaults.labels.tableColumnSize,
   };
+  // mock data
   const files = [
     {
       name: 'FooFile.md',
@@ -48,8 +70,8 @@ const FilesTable: React.FC<FilesTableProps> = () => {
   ];
 
   return (
-    <Table aria-label="Simple table" variant="compact" borders={false}>
-      <Caption>FooConnection (999)</Caption>
+    <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders={false}>
+      <Caption>{defaults.labels.tableCaption}</Caption>
       <Thead>
         <Tr>
           <Th>{columns.name}</Th>
@@ -86,8 +108,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSele
     aria-describedby="FileExplorer-modal-body"
   >
     <ModalHeader
-      title="Select documents from connections"
-      description="Select which files to use for your data collection and evaluation sources"
+      title={defaults.labels.modalTitle}
+      description={defaults.labels.modalDescription}
       labelId="FileExplorer-modal-title"
     />
     <ModalBody id="FileExplorer-modal-body">
@@ -109,10 +131,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSele
           onClose(_event);
         }}
       >
-        Select files
+        {defaults.labels.modalPrimaryCTA}
       </Button>
       <Button key="cancel" variant="link" onClick={onClose}>
-        Cancel
+        {defaults.labels.modalSecondaryCTA}
       </Button>
     </ModalFooter>
   </Modal>
