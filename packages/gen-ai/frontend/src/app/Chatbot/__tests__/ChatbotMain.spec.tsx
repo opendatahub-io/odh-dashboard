@@ -52,7 +52,7 @@ jest.mock('~/app/Chatbot/components/DeletePlaygroundModal', () => ({
   default: () => null,
 }));
 
-jest.mock('~/app/Chatbot/components/CompareChatModal', () => ({
+jest.mock('~/app/Chatbot/components/ChatModal', () => ({
   __esModule: true,
   default: () => null,
 }));
