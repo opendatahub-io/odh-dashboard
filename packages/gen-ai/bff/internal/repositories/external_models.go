@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -45,19 +46,27 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
+	// Determine model source type based on URL
+	// Use proper URL parsing to prevent manipulation via query params or paths
+	sourceType := models.ModelSourceTypeExternalProvider
+	if helper.IsClusterLocalURL(req.BaseURL) {
+		sourceType = models.ModelSourceTypeExternalCluster
+	}
+
 	// Return AAModel structure for consistent API response
 	return &models.AAModel{
-		ModelName:      req.ModelID,
-		ModelID:        req.ModelID,
-		ServingRuntime: string(req.ProviderType),
-		APIProtocol:    "REST",
-		Version:        "",
-		Usecase:        req.UseCases,
-		Description:    "",
-		Endpoints:      []string{req.BaseURL},
-		Status:         "Running",
-		DisplayName:    req.ModelDisplayName,
-		SAToken:        models.SAToken{},
+		ModelName:       req.ModelID,
+		ModelID:         req.ModelID,
+		ServingRuntime:  string(req.ProviderType),
+		APIProtocol:     "REST",
+		Version:         "",
+		Usecase:         req.UseCases,
+		Description:     "",
+		Endpoints:       []string{req.BaseURL},
+		Status:          "Running",
+		DisplayName:     req.ModelDisplayName,
+		SAToken:         models.SAToken{},
+		ModelSourceType: sourceType,
 	}, nil
 }
 

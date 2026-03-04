@@ -2041,6 +2041,7 @@ components:
         - version
         - endpoints
         - status
+        - model_source_type
       properties:
         model_name:
           type: string
@@ -2062,6 +2063,18 @@ components:
           type: string
           example: 'v2025.1'
           description: Version of the model
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - external_cluster
+            - external_provider
+          example: 'namespace'
+          description: >-
+            Source type of the model:
+            'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
+            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
+            'external_provider' for external models pointing to providers (outside cluster)
         description:
           type: string
           nullable: true
@@ -3947,6 +3960,7 @@ components:
               serving_runtime: 'remote::gemini'
               api_protocol: 'REST'
               version: ''
+              model_source_type: 'external_provider'
               usecase: 'Classification, Image Generation'
               description: ''
               endpoints:
