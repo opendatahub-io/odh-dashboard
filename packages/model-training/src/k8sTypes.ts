@@ -81,6 +81,157 @@ export type TrainJobKind = K8sResourceCommon & {
   };
 };
 
+export interface RayContainerResources {
+  limits?: {
+    cpu?: string;
+    memory?: string;
+    'nvidia.com/gpu'?: string | number;
+    [key: string]: string | number | undefined;
+  };
+  requests?: {
+    cpu?: string;
+    memory?: string;
+    'nvidia.com/gpu'?: string | number;
+    [key: string]: string | number | undefined;
+  };
+}
+
+export interface RayWorkerGroupSpec {
+  groupName: string;
+  replicas?: number;
+  minReplicas?: number;
+  maxReplicas?: number;
+  suspend?: boolean;
+  numOfHosts?: number;
+  rayStartParams?: Record<string, string>;
+  template: {
+    spec?: {
+      containers?: Array<{
+        name?: string;
+        image?: string;
+        resources?: RayContainerResources;
+        [key: string]: unknown;
+      }>;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  scaleStrategy?: {
+    workersToDelete?: string[];
+  };
+  [key: string]: unknown;
+}
+
+export interface RayHeadGroupSpec {
+  rayStartParams?: Record<string, string>;
+  template: {
+    spec?: {
+      containers?: Array<{
+        name?: string;
+        image?: string;
+        resources?: RayContainerResources;
+        [key: string]: unknown;
+      }>;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  enableIngress?: boolean;
+  serviceType?: string;
+  [key: string]: unknown;
+}
+
+export interface RayClusterSpec {
+  rayVersion?: string;
+  headGroupSpec: RayHeadGroupSpec;
+  workerGroupSpecs?: RayWorkerGroupSpec[];
+  enableInTreeAutoscaling?: boolean;
+  suspend?: boolean;
+  managedBy?: string;
+  [key: string]: unknown;
+}
+
+export interface RayClusterStatusInfo {
+  state?: string;
+  head?: {
+    podIP?: string;
+    serviceIP?: string;
+    podName?: string;
+    serviceName?: string;
+  };
+  desiredWorkerReplicas?: number;
+  availableWorkerReplicas?: number;
+  readyWorkerReplicas?: number;
+  minWorkerReplicas?: number;
+  maxWorkerReplicas?: number;
+  desiredCPU?: string;
+  desiredMemory?: string;
+  desiredGPU?: string;
+  endpoints?: Record<string, string>;
+  conditions?: Array<{
+    type: string;
+    status: string;
+    lastTransitionTime?: string;
+    reason?: string;
+    message?: string;
+  }>;
+}
+
+export type RayJobKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: {
+      'kueue.x-k8s.io/queue-name'?: string;
+      'kueue.x-k8s.io/cluster-queue'?: string;
+      [key: string]: string | undefined;
+    };
+    uid?: string;
+    deletionTimestamp?: string;
+  };
+  spec: {
+    entrypoint?: string;
+    runtimeEnvYAML?: string;
+    jobId?: string;
+    suspend?: boolean;
+    submissionMode?: 'K8sJobMode' | 'HTTPMode' | 'InteractiveMode' | 'SidecarMode';
+    activeDeadlineSeconds?: number;
+    backoffLimit?: number;
+    shutdownAfterJobFinishes?: boolean;
+    ttlSecondsAfterFinished?: number;
+    managedBy?: string;
+    clusterSelector?: Record<string, string>;
+    metadata?: Record<string, string>;
+    entrypointNumCpus?: number;
+    entrypointNumGpus?: number;
+    entrypointResources?: string;
+    rayClusterSpec?: RayClusterSpec;
+    submitterPodTemplate?: K8sResourceCommon;
+    submitterConfig?: {
+      backoffLimit?: number;
+    };
+  };
+  status?: {
+    jobStatus?: string;
+    jobDeploymentStatus?: string;
+    jobId?: string;
+    rayClusterName?: string;
+    dashboardURL?: string;
+    startTime?: string;
+    endTime?: string;
+    message?: string;
+    reason?: string;
+    succeeded?: number;
+    failed?: number;
+    observedGeneration?: number;
+    rayJobInfo?: {
+      startTime?: string;
+      endTime?: string;
+    };
+    rayClusterStatus?: RayClusterStatusInfo;
+  };
+};
+
 export type ClusterTrainingRuntimeKind = K8sResourceCommon & {
   metadata: {
     name: string;
