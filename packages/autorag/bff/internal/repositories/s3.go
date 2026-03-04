@@ -101,7 +101,7 @@ func (r *S3Repository) GetS3Object(
 	creds *S3Credentials,
 	bucket string,
 	key string,
-) (io.ReadCloser, string, error) {
+) (io.Reader, string, error) {
 	// Create AWS config with credentials
 	cfg := aws.Config{
 		Region:      creds.Region,
@@ -142,7 +142,7 @@ func (r *S3Repository) GetS3Object(
 	}
 
 	// Transfer manager's GetObject returns io.Reader, wrap it with NopCloser for io.ReadCloser
-	return io.NopCloser(result.Body), contentType, nil
+	return result.Body, contentType, nil
 }
 
 // Helper functions for case conversion

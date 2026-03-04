@@ -137,7 +137,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		app.serverErrorResponse(w, r, fmt.Errorf("error retrieving file from S3: %w", err))
 		return
 	}
-	defer objectReader.Close()
 
 	// Set response headers for streaming
 	w.Header().Set("Content-Type", contentType)
