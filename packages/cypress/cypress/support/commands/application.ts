@@ -225,7 +225,8 @@ Cypress.Commands.add(
             displayName: 'findAppNavItem',
             message: `Root section '${args.rootSection}' not found`,
           });
-          throw new Error(`Root section '${args.rootSection}' not found`);
+          // Return a non-existent selector to allow graceful failure
+          return $parent.find('__non_existent_selector__');
         }
       }
 
@@ -247,9 +248,8 @@ Cypress.Commands.add(
             displayName: 'findAppNavItem',
             message: `Sub-section '${args.subSection}' not found in root section '${args.rootSection}'`,
           });
-          throw new Error(
-            `Sub-section '${args.subSection}' not found in root section '${args.rootSection}'`,
-          );
+          // Return a non-existent selector to allow graceful failure
+          return $parent.find('__non_existent_selector__');
         }
       }
 
