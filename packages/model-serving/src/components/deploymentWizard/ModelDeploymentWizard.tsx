@@ -65,7 +65,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(wizardState.state);
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+    wizardState.state,
+    wizardState.initialData?.navSourceMetadata,
+  );
 
   const { resources } = useFormToResourcesTransformer(wizardState, existingDeployment);
   const { yaml } = useFormYamlResources(resources);
