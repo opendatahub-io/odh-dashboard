@@ -16,7 +16,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
@@ -26,17 +26,17 @@ import {
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { autoragConfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector from '~/app/shared/SecretSelector';
 import { AutoragConnectionModal } from '~/app/components/configure/AutoragConnectionModal';
 
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  if (!namespace) {
-    return <Navigate to={autoragConfigurePathname} replace />;
-  }
-
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
     () =>
@@ -54,6 +54,11 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<
     { uuid: string; name: string; invalid?: boolean } | undefined
   >();
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+
+  if (!namespace) {
+    return <Navigate to={autoragConfigurePathname} replace />;
+  }
 
   const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
@@ -82,9 +87,12 @@ function AutoragConfigure(): React.JSX.Element {
                             <SecretSelector
                               namespace={String(namespace)}
                               type="storage"
-                              additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+                              additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
                               value={selectedSecret?.uuid}
                               onChange={(secret) => setSelectedSecret(secret)}
+                              onRefreshReady={(refresh) => {
+                                secretsRefreshRef.current = refresh;
+                              }}
                               label="S3 connection"
                               placeholder="Select connection"
                               toggleWidth="16rem"
@@ -226,9 +234,23 @@ function AutoragConfigure(): React.JSX.Element {
           onClose={() => {
             setIsConnectionModalOpen(false);
           }}
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          onSubmit={(connection: Connection) => {
-            // select connection and add to list of existing connections
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
+              const availableKeys = Object.keys(connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                uuid: secret.uuid,
+                name: secret.name,
+                invalid,
+              });
+            }
           }}
         />
       )}
