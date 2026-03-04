@@ -94,9 +94,13 @@ paths:
           required: false
           description: >-
             Secret type filter (key matching is case-insensitive):
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
-            - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+            - 'lls': Filters for Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
             - Omit for all secrets
+
+            Note: Classification keys are used to identify the secret type. Additional optional keys (like aws_s3_bucket for S3 secrets)
+            may be present but are not required for type classification. The availableKeys field in the response lists all keys
+            present in each secret, allowing clients to validate additional requirements for their specific use cases.
           schema:
             type: string
             enum:
@@ -121,10 +125,20 @@ paths:
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
         All key matching is case-insensitive.
-        Type filtering includes:
-        - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
-        - 'lls': Filters for Llama Stack secrets (requires keys: llama_stack_client_api_key, llama_stack_client_base_url)
-        - No type: Returns all secrets in the namespace with their detected types
+
+        Secret Type Classification:
+        Secrets are classified based on the presence of specific classification keys:
+        - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+        - 'lls': Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
+
+        Optional Keys:
+        Secrets may contain additional optional keys beyond classification requirements (e.g., aws_s3_bucket for S3 secrets).
+        The availableKeys field lists all keys present, allowing clients to validate additional use-case-specific requirements.
+
+        Type filtering:
+        - 'storage': Returns only secrets classified as storage types (currently: s3)
+        - 'lls': Returns only secrets classified as LLS type
+        - No type: Returns all secrets with their detected type classification
   /api/v1/s3/file:
     summary: Path used to get a file from S3.
     description: >-
@@ -294,6 +308,47 @@ components:
           type: boolean
           example: true
 
+    SecretTypeSchema:
+      description: >-
+        Schema defining the classification and optional keys for a secret type.
+        Classification keys are used to identify the secret type.
+        Optional keys are commonly used but not required for type classification.
+      type: object
+      properties:
+        classificationKeys:
+          type: array
+          items:
+            type: string
+          description: Keys required for BFF to classify a secret as this type (case-insensitive matching)
+        commonOptionalKeys:
+          type: array
+          items:
+            type: string
+          description: Common optional keys that may be required for specific use cases but not for type classification
+
+    SecretTypeSchemas:
+      description: Reference documentation for secret type schemas
+      type: object
+      properties:
+        s3:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                commonOptionalKeys:
+                  example: ["aws_s3_bucket"]
+        lls:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+                commonOptionalKeys:
+                  example: []
+
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
       required:
@@ -315,17 +370,20 @@ components:
           type: string
           enum: ["s3", "lls", ""]
           description: >-
-            The detected type of the secret based on its keys:
-            - 's3': S3 storage secret (has required S3 keys)
-            - 'lls': Llama Stack secret (has required LLS keys)
+            The detected type of the secret based on its classification keys (see SecretTypeSchemas):
+            - 's3': S3 storage secret (has all required S3 classification keys)
+            - 'lls': Llama Stack secret (has all required LLS classification keys)
             - '': Empty string if the secret doesn't match any recognized type
           example: s3
         availableKeys:
           type: array
           items:
             type: string
-          description: Sorted list of all keys available in the secret (without values). Keys are case-preserved and sorted alphabetically.
-          example: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+          description: >-
+            Sorted list of all keys available in the secret (without values).
+            Keys are case-preserved and sorted alphabetically.
+            Use this field to validate that additional optional keys required for your use case are present.
+          example: ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key", "aws_s3_bucket"]
 
     # Pipeline Run Schemas
     PipelineRun:

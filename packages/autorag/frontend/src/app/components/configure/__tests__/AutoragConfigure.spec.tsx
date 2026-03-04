@@ -158,14 +158,12 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Selected files')).toBeInTheDocument();
 
       // Find and click the close button on the Label
-      // PatternFly Label with onClose renders a button with aria-label="close"
-      const closeButtons = screen.getAllByRole('button', { name: /close/i });
-      const labelCloseButton = closeButtons.find((button) => button.closest('.pf-v6-c-label'));
+      const labelCloseButton = screen.getByRole('button', {
+        name: 'Clear selected connection',
+      });
 
       expect(labelCloseButton).toBeInTheDocument();
-      if (labelCloseButton) {
-        fireEvent.click(labelCloseButton);
-      }
+      fireEvent.click(labelCloseButton);
 
       // Verify the secret is cleared and sections are hidden
       expect(screen.queryByText('Test Secret 1')).not.toBeInTheDocument();
@@ -186,12 +184,10 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Selected files')).toBeInTheDocument();
 
       // Find and click the close button on the Label
-      const closeButtons = screen.getAllByRole('button', { name: /close/i });
-      const labelCloseButton = closeButtons.find((button) => button.closest('.pf-v6-c-label'));
-
-      if (labelCloseButton) {
-        fireEvent.click(labelCloseButton);
-      }
+      const labelCloseButton = screen.getByRole('button', {
+        name: 'Clear selected connection',
+      });
+      fireEvent.click(labelCloseButton);
 
       // Verify sections are hidden
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();

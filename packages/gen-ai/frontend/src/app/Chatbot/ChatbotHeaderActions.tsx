@@ -75,7 +75,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             <ActionListItem>
               <Button
                 variant="link"
-                aria-label="Start new chat"
+                aria-label="Start a new chat session"
                 icon={<PlusIcon />}
                 onClick={onNewChat}
                 data-testid="new-chat-button"

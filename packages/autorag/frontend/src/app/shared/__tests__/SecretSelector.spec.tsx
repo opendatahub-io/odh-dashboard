@@ -546,7 +546,7 @@ describe('SecretSelector', () => {
     });
   });
 
-  describe('required keys validation', () => {
+  describe('additional required keys validation', () => {
     it('should show error when selected secret is missing required keys', () => {
       const mockSecrets: SecretListItem[] = [
         mockStorageSecret({
@@ -562,7 +562,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );
@@ -598,7 +598,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket', 'aws_default_region'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket', 'aws_default_region'] }}
           dataTestId="test-selector"
         />,
       );
@@ -642,7 +642,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );
@@ -684,7 +684,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );
@@ -705,7 +705,7 @@ describe('SecretSelector', () => {
       });
     });
 
-    it('should not validate when no requiredKeys prop provided', () => {
+    it('should not validate when no additionalRequiredKeys prop provided', () => {
       const mockSecrets: SecretListItem[] = [
         mockStorageSecret({
           uuid: '1',
@@ -738,7 +738,7 @@ describe('SecretSelector', () => {
       });
     });
 
-    it('should not validate when secret type is not in requiredKeys', () => {
+    it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
         mockLLSSecret({
           uuid: '1',
@@ -753,7 +753,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );
@@ -761,7 +761,7 @@ describe('SecretSelector', () => {
       fireEvent.click(screen.getByTestId('test-selector'));
       fireEvent.click(screen.getByText('lls-secret'));
 
-      // Should NOT show validation error - lls type not in requiredKeys
+      // Should NOT show validation error - lls type not in additionalRequiredKeys
       expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
@@ -792,7 +792,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value="1"
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );
@@ -817,7 +817,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          requiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
           dataTestId="test-selector"
         />,
       );

@@ -73,10 +73,10 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 				Groups: []string{"system:masters"},
 			}
 		} else {
-			var error error
-			identity, error = app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-			if error != nil {
-				app.badRequestResponse(w, r, error)
+			var err error
+			identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
+			if err != nil {
+				app.badRequestResponse(w, r, err)
 				return
 			}
 		}

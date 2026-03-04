@@ -26,6 +26,7 @@ type ListEvaluationJobsParams struct {
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
+	CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error
 	ListCollections(ctx context.Context) (CollectionsResponse, error)
 	ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error)
 }
@@ -306,6 +307,21 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 	return resp.Items, nil
 }
 
+// CancelEvaluationJob cancels or permanently deletes an evaluation job.
+// When hardDelete is false the upstream API cancels a running job.
+// When hardDelete is true the job is permanently removed.
+func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error {
+	path := fmt.Sprintf("/evaluations/jobs/%s", url.PathEscape(id))
+	if hardDelete {
+		path += "?hard_delete=true"
+	}
+
+	if err := doRequest(c, ctx, http.MethodDelete, path); err != nil {
+		return wrapClientError(err, "CancelEvaluationJob")
+	}
+	return nil
+}
+
 // ListCollections retrieves all benchmark collections from EvalHub.
 func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
 	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
@@ -365,4 +381,35 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 		return nil, err
 	}
 	return &result, nil
+}
+
+// doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).
+func doRequest(c *EvalHubClient, ctx context.Context, method, path string) error {
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+		}
+	}
+	return nil
 }

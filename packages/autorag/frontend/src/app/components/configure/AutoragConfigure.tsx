@@ -30,7 +30,7 @@ function AutoragConfigure(): React.JSX.Element {
     { uuid: string; name: string; invalid?: boolean } | undefined
   >();
 
-  const formInvalid = selectedSecret?.invalid || false;
+  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
   return (
     <>
@@ -58,7 +58,7 @@ function AutoragConfigure(): React.JSX.Element {
                               <SecretSelector
                                 namespace={String(namespace)}
                                 type="storage"
-                                requiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
+                                additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
                                 value={selectedSecret?.uuid}
                                 onChange={(secret) => setSelectedSecret(secret)}
                                 label="S3 connection"
@@ -85,7 +85,10 @@ function AutoragConfigure(): React.JSX.Element {
                             Selected connection
                           </StackItem>
                           <StackItem>
-                            <Label onClose={() => setSelectedSecret(undefined)}>
+                            <Label
+                              onClose={() => setSelectedSecret(undefined)}
+                              closeBtnAriaLabel="Clear selected connection"
+                            >
                               {selectedSecret?.name}
                             </Label>
                           </StackItem>

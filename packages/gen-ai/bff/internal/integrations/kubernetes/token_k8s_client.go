@@ -22,6 +22,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -575,12 +576,28 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 		return nil, err
 	}
 
-	// Combine both lists
+	// Convert external models from ConfigMap to AAModel structs
+	aaModelsFromExternal, err := kc.GetAAModelsFromExternalModels(ctx, identity, namespace)
+	if err != nil {
+		// Log error but don't fail - continue with namespace models only
+		kc.Logger.Warn("failed to get external models, continuing with namespace models only",
+			"error", err,
+			"namespace", namespace)
+		aaModelsFromExternal = []models.AAModel{}
+	}
+
+	// Combine all lists
 	var allAAModels []models.AAModel
 	allAAModels = append(allAAModels, aaModelsFromInfSvc...)
 	allAAModels = append(allAAModels, aaModelsFromLLMInfSvc...)
+	allAAModels = append(allAAModels, aaModelsFromExternal...)
 
-	kc.Logger.Info("successfully fetched AAModels", "count", len(allAAModels), "namespace", namespace, "inferenceServices", len(aaModelsFromInfSvc), "llmInferenceServices", len(aaModelsFromLLMInfSvc))
+	kc.Logger.Info("successfully fetched AAModels",
+		"count", len(allAAModels),
+		"namespace", namespace,
+		"inferenceServices", len(aaModelsFromInfSvc),
+		"llmInferenceServices", len(aaModelsFromLLMInfSvc),
+		"externalModels", len(aaModelsFromExternal))
 	return allAAModels, nil
 }
 
@@ -593,6 +610,11 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	err := kc.Client.List(ctx, &llmInferenceServiceList, listOptions)
 	if err != nil {
+		// If the CRD is not installed, gracefully return empty list
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("LLMInferenceService CRD not installed or not found", "namespace", namespace)
+			return []models.AAModel{}, nil
+		}
 		kc.Logger.Error("failed to list LLMInferenceServices", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to list LLMInferenceServices: %w", err)
 	}
@@ -601,15 +623,16 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 	for _, llmSvc := range llmInferenceServiceList.Items {
 
 		aaModel := models.AAModel{
-			ModelName:      llmSvc.Name,
-			ModelID:        *llmSvc.Spec.Model.Name,
-			Description:    kc.extractDescriptionFromLLMInferenceService(&llmSvc),
-			ServingRuntime: "Distributed inference with llm-d",
-			APIProtocol:    "REST",
-			Usecase:        kc.extractUseCaseFromLLMInferenceService(&llmSvc),
-			Endpoints:      kc.extractEndpointsFromLLMInferenceService(&llmSvc),
-			Status:         kc.extractStatusFromLLMInferenceService(&llmSvc),
-			DisplayName:    kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
+			ModelName:       llmSvc.Name,
+			ModelID:         *llmSvc.Spec.Model.Name,
+			Description:     kc.extractDescriptionFromLLMInferenceService(&llmSvc),
+			ServingRuntime:  "Distributed inference with llm-d",
+			APIProtocol:     "REST",
+			Usecase:         kc.extractUseCaseFromLLMInferenceService(&llmSvc),
+			Endpoints:       kc.extractEndpointsFromLLMInferenceService(&llmSvc),
+			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
+			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
+			ModelSourceType: models.ModelSourceTypeNamespace,
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -626,6 +649,11 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 
 	err := kc.Client.List(ctx, &inferenceServiceList, listOptions)
 	if err != nil {
+		// If the CRD is not installed, gracefully return empty list
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("InferenceService CRD not installed or not found", "namespace", namespace)
+			return []models.AAModel{}, nil
+		}
 		kc.Logger.Error("failed to list InferenceServices", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to list InferenceServices: %w", err)
 	}
@@ -641,16 +669,17 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 		}
 
 		aaModel := models.AAModel{
-			ModelName:      isvc.Name,
-			ModelID:        isvc.Name,
-			ServingRuntime: kc.extractServingRuntimeFromAnnotations(servingRuntime),
-			APIProtocol:    kc.extractAPIProtocolFromAnnotations(servingRuntime),
-			Version:        kc.extractVersionFromAnnotations(servingRuntime),
-			Description:    kc.extractDescriptionFromInferenceService(&isvc),
-			Usecase:        kc.extractUseCaseFromInferenceService(&isvc),
-			Endpoints:      kc.extractEndpoints(&isvc),
-			Status:         kc.extractStatusFromInferenceService(&isvc),
-			DisplayName:    kc.extractDisplayNameFromInferenceService(&isvc),
+			ModelName:       isvc.Name,
+			ModelID:         isvc.Name,
+			ServingRuntime:  kc.extractServingRuntimeFromAnnotations(servingRuntime),
+			APIProtocol:     kc.extractAPIProtocolFromAnnotations(servingRuntime),
+			Version:         kc.extractVersionFromAnnotations(servingRuntime),
+			Description:     kc.extractDescriptionFromInferenceService(&isvc),
+			Usecase:         kc.extractUseCaseFromInferenceService(&isvc),
+			Endpoints:       kc.extractEndpoints(&isvc),
+			Status:          kc.extractStatusFromInferenceService(&isvc),
+			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
+			ModelSourceType: models.ModelSourceTypeNamespace,
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -964,6 +993,93 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromLLMInferenceService(llmSv
 		return llmSvc.Name
 	}
 	return displayName
+}
+
+// GetAAModelsFromExternalModels converts external models from ConfigMap to AAModel structs
+func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
+	// Attempt to get the external models ConfigMap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
+		// If ConfigMap doesn't exist, that's fine - just return empty list
+		if apierrors.IsNotFound(err) {
+			kc.Logger.Debug("no external models ConfigMap found", "namespace", namespace)
+			return []models.AAModel{}, nil
+		}
+		// For other errors, log and return them
+		kc.Logger.Error("failed to get external models ConfigMap", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to get external models ConfigMap: %w", err)
+	}
+
+	// Parse the config.yaml data
+	if configMap.Data == nil {
+		kc.Logger.Debug("external models ConfigMap has no data", "namespace", namespace)
+		return []models.AAModel{}, nil
+	}
+
+	configYAML, exists := configMap.Data["config.yaml"]
+	if !exists {
+		kc.Logger.Debug("external models ConfigMap missing config.yaml key", "namespace", namespace)
+		return []models.AAModel{}, nil
+	}
+
+	var config models.ExternalModelsConfig
+	if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+		kc.Logger.Error("failed to unmarshal external models config", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to unmarshal external models config: %w", err)
+	}
+
+	// Build a map of provider ID to provider for quick lookup
+	providerMap := make(map[string]models.InferenceProvider)
+	for _, provider := range config.Providers.Inference {
+		providerMap[provider.ProviderID] = provider
+	}
+
+	// Convert registered models to AAModel structs
+	var aaModels []models.AAModel
+	for _, model := range config.RegisteredResources.Models {
+		// Find the corresponding provider
+		provider, exists := providerMap[model.ProviderID]
+		if !exists {
+			kc.Logger.Warn("registered model references non-existent provider",
+				"modelID", model.ModelID,
+				"providerID", model.ProviderID)
+			continue
+		}
+
+		// Extract use cases from metadata if available
+		useCases := ""
+		if model.Metadata.CustomGenAI != nil {
+			useCases = model.Metadata.CustomGenAI.UseCases
+		}
+
+		// Determine model source type based on URL
+		// Use proper URL parsing to prevent manipulation via query params or paths
+		sourceType := models.ModelSourceTypeExternalProvider
+		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
+			sourceType = models.ModelSourceTypeExternalCluster
+		}
+
+		aaModel := models.AAModel{
+			ModelName:       model.ModelID,
+			ModelID:         model.ModelID,
+			DisplayName:     model.Metadata.DisplayName,
+			ServingRuntime:  string(provider.ProviderType),
+			APIProtocol:     "REST",
+			Version:         "",
+			Usecase:         useCases,
+			Description:     "",
+			Endpoints:       []string{provider.Config.BaseURL},
+			Status:          "Running",
+			SAToken:         models.SAToken{},
+			ModelSourceType: sourceType,
+		}
+		aaModels = append(aaModels, aaModel)
+	}
+
+	kc.Logger.Info("fetched external models from ConfigMap",
+		"count", len(aaModels),
+		"namespace", namespace)
+	return aaModels, nil
 }
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
@@ -2102,6 +2218,106 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 			return fmt.Errorf("failed to update ConfigMap: %w", err)
 		}
 		kc.Logger.Info("successfully updated ConfigMap", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
+	}
+
+	return nil
+}
+
+// DeleteExternalModel deletes an external model by removing its entry from the ConfigMap and deleting its Secret
+func (kc *TokenKubernetesClient) DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Get existing ConfigMap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("external models ConfigMap not found in namespace %s: %w", namespace, ErrExternalModelNotFound)
+		}
+		return fmt.Errorf("failed to get ConfigMap: %w", err)
+	}
+
+	// Parse the ConfigMap
+	configYAML, ok := configMap.Data["config.yaml"]
+	if !ok || configYAML == "" {
+		kc.Logger.Warn("ConfigMap exists but has no config.yaml data", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
+		return fmt.Errorf("ConfigMap has no config.yaml data")
+	}
+
+	var config models.ExternalModelsConfig
+	if err := yaml.Unmarshal([]byte(configYAML), &config); err != nil {
+		kc.Logger.Warn("ConfigMap exists but config.yaml data is invalid", "namespace", namespace, "configMapName", constants.ExternalModelsConfigMapName)
+		return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
+	}
+
+	// Find the provider that contains this model ID
+	var providerIDToDelete string
+	var secretNameToDelete string
+	modelFound := false
+
+	for i, model := range config.RegisteredResources.Models {
+		if model.ModelID == modelID {
+			modelFound = true
+			providerIDToDelete = model.ProviderID
+
+			// Remove the model from the list
+			config.RegisteredResources.Models = append(
+				config.RegisteredResources.Models[:i],
+				config.RegisteredResources.Models[i+1:]...,
+			)
+			break
+		}
+	}
+
+	if !modelFound {
+		return fmt.Errorf("model %s: %w", modelID, ErrExternalModelNotFound)
+	}
+
+	// Find and remove the provider, and get the secret name
+	providerFound := false
+	for i, provider := range config.Providers.Inference {
+		if provider.ProviderID == providerIDToDelete {
+			secretNameToDelete = provider.Config.CustomGenAI.APIKey.SecretRef.Name
+			providerFound = true
+
+			// Remove the provider from the list
+			config.Providers.Inference = append(
+				config.Providers.Inference[:i],
+				config.Providers.Inference[i+1:]...,
+			)
+			break
+		}
+	}
+
+	if !providerFound {
+		return fmt.Errorf("provider %s not found in ConfigMap (model exists but provider is missing)", providerIDToDelete)
+	}
+
+	// Update the ConfigMap with the modified config
+	updatedConfigYAML, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated config to YAML: %w", err)
+	}
+
+	configMap.Data["config.yaml"] = string(updatedConfigYAML)
+	if err := kc.Client.Update(ctx, configMap); err != nil {
+		kc.Logger.Error("failed to update ConfigMap", "error", err, "namespace", namespace)
+		return fmt.Errorf("failed to update ConfigMap: %w", err)
+	}
+
+	kc.Logger.Info("successfully removed model from ConfigMap", "namespace", namespace, "modelID", modelID)
+
+	// Delete the associated Secret
+	if secretNameToDelete != "" {
+		if err := kc.DeleteSecret(ctx, identity, namespace, secretNameToDelete); err != nil {
+			// If the secret is already gone, that's fine (idempotent)
+			if !apierrors.IsNotFound(err) {
+				return fmt.Errorf("failed to delete associated secret %s: %w", secretNameToDelete, err)
+			}
+			kc.Logger.Info("secret already deleted or not found", "secretName", secretNameToDelete)
+		} else {
+			kc.Logger.Info("successfully deleted associated secret", "secretName", secretNameToDelete)
+		}
 	}
 
 	return nil

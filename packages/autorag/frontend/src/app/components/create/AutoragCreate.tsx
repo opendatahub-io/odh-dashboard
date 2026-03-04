@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ActionGroup, Button, Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import createExperimentSchema from '~/app/schemas/experiment.schema';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
@@ -19,15 +19,8 @@ function AutoragCreate(): React.JSX.Element {
     defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema.
   });
 
-  // Guard against missing namespace
-  React.useEffect(() => {
-    if (!namespace) {
-      navigate(autoragConfigurePathname);
-    }
-  }, [namespace, navigate]);
-
   if (!namespace) {
-    return <div />;
+    return <Navigate to={autoragConfigurePathname} replace />;
   }
 
   return (

@@ -32,8 +32,8 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
             data-testid="pipeline-experiment-deprecated-alert"
           >
             <Content component="p" style={{ maxWidth: '620px' }}>
-              We've updated Experiments with MLflow integration for a better tracking experience. To
-              manage your runs, go to the new{' '}
+              We&#39;ve updated Experiments with MLflow integration for a better tracking
+              experience. To manage your runs, go to the new{' '}
               <Button
                 data-testid="embedded-mlflow-experiments-link"
                 variant="link"
