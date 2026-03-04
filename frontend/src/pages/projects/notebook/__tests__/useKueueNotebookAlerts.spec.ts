@@ -20,6 +20,14 @@ const mockNotification = {
 };
 (useNotification as jest.Mock).mockReturnValue(mockNotification);
 
+type StatusMap = Record<string, KueueWorkloadStatusWithMessage | null>;
+
+type HookProps = {
+  states: NotebookState[];
+  statusMap: StatusMap;
+  loaded: boolean;
+};
+
 function notebookState(name: string, namespace = 'test-project'): NotebookState {
   const notebook = mockNotebookK8sResource({ name, namespace });
   return {
@@ -41,223 +49,257 @@ function kueueStatus(
   return { status, message, ...opts };
 }
 
+const renderAlertHook = (props: HookProps) =>
+  renderHook(
+    ({ states, statusMap, loaded }: HookProps) => useKueueNotebookAlerts(states, statusMap, loaded),
+    {
+      initialProps: props,
+    },
+  );
+
 describe('useKueueNotebookAlerts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should not fire notification on initial render even when status is Failed', () => {
-    const states = [notebookState('nb1')];
-    const statusMap = { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed') };
+  describe('loading state', () => {
+    it('should not fire notification while kueue data is still loading', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
+      };
 
-    renderHook(() => useKueueNotebookAlerts(states, statusMap));
+      const { rerender } = renderAlertHook({ states, statusMap, loaded: false });
 
-    expect(mockNotification.error).not.toHaveBeenCalled();
-  });
+      expect(mockNotification.error).not.toHaveBeenCalled();
 
-  it('should not fire notification on initial render even when status is Preempted', () => {
-    const states = [notebookState('nb1')];
-    const statusMap = {
-      nb1: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted', {
-        timestamp: '2026-02-16T08:00:00Z',
-      }),
-    };
-
-    renderHook(() => useKueueNotebookAlerts(states, statusMap));
-
-    expect(mockNotification.warning).not.toHaveBeenCalled();
-  });
-
-  it('should not fire notification for non-alert statuses on initial render', () => {
-    const states = [notebookState('nb1')];
-    const statusMap = { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting') };
-
-    renderHook(() => useKueueNotebookAlerts(states, statusMap));
-
-    expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockNotification.warning).not.toHaveBeenCalled();
-  });
-
-  it('should fire error notification when transitioning to Failed', () => {
-    const states = [notebookState('nb1')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
-    };
-
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
+      rerender({ states, statusMap, loaded: false });
+      expect(mockNotification.error).not.toHaveBeenCalled();
     });
 
-    const failedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Failed, 'quota exceeded', {
-        queueName: 'test-queue',
-      }),
-    };
+    it('should not fire notification for pre-existing status once data loads', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
+      };
 
-    rerender({ s: states, m: failedStatus });
+      const { rerender } = renderAlertHook({ states, statusMap, loaded: false });
 
-    expect(mockNotification.error).toHaveBeenCalledTimes(1);
-    expect(mockNotification.error).toHaveBeenCalledWith(
-      expect.stringContaining('failed to start'),
-      expect.any(String),
-      expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
-    );
+      rerender({ states, statusMap, loaded: true });
+
+      expect(mockNotification.error).not.toHaveBeenCalled();
+    });
+
+    it('should fire notification for transition that happens after initial load', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const failedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'quota exceeded', { queueName: 'test-queue' }),
+      };
+      rerender({ states, statusMap: failedStatus, loaded: true });
+
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should fire warning notification when transitioning to Preempted', () => {
-    const states = [notebookState('nb1')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Running, 'Running'),
-    };
+  describe('initial render', () => {
+    it('should not fire notification on initial render even when status is Failed', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed') };
 
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
+      renderAlertHook({ states, statusMap, loaded: true });
+
+      expect(mockNotification.error).not.toHaveBeenCalled();
     });
 
-    const preemptedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted', {
-        timestamp: '2026-02-16T08:00:00Z',
-      }),
-    };
+    it('should not fire notification on initial render even when status is Preempted', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted', {
+          timestamp: '2026-02-16T08:00:00Z',
+        }),
+      };
 
-    rerender({ s: states, m: preemptedStatus });
+      renderAlertHook({ states, statusMap, loaded: true });
 
-    expect(mockNotification.warning).toHaveBeenCalledTimes(1);
-    expect(mockNotification.warning).toHaveBeenCalledWith(
-      expect.stringContaining('was preempted'),
-      expect.stringContaining('higher-priority job'),
-      expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
-    );
+      expect(mockNotification.warning).not.toHaveBeenCalled();
+    });
+
+    it('should not fire notification for non-alert statuses', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting') };
+
+      renderAlertHook({ states, statusMap, loaded: true });
+
+      expect(mockNotification.error).not.toHaveBeenCalled();
+      expect(mockNotification.warning).not.toHaveBeenCalled();
+    });
+
+    it('should not fire notification when notebook has null kueue status', () => {
+      const states = [notebookState('nb1')];
+      const statusMap: StatusMap = { nb1: null };
+
+      renderAlertHook({ states, statusMap, loaded: true });
+
+      expect(mockNotification.error).not.toHaveBeenCalled();
+      expect(mockNotification.warning).not.toHaveBeenCalled();
+    });
   });
 
-  it('should not fire duplicate notification when status does not change', () => {
-    const states = [notebookState('nb1')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
-    };
+  describe('status transitions', () => {
+    it('should fire error notification when transitioning to Failed', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
 
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const failedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'quota exceeded', { queueName: 'test-queue' }),
+      };
+      rerender({ states, statusMap: failedStatus, loaded: true });
+
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+      expect(mockNotification.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to start'),
+        expect.any(String),
+        expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
+      );
     });
 
-    const failedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
-    };
+    it('should fire warning notification when transitioning to Preempted', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Running, 'Running'),
+      };
 
-    rerender({ s: states, m: failedStatus });
-    expect(mockNotification.error).toHaveBeenCalledTimes(1);
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
 
-    rerender({ s: states, m: failedStatus });
-    expect(mockNotification.error).toHaveBeenCalledTimes(1);
+      const preemptedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted', {
+          timestamp: '2026-02-16T08:00:00Z',
+        }),
+      };
+      rerender({ states, statusMap: preemptedStatus, loaded: true });
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        expect.stringContaining('was preempted'),
+        expect.stringContaining('higher-priority job'),
+        expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
+      );
+    });
+
+    it('should not fire notification when transitioning to non-alert status', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const admittedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Admitted, 'Admitted'),
+      };
+      rerender({ states, statusMap: admittedStatus, loaded: true });
+
+      expect(mockNotification.error).not.toHaveBeenCalled();
+      expect(mockNotification.warning).not.toHaveBeenCalled();
+    });
+
+    it('should not fire duplicate notification when status does not change', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const failedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
+      };
+      rerender({ states, statusMap: failedStatus, loaded: true });
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+
+      rerender({ states, statusMap: failedStatus, loaded: true });
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fire again if status changes from Failed to something else and back to Failed', () => {
+      const states = [notebookState('nb1')];
+
+      const { rerender } = renderAlertHook({
+        states,
+        statusMap: { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'waiting') },
+        loaded: true,
+      });
+
+      rerender({
+        states,
+        statusMap: { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'first failure') },
+        loaded: true,
+      });
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+
+      rerender({
+        states,
+        statusMap: { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'back in queue') },
+        loaded: true,
+      });
+
+      rerender({
+        states,
+        statusMap: { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'second failure') },
+        loaded: true,
+      });
+      expect(mockNotification.error).toHaveBeenCalledTimes(2);
+    });
+
+    it('should fire notifications independently for multiple notebooks on transition', () => {
+      const states = [notebookState('nb1'), notebookState('nb2')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+        nb2: kueueStatus(KueueWorkloadStatus.Running, 'Running'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const updatedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
+        nb2: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted'),
+      };
+      rerender({ states, statusMap: updatedStatus, loaded: true });
+
+      expect(mockNotification.error).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should not fire notification when transitioning to non-alert status', () => {
-    const states = [notebookState('nb1')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
-    };
+  describe('navigation', () => {
+    it('should navigate to project page when View details action is clicked', () => {
+      const states = [notebookState('nb1', 'my-project')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
 
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const failedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
+      };
+      rerender({ states, statusMap: failedStatus, loaded: true });
+
+      const actions = mockNotification.error.mock.calls[0][2];
+      const viewDetailsAction = actions.find((a: { title: string }) => a.title === 'View details');
+      viewDetailsAction.onClick();
+
+      expect(mockNavigate).toHaveBeenCalledWith('/projects/my-project');
     });
-
-    const admittedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Admitted, 'Admitted'),
-    };
-
-    rerender({ s: states, m: admittedStatus });
-
-    expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockNotification.warning).not.toHaveBeenCalled();
-  });
-
-  it('should fire notifications independently for multiple notebooks on transition', () => {
-    const states = [notebookState('nb1'), notebookState('nb2')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
-      nb2: kueueStatus(KueueWorkloadStatus.Running, 'Running'),
-    };
-
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
-    });
-
-    const updatedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
-      nb2: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted'),
-    };
-
-    rerender({ s: states, m: updatedStatus });
-
-    expect(mockNotification.error).toHaveBeenCalledTimes(1);
-    expect(mockNotification.warning).toHaveBeenCalledTimes(1);
-  });
-
-  it('should navigate to project page when View details action is clicked', () => {
-    const states = [notebookState('nb1', 'my-project')];
-    const initialStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
-    };
-
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: { s: states, m: initialStatus },
-    });
-
-    const failedStatus: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: kueueStatus(KueueWorkloadStatus.Failed, 'Job failed'),
-    };
-
-    rerender({ s: states, m: failedStatus });
-
-    const actions = mockNotification.error.mock.calls[0][2];
-    const viewDetailsAction = actions.find((a: { title: string }) => a.title === 'View details');
-    viewDetailsAction.onClick();
-
-    expect(mockNavigate).toHaveBeenCalledWith('/projects/my-project');
-  });
-
-  it('should not fire notification when notebook has null kueue status', () => {
-    const states = [notebookState('nb1')];
-    const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {
-      nb1: null,
-    };
-
-    renderHook(() => useKueueNotebookAlerts(states, statusMap));
-
-    expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockNotification.warning).not.toHaveBeenCalled();
-  });
-
-  it('should fire again if status changes from Failed to something else and back to Failed', () => {
-    const states = [notebookState('nb1')];
-
-    const { rerender } = renderHook(({ s, m }) => useKueueNotebookAlerts(s, m), {
-      initialProps: {
-        s: states,
-        m: { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'waiting') } as Record<
-          string,
-          KueueWorkloadStatusWithMessage | null
-        >,
-      },
-    });
-
-    rerender({
-      s: states,
-      m: { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'first failure') },
-    });
-
-    expect(mockNotification.error).toHaveBeenCalledTimes(1);
-
-    rerender({
-      s: states,
-      m: { nb1: kueueStatus(KueueWorkloadStatus.Queued, 'back in queue') },
-    });
-
-    rerender({
-      s: states,
-      m: { nb1: kueueStatus(KueueWorkloadStatus.Failed, 'second failure') },
-    });
-
-    expect(mockNotification.error).toHaveBeenCalledTimes(2);
   });
 });

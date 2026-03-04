@@ -31,6 +31,7 @@ const NotebookList: React.FC = () => {
       refresh: refreshNotebooks,
     },
     kueueStatusByNotebookName,
+    isKueueLoaded,
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
@@ -48,7 +49,7 @@ const NotebookList: React.FC = () => {
       .forEach((notebookState) => notebookState.refresh()),
   );
 
-  useKueueNotebookAlerts(notebooks, kueueStatusByNotebookName);
+  useKueueNotebookAlerts(notebooks, kueueStatusByNotebookName, isKueueLoaded);
 
   const { isKueueDisabled } = useKueueConfiguration(currentProject);
 

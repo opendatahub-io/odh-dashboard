@@ -9,80 +9,85 @@ import {
 } from '#~/concepts/kueue/messageUtils';
 import { NotebookState } from './types';
 
-const ALERT_STATUSES = [KueueWorkloadStatus.Failed, KueueWorkloadStatus.Preempted];
+const ALERT_STATUSES = new Set([KueueWorkloadStatus.Failed, KueueWorkloadStatus.Preempted]);
+
+const buildSnapshot = (
+  notebookStates: NotebookState[],
+  statusMap: Record<string, KueueWorkloadStatusWithMessage | null>,
+): Record<string, KueueWorkloadStatus | null> => {
+  const snapshot: Record<string, KueueWorkloadStatus | null> = {};
+  for (const state of notebookStates) {
+    const { name } = state.notebook.metadata;
+    snapshot[name] = statusMap[name]?.status ?? null;
+  }
+  return snapshot;
+};
+
+const fireAlert = (
+  notification: ReturnType<typeof useNotification>,
+  navigate: ReturnType<typeof useNavigate>,
+  state: NotebookState,
+  kueueInfo: KueueWorkloadStatusWithMessage,
+): void => {
+  const displayName = getDisplayNameFromK8sResource(state.notebook);
+  const projectName = state.notebook.metadata.namespace;
+  const actions = [
+    {
+      title: 'View details',
+      onClick: () => navigate(`/projects/${projectName}`),
+    },
+  ];
+
+  if (kueueInfo.status === KueueWorkloadStatus.Failed) {
+    const reason = getHumanReadableKueueMessage(
+      kueueInfo.status,
+      kueueInfo.message,
+      kueueInfo.queueName,
+    );
+    notification.error(`Workbench ${displayName} failed to start`, reason, actions);
+  } else if (kueueInfo.status === KueueWorkloadStatus.Preempted) {
+    const body = getPreemptionToastBody(displayName, kueueInfo.timestamp);
+    notification.warning(`Workbench ${displayName} was preempted`, body, actions);
+  }
+};
 
 /**
  * Watches for Kueue status transitions to Failed or Preempted and fires
- * toast notifications. On initial load the current statuses are recorded
- * without firing toasts; only subsequent transitions trigger alerts.
- * Uses a ref to track which notebook+status combinations have already
- * been seen to prevent duplicate toasts.
+ * toast notifications. Waits until Kueue data is loaded before recording
+ * the baseline snapshot so that pre-existing statuses don't trigger
+ * false alerts on page load.
  */
 const useKueueNotebookAlerts = (
   notebookStates: NotebookState[],
   kueueStatusByNotebookName: Record<string, KueueWorkloadStatusWithMessage | null>,
+  isKueueLoaded: boolean,
 ): void => {
   const notification = useNotification();
   const navigate = useNavigate();
-  const alertedRef = React.useRef<Record<string, KueueWorkloadStatus | null> | null>(null);
+  const prevStatusRef = React.useRef<Record<string, KueueWorkloadStatus | null> | null>(null);
 
   React.useEffect(() => {
-    if (alertedRef.current === null) {
-      const initial: Record<string, KueueWorkloadStatus | null> = {};
-      for (const state of notebookStates) {
-        const { name } = state.notebook.metadata;
-        initial[name] = kueueStatusByNotebookName[name]?.status ?? null;
-      }
-      alertedRef.current = initial;
+    if (!isKueueLoaded) {
       return;
     }
 
-    for (const state of notebookStates) {
-      const { name } = state.notebook.metadata;
-      const currentStatus = kueueStatusByNotebookName[name]?.status ?? null;
-      const lastAlerted = alertedRef.current[name] ?? null;
+    const snapshot = buildSnapshot(notebookStates, kueueStatusByNotebookName);
 
-      if (currentStatus === lastAlerted) {
-        continue;
-      }
+    if (prevStatusRef.current !== null) {
+      for (const state of notebookStates) {
+        const { name } = state.notebook.metadata;
+        const current = snapshot[name];
+        const previous = prevStatusRef.current[name] ?? null;
 
-      alertedRef.current[name] = currentStatus;
-
-      if (!currentStatus || !ALERT_STATUSES.includes(currentStatus)) {
-        continue;
-      }
-
-      const kueueInfo = kueueStatusByNotebookName[name];
-      if (!kueueInfo) {
-        continue;
-      }
-
-      const displayName = getDisplayNameFromK8sResource(state.notebook);
-      const projectName = state.notebook.metadata.namespace;
-
-      if (currentStatus === KueueWorkloadStatus.Failed) {
-        const reason = getHumanReadableKueueMessage(
-          kueueInfo.status,
-          kueueInfo.message,
-          kueueInfo.queueName,
-        );
-        notification.error(`Workbench ${displayName} failed to start`, reason, [
-          {
-            title: 'View details',
-            onClick: () => navigate(`/projects/${projectName}`),
-          },
-        ]);
-      } else if (currentStatus === KueueWorkloadStatus.Preempted) {
-        const body = getPreemptionToastBody(displayName, kueueInfo.timestamp);
-        notification.warning(`Workbench ${displayName} was preempted`, body, [
-          {
-            title: 'View details',
-            onClick: () => navigate(`/projects/${projectName}`),
-          },
-        ]);
+        const kueueInfo = kueueStatusByNotebookName[name];
+        if (current && current !== previous && ALERT_STATUSES.has(current) && kueueInfo) {
+          fireAlert(notification, navigate, state, kueueInfo);
+        }
       }
     }
-  }, [notebookStates, kueueStatusByNotebookName, notification, navigate]);
+
+    prevStatusRef.current = snapshot;
+  }, [isKueueLoaded, notebookStates, kueueStatusByNotebookName, notification, navigate]);
 };
 
 export default useKueueNotebookAlerts;
