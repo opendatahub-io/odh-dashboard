@@ -2,14 +2,17 @@ import { EvaluationJob, EvaluationJobState } from '~/app/types';
 
 type MockEvaluationJobOptions = {
   id?: string;
+  name?: string;
   tenant?: string;
   state?: EvaluationJobState;
   modelName?: string;
   benchmarkId?: string;
   providerId?: string;
   createdAt?: string;
-  metrics?: Record<string, number>;
+  score?: number;
 };
+
+const DEFAULT_BENCHMARK_ID = 'default-benchmark';
 
 /* eslint-disable camelcase */
 export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): EvaluationJob => ({
@@ -23,22 +26,26 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
     state: options.state ?? 'completed',
   },
   results: {
-    total_evaluations: options.metrics ? 1 : 0,
-    benchmarks: options.metrics
-      ? [{ id: options.benchmarkId ?? 'bench-1', metrics: options.metrics }]
-      : [],
+    benchmarks:
+      options.score != null
+        ? [
+            {
+              id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
+              test: { primary_score: options.score },
+            },
+          ]
+        : [],
+    test: options.score != null ? { score: options.score } : undefined,
   },
+  name: options.name,
   model: {
     name: options.modelName ?? 'test-model',
   },
-  benchmarks:
-    options.benchmarkId !== undefined || options.providerId !== undefined
-      ? [
-          {
-            id: options.benchmarkId ?? 'bench-1',
-            provider_id: options.providerId ?? 'lm_evaluation_harness',
-          },
-        ]
-      : [{ id: 'default-benchmark', provider_id: 'lm_evaluation_harness' }],
+  benchmarks: [
+    {
+      id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
+      provider_id: options.providerId ?? 'lm_evaluation_harness',
+    },
+  ],
 });
 /* eslint-enable camelcase */

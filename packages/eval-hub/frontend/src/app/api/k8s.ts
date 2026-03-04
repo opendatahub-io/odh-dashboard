@@ -3,12 +3,14 @@ import {
   handleRestFailures,
   UserSettings,
   isModArchResponse,
+  restDELETE,
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   EvaluationJob,
+  EvaluationJobsResponse,
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
@@ -65,12 +67,40 @@ export const getEvaluationJobs =
     return handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
     ).then((response) => {
-      if (isModArchResponse<EvaluationJob[]>(response)) {
-        return response.data;
+      if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
       }
       throw new Error('Invalid response format');
     });
   };
+
+export const cancelEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
+        {},
+        { namespace },
+        opts,
+      ),
+    ).then(() => undefined);
+
+export const deleteEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
+        {},
+        // eslint-disable-next-line camelcase
+        { namespace, hard_delete: 'true' },
+        opts,
+      ),
+    ).then(() => undefined);
 
 export const getCollections =
   (hostPath: string, namespace: string) =>

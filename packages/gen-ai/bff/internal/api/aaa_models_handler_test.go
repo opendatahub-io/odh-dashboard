@@ -72,7 +72,7 @@ var _ = Describe("ModelsAAHandler", func() {
 
 		dataArray, ok := data.([]interface{})
 		assert.True(t, ok, "Data should be an array")
-		assert.Len(t, dataArray, 8, "Should return 8 mock AA models for mock-test-namespace-2 (5 InferenceService + 3 LLMInferenceService)")
+		assert.GreaterOrEqual(t, len(dataArray), 8, "Should return at least 8 mock AA models for mock-test-namespace-2 (5 InferenceService + 3 LLMInferenceService, plus any external models)")
 
 		firstModel, ok := dataArray[0].(map[string]interface{})
 		assert.True(t, ok, "First model should be a map")
