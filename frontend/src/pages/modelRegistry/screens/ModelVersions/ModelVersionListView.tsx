@@ -212,6 +212,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                             modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name),
                           )
                         }
+                        data-testid="view-archived-versions-action"
                       >
                         View archived versions
                       </DropdownItem>

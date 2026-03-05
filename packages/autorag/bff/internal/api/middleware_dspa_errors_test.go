@@ -25,7 +25,7 @@ func TestDSPAErrorResponses(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 
-		var response HTTPError
+		var response ErrorEnvelope
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 
@@ -44,7 +44,7 @@ func TestDSPAErrorResponses(t *testing.T) {
 
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 
-		var response HTTPError
+		var response ErrorEnvelope
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 
@@ -62,7 +62,7 @@ func TestDSPAErrorResponses(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 
-		var response HTTPError
+		var response ErrorEnvelope
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 

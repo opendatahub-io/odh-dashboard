@@ -17,18 +17,6 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
 }));
 
-const createTestQueryClient = () =>
-  new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-
-const renderWithProviders = (ui: React.ReactElement) => {
-  const queryClient = createTestQueryClient();
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
-};
-
 // Mock SecretSelector component
 jest.mock('~/app/components/common/SecretSelector', () => ({
   __esModule: true,
@@ -74,6 +62,22 @@ jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
+// Create a QueryClient for tests
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+// Wrapper component that provides QueryClient
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+};
+
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -83,19 +87,19 @@ describe('AutoragConfigure', () => {
 
   describe('initial state - no secret selected', () => {
     it('should NOT display the "Selected connection" section when no secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Selected files" section when no secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Select files" button when no secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(screen.queryByText('Select files')).not.toBeInTheDocument();
     });
@@ -103,7 +107,7 @@ describe('AutoragConfigure', () => {
 
   describe('secret selection', () => {
     it('should display "Selected connection" section when a secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -114,7 +118,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the selected secret name as a Label when a secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -125,7 +129,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display "Selected files" section when a secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -136,7 +140,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the "Select files" button when a secret is selected', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -147,7 +151,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display different secret name when selecting a different secret', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select first secret
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -164,7 +168,7 @@ describe('AutoragConfigure', () => {
 
   describe('clearing selected secret', () => {
     it('should clear the selected secret when clicking the X on the Label', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -191,7 +195,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should hide the selected connection and files sections after clearing', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -215,7 +219,7 @@ describe('AutoragConfigure', () => {
 
   describe('invalid secret selection', () => {
     it('should disable "Select files" button when selected secret is invalid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -227,7 +231,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -242,7 +246,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -257,7 +261,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Run experiment" button when selected secret is invalid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -269,7 +273,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Select files" button when selected secret is valid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -281,7 +285,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" buttons when selected secret is valid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -296,7 +300,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Run experiment" button when selected secret is valid', () => {
-      renderWithProviders(<AutoragConfigure />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');

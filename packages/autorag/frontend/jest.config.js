@@ -17,6 +17,7 @@ module.exports = {
     // Resolve @odh-dashboard/internal's #~/ imports to main frontend src
     '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',
+    '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },
   testEnvironment: 'jest-environment-jsdom',
   transformIgnorePatterns: [

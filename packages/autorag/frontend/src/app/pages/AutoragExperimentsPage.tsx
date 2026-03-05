@@ -19,11 +19,13 @@ function AutoragExperimentsPage(): React.JSX.Element {
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
+  const showEmpty = noNamespaces || invalidNamespace;
+
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<TitleWithIcon title="Autorag" objectType={ProjectObjectType.pipelineExperiment} />}
       headerContent={
         <ProjectSelectorNavigator
           namespace={namespace}
@@ -34,7 +36,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
       description={
         <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
       }
-      empty={noNamespaces || invalidNamespace}
+      empty={showEmpty}
       emptyStatePage={
         noNamespaces ? (
           <NoProjects />
