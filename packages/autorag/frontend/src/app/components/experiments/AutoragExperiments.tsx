@@ -9,8 +9,8 @@ import {
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
+import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
-import NoProjects from '~/app/components/empty-states/NoProjects';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 // eslint-disable-next-line import/no-extraneous-dependencies -- ~/app is local path alias, not gen-ai package
@@ -80,7 +80,12 @@ function AutoragExperiments(): React.JSX.Element {
   }
 
   if (!hasExperiments) {
-    return <NoProjects />;
+    return (
+      <EmptyExperimentsState
+        createExperimentRoute={`${autoragCreatePathname}/${namespace ?? effectiveNamespace}`}
+        dataTestId="empty-experiments-state"
+      />
+    );
   }
 
   return (
