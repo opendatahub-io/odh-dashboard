@@ -38,12 +38,12 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
   const isModelTrainingAvailable = useIsAreaAvailable(SupportedArea.MODEL_TRAINING).status;
   const isRayJobsAvailable = useIsAreaAvailable(SupportedArea.RAY_JOBS).status;
 
-  const trainJobsWatch = useTrainJobs(isModelTrainingAvailable ? namespace ?? '' : '');
+  const trainJobsWatch = useTrainJobs(isModelTrainingAvailable ? namespace ?? '' : null);
   const trainJobs: CustomWatchK8sResult<TrainJobKind[]> = isModelTrainingAvailable
     ? trainJobsWatch
     : DEFAULT_LIST_WATCH_RESULT;
 
-  const rayJobsWatch = useRayJobs(isRayJobsAvailable ? namespace ?? '' : '');
+  const rayJobsWatch = useRayJobs(isRayJobsAvailable ? namespace ?? '' : null);
   const rayJobs: CustomWatchK8sResult<RayJobKind[]> = isRayJobsAvailable
     ? rayJobsWatch
     : DEFAULT_LIST_WATCH_RESULT;

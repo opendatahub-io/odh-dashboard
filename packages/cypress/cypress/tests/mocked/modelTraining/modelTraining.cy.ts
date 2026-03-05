@@ -622,13 +622,6 @@ describe('Model Training Feature Availability', () => {
     );
     cy.interceptK8sList(
       {
-        model: TrainJobModel,
-        ns: projectName,
-      },
-      mockK8sResourceList([]),
-    );
-    cy.interceptK8sList(
-      {
         model: RayJobModel,
         ns: projectName,
       },

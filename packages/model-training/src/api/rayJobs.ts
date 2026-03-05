@@ -8,13 +8,15 @@ import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWat
 
 import { RayJobKind } from '../k8sTypes';
 
-export const useRayJobs = (namespace: string): CustomWatchK8sResult<RayJobKind[]> =>
+export const useRayJobs = (namespace: string | null): CustomWatchK8sResult<RayJobKind[]> =>
   useK8sWatchResourceList(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(RayJobModel),
-      namespace,
-    },
+    namespace !== null
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(RayJobModel),
+          namespace,
+        }
+      : null,
     RayJobModel,
   );
 
