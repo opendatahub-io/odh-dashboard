@@ -384,7 +384,8 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		// Create pipeline server client (mock or real based on configuration)
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
+			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("mock://"+namespace, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
@@ -795,6 +796,50 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 	for _, dspa := range allMockDSPAs {
 		if dspa.Metadata.Namespace == namespace {
 			result = append(result, dspa)
+		}
+	}
+
+	// If no namespace-specific DSPA exists, return a synthetic ready DSPA for the requested namespace.
+	// This allows development with any namespace (e.g. "aistor") when using mock mode.
+	// Exclude "no-dspas-namespace" to allow testing the case where no DSPAs exist.
+	if len(result) == 0 && namespace != "" && namespace != "no-dspas-namespace" {
+		result = []models.DSPipelineApplication{
+			{
+				APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+				Kind:       "DSPipelineApplication",
+				Metadata: models.DSPipelineApplicationMetadata{
+					Name:      "dspa",
+					Namespace: namespace,
+				},
+				Spec: &models.DSPipelineApplicationSpec{
+					APIServer: &models.APIServer{
+						Deploy: true,
+					},
+				},
+				Status: &models.DSPipelineApplicationStatus{
+					Ready: true,
+					Conditions: []models.DSPipelineApplicationCondition{
+						{
+							Type:    "Ready",
+							Status:  "True",
+							Reason:  "MinimumReplicasAvailable",
+							Message: "Deployment has minimum availability",
+						},
+						{
+							Type:    "APIServerReady",
+							Status:  "True",
+							Reason:  "Deployed",
+							Message: "API Server is ready",
+						},
+					},
+					Components: &models.DSPipelineApplicationComponents{
+						APIServer: &models.DSPipelineApplicationAPIServerStatus{
+							URL:         fmt.Sprintf("https://ds-pipeline-dspa.%s.svc.cluster.local:8443", namespace),
+							ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-%s.apps.cluster.local", namespace),
+						},
+					},
+				},
+			},
 		}
 	}
 
