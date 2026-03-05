@@ -56,19 +56,19 @@ const ModelRegistriesTable: React.FC<ModelRegistriesTableProps> = ({
             isExpandable
             isInline
             variant="info"
-            title="Configuration guide: Grant UI access, connect workbenches, and setup model storage"
+            title="Configuration tips: Grant UI access, connect workbenches, and set up model storage"
             data-testid="mr-settings-configuration-guide-alert"
           >
             <List>
               <ListItem>
                 To grant users access to the model registry UI, click{' '}
-                <strong>Manage permissions</strong> and add users or groups in the{' '}
+                <strong>Manage permissions</strong> and add users or groups on the{' '}
                 <strong>Users</strong> tab.
               </ListItem>
               <ListItem>
                 To enable model storage that relies on project-scoped transfer jobs, or to access
-                this registry from workbenches within a specific project, click{' '}
-                <strong>Manage permissions</strong> and add the relevant projects in the{' '}
+                this registry from workbenches in a specific project, click{' '}
+                <strong>Manage permissions</strong> and add the relevant projects on the{' '}
                 <strong>Projects</strong> tab.
               </ListItem>
             </List>

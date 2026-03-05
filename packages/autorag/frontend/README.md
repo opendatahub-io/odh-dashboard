@@ -23,36 +23,36 @@ npm install && npm run start:dev
 
 ### Development
 
-| Command | Description |
-|---------|-------------|
-| `npm install` | Install dependencies |
+| Command             | Description                              |
+| ------------------- | ---------------------------------------- |
+| `npm install`       | Install dependencies                     |
 | `npm run start:dev` | Start webpack dev server with hot reload |
 
 ### Build & Bundle
 
-| Command | Description |
-|---------|-------------|
+| Command         | Description                           |
+| --------------- | ------------------------------------- |
 | `npm run build` | Production build to `dist/` directory |
 
 ### Testing
 
-| Command | Description |
-|---------|-------------|
-| `npm run test` | Run all tests (lint, type-check, unit, cypress) |
-| `npm run test:unit` | Run Jest unit tests |
-| `npm run test:jest` | Run Jest with output |
-| `npm run test:lint` | ESLint & Prettier validation |
-| `npm run test:fix` | Auto-fix linting and formatting issues |
+| Command             | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| `npm run test`      | Run all tests (lint, type-check, unit, cypress) |
+| `npm run test:unit` | Run Jest unit tests                             |
+| `npm run test:jest` | Run Jest with output                            |
+| `npm run test:lint` | ESLint & Prettier validation                    |
+| `npm run test:fix`  | Auto-fix linting and formatting issues          |
 
 ### Cypress E2E Testing
 
-| Command | Description |
-|---------|-------------|
-| `npm run cypress:open` | Open Cypress test runner (interactive) |
-| `npm run cypress:open:mock` | Open Cypress with mock data |
-| `npm run cypress:run` | Run Cypress tests (headless) |
-| `npm run cypress:run:mock` | Run Cypress with mock data (headless) |
-| `npm run test:cypress-ci` | Full CI test suite with server |
+| Command                     | Description                            |
+| --------------------------- | -------------------------------------- |
+| `npm run cypress:open`      | Open Cypress test runner (interactive) |
+| `npm run cypress:open:mock` | Open Cypress with mock data            |
+| `npm run cypress:run`       | Run Cypress tests (headless)           |
+| `npm run cypress:run:mock`  | Run Cypress with mock data (headless)  |
+| `npm run test:cypress-ci`   | Full CI test suite with server         |
 
 ---
 
@@ -80,6 +80,7 @@ autorag/frontend/
 ### Image Assets
 
 **PatternFly assets** - Use the `@assets` alias:
+
 ```typescript
 import chartIcon from '@assets/images/chart.png';
 
@@ -87,6 +88,7 @@ import chartIcon from '@assets/images/chart.png';
 ```
 
 **Local app assets** - Use the `~/app` alias:
+
 ```typescript
 import logo from '~/app/assets/images/autorag-logo.png';
 
@@ -96,6 +98,7 @@ import logo from '~/app/assets/images/autorag-logo.png';
 ### SVG Images
 
 **Inline SVG:**
+
 ```typescript
 import icon from '~/app/assets/icons/workflow.svg';
 
@@ -105,6 +108,7 @@ import icon from '~/app/assets/icons/workflow.svg';
 > **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via webpack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.
 
 **CSS background SVG** (must be in `bgimages/` directory):
+
 ```css
 .workflow-container {
   background-image: url(./assets/bgimages/pattern.svg);
@@ -124,6 +128,7 @@ When importing CSS from a new npm package, you may encounter webpack errors. Reg
 ### Theming
 
 The AutoRAG UI supports theming through environment variables:
+
 ```bash
 STYLE_THEME=patternfly-theme npm run start:dev
 ```
@@ -134,13 +139,13 @@ STYLE_THEME=patternfly-theme npm run start:dev
 
 This project maintains high code quality standards through automated tooling:
 
-| Tool | Purpose | Configuration |
-|------|---------|---------------|
-| **ESLint** | Code linting & style enforcement | `.eslintrc.cjs` |
-| **Prettier** | Code formatting | `.prettierrc` |
-| **TypeScript** | Static type checking | `tsconfig.json` |
-| **Jest** | Unit testing & coverage | `jest.config.js` |
-| **Cypress** | E2E testing & component testing | `src/__tests__/cypress/` |
+| Tool           | Purpose                          | Configuration            |
+| -------------- | -------------------------------- | ------------------------ |
+| **ESLint**     | Code linting & style enforcement | `.eslintrc.cjs`          |
+| **Prettier**   | Code formatting                  | `.prettierrc`            |
+| **TypeScript** | Static type checking             | `tsconfig.json`          |
+| **Jest**       | Unit testing & coverage          | `jest.config.js`         |
+| **Cypress**    | E2E testing & component testing  | `src/__tests__/cypress/` |
 
 ---
 
@@ -149,6 +154,7 @@ This project maintains high code quality standards through automated tooling:
 ### Module Federation
 
 This application uses Webpack's Module Federation for:
+
 - Dynamic module loading
 - Shared dependencies across micro-frontends
 - Runtime integration with the main ODH Dashboard
