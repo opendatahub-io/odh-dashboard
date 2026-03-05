@@ -49,6 +49,31 @@ export const createDSPA = (
 type DspaCondition = { type?: string; status?: string; reason?: string; message?: string };
 
 /**
+ * Waits for the DSPA (Data Science Pipelines Application) to be ready.
+ * Uses oc wait --for=condition=Ready similar to other resource waits in the codebase.
+ *
+ * @param projectName - The namespace/project containing the DSPA
+ * @param timeout - Timeout in seconds (default 600s = 10 minutes)
+ */
+export const waitForDspaReady = (
+  projectName: string,
+  timeout = '600s',
+): Cypress.Chainable<CommandLineResult> => {
+  const command = `oc wait --for=condition=Ready dspa/${DSPA_RESOURCE_NAME} -n ${projectName} --timeout=${timeout}`;
+  cy.log(`Waiting for DSPA to be ready: ${command}`);
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 610000 })
+    .then((result: CommandLineResult) => {
+      if (result.code !== 0) {
+        cy.log(`DSPA wait failed (exit ${result.code}): ${maskSensitiveInfo(result.stderr)}`);
+      } else {
+        cy.log('DSPA is ready');
+      }
+    });
+};
+
+/**
  * Logs whether the pipeline server (DSPA) is ready and, if not, why.
  * Uses oc get dspa -o json and parses status.conditions (Ready + any False conditions).
  * Does not fail the test if oc fails.

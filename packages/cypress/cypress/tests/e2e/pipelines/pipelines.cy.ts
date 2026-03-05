@@ -9,7 +9,7 @@ import { pipelineImportModal } from '../../../pages/pipelines/pipelineImportModa
 import { createRunPage } from '../../../pages/pipelines/createRunPage';
 import { pipelineDetails, pipelineRunDetails } from '../../../pages/pipelines/topology';
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
-import { logDspaStatus } from '../../../utils/oc_commands/dspa';
+import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { loadPipelineFixture } from '../../../utils/dataLoader';
@@ -47,13 +47,14 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
+      cy.step('Wait for pipeline server (DSPA) to be ready');
+      waitForDspaReady(projectName);
+
+      cy.step('Ensure Import Pipeline button is loaded');
+      projectDetails.ensureImportPipelineButtonLoaded();
+
       cy.step('Import a pipeline by URL');
-      // Increasing the timeout to ~5mins so the DSPA can be loaded
-      projectDetails
-        .findImportPipelineButton(300000, 10000, {
-          onBeforeReload: () => logDspaStatus(projectName),
-        })
-        .click();
+      projectDetails.findImportPipelineButton().click();
       // Fill the Import Pipeline modal
       pipelineImportModal.findPipelineNameInput().type(testData.pipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type(testData.pipelineDescription);
