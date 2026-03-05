@@ -33,6 +33,7 @@ const mockVersions: MLflowPromptVersion[] = [
 
 describe('PromptDrawer', () => {
   const defaultProps = {
+    isLoadingDetails: false,
     selectedPromptVersions: mockVersions,
     selectedVersion: null as number | null,
     onVersionChange: jest.fn(),
