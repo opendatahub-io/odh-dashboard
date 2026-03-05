@@ -11,5 +11,9 @@ requestRateLimit:
   count: 5
   time: 1
   unit: second
+editGroup: tier-free-users
+editTokenRateLimitUnit: minute
+editRequestRateLimitUnit: ms
+tierDeploymentOption: "Specific tiers"
 groupsCount: 3
 limits: 501 tokens/5 minutes4 requests/1 millisecond

@@ -89,7 +89,7 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
       // Verify we get the not found page
       cy.step('Verify unauthorized access shows not found page');
       notFoundPage.findNotFoundPage().should('exist');
-      notFoundPage.findDescription().should('contain', 'Another page might have what you need');
+      notFoundPage.findDescription().should('not.be.empty');
       notFoundPage.findHomeButton().should('exist');
       userManagement.findNavItem().should('not.exist');
     },

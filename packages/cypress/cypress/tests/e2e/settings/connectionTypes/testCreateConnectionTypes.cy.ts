@@ -149,11 +149,13 @@ describe('Verify Connection Type Creation', () => {
       createdRow.shouldBeEnabled();
 
       cy.step('Verify the connection type shows compatibility with model serving');
-      createdRow.findConnectionTypeCompatibility().should('contain.text', 'URI');
+      createdRow
+        .findConnectionTypeCompatibility()
+        .should('contain.text', connectionTypeModelServingCompatibleType[1]);
 
       cy.step('Preview connection type.');
       createdRow.findKebab().click();
-      createdRow.findKebabAction('Preview').click();
+      connectionTypesPage.findPreviewAction().click();
       connectionTypePreviewModal.shouldBeOpen();
       // Verify the new fields are displayed in the preview modal
       // Validate the connection type name in the preview
@@ -182,7 +184,7 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.navigate();
       createdRow = connectionTypesPage.getConnectionTypeRow(connectionTypeName);
       createdRow.findKebab().click();
-      createdRow.findKebabAction('Delete').click();
+      connectionTypesPage.findDeleteAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(connectionTypeName);
       deleteModal.findSubmitButton().should('be.enabled').click();
@@ -215,7 +217,7 @@ describe('Verify Connection Type Creation', () => {
       cy.step('Duplicate the Connection type');
       const exisitingRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
       exisitingRow.findKebab().click();
-      exisitingRow.findKebabAction('Duplicate').click();
+      connectionTypesPage.findDuplicateAction().click();
       createConnectionTypePage
         .findConnectionTypeName()
         .should('have.value', duplicateConnectionTypeName);
@@ -224,10 +226,10 @@ describe('Verify Connection Type Creation', () => {
       cy.step('Edit the Connection type');
       let duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
       duplicateRow.findKebab().click();
-      duplicateRow.findKebabAction('Edit').click();
+      connectionTypesPage.findEditAction().click();
       createConnectionTypePage
         .findModelServingCompatibleTypeDropdown()
-        .findDropdownItem('URI')
+        .findDropdownItem(connectionTypeModelServingCompatibleType[1])
         .click();
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
@@ -253,7 +255,7 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.navigate();
       duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
       duplicateRow.findKebab().click();
-      duplicateRow.findKebabAction('Delete').click();
+      connectionTypesPage.findDeleteAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(duplicateConnectionTypeName);
       deleteModal.findSubmitButton().should('be.enabled').click();
