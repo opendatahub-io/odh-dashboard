@@ -76,17 +76,20 @@ const defaultDefsState = {
   pipelineDefinitions: mockPipelineDefinitions,
   loaded: true,
   error: undefined as Error | undefined,
+  refresh: jest.fn().mockResolvedValue(undefined),
 };
 
 const defaultRunsState = {
   runs: mockRuns,
   totalSize: mockRuns.length,
+  nextPageToken: '',
   page: 1,
   pageSize: 20,
   setPage: jest.fn(),
   setPageSize: jest.fn(),
   loaded: true,
   error: undefined as Error | undefined,
+  refresh: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('AutoragExperiments', () => {
