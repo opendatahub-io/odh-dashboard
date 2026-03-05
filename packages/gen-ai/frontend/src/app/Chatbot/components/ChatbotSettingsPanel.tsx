@@ -145,6 +145,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
 
+  // Key to force Tabs remount when panel width changes so overflow arrows recalculate
+  const [tabsKey, setTabsKey] = React.useState(0);
+
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
@@ -159,6 +162,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+
+    // Force Tabs to remount and recalculate overflow arrows
+    setTabsKey((k) => k + 1);
   };
 
   // Tab state
@@ -196,6 +202,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       </DrawerHead>
       <DrawerPanelBody>
         <Tabs
+          key={tabsKey}
           activeKey={activeTabKey}
           onSelect={handleTabClick}
           aria-label="Chatbot settings page tabs"
