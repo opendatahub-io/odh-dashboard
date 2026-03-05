@@ -16,11 +16,18 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FormProvider, useForm } from 'react-hook-form';
+import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragResultsPathname } from '~/app/utilities/routes';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector from '~/app/shared/SecretSelector';
+import AutoragExperimentSettings from './AutoragExperimentSettings';
+
+const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
@@ -29,11 +36,52 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<
     { uuid: string; name: string; invalid?: boolean } | undefined
   >();
+  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
 
   const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
+  const { data: allModelsData } = useLlamaStackModelsQuery();
+  const modelsInitialized = useRef(false);
+
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema),
+    defaultValues: configureSchema.parse({}),
+  });
+
+  useEffect(() => {
+    //Initialize available generation and embedding models into the form data
+    if (allModelsData?.models && !modelsInitialized.current) {
+      modelsInitialized.current = true;
+      form.reset({
+        ...form.getValues(),
+        // eslint-disable-next-line camelcase
+        generation_constraints: allModelsData.models
+          .filter((model) => model.type === 'llm')
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
+        // eslint-disable-next-line camelcase
+        embeddings_constraints: allModelsData.models
+          .filter((model) => model.type === 'embedding')
+          .map((model) => ({ model: model.id }))
+          .toSorted((a, b) => a.model.localeCompare(b.model)),
+      });
+    }
+  }, [allModelsData, form]);
+
+  const openExperimentSettings = () => {
+    // Snapshot current form values as the "default" so reset() can revert to them
+    form.reset({ ...form.getValues() });
+    setIsExperimentSettingsOpen(true);
+  };
+
+  const saveExperimentSettingsChanges = () => {
+    // TODO: add form update logic once ready
+    setIsExperimentSettingsOpen(false);
+  };
+
   return (
-    <>
+    <FormProvider {...form}>
       <Panel isScrollable={false}>
         <PanelMain tabIndex={0}>
           <PanelMainBody>
@@ -140,7 +188,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-optimization-metric"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                     isDisabled={formInvalid}
                                   >
                                     Edit
@@ -162,7 +210,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-considered-models"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                     isDisabled={formInvalid}
                                   >
                                     Edit
@@ -202,7 +250,19 @@ function AutoragConfigure(): React.JSX.Element {
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
       />
-    </>
+      <AutoragExperimentSettings
+        isOpen={isExperimentSettingsOpen}
+        onClose={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        revertChanges={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        saveChanges={saveExperimentSettingsChanges}
+      />
+    </FormProvider>
   );
 }
 

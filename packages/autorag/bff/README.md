@@ -104,9 +104,18 @@ GET /api/v1/pipeline-runs          (requires namespace parameter)
 GET /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 ```
 
+### Authentication modes
+
+Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
+
+- **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
+- **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
+- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_LS_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+
 ### Sample local calls
 
 When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
+
 
 ```shell
 curl -i localhost:4000/healthcheck
