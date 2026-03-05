@@ -386,13 +386,27 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 	}
 }
 
-// AttachMLflowClient middleware retrieves the MLflow client from the factory and attaches it to context.
-// The factory returns a shared singleton client, so this middleware only injects it into the request context.
+// AttachMLflowClient middleware creates a per-request MLflow client with auth and workspace headers.
+// Extracts the user's token from RequestIdentity and namespace from context.
 func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
-		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx)
+		// Extract auth token from RequestIdentity (set by InjectRequestIdentity middleware)
+		var token string
+		if app.config.AuthMethod != config.AuthMethodDisabled {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+			token = identity.Token
+		}
+
+		// Extract namespace (set by AttachNamespace middleware)
+		namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
+		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx, token, namespace)
 		if err != nil {
 			if errors.Is(err, mlflowpkg.ErrMLflowNotConfigured) {
 				logger := helper.GetContextLoggerFromReq(r)

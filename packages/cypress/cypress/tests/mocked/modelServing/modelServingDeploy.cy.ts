@@ -1890,12 +1890,13 @@ describe('Model Serving Deploy Wizard', () => {
       // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(1000);
-      // First enter invalid YAML to trigger error
+      // Enter invalid YAML – error appears after submit
       yamlEditor.setValue('invalid: yaml:');
+      modelServingWizard.findSubmitButton().click();
       modelServingWizard.findErrorMessageAlert().should('exist');
 
-      // Clear the invalid YAML
-      yamlEditor.clear();
+      // Dismiss the error manually with the close (x) button
+      modelServingWizard.findErrorMessageAlert().findByRole('button', { name: /close/i }).click();
       modelServingWizard.findErrorMessageAlert().should('not.exist');
 
       // Set a valid LLMInferenceService YAML

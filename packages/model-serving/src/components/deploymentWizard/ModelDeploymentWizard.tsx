@@ -13,7 +13,6 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import { Deployment } from 'extension-points';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -29,6 +28,7 @@ import { DeploymentWizardYAMLView } from './yaml/DeploymentWizardYAMLView';
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
 import { useModelDeploymentSubmit } from './deploying/useModelDeploymentSubmit';
+import { Deployment } from '../../../extension-points';
 import {
   ModelDeploymentFooter,
   ModelDeploymentWizardFooter,
@@ -129,6 +129,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       wizardFormData.initialData,
       existingDeployment,
       secretName,
+      yamlError,
     );
 
   const wizardFooter = React.useMemo(
@@ -211,7 +212,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 onOverwrite={onOverwrite}
                 onRefresh={onRefresh}
                 isLoading={isLoading}
-                error={submitError ?? yamlError}
+                error={submitError}
                 clearError={clearSubmitError}
               />
             </PageSection>
