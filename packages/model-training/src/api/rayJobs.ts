@@ -2,45 +2,33 @@ import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-util
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
+import { RayJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 
-import { TrainJobKind } from '../k8sTypes';
+import { RayJobKind } from '../k8sTypes';
 
-/**
- * Watch TrainJobs in a namespace
- * @param namespace - The namespace to watch
- * @returns Custom watch result with TrainJob list
- */
-export const useTrainJobs = (namespace: string | null): CustomWatchK8sResult<TrainJobKind[]> =>
+export const useRayJobs = (namespace: string | null): CustomWatchK8sResult<RayJobKind[]> =>
   useK8sWatchResourceList(
     namespace !== null
       ? {
           isList: true,
-          groupVersionKind: groupVersionKind(TrainJobModel),
+          groupVersionKind: groupVersionKind(RayJobModel),
           namespace,
         }
       : null,
-    TrainJobModel,
+    RayJobModel,
   );
 
-/**
- * Delete a TrainJob
- * @param name - The name of the TrainJob
- * @param namespace - The namespace of the TrainJob
- * @param opts - Optional K8s API options
- * @returns Promise with K8s status
- */
-export const deleteTrainJob = (
+export const deleteRayJob = (
   name: string,
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
-  k8sDeleteResource<TrainJobKind, K8sStatus>(
+  k8sDeleteResource<RayJobKind, K8sStatus>(
     applyK8sAPIOptions(
       {
-        model: TrainJobModel,
+        model: RayJobModel,
         queryOptions: { name, ns: namespace },
       },
       opts,
