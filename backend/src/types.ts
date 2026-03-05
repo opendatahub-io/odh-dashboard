@@ -80,7 +80,7 @@ export type DashboardConfig = K8sResourceCommon & {
       isLLMdDefault?: boolean;
     };
     genAiStudioConfig?: {
-      externalModelsConfig?: {
+      externalModels?: {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };

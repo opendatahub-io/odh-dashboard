@@ -100,7 +100,7 @@ export const blankDashboardCR: DashboardConfig = {
     },
     templateOrder: [],
     genAiStudioConfig: {
-      externalModelsConfig: {
+      externalModels: {
         externalProviders: false,
         clusterDomains: [],
       },

@@ -54,7 +54,7 @@ export type MockDashboardConfigType = {
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   genAiStudioConfig?: {
-    externalModelsConfig?: {
+    externalModels?: {
       externalProviders?: boolean;
       clusterDomains?: string[];
     };
@@ -107,7 +107,7 @@ export const mockDashboardConfig = ({
   deploymentWizardYAMLViewer = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
-    externalModelsConfig: {
+    externalModels: {
       externalProviders: false,
       clusterDomains: [],
     },
