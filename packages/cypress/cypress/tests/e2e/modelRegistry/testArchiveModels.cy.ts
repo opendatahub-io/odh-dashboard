@@ -134,7 +134,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       // Navigate to versions tab and register new version
       modelRegistry.findModelVersionsTab().click();
-      cy.findByRole('button', { name: 'Register new version' }).click();
+      modelRegistry.findRegisterNewVersionButton().click();
 
       // Fill in version details for v2.0
       registerVersionPage

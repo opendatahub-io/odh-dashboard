@@ -71,8 +71,10 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(registryName);
       modelRegistrySettings.findDatabaseSourceExternalRadio().click();
       modelRegistrySettings.findFormField(FormFieldSelector.HOST).type(sqlDbName);
-      modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('mlmduser');
-      modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('TheBlurstOfTimes');
+      modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type(testData.mysqlUsername);
+      modelRegistrySettings
+        .findFormField(FormFieldSelector.PASSWORD)
+        .type(testData.databasePassword);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
@@ -124,8 +126,10 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.USERNAME)
         .clear()
-        .type('modelregistryuser');
-      modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('TheBlurstOfTimes');
+        .type(testData.postgresUsername);
+      modelRegistrySettings
+        .findFormField(FormFieldSelector.PASSWORD)
+        .type(testData.databasePassword);
       modelRegistrySettings
         .findFormField(FormFieldSelector.DATABASE)
         .clear()

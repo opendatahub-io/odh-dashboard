@@ -50,6 +50,11 @@ defaultPostgresPort: "5432"
 defaultDatabaseName: "model-registry"
 statusAvailable: "Available"
 
+# Database credentials for E2E tests
+mysqlUsername: "mlmduser"
+postgresUsername: "modelregistryuser"
+databasePassword: "TheBlurstOfTimes"
+
 # Database configuration testing
 databaseName: "model-registry-db-test"
 newDatabaseHost: "model-registry-db-test-new"

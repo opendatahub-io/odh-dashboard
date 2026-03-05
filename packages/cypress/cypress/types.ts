@@ -415,6 +415,11 @@ export type ModelRegistryTestData = {
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
 
+  // Database credentials
+  mysqlUsername: string;
+  postgresUsername: string;
+  databasePassword: string;
+
   // Default database form values
   defaultMysqlPort: string;
   defaultPostgresPort: string;
