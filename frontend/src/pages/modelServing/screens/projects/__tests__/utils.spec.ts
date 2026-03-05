@@ -283,6 +283,97 @@ describe('createNIMSecret', () => {
       'Error creating NIM secret',
     );
   });
+
+  it('should create NGC secret with dummy values when isAirGapped is true', async () => {
+    (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
+
+    const result = await createNIMSecret(projectName, 'ngc-secret', true, dryRun, true);
+
+    // In air-gapped mode, should NOT call getNIMData
+    expect(getNIMData).not.toHaveBeenCalled();
+
+    // Should create secret with dummy dockerconfigjson
+    expect(createSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'ngc-secret',
+          namespace: projectName,
+        },
+        type: 'kubernetes.io/dockerconfigjson',
+        data: expect.objectContaining({
+          '.dockerconfigjson': expect.any(String),
+        }),
+      }),
+      { dryRun },
+    );
+
+    // Verify the dummy dockerconfigjson contains placeholder values
+    const createSecretCall = (createSecret as jest.Mock).mock.calls[0][0];
+    const decodedDockerConfig = JSON.parse(atob(createSecretCall.data['.dockerconfigjson']));
+    expect(decodedDockerConfig).toEqual({
+      auths: {
+        'nvcr.io': {
+          username: '$oauthtoken',
+          password: 'air-gapped-placeholder',
+          auth: btoa('$oauthtoken:air-gapped-placeholder'),
+        },
+      },
+    });
+
+    expect(result).toEqual(nimSecretMock);
+  });
+
+  it('should create non-NGC secret with dummy API key when isAirGapped is true', async () => {
+    (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
+
+    const result = await createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun, true);
+
+    // In air-gapped mode, should NOT call getNIMData
+    expect(getNIMData).not.toHaveBeenCalled();
+
+    // Should create secret with dummy NGC_API_KEY
+    expect(createSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'nvidia-nim-secrets',
+          namespace: projectName,
+        },
+        type: 'Opaque',
+        data: {
+          NGC_API_KEY: btoa('air-gapped-placeholder-key'),
+        },
+      }),
+      { dryRun },
+    );
+
+    expect(result).toEqual(nimSecretMock);
+  });
+
+  it('should default to normal mode when isAirGapped is not provided', async () => {
+    (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNGC);
+    (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
+
+    // Call without isAirGapped parameter (should default to false)
+    const result = await createNIMSecret(projectName, 'ngc-secret', true, dryRun);
+
+    // Should call getNIMData in normal mode
+    expect(getNIMData).toHaveBeenCalledWith('ngc-secret', true);
+    expect(result).toEqual(nimSecretMock);
+  });
+
+  it('should still reject in air-gapped mode if createSecret fails', async () => {
+    (createSecret as jest.Mock).mockRejectedValueOnce(new Error('K8s API error'));
+
+    await expect(createNIMSecret(projectName, 'ngc-secret', true, dryRun, true)).rejects.toThrow(
+      'Error creating NGC secret',
+    );
+
+    expect(getNIMData).not.toHaveBeenCalled();
+  });
 });
 
 describe('fetchNIMModelNames', () => {
@@ -354,6 +445,104 @@ describe('fetchNIMModelNames', () => {
 
     expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toBeUndefined();
+  });
+
+  it('should skip registry and imagePullSecret fields when parsing ConfigMap', async () => {
+    const configMapWithAirGappedFields = {
+      data: {
+        registry: 'internal-registry.company.com',
+        imagePullSecret: 'custom-pull-secret',
+        model1: JSON.stringify({
+          displayName: 'Model One',
+          shortDescription: 'Test model',
+          namespace: 'nim/test',
+          tags: ['1.0.0'],
+          latestTag: '1.0.0',
+          updatedDate: '2024-09-15T00:00:00Z',
+        }),
+      },
+    };
+
+    (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapWithAirGappedFields);
+
+    const result = await fetchNIMModelNames();
+
+    // Should only return model1, not registry or imagePullSecret
+    expect(result).toEqual([
+      {
+        name: 'model1',
+        displayName: 'Model One',
+        shortDescription: 'Test model',
+        namespace: 'nim/test',
+        tags: ['1.0.0'],
+        latestTag: '1.0.0',
+        updatedDate: '2024-09-15T00:00:00Z',
+        registry: undefined,
+      },
+    ]);
+  });
+
+  it('should parse model-specific registry override from ConfigMap', async () => {
+    const configMapWithModelRegistry = {
+      data: {
+        model1: JSON.stringify({
+          displayName: 'Model One',
+          shortDescription: 'Test model',
+          namespace: 'nim/test',
+          tags: ['1.0.0'],
+          latestTag: '1.0.0',
+          updatedDate: '2024-09-15T00:00:00Z',
+          registry: 'custom-model-registry.io',
+        }),
+      },
+    };
+
+    (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapWithModelRegistry);
+
+    const result = await fetchNIMModelNames();
+
+    expect(result).toEqual([
+      {
+        name: 'model1',
+        displayName: 'Model One',
+        shortDescription: 'Test model',
+        namespace: 'nim/test',
+        tags: ['1.0.0'],
+        latestTag: '1.0.0',
+        updatedDate: '2024-09-15T00:00:00Z',
+        registry: 'custom-model-registry.io',
+      },
+    ]);
+  });
+
+  it('should return undefined when ConfigMap only contains air-gapped fields', async () => {
+    const configMapOnlyAirGapped = {
+      data: {
+        registry: 'internal-registry.company.com',
+        imagePullSecret: 'custom-pull-secret',
+      },
+    };
+
+    (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapOnlyAirGapped);
+
+    const result = await fetchNIMModelNames();
+
+    // No models, only air-gapped config
+    expect(result).toBeUndefined();
+  });
+
+  it('should throw error when model data is not valid JSON', async () => {
+    const configMapWithInvalidJSON = {
+      data: {
+        model1: 'not-valid-json',
+      },
+    };
+
+    (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapWithInvalidJSON);
+
+    await expect(fetchNIMModelNames()).rejects.toThrow(
+      'Failed to parse model data for key "model1"',
+    );
   });
 });
 

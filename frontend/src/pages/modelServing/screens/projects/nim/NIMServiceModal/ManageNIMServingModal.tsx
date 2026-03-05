@@ -70,6 +70,7 @@ import {
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
 } from '#~/concepts/hardwareProfiles/const';
+import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -105,6 +106,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 }) => {
   const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
     useGetStorageClassConfig();
+
+  // Read NIM account configuration for air-gapped registry support
+  const accountConfig = useNIMAccountConfig();
 
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -193,7 +197,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   // Serving Runtime Validation
   const isDisabledServingRuntime =
-    namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
+    namespace === '' ||
+    actionInProgress ||
+    createDataServingRuntime.imageName === undefined ||
+    accountConfig.loading;
 
   const baseInputValueValid = createDataInferenceService.minReplicas >= 1;
 
@@ -306,6 +313,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
+      accountConfig.imagePullSecret, // Pass imagePullSecret from air-gapped config
     );
 
     const inferenceServiceName = createDataInferenceService.k8sName;
@@ -342,10 +350,14 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
         if (!editInfo) {
           if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false));
+            promises.push(
+              createNIMSecret(namespace, 'apiKeySecret', false, false, accountConfig.isAirGapped),
+            );
           }
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
+            promises.push(
+              createNIMSecret(namespace, 'nimPullSecret', true, false, accountConfig.isAirGapped),
+            );
           }
           if (pvcMode === 'create-new') {
             promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));
@@ -410,14 +422,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               />
             </StackItem>
             <StackItem>
-              <StackItem>
-                <NIMModelListSection
-                  inferenceServiceData={createDataInferenceService}
-                  setInferenceServiceData={setCreateDataInferenceService}
-                  setServingRuntimeData={setCreateDataServingRuntime}
-                  isEditing={!!editInfo}
-                />
-              </StackItem>
+              <NIMModelListSection
+                inferenceServiceData={createDataInferenceService}
+                setInferenceServiceData={setCreateDataInferenceService}
+                setServingRuntimeData={setCreateDataServingRuntime}
+                isEditing={!!editInfo}
+              />
             </StackItem>
             <StackItem>
               {isStorageClassesAvailable && (
