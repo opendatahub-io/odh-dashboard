@@ -76,15 +76,3 @@ export async function getPipelineDefinitions(
   // BFF pipeline-definitions endpoint not yet implemented; return empty
   return [];
 }
-
-export async function getPipelineRuns(
-  hostPath: string,
-  namespace: string,
-  params?: { pageSize?: number; nextPageToken?: string },
-): Promise<PipelineRunsData> {
-  return getPipelineRunsFromBFF(hostPath, {
-    namespace,
-    pageSize: params?.pageSize,
-    nextPageToken: params?.nextPageToken,
-  });
-}

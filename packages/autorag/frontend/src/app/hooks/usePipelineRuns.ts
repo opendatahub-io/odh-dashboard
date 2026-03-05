@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- PipelineRunsData uses snake_case to match BFF API */
 import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
-import { getPipelineRuns } from '~/app/api/pipelines';
+import { getPipelineRunsFromBFF } from '~/app/api/pipelines';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 import { POLL_INTERVAL } from '~/app/utilities/const';
 
@@ -38,7 +38,8 @@ export function usePipelineRuns(
     if (page > 1 && !pageTokensRef.current[page - 1]) {
       throw new Error(`No token available for page ${page}.`);
     }
-    const result = await getPipelineRuns('', namespace, {
+    const result = await getPipelineRunsFromBFF('', {
+      namespace,
       pageSize,
       nextPageToken: pageTokensRef.current[page - 1],
     });

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import { useFetchState } from 'mod-arch-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { getPipelineRuns } from '~/app/api/pipelines';
+import { getPipelineRunsFromBFF } from '~/app/api/pipelines';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 import { POLL_INTERVAL } from '~/app/utilities/const';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
@@ -15,10 +15,10 @@ jest.mock('mod-arch-core', () => {
 });
 
 jest.mock('~/app/api/pipelines', () => ({
-  getPipelineRuns: jest.fn(),
+  getPipelineRunsFromBFF: jest.fn(),
 }));
 
-const getPipelineRunsMock = jest.mocked(getPipelineRuns);
+const getPipelineRunsFromBFFMock = jest.mocked(getPipelineRunsFromBFF);
 const useFetchStateMock = jest.mocked(useFetchState);
 
 const mockPipelineDefinitions: PipelineDefinition[] = [
@@ -53,7 +53,7 @@ describe('usePipelineRuns', () => {
   });
 
   it('should return empty runs when namespace is empty', async () => {
-    getPipelineRunsMock.mockResolvedValue({
+    getPipelineRunsFromBFFMock.mockResolvedValue({
       runs: [],
       total_size: 0,
       next_page_token: '',
@@ -64,11 +64,11 @@ describe('usePipelineRuns', () => {
 
     expect(renderResult.result.current.runs).toEqual([]);
     expect(renderResult.result.current.totalSize).toBe(0);
-    expect(getPipelineRunsMock).not.toHaveBeenCalled();
+    expect(getPipelineRunsFromBFFMock).not.toHaveBeenCalled();
   });
 
   it('should fetch and return pipeline runs from BFF with pagination data', async () => {
-    getPipelineRunsMock.mockResolvedValue(mockPipelineRunsData);
+    getPipelineRunsFromBFFMock.mockResolvedValue(mockPipelineRunsData);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', mockPipelineDefinitions);
     await renderResult.waitForNextUpdate();
@@ -78,21 +78,23 @@ describe('usePipelineRuns', () => {
     expect(renderResult.result.current.nextPageToken).toBe('');
     expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
-    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace', {
+    expect(getPipelineRunsFromBFFMock).toHaveBeenCalledWith('', {
+      namespace: 'my-namespace',
       pageSize: 20,
       nextPageToken: undefined,
     });
   });
 
   it('should fetch runs from BFF even with empty pipelineDefinitions', async () => {
-    getPipelineRunsMock.mockResolvedValue(mockPipelineRunsData);
+    getPipelineRunsFromBFFMock.mockResolvedValue(mockPipelineRunsData);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', []);
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current.runs).toEqual(mockRuns);
     expect(renderResult.result.current.loaded).toBe(true);
-    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace', {
+    expect(getPipelineRunsFromBFFMock).toHaveBeenCalledWith('', {
+      namespace: 'my-namespace',
       pageSize: 20,
       nextPageToken: undefined,
     });
@@ -100,7 +102,7 @@ describe('usePipelineRuns', () => {
 
   it('should handle fetch errors', async () => {
     const fetchError = new Error('Fetch failed');
-    getPipelineRunsMock.mockRejectedValue(fetchError);
+    getPipelineRunsFromBFFMock.mockRejectedValue(fetchError);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', mockPipelineDefinitions);
     await renderResult.waitForNextUpdate();
