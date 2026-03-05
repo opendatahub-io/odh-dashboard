@@ -14,7 +14,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: PLUGIN_MODEL_TRAINING,
-      reliantAreas: [SupportedArea.MODEL_TRAINING],
+      reliantAreas: [SupportedArea.MODEL_TRAINING, SupportedArea.RAY_JOBS],
       featureFlags: ['trainingJobs'],
     },
   },
