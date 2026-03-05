@@ -15,7 +15,7 @@ import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas/index';
 import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
-import type { ModelResourceType } from 'extension-points';
+import type { ModelResourceType } from '../../../../extension-points';
 
 const HardwareProfileNameValue = ({
   project,
