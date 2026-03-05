@@ -1,5 +1,9 @@
+projectNamePrefix: "test-dsp-schedule-prj"
+dspaSecretName: "dashboard-dspa-secret"
 pipelineName: test-scheduled-pipeline
 pipelineDescription: Pipeline scheduled via E2E
 scheduleName: test-scheduled-run
 scheduleDescription: Scheduled run created by E2E
+experimentName: "Default"
+runEveryUnit: "Minute"
 pipelineUrl: https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/packages/cypress/resources/pipelines_samples/dummy_pipeline_compiled.yaml

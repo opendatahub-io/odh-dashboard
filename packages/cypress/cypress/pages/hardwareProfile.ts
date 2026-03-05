@@ -199,6 +199,18 @@ class HardwareProfile {
     );
   }
 
+  findEditAction() {
+    return cy.findByTestId('edit-hardware-profile-action');
+  }
+
+  findDuplicateAction() {
+    return cy.findByTestId('duplicate-hardware-profile-action');
+  }
+
+  findDeleteAction() {
+    return cy.findByTestId('delete-hardware-profile-action');
+  }
+
   findClearFiltersButton() {
     return cy.findByTestId('clear-filters-button');
   }

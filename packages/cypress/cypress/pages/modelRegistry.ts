@@ -300,6 +300,18 @@ class ModelRegistry {
   findEmptyStateNonAdminHelpButton() {
     return cy.findByRole('button', { name: "Who's my administrator?" });
   }
+
+  findArchiveModelVersionAction() {
+    return cy.findByTestId('archive-model-version-action');
+  }
+
+  findRestoreModelVersionAction() {
+    return cy.findByTestId('restore-model-version-action');
+  }
+
+  findViewArchivedVersionsAction() {
+    return cy.findByTestId('view-archived-versions-action');
+  }
 }
 
 export const modelRegistry = new ModelRegistry();

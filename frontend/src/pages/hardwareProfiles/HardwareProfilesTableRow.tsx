@@ -183,7 +183,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
               ...useKebabAccessAllowed(
                 [
                   {
-                    title: 'Edit',
+                    title: <span data-testid="edit-hardware-profile-action">Edit</span>,
                     onClick: () =>
                       navigate(
                         `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
@@ -195,7 +195,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
               ...useKebabAccessAllowed(
                 [
                   {
-                    title: 'Duplicate',
+                    title: <span data-testid="duplicate-hardware-profile-action">Duplicate</span>,
                     onClick: () =>
                       navigate(
                         `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
@@ -211,7 +211,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                       [
                         { isSeparator: true },
                         {
-                          title: 'Delete',
+                          title: <span data-testid="delete-hardware-profile-action">Delete</span>,
                           onClick: () => handleDelete(hardwareProfile),
                         },
                       ],

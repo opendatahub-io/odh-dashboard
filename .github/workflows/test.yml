@@ -288,7 +288,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage
+        run: npm run cypress:server:build:coverage -- --concurrency=4
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]

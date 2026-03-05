@@ -111,6 +111,8 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
+                    aiAssetExternalModels:
+                      type: boolean
                     mlflow:
                       type: boolean
                     projectRBAC:
@@ -263,3 +265,19 @@ spec:
                         - recreate
                     isLLMdDefault:
                       type: boolean
+                genAiStudioConfig:
+                  description: 'Configuration options for Gen AI Studio features'
+                  type: object
+                  properties:
+                    aiAssetExternalModels:
+                      description: 'Configuration for AI Asset external model providers feature'
+                      type: object
+                      properties:
+                        externalProviders:
+                          description: 'Allow users to configure external LLM providers (e.g., OpenAI, Gemini, Anthropic)'
+                          type: boolean
+                        clusterDomains:
+                          description: 'List of DNS domains for cluster-local services (e.g., ["cluster.local", "prod.local"]). Used to identify internal Kubernetes services vs external providers.'
+                          type: array
+                          items:
+                            type: string

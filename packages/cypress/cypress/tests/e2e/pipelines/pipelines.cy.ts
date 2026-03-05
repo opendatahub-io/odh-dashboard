@@ -1,3 +1,7 @@
+import {
+  RuntimeStateKF,
+  runtimeStateLabels,
+} from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../pages/projects';
@@ -7,19 +11,25 @@ import { pipelineDetails, pipelineRunDetails } from '../../../pages/pipelines/to
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { loadPipelineFixture } from '../../../utils/dataLoader';
+import type { PipelineTestData } from '../../../types';
 
 const uuid = generateTestUUID();
-const projectName = `test-pipelines-prj-${uuid}`;
-const dspaSecretName = 'dashboard-dspa-secret';
-const testPipelineName = 'test-pipelines-pipeline';
-const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_3' as const;
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
-  retryableBefore(() => {
-    // Create a Project for pipelines
-    provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
-  });
+  let testData: PipelineTestData;
+  let projectName: string;
+
+  retryableBefore(() =>
+    loadPipelineFixture('e2e/pipelines/testPipelines.yaml').then(
+      (fixtureData: PipelineTestData) => {
+        testData = fixtureData;
+        projectName = `${testData.projectNamePrefix}-${uuid}`;
+        provisionProjectForPipelines(projectName, testData.dspaSecretName, awsBucket);
+      },
+    ),
+  );
 
   after(() => {
     // Delete provisioned Project
@@ -40,31 +50,30 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       // Increasing the timeout to ~5mins so the DSPA can be loaded
       projectDetails.findImportPipelineButton(300000).click();
       // Fill the Import Pipeline modal
-      pipelineImportModal.findPipelineNameInput().type(testPipelineName);
-      pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
+      pipelineImportModal.findPipelineNameInput().type(testData.pipelineName);
+      pipelineImportModal.findPipelineDescriptionInput().type(testData.pipelineDescription);
       pipelineImportModal.findImportPipelineRadio().click();
-      pipelineImportModal
-        .findPipelineUrlInput()
-        .type(
-          'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/packages/cypress/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
-        );
+      pipelineImportModal.findPipelineUrlInput().type(testData.pipelineUrl);
       pipelineImportModal.submit();
 
       // Verify that we are at the details page of the pipeline by checking the title
       // It can take a little longer to load
-      pipelineDetails.findPageTitle(60000).should('have.text', testPipelineName);
+      pipelineDetails.findPageTitle(60000).should('have.text', testData.pipelineName);
 
       cy.step('Run the pipeline from the Actions button in the pipeline detail view');
       pipelineDetails.selectActionDropdownItem('Create run');
       createRunPage.experimentSelect.findToggleButton().click();
-      createRunPage.selectExperimentByName('Default');
-      createRunPage.fillName(testRunName);
-      createRunPage.fillDescription('Run Description');
+      createRunPage.selectExperimentByName(testData.experimentName);
+      createRunPage.fillName(testData.runName);
+      createRunPage.fillDescription(testData.runDescription);
       createRunPage.findSubmitButton().click();
 
       cy.step('Expect the run to Succeed');
       //Redirected to the Graph view of the created run
-      pipelineRunDetails.expectStatusLabelToBe('Succeeded', 240000);
+      pipelineRunDetails.expectStatusLabelToBe(
+        runtimeStateLabels[RuntimeStateKF.SUCCEEDED],
+        240000,
+      );
     },
   );
 });
