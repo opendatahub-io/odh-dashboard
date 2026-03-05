@@ -267,7 +267,14 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
                     isRowSelected={selectedRow?.name === row.name}
                     onClick={() => handleRowClick(row)}
                   >
-                    <Td dataLabel={columns[0]}>{row.name}</Td>
+                    <Td dataLabel={columns[0]}>
+                      <div
+                        className="pf-u-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
+                        {row.name}
+                      </div>
+                    </Td>
                     <Td dataLabel={columns[1]}>{row.latest_version}</Td>
                     {!selectedVersion && (
                       <>
