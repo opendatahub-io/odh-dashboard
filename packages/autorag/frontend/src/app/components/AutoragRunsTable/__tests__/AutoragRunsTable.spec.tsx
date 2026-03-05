@@ -4,8 +4,8 @@ import { render, screen } from '@testing-library/react';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
-jest.mock('@odh-dashboard/internal/components/table/Table', () => {
-  const MockTable = ({
+jest.mock('@odh-dashboard/internal/components/table', () => {
+  const MockTableBase = ({
     data,
     rowRenderer,
     emptyTableView,
@@ -26,7 +26,7 @@ jest.mock('@odh-dashboard/internal/components/table/Table', () => {
           ))}
     </div>
   );
-  return { __esModule: true, default: MockTable };
+  return { __esModule: true, TableBase: MockTableBase };
 });
 
 jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', () => ({
@@ -53,26 +53,61 @@ const mockRuns: PipelineRun[] = [
   },
 ];
 
+const defaultPaginationProps = {
+  totalSize: 2,
+  page: 1,
+  pageSize: 20,
+  onPageChange: () => undefined,
+  onPerPageChange: () => undefined,
+};
+
 describe('AutoragRunsTable', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should render table with runs', () => {
-    render(<AutoragRunsTable runs={mockRuns} />);
+    render(
+      <AutoragRunsTable
+        runs={mockRuns}
+        totalSize={defaultPaginationProps.totalSize}
+        page={defaultPaginationProps.page}
+        pageSize={defaultPaginationProps.pageSize}
+        onPageChange={defaultPaginationProps.onPageChange}
+        onPerPageChange={defaultPaginationProps.onPerPageChange}
+      />,
+    );
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
   });
 
   it('should render run names', () => {
-    render(<AutoragRunsTable runs={mockRuns} />);
+    render(
+      <AutoragRunsTable
+        runs={mockRuns}
+        totalSize={defaultPaginationProps.totalSize}
+        page={defaultPaginationProps.page}
+        pageSize={defaultPaginationProps.pageSize}
+        onPageChange={defaultPaginationProps.onPageChange}
+        onPerPageChange={defaultPaginationProps.onPerPageChange}
+      />,
+    );
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
     expect(screen.getByTestId('run-name-r2')).toHaveTextContent('Run Two');
   });
 
   it('should render empty view when there are no runs', () => {
-    render(<AutoragRunsTable runs={[]} />);
+    render(
+      <AutoragRunsTable
+        runs={[]}
+        totalSize={0}
+        page={1}
+        pageSize={20}
+        onPageChange={() => undefined}
+        onPerPageChange={() => undefined}
+      />,
+    );
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
     expect(screen.getByTestId('empty-view')).toBeInTheDocument();

@@ -79,7 +79,7 @@ export type PipelineRun = {
   scheduled_at?: string;
   finished_at?: string;
   error?: PipelineRunError;
-}
+};
 
 export type LlamaStackModelType = 'llm' | 'embedding';
 

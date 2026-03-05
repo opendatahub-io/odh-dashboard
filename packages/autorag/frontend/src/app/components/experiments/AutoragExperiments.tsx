@@ -29,6 +29,11 @@ function AutoragExperiments(): React.JSX.Element {
   } = usePipelineDefinitions(effectiveNamespace);
   const {
     runs,
+    totalSize,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
     loaded: runsLoaded,
     error: runsError,
   } = usePipelineRuns(effectiveNamespace, pipelineDefinitions);
@@ -46,7 +51,7 @@ function AutoragExperiments(): React.JSX.Element {
     </Button>
   );
 
-  const hasExperiments = runs.length > 0;
+  const hasExperiments = totalSize > 0;
 
   // Show friendly empty state when no Pipeline Server (DSPipelineApplication) exists in the namespace
   const isNoPipelineServerError =
@@ -81,6 +86,11 @@ function AutoragExperiments(): React.JSX.Element {
   return (
     <AutoragRunsTable
       runs={runs}
+      totalSize={totalSize}
+      page={page}
+      pageSize={pageSize}
+      onPageChange={setPage}
+      onPerPageChange={setPageSize}
       toolbarContent={
         <ToolbarGroup align={{ default: 'alignEnd' }} style={{ flex: 1 }}>
           <ToolbarItem>{createButton}</ToolbarItem>

@@ -1,11 +1,13 @@
+/* eslint-disable camelcase -- BFF API uses snake_case for total_size, next_page_token */
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
-type PipelineRunsData = {
-  runs?: PipelineRun[];
-  total_size?: number;
-  next_page_token?: string;
+/** Response shape from BFF pipeline-runs API. Exported for hooks/tables that need pagination. */
+export type PipelineRunsData = {
+  runs: PipelineRun[];
+  total_size: number;
+  next_page_token: string;
 };
 
 /** Default page size per pipeline-runs-api.md */
@@ -18,15 +20,22 @@ export type GetPipelineRunsFromBFFParams = {
   nextPageToken?: string;
 };
 
+type PipelineRunsApiResponse = {
+  runs?: PipelineRun[];
+  total_size?: number;
+  next_page_token?: string;
+};
+
 /**
  * Fetches pipeline runs from the BFF API.
+ * Returns full pagination data for server-side pagination support.
  * @see packages/autorag/docs/pipeline-runs-api.md
  */
 export async function getPipelineRunsFromBFF(
   hostPath: string,
   params: GetPipelineRunsFromBFFParams,
   opts?: APIOptions,
-): Promise<PipelineRun[]> {
+): Promise<PipelineRunsData> {
   const queryParams: Record<string, string> = {
     namespace: params.namespace,
     pageSize: String(params.pageSize ?? DEFAULT_PAGE_SIZE),
@@ -46,8 +55,13 @@ export async function getPipelineRunsFromBFF(
       opts ?? {},
     ),
   );
-  if (isModArchResponse<PipelineRunsData>(response)) {
-    return response.data.runs ?? [];
+  if (isModArchResponse<PipelineRunsApiResponse>(response)) {
+    const { data } = response;
+    return {
+      runs: data.runs ?? [],
+      total_size: data.total_size ?? 0,
+      next_page_token: data.next_page_token ?? '',
+    };
   }
   throw new Error('Invalid response format');
 }
@@ -63,6 +77,14 @@ export async function getPipelineDefinitions(
   return [];
 }
 
-export async function getPipelineRuns(hostPath: string, namespace: string): Promise<PipelineRun[]> {
-  return getPipelineRunsFromBFF(hostPath, { namespace });
+export async function getPipelineRuns(
+  hostPath: string,
+  namespace: string,
+  params?: { pageSize?: number; nextPageToken?: string },
+): Promise<PipelineRunsData> {
+  return getPipelineRunsFromBFF(hostPath, {
+    namespace,
+    pageSize: params?.pageSize,
+    nextPageToken: params?.nextPageToken,
+  });
 }

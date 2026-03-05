@@ -25,42 +25,61 @@ const mockRuns: PipelineRun[] = [
   },
 ];
 
+const mockPipelineRunsData = {
+  runs: mockRuns,
+  total_size: mockRuns.length,
+  next_page_token: '',
+};
+
 describe('usePipelineRuns', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should return empty runs when namespace is empty', async () => {
-    getPipelineRunsMock.mockResolvedValue([]);
+    getPipelineRunsMock.mockResolvedValue({
+      runs: [],
+      total_size: 0,
+      next_page_token: '',
+    });
 
     const renderResult = testHook(usePipelineRuns)('', mockPipelineDefinitions);
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current.runs).toEqual([]);
+    expect(renderResult.result.current.totalSize).toBe(0);
     expect(getPipelineRunsMock).not.toHaveBeenCalled();
   });
 
-  it('should fetch and return pipeline runs from BFF', async () => {
-    getPipelineRunsMock.mockResolvedValue(mockRuns);
+  it('should fetch and return pipeline runs from BFF with pagination data', async () => {
+    getPipelineRunsMock.mockResolvedValue(mockPipelineRunsData);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', mockPipelineDefinitions);
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current.runs).toEqual(mockRuns);
+    expect(renderResult.result.current.totalSize).toBe(mockRuns.length);
+    expect(renderResult.result.current.nextPageToken).toBe('');
     expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
-    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace');
+    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace', {
+      pageSize: 20,
+      nextPageToken: undefined,
+    });
   });
 
   it('should fetch runs from BFF even with empty pipelineDefinitions', async () => {
-    getPipelineRunsMock.mockResolvedValue(mockRuns);
+    getPipelineRunsMock.mockResolvedValue(mockPipelineRunsData);
 
     const renderResult = testHook(usePipelineRuns)('my-namespace', []);
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current.runs).toEqual(mockRuns);
     expect(renderResult.result.current.loaded).toBe(true);
-    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace');
+    expect(getPipelineRunsMock).toHaveBeenCalledWith('', 'my-namespace', {
+      pageSize: 20,
+      nextPageToken: undefined,
+    });
   });
 
   it('should handle fetch errors', async () => {
