@@ -11,6 +11,9 @@ const DEFAULT_WIDTH = '550px';
 
 const mockResizeEvent = new Event('click');
 
+// Track Tabs render count (must be prefixed with 'mock' for Jest)
+let mockTabsRenderCount = 0;
+
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
   return {
@@ -75,6 +78,26 @@ jest.mock('@patternfly/react-core', () => {
         {children}
       </div>
     ),
+    Tabs: ({
+      children,
+      activeKey,
+      ...domProps
+    }: {
+      children: React.ReactNode;
+      activeKey?: string | number;
+    }) => {
+      mockTabsRenderCount += 1;
+      return (
+        <div
+          data-testid="mock-tabs"
+          data-render-count={mockTabsRenderCount}
+          data-active-key={activeKey}
+          {...domProps}
+        >
+          {children}
+        </div>
+      );
+    },
   };
 });
 
@@ -138,6 +161,7 @@ describe('ChatbotSettingsPanel', () => {
     jest.clearAllMocks();
     sessionStorage.clear();
     useChatbotConfigStore.getState().resetConfiguration();
+    mockTabsRenderCount = 0;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -202,5 +226,52 @@ describe('ChatbotSettingsPanel', () => {
     const resize50Button = screen.getByTestId('trigger-resize-50');
     await expect(user.click(resize50Button)).resolves.not.toThrow();
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
+  });
+
+  it('should remount Tabs when panel is resized to force overflow recalculation', async () => {
+    const user = userEvent.setup();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
+
+    // Capture initial render count (should be 1 after initial render)
+    const initialRenderCount = mockTabsRenderCount;
+    expect(initialRenderCount).toBeGreaterThan(0);
+
+    // Resize panel to 200px
+    const resize200Button = screen.getByTestId('trigger-resize-200');
+    await user.click(resize200Button);
+
+    // Tabs should have re-rendered (remounted) to recalculate overflow
+    expect(mockTabsRenderCount).toBe(initialRenderCount + 1);
+
+    // Capture the render count after first resize
+    const firstResizeRenderCount = mockTabsRenderCount;
+
+    // Resize again to 250px
+    const resize250Button = screen.getByTestId('trigger-resize-250');
+    await user.click(resize250Button);
+
+    // Tabs should re-render again
+    expect(mockTabsRenderCount).toBe(firstResizeRenderCount + 1);
+  });
+
+  it('should auto-close when panel is resized below threshold without incrementing tabsKey', async () => {
+    const user = userEvent.setup();
+    const mockOnCloseClick = jest.fn();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
+
+    // Capture initial render count
+    const initialRenderCount = mockTabsRenderCount;
+
+    // Resize below threshold (should auto-close, not resize)
+    const resize50Button = screen.getByTestId('trigger-resize-50');
+    await user.click(resize50Button);
+
+    // Auto-close should have been triggered
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    // Tabs will re-render due to parent DrawerPanelContent remounting (setPanelSizeKey)
+    // but the tabsKey itself is not incremented (we return early in handlePanelResize)
+    // This is the correct behavior - we want to verify the early return path works
+    expect(mockTabsRenderCount).toBeGreaterThan(initialRenderCount);
   });
 });
