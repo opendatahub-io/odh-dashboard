@@ -25,11 +25,7 @@ function AutoragExperiments(): React.JSX.Element {
 
   const effectiveNamespace = namespace ?? '';
 
-  const {
-    pipelineDefinitions,
-    loaded: defsLoaded,
-    error: defsError,
-  } = usePipelineDefinitions(effectiveNamespace);
+  const { loaded: defsLoaded, error: defsError } = usePipelineDefinitions(effectiveNamespace);
   const {
     runs,
     totalSize,
@@ -39,7 +35,7 @@ function AutoragExperiments(): React.JSX.Element {
     setPageSize,
     loaded: runsLoaded,
     error: runsError,
-  } = usePipelineRuns(effectiveNamespace, pipelineDefinitions);
+  } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
   const loadError = defsError ?? runsError;

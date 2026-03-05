@@ -2,7 +2,7 @@
 import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
 import { getPipelineRunsFromBFF } from '~/app/api/pipelines';
-import type { PipelineDefinition, PipelineRun } from '~/app/types';
+import type { PipelineRun } from '~/app/types';
 import { POLL_INTERVAL } from '~/app/utilities/const';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -20,11 +20,7 @@ export type PipelineRunsResult = {
   refresh: () => Promise<void>;
 };
 
-export function usePipelineRuns(
-  namespace: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for API compatibility with callers
-  pipelineDefinitions: PipelineDefinition[],
-): PipelineRunsResult {
+export function usePipelineRuns(namespace: string): PipelineRunsResult {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const pageTokensRef = React.useRef<(string | undefined)[]>([]);
