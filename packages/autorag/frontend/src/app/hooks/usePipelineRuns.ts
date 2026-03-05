@@ -3,6 +3,7 @@ import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
 import { getPipelineRuns } from '~/app/api/pipelines';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
+import { POLL_INTERVAL } from '~/app/utilities/const';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -48,7 +49,11 @@ export function usePipelineRuns(
     runs: PipelineRun[];
     total_size: number;
     next_page_token: string;
-  }>(fetchCallback, { runs: [], total_size: 0, next_page_token: '' });
+  }>(
+    fetchCallback,
+    { runs: [], total_size: 0, next_page_token: '' },
+    { refreshRate: POLL_INTERVAL },
+  );
 
   // Store nextPageToken for the current page so we can fetch page+1
   React.useEffect(() => {

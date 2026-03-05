@@ -1,14 +1,25 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
+import { useFetchState } from 'mod-arch-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { getPipelineRuns } from '~/app/api/pipelines';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
+import { POLL_INTERVAL } from '~/app/utilities/const';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
+
+jest.mock('mod-arch-core', () => {
+  const actual = jest.requireActual<typeof import('mod-arch-core')>('mod-arch-core');
+  return {
+    ...actual,
+    useFetchState: jest.fn((...args: unknown[]) => actual.useFetchState(...args)),
+  };
+});
 
 jest.mock('~/app/api/pipelines', () => ({
   getPipelineRuns: jest.fn(),
 }));
 
 const getPipelineRunsMock = jest.mocked(getPipelineRuns);
+const useFetchStateMock = jest.mocked(useFetchState);
 
 const mockPipelineDefinitions: PipelineDefinition[] = [
   {
@@ -97,5 +108,15 @@ describe('usePipelineRuns', () => {
     expect(renderResult.result.current.runs).toEqual([]);
     expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.error).toBe(fetchError);
+  });
+
+  it('should pass refreshRate to useFetchState for polling', () => {
+    testHook(usePipelineRuns)('my-namespace', mockPipelineDefinitions);
+
+    expect(useFetchStateMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      { runs: [], total_size: 0, next_page_token: '' },
+      { refreshRate: POLL_INTERVAL },
+    );
   });
 });
