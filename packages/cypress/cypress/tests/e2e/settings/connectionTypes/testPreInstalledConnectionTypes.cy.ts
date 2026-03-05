@@ -38,8 +38,9 @@ describe('Verify OOTB Connection Types', () => {
 
       cy.step('Ensure OOTB connections are not editable or deletable');
       [uri, s3, oci].forEach((row) => {
-        row.find().findKebabAction('Edit').should('not.exist');
-        row.find().findKebabAction('Delete').should('not.exist');
+        row.findKebab().click();
+        connectionTypesPage.findEditAction().should('not.exist');
+        connectionTypesPage.findDeleteAction().should('not.exist');
         row.findKebab().click();
       });
     },

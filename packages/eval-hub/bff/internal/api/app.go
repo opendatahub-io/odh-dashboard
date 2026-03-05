@@ -26,16 +26,17 @@ import (
 )
 
 const (
-	Version            = "1.0.0"
-	PathPrefix         = "/eval-hub"
-	ApiPathPrefix      = "/api/v1"
-	HealthCheckPath    = "/healthcheck"
-	HealthPath         = ApiPathPrefix + "/health"
-	UserPath           = ApiPathPrefix + "/user"
-	NamespacePath      = ApiPathPrefix + "/namespaces"
-	EvaluationJobsPath = ApiPathPrefix + "/evaluations/jobs"
-	CollectionsPath    = ApiPathPrefix + "/evaluations/collections"
-	ProvidersPath      = ApiPathPrefix + "/evaluations/providers"
+	Version               = "1.0.0"
+	PathPrefix            = "/eval-hub"
+	ApiPathPrefix         = "/api/v1"
+	HealthCheckPath       = "/healthcheck"
+	HealthPath            = ApiPathPrefix + "/health"
+	UserPath              = ApiPathPrefix + "/user"
+	NamespacePath         = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath    = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath       = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath         = ApiPathPrefix + "/evaluations/providers"
 )
 
 type App struct {
@@ -169,6 +170,7 @@ func (app *App) Routes() http.Handler {
 	// RequireAccessToService performs a SubjectAccessReview to verify the user can list EvalHub CRs.
 	// AttachEvalHubClient resolves the EvalHub service URL (env override or CR auto-discovery).
 	apiRouter.GET(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.EvaluationJobsHandler))))
+	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 

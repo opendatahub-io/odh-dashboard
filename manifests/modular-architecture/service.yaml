@@ -19,3 +19,10 @@
     protocol: TCP
     port: 8243
     targetPort: 8243
+- op: add
+  path: /spec/ports/-
+  value:
+    name: mlflow-ui
+    protocol: TCP
+    port: 8343
+    targetPort: 8343

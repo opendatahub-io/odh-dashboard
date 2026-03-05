@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom';
 import { TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import 'core-js/actual/array/to-sorted';

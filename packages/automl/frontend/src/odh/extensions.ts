@@ -1,18 +1,18 @@
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
+  AreaExtension,
   NavExtension,
   RouteExtension,
-  AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const AUTOML = 'automl';
+const PLUGIN_AUTOML = 'plugin-automl';
 // AutoML requires automl feature flag.
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: AUTOML,
+      id: PLUGIN_AUTOML,
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
       featureFlags: ['automl'],
       reliantAreas: [],
@@ -21,7 +21,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [AUTOML],
+      required: [PLUGIN_AUTOML],
     },
     properties: {
       id: 'automl-view',
@@ -35,11 +35,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [AUTOML], // Route only available when AutoML feature flag is enabled
+      required: [PLUGIN_AUTOML], // Route only available when AutoML feature flag is enabled
     },
     properties: {
       path: '/develop-train/automl/*',
-      component: () => import('./AutoMlWrapper'),
+      component: () => import('./AppWrapper'),
     },
   },
 ];

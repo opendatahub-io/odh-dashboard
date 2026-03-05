@@ -13,13 +13,15 @@ import { TrainJobKind } from '../k8sTypes';
  * @param namespace - The namespace to watch
  * @returns Custom watch result with TrainJob list
  */
-export const useTrainJobs = (namespace: string): CustomWatchK8sResult<TrainJobKind[]> =>
+export const useTrainJobs = (namespace: string | null): CustomWatchK8sResult<TrainJobKind[]> =>
   useK8sWatchResourceList(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(TrainJobModel),
-      namespace,
-    },
+    namespace !== null
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(TrainJobModel),
+          namespace,
+        }
+      : null,
     TrainJobModel,
   );
 

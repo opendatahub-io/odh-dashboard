@@ -189,6 +189,8 @@ aliases:
   autorag-approvers:
     - nickmazzi
     - chrjones-rh
+    - GAUNSD
+    - NickGagan
   autorag-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -198,11 +200,14 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+    - NickGagan
 
   # AutoML
   automl-approvers:
     - nickmazzi
     - chrjones-rh
+    - GAUNSD
+    - NickGagan
   automl-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -212,6 +217,7 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+    - NickGagan
   
   # Eval Hub
   eval-hub-approvers:

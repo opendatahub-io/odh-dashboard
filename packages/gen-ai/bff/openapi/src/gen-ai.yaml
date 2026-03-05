@@ -380,6 +380,105 @@ paths:
       summary: List AI Available Assets Models
       description: Gets a list of all available AI Available Assets models from Kubernetes InferenceServices.
 
+  /gen-ai/api/v1/models/external:
+    summary: Manage external model endpoints
+    description: >-
+      Register and manage external model endpoints (e.g., Gemini, OpenAI, Anthropic, or in-cluster models) for use in Gen AI Studio.
+      Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
+      Supports both external providers (data sent outside cluster) and in-cluster cross-namespace models.
+      Requires namespace parameter for proper multi-tenant isolation.
+    post:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model will be registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      requestBody:
+        required: true
+        description: External model configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalModelRequest'
+            example:
+              model_id: 'gemini-2.5-flash-lite'
+              model_display_name: 'Gemini 2.5 Flash Lite'
+              base_url: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+              secret_value: 'your-api-key-here'
+              provider_type: 'remote::gemini'
+              use_cases: 'Classification, Image Generation'
+              model_type: 'llm'
+      responses:
+        '201':
+          $ref: '#/components/responses/ExternalModelCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to create models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createExternalModel
+    delete:
+      summary: Delete an external model endpoint
+      description: >-
+        Deletes an external model endpoint by removing its entry from the ConfigMap and deleting its associated Secret.
+        This operation permanently removes the external model registration.
+        Requires namespace parameter for proper multi-tenant isolation.
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: model_id
+          in: query
+          description: Model ID to delete (supports slashes, e.g. 'openai/gpt-4o' or 'ollama/llama3.2:3b')
+          required: true
+          schema:
+            type: string
+            example: 'gemini-2.5-flash-lite'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model is registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      responses:
+        '204':
+          description: External model successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to delete models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: External model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteExternalModel
+
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS
   # =============================================================================
@@ -1883,6 +1982,54 @@ components:
           example: 'llama_stack'
           description: Model owner/provider
 
+    # External Model Request Schema
+    ExternalModelRequest:
+      type: object
+      required:
+        - model_id
+        - model_display_name
+        - base_url
+        - secret_value
+        - provider_type
+        - model_type
+      properties:
+        model_id:
+          type: string
+          example: 'gemini-2.5-flash-lite'
+          description: Unique identifier for the model
+        model_display_name:
+          type: string
+          example: 'Gemini 2.5 Flash Lite'
+          description: Human-readable display name for the model
+        base_url:
+          type: string
+          example: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+          description: Base URL of the model endpoint
+        secret_value:
+          type: string
+          example: 'your-api-key-here'
+          description: API key or authentication token for the model endpoint
+        provider_type:
+          type: string
+          enum:
+            - 'remote::gemini'
+            - 'remote::openai'
+            - 'remote::anthropic'
+            - 'remote::vllm'
+          example: 'remote::gemini'
+          description: Provider type for the external model
+        use_cases:
+          type: string
+          example: 'Classification, Image Generation'
+          description: Optional use cases or capabilities of the model
+        model_type:
+          type: string
+          enum:
+            - 'llm'
+            - 'embedding'
+          example: 'llm'
+          description: Type of model (LLM or embedding)
+
     # AI Assets Model Schema
     AAModel:
       type: object
@@ -1894,6 +2041,7 @@ components:
         - version
         - endpoints
         - status
+        - model_source_type
       properties:
         model_name:
           type: string
@@ -1915,6 +2063,18 @@ components:
           type: string
           example: 'v2025.1'
           description: Version of the model
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - external_cluster
+            - external_provider
+          example: 'namespace'
+          description: >-
+            Source type of the model:
+            'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
+            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
+            'external_provider' for external models pointing to providers (outside cluster)
         description:
           type: string
           nullable: true
@@ -1936,6 +2096,10 @@ components:
           enum: ['Running', 'Stop']
           example: 'Running'
           description: Current status of the model (Running or Stop)
+        display_name:
+          type: string
+          example: 'Llama 3.2 3B Instruct'
+          description: Human-readable display name for the model
         sa_token:
           $ref: '#/components/schemas/SAToken'
 
@@ -3777,6 +3941,36 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AAModelsData'
+
+    ExternalModelCreatedResponse:
+      description: External model created successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/AAModel'
+          example:
+            data:
+              model_name: 'gemini-2.5-flash-lite'
+              model_id: 'gemini-2.5-flash-lite'
+              serving_runtime: 'remote::gemini'
+              api_protocol: 'REST'
+              version: ''
+              model_source_type: 'external_provider'
+              usecase: 'Classification, Image Generation'
+              description: ''
+              endpoints:
+                - 'https://generativelanguage.googleapis.com/v1beta/openai/'
+              status: 'Running'
+              display_name: 'Gemini 2.5 Flash Lite'
+              sa_token:
+                name: ''
+                token_name: ''
+                token: ''
 
     AAVectorStoresResponse:
       description: List of external vector stores as a flat array

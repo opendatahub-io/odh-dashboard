@@ -1,4 +1,5 @@
 import * as yaml from 'js-yaml';
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
@@ -23,7 +24,7 @@ const uuid = generateTestUUID();
 
 // TODO: Update this to check for model readiness once vLLM CPU works: https://issues.redhat.com/browse/RHAIRFE-28
 // and make it RHOAI-specific, unless the vLLM CPU image works on ODH at that time
-describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from model catalog', () => {
+describe('[Product Bug: RHOAIENG-51944] Verify a model can be deployed from model catalog', () => {
   retryableBefore(() => {
     // Load source fixture and ensure model catalog source is enabled
     return cy
@@ -89,7 +90,9 @@ describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from mode
 
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
-      modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+      modelServingWizard
+        .findModelLocationSelect()
+        .should('contain.text', ModelLocationSelectOption.URI);
       modelDetailsPage.getModelSourceImageLocation().then((modelSourceImageLocation) => {
         modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
       });

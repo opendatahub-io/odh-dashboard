@@ -1,4 +1,5 @@
 import yaml from 'js-yaml';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -151,7 +152,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
       trainingJobTable
         .getTableRow(trainJobName)
         .findStatus()
-        .contains('Complete', { timeout: 180000 })
+        .contains(TrainingJobState.COMPLETE, { timeout: 180000 })
         .should('be.visible');
 
       cy.step('Click on the training job to open modal for deletion');
