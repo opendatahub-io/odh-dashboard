@@ -44,7 +44,11 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
 
   const debouncedSetFilterName = useMemo(
-    () => debounce((value: string) => setDebouncedFilterName(value), 300),
+    () =>
+      debounce((value: string) => {
+        setDebouncedFilterName(value);
+        setSelectedRow(null);
+      }, 300),
     [],
   );
 
