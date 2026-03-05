@@ -1,5 +1,6 @@
 # AGENTS.md - ODH Dashboard
 
+<!-- test: verify CI build passes -->
 This document provides guidance for AI agents working on the Open Data Hub (ODH) Dashboard monorepo.
 
 ## Repository Overview
