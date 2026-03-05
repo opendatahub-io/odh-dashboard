@@ -28,25 +28,6 @@ export const HardwareProfileModel: K8sModelCommon = {
   plural: 'hardwareprofiles',
 };
 
-export const NIMAccountModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  apiGroup: 'nim.opendatahub.io',
-  kind: 'Account',
-  plural: 'accounts',
-};
-
-/**
- * NIMServiceModel for NVIDIA NIM Operator's NIMService custom resource.
- * API Group: apps.nvidia.com/v1alpha1
- * When created, the NIM Operator automatically generates an InferenceService.
- */
-export const NIMServiceModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
-  apiGroup: 'apps.nvidia.com',
-  kind: 'NIMService',
-  plural: 'nimservices',
-};
-
 export const AuthModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'services.platform.opendatahub.io',

@@ -7,7 +7,7 @@ export type NIMPVCInfo = {
   modelName: string;
   servingRuntimeName: string; // Source deployment name (ServingRuntime or NIMService)
   createdAt: Date;
-  deploymentType: 'operator' | 'legacy'; // Track which mode created this PVC
+  deploymentType: 'operator' | 'regular';
 };
 
 type UseNIMCompatiblePVCsState = {
@@ -174,7 +174,7 @@ export const useNIMCompatiblePVCs = (
                 modelName,
                 servingRuntimeName: servingRuntime.metadata.name,
                 createdAt: new Date(servingRuntime.metadata.creationTimestamp || Date.now()),
-                deploymentType: 'legacy',
+                deploymentType: 'regular',
               });
             }
           }

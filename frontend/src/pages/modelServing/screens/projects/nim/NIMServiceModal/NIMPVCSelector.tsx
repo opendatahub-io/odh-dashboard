@@ -63,9 +63,9 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     }
   }, [compatiblePVCs, existingPvcName, loading, showManualInput, setExistingPvcName]);
 
-  // Set model path based on mode (Operator vs Legacy) - only on mode change or mount
+  // Set model path based on mode (Operator vs Regular) - only on mode change or mount
   // This ensures the path is set correctly when switching between modes,
-  // but doesn't override user edits in legacy mode
+  // but doesn't override user edits in regular NIM deployment mode
   React.useEffect(() => {
     const correctPath = nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH;
     setModelPath(correctPath);

@@ -429,7 +429,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     const resultMock = jest.mocked(fetchInferenceServiceCount);
     resultMock.mockResolvedValue(0);
 
-    // Mock a legacy deployment (ServingRuntime) using the PVC
+    // Mock a regular NIM deployment (ServingRuntime) using the PVC
     const mockServingRuntime = mockServingRuntimeK8sResource({});
     mockServingRuntime.spec.volumes = [
       {
@@ -438,7 +438,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
       },
     ];
 
-    // Return legacy deployment AND the NIMService being deleted
+    // Return regular NIM deployment AND the NIMService being deleted
     (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
     (listNIMServices as jest.Mock).mockResolvedValue([mockNIMService]);
 
@@ -447,7 +447,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
     expect(listServingRuntimes).toHaveBeenCalledWith(projectName);
     expect(listNIMServices).toHaveBeenCalledWith(projectName);
-    expect(deletePvc).not.toHaveBeenCalled(); // PVC still in use by legacy deployment (count = 2)
+    expect(deletePvc).not.toHaveBeenCalled(); // PVC still in use by regular NIM deployment (count = 2)
     expect(result.length).toBe(0);
   });
 
