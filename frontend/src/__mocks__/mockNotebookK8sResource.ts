@@ -266,7 +266,7 @@ export const mockNotebookK8sResource = ({
                 },
               },
               {
-                name: 'oauth-config',
+                name: 'kube-rbac-proxy-config',
                 secret: {
                   secretName: 'workbench-oauth-config',
                 },

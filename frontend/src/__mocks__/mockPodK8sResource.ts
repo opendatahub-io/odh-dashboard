@@ -64,7 +64,7 @@ export const mockPodK8sResource = ({
         },
       },
       {
-        name: 'oauth-config',
+        name: 'kube-rbac-proxy-config',
         secret: {
           secretName: `${name}-oauth-config`,
         },
