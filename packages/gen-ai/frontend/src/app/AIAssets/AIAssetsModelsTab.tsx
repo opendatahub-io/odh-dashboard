@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner, Button, Alert } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -13,7 +12,6 @@ import { ExternalModelRequest } from '~/app/types';
 import useAiAssetExternalModelsEnabled from '~/app/hooks/useAiAssetExternalModelsEnabled';
 
 const AIAssetsModelsTab: React.FC = () => {
-  const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels();
 
@@ -93,9 +91,7 @@ const AIAssetsModelsTab: React.FC = () => {
         </Content>
       }
       actionButtonText="Go to Deployments"
-      handleActionButtonClick={() => {
-        navigate(`/ai-hub/deployments/${namespace?.name}`);
-      }}
+      actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
     />
   );
 
