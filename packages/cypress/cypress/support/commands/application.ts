@@ -233,7 +233,7 @@ Cypress.Commands.add(
         const $rootSectionElement = $el.find(`:contains('${rootSection}')`).closest('button');
 
         if (!$rootSectionElement.length) {
-          return $el.find('__non_existent_selector__');
+          return cy.wrap($el.find('__non_existent_selector__'));
         }
 
         const $parent = $rootSectionElement.parent();
@@ -247,26 +247,35 @@ Cypress.Commands.add(
               displayName: 'findAppNavItem',
               message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
             });
-            return $parent.find('__non_existent_selector__');
+            return cy.wrap($parent.find('__non_existent_selector__'));
           }
 
           if ($subSectionElement.attr('aria-expanded') === 'false') {
             cy.wrap($subSectionElement).click();
             cy.wrap($subSectionElement).should('have.attr', 'aria-expanded', 'true');
             // Wait for the expansion animation to complete
-            cy.wrap($subSectionElement).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
+            return cy
+              .wrap($subSectionElement)
+              .parent()
+              .find('.pf-v6-c-nav__subnav')
+              .should('be.visible')
+              .then(() =>
+                cy.wrap($subSectionElement.parent().find(`:contains('${args.name}')`).closest('a')),
+              );
           }
 
-          return $subSectionElement.parent().find(`:contains('${args.name}')`).closest('a');
+          return cy.wrap(
+            $subSectionElement.parent().find(`:contains('${args.name}')`).closest('a'),
+          );
         }
 
-        return $parent.find(`:contains('${args.name}')`).closest('a');
+        return cy.wrap($parent.find(`:contains('${args.name}')`).closest('a'));
       });
     }
 
     // No root section, just find the nav item directly
     return cy.wrap(subject).then(($el) => {
-      return $el.find(`:contains('${args.name}')`).closest('a');
+      return cy.wrap($el.find(`:contains('${args.name}')`).closest('a'));
     });
   },
 );
