@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ContentModal from '#~/components/modals/ContentModal';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
@@ -110,15 +109,21 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       onClose={onClose}
       variant="medium"
       dataTestId="connection-type-data-field-modal"
-      footerContent={
-        <DashboardModalFooter
-          onCancel={onClose}
-          onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Save' : 'Add'}
-          isSubmitDisabled={!canSubmit || !isValid}
-          alertTitle="Error"
-        />
-      }
+      buttonActions={[
+        {
+          label: isEdit ? 'Save' : 'Add',
+          onClick: handleSubmit,
+          variant: 'primary',
+          dataTestId: 'modal-submit-button',
+          isDisabled: !canSubmit || !isValid,
+        },
+        {
+          label: 'Cancel',
+          onClick: onClose,
+          variant: 'link',
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
       contents={
         <Form>
           <FormGroup fieldId="name" label="Name" isRequired>
