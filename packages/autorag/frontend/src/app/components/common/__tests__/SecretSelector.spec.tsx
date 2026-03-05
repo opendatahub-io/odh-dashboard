@@ -3,7 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useFetchState } from 'mod-arch-core';
 import { SecretListItem } from '~/app/types';
-import { mockStorageSecret, mockLLSSecret } from '~/__mocks__/mockSecretListItem';
+import {
+  mockSecretListItem,
+  mockStorageSecret,
+  mockLLSSecret,
+} from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/components/common/SecretSelector';
 
 jest.mock('mod-arch-core', () => ({
@@ -857,6 +861,266 @@ describe('SecretSelector', () => {
       expect(
         screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('display name', () => {
+    it('should display displayName when available', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+          displayName: 'Production AWS Credentials',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value="1"
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Should show displayName in the toggle
+      expect(screen.getByTestId('test-selector')).toHaveTextContent('Production AWS Credentials');
+    });
+
+    it('should fallback to name when displayName is not available', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value="1"
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Should show name when displayName is not available
+      expect(screen.getByTestId('test-selector')).toHaveTextContent('aws-prod-credentials');
+    });
+
+    it('should display mixed displayNames and names in dropdown', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+          displayName: 'Production AWS',
+        }),
+        mockStorageSecret({
+          uuid: '2',
+          name: 'aws-dev-credentials',
+        }),
+        mockLLSSecret({
+          uuid: '3',
+          name: 'lls-prod-secret',
+          displayName: 'Production LLS',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // Should show displayName where available, name otherwise
+      expect(screen.getByText('Production AWS')).toBeInTheDocument();
+      expect(screen.getByText('aws-dev-credentials')).toBeInTheDocument();
+      expect(screen.getByText('Production LLS')).toBeInTheDocument();
+      expect(screen.queryByText('aws-prod-credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('lls-prod-secret')).not.toBeInTheDocument();
+    });
+
+    it('should call onChange with correct name when selecting secret with displayName', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+          displayName: 'Production AWS Credentials',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('Production AWS Credentials'));
+
+      // onChange should be called with the actual secret name, not displayName
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'aws-prod-credentials',
+        invalid: false,
+      });
+    });
+  });
+
+  describe('description', () => {
+    it('should display type and description when both are available', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+          description: 'Production S3 bucket for data storage',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // Should show both type and description
+      expect(
+        screen.getByText('Type: s3 - Production S3 bucket for data storage'),
+      ).toBeInTheDocument();
+    });
+
+    it('should display only type when description is not available', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // Should show only type
+      expect(screen.getByText('Type: s3')).toBeInTheDocument();
+    });
+
+    it('should display only description when type is not present', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockSecretListItem({
+          uuid: '1',
+          name: 'generic-secret',
+          type: undefined,
+          description: 'Generic credentials for testing',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // Should show only description
+      expect(screen.getByText('Generic credentials for testing')).toBeInTheDocument();
+    });
+
+    it('should display displayName with type and description', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-prod-credentials',
+          displayName: 'Production AWS',
+          description: 'Main S3 bucket',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // Should show displayName as main text
+      expect(screen.getByText('Production AWS')).toBeInTheDocument();
+      // Should show type and description together
+      expect(screen.getByText('Type: s3 - Main S3 bucket')).toBeInTheDocument();
+    });
+
+    it('should handle mixed secrets with and without descriptions', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'aws-with-desc',
+          description: 'S3 bucket with description',
+        }),
+        mockStorageSecret({
+          uuid: '2',
+          name: 'aws-without-desc',
+        }),
+        mockLLSSecret({
+          uuid: '3',
+          name: 'lls-with-desc',
+          description: 'LLS endpoint for testing',
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+
+      // First secret has type and description
+      expect(screen.getByText('Type: s3 - S3 bucket with description')).toBeInTheDocument();
+      // Second secret has only type
+      expect(screen.getByText('Type: s3')).toBeInTheDocument();
+      // Third secret has type and description
+      expect(screen.getByText('Type: lls - LLS endpoint for testing')).toBeInTheDocument();
     });
   });
 });

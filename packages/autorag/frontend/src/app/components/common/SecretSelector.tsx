@@ -7,6 +7,8 @@ import {
   SelectOptionProps,
   Form,
   FormGroup,
+  Label,
+  LabelGroup,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
@@ -24,7 +26,7 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   content: string | number;
   value: string | number;
   isSelected?: boolean;
-  description?: string;
+  description?: React.ReactNode;
 };
 
 type SecretSelectorProps = Omit<
@@ -52,6 +54,8 @@ type SecretSelectorProps = Omit<
    * (e.g. after creating a new connection). Refresh returns the updated list.
    */
   onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
+  showDescription?: boolean;
+  showType?: boolean;
 };
 
 const SecretSelector: React.FC<SecretSelectorProps> = ({
@@ -68,6 +72,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   dataTestId = 'secret-selector',
   additionalRequiredKeys,
   onRefreshReady,
+  showDescription = false,
+  showType = false,
   ...props
 }) => {
   const uniqueId = React.useId();
@@ -95,14 +101,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   // Validate if a secret has all additional required keys for this use case (case-insensitive)
   const validateSecretKeys = React.useCallback(
     (secret: SecretListItem): string[] => {
-      if (!additionalRequiredKeys || secret.type === '') {
+      if (!additionalRequiredKeys || !secret.type) {
         return [];
       }
 
       const requiredKeysForType = additionalRequiredKeys[secret.type];
-      // TypeScript thinks this check is unnecessary because secret.type is typed as 's3' | 'lls' | '',
-      // and additionalRequiredKeys is typed as { [type: string]: string[] }. However, additionalRequiredKeys is optional
-      // and may not contain entries for all possible secret types, so this runtime check is needed.
+      // TypeScript thinks this check is unnecessary because additionalRequiredKeys is typed as { [type: string]: string[] }
+      // and secret.type is 's3' | 'lls' at this point (after the !secret.type check above).
+      // However, additionalRequiredKeys is optional and may not contain entries for all possible secret types,
+      // so this runtime check is needed.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!requiredKeysForType) {
         return [];
@@ -145,13 +152,41 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
-      secretsList.map((secret) => ({
-        content: secret.name,
-        value: secret.uuid,
-        isSelected: secret.uuid === value,
-        description: secret.type ? `Type: ${secret.type}` : '',
-      })),
-    [secretsList, value],
+      secretsList.map((secret) => {
+        const labels = [];
+        if (showType && secret.type) {
+          labels.push(
+            <Label color="teal" isCompact>
+              Type: {secret.type.toUpperCase()}
+            </Label>,
+          );
+        }
+        if (showDescription && secret.description) {
+          labels.push(
+            <div
+              style={{
+                width: '250px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={secret.description}
+            >
+              {secret.description}
+            </div>,
+          );
+        }
+
+        return {
+          content: secret.displayName || secret.name,
+          value: secret.uuid,
+          isSelected: secret.uuid === value,
+          description: labels.length ? (
+            <LabelGroup style={{ marginTop: '0.5rem' }}>{labels}</LabelGroup>
+          ) : undefined,
+        };
+      }),
+    [secretsList, value, showDescription, showType],
   );
 
   if (isLoading) {
