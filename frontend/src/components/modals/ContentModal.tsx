@@ -88,8 +88,10 @@ const ContentModal: React.FC<ContentModalProps> = ({
         data-testid="generic-modal-header"
       />
       <ModalBody className={bodyClassName} aria-label={bodyLabel}>
-        <Stack hasGutter>
-          <StackItem>{contents}</StackItem>
+        {contents}
+      </ModalBody>
+      <ModalFooter>
+        <Stack hasGutter style={{ flex: 'auto' }}>
           {error && (
             <StackItem>
               <Alert
@@ -103,20 +105,20 @@ const ContentModal: React.FC<ContentModalProps> = ({
               </Alert>
             </StackItem>
           )}
+          <StackItem>
+            {buttonActions?.map((action, index) => (
+              <Button
+                key={`${action.label}-${index}`}
+                variant={action.variant}
+                onClick={action.onClick}
+                data-testid={action.dataTestId}
+                isDisabled={action.isDisabled}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </StackItem>
         </Stack>
-      </ModalBody>
-      <ModalFooter>
-        {buttonActions?.map((action, index) => (
-          <Button
-            key={`${action.label}-${index}`}
-            variant={action.variant}
-            onClick={action.onClick}
-            data-testid={action.dataTestId}
-            isDisabled={action.isDisabled}
-          >
-            {action.label}
-          </Button>
-        ))}
       </ModalFooter>
     </Modal>
   );
