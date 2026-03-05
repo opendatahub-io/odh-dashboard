@@ -24,7 +24,7 @@
     "branch": "fix/namespace-selector-all-namespaces",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "2eab4ee13b0face48ba6ab5ecd89bb56d8d6c4d9"
+    "commit": "b5581fd23ea1f95e7b067178aa8630ee5cac0690"
   },
   "module-federation": {
     "name": "modelRegistry",
