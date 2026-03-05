@@ -6,6 +6,7 @@ import {
   Wizard,
   WizardStep,
 } from '@patternfly/react-core';
+import { stringify } from 'yaml';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import {
@@ -62,7 +63,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
 
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
-  const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>('form');
+  const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>(
+    existingData?.viewMode ?? 'form',
+  );
 
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
@@ -119,6 +122,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     error: yamlError,
   } = useFormYamlResources(formResources);
 
+  const isAutoFallback = existingData?.viewMode === 'yaml-edit';
+  React.useEffect(() => {
+    if (isAutoFallback && existingDeployment && !yaml) {
+      setYaml(stringify(existingDeployment.model));
+    }
+  }, [isAutoFallback, existingDeployment, yaml, setYaml]);
+
   const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
       wizardFormData.state,
@@ -172,7 +182,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 buttonId="form-view"
                 isSelected={viewMode === 'form'}
                 onChange={() => setViewMode('form')}
-                isDisabled={viewMode === 'yaml-edit'}
+                isDisabled={viewMode === 'yaml-edit' || existingData?.viewMode === 'yaml-edit'}
               />
               <ToggleGroupItem
                 data-testid="yaml-view"
@@ -202,6 +212,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 canEnterYAMLEditMode={existingDeployment?.model.kind !== 'InferenceService'}
+                existingDeployment={existingDeployment}
+                isAutoFallback={existingData?.viewMode === 'yaml-edit'}
               />
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>

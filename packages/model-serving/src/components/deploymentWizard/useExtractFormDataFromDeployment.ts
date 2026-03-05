@@ -1,6 +1,7 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { validateExtractionCompleteness } from './extractionValidation';
 import { type InitialWizardFormData } from './types';
 import {
   getModelTypeFromDeployment,
@@ -81,7 +82,7 @@ export const useExtractFormDataFromDeployment = (
     !deployment || (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded);
 
   // Memoize error computation to prevent unnecessary recalculations
-  const error = React.useMemo((): Error | undefined => {
+  const loadingError = React.useMemo((): Error | undefined => {
     if (!deployment) {
       return undefined;
     }
@@ -102,8 +103,8 @@ export const useExtractFormDataFromDeployment = (
 
   // Memoize the form data extraction to prevent unnecessary recalculations
   const formData = React.useMemo((): InitialWizardFormData | undefined => {
-    // Only extract form data if everything is loaded and there are no errors
-    if (!deployment || !loaded || error) {
+    // Only extract form data if everything is loaded and there are no loading errors
+    if (!deployment || !loaded || loadingError) {
       return undefined;
     }
 
@@ -172,9 +173,24 @@ export const useExtractFormDataFromDeployment = (
     deploymentSecrets,
     dashboardNamespace,
     loaded,
-    error,
+    loadingError,
     extractedFieldData,
   ]);
+
+  const validationError = React.useMemo((): Error | undefined => {
+    if (!deployment || loadingError) {
+      return undefined;
+    }
+    const validationResult = validateExtractionCompleteness(deployment, formData, loadingError);
+    if (!validationResult.isComplete) {
+      return new Error(
+        'This deployment contains custom configuration that cannot be displayed in the form.',
+      );
+    }
+    return undefined;
+  }, [deployment, formData, loadingError]);
+
+  const error = loadingError || validationError;
 
   return {
     formData,
