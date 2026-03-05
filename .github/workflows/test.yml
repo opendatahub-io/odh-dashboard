@@ -220,6 +220,7 @@ jobs:
           cache-dependency-path: |
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
+            packages/mlflow/bff/go.sum
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:

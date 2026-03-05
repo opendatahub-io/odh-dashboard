@@ -262,6 +262,10 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
+func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ bool) error {
+	return nil
+}
+
 func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
 	return []evalhub.EvaluationJob{
 		{

@@ -1,6 +1,7 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
 
 export * from './trainJobs';
+export * from './rayJobs';
 export * from './workloads';
 export * from './lifecycle';
 export * from './scaling';

@@ -3,28 +3,30 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import EvaluationsTable from '../EvaluationsTable';
+import EvaluationsTable from '~/app/components/EvaluationsTable';
+
+const mockOnRefresh = jest.fn();
 
 const renderTable = (props: { evaluations: EvaluationJob[]; loaded: boolean }) =>
   render(
     <MemoryRouter>
-      <EvaluationsTable {...props} />
+      <EvaluationsTable {...props} onRefresh={mockOnRefresh} />
     </MemoryRouter>,
   );
 
 const mockJobs: EvaluationJob[] = [
   mockEvaluationJob({
     id: 'job-1',
-    tenant: 'Alpha Evaluation',
+    name: 'Alpha Evaluation',
     state: 'completed',
     modelName: 'gpt-4',
     benchmarkId: 'MMLU',
     createdAt: '2026-02-20T10:00:00Z',
-    metrics: { score: 0.85 },
+    score: 0.85,
   }),
   mockEvaluationJob({
     id: 'job-2',
-    tenant: 'Beta Evaluation',
+    name: 'Beta Evaluation',
     state: 'running',
     modelName: 'llama-3',
     benchmarkId: 'HellaSwag',
@@ -32,7 +34,7 @@ const mockJobs: EvaluationJob[] = [
   }),
   mockEvaluationJob({
     id: 'job-3',
-    tenant: 'Gamma Evaluation',
+    name: 'Gamma Evaluation',
     state: 'failed',
     modelName: 'claude-3',
     benchmarkId: 'TruthfulQA',
@@ -122,7 +124,7 @@ describe('EvaluationsTable', () => {
       const manyJobs = Array.from({ length: 25 }, (_, i) =>
         mockEvaluationJob({
           id: `job-${i}`,
-          tenant: `Evaluation ${i}`,
+          name: `Evaluation ${i}`,
           createdAt: `2026-02-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
         }),
       );
@@ -139,8 +141,8 @@ describe('EvaluationsTable', () => {
       const table = screen.getByTestId('evaluations-table');
       expect(table).toHaveTextContent('Evaluation name');
       expect(table).toHaveTextContent('Status');
-      expect(table).toHaveTextContent('Collection/Benchmark');
-      expect(table).toHaveTextContent('Type');
+      expect(table).toHaveTextContent('Evaluation');
+      expect(table).toHaveTextContent('Evaluated');
       expect(table).toHaveTextContent('Run date');
       expect(table).toHaveTextContent('Result');
     });

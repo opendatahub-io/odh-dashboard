@@ -4,22 +4,22 @@ import {
   getBenchmarkName,
   getResultDisplay,
   formatDate,
-} from '../evaluationUtils';
+} from '~/app/utilities/evaluationUtils';
 
 describe('getEvaluationName', () => {
-  it('should return tenant when available', () => {
-    const job = mockEvaluationJob({ tenant: 'My Evaluation' });
+  it('should return name when available', () => {
+    const job = mockEvaluationJob({ name: 'My Evaluation' });
     expect(getEvaluationName(job)).toBe('My Evaluation');
   });
 
-  it('should return resource id when tenant is not set', () => {
-    const job = mockEvaluationJob({ id: 'eval-123' });
-    expect(getEvaluationName(job)).toBe('eval-123');
+  it('should fall back to tenant when name is not set', () => {
+    const job = mockEvaluationJob({ tenant: 'Tenant Name' });
+    expect(getEvaluationName(job)).toBe('Tenant Name');
   });
 
-  it('should return resource id when tenant is empty string', () => {
-    const job = mockEvaluationJob({ id: 'eval-456', tenant: '' });
-    expect(getEvaluationName(job)).toBe('eval-456');
+  it('should fall back to resource id when neither name nor tenant is set', () => {
+    const job = mockEvaluationJob({ id: 'eval-123' });
+    expect(getEvaluationName(job)).toBe('eval-123');
   });
 });
 
@@ -37,42 +37,48 @@ describe('getBenchmarkName', () => {
 });
 
 describe('getResultDisplay', () => {
-  it('should return percentage for a job with metrics', () => {
-    const job = mockEvaluationJob({ metrics: { score: 0.85 } });
+  it('should return percentage from top-level test score', () => {
+    const job = mockEvaluationJob({ score: 0.85 });
     expect(getResultDisplay(job)).toBe('85%');
   });
 
-  it('should round down fractional percentages', () => {
-    const job = mockEvaluationJob({ metrics: { accuracy: 0.466 } });
+  it('should round fractional percentages to nearest integer', () => {
+    const job = mockEvaluationJob({ score: 0.466 });
     expect(getResultDisplay(job)).toBe('47%');
   });
 
-  it('should return dash when results has no benchmarks', () => {
+  it('should fall back to benchmark test primary_score when top-level test is absent', () => {
     const job = mockEvaluationJob();
+    // eslint-disable-next-line camelcase
+    job.results = { benchmarks: [{ id: 'b1', test: { primary_score: 0.72 } }] };
+    expect(getResultDisplay(job)).toBe('72%');
+  });
+
+  it('should return dash when results has no benchmarks and no test', () => {
+    const job = mockEvaluationJob();
+    job.results = {};
     expect(getResultDisplay(job)).toBe('-');
   });
 
-  it('should return dash when benchmarks have no metrics', () => {
+  it('should fall back to metrics when test fields are absent', () => {
     const job = mockEvaluationJob();
-    // eslint-disable-next-line camelcase
-    job.results = { total_evaluations: 1, benchmarks: [{ id: 'b1' }] };
-    expect(getResultDisplay(job)).toBe('-');
+    job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85 } }] };
+    expect(getResultDisplay(job)).toBe('85%');
   });
 
-  it('should return dash when metrics object is empty', () => {
+  it('should return dash when benchmarks have no test and no metrics', () => {
     const job = mockEvaluationJob();
-    // eslint-disable-next-line camelcase
-    job.results = { total_evaluations: 1, benchmarks: [{ id: 'b1', metrics: {} }] };
+    job.results = { benchmarks: [{ id: 'b1' }] };
     expect(getResultDisplay(job)).toBe('-');
   });
 
   it('should handle 0% result', () => {
-    const job = mockEvaluationJob({ metrics: { score: 0 } });
+    const job = mockEvaluationJob({ score: 0 });
     expect(getResultDisplay(job)).toBe('0%');
   });
 
   it('should handle 100% result', () => {
-    const job = mockEvaluationJob({ metrics: { score: 1.0 } });
+    const job = mockEvaluationJob({ score: 1.0 });
     expect(getResultDisplay(job)).toBe('100%');
   });
 });
