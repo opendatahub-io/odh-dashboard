@@ -8,9 +8,12 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
+import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 // eslint-disable-next-line import/no-extraneous-dependencies -- ~/app is local path alias, not gen-ai package
@@ -53,22 +56,23 @@ function AutoragExperiments(): React.JSX.Element {
 
   const hasExperiments = totalSize > 0;
 
-  // Show friendly empty state when no Pipeline Server (DSPipelineApplication) exists in the namespace
-  const isNoPipelineServerError =
-    loadError &&
-    (loadError.message.toLowerCase().includes('no pipeline server') ||
-      loadError.message.toLowerCase().includes('dspipelineapplication'));
+  const errorCode = loadError ? getGenericErrorCode(loadError) : undefined;
 
-  if (loadError && !isNoPipelineServerError) {
+  if (loadError) {
+    if (errorCode === 403) {
+      return <UnauthorizedError accessDomain="AutoRAG experiments" />;
+    }
+    if (errorCode === 404) {
+      return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
+    }
+    if (errorCode === 503) {
+      return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
+    }
     return (
       <Alert variant="danger" isInline title="Failed to load experiments">
         <p>{loadError.message}</p>
       </Alert>
     );
-  }
-
-  if (isNoPipelineServerError) {
-    return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
   }
 
   if (!loaded) {

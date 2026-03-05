@@ -7,6 +7,11 @@ import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 
+const mockGetGenericErrorCode = jest.fn();
+jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
+  getGenericErrorCode: (error: unknown) => mockGetGenericErrorCode(error),
+}));
+
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: jest.fn(),
@@ -19,6 +24,11 @@ jest.mock('~/app/hooks/usePipelineDefinitions', () => ({
 
 jest.mock('~/app/hooks/usePipelineRuns', () => ({
   usePipelineRuns: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
+  __esModule: true,
+  default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
 }));
 
 jest.mock('~/app/components/AutoragRunsTable', () => {
@@ -148,14 +158,39 @@ describe('AutoragExperiments', () => {
     expect(screen.getByText('Fetch failed')).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for pipeline server error', () => {
+  it('should show NoPipelineServer for 404 error (no DSPA)', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
-      error: new Error('no Pipeline Server found in namespace'),
+      error: new Error('Not found'),
     });
 
     render(<AutoragExperiments />);
 
     expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
+  });
+
+  it('should show UnauthorizedError for 403 error', () => {
+    mockGetGenericErrorCode.mockReturnValue(403);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('Forbidden'),
+    });
+
+    render(<AutoragExperiments />);
+
+    expect(screen.getByTestId('unauthorized-error')).toBeInTheDocument();
+  });
+
+  it('should show PipelineServerNotReady for 503 error (DSPA not ready)', () => {
+    mockGetGenericErrorCode.mockReturnValue(503);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('Service Unavailable'),
+    });
+
+    render(<AutoragExperiments />);
+
+    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
   });
 });
