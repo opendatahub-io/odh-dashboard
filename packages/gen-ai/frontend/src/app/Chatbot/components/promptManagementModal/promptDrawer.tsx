@@ -98,7 +98,7 @@ export default function PromptDrawer({
             paddingRight: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          <SimpleSelect initialOptions={initialOptions} onSelect={onVersionSelect} />
+          <SimpleSelect isScrollable initialOptions={initialOptions} onSelect={onVersionSelect} />
           <div>
             <TextArea
               style={{ minHeight: '200px' }}
