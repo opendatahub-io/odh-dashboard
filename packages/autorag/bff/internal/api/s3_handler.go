@@ -10,6 +10,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -70,9 +71,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		var statusErr *apierrors.StatusError
 		if errors.As(err, &statusErr) {
 			if apierrors.IsNotFound(statusErr) {
-				httpError := &HTTPError{
+				httpError := &integrations.HTTPError{
 					StatusCode: http.StatusNotFound,
-					Error: ErrorPayload{
+					ErrorResponse: integrations.ErrorResponse{
 						Code:    strconv.Itoa(http.StatusNotFound),
 						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
 					},
@@ -92,9 +93,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 		// Check if it's a secret not found or validation error
 		if strings.Contains(err.Error(), "not found") {
-			httpError := &HTTPError{
+			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
-				Error: ErrorPayload{
+				ErrorResponse: integrations.ErrorResponse{
 					Code:    strconv.Itoa(http.StatusNotFound),
 					Message: err.Error(),
 				},
@@ -118,9 +119,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		// Check if it's an S3 error (e.g., object not found, access denied)
 		errStr := err.Error()
 		if strings.Contains(errStr, "NoSuchKey") || strings.Contains(errStr, "NotFound") {
-			httpError := &HTTPError{
+			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
-				Error: ErrorPayload{
+				ErrorResponse: integrations.ErrorResponse{
 					Code:    strconv.Itoa(http.StatusNotFound),
 					Message: fmt.Sprintf("object '%s' not found in bucket '%s'", key, bucket),
 				},

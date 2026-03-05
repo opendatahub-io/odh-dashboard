@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ func TestGetS3FileHandler_MissingNamespace(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -38,7 +39,7 @@ func TestGetS3FileHandler_MissingSecretName(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -55,7 +56,7 @@ func TestGetS3FileHandler_MissingBucket(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
 		nil,
@@ -72,7 +73,7 @@ func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
@@ -90,7 +91,7 @@ func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -121,7 +122,7 @@ func TestGetS3FileHandler_SecretMissingRequiredFields(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=incomplete-secret&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -148,7 +149,7 @@ func TestGetS3FileHandler_NamespaceNotFound(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -175,7 +176,7 @@ func TestGetS3FileHandler_ForbiddenError(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
@@ -202,7 +203,7 @@ func TestGetS3FileHandler_UnauthorizedError(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
 		nil,
