@@ -60,6 +60,13 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
+	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
+
+	httpError := &HTTPError{StatusCode: http.StatusNotFound, Error: ErrorPayload{Code: strconv.Itoa(http.StatusNotFound), Message: message}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &HTTPError{StatusCode: http.StatusMethodNotAllowed, Error: ErrorPayload{Code: strconv.Itoa(http.StatusMethodNotAllowed), Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method)}}
@@ -73,5 +80,19 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 		message = []byte("{}")
 	}
 	httpError := &HTTPError{StatusCode: http.StatusUnprocessableEntity, Error: ErrorPayload{Code: strconv.Itoa(http.StatusUnprocessableEntity), Message: string(message)}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: "service temporarily unavailable"}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) serviceUnavailableResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+	app.LogError(r, err)
+
+	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: message}}
 	app.errorResponse(w, r, httpError)
 }
