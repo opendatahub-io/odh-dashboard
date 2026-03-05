@@ -1,11 +1,22 @@
+import type { ComponentType, SVGProps } from 'react';
 import React from 'react';
+import { InProgressIcon } from '@patternfly/react-icons';
+import { t_global_text_color_regular as RegularColor } from '@patternfly/react-tokens';
 import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes.ts';
-import { Notebook } from '#~/types';
+import { EventStatus, Notebook, type NotebookStatus } from '#~/types';
 import {
   useAssignHardwareProfile,
   UseAssignHardwareProfileResult,
 } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
+import { getKueueStatusInfo } from '#~/concepts/kueue';
+import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
+
+export type StatusLineIconResult = {
+  IconComponent: ComponentType<SVGProps<SVGSVGElement>> | null;
+  color: string;
+  iconClassName?: string;
+};
 
 /**
  * In v3.0, the accessing of a Workbench will be assuming a shared gateway route with Dashboard.
@@ -43,3 +54,48 @@ export const useNotebookHardwareProfile = <T extends NotebookKind | Notebook>(
     paths,
   });
 };
+
+export function getStatusLineIconAndColor(params: {
+  notebookStatus?: NotebookStatus | null;
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
+  inProgress: boolean;
+}): StatusLineIconResult {
+  const { notebookStatus, kueueStatus, inProgress } = params;
+  const eventStatus = notebookStatus?.currentStatus;
+
+  if (kueueStatus?.status && eventStatus !== EventStatus.ERROR) {
+    const info = getKueueStatusInfo(kueueStatus.status);
+    return {
+      IconComponent: info.IconComponent,
+      color: info.contentColor ?? RegularColor.var,
+      iconClassName: info.iconClassName,
+    };
+  }
+
+  const resolvedEventStatus: KueueWorkloadStatus | null =
+    eventStatus === EventStatus.ERROR
+      ? KueueWorkloadStatus.Failed
+      : eventStatus === EventStatus.WARNING
+      ? KueueWorkloadStatus.Preempted
+      : null;
+  if (resolvedEventStatus) {
+    const info = getKueueStatusInfo(resolvedEventStatus);
+    return {
+      IconComponent: info.IconComponent,
+      color: info.contentColor ?? RegularColor.var,
+      iconClassName: info.iconClassName,
+    };
+  }
+
+  if (
+    (!eventStatus || eventStatus === EventStatus.INFO || eventStatus === EventStatus.SUCCESS) &&
+    inProgress
+  ) {
+    return {
+      IconComponent: InProgressIcon,
+      color: RegularColor.var,
+      iconClassName: 'odh-u-spin',
+    };
+  }
+  return { IconComponent: null, color: RegularColor.var };
+}

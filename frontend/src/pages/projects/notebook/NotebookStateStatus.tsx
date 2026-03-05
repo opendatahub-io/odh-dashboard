@@ -1,16 +1,12 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem } from '@patternfly/react-core';
-import {
-  t_global_text_color_regular as RegularColor,
-  t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
-} from '@patternfly/react-tokens';
+import { Button, capitalize, Flex, FlexItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
+import { getStatusLineIconAndColor } from '#~/concepts/notebooks/utils';
 import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
@@ -31,23 +27,6 @@ type GetStatusSubtitleParams = {
   notebookStatus: NotebookStatus | null;
   kueueStatus: KueueWorkloadStatusWithMessage | null;
 };
-
-const getNotebookStatusColor = (notebookStatus?: NotebookStatus | null) =>
-  notebookStatus?.currentStatus === EventStatus.ERROR
-    ? DangerColor.var
-    : notebookStatus?.currentStatus === EventStatus.WARNING
-    ? WarningColor.var
-    : RegularColor.var;
-
-const getNotebookStatusTextDecoration = (
-  notebookStatus?: NotebookStatus | null,
-  isStarting?: boolean,
-) =>
-  isStarting ||
-  notebookStatus?.currentStatus === EventStatus.ERROR ||
-  notebookStatus?.currentStatus === EventStatus.WARNING
-    ? undefined
-    : 'none';
 
 export const getStatusSubtitle = ({
   isStarting,
@@ -114,9 +93,14 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
         </FlexItem>
         {statusSubtitle != null ? (
           <UnderlinedTruncateButton
-            content={statusSubtitle}
-            color={getNotebookStatusColor(notebookStatus)}
-            textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}
+            content={capitalize(statusSubtitle)}
+            color={
+              getStatusLineIconAndColor({
+                notebookStatus,
+                kueueStatus,
+                inProgress: isStarting || isStopping,
+              }).color
+            }
             onClick={() => setStartModalOpen(true)}
           />
         ) : null}
