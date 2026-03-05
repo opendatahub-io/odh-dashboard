@@ -31,8 +31,8 @@ export type NamespaceKind = {
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type PipelineDefinition = {
-  id: string;
-  name: string;
+  pipeline_id: string;
+  display_name: string;
   created_at: string;
   description?: string;
 };

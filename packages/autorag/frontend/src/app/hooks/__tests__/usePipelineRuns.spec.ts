@@ -11,7 +11,12 @@ jest.mock('~/app/api/pipelines', () => ({
 const getPipelineRunsMock = jest.mocked(getPipelineRuns);
 
 const mockPipelineDefinitions: PipelineDefinition[] = [
-  { id: 'p1', name: 'Pipeline 1', created_at: '2025-01-01', description: 'Desc 1' },
+  {
+    pipeline_id: 'p1',
+    display_name: 'Pipeline 1',
+    created_at: '2025-01-01',
+    description: 'Desc 1',
+  },
 ];
 
 const mockRuns: PipelineRun[] = [

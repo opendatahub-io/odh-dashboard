@@ -27,7 +27,12 @@ describe('usePipelineDefinitions', () => {
 
   it('should fetch and return pipeline definitions', async () => {
     const mockPipelines = [
-      { id: 'p1', name: 'Pipeline 1', created_at: '2025-01-01', description: 'Desc 1' },
+      {
+        pipeline_id: 'p1',
+        display_name: 'Pipeline 1',
+        created_at: '2025-01-01',
+        description: 'Desc 1',
+      },
     ];
     getPipelineDefinitionsMock.mockResolvedValue(mockPipelines);
 
@@ -54,7 +59,12 @@ describe('usePipelineDefinitions', () => {
 
   it('should call getPipelineDefinitions when refresh is invoked', async () => {
     const mockPipelines = [
-      { id: 'p1', name: 'Pipeline 1', created_at: '2025-01-01', description: 'Desc 1' },
+      {
+        pipeline_id: 'p1',
+        display_name: 'Pipeline 1',
+        created_at: '2025-01-01',
+        description: 'Desc 1',
+      },
     ];
     getPipelineDefinitionsMock.mockResolvedValue(mockPipelines);
 
