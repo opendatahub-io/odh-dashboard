@@ -12,6 +12,8 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
+	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"k8s.io/client-go/kubernetes"
@@ -20,6 +22,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -40,6 +43,7 @@ type App struct {
 	config                      config.EnvConfig
 	logger                      *slog.Logger
 	kubernetesClientFactory     k8s.KubernetesClientFactory
+	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	repositories                *repositories.Repositories
 	//used only on mocked k8s client
@@ -114,6 +118,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Initialize LlamaStack client factory
+	var llamaStackClientFactory ls.LlamaStackClientFactory
+	if cfg.MockLSClient {
+		logger.Info("Using mock LlamaStack client factory")
+		llamaStackClientFactory = lsmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real LlamaStack client factory")
+		llamaStackClientFactory = ls.NewRealClientFactory()
+	}
+
 	// Initialize Pipeline Server client factory
 	var pipelineServerClientFactory ps.PipelineServerClientFactory
 	if cfg.MockPipelineServerClient {
@@ -128,6 +142,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
+		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
@@ -157,6 +172,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
+
+	//LSD Models
+	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))

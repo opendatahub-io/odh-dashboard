@@ -24,7 +24,8 @@ func main() {
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
-	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8_CLIENT", false), "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock LlamaStack client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
@@ -45,6 +46,9 @@ func main() {
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 
+	// Llama Stack configuration
+	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "LlamaStack service URL override (optional, for development)")
+
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
 
@@ -56,7 +60,7 @@ func main() {
 
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
+	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient) && cfg.AuthMethod == "user_token" {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
