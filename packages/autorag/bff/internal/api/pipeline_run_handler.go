@@ -47,7 +47,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		Data: runResponse,
 	}
 
-	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

@@ -70,7 +70,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
@@ -91,7 +91,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
@@ -111,7 +111,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
 	t.Run("should accept context_correctness metric", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
 	t.Run("should include optional fields when provided", func(t *testing.T) {
@@ -135,7 +135,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
@@ -268,7 +268,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var raw map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &raw)

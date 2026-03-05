@@ -396,7 +396,7 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
 
 ### Response Format
 
-Returns `201 Created` with the created pipeline run:
+Returns `200 OK` with the created pipeline run:
 
 ```json
 {

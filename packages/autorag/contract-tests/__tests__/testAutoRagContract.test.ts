@@ -207,7 +207,7 @@ describe('AutoRAG API Contract Tests', () => {
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-          status: 201,
+          status: 200,
         });
       });
 
@@ -229,7 +229,7 @@ describe('AutoRAG API Contract Tests', () => {
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-          status: 201,
+          status: 200,
         });
       });
 

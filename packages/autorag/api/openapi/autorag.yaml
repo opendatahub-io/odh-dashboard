@@ -234,7 +234,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateAutoRAGRunRequest"
       responses:
-        "201":
+        "200":
           $ref: "#/components/responses/CreatePipelineRunResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
