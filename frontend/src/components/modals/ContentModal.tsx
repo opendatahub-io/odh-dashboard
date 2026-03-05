@@ -71,54 +71,54 @@ const ContentModal: React.FC<ContentModalProps> = ({
   const descriptionId = useId(); // used for aria-describedby (a11y)
 
   return (
-    <Stack hasGutter>
-      {error && (
-        <StackItem>
-          <Alert
-            data-testid="error-message-alert"
-            variant="danger"
-            isInline
-            title={alertTitle}
-            actionLinks={alertLinks}
+    <Modal
+      data-testid={dataTestId}
+      isOpen
+      variant={variant}
+      onClose={onClose}
+      disableFocusTrap={disableFocusTrap}
+      aria-labelledby={headingId}
+      aria-describedby={description ? descriptionId : undefined}
+    >
+      <ModalHeader
+        title={title}
+        labelId={headingId}
+        description={description ? <div id={descriptionId}>{description}</div> : undefined}
+        titleIconVariant={titleIconVariant}
+        data-testid="generic-modal-header"
+      />
+      <ModalBody className={bodyClassName} aria-label={bodyLabel}>
+        <Stack hasGutter>
+          <StackItem>{contents}</StackItem>
+          {error && (
+            <StackItem>
+              <Alert
+                data-testid="error-message-alert"
+                variant="danger"
+                isInline
+                title={alertTitle}
+                actionLinks={alertLinks}
+              >
+                {error instanceof Error ? error.message : error}
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
+        {buttonActions?.map((action, index) => (
+          <Button
+            key={`${action.label}-${index}`}
+            variant={action.variant}
+            onClick={action.onClick}
+            data-testid={action.dataTestId}
+            isDisabled={action.isDisabled}
           >
-            {error instanceof Error ? error.message : error}
-          </Alert>
-        </StackItem>
-      )}
-      <Modal
-        data-testid={dataTestId}
-        isOpen
-        variant={variant}
-        onClose={onClose}
-        disableFocusTrap={disableFocusTrap}
-        aria-labelledby={headingId}
-        aria-describedby={description ? descriptionId : undefined}
-      >
-        <ModalHeader
-          title={title}
-          labelId={headingId}
-          description={description ? <div id={descriptionId}>{description}</div> : undefined}
-          titleIconVariant={titleIconVariant}
-          data-testid="generic-modal-header"
-        />
-        <ModalBody className={bodyClassName} aria-label={bodyLabel}>
-          {contents}
-        </ModalBody>
-        <ModalFooter>
-          {buttonActions?.map((action, index) => (
-            <Button
-              key={`${action.label}-${index}`}
-              variant={action.variant}
-              onClick={action.onClick}
-              data-testid={action.dataTestId}
-              isDisabled={action.isDisabled}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </ModalFooter>
-      </Modal>
-    </Stack>
+            {action.label}
+          </Button>
+        ))}
+      </ModalFooter>
+    </Modal>
   );
 };
 
