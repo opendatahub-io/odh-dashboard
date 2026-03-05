@@ -203,6 +203,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
   },
+  [SupportedArea.RAY_JOBS]: {
+    featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.RAY],
+  },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
   },

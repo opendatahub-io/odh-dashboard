@@ -59,7 +59,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                       className="pf-v6-u-mr-sm"
                       color="var(--pf-t--global--icon--color--status--info--default)"
                     />
-                    No project permission
+                    No project permissions
                   </>
                 }
                 bodyContent={
@@ -67,7 +67,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                     To enable model storage and allow access from workbenches, you must grant access
                     to at least one project.
                     <br />
-                    Click <strong>Manage permissions</strong> and add the relevant projects in the{' '}
+                    Click <strong>Manage permissions</strong> and add the relevant projects on the{' '}
                     <strong>Projects</strong> tab.
                   </>
                 }
@@ -78,7 +78,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                   data-testid="mr-no-project-permission-label"
                   isClickable
                 >
-                  No project permission
+                  No project permissions
                 </Label>
               </Popover>
             </FlexItem>
