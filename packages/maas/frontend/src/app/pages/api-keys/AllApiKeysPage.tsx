@@ -3,14 +3,19 @@ import { Button, PageSection } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
+import { APIKey } from '~/app/types/api-key';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysActions from './ApiKeysActions';
+import DeleteApiKeyModal from './RevokeApiKeyModal';
 
 const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [deleteApiKey, setDeleteApiKey] = React.useState<APIKey | undefined>(undefined);
+
+  const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
   return (
     <ApplicationsPage
@@ -20,7 +25,7 @@ const AllApiKeysPage: React.FC = () => {
       loaded={loaded}
       loadError={error}
       emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
-      headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
+      headerAction={<ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />}
     >
       {isModalOpen && (
         <CreateApiKeyModal
@@ -35,6 +40,7 @@ const AllApiKeysPage: React.FC = () => {
         <PageSection isFilled>
           <ApiKeysTable
             apiKeys={apiKeys}
+            onDeleteApiKey={(apiKey) => setDeleteApiKey(apiKey)}
             toolbarContent={
               <Button
                 variant="primary"
@@ -47,6 +53,17 @@ const AllApiKeysPage: React.FC = () => {
             }
           />
         </PageSection>
+      )}
+      {deleteApiKey && deleteApiKey.name && (
+        <DeleteApiKeyModal
+          apiKey={deleteApiKey}
+          onClose={(deleted) => {
+            setDeleteApiKey(undefined);
+            if (deleted) {
+              refresh();
+            }
+          }}
+        />
       )}
     </ApplicationsPage>
   );

@@ -54,3 +54,22 @@ export const deleteAllApiKeys =
       }
       throw new Error('Invalid response format');
     });
+
+/** DELETE /api/v1/api-keys/{id} - Revoke a specific API key */
+export const deleteApiKey =
+  (hostPath = '') =>
+  (opts: APIOptions, id: string): Promise<APIKey> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${encodeURIComponent(id)}`,
+        {},
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<APIKey>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
