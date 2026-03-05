@@ -72,14 +72,14 @@ export function getStatusLineIconAndColor(params: {
     };
   }
 
-  const resolvedFromNotebook: KueueWorkloadStatus | null =
+  const resolvedEventStatus: KueueWorkloadStatus | null =
     eventStatus === EventStatus.ERROR
       ? KueueWorkloadStatus.Failed
       : eventStatus === EventStatus.WARNING
       ? KueueWorkloadStatus.Preempted
       : null;
-  if (resolvedFromNotebook) {
-    const info = getKueueStatusInfo(resolvedFromNotebook);
+  if (resolvedEventStatus) {
+    const info = getKueueStatusInfo(resolvedEventStatus);
     return {
       IconComponent: info.IconComponent,
       color: info.contentColor ?? RegularColor.var,

@@ -56,7 +56,6 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
   const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
-  console.log('kueueStatus in NotebookStateStatus', kueueStatus);
   const [unstableNotebookStatus, events] = useNotebookStatus(
     isStarting,
     notebook,
