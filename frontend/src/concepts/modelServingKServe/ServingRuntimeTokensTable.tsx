@@ -18,20 +18,15 @@ const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
 
-  // For InferenceServices, determine the name to use for token filtering
-  // - NIM Operator deployments: Use the InferenceService name itself (tokens are tied to the InferenceService)
-  // - Legacy deployments: Use the ServingRuntime name (tokens are tied to the ServingRuntime)
   let name: string | undefined;
   if (isInferenceServiceKind(obj)) {
+    // NIM Operator deployments have no ServingRuntime, so use the InferenceService name
     if (isNIMOperatorManaged(obj)) {
-      // NIM Operator: tokens are created with the InferenceService name
       name = obj.metadata.name;
     } else {
-      // Legacy: tokens are created with the ServingRuntime name
       name = obj.spec.predictor.model?.runtime;
     }
   } else {
-    // ServingRuntime
     name = obj.metadata.name;
   }
 

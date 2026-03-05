@@ -256,9 +256,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.inferenceServiceEditInfo &&
       isNIMOperatorManaged(editInfo.inferenceServiceEditInfo)
     ) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-      const predictor = editInfo.inferenceServiceEditInfo.spec.predictor as any;
-      const containerImage = predictor?.containers?.[0]?.image;
+      const containerImage =
+        editInfo.inferenceServiceEditInfo.spec.predictor.containers?.[0]?.image;
 
       if (containerImage && !createDataServingRuntime.imageName) {
         // Set the image name so validation passes
@@ -445,7 +444,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   /**
-   * Submit handler for legacy mode.
+   * Submit handler for regular NIM deployments (without NIM Operator).
    * Creates ServingRuntime + InferenceService directly.
    */
   const submitLegacyMode = async (
@@ -557,7 +556,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         // NIM Operator mode - Edit: Update existing NIMService
         await submitNIMService(nimPVCName);
       } else {
-        // Legacy mode: Create or update ServingRuntime + InferenceService
+        // Regular NIM deployment: Create or update ServingRuntime + InferenceService
         await submitLegacyMode(nimPVCName, servingRuntimeName);
       }
     };

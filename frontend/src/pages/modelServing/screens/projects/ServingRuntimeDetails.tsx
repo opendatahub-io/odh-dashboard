@@ -34,21 +34,13 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   const { dashboardConfig } = React.useContext(AppContext);
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
-  // Check if this is a NIM Operator-managed deployment
-  const isNIMManaged = isvc && isNIMOperatorManaged(isvc);
-
   // todo: deal with the accelProfile below...
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
-  // Get resources - for NIM Operator, extract from containers
   let resources;
-  if (isNIMManaged) {
-    // NIM Operator uses containers instead of model spec
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-    const predictor = isvc.spec.predictor as any;
-    resources = predictor?.containers?.[0]?.resources;
+  if (isvc && isNIMOperatorManaged(isvc)) {
+    resources = isvc.spec.predictor.containers?.[0]?.resources;
   } else {
-    // Regular path: try InferenceService model resources, fallback to ServingRuntime
     resources = isvc?.spec.predictor.model?.resources || obj?.spec.containers[0].resources;
   }
 

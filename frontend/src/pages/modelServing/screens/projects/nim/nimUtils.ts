@@ -157,15 +157,15 @@ export const checkPVCUsage = async (
     let totalCount = 0;
     const deploymentNames: string[] = [];
 
-    // Check Legacy deployments (ServingRuntimes)
+    // Check regular NIM deployments (ServingRuntimes)
     const servingRuntimes = await listServingRuntimes(namespace);
-    const usingPVCLegacy = servingRuntimes.filter((sr) => {
+    const usingPVCRegular = servingRuntimes.filter((sr) => {
       const volumes = sr.spec.volumes || [];
       return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
     });
 
-    totalCount += usingPVCLegacy.length;
-    deploymentNames.push(...usingPVCLegacy.map((sr) => sr.metadata.name));
+    totalCount += usingPVCRegular.length;
+    deploymentNames.push(...usingPVCRegular.map((sr) => sr.metadata.name));
 
     // Check NIM Operator deployments (NIMServices)
     try {

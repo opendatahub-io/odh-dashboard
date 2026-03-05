@@ -85,7 +85,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
           ...nimResourcesToDelete,
         ]);
       } else {
-        // Legacy NIM deployment (no NIM Operator): Delete InferenceService and ServingRuntime
+        // Default path: Delete InferenceService and ServingRuntime directly
         const nimResourcesToDelete =
           isKServeNIMEnabled && project && servingRuntime
             ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)

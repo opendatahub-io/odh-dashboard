@@ -6,6 +6,7 @@ import {
   getModelNameFromNIMInferenceService,
   getNIMServiceName,
   filterNIMSystemEnvVars,
+  NIMOperatorInferenceServiceKind,
 } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 
 describe('nimOperatorUtils', () => {
@@ -225,10 +226,8 @@ describe('nimOperatorUtils', () => {
     it('should extract model name from InferenceService with containers', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-nim',
-      });
-      // NIM Operator uses containers instead of model spec
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (inferenceService.spec.predictor as any).containers = [
+      }) as NIMOperatorInferenceServiceKind;
+      inferenceService.spec.predictor.containers = [
         {
           name: 'kserve-container',
           image: 'nvcr.io/nim/meta/llama-3.1-8b-instruct:1.8.5',
@@ -241,7 +240,7 @@ describe('nimOperatorUtils', () => {
     it('should return undefined when no containers exist', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-nim',
-      });
+      }) as NIMOperatorInferenceServiceKind;
 
       expect(getModelNameFromNIMInferenceService(inferenceService)).toBeUndefined();
     });
@@ -249,9 +248,8 @@ describe('nimOperatorUtils', () => {
     it('should return undefined when containers array is empty', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-nim',
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (inferenceService.spec.predictor as any).containers = [];
+      }) as NIMOperatorInferenceServiceKind;
+      inferenceService.spec.predictor.containers = [];
 
       expect(getModelNameFromNIMInferenceService(inferenceService)).toBeUndefined();
     });
@@ -259,9 +257,8 @@ describe('nimOperatorUtils', () => {
     it('should return undefined when first container has no image', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-nim',
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (inferenceService.spec.predictor as any).containers = [
+      }) as NIMOperatorInferenceServiceKind;
+      inferenceService.spec.predictor.containers = [
         {
           name: 'kserve-container',
         },
@@ -273,9 +270,8 @@ describe('nimOperatorUtils', () => {
     it('should use first container even if multiple exist', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-nim',
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (inferenceService.spec.predictor as any).containers = [
+      }) as NIMOperatorInferenceServiceKind;
+      inferenceService.spec.predictor.containers = [
         {
           name: 'kserve-container',
           image: 'nvcr.io/nim/meta/llama-3.1-8b-instruct:1.8.5',

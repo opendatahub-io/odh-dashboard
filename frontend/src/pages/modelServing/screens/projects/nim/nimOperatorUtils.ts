@@ -1,7 +1,15 @@
 import React from 'react';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingContainer } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getNIMService } from '#~/api';
+
+export type NIMOperatorInferenceServiceKind = InferenceServiceKind & {
+  spec: {
+    predictor: InferenceServiceKind['spec']['predictor'] & {
+      containers?: ServingContainer[];
+    };
+  };
+};
 
 /**
  * Utility functions for working with NIM Operator managed resources
@@ -43,8 +51,9 @@ export const getNIMServiceOwner = (
  * @param inferenceService - The InferenceService to check
  * @returns true if managed by NIM Operator, false otherwise
  */
-export const isNIMOperatorManaged = (inferenceService: InferenceServiceKind): boolean =>
-  !!getNIMServiceOwner(inferenceService);
+export const isNIMOperatorManaged = (
+  inferenceService: InferenceServiceKind,
+): inferenceService is NIMOperatorInferenceServiceKind => !!getNIMServiceOwner(inferenceService);
 
 /**
  * Get the NIMService name that owns this InferenceService
@@ -143,14 +152,11 @@ export const extractModelNameFromNIMImage = (imagePath: string): string | undefi
  * @returns The model name if found, undefined otherwise
  */
 export const getModelNameFromNIMInferenceService = (
-  inferenceService: InferenceServiceKind,
+  inferenceService: NIMOperatorInferenceServiceKind,
 ): string | undefined => {
-  // Type guard: NIM Operator uses containers instead of model spec
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-  const predictor = inferenceService.spec.predictor as any;
-  const containers = predictor?.containers;
+  const { containers } = inferenceService.spec.predictor;
 
-  if (!containers || !Array.isArray(containers) || containers.length === 0) {
+  if (!containers || containers.length === 0) {
     return undefined;
   }
 

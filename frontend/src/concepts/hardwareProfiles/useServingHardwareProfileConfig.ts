@@ -12,18 +12,10 @@ export const extractHardwareProfileConfigFromInferenceService = (
 ): Parameters<typeof useHardwareProfileConfig> => {
   const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
 
-  // Check if NIM Operator-managed
-  const isNIMManaged = inferenceService && isNIMOperatorManaged(inferenceService);
-
-  // Get resources - handle NIM Operator case
   let resources;
-  if (isNIMManaged) {
-    // NIM Operator uses containers instead of model spec
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-    const predictor = inferenceService.spec.predictor as any;
-    resources = predictor?.containers?.[0]?.resources;
+  if (inferenceService && isNIMOperatorManaged(inferenceService)) {
+    resources = inferenceService.spec.predictor.containers?.[0]?.resources;
   } else {
-    // Regular path
     resources = inferenceService?.spec.predictor.model?.resources;
   }
 

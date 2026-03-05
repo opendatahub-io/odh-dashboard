@@ -20,7 +20,7 @@ describe('useNIMCompatiblePVCs', () => {
     jest.clearAllMocks();
   });
 
-  describe('Legacy Mode (nimServicesEnabled: false)', () => {
+  describe('Regular NIM Deployments (nimServicesEnabled: false)', () => {
     it('should return empty array when namespace or model is undefined', async () => {
       const { result } = renderHook(() => useNIMCompatiblePVCs(undefined, 'test-model', false));
 
@@ -32,7 +32,7 @@ describe('useNIMCompatiblePVCs', () => {
       expect(mockListServingRuntimes).not.toHaveBeenCalled();
     });
 
-    it('should fetch PVCs from ServingRuntimes in legacy mode', async () => {
+    it('should fetch PVCs from ServingRuntimes in regular NIM deployment mode', async () => {
       const mockServingRuntime = mockServingRuntimeK8sResource({
         name: 'test-runtime',
         namespace: 'test-project',
@@ -74,11 +74,11 @@ describe('useNIMCompatiblePVCs', () => {
         pvcName: 'nim-pvc-llama-3.2-1b-instruct',
         modelName: 'llama-3.2-1b-instruct',
         servingRuntimeName: 'test-runtime',
-        deploymentType: 'legacy',
+        deploymentType: 'regular',
       });
     });
 
-    it('should filter by selected model in legacy mode', async () => {
+    it('should filter by selected model in regular NIM deployment mode', async () => {
       const mockServingRuntime1 = mockServingRuntimeK8sResource({
         name: 'runtime-llama',
         namespace: 'test-project',
@@ -290,7 +290,7 @@ describe('useNIMCompatiblePVCs', () => {
   });
 
   describe('Mode Separation', () => {
-    it('should only return legacy PVCs in legacy mode even if operator deployments exist', async () => {
+    it('should only return regular NIM PVCs when nimServicesEnabled is false even if operator deployments exist', async () => {
       // In a real scenario, these would be in different API calls
       const mockServingRuntime = mockServingRuntimeK8sResource({
         name: 'legacy-runtime',
@@ -327,10 +327,10 @@ describe('useNIMCompatiblePVCs', () => {
       expect(mockListServingRuntimes).toHaveBeenCalled();
       expect(mockListNIMServices).not.toHaveBeenCalled();
       expect(result.current.compatiblePVCs).toHaveLength(1);
-      expect(result.current.compatiblePVCs[0].deploymentType).toBe('legacy');
+      expect(result.current.compatiblePVCs[0].deploymentType).toBe('regular');
     });
 
-    it('should only return operator PVCs in operator mode even if legacy deployments exist', async () => {
+    it('should only return operator PVCs in operator mode even if regular NIM deployments exist', async () => {
       const mockNIMService = mockNimService({
         name: 'operator-nim',
         namespace: 'test-project',

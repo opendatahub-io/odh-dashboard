@@ -56,15 +56,10 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     inferenceServices,
   } = React.useContext(ProjectDetailsContext);
 
-  // Check if this is a NIM Operator-managed deployment
-  const isNIMManaged = isNIMOperatorManaged(obj);
-
-  // Get framework name - either from modelFormat or extracted from NIM image
   let frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
   const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
 
-  if (isNIMManaged && !frameworkName) {
-    // Extract model name from NIM container image
+  if (isNIMOperatorManaged(obj) && !frameworkName) {
     frameworkName = getModelNameFromNIMInferenceService(obj) || '';
   }
 
@@ -108,7 +103,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
-              {(servingRuntime || isNIMManaged) && (
+              {(servingRuntime || isNIMOperatorManaged(obj)) && (
                 <StackItem>
                   <ServingRuntimeDetails project={project} obj={servingRuntime} isvc={obj} />
                 </StackItem>

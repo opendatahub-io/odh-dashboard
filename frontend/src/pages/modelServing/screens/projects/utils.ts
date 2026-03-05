@@ -182,7 +182,6 @@ export const useCreateInferenceServiceObject = (
 
   const [, setCreateData] = createInferenceServiceState;
 
-  // Check if this is a NIM Operator-managed deployment
   const isNIMManaged = existingData && isNIMOperatorManaged(existingData);
 
   // For NIM Operator deployments, fetch the display name from NIMService
@@ -192,7 +191,6 @@ export const useCreateInferenceServiceObject = (
       '',
   );
 
-  // Fetch display name from NIMService if this is a NIM Operator deployment
   React.useEffect(() => {
     if (existingData && isNIMManaged) {
       getInferenceServiceDisplayName(existingData)
@@ -200,7 +198,6 @@ export const useCreateInferenceServiceObject = (
         .catch((error) => {
           // eslint-disable-next-line no-console
           console.error('Failed to fetch display name from NIMService:', error);
-          // Fall back to existing value
         });
     }
   }, [existingData, isNIMManaged]);
@@ -221,7 +218,7 @@ export const useCreateInferenceServiceObject = (
       return existingFormatFromModel;
     }
 
-    if (isNIMManaged) {
+    if (existingData && isNIMOperatorManaged(existingData)) {
       const modelName = getModelNameFromNIMInferenceService(existingData);
       if (modelName) {
         return { name: modelName };
@@ -229,7 +226,7 @@ export const useCreateInferenceServiceObject = (
     }
 
     return undefined;
-  }, [existingFormatFromModel, isNIMManaged, existingData]);
+  }, [existingFormatFromModel, existingData]);
 
   const existingMinReplicas =
     existingData?.spec.predictor.minReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
@@ -252,16 +249,13 @@ export const useCreateInferenceServiceObject = (
       return modelEnvVars;
     }
 
-    if (isNIMManaged) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-      const predictor = existingData.spec.predictor as any;
-      const containerEnvVars = predictor?.containers?.[0]?.env;
-      // Filter out system-managed env vars that the NIM Operator adds automatically
+    if (existingData && isNIMOperatorManaged(existingData)) {
+      const containerEnvVars = existingData.spec.predictor.containers?.[0]?.env;
       return filterNIMSystemEnvVars(containerEnvVars);
     }
 
     return undefined;
-  }, [existingData, isNIMManaged]);
+  }, [existingData]);
 
   React.useEffect(() => {
     if (existingName) {
