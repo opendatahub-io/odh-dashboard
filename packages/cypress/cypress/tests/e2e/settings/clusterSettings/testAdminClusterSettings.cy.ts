@@ -38,6 +38,8 @@ const DEFAULT_PVC_SIZE = 20;
 
 type TestAdminClusterSettingsData = {
   clusterRoleBindingNamePrefix: string;
+  storageClassesPageTitle: string;
+  aiRegistryPageTitle: string;
 };
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
@@ -241,7 +243,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> Cluster Settings -> Storage classes');
       storageClassesPage.visit();
-      storageClassesPage.findPageTitle().should('contain', 'Storage classes');
+      storageClassesPage.findPageTitle().should('contain', testData.storageClassesPageTitle);
 
       cy.step('Access Settings -> Environment setup -> Workbench images');
       notebookImageSettings.visit();
@@ -261,7 +263,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> Model resources and operations -> AI registry settings');
       modelRegistrySettings.visit();
-      modelRegistrySettings.findPageTitle().should('contain', 'AI registry settings');
+      modelRegistrySettings.findPageTitle().should('contain', testData.aiRegistryPageTitle);
 
       cy.step('Access Settings -> User management');
       userManagement.visit();

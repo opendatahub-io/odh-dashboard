@@ -1,3 +1,7 @@
+import {
+  RuntimeStateKF,
+  runtimeStateLabels,
+} from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../pages/projects';
@@ -12,26 +16,33 @@ import { getIrisPipelinePath } from '../../../utils/fileImportUtils';
 import { createOpenShiftConfigMap } from '../../../utils/oc_commands/configmap';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { loadPipelineFixture } from '../../../utils/dataLoader';
+import type { PipelineTestData } from '../../../types';
 
 const uuid = generateTestUUID();
-const projectName = `test-dsp-custom-pip-prj-${uuid}`;
-const dspaSecretName = 'test-custom-pip-dspa-secret';
-const testPipelineIrisName = 'test-iris-pipeline';
-const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_2' as const;
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
-  retryableBefore(() => {
-    provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
-    //Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host
-    createOpenShiftConfigMap('ds-pipeline-custom-env-vars', projectName, {
-      // The following lines should be snake case
-      /* eslint-disable-next-line camelcase */
-      pip_index_url: Cypress.env('PIP_INDEX_URL'),
-      /* eslint-disable-next-line camelcase */
-      pip_trusted_host: Cypress.env('PIP_TRUSTED_HOST'),
-    });
-  });
+  let testData: PipelineTestData;
+  let projectName: string;
+
+  retryableBefore(() =>
+    loadPipelineFixture('e2e/pipelines/testCreateRunDeletePipeline.yaml').then(
+      (fixtureData: PipelineTestData) => {
+        testData = fixtureData;
+        projectName = `${testData.projectNamePrefix}-${uuid}`;
+        provisionProjectForPipelines(projectName, testData.dspaSecretName, awsBucket);
+        createOpenShiftConfigMap(
+          'ds-pipeline-custom-env-vars',
+          projectName,
+          Object.fromEntries([
+            ['pip_index_url', Cypress.env('PIP_INDEX_URL')],
+            ['pip_trusted_host', Cypress.env('PIP_TRUSTED_HOST')],
+          ]),
+        );
+      },
+    ),
+  );
 
   after(() => {
     // Delete provisioned Project
@@ -52,14 +63,14 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       // Increasing the timeout to ~5mins so the DSPA can be loaded
       projectDetails.findImportPipelineButton(300000).click();
       // Fill the Import Pipeline modal
-      pipelineImportModal.findPipelineNameInput().type(testPipelineIrisName);
+      pipelineImportModal.findPipelineNameInput().type(testData.pipelineName);
       pipelineImportModal.findUploadPipelineRadio().click();
       pipelineImportModal.uploadPipelineYaml(getIrisPipelinePath());
       pipelineImportModal.submit();
 
       // Verify that we are at the details page of the pipeline by checking the title
       // It can take a little longer than expected to load
-      pipelineDetails.findPageTitle(60000).should('have.text', testPipelineIrisName);
+      pipelineDetails.findPageTitle(60000).should('have.text', testData.pipelineName);
 
       // Get the pipeline ID and version ID from the URL
       cy.url().then((currentUrl) => {
@@ -71,33 +82,34 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
           cy.log(`Pipeline ID: ${pipelineId}`);
           cy.log(`Version ID: ${versionId}`);
 
-          cy.step(`Create a ${testPipelineIrisName} pipeline run from the Runs view`);
+          cy.step(`Create a ${testData.pipelineName} pipeline run from the Runs view`);
           pipelineRunsGlobal.navigate();
           pipelineRunsGlobal.selectProjectByName(projectName);
           pipelineRunsGlobal.findCreateRunButton().click();
 
           cy.step('Run the pipeline from the Runs view');
           createRunPage.experimentSelect.findToggleButton().click();
-          createRunPage.selectExperimentByName('Default');
-          createRunPage.fillName(testRunName);
-          createRunPage.fillDescription('Run Description');
-          createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
-          createRunPage.pipelineVersionSelect.openAndSelectItem(testPipelineIrisName);
+          createRunPage.selectExperimentByName(testData.experimentName);
+          createRunPage.fillName(testData.runName);
+          createRunPage.fillDescription(testData.runDescription);
+          createRunPage.pipelineSelect.openAndSelectItem(testData.pipelineName);
+          createRunPage.pipelineVersionSelect.openAndSelectItem(testData.pipelineName);
           createRunPage.findSubmitButton().click();
 
           cy.step('Expect the run to Succeed');
-          pipelineRunDetails.expectStatusLabelToBe('Succeeded', 240000);
+          pipelineRunDetails.expectStatusLabelToBe(
+            runtimeStateLabels[RuntimeStateKF.SUCCEEDED],
+            240000,
+          );
 
           cy.step('Delete the pipeline version');
           pipelinesGlobal.navigate();
-          // pipelineRunsGlobal.selectProjectByName(projectName);
           const pipelineRowWithVersion = pipelinesTable.getRowById(pipelineId);
           pipelineRowWithVersion.findExpandButton().click();
-          pipelineRowWithVersion
-            .getPipelineVersionRowById(versionId)
-            .findKebabAction('Delete pipeline version')
-            .click();
-          pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+          const versionRow = pipelineRowWithVersion.getPipelineVersionRowById(versionId);
+          versionRow.findKebab().click();
+          versionRow.findDeletePipelineVersionAction().click();
+          pipelineDeleteModal.findInput().fill(testData.pipelineName);
           pipelineDeleteModal.findSubmitButton().click();
           // The line below it's not working due to a bug
           // pipelineDeleteModal.shouldBeOpen(false);
@@ -110,8 +122,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
           cy.step('Delete the pipeline');
           const pipelineRow = pipelinesTable.getRowById(pipelineId);
-          pipelineRow.findKebabAction('Delete pipeline').click();
-          pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+          pipelineRow.findKebab().click();
+          pipelineRow.findDeletePipelineAction().click();
+          pipelineDeleteModal.findInput().fill(testData.pipelineName);
           pipelineDeleteModal.findSubmitButton().click();
 
           cy.step('Verify that the pipeline no longer exist');

@@ -170,11 +170,11 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       createTierPage.findTokenRateLimitCheckbox().click();
       createTierPage.findTokenRateLimitCountInput(0).clear().type(tokenRateLimit.count);
       createTierPage.findTokenRateLimitTimeInput(0).clear().type(tokenRateLimit.time);
-      createTierPage.selectTokenRateLimitUnit(0, 'hour');
+      createTierPage.selectTokenRateLimitUnit(0, tokenRateLimit.unit);
       createTierPage.findRequestRateLimitCheckbox().click();
       createTierPage.findRequestRateLimitCountInput(0).clear().type(requestRateLimit.count);
       createTierPage.findRequestRateLimitTimeInput(0).clear().type(requestRateLimit.time);
-      createTierPage.selectRequestRateLimitUnit(0, 'second');
+      createTierPage.selectRequestRateLimitUnit(0, requestRateLimit.unit);
       createTierPage.findLevelTakenError().should('not.exist');
       createTierPage.findCreateButton().should('exist').should('be.enabled').click();
 
@@ -189,7 +189,9 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       tierDetailsPage.findLevel().should('not.be.empty');
       tierDetailsPage.findGroups().should('contain.text', groupsString);
       tierDetailsPage
-        .findLimits(`${tokenRateLimit.count} tokens per ${tokenRateLimit.time} hour`)
+        .findLimits(
+          `${tokenRateLimit.count} tokens per ${tokenRateLimit.time} ${tokenRateLimit.unit}`,
+        )
         .should('exist');
 
       cy.step('Edit the tier');
@@ -198,11 +200,11 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       // update the description and groups and limits
       createTierPage.findDescriptionInput().clear().type(`${description} - updated`);
       createTierPage.findLevelInput().should('not.have.value', '');
-      createTierPage.selectGroupsOption('tier-free-users');
+      createTierPage.selectGroupsOption(testData.editGroup);
       createTierPage.findTokenRateLimitPlusButton(0).click();
-      createTierPage.selectTokenRateLimitUnit(0, 'minute');
+      createTierPage.selectTokenRateLimitUnit(0, testData.editTokenRateLimitUnit);
       createTierPage.findRequestRateLimitMinusButton(0).click();
-      createTierPage.selectRequestRateLimitUnit(0, 'ms');
+      createTierPage.selectRequestRateLimitUnit(0, testData.editRequestRateLimitUnit);
       createTierPage.findUpdateButton().should('be.enabled').click();
 
       cy.step('Verify the tier is edited');
@@ -245,7 +247,7 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       modelServingWizard.findNextButton().should('be.enabled').click();
       // Check the Save as MaaS checkbox and select the Specific tiers option and set the created tier name
       maasWizardField.findSaveAsMaaSCheckbox().click();
-      maasWizardField.selectMaaSTierOption('Specific tiers');
+      maasWizardField.selectMaaSTierOption(testData.tierDeploymentOption);
       maasWizardField.selectMaaSTierNames([name]);
 
       modelServingWizard.findNextButton().click();
