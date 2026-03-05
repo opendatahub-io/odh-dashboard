@@ -7,13 +7,14 @@ import PromptTable from './promptTable';
 
 export default function PromptManagementModal(): React.ReactNode {
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
-  const { setIsPromptManagementModalOpen } = usePlaygroundStore();
+  const { setActivePrompt, setIsPromptManagementModalOpen } = usePlaygroundStore();
 
   function handleClose() {
     setIsPromptManagementModalOpen(false);
   }
 
   function handleClickLoad(prompt: MLflowPromptVersion) {
+    setActivePrompt(prompt);
     const instruction =
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction('default', instruction);

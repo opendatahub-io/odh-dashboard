@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Button,
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
@@ -10,7 +11,6 @@ import {
   DrawerContentBody,
   DrawerHead,
   DrawerActions,
-  DrawerCloseButton,
   TextArea,
   Title,
   Flex,
@@ -19,6 +19,7 @@ import {
   LabelGroup,
   Label,
 } from '@patternfly/react-core';
+import { CompressAltIcon } from '@patternfly/react-icons';
 import { SimpleSelect } from '@patternfly/react-templates';
 import { MLflowPromptVersion } from '~/app/types';
 
@@ -70,7 +71,9 @@ export default function PromptDrawer({
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <DrawerCloseButton onClick={onClose} />
+            <Button variant="plain" aria-label="Close drawer" onClick={onClose}>
+              <CompressAltIcon />
+            </Button>
           </DrawerActions>
         </DrawerHead>
         <Flex
