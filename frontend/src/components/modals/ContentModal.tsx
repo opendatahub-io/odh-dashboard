@@ -9,6 +9,9 @@ import {
   ButtonProps,
   ModalProps,
   ModalHeaderProps,
+  Alert,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -18,7 +21,6 @@ export type ButtonAction = {
   variant?: ButtonProps['variant'];
   dataTestId?: string;
   isDisabled?: boolean;
-  isLoading?: boolean;
 };
 
 type ContentModalProps = {
@@ -26,7 +28,6 @@ type ContentModalProps = {
   contents: React.ReactNode;
   title: string | React.ReactNode;
   buttonActions?: ButtonAction[];
-  footerContent?: React.ReactNode;
   description?: React.ReactNode;
   disableFocusTrap?: boolean;
   dataTestId?: string;
@@ -34,6 +35,9 @@ type ContentModalProps = {
   variant?: ModalProps['variant'];
   bodyLabel?: string;
   titleIconVariant?: ModalHeaderProps['titleIconVariant'];
+  error?: Error | React.ReactNode;
+  alertTitle?: string;
+  alertLinks?: React.ReactNode;
 };
 
 // all buttons are always 'on'/enabled in this modal
@@ -52,7 +56,6 @@ const ContentModal: React.FC<ContentModalProps> = ({
   contents,
   title,
   buttonActions,
-  footerContent,
   description,
   disableFocusTrap,
   dataTestId = 'content-modal',
@@ -60,46 +63,62 @@ const ContentModal: React.FC<ContentModalProps> = ({
   variant = 'medium',
   bodyLabel,
   titleIconVariant,
+  error,
+  alertTitle,
+  alertLinks,
 }) => {
   const headingId = useId(); // used for aria-labelledby (a11y)
   const descriptionId = useId(); // used for aria-describedby (a11y)
 
   return (
-    <Modal
-      data-testid={dataTestId}
-      isOpen
-      variant={variant}
-      onClose={onClose}
-      disableFocusTrap={disableFocusTrap}
-      aria-labelledby={headingId}
-      aria-describedby={description ? descriptionId : undefined}
-    >
-      <ModalHeader
-        title={title}
-        labelId={headingId}
-        description={description ? <div id={descriptionId}>{description}</div> : undefined}
-        titleIconVariant={titleIconVariant}
-        data-testid="generic-modal-header"
-      />
-      <ModalBody className={bodyClassName} aria-label={bodyLabel}>
-        {contents}
-      </ModalBody>
-      <ModalFooter>
-        {footerContent ??
-          buttonActions?.map((action, index) => (
+    <Stack hasGutter>
+      {error && (
+        <StackItem>
+          <Alert
+            data-testid="error-message-alert"
+            variant="danger"
+            isInline
+            title={alertTitle}
+            actionLinks={alertLinks}
+          >
+            {error instanceof Error ? error.message : error}
+          </Alert>
+        </StackItem>
+      )}
+      <Modal
+        data-testid={dataTestId}
+        isOpen
+        variant={variant}
+        onClose={onClose}
+        disableFocusTrap={disableFocusTrap}
+        aria-labelledby={headingId}
+        aria-describedby={description ? descriptionId : undefined}
+      >
+        <ModalHeader
+          title={title}
+          labelId={headingId}
+          description={description ? <div id={descriptionId}>{description}</div> : undefined}
+          titleIconVariant={titleIconVariant}
+          data-testid="generic-modal-header"
+        />
+        <ModalBody className={bodyClassName} aria-label={bodyLabel}>
+          {contents}
+        </ModalBody>
+        <ModalFooter>
+          {buttonActions?.map((action, index) => (
             <Button
               key={`${action.label}-${index}`}
               variant={action.variant}
               onClick={action.onClick}
               data-testid={action.dataTestId}
               isDisabled={action.isDisabled}
-              isLoading={action.isLoading}
             >
               {action.label}
             </Button>
           ))}
-      </ModalFooter>
-    </Modal>
+        </ModalFooter>
+      </Modal>
+    </Stack>
   );
 };
 
