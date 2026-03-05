@@ -118,7 +118,7 @@ type CreateAutoRAGRunRequest struct {
 	EmbeddingsModels     []string `json:"embeddings_models,omitempty"`
 	GenerationModels     []string `json:"generation_models,omitempty"`
 	OptimizationMetric   string   `json:"optimization_metric,omitempty"`
-	VectorDatabaseID     string   `json:"vector_database_id,omitempty"`
+	LlamaStackVectorDatabaseID string `json:"llama_stack_vector_database_id,omitempty"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.

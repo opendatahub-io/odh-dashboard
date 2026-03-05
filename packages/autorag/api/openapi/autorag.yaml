@@ -668,9 +668,9 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to faithfulness)
-        vector_database_id:
+        llama_stack_vector_database_id:
           type: string
-          description: Optional vector database identifier
+          description: Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus)
       additionalProperties: false
 
     PipelineRunsData:

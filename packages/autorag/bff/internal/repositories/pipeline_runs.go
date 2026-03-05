@@ -200,8 +200,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelin
 	}
 	params["optimization_metric"] = metric
 
-	if req.VectorDatabaseID != "" {
-		params["vector_database_id"] = req.VectorDatabaseID
+	if req.LlamaStackVectorDatabaseID != "" {
+		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
 	}
 
 	return models.CreatePipelineRunKFRequest{
