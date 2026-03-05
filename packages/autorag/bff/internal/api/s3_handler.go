@@ -139,9 +139,12 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Set response headers for streaming
+	// Ensure cleanup of the reader
+	if closer, ok := objectReader.(io.Closer); ok {
+		defer closer.Close()
+	}
+
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Transfer-Encoding", "chunked")
 
 	// Stream the file content to the response
 	w.WriteHeader(http.StatusOK)

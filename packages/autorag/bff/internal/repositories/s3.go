@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // S3Credentials contains the credentials needed to connect to S3
@@ -35,23 +35,10 @@ func (r *S3Repository) GetS3Credentials(
 	secretName string,
 	identity *k8s.RequestIdentity,
 ) (*S3Credentials, error) {
-	// Fetch all secrets from the namespace
-	secrets, err := client.GetSecrets(ctx, namespace, identity)
+	// Fetch the specific secret
+	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
-	}
-
-	// Find the secret by name
-	var secret *corev1.Secret
-	for i := range secrets {
-		if secrets[i].Name == secretName {
-			secret = &secrets[i]
-			break
-		}
-	}
-
-	if secret == nil {
-		return nil, fmt.Errorf("secret '%s' not found in namespace '%s'", secretName, namespace)
+		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
 	}
 
 	// Extract S3 credentials from secret data (case-insensitive key matching)
@@ -62,9 +49,9 @@ func (r *S3Repository) GetS3Credentials(
 	getValue := func(targetKeys ...string) string {
 		// Check all keys in the secret against the target keys (case-insensitive)
 		for secretKey, secretValue := range secretData {
-			secretKeyLower := toLowerCase(secretKey)
+			secretKeyLower := strings.ToLower(secretKey)
 			for _, targetKey := range targetKeys {
-				if secretKeyLower == toLowerCase(targetKey) {
+				if secretKeyLower == strings.ToLower(targetKey) {
 					return string(secretValue)
 				}
 			}
@@ -143,18 +130,4 @@ func (r *S3Repository) GetS3Object(
 
 	// Transfer manager's GetObject returns io.Reader, wrap it with NopCloser for io.ReadCloser
 	return result.Body, contentType, nil
-}
-
-// Helper functions for case conversion
-func toLowerCase(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + ('a' - 'A')
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
 }

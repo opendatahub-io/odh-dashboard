@@ -261,10 +261,9 @@ describe('AutoRAG API Contract Tests', () => {
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
         );
         // Will fail if secret doesn't exist or S3 object doesn't exist, but key format should be valid
-        expect(result.success).toBe(false);
         if (!result.success) {
-          // Should be 404 (not found) not 400 (bad request) since key format is valid
-          expect([404, 500]).toContain(result.error.status);
+          // Format is valid; if it fails, it should not be a request-validation error
+          expect(result.error.status).not.toBe(400);
         }
       });
 

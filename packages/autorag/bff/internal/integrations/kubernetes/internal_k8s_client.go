@@ -298,7 +298,13 @@ func (kc *InternalKubernetesClient) GetSecret(ctx context.Context, namespace, se
 
 	if !response.Status.Allowed {
 		kc.Logger.Warn("user not allowed to get secret", "namespace", namespace, "secretName", secretName, "user", identity.UserID)
-		return nil, fmt.Errorf("user %s does not have permission to get secret %s in namespace %s", identity.UserID, secretName, namespace)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to get secret %s in namespace %s", identity.UserID, secretName, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
 	}
 
 	secret, err := kc.Client.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})

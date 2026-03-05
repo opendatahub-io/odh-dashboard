@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
@@ -246,10 +245,10 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 					UID:       types.UID("uid-lower"),
 				},
 				Data: map[string][]byte{
-					"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
-					"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-					"AWS_DEFAULT_REGION":    []byte("us-east-1"),
-					"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+					"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
+					"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					"aws_default_region":    []byte("us-east-1"),
+					"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
 				},
 			},
 		},
@@ -470,34 +469,4 @@ func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, creds)
 	assert.Contains(t, err.Error(), "kubernetes error")
-}
-
-// Helper functions to test case conversion
-func TestCaseConversionHelpers(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-		fn       func(string) string
-	}{
-		{
-			name:     "toLowerCase basic",
-			input:    "AWS_ACCESS_KEY_ID",
-			expected: "aws_access_key_id",
-			fn:       func(s string) string { return strings.ToLower(s) },
-		},
-		{
-			name:     "toUpperCase basic",
-			input:    "aws_access_key_id",
-			expected: "AWS_ACCESS_KEY_ID",
-			fn:       func(s string) string { return strings.ToUpper(s) },
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tc.fn(tc.input)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
 }
