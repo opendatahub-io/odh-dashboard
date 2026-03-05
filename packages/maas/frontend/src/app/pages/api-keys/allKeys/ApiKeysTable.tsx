@@ -9,9 +9,10 @@ import ApiKeysTableRow from './ApiKeysTableRow';
 type ApiKeysTableProps = {
   apiKeys: APIKey[];
   toolbarContent?: React.ReactNode;
+  onDeleteApiKey: (apiKey: APIKey) => void;
 };
 
-const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent }) => (
+const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent, onDeleteApiKey }) => (
   <Table
     data-testid="api-keys-table"
     id="api-keys-table"
@@ -21,7 +22,9 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent }) 
     defaultSortColumn={0}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent ? <ToolbarItem>{toolbarContent}</ToolbarItem> : undefined}
-    rowRenderer={(apiKey) => <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} />}
+    rowRenderer={(apiKey) => (
+      <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onDeleteApiKey={onDeleteApiKey} />
+    )}
   />
 );
 

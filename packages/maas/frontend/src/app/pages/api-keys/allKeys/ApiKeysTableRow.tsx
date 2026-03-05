@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { capitalize, Label } from '@patternfly/react-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { APIKey } from '~/app/types/api-key';
@@ -16,9 +16,10 @@ const formatDate = (dateString: string): string => {
 
 type ApiKeysTableRowProps = {
   apiKey: APIKey;
+  onDeleteApiKey: (apiKey: APIKey) => void;
 };
 
-const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey }) => (
+const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onDeleteApiKey }) => (
   <Tr>
     <Td dataLabel={apiKeyColumns[0].label}>
       <TableRowTitleDescription
@@ -35,6 +36,17 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey }) => (
     <Td dataLabel={apiKeyColumns[2].label}>{formatDate(apiKey.creationDate)}</Td>
     <Td dataLabel={apiKeyColumns[3].label}>
       {apiKey.expirationDate ? formatDate(apiKey.expirationDate) : 'Never'}
+    </Td>
+    <Td isActionCell>
+      <ActionsColumn
+        items={[
+          {
+            title: 'Revoke API key',
+            onClick: () => onDeleteApiKey(apiKey),
+            isDisabled: apiKey.status !== 'active',
+          },
+        ]}
+      />
     </Td>
   </Tr>
 );
