@@ -126,9 +126,10 @@ export const getCollections =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<{ items: Collection[] } | Collection[]>(response)) {
+      if (isModArchResponse<{ items?: Collection[] | null } | Collection[]>(response)) {
         const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return Array.isArray(data) ? data : (data.items ?? []);
       }
       throw new Error('Invalid response format');
     });

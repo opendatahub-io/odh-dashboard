@@ -329,7 +329,10 @@ func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, hard
 func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
 	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
 	if err != nil {
-		return CollectionsResponse{}, wrapClientError(err, "ListCollections")
+		return CollectionsResponse{Items: []Collection{}}, wrapClientError(err, "ListCollections")
+	}
+	if resp.Items == nil {
+		resp.Items = []Collection{}
 	}
 	return *resp, nil
 }

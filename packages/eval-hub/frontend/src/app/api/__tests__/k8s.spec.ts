@@ -112,6 +112,24 @@ describe('getCollections', () => {
     expect(result).toEqual(collections);
   });
 
+  it('should return empty array when response data items is null', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: null } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', 'test-ns')({});
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when response data items is undefined', async () => {
+    mockRestGET.mockResolvedValue({ data: {} });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', 'test-ns')({});
+
+    expect(result).toEqual([]);
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);
