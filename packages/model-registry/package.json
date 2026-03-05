@@ -19,8 +19,9 @@
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
-    "branch": "main",
+    "DO_NOT_MERGE_OVERRIDDEN_FOR_PR": "https://github.com/kubeflow/model-registry/pull/2326",
+    "repo": "https://github.com/mturley/model-registry-midstream.git",
+    "branch": "fix/namespace-selector-all-namespaces",
     "src": "clients/ui",
     "target": "upstream",
     "commit": "baee6fa4f5b017927146d3631383aae99ef4c0c1"
