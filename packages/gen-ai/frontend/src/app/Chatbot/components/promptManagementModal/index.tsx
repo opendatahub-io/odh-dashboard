@@ -23,7 +23,7 @@ export default function PromptManagementModal(): React.ReactNode {
   return (
     <Modal isOpen variant="large" onClose={handleClose}>
       <ModalHeader
-        title="Load Prompt"
+        title="Load prompt"
         description="Select a saved prompt from the current project or a global prompt template"
       />
       <ModalBody>
