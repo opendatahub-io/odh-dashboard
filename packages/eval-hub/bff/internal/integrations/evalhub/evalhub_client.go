@@ -45,11 +45,14 @@ type EvaluationJobsResponse struct {
 
 // EvaluationJob represents an evaluation job from eval-hub.
 type EvaluationJob struct {
-	Resource   JobResource    `json:"resource"`
-	Status     JobStatus      `json:"status"`
-	Results    JobResults     `json:"results"`
-	Model      JobModel       `json:"model"`
-	Benchmarks []JobBenchmark `json:"benchmarks"`
+	Resource    JobResource    `json:"resource"`
+	Status      JobStatus      `json:"status"`
+	Results     JobResults     `json:"results"`
+	Name        string         `json:"name,omitempty"`
+	Description string         `json:"description,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
+	Model       JobModel       `json:"model"`
+	Benchmarks  []JobBenchmark `json:"benchmarks"`
 }
 
 type JobResource struct {
