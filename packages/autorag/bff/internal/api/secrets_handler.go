@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -59,9 +60,9 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		var statusErr *apierrors.StatusError
 		if errors.As(err, &statusErr) {
 			if apierrors.IsNotFound(statusErr) {
-				httpError := &HTTPError{
+				httpError := &integrations.HTTPError{
 					StatusCode: http.StatusNotFound,
-					Error: ErrorPayload{
+					ErrorResponse: integrations.ErrorResponse{
 						Code:    strconv.Itoa(http.StatusNotFound),
 						Message: fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace),
 					},

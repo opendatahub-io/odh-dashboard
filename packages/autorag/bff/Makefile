@@ -1,15 +1,17 @@
 PORT ?= 4001
 MOCK_K8S_CLIENT ?= false
+MOCK_LS_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
 PIPELINE_SERVER_URL ?=
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
 DEPLOYMENT_MODE ?= kubeflow
-AUTH_METHOD ?= internal
+AUTH_METHOD ?= user_token
 AUTH_TOKEN_HEADER ?= Authorization
 AUTH_TOKEN_PREFIX ?= Bearer
 INSECURE_SKIP_VERIFY ?= false
+LLAMA_STACK_URL ?= ""
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -51,6 +53,11 @@ test: fmt vet envtest ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	go test ./...
 
+.PHONY: test-v
+test-v: fmt vet envtest ## Runs the full test suite with verbose output (for local development).
+	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	go test -v ./...
+
 .PHONY: build
 build: fmt vet test ## Builds the project to produce a binary executable.
 ifeq ($(DEBUG), true) ## If DEBUG is true, build with debugging symbols
@@ -63,7 +70,7 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-pipeline-server-client=$(MOCK_PIPELINE_SERVER_CLIENT) --pipeline-server-url="$(PIPELINE_SERVER_URL)" --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
+	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-pipeline-server-client=$(MOCK_PIPELINE_SERVER_CLIENT) --pipeline-server-url="$(PIPELINE_SERVER_URL)" --mock-ls-client=$(MOCK_LS_CLIENT) --llama-stack-url=$(LLAMA_STACK_URL) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
 
 ##@ Dependencies
 

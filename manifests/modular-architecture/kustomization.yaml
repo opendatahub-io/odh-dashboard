@@ -31,6 +31,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.maas-ui-image
+  - name: mlflow-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.mlflow-ui-image
 configurations:
   - params.yaml
 patchesJson6902:

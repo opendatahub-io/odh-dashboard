@@ -42,6 +42,23 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('LSD Models Endpoint', () => {
+    it('should successfully retrieve LSD models list', async () => {
+      const result = await apiClient.get('/api/v1/lsd/models?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LSDModelsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/lsd/models');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toHaveProperty('error');
+    });
+  });
+
   describe('Secrets Endpoint', () => {
     // Helper to verify availableKeys field in secrets response
     const verifyAvailableKeysField = (result: Awaited<ReturnType<typeof apiClient.get>>): void => {
