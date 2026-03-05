@@ -20,6 +20,13 @@ export type PipelineRunsResult = {
   refresh: () => Promise<void>;
 };
 
+/**
+ * Fetches and manages paginated pipeline runs from the BFF for a given namespace.
+ * Polls at {@link POLL_INTERVAL} for updates.
+ *
+ * @param namespace - The Kubernetes namespace to fetch runs from. Returns empty when empty.
+ * @returns Paginated runs, loading/error state, page controls, and refresh callback.
+ */
 export function usePipelineRuns(namespace: string): PipelineRunsResult {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);

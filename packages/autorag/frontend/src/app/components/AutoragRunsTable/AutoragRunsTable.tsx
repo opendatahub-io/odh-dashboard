@@ -6,6 +6,10 @@ import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
 import AutoragRunsTableRow from './AutoragRunsTableRow';
 
+/**
+ * Props for {@link AutoragRunsTable}.
+ * @see AutoragRunsTable.md for usage examples.
+ */
 type AutoragRunsTableProps = {
   runs: PipelineRun[];
   totalSize: number;
@@ -16,6 +20,10 @@ type AutoragRunsTableProps = {
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
 };
 
+/**
+ * Paginated table of AutoRAG pipeline runs. Supports server-side pagination and optional toolbar.
+ * @see AutoragRunsTable.md for usage examples.
+ */
 const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
   runs,
   totalSize,

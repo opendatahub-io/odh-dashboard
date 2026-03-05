@@ -19,6 +19,10 @@ import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 // eslint-disable-next-line import/no-extraneous-dependencies -- ~/app is local path alias, not gen-ai package
 import { autoragCreatePathname } from '~/app/utilities/routes';
 
+/**
+ * Main experiments list page for AutoRAG. Renders pipeline runs in a paginated table,
+ * handles loading/error states (403, 404, 503), and shows empty state when no experiments exist.
+ */
 function AutoragExperiments(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();

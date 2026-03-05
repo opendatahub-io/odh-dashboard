@@ -3,6 +3,12 @@ import React from 'react';
 import { getPipelineDefinitions } from '~/app/api/pipelines';
 import type { PipelineDefinition } from '~/app/types';
 
+/**
+ * Fetches pipeline definitions from the BFF for a given namespace.
+ *
+ * @param namespace - The Kubernetes namespace to fetch definitions from. Returns empty when empty.
+ * @returns Pipeline definitions, loading/error state, and refresh callback.
+ */
 export function usePipelineDefinitions(namespace: string): {
   pipelineDefinitions: PipelineDefinition[];
   loaded: boolean;
