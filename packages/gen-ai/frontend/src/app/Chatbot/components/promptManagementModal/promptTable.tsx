@@ -242,6 +242,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   return (
     <>
       <PromptDrawer
+        isLoadingDetails={isLoadingDetails}
         selectedPromptVersions={selectedPromptVersions}
         selectedVersion={selectedVersion}
         onVersionChange={handleVersionChange}

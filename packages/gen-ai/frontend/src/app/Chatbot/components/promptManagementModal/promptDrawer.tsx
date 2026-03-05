@@ -12,6 +12,7 @@ import {
   DrawerActions,
   DrawerCloseButton,
   TextArea,
+  Spinner,
   Title,
   Flex,
   Timestamp,
@@ -23,12 +24,14 @@ import { SimpleSelect } from '@patternfly/react-templates';
 import { MLflowPromptVersion } from '~/app/types';
 
 export default function PromptDrawer({
+  isLoadingDetails,
   selectedPromptVersions,
   selectedVersion,
   onVersionChange,
   onClose,
   children,
 }: {
+  isLoadingDetails: boolean;
   selectedPromptVersions: MLflowPromptVersion[];
   selectedVersion: number | null;
   onVersionChange: (version: number) => void;
@@ -39,6 +42,21 @@ export default function PromptDrawer({
   const isExpanded = !!selectedPrompt;
 
   function buildContent() {
+    if (isLoadingDetails) {
+      return (
+        <DrawerPanelContent>
+          <DrawerHead>
+            <Title headingLevel="h2">Loading Prompt Details...</Title>
+            <DrawerActions>
+              <DrawerCloseButton onClick={onClose} />
+            </DrawerActions>
+          </DrawerHead>
+          <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+            <Spinner aria-label="Loading Prompt Details" />
+          </Flex>
+        </DrawerPanelContent>
+      );
+    }
     if (!selectedPrompt) {
       return null;
     }
