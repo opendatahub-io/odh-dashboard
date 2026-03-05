@@ -7,7 +7,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import { HardwareProfileFormData } from '#~/pages/hardwareProfiles/manage/types';
 import { createHardwareProfile, updateHardwareProfile } from '#~/api';
@@ -49,7 +49,9 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 <Button
                   isInline
                   variant="link"
-                  onClick={() => navigate(`/settings/environment-setup/hardware-profiles`)}
+                  component={(props: React.ComponentProps<'a'>) => (
+                    <Link {...props} to="/settings/environment-setup/hardware-profiles" />
+                  )}
                 >
                   View profile details
                 </Button>
@@ -131,8 +133,12 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               <Button
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(redirectPath)}
-                isDisabled={isLoading}
+                component={
+                  isLoading
+                    ? 'button'
+                    : (props: React.ComponentProps<'a'>) => <Link {...props} to={redirectPath} />
+                }
+                isAriaDisabled={isLoading}
               >
                 Cancel
               </Button>

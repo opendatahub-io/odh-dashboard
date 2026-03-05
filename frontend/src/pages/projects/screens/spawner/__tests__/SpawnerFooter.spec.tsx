@@ -16,6 +16,8 @@ import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
+const mockNavigate = jest.fn();
+
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
@@ -29,7 +31,8 @@ jest.mock('#~/redux/selectors', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => jest.fn(),
+  useNavigate: () => mockNavigate,
+  useParams: () => ({ notebookName: undefined }),
 }));
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -80,6 +83,7 @@ describe('EmptyProjects', () => {
   beforeEach(() => {
     // make console happy
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    mockNavigate.mockReset();
   });
   it('should dry run all the API calls', async () => {
     const result = render(
@@ -118,5 +122,24 @@ describe('EmptyProjects', () => {
         ...dryRunOptions,
       }),
     );
+  });
+
+  it('should render cancel as a link to the workbench section', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+      />,
+    );
+
+    const cancelButton = result.getByTestId('cancel-button');
+    expect(cancelButton).toHaveAttribute(
+      'href',
+      `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
+    );
+    expect(result.getByTestId('submit-button')).not.toHaveAttribute('href');
   });
 });

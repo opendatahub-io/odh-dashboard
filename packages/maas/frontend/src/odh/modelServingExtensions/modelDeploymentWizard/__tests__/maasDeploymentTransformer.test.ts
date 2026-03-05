@@ -1,11 +1,11 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import type { MaaSTierValue } from '../MaaSEndpointCheckbox';
+import type { MaaSTierValue } from '~/odh/modelServingExtensions/modelDeploymentWizard/MaaSEndpointCheckbox';
 import {
   applyMaaSEndpointData,
   extractMaaSEndpointData,
   MAAS_TIERS_ANNOTATION,
-} from '../maasDeploymentTransformer';
-import { TierDropdownOption } from '../MaaSEndpointCheckbox';
+} from '~/odh/modelServingExtensions/modelDeploymentWizard/maasDeploymentTransformer';
+import { TierDropdownOption } from '~/odh/modelServingExtensions/modelDeploymentWizard/MaaSEndpointCheckbox';
 
 const createMockDeployment = (
   overrides: Partial<LLMdDeployment['model']> = {},
