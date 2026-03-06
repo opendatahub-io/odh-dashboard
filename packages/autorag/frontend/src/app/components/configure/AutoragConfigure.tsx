@@ -78,7 +78,12 @@ function AutoragConfigure(): React.JSX.Element {
     formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
   } = form;
 
-  const canSelectDocs = Boolean(watch('input_data_secret_name'));
+  const inputDataSecretName = watch('input_data_secret_name');
+  const optimizationMetric = watch('optimization_metric');
+  const generationModels = watch('generation_models') ?? [];
+  const embeddingModels = watch('embeddings_models') ?? [];
+
+  const canSelectDocs = Boolean(inputDataSecretName);
   // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
   const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
   const formDisabled = !formIsValid || formIsSubmitting;
@@ -251,7 +256,11 @@ function AutoragConfigure(): React.JSX.Element {
                             >
                               <CardTitle>Optimization metric</CardTitle>
                             </CardHeader>
-                            <CardBody />
+                            <CardBody>
+                              {optimizationMetric}
+                              <br />
+                              <br />
+                            </CardBody>
                           </Card>
                         </GridItem>
                         <GridItem span={6}>
@@ -273,7 +282,13 @@ function AutoragConfigure(): React.JSX.Element {
                             >
                               <CardTitle>Models to consider</CardTitle>
                             </CardHeader>
-                            <CardBody />
+                            <CardBody>
+                              <strong>Foundation models:</strong>&nbsp;
+                              {generationModels.length || 'None'}
+                              <br />
+                              <strong>Embedding models:</strong>&nbsp;
+                              {embeddingModels.length || 'None'}
+                            </CardBody>
                           </Card>
                         </GridItem>
                       </Grid>
