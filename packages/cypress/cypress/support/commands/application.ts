@@ -267,7 +267,7 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
   cy.get('#username, input[name="username"]').clear();
   cy.get('#username, input[name="username"]').type(credentials.USERNAME);
   cy.get('#password, input[name="password"]').clear();
-  cy.get('#password, input[name="password"]').type(credentials.PASSWORD);
+  cy.get('#password, input[name="password"]').type(credentials.PASSWORD, { log: false });
 
   // Click the Sign In button
   cy.get('#kc-login, input[type="submit"], button[type="submit"]').click();
@@ -292,7 +292,7 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.get('input[name=username]').clear();
   cy.get('input[name=username]').type(credentials.USERNAME);
   cy.get('input[name=password]').clear();
-  cy.get('input[name=password]').type(credentials.PASSWORD);
+  cy.get('input[name=password]').type(credentials.PASSWORD, { log: false });
   cy.get('input[type="submit"], button[type="submit"]').click();
 
   // Wait for redirect back to dashboard
@@ -390,7 +390,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
               cy.wrap($link).click();
             });
           cy.get('input[name=username]').fill(credentials.USERNAME);
-          cy.get('input[name=password]').fill(credentials.PASSWORD);
+          cy.get('input[name=password]').fill(credentials.PASSWORD, { log: false });
           cy.get('form').submit();
         }
       } else if (!interception.response || (statusCode !== 200 && statusCode !== 302)) {
