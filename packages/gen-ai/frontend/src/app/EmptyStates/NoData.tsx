@@ -1,11 +1,13 @@
 import React from 'react';
 import { Button, EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 
 type ModelsEmptyStateProps = {
   title: string;
   description: React.ReactNode;
   actionButtonText?: React.ReactNode;
+  actionButtonHref?: string;
   handleActionButtonClick?: () => void;
   'data-testid'?: string;
 };
@@ -14,6 +16,7 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   title,
   description,
   actionButtonText,
+  actionButtonHref,
   handleActionButtonClick,
   'data-testid': dataTestId = 'empty-state',
 }) => (
@@ -26,10 +29,15 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   >
     <EmptyStateBody data-testid="empty-state-message">
       {description}
-      {actionButtonText && handleActionButtonClick && (
+      {actionButtonText && (handleActionButtonClick || actionButtonHref) && (
         <EmptyStateFooter>
           <Button
             variant="primary"
+            component={
+              actionButtonHref
+                ? (props: React.ComponentProps<'a'>) => <Link {...props} to={actionButtonHref} />
+                : 'button'
+            }
             onClick={handleActionButtonClick}
             data-testid="empty-state-action-button"
           >

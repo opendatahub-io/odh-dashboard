@@ -33,7 +33,7 @@ import { CheckCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { createApiKey } from '../../api/api-keys';
+import { createApiKey } from '~/app/api/api-keys';
 
 const getTodaysDate = () => {
   const date = new Date();

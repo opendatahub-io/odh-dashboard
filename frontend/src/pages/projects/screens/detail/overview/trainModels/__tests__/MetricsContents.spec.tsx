@@ -11,7 +11,6 @@ describe('MetricsContents', () => {
       { count: 2, text: 'Stopped' },
     ],
     createText: 'Create item',
-    onCreate: jest.fn(),
   };
 
   beforeEach(() => {

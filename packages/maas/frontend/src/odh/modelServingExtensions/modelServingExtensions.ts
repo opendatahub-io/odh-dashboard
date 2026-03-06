@@ -5,11 +5,11 @@ import type {
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
+import { MODEL_AS_SERVICE_ID } from '~/odh/odhExtensions/odhExtensions';
 import type {
   MaaSEndpointsExternalData,
   MaaSTierValue,
 } from './modelDeploymentWizard/MaaSEndpointCheckbox';
-import { MODEL_AS_SERVICE_ID } from '../odhExtensions/odhExtensions';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 

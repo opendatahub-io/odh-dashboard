@@ -59,7 +59,7 @@ export type RedirectOptions = {
  * ```
  */
 export const useRedirect = (
-  createRedirectPath: () => string | Promise<string>,
+  createRedirectPath: () => string | URL | Promise<string | URL>,
   options: RedirectOptions = {},
 ): RedirectState => {
   const { navigateOptions, onComplete, onError } = options;
@@ -74,7 +74,14 @@ export const useRedirect = (
       try {
         setState({ loaded: false, error: undefined });
         const path = await createRedirectPath();
-        navigate(path, navigateOptions);
+        const redirectUrl = path instanceof URL ? path : new URL(path, window.location.origin);
+
+        if (redirectUrl.origin !== window.location.origin) {
+          window.location.assign(redirectUrl.toString());
+        } else {
+          const internalPath = `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+          navigate(internalPath, navigateOptions);
+        }
         setState({ loaded: true, error: undefined });
         onComplete?.();
       } catch (e) {

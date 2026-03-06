@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Alert,
   Bullseye,
@@ -14,7 +15,6 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import FilterToolbar from '#~/components/FilterToolbar';
@@ -32,7 +32,6 @@ import {
 } from './const';
 
 const ProjectPermissions: React.FC = () => {
-  const navigate = useNavigate();
   const { loaded, error } = usePermissionsContext();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const [subjectScope, setSubjectScope] = React.useState<SubjectScopeFilter>(
@@ -121,9 +120,12 @@ const ProjectPermissions: React.FC = () => {
                     <Button
                       variant="primary"
                       data-testid="permissions-assign-roles-button"
-                      onClick={() =>
-                        navigate(`/projects/${currentProject.metadata.name}/permissions/assign`)
-                      }
+                      component={(props: React.ComponentProps<'a'>) => (
+                        <Link
+                          {...props}
+                          to={`/projects/${currentProject.metadata.name}/permissions/assign`}
+                        />
+                      )}
                     >
                       Manage permissions
                     </Button>

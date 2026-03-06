@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionList, ActionListGroup, ActionListItem, Alert, Button } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type AssignRolesFooterActionsProps = {
@@ -12,8 +12,8 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
   hasChanges,
   onSave,
 }) => {
-  const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const permissionsHref = `/projects/${currentProject.metadata.name}?section=permissions`;
 
   return (
     <>
@@ -39,9 +39,9 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
             <Button
               variant="link"
               data-testid="assign-roles-cancel"
-              onClick={() =>
-                navigate(`/projects/${currentProject.metadata.name}?section=permissions`)
-              }
+              component={(props: React.ComponentProps<'a'>) => (
+                <Link {...props} to={permissionsHref} />
+              )}
             >
               Cancel
             </Button>

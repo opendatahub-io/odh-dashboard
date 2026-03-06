@@ -1,4 +1,5 @@
 import React, { act } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
@@ -16,6 +17,8 @@ import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
+const mockNavigate = jest.fn();
+
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
@@ -29,7 +32,8 @@ jest.mock('#~/redux/selectors', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => jest.fn(),
+  useNavigate: () => mockNavigate,
+  useParams: () => ({ notebookName: undefined }),
 }));
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -80,16 +84,19 @@ describe('EmptyProjects', () => {
   beforeEach(() => {
     // make console happy
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    mockNavigate.mockReset();
   });
   it('should dry run all the API calls', async () => {
     const result = render(
-      <SpawnerFooter
-        startNotebookData={startNotebookDataMock}
-        storageData={mockStorageData}
-        canEnablePipelines
-        envVariables={mockEnvVariables}
-        connections={[mockConnection({})]}
-      />,
+      <MemoryRouter>
+        <SpawnerFooter
+          startNotebookData={startNotebookDataMock}
+          storageData={mockStorageData}
+          canEnablePipelines
+          envVariables={mockEnvVariables}
+          connections={[mockConnection({})]}
+        />
+      </MemoryRouter>,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
     await act(() => fireEvent.click(result.getByTestId('submit-button')));
@@ -118,5 +125,26 @@ describe('EmptyProjects', () => {
         ...dryRunOptions,
       }),
     );
+  });
+
+  it('should render cancel as a link to the workbench section', () => {
+    const result = render(
+      <MemoryRouter>
+        <SpawnerFooter
+          startNotebookData={startNotebookDataMock}
+          storageData={mockStorageData}
+          canEnablePipelines
+          envVariables={mockEnvVariables}
+          connections={[mockConnection({})]}
+        />
+      </MemoryRouter>,
+    );
+
+    const cancelButton = result.getByTestId('cancel-button');
+    expect(cancelButton).toHaveAttribute(
+      'href',
+      `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
+    );
+    expect(result.getByTestId('submit-button')).not.toHaveAttribute('href');
   });
 });

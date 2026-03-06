@@ -279,7 +279,9 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 isDisabled={loading}
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(`/settings/model-resources-operations/serving-runtimes`)}
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to="/settings/model-resources-operations/serving-runtimes" />
+                )}
               >
                 Cancel
               </Button>
