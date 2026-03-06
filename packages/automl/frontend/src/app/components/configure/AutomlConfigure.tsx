@@ -18,16 +18,40 @@ import {
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FormProvider, useForm } from 'react-hook-form';
+import createConfigureSchema from '~/app/schemas/configure.schema';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import AutomlExperimentSettings from './AutomlExperimentSettings';
+
+const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
 
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema),
+    defaultValues: configureSchema.parse({}),
+  });
+
+  const openExperimentSettings = () => {
+    // Snapshot current form values as the "default" so reset() can revert to them
+    form.reset({ ...form.getValues() });
+    setIsExperimentSettingsOpen(true);
+  };
+
+  const saveExperimentSettingsChanges = () => {
+    // TODO: add form update logic once ready
+    setIsExperimentSettingsOpen(false);
+  };
 
   return (
-    <>
+    <FormProvider {...form}>
       <Panel isScrollable={false}>
         <PanelMain tabIndex={0}>
           <PanelMainBody>
@@ -108,7 +132,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-optimization-metric"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                   >
                                     Edit
                                   </Button>,
@@ -129,7 +153,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   <Button
                                     key="edit-considered-models"
                                     variant="secondary"
-                                    onClick={() => null}
+                                    onClick={openExperimentSettings}
                                   >
                                     Edit
                                   </Button>,
@@ -167,7 +191,19 @@ function AutomlConfigure(): React.JSX.Element {
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
       />
-    </>
+      <AutomlExperimentSettings
+        isOpen={isExperimentSettingsOpen}
+        onClose={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        revertChanges={() => {
+          form.reset();
+          setIsExperimentSettingsOpen(false);
+        }}
+        saveChanges={saveExperimentSettingsChanges}
+      />
+    </FormProvider>
   );
 }
 
