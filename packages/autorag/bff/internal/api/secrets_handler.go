@@ -18,10 +18,10 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
-//   - resource (required): The namespace name to query secrets from
+//   - namespace (required): The namespace name to query secrets from
 //   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
 //
-// Note: namespace is provided via the AttachNamespace middleware and is not a query parameter
+// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
