@@ -62,7 +62,7 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 }
 
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
-	return false, nil
+	return true, nil
 }
 
 func (m *mockKubernetesClientForSecrets) CanListLlamaStackDistributions(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
