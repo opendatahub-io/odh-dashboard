@@ -1,0 +1,18 @@
+# Invalid Connection - references a connection type that doesn't exist
+# Used for testing error handling when connection type is missing/invalid
+apiVersion: v1
+kind: Secret
+metadata:
+  name: invalid-type-connection
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/connection-type: "true"
+  annotations:
+    opendatahub.io/connection-type: nonexistent-type-xyz
+    opendatahub.io/connection-type-protocol: bogus
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: test-key
+  AWS_SECRET_ACCESS_KEY: test-secret
+  AWS_S3_ENDPOINT: https://s3.amazonaws.com
+  AWS_S3_BUCKET: my-bucket

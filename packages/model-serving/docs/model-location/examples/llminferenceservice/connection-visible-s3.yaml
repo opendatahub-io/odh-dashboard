@@ -1,0 +1,21 @@
+# LLMInferenceService with visible S3 Connection (via Connections API)
+# Requires: connections/visible-s3-connection.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-visible-s3-conn
+  annotations:
+    opendatahub.io/connections: my-s3-connection
+    opendatahub.io/connection-path: models/my-model
+spec:
+  model:
+    name: my-model
+    uri: "" # Webhook will populate based on connection
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

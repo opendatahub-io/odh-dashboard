@@ -1,0 +1,17 @@
+# LLMInferenceService with public HuggingFace model
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-direct-uri-public-hf
+spec:
+  model:
+    name: facebook/opt-125m
+    uri: hf://facebook/opt-125m
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

@@ -1,0 +1,24 @@
+# Hidden OCI Connection - does NOT show in Connections list
+# Has generated name pattern: secret-[6chars]
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-oci456
+  labels:
+    opendatahub.io/dashboard: "false"
+    opendatahub.io/connection-type: "true"
+  annotations:
+    opendatahub.io/connection-type: oci-v1
+    opendatahub.io/connection-type-protocol: oci
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "quay.io": {
+          "username": "hiddenuser",
+          "password": "hiddenpass",
+          "auth": "aGlkZGVudXNlcjpoaWRkZW5wYXNz"
+        }
+      }
+    }

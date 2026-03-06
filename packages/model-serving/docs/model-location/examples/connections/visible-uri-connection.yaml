@@ -1,0 +1,14 @@
+# Visible URI Connection - shows in project's Connections list
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-uri-connection
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/connection-type: "true"
+  annotations:
+    opendatahub.io/connection-type: uri-v1
+    opendatahub.io/connection-type-protocol: uri
+type: Opaque
+stringData:
+  URI: https://example.com/models/my-model.tar.gz

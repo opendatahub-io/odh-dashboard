@@ -1,0 +1,14 @@
+# PVC for model storage
+# The model-path annotation specifies the path within the PVC where the model is located
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: test-model-pvc
+  annotations:
+    dashboard.opendatahub.io/model-path: models/my-model
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

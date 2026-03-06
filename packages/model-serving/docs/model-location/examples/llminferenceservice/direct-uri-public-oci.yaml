@@ -1,0 +1,17 @@
+# LLMInferenceService with public OCI URI
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-direct-uri-public-oci
+spec:
+  model:
+    name: my-model
+    uri: oci://quay.io/public-repo/model-image:v1
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

@@ -1,0 +1,11 @@
+# InferenceService with public HTTP/HTTPS storageUri
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-direct-uri-public-http
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: https://example.com/models/my-model.tar.gz
