@@ -34,8 +34,8 @@ class PipelineImportModal extends Modal {
     return this.find().find('[data-testid="pipeline-file-upload"] input[type="file"]');
   }
 
-  findSubmitButton() {
-    return this.findFooter().findByTestId('modal-submit-button');
+  findSubmitButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return this.findFooter().findByTestId('modal-submit-button', options);
   }
 
   findUploadPipelineRadio() {
@@ -94,7 +94,10 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findSubmitButton().click();
+    // Wait for the button to be enabled before clicking (it may be disabled during file upload/processing)
+    // The button should be enabled once file validation and duplicate name check complete
+    // Using a longer timeout as the duplicate name check is debounced
+    this.findSubmitButton({ timeout: 30000 }).should('be.enabled').click();
   }
 }
 
