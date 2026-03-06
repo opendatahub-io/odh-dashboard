@@ -10,6 +10,8 @@ export const CharLimitHelperText: React.FC<CharLimitHelperTextProps> = ({
   limit,
   currentLength,
 }) => {
+  // Threshold of 10 is consistent with K8sNameDescriptionField (showNameWarning),
+  // which uses `maxLength - 10` to only warn when the user is close to the limit.
   if (currentLength < limit - 10) {
     return null;
   }
