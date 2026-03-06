@@ -27,3 +27,10 @@ export type NamespaceKind = {
   name: string;
   displayName?: string;
 };
+
+export type SecretListItem = {
+  uuid: string;
+  name: string;
+  type: 's3' | '';
+  availableKeys: string[];
+};

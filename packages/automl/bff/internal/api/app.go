@@ -32,6 +32,7 @@ const (
 	HealthCheckPath  = "/healthcheck"
 	UserPath         = ApiPathPrefix + "/user"
 	NamespacePath    = ApiPathPrefix + "/namespaces"
+	SecretsPath      = ApiPathPrefix + "/secrets"
 	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -155,6 +156,7 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
