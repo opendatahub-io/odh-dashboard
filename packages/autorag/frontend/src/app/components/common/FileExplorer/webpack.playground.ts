@@ -52,7 +52,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
   devServer: {
     port: 6005,
     hot: true,
-    open: true,
+    open: false,
   },
 };
 

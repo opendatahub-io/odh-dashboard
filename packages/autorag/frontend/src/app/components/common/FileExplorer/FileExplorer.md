@@ -48,3 +48,4 @@ The FileExplorer widget in the initial phase will make use primarily of a common
 - [ ] _Portability_: Move implementation of UI component into [patternfly/react-component-groups](https://github.com/patternfly/react-component-groups).
 - [ ] _Portability_: Move BFF implementation into common UI/BFF module for reuse between AutoRAG and AutoML.
 - [ ] _Usability_: The table of files should allow checkbox selection (multiple).
+- [ ] _Instrumentation_: Instrument all major interactions to observe how it may evolve based on use

@@ -2,15 +2,28 @@
 
 import {
   Button,
+  Flex,
+  FlexItem,
   Grid,
   GridItem,
   Modal,
-  ModalHeader,
   ModalBody,
   ModalFooter,
+  ModalHeader,
+  Pagination,
+  PaginationVariant,
 } from '@patternfly/react-core';
-import { Table, Caption, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import React from 'react';
+import {
+  OuterScrollContainer,
+  InnerScrollContainer,
+  Table,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
+} from '@patternfly/react-table';
+import React, { useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
 
@@ -43,7 +56,7 @@ const defaults = {
     modalDescription: 'Select which files to use for your data collection and evaluation sources',
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
-    tableCaption: 'Files',
+    sourceCaption: 'Files',
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
     tableColumnType: 'Type',
@@ -61,44 +74,82 @@ interface SourceSelectorProps {
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSelectSource }) => (
-  <div data-temp-placeholder>{defaults.labels.sourceSelector}</div>
+  // TODO [ Gustavo ] When a single source is selected: render it and it's count
+  // TODO [ Gustavo ] When no source is selected, render sources as PF/Label components that can be picked: Using onSelectSource
+  // TODO [ Gustavo ] When no source or sources are provided render empty state
+  <div data-temp-placeholder>
+    <Flex direction={{ default: 'row' }}>
+      <FlexItem>{defaults.labels.sourceSelector}</FlexItem>
+      <FlexItem>
+        {source ? `${source.name} (${source.count})` : defaults.labels.sourceCaption}
+      </FlexItem>
+    </Flex>
+  </div>
 );
-
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FilesTableProps {
-  source?: Source;
   files?: Files;
+  selectedFiles?: Files;
+  setSelectedFiles: (files: Files) => void;
 }
-const FilesTable: React.FC<FilesTableProps> = ({ files, source }) => {
+const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelectedFiles }) => {
   const columns = {
     name: defaults.labels.tableColumnName,
     type: defaults.labels.tableColumnType,
     size: defaults.labels.tableColumnSize,
   };
 
+  // TODO [ Gustavo ] Render an empty state if files.length === 0. See https://www.patternfly.org/components/table#empty-state
+
   return (
-    <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders={false}>
-      <Caption>
-        {source ? `${source.name} (${source.count})` : defaults.labels.tableCaption}
-      </Caption>
-      <Thead>
-        <Tr>
-          <Th>{columns.name}</Th>
-          <Th>{columns.type}</Th>
-          <Th>{columns.size}</Th>
-        </Tr>
-      </Thead>
-      <Tbody>
-        {Array.isArray(files) &&
-          files.map((file) => (
-            <Tr key={file.name}>
-              <Td dataLabel={columns.name}>{file.name}</Td>
-              <Td dataLabel={columns.type}>{file.type}</Td>
-              <Td dataLabel={columns.size}>{file.size}</Td>
+    <OuterScrollContainer>
+      <InnerScrollContainer>
+        <Table
+          aria-label={defaults.labels.tableAriaLabel}
+          variant="compact"
+          borders={false}
+          isStickyHeader
+        >
+          <Thead>
+            <Tr>
+              <Th isStickyColumn screenReaderText="File select" />
+              <Th isStickyColumn>{columns.name}</Th>
+              <Th isStickyColumn>{columns.type}</Th>
+              <Th isStickyColumn>{columns.size}</Th>
             </Tr>
-          ))}
-      </Tbody>
-    </Table>
+          </Thead>
+          <Tbody>
+            {Array.isArray(files) &&
+              files.map((file, fileIndex) => (
+                <Tr key={file.name}>
+                  <Td
+                    select={{
+                      rowIndex: fileIndex,
+                      onSelect: () => setSelectedFiles([file]),
+                      isSelected: Array.isArray(selectedFiles) && selectedFiles.includes(file),
+                      isDisabled: false,
+                      variant: 'radio',
+                    }}
+                  />
+                  <Td dataLabel={columns.name}>{file.name}</Td>
+                  <Td dataLabel={columns.type}>{file.type}</Td>
+                  <Td dataLabel={columns.size}>{file.size}</Td>
+                </Tr>
+              ))}
+          </Tbody>
+        </Table>
+        <Pagination
+          widgetId="FileExplorer-table-pagination"
+          itemCount={0}
+          perPage={100}
+          page={1}
+          onSetPage={() => null}
+          onPerPageSelect={() => null}
+          isSticky
+          variant={PaginationVariant.bottom}
+        />
+      </InnerScrollContainer>
+    </OuterScrollContainer>
   );
 };
 
@@ -121,47 +172,68 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
   onSelectSource,
   onPrimary,
-}) => (
-  <Modal
-    id={id}
-    isOpen={isOpen}
-    onClose={onClose}
-    variant="large"
-    aria-labelledby="FileExplorer-modal-title"
-    aria-describedby="FileExplorer-modal-body"
-  >
-    <ModalHeader
-      title={defaults.labels.modalTitle}
-      description={defaults.labels.modalDescription}
-      labelId="FileExplorer-modal-title"
-    />
-    <ModalBody id="FileExplorer-modal-body">
-      <Grid>
-        <GridItem span={4}>
-          <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
-        </GridItem>
-        <GridItem span={8}>
-          <FilesTable files={files} source={source} />
-        </GridItem>
-      </Grid>
-    </ModalBody>
-    <ModalFooter>
-      <Button
-        key="select-files"
-        variant="primary"
-        onClick={(_event) => {
-          onPrimary([]);
-          onClose(_event);
-        }}
-      >
-        {defaults.labels.modalPrimaryCTA}
-      </Button>
-      <Button key="cancel" variant="link" onClick={onClose}>
-        {defaults.labels.modalSecondaryCTA}
-      </Button>
-    </ModalFooter>
-  </Modal>
-);
+}) => {
+  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+
+  const rowHeight = 37;
+  const headerHeight = 38;
+  const paginationHeight = 53;
+  return (
+    <Modal
+      id={id}
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="large"
+      aria-labelledby="FileExplorer-modal-title"
+      aria-describedby="FileExplorer-modal-body"
+    >
+      <ModalHeader
+        title={defaults.labels.modalTitle}
+        description={defaults.labels.modalDescription}
+        labelId="FileExplorer-modal-title"
+      />
+      <ModalBody id="FileExplorer-modal-body">
+        <Flex direction={{ default: 'column' }}>
+          <FlexItem>
+            <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
+          </FlexItem>
+          <FlexItem>
+            <Grid>
+              <GridItem
+                span={8}
+                style={{ height: `${rowHeight * 20 + headerHeight + paginationHeight}px` }}
+              >
+                <FilesTable
+                  files={files}
+                  selectedFiles={selectedFiles}
+                  setSelectedFiles={setSelectedFiles}
+                />
+              </GridItem>
+              <GridItem span={4}>
+                <div>Details panel</div>
+              </GridItem>
+            </Grid>
+          </FlexItem>
+        </Flex>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          key="select-files"
+          variant="primary"
+          onClick={(_event) => {
+            onPrimary([]);
+            onClose(_event);
+          }}
+        >
+          {defaults.labels.modalPrimaryCTA}
+        </Button>
+        <Button key="cancel" variant="link" onClick={onClose}>
+          {defaults.labels.modalSecondaryCTA}
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
 
 // Public --------------------------------------------------------------------->
 
