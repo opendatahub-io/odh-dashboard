@@ -33,8 +33,6 @@ const pageSize = 20;
 />
 ```
 
-## Props
-
 ## Columns
 
 Name, Description, **Started** (relative time with tooltip showing full date), Status.
