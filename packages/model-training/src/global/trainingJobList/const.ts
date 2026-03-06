@@ -42,7 +42,7 @@ export const columns: SortableData<UnifiedJobKind>[] = [
   },
   {
     field: 'rayCluster',
-    label: 'RayCluster',
+    label: 'Ray cluster',
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const aCluster = isRayJob(a) ? a.status?.rayClusterName ?? '' : '';

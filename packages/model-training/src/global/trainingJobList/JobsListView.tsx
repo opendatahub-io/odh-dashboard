@@ -11,6 +11,7 @@ type JobsListViewProps = {
   jobStatuses: Map<string, TrainingJobState>;
   onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
+  onDelete: (job: UnifiedJobKind) => void;
   togglingJobId?: string;
 };
 
@@ -19,6 +20,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
   jobStatuses,
   onStatusUpdate,
   onSelectJob,
+  onDelete,
   togglingJobId,
 }) => {
   const [filterData, setFilterData] = React.useState<JobsFilterDataType>(initialJobsFilterData);
@@ -74,6 +76,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
       jobStatuses={jobStatuses}
       onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}
+      onDelete={onDelete}
       onClearFilters={onClearFilters}
       clearFilters={Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined}
       toolbarContent={<JobsToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />}

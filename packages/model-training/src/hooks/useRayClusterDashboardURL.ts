@@ -54,6 +54,7 @@ export const useRayClusterDashboardURL = (
     if (!rayClusterName || !dashboardNamespace) {
       setUrl(null);
       setLoaded(true);
+      setError(undefined);
       return;
     }
 

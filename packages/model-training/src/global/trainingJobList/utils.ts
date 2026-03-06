@@ -853,7 +853,10 @@ export const handleRetry = async (
  * Get node count for a RayJob by aggregating workerGroupSpecs replicas + 1 head node.
  */
 export const getRayJobNodeCount = (job: RayJobKind): number => {
-  const workerSpecs = job.spec.rayClusterSpec?.workerGroupSpecs ?? [];
+  if (!job.spec.rayClusterSpec) {
+    return 0;
+  }
+  const workerSpecs = job.spec.rayClusterSpec.workerGroupSpecs ?? [];
   const workerCount = workerSpecs.reduce((sum, group) => sum + (group.replicas ?? 0), 0);
   return workerCount + 1;
 };

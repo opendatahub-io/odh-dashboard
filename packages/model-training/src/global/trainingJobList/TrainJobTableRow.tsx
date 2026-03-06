@@ -174,7 +174,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
             namespace={job.metadata.namespace}
           />
         </Td>
-        <Td dataLabel="RayCluster">-</Td>
+        <Td dataLabel="Ray cluster">-</Td>
         <Td dataLabel="Type">TrainJob</Td>
         <Td dataLabel="Created">
           {job.metadata.creationTimestamp ? (

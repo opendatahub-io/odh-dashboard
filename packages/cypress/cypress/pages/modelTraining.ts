@@ -161,7 +161,7 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findRayCluster() {
-    return this.find().find('[data-label="RayCluster"]');
+    return this.find().find('[data-label="Ray cluster"]');
   }
 
   findPauseResumeToggle() {

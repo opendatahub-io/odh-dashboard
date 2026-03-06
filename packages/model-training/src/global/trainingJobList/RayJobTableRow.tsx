@@ -114,7 +114,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           namespace={job.metadata.namespace}
         />
       </Td>
-      <Td dataLabel="RayCluster">{renderRayClusterCell()}</Td>
+      <Td dataLabel="Ray cluster">{renderRayClusterCell()}</Td>
       <Td dataLabel="Type">RayJob</Td>
       <Td dataLabel="Created">
         {job.metadata.creationTimestamp ? (

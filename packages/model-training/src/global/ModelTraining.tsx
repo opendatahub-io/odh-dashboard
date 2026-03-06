@@ -18,7 +18,7 @@ import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';
 import JobsListView from './trainingJobList/JobsListView';
-import DeleteTrainingJobModal from './trainingJobList/DeleteTrainingJobModal';
+import DeleteJobModal from './trainingJobList/DeleteJobModal';
 import { useJobStatuses } from './trainingJobList/hooks/useJobStatuses';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { TrainJobKind } from '../k8sTypes';
@@ -35,7 +35,7 @@ const ModelTraining = (): React.ReactElement => {
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [rayJobData, rayJobLoaded, rayJobLoadError] = rayJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
-  const [deleteTrainingJob, setDeleteTrainingJob] = useState<TrainJobKind | undefined>(undefined);
+  const [jobToDelete, setJobToDelete] = useState<UnifiedJobKind | undefined>(undefined);
   const [togglingJobId, setTogglingJobId] = useState<string | undefined>(undefined);
   const drawerRef = useRef<HTMLDivElement>(undefined);
 
@@ -61,15 +61,9 @@ const ModelTraining = (): React.ReactElement => {
     [updateJobStatus],
   );
 
-  const handleDelete = React.useCallback(
-    (job: TrainJobKind) => {
-      setDeleteTrainingJob(job);
-      if (selectedJob?.metadata.uid === job.metadata.uid) {
-        setSelectedJob(undefined);
-      }
-    },
-    [selectedJob],
-  );
+  const handleDelete = React.useCallback((job: UnifiedJobKind) => {
+    setJobToDelete(job);
+  }, []);
 
   React.useEffect(() => {
     setSelectedJob(undefined);
@@ -158,16 +152,22 @@ const ModelTraining = (): React.ReactElement => {
               jobStatuses={jobStatuses}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
+              onDelete={handleDelete}
               togglingJobId={togglingJobId}
             />
           </ApplicationsPage>
         </DrawerContentBody>
       </DrawerContent>
 
-      {deleteTrainingJob && (
-        <DeleteTrainingJobModal
-          trainingJob={deleteTrainingJob}
-          onClose={() => setDeleteTrainingJob(undefined)}
+      {jobToDelete && (
+        <DeleteJobModal
+          job={jobToDelete}
+          onClose={(deleted) => {
+            setJobToDelete(undefined);
+            if (deleted) {
+              setSelectedJob(undefined);
+            }
+          }}
         />
       )}
     </Drawer>
