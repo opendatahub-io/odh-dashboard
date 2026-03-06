@@ -84,7 +84,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const deployAction = deployButtonState.visible
     ? [
         {
-          title: 'Deploy',
+          title: <span data-testid="deploy-model-version-action">Deploy</span>,
           onClick: () => setIsDeployModalOpen(true),
           isAriaDisabled: !deployButtonState.enabled,
           tooltipProps: !deployButtonState.enabled

@@ -16,10 +16,12 @@ import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
+  let notebookImage: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -28,6 +30,7 @@ describe('Workbenches - status tests', () => {
       .then((fixtureData: WBStatusTestData) => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
+        notebookImage = fixtureData.notebookImage;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -54,7 +57,7 @@ describe('Workbenches - status tests', () => {
       tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
     },
     () => {
-      const workbenchName = projectName.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(projectName);
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -75,7 +78,7 @@ describe('Workbenches - status tests', () => {
       createSpawnerPage.getDescriptionInput().type(projectDescription);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
