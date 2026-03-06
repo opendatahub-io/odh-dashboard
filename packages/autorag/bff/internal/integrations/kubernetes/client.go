@@ -17,6 +17,7 @@ const OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 type KubernetesClientInterface interface {
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error)
 	GetSecrets(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error)
+	GetSecret(ctx context.Context, namespace, secretName string, identity *RequestIdentity) (*corev1.Secret, error)
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
 
