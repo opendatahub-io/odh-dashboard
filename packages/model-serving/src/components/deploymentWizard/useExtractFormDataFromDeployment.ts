@@ -216,8 +216,8 @@ export const useExtractFormDataFromDeployment = (
         `Unsupported model type "${rawModelType}". Only "predictive" and "generative" are supported.`,
       );
     }
-    if (formData.modelLocationData?.type === 'existing' && !formData.modelLocationData.connection) {
-      errors.push('Missing connection annotation.');
+    if (!deployment.model.metadata.annotations?.['opendatahub.io/connections']) {
+      errors.push('Missing connection annotation (opendatahub.io/connections).');
     }
 
     if (errors.length > 0) {
