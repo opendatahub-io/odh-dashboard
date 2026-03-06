@@ -14,10 +14,8 @@ import {
   AlertVariant,
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
-import { stringify } from 'yaml';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 import { EnterYAMLEditModal } from './EnterYAMLEditModal';
-import type { Deployment } from '../../../../extension-points';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 
 type DeploymentWizardYAMLViewProps = {
@@ -26,7 +24,6 @@ type DeploymentWizardYAMLViewProps = {
   viewMode: ModelDeploymentWizardViewMode;
   setViewMode: (viewMode: ModelDeploymentWizardViewMode) => void;
   canEnterYAMLEditMode: boolean;
-  existingDeployment?: Deployment;
   isAutoFallback?: boolean;
 };
 
@@ -36,19 +33,11 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   viewMode,
   setViewMode,
   canEnterYAMLEditMode = true,
-  existingDeployment,
   isAutoFallback,
 }) => {
   const { theme } = useThemeContext();
 
   const [isEnterYAMLEditModalOpen, setIsEnterYAMLEditModalOpen] = React.useState(false);
-
-  const displayYaml = React.useMemo(() => {
-    if (isAutoFallback && existingDeployment) {
-      return stringify(existingDeployment.model);
-    }
-    return code;
-  }, [isAutoFallback, existingDeployment, code]);
 
   return (
     <Stack hasGutter style={{ height: '100%' }}>
@@ -110,7 +99,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
               </Bullseye>
             ) : undefined
           }
-          code={displayYaml}
+          code={code}
           onChange={setCode}
           language={Language.yaml}
           isDarkTheme={theme === 'dark'}

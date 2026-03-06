@@ -1,5 +1,6 @@
 import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from './types';
@@ -55,6 +56,7 @@ export const useNavigateToDeploymentWizard = (
   cancelReturnRouteValue?: string,
 ): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
+  const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
 
   // Load hooks needed for the deployment wizard
   const { formData, loaded, error } = useExtractFormDataFromDeployment(deployment);
@@ -81,7 +83,7 @@ export const useNavigateToDeploymentWizard = (
         ...(initialData ?? {}),
         ...(initialDataOnNavigate ?? {}),
         // If extraction failed for an existing deployment, auto-fallback to YAML edit mode
-        viewMode: deployment && error ? 'yaml-edit' : undefined,
+        viewMode: deployment && error && isYAMLViewerEnabled ? 'yaml-edit' : undefined,
       };
 
       navigate(getDeploymentWizardRoute(), {
@@ -94,7 +96,16 @@ export const useNavigateToDeploymentWizard = (
         },
       });
     },
-    [navigate, formData, initialData, deployment, returnRoute, cancelReturnRoute, error],
+    [
+      navigate,
+      formData,
+      initialData,
+      deployment,
+      returnRoute,
+      cancelReturnRoute,
+      error,
+      isYAMLViewerEnabled,
+    ],
   );
 
   // Execute pending navigation when form data finishes loading

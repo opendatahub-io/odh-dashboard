@@ -6,7 +6,6 @@ import {
   Wizard,
   WizardStep,
 } from '@patternfly/react-core';
-import { stringify } from 'yaml';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import {
@@ -115,19 +114,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     existingDeployment,
     secretName, // todo remove
   );
+  const isAutoFallback = existingData?.viewMode === 'yaml-edit';
   const {
     yaml,
     setYaml,
     resources: finalResources, // will be from yaml or wizard depending view mode
     error: yamlError,
-  } = useFormYamlResources(formResources);
-
-  const isAutoFallback = existingData?.viewMode === 'yaml-edit';
-  React.useEffect(() => {
-    if (isAutoFallback && existingDeployment && !yaml) {
-      setYaml(stringify(existingDeployment.model));
-    }
-  }, [isAutoFallback, existingDeployment, yaml, setYaml]);
+  } = useFormYamlResources(formResources, isAutoFallback ? existingDeployment?.model : undefined);
 
   const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
@@ -182,7 +175,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 buttonId="form-view"
                 isSelected={viewMode === 'form'}
                 onChange={() => setViewMode('form')}
-                isDisabled={viewMode === 'yaml-edit' || existingData?.viewMode === 'yaml-edit'}
+                isDisabled={viewMode === 'yaml-edit'}
               />
               <ToggleGroupItem
                 data-testid="yaml-view"
@@ -212,8 +205,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 canEnterYAMLEditMode={existingDeployment?.model.kind !== 'InferenceService'}
-                existingDeployment={existingDeployment}
-                isAutoFallback={existingData?.viewMode === 'yaml-edit'}
+                isAutoFallback={isAutoFallback}
               />
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>

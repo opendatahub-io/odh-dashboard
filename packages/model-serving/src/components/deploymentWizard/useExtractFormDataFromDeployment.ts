@@ -1,7 +1,6 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { validateExtractionCompleteness } from './extractionValidation';
 import { type InitialWizardFormData } from './types';
 import {
   getModelTypeFromDeployment,
@@ -11,10 +10,15 @@ import {
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import {
   type Deployment,
+  type ExtractionResult,
   isModelServingDeploymentFormDataExtension,
 } from '../../../extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 import { useDeploymentAuthTokens } from '../../concepts/auth';
+
+const collectExtractionErrors = (
+  ...results: (ExtractionResult<unknown> | undefined | null)[]
+): string[] => results.flatMap((r) => (r?.error ? [r.error] : []));
 
 /**
  * Return type for the useExtractFormDataFromDeployment hook
@@ -108,6 +112,10 @@ export const useExtractFormDataFromDeployment = (
       return undefined;
     }
 
+    const hardwareProfileResult =
+      formDataExtension?.properties.extractHardwareProfileConfig(deployment);
+    const replicasResult = formDataExtension?.properties.extractReplicas(deployment);
+
     return {
       // Extract model type information from deployment metadata
       modelTypeField: getModelTypeFromDeployment(deployment),
@@ -115,9 +123,7 @@ export const useExtractFormDataFromDeployment = (
       // Setup K8s name and description fields with deployment model data
       k8sNameDesc: setupDefaults({ initialData: deployment.model }),
 
-      // Extract hardware profile configuration if the extension supports it
-      hardwareProfile:
-        formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+      hardwareProfile: hardwareProfileResult?.data ?? undefined,
 
       // Extract model format information if available
       modelFormat:
@@ -125,8 +131,7 @@ export const useExtractFormDataFromDeployment = (
           ? formDataExtension.properties.extractModelFormat(deployment) ?? undefined
           : undefined,
 
-      // Extract replica count configuration
-      numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
+      numReplicas: replicasResult?.data ?? undefined,
 
       // Extract model location data (where the model is stored)
       modelLocationData:
@@ -177,18 +182,39 @@ export const useExtractFormDataFromDeployment = (
     extractedFieldData,
   ]);
 
+  // Collect errors from platform-specific extract functions and validation
   const validationError = React.useMemo((): Error | undefined => {
-    if (!deployment || loadingError) {
+    if (!deployment || loadingError || !formData) {
       return undefined;
     }
-    const validationResult = validateExtractionCompleteness(deployment, formData, loadingError);
-    if (!validationResult.isComplete) {
+
+    const errors: string[] = [];
+
+    // Collect errors from ExtractionResult-returning extract functions
+    const hardwareProfileResult =
+      formDataExtension?.properties.extractHardwareProfileConfig(deployment);
+    const replicasResult = formDataExtension?.properties.extractReplicas(deployment);
+    errors.push(...collectExtractionErrors(hardwareProfileResult, replicasResult));
+
+    // Collect errors from platform-specific validateExtraction
+    if (typeof formDataExtension?.properties.validateExtraction === 'function') {
+      errors.push(...formDataExtension.properties.validateExtraction(deployment));
+    }
+
+    if (!formData.modelTypeField) {
+      errors.push('Missing model type annotation (opendatahub.io/model-type).');
+    }
+    if (formData.modelLocationData?.type === 'existing' && !formData.modelLocationData.connection) {
+      errors.push('Missing connection annotation.');
+    }
+
+    if (errors.length > 0) {
       return new Error(
         'This deployment contains custom configuration that cannot be displayed in the form.',
       );
     }
     return undefined;
-  }, [deployment, formData, loadingError]);
+  }, [deployment, formData, formDataExtension, loadingError]);
 
   const error = loadingError || validationError;
 

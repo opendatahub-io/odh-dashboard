@@ -148,16 +148,21 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
+export type ExtractionResult<T> = {
+  data: T;
+  error?: string;
+};
+
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
-      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+      (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
     >;
     extractModelFormat?: CodeRef<(deployment: D) => SupportedModelFormats | null>;
-    extractReplicas: CodeRef<(deployment: D) => number | null>;
+    extractReplicas: CodeRef<(deployment: D) => ExtractionResult<number | null>>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
@@ -172,6 +177,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
     >;
+    validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
