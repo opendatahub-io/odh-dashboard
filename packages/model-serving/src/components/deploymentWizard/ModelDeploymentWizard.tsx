@@ -67,6 +67,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
+
   const wizardFormData = useModelDeploymentWizard(
     existingData,
     project?.metadata.name,
@@ -77,6 +78,27 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     wizardFormData.fields,
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
+
+  const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
+  // TODO in same jira, replace deployMethod with applyFieldData for all other fields
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+    wizardState.state,
+    wizardState.initialData?.navSourceMetadata,
+  );
+
+  const { resources } = useFormToResourcesTransformer(wizardState, existingDeployment);
+  const { yaml } = useFormYamlResources(resources);
+
+  const secretName = React.useMemo(() => {
+    return (
+      wizardState.state.modelLocationData.data?.connection ??
+      wizardState.state.createConnectionData.data.nameDesc?.k8sName.value ??
+      getGeneratedSecretName()
+    );
+  }, [
+    wizardState.state.modelLocationData.data?.connection,
+    wizardState.state.createConnectionData.data.nameDesc?.k8sName.value,
+  ]);
 
   const secretName =
     wizardFormData.state.modelLocationData.data?.connection ??
