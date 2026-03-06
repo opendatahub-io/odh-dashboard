@@ -20,6 +20,7 @@ import (
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -296,6 +297,137 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"serviceURL", serviceURL)
 
 			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		}
+
+		// Attach ready-to-use client to context
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
+// This middleware must be used after AttachNamespace middleware.
+//
+// Precedence for determining the LlamaStack connection:
+//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
+//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+//  4. Secret-based: reads URL and API key from the named Kubernetes secret.
+func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Read and validate secretName query parameter
+		secretName := r.URL.Query().Get("secretName")
+		if secretName == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+			return
+		}
+		if !isValidDNS1123Label(secretName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 label (lowercase alphanumeric or '-', start/end with alphanumeric, max 63 chars)"))
+			return
+		}
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var llamaStackClient ls.LlamaStackClientInterface
+
+		if app.config.MockLSClient {
+			// Mock mode: skip secret lookup entirely
+			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+		} else if app.config.AuthMethod == config.AuthMethodDisabled {
+			// When auth is disabled, no RequestIdentity is injected into the context.
+			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
+			if app.config.LlamaStackURL == "" {
+				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
+				return
+			}
+			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else if app.config.LlamaStackURL != "" {
+			// Developer override: use LLAMA_STACK_URL, skip secret lookup
+			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !identityOk || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else {
+			// Production: read credentials from Kubernetes secret
+			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !identityOk || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// List secrets in namespace and find the one matching secretName
+			allSecrets, err := k8sClient.GetSecrets(ctx, namespace, identity)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			var foundSecret *corev1.Secret
+			for i := range allSecrets {
+				if allSecrets[i].Name == secretName {
+					foundSecret = &allSecrets[i]
+					break
+				}
+			}
+
+			if foundSecret == nil {
+				app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				return
+			}
+
+			// Extract LlamaStack credentials from secret data (case-insensitive key lookup)
+			var baseURL, apiKey string
+			for key, value := range foundSecret.Data {
+				switch strings.ToLower(key) {
+				case "llama_stack_client_base_url":
+					baseURL = string(value)
+				case "llama_stack_client_api_key":
+					apiKey = string(value)
+				}
+			}
+
+			if baseURL == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing required key: llama_stack_client_base_url", secretName))
+				return
+			}
+			if apiKey == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing required key: llama_stack_client_api_key", secretName))
+				return
+			}
+
+			logger.Debug("Creating LlamaStack client from secret",
+				"namespace", namespace,
+				"secretName", secretName,
+				"serviceURL", baseURL)
+
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
 		// Attach ready-to-use client to context

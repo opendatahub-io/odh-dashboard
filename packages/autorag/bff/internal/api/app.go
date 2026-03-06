@@ -174,7 +174,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
 
 	//LSD Models
-	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler)))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
