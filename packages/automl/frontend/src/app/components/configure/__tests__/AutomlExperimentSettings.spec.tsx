@@ -96,8 +96,11 @@ describe('AutomlExperimentSettings', () => {
       expect(screen.getByTestId('label-column-select')).toBeInTheDocument();
     });
 
-    it('should render mock column options in the label column dropdown', () => {
+    it('should render mock column options in the label column dropdown', async () => {
+      const user = userEvent.setup();
       renderComponent();
+
+      await user.click(screen.getByTestId('label-column-select'));
       MOCK_COLUMNS.forEach((column) => {
         expect(screen.getByText(column)).toBeInTheDocument();
       });
@@ -129,13 +132,13 @@ describe('AutomlExperimentSettings', () => {
 
   describe('Label column selection', () => {
     it('should allow selecting a column from the dropdown', async () => {
+      const user = userEvent.setup();
       renderComponent();
-      const select = screen.getByTestId('label-column-select');
-      fireEvent.change(select, { target: { value: 'income' } });
 
-      await waitFor(() => {
-        expect(select).toHaveValue('income');
-      });
+      await user.click(screen.getByTestId('label-column-select'));
+      await user.click(screen.getByText('income'));
+
+      expect(screen.getByTestId('label-column-select')).toHaveTextContent('income');
     });
   });
 
@@ -166,9 +169,8 @@ describe('AutomlExperimentSettings', () => {
       renderComponent();
 
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      fireEvent.change(screen.getByTestId('label-column-select'), {
-        target: { value: 'income' },
-      });
+      await user.click(screen.getByTestId('label-column-select'));
+      await user.click(screen.getByText('income'));
 
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
@@ -203,10 +205,10 @@ describe('AutomlExperimentSettings', () => {
     });
 
     it('should re-enable the Save button when a field error is corrected and label column is selected', async () => {
+      const user = userEvent.setup();
       renderComponent();
-      fireEvent.change(screen.getByTestId('label-column-select'), {
-        target: { value: 'income' },
-      });
+      await user.click(screen.getByTestId('label-column-select'));
+      await user.click(screen.getByText('income'));
       changeTopN('6');
 
       await waitFor(() => {
@@ -222,22 +224,16 @@ describe('AutomlExperimentSettings', () => {
   });
 
   describe('Dirty state detection', () => {
-    it('should disable the Save button when a field is changed back to its default value', async () => {
+    it('should keep Save disabled when prediction type is changed but then reverted without selecting a label column', async () => {
       const user = userEvent.setup();
       renderComponent();
 
-      fireEvent.change(screen.getByTestId('label-column-select'), {
-        target: { value: 'income' },
-      });
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
       await waitFor(() => {
-        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
       });
 
       await user.click(screen.getByTestId('task-type-radio-binary'));
-      fireEvent.change(screen.getByTestId('label-column-select'), {
-        target: { value: '' },
-      });
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
       });
@@ -250,9 +246,8 @@ describe('AutomlExperimentSettings', () => {
       renderComponent();
 
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      fireEvent.change(screen.getByTestId('label-column-select'), {
-        target: { value: 'income' },
-      });
+      await user.click(screen.getByTestId('label-column-select'));
+      await user.click(screen.getByText('income'));
       await user.click(screen.getByTestId('experiment-settings-save'));
       expect(defaultProps.saveChanges).toHaveBeenCalledTimes(1);
     });

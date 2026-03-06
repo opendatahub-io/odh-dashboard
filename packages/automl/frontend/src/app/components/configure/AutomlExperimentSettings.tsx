@@ -1,12 +1,11 @@
 import {
   Button,
   FormHelperText,
-  FormSelect,
-  FormSelectOption,
   Grid,
   GridItem,
   HelperText,
   HelperTextItem,
+  MenuToggle,
   Modal,
   ModalBody,
   ModalFooter,
@@ -14,11 +13,14 @@ import {
   ModalVariant,
   NumberInput,
   Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import React from 'react';
+import React, { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import {
   ConfigureSchema,
@@ -76,6 +78,7 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
   } = useFormContext<ConfigureSchema>();
 
   const { data: columns = [] } = useFilesQuery();
+  const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
 
   const labelColumn = watch('label_column');
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
@@ -137,24 +140,35 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
                   control={control}
                   name="label_column"
                   render={({ field }) => (
-                    <FormSelect
+                    <Select
                       id="label-column-select"
-                      value={field.value}
-                      onChange={(_event, value) => field.onChange(value)}
-                      aria-label="Label column"
-                      data-testid="label-column-select"
+                      isOpen={isLabelColumnOpen}
+                      onOpenChange={setIsLabelColumnOpen}
+                      onSelect={(_event, value) => {
+                        field.onChange(value);
+                        setIsLabelColumnOpen(false);
+                      }}
+                      selected={field.value}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsLabelColumnOpen((prev) => !prev)}
+                          isExpanded={isLabelColumnOpen}
+                          isFullWidth
+                          data-testid="label-column-select"
+                        >
+                          {field.value || 'Select a column'}
+                        </MenuToggle>
+                      )}
                     >
-                      <FormSelectOption
-                        key=""
-                        value=""
-                        label="Select a column"
-                        isDisabled
-                        isPlaceholder
-                      />
-                      {columns.map((column) => (
-                        <FormSelectOption key={column} value={column} label={column} />
-                      ))}
-                    </FormSelect>
+                      <SelectList>
+                        {columns.map((column) => (
+                          <SelectOption key={column} value={column}>
+                            {column}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
                   )}
                 />
               </GridItem>
