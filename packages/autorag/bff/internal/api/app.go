@@ -172,7 +172,9 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
 	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
-	apiRouter.GET(SecretsPath, app.RequireAccessToService(app.GetSecretsHandler))
+
+	// Secrets
+	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))

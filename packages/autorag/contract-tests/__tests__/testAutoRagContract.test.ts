@@ -75,7 +75,7 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Success Cases', () => {
       it('should retrieve all secrets when no type filter is specified', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -85,7 +85,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should retrieve storage secrets when type=storage', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=storage');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -95,7 +95,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should retrieve lls secrets when type=lls', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=lls');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=lls');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -106,7 +106,7 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Error Cases', () => {
-      it('should return 400 when resource parameter is missing', async () => {
+      it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get('/api/v1/secrets');
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -115,7 +115,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 for invalid type parameter', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=invalid');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=invalid');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
@@ -123,7 +123,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 for empty namespace', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=');
+        const result = await apiClient.get('/api/v1/secrets?namespace=');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
@@ -131,7 +131,9 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 404 for non-existent namespace', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=non-existent-namespace-12345');
+        const result = await apiClient.get(
+          '/api/v1/secrets?namespace=non-existent-namespace-12345',
+        );
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(404);

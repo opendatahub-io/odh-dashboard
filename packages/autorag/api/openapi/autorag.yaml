@@ -82,7 +82,7 @@ paths:
       tags:
         - K8SOperation
       parameters:
-        - name: resource
+        - name: namespace
           in: query
           required: true
           description: The namespace name to query secrets from
