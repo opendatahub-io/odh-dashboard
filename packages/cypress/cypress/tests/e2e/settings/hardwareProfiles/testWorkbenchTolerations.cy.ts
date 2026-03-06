@@ -1,4 +1,4 @@
-import type { WBTolerationsTestData } from '../../../../types';
+import { NotebookStatusLabel, type WBTolerationsTestData } from '../../../../types';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import {
   workbenchPage,
@@ -88,7 +88,7 @@ describe('Workbenches - tolerations tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().type(testData.workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      createSpawnerPage.findNotebookImage(testData.notebookImageName).click();
       hardwareProfileSection.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
@@ -98,7 +98,7 @@ describe('Workbenches - tolerations tests', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
@@ -135,7 +135,7 @@ describe('Workbenches - tolerations tests', () => {
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookStopToggle().click();
       notebookConfirmModal.findStopWorkbenchButton().click();
-      notebookRow.expectStatusLabelToBe('Stopped', 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Stopped, 120000);
       cy.reload();
 
       // Validate that the pod stops running
@@ -172,7 +172,7 @@ describe('Workbenches - tolerations tests', () => {
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookStopToggle().click();
-      notebookRow.expectStatusLabelToBe('Running', 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
       cy.reload();
 
       // Validate that the toleration applied earlier still displays in the pod

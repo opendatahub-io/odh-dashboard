@@ -7,6 +7,7 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
+  aiAssetExternalModels: false,
   maasApiKeys: false,
   mlflow: false,
   projectRBAC: true,
@@ -203,6 +204,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
+  },
+  [SupportedArea.RAY_JOBS]: {
+    featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.RAY],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],

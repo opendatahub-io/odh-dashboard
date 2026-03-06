@@ -6,13 +6,15 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type SharedClientLogic struct {
-	Client     kubernetes.Interface
-	Logger     *slog.Logger
-	Token      BearerToken
-	RestConfig *rest.Config
+	Client        kubernetes.Interface
+	RuntimeClient client.Client
+	Logger        *slog.Logger
+	Token         BearerToken
+	RestConfig    *rest.Config
 }
 
 // Service discovery helpers removed for minimal starter footprint.

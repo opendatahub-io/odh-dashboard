@@ -55,10 +55,8 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
 
       // Edit a Harware Profile
       cy.step('Edit the created hardware profile and confirm updates have been saved successfully');
-      hardwareProfile
-        .getUniqueRow(hardwareProfileResourceName)
-        .findKebabAction('Edit')
-        .click({ force: true });
+      hardwareProfile.getUniqueRow(hardwareProfileResourceName).findKebab().click();
+      hardwareProfile.findEditAction().click();
       createHardwareProfile
         .findDescriptionTextBox()
         .clear()
@@ -69,10 +67,8 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
 
       cy.step('Delete the hardware profile and confirm deletion');
       // Delete a Hardware Profile
-      hardwareProfile
-        .getRow(hardwareProfileResourceName)
-        .findKebabAction('Delete')
-        .click({ force: true });
+      hardwareProfile.getRow(hardwareProfileResourceName).findKebab().click();
+      hardwareProfile.findDeleteAction().click();
       deleteModal.findInput().fill(hardwareProfileResourceName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
       row.findDescription().should('not.contain', hardwareProfileResourceName);
