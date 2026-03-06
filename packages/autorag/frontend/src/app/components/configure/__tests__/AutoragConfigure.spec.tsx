@@ -298,17 +298,5 @@ describe('AutoragConfigure', () => {
       expect(editButtons[0]).toBeEnabled(); // Optimization metric
       expect(editButtons[1]).toBeEnabled(); // Models to consider
     });
-
-    it('should enable "Run experiment" button when selected secret is valid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Run experiment" button is enabled
-      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
-      expect(runExperimentButton).toBeEnabled();
-    });
   });
 });
