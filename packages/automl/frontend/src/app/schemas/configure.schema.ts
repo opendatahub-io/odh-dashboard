@@ -6,13 +6,19 @@ export const MAX_TOP_N = 5;
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['task_type', 'label_column', 'top_n'] as const;
 
+export const TASK_TYPE_BINARY = 'binary';
+export const TASK_TYPE_MULTICLASS = 'multiclass';
+export const TASK_TYPE_REGRESSION = 'regression';
+
+const TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
+
 function getBaseSchema() {
   return z.object({
-    train_data_secret_name: z.string().default(''),
-    train_data_bucket_name: z.string().default(''),
-    train_data_file_key: z.string().default(''),
-    task_type: z.enum(['binary', 'multiclass', 'regression']).default('binary'),
-    label_column: z.string().default(''),
+    train_data_secret_name: z.string().min(1).default(''),
+    train_data_bucket_name: z.string().min(1).default(''),
+    train_data_file_key: z.string().min(1).default(''),
+    task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
+    label_column: z.string().min(1).default(''),
     top_n: z
       .number()
       .min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`)

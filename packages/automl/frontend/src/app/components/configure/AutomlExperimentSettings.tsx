@@ -25,6 +25,9 @@ import {
   EXPERIMENT_SETTINGS_FIELDS,
   MIN_TOP_N,
   MAX_TOP_N,
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
 } from '~/app/schemas/configure.schema';
 import { useFilesQuery } from '~/app/hooks/queries';
 
@@ -34,19 +37,19 @@ const PREDICTION_TYPES: {
   description: string;
 }[] = [
   {
-    value: 'binary',
+    value: TASK_TYPE_BINARY,
     label: 'Binary classification',
     description:
       'Classify data into categories. Choose this if your prediction column contains two distinct categories',
   },
   {
-    value: 'multiclass',
+    value: TASK_TYPE_MULTICLASS,
     label: 'Multiclass classification',
     description:
       'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
   },
   {
-    value: 'regression',
+    value: TASK_TYPE_REGRESSION,
     label: 'Regression',
     description:
       'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
@@ -68,12 +71,15 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
 }) => {
   const {
     control,
+    watch,
     formState: { isDirty, errors },
   } = useFormContext<ConfigureSchema>();
 
   const { data: columns = [] } = useFilesQuery();
 
+  const labelColumn = watch('label_column');
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
+  const isFormIncomplete = !labelColumn;
 
   return (
     <Modal
@@ -198,7 +204,7 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
         <Button
           variant="primary"
           onClick={saveChanges}
-          isDisabled={!isDirty || hasFieldErrors}
+          isDisabled={!isDirty || hasFieldErrors || isFormIncomplete}
           data-testid="experiment-settings-save"
         >
           Save

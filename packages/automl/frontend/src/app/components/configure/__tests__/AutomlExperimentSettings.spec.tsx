@@ -150,11 +150,25 @@ describe('AutomlExperimentSettings', () => {
       expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
     });
 
-    it('should enable the Save button when a field is changed', async () => {
+    it('should disable the Save button when form is dirty but label column is not selected', async () => {
       const user = userEvent.setup();
       renderComponent();
 
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+    });
+
+    it('should enable the Save button when a field is changed and label column is selected', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByTestId('task-type-radio-multiclass'));
+      fireEvent.change(screen.getByTestId('label-column-select'), {
+        target: { value: 'income' },
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
@@ -188,8 +202,11 @@ describe('AutomlExperimentSettings', () => {
       });
     });
 
-    it('should re-enable the Save button when a field error is corrected', async () => {
+    it('should re-enable the Save button when a field error is corrected and label column is selected', async () => {
       renderComponent();
+      fireEvent.change(screen.getByTestId('label-column-select'), {
+        target: { value: 'income' },
+      });
       changeTopN('6');
 
       await waitFor(() => {
@@ -209,12 +226,18 @@ describe('AutomlExperimentSettings', () => {
       const user = userEvent.setup();
       renderComponent();
 
+      fireEvent.change(screen.getByTestId('label-column-select'), {
+        target: { value: 'income' },
+      });
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
       });
 
       await user.click(screen.getByTestId('task-type-radio-binary'));
+      fireEvent.change(screen.getByTestId('label-column-select'), {
+        target: { value: '' },
+      });
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
       });
@@ -227,6 +250,9 @@ describe('AutomlExperimentSettings', () => {
       renderComponent();
 
       await user.click(screen.getByTestId('task-type-radio-multiclass'));
+      fireEvent.change(screen.getByTestId('label-column-select'), {
+        target: { value: 'income' },
+      });
       await user.click(screen.getByTestId('experiment-settings-save'));
       expect(defaultProps.saveChanges).toHaveBeenCalledTimes(1);
     });
