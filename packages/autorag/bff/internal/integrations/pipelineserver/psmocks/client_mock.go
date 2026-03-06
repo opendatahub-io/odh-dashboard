@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
@@ -446,6 +448,53 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		},
 	}
 	return mockRun, nil
+}
+
+// CreateRun returns a mock pipeline run response matching real KFP v2beta1 output
+func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	now := time.Now().UTC()
+	runID := uuid.New().String()
+
+	return &models.KFPipelineRun{
+		RunID:        runID,
+		ExperimentID: uuid.New().String(),
+		DisplayName:  request.DisplayName,
+		Description:  request.Description,
+		StorageState: "AVAILABLE",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        request.PipelineVersionReference.PipelineID,
+			PipelineVersionID: request.PipelineVersionReference.PipelineVersionID,
+		},
+		RuntimeConfig:  &request.RuntimeConfig,
+		ServiceAccount: "pipeline-runner-dspa",
+		State:          "PENDING",
+		CreatedAt:      now.Format(time.RFC3339),
+		ScheduledAt:    now.Format(time.RFC3339),
+		StateHistory: []models.RuntimeStatus{
+			{
+				UpdateTime: now.Format(time.RFC3339),
+				State:      "PENDING",
+			},
+		},
+		RunDetails: &models.RunDetails{
+			TaskDetails: []models.TaskDetail{
+				{
+					RunID:       runID,
+					TaskID:      uuid.New().String(),
+					DisplayName: "root-driver",
+					CreateTime:  now.Format(time.RFC3339),
+					StartTime:   now.Format(time.RFC3339),
+					State:       "PENDING",
+					StateHistory: []models.RuntimeStatus{
+						{UpdateTime: now.Format(time.RFC3339), State: "PENDING"},
+					},
+					ChildTasks: []models.ChildTask{
+						{PodName: fmt.Sprintf("%s-%s", request.DisplayName, runID[:8])},
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 // MockClientFactory creates mock pipeline server clients
