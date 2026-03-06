@@ -6,6 +6,7 @@ import { createSchedulePage } from '../../../pages/pipelines/createRunPage';
 import { pipelineDetails, pipelineRecurringRunDetails } from '../../../pages/pipelines/topology';
 import { pipelineRunsGlobal, pipelineRecurringRunTable } from '../../../pages/pipelines';
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
@@ -53,8 +54,14 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
+      cy.step('Wait for pipeline server (DSPA) to be ready');
+      waitForDspaReady(projectName);
+
+      cy.step('Ensure Import Pipeline button is loaded');
+      projectDetails.ensureImportPipelineButtonLoaded();
+
       cy.step('Import a pipeline by URL');
-      projectDetails.findImportPipelineButton(300000).click();
+      projectDetails.findImportPipelineButton().click();
       pipelineImportModal.findPipelineNameInput().type(pipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type(pipelineDescription);
       pipelineImportModal.findImportPipelineRadio().click();
