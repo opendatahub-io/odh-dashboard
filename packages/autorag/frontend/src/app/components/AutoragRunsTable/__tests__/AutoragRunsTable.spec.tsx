@@ -113,4 +113,21 @@ describe('AutoragRunsTable', () => {
     expect(screen.getByTestId('empty-view')).toBeInTheDocument();
     expect(screen.getByTestId('empty-view')).toHaveTextContent('Empty');
   });
+
+  it('should render Started column with relative time', () => {
+    render(
+      <AutoragRunsTable
+        runs={mockRuns}
+        totalSize={defaultPaginationProps.totalSize}
+        page={defaultPaginationProps.page}
+        pageSize={defaultPaginationProps.pageSize}
+        onPageChange={defaultPaginationProps.onPageChange}
+        onPerPageChange={defaultPaginationProps.onPerPageChange}
+      />,
+    );
+
+    // The mock relativeTime function returns '1 day ago'
+    const relativeTimeElements = screen.getAllByText('1 day ago');
+    expect(relativeTimeElements.length).toBeGreaterThan(0);
+  });
 });
