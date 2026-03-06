@@ -52,6 +52,7 @@ export const modelServingFlags = {
   disableKServeMetrics: false,
   disableKServeRaw: false,
   disableNIMModelServing: false,
+  nimOperatorIntegration: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
   disableLLMd: false,
@@ -180,6 +181,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
     reliantAreas: [SupportedArea.K_SERVE],
+  },
+  [SupportedArea.NIM_SERVICES]: {
+    featureFlags: ['nimOperatorIntegration'],
+    reliantAreas: [SupportedArea.NIM_MODEL],
   },
   [SupportedArea.ADMIN_CONNECTION_TYPES]: {
     featureFlags: ['disableAdminConnectionTypes'],

@@ -11,6 +11,7 @@ export const extractKServeModelFormat = (
       version: modelFormat.version,
     };
   }
+
   return null;
 };
 

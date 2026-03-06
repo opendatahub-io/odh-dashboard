@@ -8,7 +8,6 @@ import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -18,6 +17,7 @@ import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import { useInferenceServiceDisplayName } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -57,7 +57,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
-  const displayName = getDisplayNameFromK8sResource(inferenceService);
+
+  // Use the hook to get display name - handles both NIM Operator and regular deployments
+  const displayName = useInferenceServiceDisplayName(inferenceService);
 
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
@@ -116,7 +118,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
       {columnNames.includes(ColumnField.ServingRuntime) && (
         <Td dataLabel="Serving runtime">
-          <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
+          <InferenceServiceServingRuntime
+            servingRuntime={servingRuntime}
+            inferenceService={inferenceService}
+          />
         </Td>
       )}
 
@@ -139,6 +144,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <Td dataLabel="API protocol">
           <InferenceServiceAPIProtocol
             servingRuntime={servingRuntime}
+            inferenceService={inferenceService}
             isMultiModel={false} // Always KServe (single model)
           />
         </Td>
