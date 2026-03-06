@@ -13,7 +13,7 @@ const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
 
 const config: Configuration & { devServer?: DevServerConfiguration } = {
   mode: 'development',
-  entry: path.resolve(currentDir, 'playground.tsx'),
+  entry: path.resolve(currentDir, 'FileExplorer.playground.tsx'),
   devtool: 'eval-source-map',
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],

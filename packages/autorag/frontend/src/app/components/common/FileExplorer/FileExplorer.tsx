@@ -14,6 +14,12 @@ import React from 'react';
 
 // Types ---------------------------------------------------------------------->
 
+export interface Source {
+  name: string;
+  count?: number;
+}
+export type Sources = Source[];
+
 export interface File {
   name: string;
   size: string;
@@ -21,6 +27,7 @@ export interface File {
   type: string;
 }
 export type Files = File[];
+
 export interface Directory {
   name: string;
   path: string;
@@ -36,7 +43,7 @@ const defaults = {
     modalDescription: 'Select which files to use for your data collection and evaluation sources',
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
-    tableCaption: 'FooConnection (999)',
+    tableCaption: 'Files',
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
     tableColumnType: 'Type',
@@ -47,31 +54,33 @@ const defaults = {
 // Components ----------------------------------------------------------------->
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface SourceSelectorProps {}
-const SourceSelector: React.FC<SourceSelectorProps> = () => (
+interface SourceSelectorProps {
+  sources?: Sources;
+  source?: Source;
+  onSelectSource: (source: Source) => void;
+}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSelectSource }) => (
   <div data-temp-placeholder>{defaults.labels.sourceSelector}</div>
 );
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface FilesTableProps {}
-const FilesTable: React.FC<FilesTableProps> = () => {
+interface FilesTableProps {
+  source?: Source;
+  files?: Files;
+}
+const FilesTable: React.FC<FilesTableProps> = ({ files, source }) => {
   const columns = {
     name: defaults.labels.tableColumnName,
     type: defaults.labels.tableColumnType,
     size: defaults.labels.tableColumnSize,
   };
-  // mock data
-  const files = [
-    {
-      name: 'FooFile.md',
-      type: 'markdown',
-      size: 1000000000,
-    },
-  ];
 
   return (
     <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders={false}>
-      <Caption>{defaults.labels.tableCaption}</Caption>
+      <Caption>
+        {source ? `${source.name} (${source.count})` : defaults.labels.tableCaption}
+      </Caption>
       <Thead>
         <Tr>
           <Th>{columns.name}</Th>
@@ -80,13 +89,14 @@ const FilesTable: React.FC<FilesTableProps> = () => {
         </Tr>
       </Thead>
       <Tbody>
-        {files.map((file) => (
-          <Tr key={file.name}>
-            <Td dataLabel={columns.name}>{file.name}</Td>
-            <Td dataLabel={columns.type}>{file.type}</Td>
-            <Td dataLabel={columns.size}>{file.size}</Td>
-          </Tr>
-        ))}
+        {Array.isArray(files) &&
+          files.map((file) => (
+            <Tr key={file.name}>
+              <Td dataLabel={columns.name}>{file.name}</Td>
+              <Td dataLabel={columns.type}>{file.type}</Td>
+              <Td dataLabel={columns.size}>{file.size}</Td>
+            </Tr>
+          ))}
       </Tbody>
     </Table>
   );
@@ -96,9 +106,22 @@ interface FileExplorerProps {
   id?: string;
   isOpen: boolean;
   onClose: (_event: KeyboardEvent | React.MouseEvent) => void;
-  onSelect: (files: Files) => void;
+  sources?: Sources;
+  source?: Source;
+  files?: Files;
+  onSelectSource: (source: Source) => void;
+  onPrimary: (files: Files) => void;
 }
-const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSelect }) => (
+const FileExplorer: React.FC<FileExplorerProps> = ({
+  id,
+  isOpen,
+  onClose,
+  sources,
+  source,
+  files,
+  onSelectSource,
+  onPrimary,
+}) => (
   <Modal
     id={id}
     isOpen={isOpen}
@@ -115,10 +138,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSele
     <ModalBody id="FileExplorer-modal-body">
       <Grid>
         <GridItem span={4}>
-          <SourceSelector />
+          <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
         </GridItem>
         <GridItem span={8}>
-          <FilesTable />
+          <FilesTable files={files} source={source} />
         </GridItem>
       </Grid>
     </ModalBody>
@@ -127,7 +150,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSele
         key="select-files"
         variant="primary"
         onClick={(_event) => {
-          onSelect([]);
+          onPrimary([]);
           onClose(_event);
         }}
       >

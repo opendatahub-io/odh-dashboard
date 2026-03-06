@@ -165,7 +165,22 @@ function AutoragConfigure(): React.JSX.Element {
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onPrimary={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelectSource={
+          (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
+        }
+        files={[
+          {
+            path: '',
+            name: 'FooFile.000.md',
+            type: 'markdown',
+            size: '1000000000',
+          },
+        ]}
+        source={{
+          name: 'Foo connection',
+          count: 999999999,
+        }}
       />
     </>
   );
