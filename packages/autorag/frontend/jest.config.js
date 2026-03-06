@@ -12,10 +12,11 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
     '~/(.*)': '<rootDir>/src/$1',
+    '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },
   testEnvironment: 'jest-environment-jsdom',
   transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core)',
+    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core|mod-arch-shared)',
   ],
   snapshotSerializers: [],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],

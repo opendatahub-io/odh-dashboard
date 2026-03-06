@@ -294,6 +294,22 @@ class ConnectionTypesPage {
   findPreviewConnectionTypeModal() {
     return cy.findByTestId('connection-type-preview-modal');
   }
+
+  findPreviewAction() {
+    return cy.findByTestId('preview-connection-type-action');
+  }
+
+  findEditAction() {
+    return cy.findByTestId('edit-connection-type-action');
+  }
+
+  findDuplicateAction() {
+    return cy.findByTestId('duplicate-connection-type-action');
+  }
+
+  findDeleteAction() {
+    return cy.findByTestId('delete-connection-type-action');
+  }
 }
 
 class ConnectionTypePreviewModal extends Modal {

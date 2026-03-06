@@ -130,6 +130,7 @@ export type WBTolerationsTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
   workbenchName: string;
+  notebookImageName: string;
   resourceYamlPath: string;
   hardwareProfileName: string;
   tolerationValue: string;
@@ -361,9 +362,14 @@ export type ModelTolerationsTestData = {
 
 export type NotebookTolerationsTestData = {
   codeserverImageName: string;
+  notebookImageName: string;
   resourceYamlPath: string;
   hardwareProfileName: string;
+  tolerationKey: string;
+  tolerationOperator: string;
   tolerationValue: string;
+  podPrefix: string;
+  podReadyTimeout: string;
   hardwareProfileDeploymentSize: string;
 };
 
@@ -409,6 +415,17 @@ export type ModelRegistryTestData = {
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
 
+  // Database credentials
+  mysqlUsername: string;
+  postgresUsername: string;
+  databasePassword: string;
+
+  // Default database form values
+  defaultMysqlPort: string;
+  defaultPostgresPort: string;
+  defaultDatabaseName: string;
+  statusAvailable: string;
+
   // Database configuration testing
   databaseName: string;
   newDatabaseHost: string;
@@ -416,6 +433,9 @@ export type ModelRegistryTestData = {
   newDatabaseName: string;
   newDatabaseUsername: string;
   newDatabasePassword: string;
+
+  // Object storage paths
+  objectStoragePathV2: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -503,6 +523,17 @@ export type TrainJobTestData = {
   gpuQuota: number;
 };
 
+export type PipelineTestData = {
+  projectNamePrefix: string;
+  pipelineName: string;
+  pipelineDescription: string;
+  runName: string;
+  runDescription: string;
+  experimentName: string;
+  dspaSecretName: string;
+  pipelineUrl: string;
+};
+
 export type TiersTestData = {
   projectName: string;
   name: string;
@@ -519,6 +550,10 @@ export type TiersTestData = {
     time: string;
     unit: string;
   };
+  editGroup: string;
+  editTokenRateLimitUnit: string;
+  editRequestRateLimitUnit: string;
+  tierDeploymentOption: string;
   groupsCount: number;
   limits: string;
 };

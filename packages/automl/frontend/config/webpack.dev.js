@@ -86,11 +86,7 @@ module.exports = smp.wrap(
         proxy: [
           {
             context: ['/api', '/automl/api'],
-            target: {
-              host: PROXY_HOST,
-              protocol: PROXY_PROTOCOL,
-              port: PROXY_PORT,
-            },
+            target: `${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}`,
             changeOrigin: true,
             headers: getProxyHeaders(),
           },

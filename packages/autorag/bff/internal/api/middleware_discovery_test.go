@@ -252,11 +252,17 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		}
 	})
 
-	t.Run("should return empty list for namespace with no DSPAs", func(t *testing.T) {
-		namespace := "empty-namespace"
+	t.Run("should return synthetic ready DSPA for namespace with no matching mock DSPAs", func(t *testing.T) {
+		namespace := "aistor"
 		dspas := getMockDSPipelineApplications(namespace)
 
-		assert.Len(t, dspas, 0, "Should return empty list for namespace with no DSPAs")
+		assert.Len(t, dspas, 1, "Should return synthetic DSPA for any namespace when no mock matches")
+		require.NotEmpty(t, dspas)
+		dspa := dspas[0]
+		assert.Equal(t, "dspa", dspa.Metadata.Name)
+		assert.Equal(t, namespace, dspa.Metadata.Namespace)
+		assert.True(t, dspa.Status.Ready)
+		assert.True(t, isAPIServerReady(&dspa))
 	})
 
 	t.Run("should have first DSPA ready with APIServerReady=True", func(t *testing.T) {

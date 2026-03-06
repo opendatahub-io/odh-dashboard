@@ -31,6 +31,10 @@ class PipelinesTableRow extends TableRow {
   findPipelineNameLink(value: string) {
     return this.find().findByTestId('table-row-title').contains(value);
   }
+
+  findDeletePipelineAction() {
+    return cy.findByTestId('delete-pipeline-action');
+  }
 }
 
 class PipelineVersionsTableRow extends TableRow {
@@ -40,6 +44,10 @@ class PipelineVersionsTableRow extends TableRow {
 
   findPipelineVersionViewRunLink() {
     return this.find().findByTestId('runs-route-link');
+  }
+
+  findDeletePipelineVersionAction() {
+    return cy.findByTestId('delete-pipeline-version-action');
   }
 }
 
