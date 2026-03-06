@@ -46,12 +46,8 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     resolver: zodResolver(configureSchema),
     defaultValues: {
       ...configureSchema.parse({}),
-      generation_constraints: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => ({
-        model: m.id,
-      })),
-      embeddings_constraints: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => ({
-        model: m.id,
-      })),
+      generation_models: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => m.id),
+      embeddings_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
     },
   });
   return <FormProvider {...form}>{children}</FormProvider>;

@@ -223,6 +223,14 @@ class ModelRegistrySettings {
     this.findDatabaseTypeDropdown().click();
     this.findDatabaseTypeOption(type).click();
   }
+
+  findEditRegistryAction() {
+    return cy.findByTestId('edit-model-registry-action');
+  }
+
+  findDeleteRegistryAction() {
+    return cy.findByTestId('delete-model-registry-action');
+  }
 }
 
 class CertificateUpload extends Contextual<HTMLElement> {

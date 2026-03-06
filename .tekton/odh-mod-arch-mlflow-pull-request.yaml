@@ -9,8 +9,8 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main" && ( " packages/gen-ai/**".pathChanged()
-      || ".tekton/odh-mod-arch-gen-ai-pull-request.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
+      == "main" && ( "packages/mlflow/**".pathChanged()
+      || ".tekton/odh-mod-arch-mlflow-pull-request.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
       )
   creationTimestamp: null
   labels:
@@ -26,7 +26,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-mlflow:on-pr
+    value: quay.io/opendatahub/odh-mod-arch-mlflow:odh-pr
   - name: image-expires-after
     value: 5d
   - name: dockerfile

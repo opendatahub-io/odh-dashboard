@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -50,6 +51,14 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return false, nil
+}
+
+func (m *mockKubernetesClientForSecrets) CanListLlamaStackDistributions(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+	return false, nil
+}
+
+func (m *mockKubernetesClientForSecrets) GetLlamaStackDistributions(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+	return nil, nil
 }
 
 // mockKubernetesClientFactoryForSecrets implements KubernetesClientFactory for testing
@@ -478,7 +487,7 @@ func TestGetSecretsHandler_InvalidType_ReturnsBadRequest(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets?resource=test-namespace&type=invalid",
 		nil,
@@ -539,7 +548,7 @@ func TestGetSecretsHandler_MissingResourceParameter(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets",
 		nil,
@@ -559,7 +568,7 @@ func TestGetSecretsHandler_KubernetesClientError(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets?resource=test-namespace",
 		nil,
@@ -588,7 +597,7 @@ func TestGetSecretsHandler_NamespaceNotFound(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets?resource=non-existent",
 		nil,
@@ -617,7 +626,7 @@ func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets?resource=restricted",
 		nil,
@@ -647,7 +656,7 @@ func TestGetSecretsHandler_UnauthorizedError(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	_, res, err := setupApiTest[HTTPError](
+	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		"/api/v1/secrets?resource=restricted",
 		nil,

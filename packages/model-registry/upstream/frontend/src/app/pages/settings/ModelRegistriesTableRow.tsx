@@ -65,13 +65,13 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Edit model registry',
+              title: <span data-testid="edit-model-registry-action">Edit model registry</span>,
               onClick: () => {
                 onEditRegistry(mr);
               },
             },
             {
-              title: 'Delete model registry',
+              title: <span data-testid="delete-model-registry-action">Delete model registry</span>,
               disabled: isDeploymentKubeflow,
               onClick: () => {
                 onDeleteRegistry(mr);
