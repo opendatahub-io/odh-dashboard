@@ -157,7 +157,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         if (showType && secret.type) {
           labels.push(
             <Label key="type" color="teal" isCompact>
-              Type: {secret.type.toUpperCase()}
+              Type: {secret.type}
             </Label>,
           );
         }
