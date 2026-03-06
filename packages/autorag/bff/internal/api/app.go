@@ -170,9 +170,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
-	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
+	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
+	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
+	apiRouter.GET(SecretsPath, app.RequireAccessToService(app.GetSecretsHandler))
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
@@ -181,8 +181,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.PipelineRunHandler))))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
