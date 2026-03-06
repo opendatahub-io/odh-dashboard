@@ -16,11 +16,9 @@ import { getSecrets } from '~/app/api/k8s';
 import { SecretListItem } from '~/app/types';
 import { getMissingRequiredKeys, formatMissingKeysMessage } from '~/app/utilities/secretValidation';
 
-export type SecretSelection = {
-  uuid: string;
-  name: string;
+export interface SecretSelection extends SecretListItem {
   invalid?: boolean;
-};
+}
 
 type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> & {
   content: string | number;
@@ -192,11 +190,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             if (missingKeys.length > 0) {
               // Secret is missing required keys - set error and call onChange with invalid: true
               setValidationError(formatMissingKeysMessage(missingKeys));
-              onChange({ uuid: secret.uuid, name: secret.name, invalid: true });
+              onChange({ ...secret, invalid: true });
             } else {
               // Secret is valid - clear error and call onChange with selection
               setValidationError('');
-              onChange({ uuid: secret.uuid, name: secret.name, invalid: false });
+              onChange({ ...secret, invalid: false });
             }
           } else {
             setValidationError('');
