@@ -73,14 +73,14 @@ function AutoragConfigure(): React.JSX.Element {
   });
   const {
     control,
+    setValue,
+    watch,
     formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
-    // getValues,
-    // reset,
-    // setValue,
-    // watch,
-    // trigger,
   } = form;
 
+  const canSelectDocs = Boolean(watch('input_data_secret_name'));
+  // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
+  const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
   const formDisabled = !formIsValid || formIsSubmitting;
 
   useEffect(() => {
@@ -144,12 +144,12 @@ function AutoragConfigure(): React.JSX.Element {
                               <Controller
                                 control={control}
                                 name="input_data_secret_name"
-                                render={({ field: { value, onChange } }) => (
+                                render={({ field: { onChange } }) => (
                                   <SecretSelector
                                     namespace={String(namespace)}
                                     type="storage"
                                     additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
-                                    value={value}
+                                    value={selectedSecret?.uuid}
                                     onChange={(secret) => {
                                       setSelectedSecret(secret);
                                       onChange(secret?.invalid ? undefined : secret?.name);
@@ -184,7 +184,10 @@ function AutoragConfigure(): React.JSX.Element {
                           </StackItem>
                           <StackItem>
                             <Label
-                              onClose={() => setSelectedSecret(undefined)}
+                              onClose={() => {
+                                setSelectedSecret(undefined);
+                                setValue('input_data_secret_name', undefined);
+                              }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
                               {selectedSecret?.name}
@@ -199,7 +202,7 @@ function AutoragConfigure(): React.JSX.Element {
                               key="select-files"
                               variant="secondary"
                               onClick={() => setIsFileExplorerOpen(true)}
-                              isDisabled={formDisabled}
+                              isDisabled={!canSelectDocs || formIsSubmitting}
                             >
                               Select files
                             </Button>
@@ -239,7 +242,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-optimization-metric"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
-                                    isDisabled={formDisabled}
+                                    isDisabled={!hasFiles || formIsSubmitting}
                                   >
                                     Edit
                                   </Button>,
@@ -261,7 +264,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-considered-models"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
-                                    isDisabled={formDisabled}
+                                    isDisabled={!hasFiles || formIsSubmitting}
                                   >
                                     Edit
                                   </Button>,
