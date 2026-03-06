@@ -10,12 +10,6 @@ const mockUseSearchParams = jest.fn();
 
 const updatePreferredProjectMock = jest.fn();
 
-type MockProjectSelectorProps = {
-  namespace: string;
-  onSelection: (projectName: string) => void;
-  getSelectionHref?: (projectName: string) => string | undefined;
-};
-
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -23,18 +17,30 @@ jest.mock('react-router-dom', () => ({
   useSearchParams: () => mockUseSearchParams(),
 }));
 
-const MockProjectSelector = (props: MockProjectSelectorProps) => (
-  <div>
-    <div data-testid="namespace-value">{props.namespace}</div>
-    <a href={props.getSelectionHref?.('beta')} data-testid="project-link">
-      project link
-    </a>
-    <button type="button" data-testid="select-project" onClick={() => props.onSelection('beta')}>
-      select project
-    </button>
-  </div>
-);
-jest.mock('#~/concepts/projects/ProjectSelector', () => MockProjectSelector);
+jest.mock('#~/concepts/projects/ProjectSelector', () => {
+  function MockProjectSelector(props: {
+    namespace: string;
+    onSelection: (projectName: string) => void;
+    getSelectionHref?: (projectName: string) => string | undefined;
+  }) {
+    return (
+      <div>
+        <div data-testid="namespace-value">{props.namespace}</div>
+        <a href={props.getSelectionHref?.('beta')} data-testid="project-link">
+          project link
+        </a>
+        <button
+          type="button"
+          data-testid="select-project"
+          onClick={() => props.onSelection('beta')}
+        >
+          select project
+        </button>
+      </div>
+    );
+  }
+  return MockProjectSelector;
+});
 
 const renderComponent = () =>
   render(

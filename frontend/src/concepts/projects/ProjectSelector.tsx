@@ -117,7 +117,6 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                   component={(props: React.ComponentProps<'a'>) => (
                     <Link {...props} to={selectionHref} />
                   )}
-                  onClick={(e) => e.preventDefault()}
                   style={{ color: 'inherit', textDecoration: 'none' }}
                 >
                   <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
