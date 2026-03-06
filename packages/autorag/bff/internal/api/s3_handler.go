@@ -21,6 +21,8 @@ import (
 //   - secretName (required): The name of the Kubernetes secret containing S3 credentials
 //   - bucket (required): The S3 bucket name
 //   - key (required): The S3 object key to retrieve
+//
+// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -29,15 +31,15 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Parse query parameters
-	queryParams := r.URL.Query()
-
-	// Validate required parameters
-	namespace := queryParams.Get("namespace")
-	if namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'namespace' is required"))
+	// Get namespace from context (set by AttachNamespace middleware)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 		return
 	}
+
+	// Parse query parameters
+	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
