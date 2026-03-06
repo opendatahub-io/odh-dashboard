@@ -214,6 +214,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                           onClick={() =>
                             navigate(modelVersionArchiveUrl(rm.id, preferredModelRegistry?.name))
                           }
+                          data-testid="view-archived-versions-action"
                         >
                           View archived versions
                         </DropdownItem>

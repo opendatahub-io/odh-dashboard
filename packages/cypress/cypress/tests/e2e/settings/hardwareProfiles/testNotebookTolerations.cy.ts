@@ -21,7 +21,7 @@ describe('Notebooks - tolerations tests', () => {
         testData = yaml.load(yamlContent) as NotebookTolerationsTestData;
 
         // Check if a notebook is running and delete if it is
-        deleteNotebook('jupyter-nb');
+        deleteNotebook(testData.podPrefix);
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
         // Cleanup Hardware Profile if it already exists
@@ -37,7 +37,7 @@ describe('Notebooks - tolerations tests', () => {
     }
 
     // Check if a notebook is running and delete if it is
-    deleteNotebook('jupyter-nb');
+    deleteNotebook(testData.podPrefix);
 
     // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
     cleanupHardwareProfiles(testData.hardwareProfileName);
@@ -60,7 +60,7 @@ describe('Notebooks - tolerations tests', () => {
 
       // Select a notebook image
       cy.step('Choose Code Server Image');
-      notebookServer.findNotebookImage('code-server-notebook').click();
+      notebookServer.findNotebookImage(testData.notebookImageName).click();
 
       // Select an Hardware Profile
       cy.step('Select the hardware profile');
@@ -79,7 +79,7 @@ describe('Notebooks - tolerations tests', () => {
 
       // Verify that the server is running
       cy.step('Verify the Jupyter Notebook pod is ready');
-      waitForPodReady('jupyter-nb', '300s');
+      waitForPodReady(testData.podPrefix, testData.podReadyTimeout);
 
       // Expand  the log
       cy.step('Expand the Event log');
@@ -91,9 +91,9 @@ describe('Notebooks - tolerations tests', () => {
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
-      checkNotebookTolerations('jupyter-nb', {
-        key: 'test-taint',
-        operator: 'Equal',
+      checkNotebookTolerations(testData.podPrefix, {
+        key: testData.tolerationKey,
+        operator: testData.tolerationOperator,
         effect: testData.tolerationValue,
       });
 

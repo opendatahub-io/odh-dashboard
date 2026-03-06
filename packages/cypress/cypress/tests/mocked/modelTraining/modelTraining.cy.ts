@@ -15,6 +15,7 @@ import {
   ClusterQueueModel,
   EventModel,
   LocalQueueModel,
+  RayJobModel,
   TrainJobModel,
   WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
@@ -548,12 +549,13 @@ describe('Model Training Feature Availability', () => {
     modelTrainingGlobal.shouldNotFoundPage();
   });
 
-  it('Exists if Training Operator is installed and feature flag is enabled', () => {
+  it('Exists if only Trainer is installed and feature flag is enabled', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
           [DataScienceStackComponent.TRAINER]: { managementState: 'Managed' },
+          [DataScienceStackComponent.RAY]: { managementState: 'Removed' },
         },
       }),
     );
@@ -590,6 +592,82 @@ describe('Model Training Feature Availability', () => {
 
     modelTrainingGlobal.visit(projectName);
     modelTrainingGlobal.findNavItem().should('exist');
+  });
+
+  it('Exists if only Ray is installed and feature flag is enabled', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.RAY]: { managementState: 'Managed' },
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Removed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+          enableKueue: true,
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      {
+        model: RayJobModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      {
+        model: LocalQueueModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    modelTrainingGlobal.findNavItem().should('exist');
+  });
+
+  it('Does not exist if neither Trainer nor Ray is installed', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Removed' },
+          [DataScienceStackComponent.RAY]: { managementState: 'Removed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+        }),
+      ]),
+    );
+
+    modelTrainingGlobal.visit(projectName, false);
+    modelTrainingGlobal.findNavItem().should('not.exist');
+    modelTrainingGlobal.shouldNotFoundPage();
   });
 });
 
