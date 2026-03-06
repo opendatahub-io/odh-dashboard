@@ -15,7 +15,6 @@ function getBaseSchema() {
     label_column: z.string().default(''),
     top_n: z
       .number()
-      .int()
       .min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`)
       .max(MAX_TOP_N, `Maximum number of top models is ${MAX_TOP_N}`)
       .default(3),
