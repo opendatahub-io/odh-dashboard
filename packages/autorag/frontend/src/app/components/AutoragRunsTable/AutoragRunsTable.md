@@ -33,6 +33,10 @@ const pageSize = 20;
 />
 ```
 
+## Columns
+
+Name, Description, **Started** (relative time with tooltip showing full date), Status.
+
 ## Props
 
 | Prop              | Type                         | Required | Description                                     |
