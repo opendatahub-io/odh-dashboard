@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
@@ -21,11 +22,13 @@ describe('MissingConditionAlert', () => {
 
   const renderComponent = () =>
     render(
-      <MissingConditionAlert
-        selectedProject={TEST_PROJECT}
-        setIsLoadingProject={setIsLoadingProject}
-        setCanContinue={setCanContinue}
-      />,
+      <MemoryRouter>
+        <MissingConditionAlert
+          selectedProject={TEST_PROJECT}
+          setIsLoadingProject={setIsLoadingProject}
+          setCanContinue={setCanContinue}
+        />
+      </MemoryRouter>,
     );
 
   afterEach(() => {

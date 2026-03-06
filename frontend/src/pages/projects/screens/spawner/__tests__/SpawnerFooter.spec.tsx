@@ -1,4 +1,5 @@
 import React, { act } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
@@ -87,13 +88,15 @@ describe('EmptyProjects', () => {
   });
   it('should dry run all the API calls', async () => {
     const result = render(
-      <SpawnerFooter
-        startNotebookData={startNotebookDataMock}
-        storageData={mockStorageData}
-        canEnablePipelines
-        envVariables={mockEnvVariables}
-        connections={[mockConnection({})]}
-      />,
+      <MemoryRouter>
+        <SpawnerFooter
+          startNotebookData={startNotebookDataMock}
+          storageData={mockStorageData}
+          canEnablePipelines
+          envVariables={mockEnvVariables}
+          connections={[mockConnection({})]}
+        />
+      </MemoryRouter>,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
     await act(() => fireEvent.click(result.getByTestId('submit-button')));
@@ -126,13 +129,15 @@ describe('EmptyProjects', () => {
 
   it('should render cancel as a link to the workbench section', () => {
     const result = render(
-      <SpawnerFooter
-        startNotebookData={startNotebookDataMock}
-        storageData={mockStorageData}
-        canEnablePipelines
-        envVariables={mockEnvVariables}
-        connections={[mockConnection({})]}
-      />,
+      <MemoryRouter>
+        <SpawnerFooter
+          startNotebookData={startNotebookDataMock}
+          storageData={mockStorageData}
+          canEnablePipelines
+          envVariables={mockEnvVariables}
+          connections={[mockConnection({})]}
+        />
+      </MemoryRouter>,
     );
 
     const cancelButton = result.getByTestId('cancel-button');
