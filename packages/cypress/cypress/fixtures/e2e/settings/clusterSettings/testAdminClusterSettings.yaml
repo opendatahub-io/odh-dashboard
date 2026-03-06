@@ -1,3 +1,4 @@
 # testAdminClusterSettings.cy.ts Test Data #
 clusterRoleBindingNamePrefix: "cypress-test"
-
+storageClassesPageTitle: "Storage classes"
+aiRegistryPageTitle: "AI registry settings"

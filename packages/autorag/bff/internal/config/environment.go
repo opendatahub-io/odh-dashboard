@@ -78,6 +78,7 @@ type EnvConfig struct {
 	Port                     int
 	MockK8Client             bool
 	MockHTTPClient           bool
+	MockLSClient             bool
 	MockPipelineServerClient bool
 	PipelineServerURL        string
 	DevMode                  bool
@@ -105,6 +106,11 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// ─── SERVICE URLS ───────────────────────────────────────────
+	// LlamaStack service URL configuration
+	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
+	LlamaStackURL string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

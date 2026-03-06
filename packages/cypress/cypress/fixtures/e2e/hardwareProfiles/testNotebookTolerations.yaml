@@ -1,6 +1,11 @@
 # testNotebookTolerations.cy.ts Test Data #
-codeserverImageName: "code-server-notebook:2024.2" 
+codeserverImageName: "code-server-notebook:2024.2"
+notebookImageName: "code-server-notebook"
 resourceYamlPath: "resources/hardwareProfile/notebook_tolerations.yaml"
 hardwareProfileName: "cypress-hardware-profile-notebooks"
+tolerationKey: "test-taint"
+tolerationOperator: "Equal"
 tolerationValue: "PreferNoSchedule"
+podPrefix: "jupyter-nb"
+podReadyTimeout: "300s"
 hardwareProfileDeploymentSize: "cypress-hardware-profile-notebooks CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"

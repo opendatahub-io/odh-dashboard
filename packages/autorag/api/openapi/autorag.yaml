@@ -141,6 +141,44 @@ paths:
         - No type: Returns all secrets with their detected type classification
 
   # =============================================================================
+  # LSD ENDPOINTS
+  # =============================================================================
+
+  /api/v1/lsd/models:
+    summary: List available LSD models
+    description: >-
+      Lists all available models from LlamaStack Distribution (LSD).
+      Returns a flat list of models with their identifiers, types, provider information, and resource paths.
+      Requires namespace parameter for proper multi-tenant isolation.
+    get:
+      tags:
+        - Models
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where LSD is deployed
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        "200":
+          $ref: "#/components/responses/LSDModelsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getLSDModels
+      summary: Get LSD Models
+      description: Returns available models from LlamaStack Distribution
+
+  # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
 
@@ -234,6 +272,44 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+
+    # LSD Model Schemas
+    LSDModel:
+      type: object
+      description: Model from LlamaStack Distribution
+      required:
+        - id
+        - type
+        - provider
+      properties:
+        id:
+          type: string
+          description: Unique model identifier
+          example: "llama3.2:3b"
+        type:
+          type: string
+          enum: ["llm", "embedding"]
+          description: Model type (llm or embedding)
+          example: "llm"
+        provider:
+          type: string
+          description: Provider identifier
+          example: "ollama"
+        resource_path:
+          type: string
+          description: Full provider resource path
+          example: "ollama://models/llama3.2:3b"
+    LSDModelsData:
+      type: object
+      description: List of all available models from LlamaStack Distribution
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          description: Complete list of all available models
+          items:
+            $ref: '#/components/schemas/LSDModel'
 
     SecretTypeSchema:
       description: >-
@@ -636,6 +712,32 @@ components:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
 
+    # LSD Responses
+    LSDModelsResponse:
+      description: List of available LSD models
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LSDModelsData'
+          example:
+            models:
+              - id: "llama3.2:3b"
+                type: "llm"
+                provider: "ollama"
+                resource_path: "ollama://models/llama3.2:3b"
+              - id: "mistral-7b-instruct"
+                type: "llm"
+                provider: "ollama"
+                resource_path: "ollama://models/mistral-7b-instruct"
+              - id: "all-minilm:l6-v2"
+                type: "embedding"
+                provider: "ollama"
+                resource_path: "ollama://models/all-minilm:l6-v2"
+              - id: "nomic-embed-text"
+                type: "embedding"
+                provider: "ollama"
+                resource_path: "ollama://models/nomic-embed-text"
+
     SecretsResponse:
       content:
         application/json:
@@ -913,5 +1015,7 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: Models
+    description: AI model discovery and management from LlamaStack Distribution
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs

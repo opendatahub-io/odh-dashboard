@@ -1,6 +1,6 @@
 export class Header {
   findApplicationLauncher(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="application-launcher"]');
+    return cy.findByTestId('application-launcher');
   }
 
   findMenuDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -8,7 +8,11 @@ export class Header {
   }
 
   findUnauthorizedErrorSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="unauthorized-error"]');
+    return cy.findByTestId('unauthorized-error');
+  }
+
+  findUnauthorizedErrorTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('unauthorized-error-title');
   }
 }
 
