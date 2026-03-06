@@ -94,6 +94,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLLMd: false,
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
+      externalVectorStores: false,
     },
     notebookController: {
       enabled: true,
