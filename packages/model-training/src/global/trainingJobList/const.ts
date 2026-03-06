@@ -1,13 +1,13 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
-import { getTrainingJobStatusSync } from './utils';
-import { TrainJobKind } from '../../k8sTypes';
+import { getUnifiedJobStatusSync, getUnifiedJobNodeCount } from './utils';
+import { UnifiedJobKind, isRayJob } from '../../types';
 
-export const columns: SortableData<TrainJobKind>[] = [
+export const columns: SortableData<UnifiedJobKind>[] = [
   {
     field: 'name',
     label: 'Name',
-    width: 20,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number =>
+    width: 15,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
       (a.metadata.annotations?.['opendatahub.io/display-name'] || a.metadata.name).localeCompare(
         b.metadata.annotations?.['opendatahub.io/display-name'] || b.metadata.name,
       ),
@@ -15,40 +15,58 @@ export const columns: SortableData<TrainJobKind>[] = [
   {
     field: 'project',
     label: 'Project',
-    width: 20,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number =>
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
       a.metadata.namespace.localeCompare(b.metadata.namespace),
   },
   {
     field: 'nodes',
     label: 'Nodes',
-    width: 15,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number => {
-      const aNodes = a.spec.trainer?.numNodes || 0;
-      const bNodes = b.spec.trainer?.numNodes || 0;
-
-      return aNodes - bNodes;
-    },
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
+      getUnifiedJobNodeCount(a) - getUnifiedJobNodeCount(b),
     info: {
       popoverProps: { hasAutoWidth: true },
-      popover: 'The total number of master and worker nodes assigned to a training job.',
+      popover: 'The total number of master and worker nodes assigned to a job.',
     },
   },
   {
     field: 'clusterQueue',
     label: 'Cluster queue',
     width: 10,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number => {
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const aQueue = a.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '';
       const bQueue = b.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '';
       return aQueue.localeCompare(bQueue);
     },
   },
   {
+    field: 'rayCluster',
+    label: 'RayCluster',
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
+      const aCluster = isRayJob(a) ? a.status?.rayClusterName ?? '' : '';
+      const bCluster = isRayJob(b) ? b.status?.rayClusterName ?? '' : '';
+      return aCluster.localeCompare(bCluster);
+    },
+  },
+  {
+    field: 'type',
+    label: 'Type',
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
+      (a.kind || '').localeCompare(b.kind || ''),
+    info: {
+      popoverProps: { hasAutoWidth: true },
+      popover:
+        'TrainJobs are training workloads managed by the Trainer component. RayJobs are computing workloads that use the Ray framework.',
+    },
+  },
+  {
     field: 'created',
     label: 'Created',
-    width: 15,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number => {
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const first = a.metadata.creationTimestamp;
       const second = b.metadata.creationTimestamp;
       return new Date(first ?? 0).getTime() - new Date(second ?? 0).getTime();
@@ -57,11 +75,10 @@ export const columns: SortableData<TrainJobKind>[] = [
   {
     field: 'status',
     label: 'Status',
-    width: 15,
-    sortable: (a: TrainJobKind, b: TrainJobKind): number => {
-      // For sorting, we use the sync version for performance
-      const aState = getTrainingJobStatusSync(a);
-      const bState = getTrainingJobStatusSync(b);
+    width: 10,
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
+      const aState = getUnifiedJobStatusSync(a);
+      const bState = getUnifiedJobStatusSync(b);
       return aState.localeCompare(bState);
     },
   },
@@ -77,22 +94,22 @@ export const columns: SortableData<TrainJobKind>[] = [
   },
 ];
 
-export enum TrainingJobToolbarFilterOptions {
+export enum JobsToolbarFilterOptions {
   name = 'Name',
   clusterQueue = 'Cluster queue',
   status = 'Status',
 }
 
-export const TrainingJobFilterOptions = {
-  [TrainingJobToolbarFilterOptions.name]: 'Name',
-  [TrainingJobToolbarFilterOptions.clusterQueue]: 'Cluster queue',
-  [TrainingJobToolbarFilterOptions.status]: 'Status',
+export const JobsFilterOptions = {
+  [JobsToolbarFilterOptions.name]: 'Name',
+  [JobsToolbarFilterOptions.clusterQueue]: 'Cluster queue',
+  [JobsToolbarFilterOptions.status]: 'Status',
 };
 
-export type TrainingJobFilterDataType = Record<TrainingJobToolbarFilterOptions, string | undefined>;
+export type JobsFilterDataType = Record<JobsToolbarFilterOptions, string | undefined>;
 
-export const initialTrainingJobFilterData: TrainingJobFilterDataType = {
-  [TrainingJobToolbarFilterOptions.name]: '',
-  [TrainingJobToolbarFilterOptions.clusterQueue]: '',
-  [TrainingJobToolbarFilterOptions.status]: '',
+export const initialJobsFilterData: JobsFilterDataType = {
+  [JobsToolbarFilterOptions.name]: '',
+  [JobsToolbarFilterOptions.clusterQueue]: '',
+  [JobsToolbarFilterOptions.status]: '',
 };

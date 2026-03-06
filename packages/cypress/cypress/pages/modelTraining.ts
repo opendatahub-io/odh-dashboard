@@ -20,7 +20,7 @@ class ModelTrainingGlobal {
 
     appChrome
       .findNavItem({
-        name: 'Training jobs',
+        name: 'Jobs',
         rootSection: 'Develop & train',
       })
       .click();
@@ -34,7 +34,7 @@ class ModelTrainingGlobal {
   }
 
   findNavItem() {
-    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+    return appChrome.findNavItem({ name: 'Jobs', rootSection: 'Develop & train' });
   }
 
   shouldNotFoundPage() {
