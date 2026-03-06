@@ -82,9 +82,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             const handleSelectAll = (isSelecting: boolean) => {
               field.onChange(
                 isSelecting
-                  ? models
-                      .map((model) => ({ model: model.id }))
-                      .toSorted((a, b) => a.model.localeCompare(b.model))
+                  ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
                   : [],
               );
             };

@@ -17,6 +17,7 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
 
 export const EXPERIMENT_SETTINGS_FIELDS = [
   'optimization_metric',
+  'optimization_max_rag_patterns',
   'embeddings_models',
   'generation_models',
 ] as const;
