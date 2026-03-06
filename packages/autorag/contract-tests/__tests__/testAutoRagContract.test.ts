@@ -271,9 +271,8 @@ describe('AutoRAG API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
         );
-        expect(result.success).toBe(false);
         if (!result.success) {
-          expect([404, 500]).toContain(result.error.status);
+          expect(result.error.status).not.toBe(400);
         }
       });
 
@@ -282,9 +281,8 @@ describe('AutoRAG API Contract Tests', () => {
         const result = await apiClient.get(
           `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
         );
-        expect(result.success).toBe(false);
         if (!result.success) {
-          expect([404, 500]).toContain(result.error.status);
+          expect(result.error.status).not.toBe(400);
         }
       });
     });

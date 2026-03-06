@@ -128,6 +128,6 @@ func (r *S3Repository) GetS3Object(
 		contentType = *result.ContentType
 	}
 
-	// Transfer manager's GetObject returns io.Reader, wrap it with NopCloser for io.ReadCloser
+	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
 	return result.Body, contentType, nil
 }
