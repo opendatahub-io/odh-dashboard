@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: llama-stack-demos-knowledge-assistant
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a Knowledge Assistant'
+  description: >-
+    Deploy a complete document Q&A application using Llama Stack with RAG,
+    tool calling, and a Streamlit interface. A production-ready reference
+    for enterprise knowledge assistants.
+  url: 'https://github.com/opendatahub-io/llama-stack-demos/tree/main/demos/04_agents'
+  provider: Open Data Hub
+  appName: llama-stack-demos
