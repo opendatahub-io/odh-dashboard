@@ -12,6 +12,7 @@ export const techPreviewFlags = {
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
+  externalVectorStores: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {

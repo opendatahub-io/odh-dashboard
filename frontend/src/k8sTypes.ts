@@ -1310,6 +1310,7 @@ export type DashboardCommonConfig = {
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  externalVectorStores?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

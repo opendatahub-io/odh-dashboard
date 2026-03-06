@@ -52,6 +52,7 @@ export type MockDashboardConfigType = {
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  externalVectorStores?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -97,6 +98,7 @@ export const mockDashboardConfig = ({
   observabilityDashboard = false,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
+  externalVectorStores = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -265,6 +267,7 @@ export const mockDashboardConfig = ({
       observabilityDashboard,
       disableLLMd,
       deploymentWizardYAMLViewer,
+      externalVectorStores,
     },
     notebookController: {
       enabled: !disableNotebookController,
