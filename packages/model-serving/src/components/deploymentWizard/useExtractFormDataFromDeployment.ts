@@ -105,16 +105,28 @@ export const useExtractFormDataFromDeployment = (
     return undefined;
   }, [deployment, formDataExtensionErrors, deploymentSecretsError, extractorErrors]);
 
+  const hardwareProfileResult = React.useMemo(
+    () =>
+      deployment && loaded && !loadingError
+        ? formDataExtension?.properties.extractHardwareProfileConfig(deployment)
+        : undefined,
+    [deployment, loaded, loadingError, formDataExtension],
+  );
+
+  const replicasResult = React.useMemo(
+    () =>
+      deployment && loaded && !loadingError
+        ? formDataExtension?.properties.extractReplicas(deployment)
+        : undefined,
+    [deployment, loaded, loadingError, formDataExtension],
+  );
+
   // Memoize the form data extraction to prevent unnecessary recalculations
   const formData = React.useMemo((): InitialWizardFormData | undefined => {
     // Only extract form data if everything is loaded and there are no loading errors
     if (!deployment || !loaded || loadingError) {
       return undefined;
     }
-
-    const hardwareProfileResult =
-      formDataExtension?.properties.extractHardwareProfileConfig(deployment);
-    const replicasResult = formDataExtension?.properties.extractReplicas(deployment);
 
     return {
       // Extract model type information from deployment metadata
@@ -175,6 +187,8 @@ export const useExtractFormDataFromDeployment = (
   }, [
     deployment,
     formDataExtension,
+    hardwareProfileResult,
+    replicasResult,
     deploymentSecrets,
     dashboardNamespace,
     loaded,
@@ -190,19 +204,17 @@ export const useExtractFormDataFromDeployment = (
 
     const errors: string[] = [];
 
-    // Collect errors from ExtractionResult-returning extract functions
-    const hardwareProfileResult =
-      formDataExtension?.properties.extractHardwareProfileConfig(deployment);
-    const replicasResult = formDataExtension?.properties.extractReplicas(deployment);
     errors.push(...collectExtractionErrors(hardwareProfileResult, replicasResult));
 
-    // Collect errors from platform-specific validateExtraction
     if (typeof formDataExtension?.properties.validateExtraction === 'function') {
       errors.push(...formDataExtension.properties.validateExtraction(deployment));
     }
 
-    if (!formData.modelTypeField) {
-      errors.push('Missing model type annotation (opendatahub.io/model-type).');
+    const rawModelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
+    if (rawModelType && !formData.modelTypeField) {
+      errors.push(
+        `Unsupported model type "${rawModelType}". Only "predictive" and "generative" are supported.`,
+      );
     }
     if (formData.modelLocationData?.type === 'existing' && !formData.modelLocationData.connection) {
       errors.push('Missing connection annotation.');
@@ -214,7 +226,14 @@ export const useExtractFormDataFromDeployment = (
       );
     }
     return undefined;
-  }, [deployment, formData, formDataExtension, loadingError]);
+  }, [
+    deployment,
+    formData,
+    formDataExtension,
+    hardwareProfileResult,
+    replicasResult,
+    loadingError,
+  ]);
 
   const error = loadingError || validationError;
 
