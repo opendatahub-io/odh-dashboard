@@ -63,6 +63,7 @@ export const advancedAIMLFlags = {
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
   disableModelRegistrySecureDB: false,
+  registryOciStorage: false,
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
@@ -175,6 +176,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_REGISTRY_SECURE_DB]: {
     featureFlags: ['disableModelRegistrySecureDB'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
+  [SupportedArea.REGISTRY_OCI_STORAGE]: {
+    featureFlags: ['registryOciStorage'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
   [SupportedArea.NIM_MODEL]: {

@@ -1291,6 +1291,7 @@ export type DashboardCommonConfig = {
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;
   disableModelRegistrySecureDB: boolean;
+  registryOciStorage: boolean;
   disableServingRuntimeParams: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
