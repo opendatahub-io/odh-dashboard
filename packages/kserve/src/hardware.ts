@@ -8,36 +8,63 @@ import {
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
 import type { KServeDeployment } from './deployments';
 
 export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };
 
 export const extractHardwareProfileConfig = (
   kserveDeployment: KServeDeployment,
-): Parameters<typeof useHardwareProfileConfig> => {
+): ExtractionResult<Parameters<typeof useHardwareProfileConfig>> => {
   const { name, namespace: hardwareProfileNamespace } = getExistingHardwareProfileData(
     kserveDeployment.model,
   );
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     getExistingResources(kserveDeployment.model, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS);
 
-  return [
-    name,
-    existingContainerResources,
-    existingTolerations,
-    existingNodeSelector,
-    MODEL_SERVING_VISIBILITY,
-    kserveDeployment.model.metadata.namespace,
-    hardwareProfileNamespace,
-  ];
+  const errors: string[] = [];
+
+  const { tolerations, nodeSelector } = kserveDeployment.model.spec.predictor;
+  if (tolerations && tolerations.length > 0) {
+    errors.push(
+      `Tolerations are configured (${tolerations.length} toleration(s)) but are not supported in the wizard form.`,
+    );
+  }
+  if (nodeSelector && Object.keys(nodeSelector).length > 0) {
+    errors.push('Node selectors are configured but are not supported in the wizard form.');
+  }
+
+  return {
+    data: [
+      name,
+      existingContainerResources,
+      existingTolerations,
+      existingNodeSelector,
+      MODEL_SERVING_VISIBILITY,
+      kserveDeployment.model.metadata.namespace,
+      hardwareProfileNamespace,
+    ],
+    error: errors.length > 0 ? errors.join(' ') : undefined,
+  };
 };
 
-export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
-  return (
-    kserveDeployment.model.spec.predictor.minReplicas ??
-    kserveDeployment.model.spec.predictor.maxReplicas ??
-    null
-  );
+export const extractReplicas = (
+  kserveDeployment: KServeDeployment,
+): ExtractionResult<number | null> => {
+  const { minReplicas, maxReplicas } = kserveDeployment.model.spec.predictor;
+
+  if (
+    typeof minReplicas === 'number' &&
+    typeof maxReplicas === 'number' &&
+    minReplicas !== maxReplicas
+  ) {
+    return {
+      data: minReplicas,
+      error: `Autoscaling is configured (minReplicas: ${minReplicas}, maxReplicas: ${maxReplicas}) but is not supported in the wizard form.`,
+    };
+  }
+
+  return { data: minReplicas ?? maxReplicas ?? null };
 };
 
 export const extractRuntimeArgs = (
