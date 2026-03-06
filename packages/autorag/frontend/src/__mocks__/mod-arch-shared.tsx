@@ -111,6 +111,10 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
   );
 };
 
+/** Mock for relative time display in tests. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- mock accepts same signature as real
+export const relativeTime = (current: number, previous: number): string => '1 day ago';
+
 // Re-export everything else that might be needed
 // Note: We can't actually re-export from the real module in a mock
 // so we'll just export a basic set of components
