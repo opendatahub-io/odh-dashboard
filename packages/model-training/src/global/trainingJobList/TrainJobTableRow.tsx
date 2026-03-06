@@ -11,7 +11,7 @@ import {
 import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import TrainingJobProject from './TrainingJobProject';
+import JobProject from './JobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import PauseTrainingJobModal from './PauseTrainingJobModal';
@@ -24,7 +24,7 @@ import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
-type TrainingJobTableRowProps = {
+type TrainJobTableRowProps = {
   job: TrainJobKind;
   jobStatus?: TrainingJobState;
   onDelete: (job: TrainJobKind) => void;
@@ -33,7 +33,7 @@ type TrainingJobTableRowProps = {
   isExternallyToggling?: boolean;
 };
 
-const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
+const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   job,
   jobStatus,
   onDelete,
@@ -132,7 +132,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           </Button>
         </Td>
         <Td dataLabel="Project">
-          <TrainingJobProject trainingJob={job} />
+          <JobProject job={job} />
         </Td>
         <Td dataLabel="Nodes">
           <Flex
@@ -174,6 +174,8 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
             namespace={job.metadata.namespace}
           />
         </Td>
+        <Td dataLabel="Ray cluster">-</Td>
+        <Td dataLabel="Type">TrainJob</Td>
         <Td dataLabel="Created">
           {job.metadata.creationTimestamp ? (
             <Timestamp
@@ -248,4 +250,4 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   );
 };
 
-export default TrainingJobTableRow;
+export default TrainJobTableRow;

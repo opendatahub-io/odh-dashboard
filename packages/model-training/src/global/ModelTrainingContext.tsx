@@ -7,6 +7,9 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/conce
 import { useTrainJobs, useRayJobs } from '../api';
 import { TrainJobKind, RayJobKind } from '../k8sTypes';
 
+const EMPTY_TRAIN_JOBS: CustomWatchK8sResult<TrainJobKind[]> = [[], true, undefined];
+const EMPTY_RAY_JOBS: CustomWatchK8sResult<RayJobKind[]> = [[], true, undefined];
+
 type ModelTrainingContextType = {
   trainJobs: CustomWatchK8sResult<TrainJobKind[]>;
   rayJobs: CustomWatchK8sResult<RayJobKind[]>;
@@ -38,15 +41,15 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
   const isModelTrainingAvailable = useIsAreaAvailable(SupportedArea.MODEL_TRAINING).status;
   const isRayJobsAvailable = useIsAreaAvailable(SupportedArea.RAY_JOBS).status;
 
-  const trainJobsWatch = useTrainJobs(isModelTrainingAvailable && namespace ? namespace : null);
+  const trainJobsWatch = useTrainJobs(isModelTrainingAvailable ? namespace ?? '' : null);
   const trainJobs: CustomWatchK8sResult<TrainJobKind[]> = isModelTrainingAvailable
     ? trainJobsWatch
-    : DEFAULT_LIST_WATCH_RESULT;
+    : EMPTY_TRAIN_JOBS;
 
-  const rayJobsWatch = useRayJobs(isRayJobsAvailable && namespace ? namespace : null);
+  const rayJobsWatch = useRayJobs(isRayJobsAvailable ? namespace ?? '' : null);
   const rayJobs: CustomWatchK8sResult<RayJobKind[]> = isRayJobsAvailable
     ? rayJobsWatch
-    : DEFAULT_LIST_WATCH_RESULT;
+    : EMPTY_RAY_JOBS;
 
   const contextValue = React.useMemo(
     () => ({

@@ -1,39 +1,38 @@
 import * as React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import TrainingJobTable from './TrainingJobTable';
-import TrainingJobToolbar from './TrainingJobToolbar';
-import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
-import { getStatusInfo, getTrainingJobStatusSync } from './utils';
-import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import JobsTable from './JobsTable';
+import JobsToolbar from './JobsToolbar';
+import { initialJobsFilterData, JobsFilterDataType } from './const';
+import { getStatusInfo, getUnifiedJobStatusSync } from './utils';
+import { UnifiedJobKind, TrainingJobState } from '../../types';
 
-type TrainingJobListViewProps = {
-  trainingJobs: TrainJobKind[];
+type JobsListViewProps = {
+  jobs: UnifiedJobKind[];
   jobStatuses: Map<string, TrainingJobState>;
   onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
-  onSelectJob: (job: TrainJobKind) => void;
+  onSelectJob: (job: UnifiedJobKind) => void;
+  onDelete: (job: UnifiedJobKind) => void;
   togglingJobId?: string;
 };
 
-const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
-  trainingJobs: unfilteredTrainingJobs,
+const JobsListView: React.FC<JobsListViewProps> = ({
+  jobs: unfilteredJobs,
   jobStatuses,
   onStatusUpdate,
   onSelectJob,
+  onDelete,
   togglingJobId,
 }) => {
-  const [filterData, setFilterData] = React.useState<TrainingJobFilterDataType>(
-    initialTrainingJobFilterData,
-  );
+  const [filterData, setFilterData] = React.useState<JobsFilterDataType>(initialJobsFilterData);
 
   const onClearFilters = React.useCallback(
-    () => setFilterData(initialTrainingJobFilterData),
+    () => setFilterData(initialJobsFilterData),
     [setFilterData],
   );
 
-  const filteredTrainingJobs = React.useMemo(
+  const filteredJobs = React.useMemo(
     () =>
-      unfilteredTrainingJobs.filter((job) => {
+      unfilteredJobs.filter((job) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const statusFilter = filterData.Status?.toLowerCase();
         const clusterQueueFilter = filterData['Cluster queue']?.toLowerCase();
@@ -44,7 +43,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
 
         if (statusFilter) {
           const jobId = job.metadata.uid || job.metadata.name;
-          const jobStatus = jobStatuses.get(jobId) || getTrainingJobStatusSync(job);
+          const jobStatus = jobStatuses.get(jobId) || getUnifiedJobStatusSync(job);
           const statusLabel = getStatusInfo(jobStatus).label;
           if (!statusLabel.toLowerCase().includes(statusFilter)) {
             return false;
@@ -62,7 +61,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
 
         return true;
       }),
-    [filterData, unfilteredTrainingJobs, jobStatuses],
+    [filterData, unfilteredJobs, jobStatuses],
   );
 
   const onFilterUpdate = React.useCallback(
@@ -72,19 +71,18 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   );
 
   return (
-    <TrainingJobTable
-      trainingJobs={filteredTrainingJobs}
+    <JobsTable
+      jobs={filteredJobs}
       jobStatuses={jobStatuses}
       onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}
+      onDelete={onDelete}
       onClearFilters={onClearFilters}
       clearFilters={Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined}
-      toolbarContent={
-        <TrainingJobToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
-      }
+      toolbarContent={<JobsToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />}
       togglingJobId={togglingJobId}
     />
   );
 };
 
-export default TrainingJobListView;
+export default JobsListView;

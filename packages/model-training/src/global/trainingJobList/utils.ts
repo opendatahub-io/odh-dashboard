@@ -12,8 +12,8 @@ import {
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
-import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { TrainJobKind, RayJobKind } from '../../k8sTypes';
+import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
 
 export enum TrainJobConditionType {
@@ -847,4 +847,87 @@ export const handleRetry = async (
     onError?.(errorObj);
     throw errorObj;
   }
+};
+
+/**
+ * Get node count for a RayJob by aggregating workerGroupSpecs replicas + 1 head node.
+ */
+export const getRayJobNodeCount = (job: RayJobKind): number => {
+  if (!job.spec.rayClusterSpec) {
+    return 0;
+  }
+  const workerSpecs = job.spec.rayClusterSpec.workerGroupSpecs ?? [];
+  const workerCount = workerSpecs.reduce((sum, group) => sum + (group.replicas ?? 0), 0);
+  return workerCount + 1;
+};
+
+/**
+ * Get node count for any job type using type guards.
+ */
+export const getUnifiedJobNodeCount = (job: UnifiedJobKind): number => {
+  if (isRayJob(job)) {
+    return getRayJobNodeCount(job);
+  }
+  if (isTrainJob(job)) {
+    return job.spec.trainer?.numNodes ?? 0;
+  }
+  return 0;
+};
+
+/**
+ * Basic RayJob status mapping from jobDeploymentStatus to TrainingJobState.
+ * This is a simplified synchronous version for table display.
+ * Full status logic will be implemented in RHOAIENG-49273.
+ */
+export const getRayJobStatusSync = (job: RayJobKind): TrainingJobState => {
+  if (job.metadata.deletionTimestamp) {
+    return TrainingJobState.DELETING;
+  }
+
+  const { jobStatus, jobDeploymentStatus } = job.status ?? {};
+
+  if (
+    jobDeploymentStatus === 'Complete' &&
+    (jobStatus === 'SUCCEEDED' || jobStatus === 'STOPPED')
+  ) {
+    return TrainingJobState.SUCCEEDED;
+  }
+  if (
+    jobDeploymentStatus === 'Failed' ||
+    jobDeploymentStatus === 'ValidationFailed' ||
+    jobStatus === 'FAILED'
+  ) {
+    return TrainingJobState.FAILED;
+  }
+  if (
+    jobDeploymentStatus === 'Suspended' ||
+    jobDeploymentStatus === 'Suspending' ||
+    job.spec.suspend === true
+  ) {
+    return TrainingJobState.PAUSED;
+  }
+  if (jobStatus === 'RUNNING' || jobDeploymentStatus === 'Running') {
+    return TrainingJobState.RUNNING;
+  }
+  if (jobStatus === 'PENDING') {
+    return TrainingJobState.PENDING;
+  }
+  if (jobDeploymentStatus === 'Initializing') {
+    return TrainingJobState.CREATED;
+  }
+  if (jobDeploymentStatus === 'Waiting' || jobDeploymentStatus === 'Retrying') {
+    return TrainingJobState.QUEUED;
+  }
+
+  return TrainingJobState.UNKNOWN;
+};
+
+/**
+ * Get status for any job type using type guards (synchronous).
+ */
+export const getUnifiedJobStatusSync = (job: UnifiedJobKind): TrainingJobState => {
+  if (isRayJob(job)) {
+    return getRayJobStatusSync(job);
+  }
+  return getTrainingJobStatusSync(job);
 };
