@@ -1,7 +1,16 @@
 // Modules -------------------------------------------------------------------->
 
 import {
+  Breadcrumb,
+  BreadcrumbItem,
   Button,
+  Card,
+  CardBody,
+  CardTitle,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
   Flex,
   FlexItem,
   Grid,
@@ -12,6 +21,7 @@ import {
   ModalHeader,
   Pagination,
   PaginationVariant,
+  SearchInput,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -36,8 +46,8 @@ export type Sources = Source[];
 export interface File {
   name: string;
   size: string;
-  path: string;
   type: string;
+  details?: object;
 }
 export type Files = File[];
 
@@ -51,16 +61,23 @@ export interface Directory {
 
 const defaults = {
   labels: {
-    sourceSelector: 'Source Selector',
     modalTitle: 'Select documents from connections',
     modalDescription: 'Select which files to use for your data collection and evaluation sources',
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
+
+    sourceSelector: 'Source Selector',
     sourceCaption: 'Files',
+
+    searchAriaLabel: 'Search input to find by name',
+    searchPlaceholder: 'Find by name',
+
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
     tableColumnType: 'Type',
     tableColumnSize: 'Size',
+
+    detailsPanelTitle: 'Details',
   },
 };
 
@@ -174,6 +191,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const rowHeight = 37;
   const headerHeight = 38;
@@ -197,8 +215,45 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <FlexItem>
             <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
           </FlexItem>
+          <FlexItem className="pf-v6-u-w-50">
+            <SearchInput
+              id="FileExplorer-search-input"
+              aria-label={defaults.labels.searchAriaLabel}
+              placeholder={defaults.labels.searchPlaceholder}
+              value={searchQuery}
+              onChange={(_event, value) => setSearchQuery(value)}
+              onClear={() => setSearchQuery('')}
+              resultsCount={0}
+            />
+          </FlexItem>
           <FlexItem>
-            <Grid>
+            <Breadcrumb>
+              <BreadcrumbItem>S3 bucket name (root)</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 01</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 02</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 03</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 04</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 05</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 06</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 07</BreadcrumbItem>
+              {/* TODO: Use a BreadCrum w/ Dropdown if levels exceed 6 https://www.patternfly.org/components/breadcrumb#with-dropdown*/}
+              <BreadcrumbItem to="#">Folder 08</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 09</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 10</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 11</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 12</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 13</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 14</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 15</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 16</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 17</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 18</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 19</BreadcrumbItem>
+              <BreadcrumbItem to="#">Folder 20</BreadcrumbItem>
+            </Breadcrumb>
+          </FlexItem>
+          <FlexItem>
+            <Grid hasGutter>
               <GridItem
                 span={8}
                 style={{ height: `${rowHeight * 20 + headerHeight + paginationHeight}px` }}
@@ -210,7 +265,25 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </GridItem>
               <GridItem span={4}>
-                <div>Details panel</div>
+                <Card isFullHeight>
+                  <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+                  <CardBody>
+                    <DescriptionList>
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Bucket</DescriptionListTerm>
+                        <DescriptionListDescription>Bucket001</DescriptionListDescription>
+                      </DescriptionListGroup>
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Path</DescriptionListTerm>
+                        <DescriptionListDescription>/foo/bar/baz</DescriptionListDescription>
+                      </DescriptionListGroup>
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Selected files</DescriptionListTerm>
+                        <DescriptionListDescription>/foo/bar/baz</DescriptionListDescription>
+                      </DescriptionListGroup>
+                    </DescriptionList>
+                  </CardBody>
+                </Card>
               </GridItem>
             </Grid>
           </FlexItem>

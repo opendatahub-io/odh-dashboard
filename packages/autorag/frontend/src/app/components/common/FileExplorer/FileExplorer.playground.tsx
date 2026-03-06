@@ -13,7 +13,6 @@ const App: React.FC = () => {
   };
 
   const mockFile: File = {
-    path: '',
     name: 'FooFile.000.md',
     type: 'markdown',
     size: '1000000000',

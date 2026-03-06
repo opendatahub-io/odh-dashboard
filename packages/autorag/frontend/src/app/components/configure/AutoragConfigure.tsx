@@ -171,7 +171,6 @@ function AutoragConfigure(): React.JSX.Element {
         }
         files={[
           {
-            path: '',
             name: 'FooFile.000.md',
             type: 'markdown',
             size: '1000000000',
