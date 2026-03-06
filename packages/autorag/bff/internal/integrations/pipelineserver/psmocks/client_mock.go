@@ -497,6 +497,66 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 	}, nil
 }
 
+// ListPipelines returns mock pipeline data
+// Returns an AutoRAG pipeline with name "autorag-pipeline" for discovery testing
+func (m *MockPipelineServerClient) ListPipelines(ctx context.Context) (*models.KFPipelinesResponse, error) {
+	return &models.KFPipelinesResponse{
+		Pipelines: []models.KFPipeline{
+			{
+				PipelineID:  "9e3940d5-b275-4b64-be10-b914cd06c58e",
+				DisplayName: "autorag-pipeline",
+				Description: "Managed AutoRAG pipeline for optimizing retrieval strategies",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+			{
+				PipelineID:  "other-pipeline-id",
+				DisplayName: "another-pipeline",
+				Description: "Some other pipeline",
+				CreatedAt:   "2026-02-21T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+// ListPipelineVersions returns mock pipeline version data
+// Returns versions for the AutoRAG pipeline when queried
+func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	// Return AutoRAG pipeline versions
+	if pipelineID == "9e3940d5-b275-4b64-be10-b914cd06c58e" {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+					DisplayName:       "v1.0.0",
+					Description:       "Initial AutoRAG pipeline version",
+					CreatedAt:         "2026-02-20T10:00:00Z",
+				},
+				{
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+					PipelineVersionID: "version-v2",
+					DisplayName:       "v2.0.0",
+					Description:       "Updated AutoRAG pipeline with improved metrics",
+					CreatedAt:         "2026-02-23T10:00:00Z",
+				},
+			},
+			TotalSize:     2,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Return empty for other pipelines
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{},
+		TotalSize:        0,
+		NextPageToken:    "",
+	}, nil
+}
+
 // MockClientFactory creates mock pipeline server clients
 type MockClientFactory struct{}
 

@@ -176,7 +176,19 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 }
 
 // BuildKFPRunRequest maps AutoRAG parameters to a KFP v2beta1 create-run request.
-func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelineRunKFRequest {
+//
+// This function transforms the BFF's AutoRAG-specific request format into the Kubeflow Pipelines
+// v2beta1 runtime config format. It injects the provided pipeline and version IDs, which are
+// typically obtained from automatic pipeline discovery.
+//
+// Parameters:
+//   - req: AutoRAG-specific run parameters (secrets, data locations, models, etc.)
+//   - pipelineID: ID of the discovered AutoRAG pipeline
+//   - pipelineVersionID: Version ID of the discovered AutoRAG pipeline
+//
+// Returns:
+//   - models.CreatePipelineRunKFRequest: KFP v2beta1 formatted request ready for submission
+func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
 	params := map[string]interface{}{
 		"test_data_secret_name":   req.TestDataSecretName,
 		"test_data_bucket_name":   req.TestDataBucketName,
@@ -208,8 +220,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelin
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		PipelineVersionReference: models.PipelineVersionReference{
-			PipelineID:        constants.AutoRAGPipelineID,
-			PipelineVersionID: constants.AutoRAGPipelineVersionID,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		RuntimeConfig: models.RuntimeConfig{
 			Parameters: params,
@@ -218,10 +230,28 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelin
 }
 
 // CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+//
+// This method orchestrates the creation of a new AutoRAG pipeline run by:
+//  1. Validating all required fields in the request
+//  2. Building a KFP v2beta1 runtime config with the provided pipeline IDs
+//  3. Submitting the run to the Pipeline Server
+//  4. Transforming the response to the stable API format
+//
+// Parameters:
+//   - client: Pipeline Server client interface
+//   - ctx: Request context
+//   - req: AutoRAG-specific run parameters
+//   - pipelineID: ID of the AutoRAG pipeline (from discovery)
+//   - pipelineVersionID: Version ID of the AutoRAG pipeline (from discovery)
+//
+// Returns:
+//   - *models.PipelineRun: The created run in stable API format
+//   - error: If validation fails or the Pipeline Server returns an error
 func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	req models.CreateAutoRAGRunRequest,
+	pipelineID, pipelineVersionID string,
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
@@ -231,7 +261,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, err
 	}
 
-	kfpRequest := BuildKFPRunRequest(req)
+	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {

@@ -294,7 +294,12 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
-      description: Returns pipeline runs optionally filtered by pipeline version ID
+      description: >-
+        Returns pipeline runs with automatic filtering to the discovered AutoRAG managed pipeline.
+        If pipelineVersionId query parameter is not specified, the BFF automatically discovers
+        the AutoRAG pipeline in the namespace and filters runs to that pipeline version.
+        If no AutoRAG pipeline is found, returns all runs in the namespace.
+        Explicit pipelineVersionId parameter overrides automatic discovery.
     post:
       tags:
         - PipelineOperation
@@ -324,9 +329,11 @@ paths:
       operationId: createPipelineRun
       summary: Create Pipeline Run
       description: >-
-        Creates a new AutoRAG pipeline run. The Pipeline Server is auto-discovered
-        in the namespace. The BFF maps AutoRAG-specific parameters to KFP v2beta1
-        runtime config and submits the run.
+        Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
+        AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
+        If no AutoRAG pipeline is found, returns a 500 error. The Pipeline Server
+        (DSPipelineApplication) is also auto-discovered. The BFF maps AutoRAG-specific
+        parameters to KFP v2beta1 runtime config and submits the run.
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID

@@ -34,6 +34,8 @@ type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
+	ListPipelines(ctx context.Context) (*models.KFPipelinesResponse, error)
+	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion
@@ -226,4 +228,111 @@ func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models
 	}
 
 	return &runResponse, nil
+}
+
+// ListPipelines retrieves all pipelines from the Kubeflow Pipelines API v2beta1.
+//
+// This method queries the /apis/v2beta1/pipelines endpoint to get a list of all
+// pipeline definitions available in the Pipeline Server. Used by pipeline discovery
+// to find managed AutoRAG pipelines.
+//
+// Returns:
+//   - *models.KFPipelinesResponse: List of pipelines with IDs, names, and metadata
+//   - error: If the request fails or the response cannot be decoded
+func (c *RealPipelineServerClient) ListPipelines(ctx context.Context) (*models.KFPipelinesResponse, error) {
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		body, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(body)
+		if len(body) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	var response models.KFPipelinesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// ListPipelineVersions retrieves all versions for a specific pipeline from the KFP v2beta1 API.
+//
+// This method queries the /apis/v2beta1/pipelines/{pipelineID}/versions endpoint to get
+// all available versions of a pipeline. Used by pipeline discovery to get the version ID
+// of the discovered AutoRAG pipeline.
+//
+// Parameters:
+//   - pipelineID: The unique identifier of the pipeline (required)
+//
+// Returns:
+//   - *models.KFPipelineVersionsResponse: List of versions with IDs, names, and metadata
+//   - error: If pipelineID is empty, the request fails, or the response cannot be decoded
+func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipelineID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions", c.baseURL, url.PathEscape(pipelineID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		body, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(body)
+		if len(body) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	var response models.KFPipelineVersionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &response, nil
 }

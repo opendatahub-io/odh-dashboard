@@ -2,7 +2,12 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for filtering by pipeline version ID. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with automatic pipeline discovery. Both the Pipeline Server (DSPipelineApplication) and the AutoRAG managed pipeline are automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+
+**Key Features:**
+- **Auto-Discovery**: Automatically discovers both the Pipeline Server and the AutoRAG managed pipeline
+- **Intelligent Filtering**: GET requests automatically filter to AutoRAG runs when no explicit filter is provided
+- **Automatic Injection**: POST requests automatically inject discovered pipeline IDs, eliminating manual configuration
 
 **API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
 
@@ -371,7 +376,10 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
-- `pipeline_id` and `pipeline_version_id` are currently hardcoded constants; a future pipeline discovery endpoint will provide dynamic values
+- `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
+- The BFF discovers the AutoRAG managed pipeline by searching for pipelines with names starting with "autorag" (case-insensitive)
+- Discovery results are cached for 5 minutes per namespace to reduce API calls
+- If no AutoRAG pipeline is found, the request returns a 500 error
 - `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
 
 ### Request Example
@@ -440,11 +448,27 @@ Returns `200 OK` with the created pipeline run:
 
 ## Pipeline Filtering
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+The API provides intelligent filtering with automatic pipeline discovery:
 
-### Filtering by Pipeline Version ID
+### Automatic Filtering (Default Behavior)
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filter is provided, all runs from the auto-discovered Pipeline Server are returned.
+When **no** `pipelineVersionId` parameter is provided, the BFF automatically:
+1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
+2. Filters runs to show only those from the discovered AutoRAG pipeline version
+3. Falls back to showing all runs if no AutoRAG pipeline is found
+
+This ensures users see only AutoRAG-related runs by default without manual configuration.
+
+### Explicit Filtering
+
+When you **provide** a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version, overriding automatic discovery.
+
+**Pipeline Discovery Details:**
+- The BFF searches for pipelines with display names starting with a configurable prefix (default: "autorag", case-insensitive)
+- The prefix can be customized via the `AUTORAG_PIPELINE_NAME_PREFIX` environment variable or `--autorag-pipeline-name-prefix` flag
+- Uses the first matching pipeline's first version
+- Discovery results are cached for 5 minutes per namespace
+- Future versions will use pipeline metadata/attributes for more robust identification
 
 **Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
 

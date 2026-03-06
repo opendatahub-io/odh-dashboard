@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testPipelineID        = "test-pipeline-id"
+	testPipelineVersionID = "test-version-id"
+)
+
 func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	repo := NewPipelineRunsRepository()
 	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
@@ -123,11 +128,11 @@ func newValidCreateRequest() models.CreateAutoRAGRunRequest {
 func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should map all required parameters correctly", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "test-run", result.DisplayName)
-		assert.Equal(t, constants.AutoRAGPipelineID, result.PipelineVersionReference.PipelineID)
-		assert.Equal(t, constants.AutoRAGPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
+		assert.Equal(t, testPipelineID, result.PipelineVersionReference.PipelineID)
+		assert.Equal(t, testPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
 
 		params := result.RuntimeConfig.Parameters
 		assert.Equal(t, "minio-secret", params["test_data_secret_name"])
@@ -141,7 +146,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 
 	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, constants.DefaultOptimizationMetric, result.RuntimeConfig.Parameters["optimization_metric"])
 	})
@@ -149,7 +154,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should use provided optimization_metric", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.OptimizationMetric = "answer_correctness"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "answer_correctness", result.RuntimeConfig.Parameters["optimization_metric"])
 	})
@@ -157,14 +162,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should include embeddings_models when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, []string{"model-a", "model-b"}, result.RuntimeConfig.Parameters["embeddings_models"])
 	})
 
 	t.Run("should omit embeddings_models when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["embeddings_models"]
 		assert.False(t, exists)
@@ -173,14 +178,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should include generation_models when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.GenerationModels = []string{"gen-1"}
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, []string{"gen-1"}, result.RuntimeConfig.Parameters["generation_models"])
 	})
 
 	t.Run("should omit generation_models when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["generation_models"]
 		assert.False(t, exists)
@@ -189,14 +194,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should include llama_stack_vector_database_id when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.LlamaStackVectorDatabaseID = "milvus-db"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_database_id"])
 	})
 
 	t.Run("should omit llama_stack_vector_database_id when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_database_id"]
 		assert.False(t, exists)
@@ -205,7 +210,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should pass description to KFP request", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.Description = "my description"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "my description", result.Description)
 	})

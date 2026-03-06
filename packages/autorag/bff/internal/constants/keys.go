@@ -8,6 +8,7 @@ const (
 	NamespaceHeaderParameterKey contextKey = "namespace"
 	LlamaStackClientKey         contextKey = "LlamaStackClientKey"
 	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
+	DiscoveredPipelineKey       contextKey = "DiscoveredPipelineKey"
 
 	// The following keys are used to store the user access token in the context
 	RequestIdentityKey contextKey = "requestIdentityKey"

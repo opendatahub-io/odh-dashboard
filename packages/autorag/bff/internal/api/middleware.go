@@ -18,6 +18,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -822,4 +823,76 @@ func (app *App) discoverReadyDSPA(
 		"namespace", namespace,
 		"total_dspas", len(dspas))
 	return nil, nil
+}
+
+// AttachDiscoveredPipeline middleware discovers the AutoRAG managed pipeline and attaches it to context.
+//
+// Middleware Chain Requirements:
+//   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
+//   - Returns 400 if prerequisites are missing
+//
+// Behavior:
+//   - Automatically discovers the AutoRAG pipeline in the namespace using name-based matching
+//   - Caches discovery results for 5 minutes to reduce API calls
+//   - Stores discovered pipeline (or nil if not found) in context at constants.DiscoveredPipelineKey
+//   - Returns 500 if discovery fails with an error
+//   - Logs discovery success/failure for debugging
+//
+// Handlers using this middleware can retrieve the discovered pipeline from context:
+//
+//	discovered := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
+//
+// Usage Pattern:
+//   - GET /pipeline-runs: Uses discovered pipeline as default filter (graceful if nil)
+//   - POST /pipeline-runs: Requires discovered pipeline (returns error if nil)
+func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get pipeline server client from context (set by AttachPipelineServerClient middleware)
+		pipelineClient, ok := ctx.Value(constants.PipelineServerClientKey).(pipelineserver.PipelineServerClientInterface)
+		if !ok || pipelineClient == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing pipeline server client in context - ensure AttachPipelineServerClient middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Get configured pipeline name prefix (defaults to "autorag" if not set)
+		pipelineNamePrefix := app.config.AutoRAGPipelineNamePrefix
+
+		// Discover AutoRAG pipeline in the namespace
+		discovered, err := app.repositories.Pipeline.DiscoverAutoRAGPipeline(pipelineClient, ctx, namespace, pipelineNamePrefix)
+		if err != nil {
+			logger.Error("Failed to discover AutoRAG pipeline",
+				"namespace", namespace,
+				"error", err)
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to discover AutoRAG pipeline: %w", err))
+			return
+		}
+
+		if discovered == nil {
+			// No AutoRAG pipeline found - this is acceptable for GET requests (return all runs)
+			// but should fail for POST requests (handler will check)
+			logger.Debug("No AutoRAG pipeline discovered in namespace", "namespace", namespace)
+		} else {
+			logger.Debug("Discovered AutoRAG pipeline",
+				"namespace", namespace,
+				"pipelineId", discovered.PipelineID,
+				"pipelineVersionId", discovered.PipelineVersionID)
+		}
+
+		// Attach discovered pipeline to context (may be nil)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
 }
