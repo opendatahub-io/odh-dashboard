@@ -34,7 +34,7 @@ import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';\
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
@@ -63,8 +63,6 @@ function AutoragConfigure(): React.JSX.Element {
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
   const { data: allModelsData } = useLlamaStackModelsQuery();
-
-  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
   const form = useForm({
     mode: 'onChange',
@@ -159,9 +157,9 @@ function AutoragConfigure(): React.JSX.Element {
                                       setSelectedSecret(secret);
                                       onChange(secret?.invalid ? undefined : secret?.name);
                                     }}
-									onRefreshReady={(refresh) => {
-                                secretsRefreshRef.current = refresh;
-                              }}
+                                    onRefreshReady={(refresh) => {
+                                      secretsRefreshRef.current = refresh;
+                                    }}
                                     label="S3 connection"
                                     placeholder="Select connection"
                                     toggleWidth="16rem"
@@ -327,10 +325,10 @@ function AutoragConfigure(): React.JSX.Element {
               const availableKeys = Object.keys(connection.stringData ?? {});
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
-                uuid: secret.uuid,
-                name: secret.name,
+                ...secret,
                 invalid,
-              } as SecretSelection);
+              });
+              setValue('input_data_secret_name', invalid ? undefined : secret.name);
             }
           }}
         />
