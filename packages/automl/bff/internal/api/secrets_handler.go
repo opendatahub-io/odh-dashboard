@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -32,7 +33,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	// Resource (namespace) is required
 	namespace := queryParams.Get("resource")
-	if namespace == "" {
+	if strings.TrimSpace(namespace) == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'resource' is required"))
 		return
 	}
