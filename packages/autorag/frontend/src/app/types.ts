@@ -97,6 +97,8 @@ export type LlamaStackModelsResponse = {
 export type SecretListItem = {
   uuid: string;
   name: string;
-  type: 's3' | 'lls' | '';
+  type?: 's3' | 'lls';
   availableKeys: string[];
+  displayName?: string;
+  description?: string;
 };

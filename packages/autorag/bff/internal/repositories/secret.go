@@ -80,26 +80,41 @@ func (r *SecretRepository) GetFilteredSecrets(
 	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
 	for _, secret := range filteredSecrets {
 		// Determine the type for this secret
+		// First, check if the secret has the opendatahub.io/connection-type annotation
 		var responseType string
-		switch secretType {
-		case "lls":
-			responseType = "lls"
-		case "storage":
-			// For storage type, determine which storage type it matches
-			responseType = getStorageType(secret)
-		default:
-			// For all secrets (no type filter), check if it matches a storage or LLS type
-			responseType = getSecretType(secret)
+		if annotationType, hasAnnotation := secret.Annotations["opendatahub.io/connection-type"]; hasAnnotation && annotationType != "" {
+			// Use the annotation value as the type
+			responseType = annotationType
+		} else {
+			// Fallback to key-based type detection
+			switch secretType {
+			case "lls":
+				responseType = "lls"
+			case "storage":
+				// For storage type, determine which storage type it matches
+				responseType = getStorageType(secret)
+			default:
+				// For all secrets (no type filter), check if it matches a storage or LLS type
+				responseType = getSecretType(secret)
+			}
 		}
 
 		// Extract and sort available keys from the secret
 		availableKeys := extractAndSortKeys(secret)
+
+		// Extract display name from annotation if it exists
+		displayName := secret.Annotations["openshift.io/display-name"]
+
+		// Extract description from annotation if it exists
+		description := secret.Annotations["openshift.io/description"]
 
 		secretListItems = append(secretListItems, models.NewSecretListItem(
 			string(secret.UID),
 			secret.Name,
 			responseType,
 			availableKeys,
+			displayName,
+			description,
 		))
 	}
 

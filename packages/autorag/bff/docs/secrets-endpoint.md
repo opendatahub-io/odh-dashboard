@@ -24,9 +24,11 @@ The endpoint:
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
    - **`type=lls`**: Filters for LLS (Llama Stack) secrets containing required LLS keys
 3. Returns the Kubernetes UID, name, and type of each matching secret
-   - The `type` field indicates which secret type matches (e.g., "s3", "lls")
-   - If a secret doesn't match any known type, the `type` field is an empty string
-   - If a secret matches multiple types, the first matching type is returned
+   - The `type` field is determined by:
+     1. **First priority**: The `opendatahub.io/connection-type` annotation if present and non-empty
+     2. **Fallback**: Key-based type detection (e.g., "s3", "lls")
+   - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
+   - If a secret matches multiple types via key detection, the first matching type is returned
 4. Requires authentication via the InjectRequestIdentity middleware
 5. Validates the `type` parameter and returns 400 Bad Request for invalid values
 
@@ -59,7 +61,8 @@ The response follows the envelope pattern:
       "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "aws-secret-1",
       "type": "s3",
-      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"],
+      "displayName": "Production S3 Bucket"
     },
     {
       "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
@@ -77,8 +80,10 @@ The response follows the envelope pattern:
 |-------|------|-------------|
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
-| `type` | string | The storage type that the secret matches (e.g., "s3"), or empty string if it doesn't match any storage type |
+| `type` | string | **(Optional)** The storage type that the secret matches (e.g., "s3", "lls"). Omitted from response if the secret doesn't match any recognized type. |
 | `availableKeys` | string[] | Sorted list of all keys available in the secret (without values) |
+| `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
+| `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
 
 ## Error Responses
 
@@ -118,7 +123,8 @@ Response:
       "uuid": "c3d4e5f6-a7b8-9012-cdef-012345678901",
       "name": "llama-stack-secret-1",
       "type": "lls",
-      "availableKeys": ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+      "availableKeys": ["llama_stack_client_api_key", "llama_stack_client_base_url"],
+      "displayName": "Development LLS"
     },
     {
       "uuid": "d4e5f6a7-b8c9-0123-def0-123456789012",
@@ -129,6 +135,8 @@ Response:
   ]
 }
 ```
+
+**Note:** The first secret includes a `displayName` field because it has the `openshift.io/display-name` annotation, while the second secret omits this field as it lacks the annotation.
 
 ## Implementation Details
 
@@ -244,6 +252,102 @@ The `availableKeys` field exposes the names of all keys present in the secret (b
 
 In this example, the secret has an optional `aws_s3_bucket` key in addition to the required S3 keys. Clients can detect this and offer additional configuration options.
 
+### Connection Type Annotation
+
+The `type` field can be explicitly set using the `opendatahub.io/connection-type` annotation on a secret. This provides a way to:
+
+- **Override key-based detection**: Explicitly specify the connection type regardless of the secret's keys
+- **Support custom types**: Define connection types that aren't covered by the built-in key-based detection
+- **Ensure consistency**: Guarantee the correct type is returned even if keys change
+
+**Type determination priority:**
+1. **Annotation-based** (highest priority): If the secret has the `opendatahub.io/connection-type` annotation with a non-empty value, use that value as the type
+2. **Key-based detection** (fallback): If no annotation is present or it's empty, analyze the secret's keys to determine the type
+
+**Example secret with connection-type annotation:**
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-database-connection
+  annotations:
+    opendatahub.io/connection-type: "postgresql"
+data:
+  db_host: ...
+  db_password: ...
+```
+
+**Corresponding API response:**
+```json
+{
+  "uuid": "...",
+  "name": "my-database-connection",
+  "type": "postgresql",
+  "availableKeys": ["db_host", "db_password"]
+}
+```
+
+Even if the secret contains keys that would normally match S3 or LLS detection, the annotation takes precedence and the type will be set to the annotation value.
+
+### Display Name and Description
+
+The optional `displayName` and `description` fields provide human-readable metadata for secrets through OpenShift annotations.
+
+**Display Name (`openshift.io/display-name`)**:
+- **Is optional**: Only included in the response if the secret has the annotation
+- **Uses `omitempty`**: Field is omitted from JSON when the annotation doesn't exist
+- **Provides user-friendly names**: Allows administrators to set meaningful names for secrets that are displayed in UIs
+
+**Description (`openshift.io/description`)**:
+- **Is optional**: Only included in the response if the secret has the annotation
+- **Uses `omitempty`**: Field is omitted from JSON when the annotation doesn't exist
+- **Provides context**: Allows administrators to add detailed descriptions explaining the secret's purpose
+
+**Example secret with both display name and description annotations:**
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-s3-credentials
+  annotations:
+    openshift.io/display-name: "Production S3 Bucket"
+    openshift.io/description: "Main S3 bucket for production data storage and backups"
+data:
+  aws_access_key_id: ...
+  aws_secret_access_key: ...
+```
+
+**Corresponding API response:**
+```json
+{
+  "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "my-s3-credentials",
+  "type": "s3",
+  "availableKeys": ["aws_access_key_id", "aws_secret_access_key", ...],
+  "displayName": "Production S3 Bucket",
+  "description": "Main S3 bucket for production data storage and backups"
+}
+```
+
+**Secret without display name or description annotations:**
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-other-secret
+data:
+  password: ...
+```
+
+**Corresponding API response (type, displayName, and description omitted):**
+```json
+{
+  "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
+  "name": "my-other-secret",
+  "availableKeys": ["password"]
+}
+```
+
 ## Testing
 
 The implementation includes comprehensive tests covering:
@@ -257,6 +361,20 @@ The implementation includes comprehensive tests covering:
   - Keys are case-preserved
   - Empty secrets return empty array
   - Keys from both Data and StringData are included
+- **Display name**:
+  - Secrets with `openshift.io/display-name` annotation include displayName field
+  - Secrets without annotation omit displayName field
+  - Mixed scenarios with some secrets having annotation and others not
+- **Description**:
+  - Secrets with `openshift.io/description` annotation include description field
+  - Secrets without annotation omit description field
+  - Mixed scenarios with some secrets having annotation and others not
+  - Secrets with both displayName and description annotations
+- **Connection type annotation**:
+  - Annotation overrides key-based detection
+  - Falls back to key-based detection when annotation is missing
+  - Empty annotation values trigger fallback to key-based detection
+  - Mixed scenarios with annotated and non-annotated secrets
 - **Empty result sets**: No matching secrets for different filter types
 - **Error cases**: Missing parameters, invalid parameters
 

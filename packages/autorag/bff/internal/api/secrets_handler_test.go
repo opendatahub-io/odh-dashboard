@@ -296,11 +296,11 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 	assert.Equal(t, []string{"LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"}, envelope.Data[1].AvailableKeys)
 	assert.Equal(t, "uid-2", envelope.Data[2].UUID)
 	assert.Equal(t, "other-secret", envelope.Data[2].Name)
-	assert.Equal(t, "", envelope.Data[2].Type)
+	// Type field omitted for secrets that don't match any known type
 	assert.Equal(t, []string{"password"}, envelope.Data[2].AvailableKeys)
 	assert.Equal(t, "uid-3", envelope.Data[3].UUID)
 	assert.Equal(t, "database-secret", envelope.Data[3].Name)
-	assert.Equal(t, "", envelope.Data[3].Type)
+	// Type field omitted for secrets that don't match any known type
 	assert.Equal(t, []string{"db_connection"}, envelope.Data[3].AvailableKeys)
 }
 
@@ -780,4 +780,544 @@ func TestGetSecretsHandler_AvailableKeys_DataAndStringData(t *testing.T) {
 	// Verify all keys from both Data and StringData are included and sorted
 	expectedKeys := []string{"data_key_1", "data_key_2", "string_key_1", "string_key_2"}
 	assert.Equal(t, expectedKeys, envelope.Data[0].AvailableKeys, "Should include keys from both Data and StringData, sorted alphabetically")
+}
+
+func TestGetSecretsHandler_DisplayName_WithAnnotation(t *testing.T) {
+	// Create secrets with display-name annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-with-display-name",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"openshift.io/display-name": "My AWS Credentials",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&type=storage",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	assert.Equal(t, "My AWS Credentials", envelope.Data[0].DisplayName, "DisplayName should match the annotation value")
+}
+
+func TestGetSecretsHandler_DisplayName_WithoutAnnotation(t *testing.T) {
+	// Create a secret without display-name annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-without-display-name",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&type=storage",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	assert.Equal(t, "", envelope.Data[0].DisplayName, "DisplayName should be empty when annotation doesn't exist")
+}
+
+func TestGetSecretsHandler_DisplayName_MixedSecrets(t *testing.T) {
+	// Create a mix of secrets with and without display-name annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-secret-with-name",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"openshift.io/display-name": "Production S3 Bucket",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key1"),
+				"aws_secret_access_key": []byte("secret1"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-secret-without-name",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-2"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key2"),
+				"aws_secret_access_key": []byte("secret2"),
+				"aws_default_region":    []byte("us-west-2"),
+				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "lls-secret-with-name",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-3"),
+				Annotations: map[string]string{
+					"openshift.io/display-name": "Development LLS",
+					"other-annotation":          "some-value",
+				},
+			},
+			Data: map[string][]byte{
+				"LLAMA_STACK_CLIENT_API_KEY":  []byte("key"),
+				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama.example.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 3)
+
+	// First secret has display name
+	assert.Equal(t, "s3-secret-with-name", envelope.Data[0].Name)
+	assert.Equal(t, "Production S3 Bucket", envelope.Data[0].DisplayName)
+
+	// Second secret has no display name
+	assert.Equal(t, "s3-secret-without-name", envelope.Data[1].Name)
+	assert.Equal(t, "", envelope.Data[1].DisplayName)
+
+	// Third secret has display name
+	assert.Equal(t, "lls-secret-with-name", envelope.Data[2].Name)
+	assert.Equal(t, "Development LLS", envelope.Data[2].DisplayName)
+}
+
+func TestGetSecretsHandler_ConnectionTypeAnnotation_OverridesKeyBasedDetection(t *testing.T) {
+	// Create a secret with connection-type annotation that overrides key-based detection
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "annotated-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"opendatahub.io/connection-type": "custom-type",
+				},
+			},
+			Data: map[string][]byte{
+				// Has S3 keys but annotation should override
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	// Should use annotation value instead of key-based "s3" detection
+	assert.Equal(t, "custom-type", envelope.Data[0].Type, "Type should come from annotation, not key-based detection")
+}
+
+func TestGetSecretsHandler_ConnectionTypeAnnotation_FallsBackToKeyDetection(t *testing.T) {
+	// Create secrets without connection-type annotation - should use key-based detection
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-no-annotation",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	// Should fall back to key-based detection
+	assert.Equal(t, "s3", envelope.Data[0].Type, "Type should be detected from keys when annotation is missing")
+}
+
+func TestGetSecretsHandler_ConnectionTypeAnnotation_EmptyAnnotationFallsBackToKeyDetection(t *testing.T) {
+	// Create a secret with empty connection-type annotation - should use key-based detection
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-empty-annotation",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"opendatahub.io/connection-type": "",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	// Should fall back to key-based detection when annotation is empty
+	assert.Equal(t, "s3", envelope.Data[0].Type, "Type should be detected from keys when annotation is empty")
+}
+
+func TestGetSecretsHandler_ConnectionTypeAnnotation_MixedAnnotatedAndNonAnnotated(t *testing.T) {
+	// Create a mix of secrets with and without connection-type annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "annotated-custom",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"opendatahub.io/connection-type": "custom-db",
+				},
+			},
+			Data: map[string][]byte{
+				"db_host":     []byte("localhost"),
+				"db_password": []byte("secret"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "key-detected-s3",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-2"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "annotated-lls",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-3"),
+				Annotations: map[string]string{
+					"opendatahub.io/connection-type": "lls",
+				},
+			},
+			Data: map[string][]byte{
+				"LLAMA_STACK_CLIENT_API_KEY":  []byte("key"),
+				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama.example.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 3)
+
+	// First secret uses annotation
+	assert.Equal(t, "annotated-custom", envelope.Data[0].Name)
+	assert.Equal(t, "custom-db", envelope.Data[0].Type)
+
+	// Second secret uses key-based detection
+	assert.Equal(t, "key-detected-s3", envelope.Data[1].Name)
+	assert.Equal(t, "s3", envelope.Data[1].Type)
+
+	// Third secret uses annotation
+	assert.Equal(t, "annotated-lls", envelope.Data[2].Name)
+	assert.Equal(t, "lls", envelope.Data[2].Type)
+}
+
+func TestGetSecretsHandler_Description_WithAnnotation(t *testing.T) {
+	// Create secrets with description annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-with-description",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"openshift.io/description": "Production AWS credentials for S3 storage",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&type=storage",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	assert.Equal(t, "Production AWS credentials for S3 storage", envelope.Data[0].Description, "Description should match the annotation value")
+}
+
+func TestGetSecretsHandler_Description_WithoutAnnotation(t *testing.T) {
+	// Create a secret without description annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-without-description",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&type=storage",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	assert.Equal(t, "", envelope.Data[0].Description, "Description should be empty when annotation doesn't exist")
+}
+
+func TestGetSecretsHandler_Description_MixedSecrets(t *testing.T) {
+	// Create a mix of secrets with and without description annotation
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-secret-with-description",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"openshift.io/description": "Primary S3 bucket for production data",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key1"),
+				"aws_secret_access_key": []byte("secret1"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-secret-without-description",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-2"),
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key2"),
+				"aws_secret_access_key": []byte("secret2"),
+				"aws_default_region":    []byte("us-west-2"),
+				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "lls-secret-with-description",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-3"),
+				Annotations: map[string]string{
+					"openshift.io/description": "Development LLS endpoint for testing",
+					"other-annotation":         "some-value",
+				},
+			},
+			Data: map[string][]byte{
+				"LLAMA_STACK_CLIENT_API_KEY":  []byte("key"),
+				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama.example.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 3)
+
+	// First secret has description
+	assert.Equal(t, "s3-secret-with-description", envelope.Data[0].Name)
+	assert.Equal(t, "Primary S3 bucket for production data", envelope.Data[0].Description)
+
+	// Second secret has no description
+	assert.Equal(t, "s3-secret-without-description", envelope.Data[1].Name)
+	assert.Equal(t, "", envelope.Data[1].Description)
+
+	// Third secret has description
+	assert.Equal(t, "lls-secret-with-description", envelope.Data[2].Name)
+	assert.Equal(t, "Development LLS endpoint for testing", envelope.Data[2].Description)
+}
+
+func TestGetSecretsHandler_DisplayNameAndDescription_BothPresent(t *testing.T) {
+	// Create a secret with both displayName and description annotations
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "full-annotated-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+				Annotations: map[string]string{
+					"openshift.io/display-name": "Production S3",
+					"openshift.io/description":  "Main S3 bucket for production workloads",
+				},
+			},
+			Data: map[string][]byte{
+				"aws_access_key_id":     []byte("key"),
+				"aws_secret_access_key": []byte("secret"),
+				"aws_default_region":    []byte("us-east-1"),
+				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&type=storage",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 1)
+	assert.Equal(t, "Production S3", envelope.Data[0].DisplayName)
+	assert.Equal(t, "Main S3 bucket for production workloads", envelope.Data[0].Description)
 }

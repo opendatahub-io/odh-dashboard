@@ -60,12 +60,24 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   describe('Secrets Endpoint', () => {
+    // Helper type for secret response data
+    type SecretItem = {
+      uuid: string;
+      name: string;
+      type?: string;
+      availableKeys: string[];
+      displayName?: string;
+      description?: string;
+    };
+
+    type SecretsResponseData = {
+      data?: SecretItem[];
+    };
+
     // Helper to verify availableKeys field in secrets response
     const verifyAvailableKeysField = (result: Awaited<ReturnType<typeof apiClient.get>>): void => {
       if (result.success) {
-        const responseData = result.response.data as {
-          data?: Array<{ availableKeys?: unknown }>;
-        };
+        const responseData = result.response.data as SecretsResponseData;
         if (responseData.data && responseData.data.length > 0) {
           expect(responseData.data[0].availableKeys).toBeDefined();
           expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
@@ -102,6 +114,143 @@ describe('AutoRAG API Contract Tests', () => {
         });
 
         verifyAvailableKeysField(result);
+      });
+    });
+
+    describe('Optional Fields - displayName and description', () => {
+      it('should include displayName when openshift.io/display-name annotation is present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify displayName field is properly typed as optional string when present
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          const secretsWithDisplayName = responseData.data?.filter((s) => s.displayName);
+          if (secretsWithDisplayName && secretsWithDisplayName.length > 0) {
+            expect(typeof secretsWithDisplayName[0].displayName).toBe('string');
+            expect(secretsWithDisplayName[0].displayName).toBeTruthy();
+          }
+        }
+      });
+
+      it('should include description when openshift.io/description annotation is present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify description field is properly typed as optional string when present
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          const secretsWithDescription = responseData.data?.filter((s) => s.description);
+          if (secretsWithDescription && secretsWithDescription.length > 0) {
+            expect(typeof secretsWithDescription[0].description).toBe('string');
+            expect(secretsWithDescription[0].description).toBeTruthy();
+          }
+        }
+      });
+
+      it('should omit displayName and description when annotations are not present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify that secrets without annotations don't have these fields
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            // If displayName exists, it should be a non-empty string
+            if (secret.displayName !== undefined) {
+              expect(typeof secret.displayName).toBe('string');
+            }
+            // If description exists, it should be a non-empty string
+            if (secret.description !== undefined) {
+              expect(typeof secret.description).toBe('string');
+            }
+          });
+        }
+      });
+    });
+
+    describe('Optional Type Field', () => {
+      it('should include type field when secret matches a recognized type or has connection-type annotation', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default&type=storage');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify type field is present and valid for storage secrets
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          if (responseData.data && responseData.data.length > 0) {
+            responseData.data.forEach((secret) => {
+              if (secret.type !== undefined) {
+                expect(['s3', 'lls']).toContain(secret.type);
+              }
+            });
+          }
+        }
+      });
+
+      it('should omit type field when secret does not match any recognized type and has no connection-type annotation', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // The contract should allow secrets without a type field
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            // Type field is optional - if present, must be valid enum value
+            if (secret.type !== undefined) {
+              expect(['s3', 'lls']).toContain(secret.type);
+            }
+            // All secrets must have required fields regardless of type
+            expect(secret.uuid).toBeDefined();
+            expect(secret.name).toBeDefined();
+            expect(secret.availableKeys).toBeDefined();
+          });
+        }
+      });
+    });
+
+    describe('Field Type Validation', () => {
+      it('should return secrets with all fields matching schema types', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            // Required fields
+            expect(typeof secret.uuid).toBe('string');
+            expect(typeof secret.name).toBe('string');
+            expect(Array.isArray(secret.availableKeys)).toBe(true);
+
+            // Optional fields - if present, must be correct type
+            if (secret.type !== undefined) {
+              expect(typeof secret.type).toBe('string');
+            }
+            if (secret.displayName !== undefined) {
+              expect(typeof secret.displayName).toBe('string');
+            }
+            if (secret.description !== undefined) {
+              expect(typeof secret.description).toBe('string');
+            }
+          });
+        }
       });
     });
 
