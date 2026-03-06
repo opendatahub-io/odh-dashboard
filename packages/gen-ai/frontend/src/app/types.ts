@@ -398,6 +398,59 @@ export type {
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
+/** MLflow Prompt Registry Types */
+export type MLflowPrompt = {
+  name: string;
+  description: string;
+  latest_version: number;
+  tags?: Record<string, string>;
+  creation_timestamp: string;
+};
+
+export type MLflowPromptsResponse = {
+  prompts: MLflowPrompt[];
+  next_page_token?: string;
+};
+
+export type MLflowMessage = {
+  role: string;
+  content: string;
+};
+
+export type MLflowRegisterPromptRequest = {
+  name: string;
+  messages?: MLflowMessage[];
+  template?: string;
+  commit_message?: string;
+  tags?: Record<string, string>;
+};
+
+export type MLflowPromptVersion = {
+  name: string;
+  version: number;
+  template?: string;
+  messages?: MLflowMessage[];
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionMeta = {
+  version: number;
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionsResponse = {
+  versions: MLflowPromptVersionMeta[];
+  next_page_token?: string;
+};
+
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
@@ -433,6 +486,10 @@ export type GenAiAPIs = {
   getBFFConfig: GetBFFConfig;
   getGuardrailsStatus: GetGuardrailsStatus;
   getSafetyConfig: GetSafetyConfig;
+  listMLflowPrompts: ListMLflowPrompts;
+  registerMLflowPrompt: RegisterMLflowPrompt;
+  getMLflowPrompt: GetMLflowPrompt;
+  listMLflowPromptVersions: ListMLflowPromptVersions;
 };
 
 export type ModArchRestGET<T> = (
@@ -475,3 +532,7 @@ type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
 type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
 type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
+type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
+type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
+type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
+type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
