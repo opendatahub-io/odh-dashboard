@@ -27,6 +27,7 @@ export type MockDashboardConfigType = {
   disableModelCatalog?: boolean;
   disableModelRegistry?: boolean;
   disableModelRegistrySecureDB?: boolean;
+  registryOciStorage?: boolean;
   disableServingRuntimeParams?: boolean;
   disableConnectionTypes?: boolean;
   disableAdminConnectionTypes?: boolean;
@@ -94,6 +95,7 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
+  registryOciStorage = false,
   disableServingRuntimeParams = false,
   disableStorageClasses = false,
   disableNotebookController = false,
@@ -268,6 +270,7 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       disableModelRegistry,
       disableModelRegistrySecureDB,
+      registryOciStorage,
       disableServingRuntimeParams,
       disableStorageClasses,
       disableNIMModelServing,

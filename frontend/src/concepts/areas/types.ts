@@ -69,6 +69,7 @@ export enum SupportedArea {
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
   MODEL_REGISTRY_SECURE_DB = 'model-registry-secure-db',
+  REGISTRY_OCI_STORAGE = 'registry-oci-storage',
 
   /* Model catalog areas */
   MODEL_CATALOG = 'model-catalog',

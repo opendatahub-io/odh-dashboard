@@ -14,11 +14,23 @@ import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistr
 import { AppContext } from '~/app/context/AppContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
+  const isRegistryOciStorageEnabled = useIsAreaAvailable(SupportedArea.REGISTRY_OCI_STORAGE).status;
+
+  const crdOverrides = React.useMemo(
+    () => ({
+      [TempDevFeature.RegistryStorage]: isRegistryOciStorageEnabled,
+    }),
+    [isRegistryOciStorageEnabled],
+  );
+
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -34,7 +46,7 @@ const ModelRegistryWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <OdhDevFeatureFlagOverridesProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={crdOverrides}>
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>
