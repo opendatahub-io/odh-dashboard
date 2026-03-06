@@ -40,6 +40,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelCatalog: boolean;
       disableModelRegistry: boolean;
       disableModelRegistrySecureDB: boolean;
+      registryOciStorage: boolean;
       disableServingRuntimeParams: boolean;
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
