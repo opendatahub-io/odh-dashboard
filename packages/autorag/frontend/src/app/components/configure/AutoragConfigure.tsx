@@ -238,7 +238,7 @@ function AutoragConfigure(): React.JSX.Element {
 
                       <Grid hasGutter className="pf-v6-u-mt-md">
                         <GridItem span={6}>
-                          <Card>
+                          <Card className="pf-v6-u-h-100">
                             <CardHeader
                               hasWrap
                               actions={{
@@ -256,15 +256,11 @@ function AutoragConfigure(): React.JSX.Element {
                             >
                               <CardTitle>Optimization metric</CardTitle>
                             </CardHeader>
-                            <CardBody>
-                              {optimizationMetric}
-                              <br />
-                              <br />
-                            </CardBody>
+                            <CardBody className="pf-v6-u-mb-sm">{optimizationMetric}</CardBody>
                           </Card>
                         </GridItem>
                         <GridItem span={6}>
-                          <Card>
+                          <Card className="pf-v6-u-h-100">
                             <CardHeader
                               hasWrap
                               actions={{
