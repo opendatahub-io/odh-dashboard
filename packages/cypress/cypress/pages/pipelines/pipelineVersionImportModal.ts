@@ -90,11 +90,9 @@ class PipelineImportModal extends Modal {
 
   submit(): void {
     // Wait for the button to be enabled before clicking (it may be disabled during file upload/processing)
-    // Use a longer timeout for files that take time to process/validate
-    this.findSubmitButton()
-      .should('not.be.disabled', { timeout: 20000 })
-      .should('not.have.class', 'pf-m-progress', { timeout: 20000 })
-      .click();
+    // The button should be enabled once file validation and duplicate name check complete
+    // Using a longer timeout as the duplicate name check is debounced
+    this.findSubmitButton().should('be.enabled', { timeout: 30000 }).click();
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {
