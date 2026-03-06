@@ -402,7 +402,6 @@ components:
           example: aws-secret-1
         type:
           type: string
-          enum: ["s3", "lls"]
           description: >-
             Optional type of the secret determined by:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty

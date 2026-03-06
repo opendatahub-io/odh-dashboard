@@ -156,7 +156,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         const labels = [];
         if (showType && secret.type) {
           labels.push(
-            <Label color="teal" isCompact>
+            <Label key="type" color="teal" isCompact>
               Type: {secret.type.toUpperCase()}
             </Label>,
           );
@@ -164,6 +164,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         if (showDescription && secret.description) {
           labels.push(
             <div
+              key="desc"
               style={{
                 width: '250px',
                 overflow: 'hidden',
