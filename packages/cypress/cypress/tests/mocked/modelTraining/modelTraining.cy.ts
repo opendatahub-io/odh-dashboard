@@ -718,6 +718,8 @@ describe('Model Training', () => {
     imageClassificationRow.findProject().should('contain', projectDisplayName);
     imageClassificationRow.findNodes().should('contain', '4');
     imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findType().should('contain', 'TrainJob');
+    imageClassificationRow.findRayCluster().should('contain', '-');
     imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
   });
 

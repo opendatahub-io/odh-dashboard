@@ -156,8 +156,24 @@ class TrainingJobTableRow extends TableRow {
     return this.findTrainingJobName().find('button');
   }
 
+  findType() {
+    return this.find().find('[data-label="Type"]');
+  }
+
+  findRayCluster() {
+    return this.find().find('[data-label="RayCluster"]');
+  }
+
   findPauseResumeToggle() {
     return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusCell() {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findKebabButton() {
+    return this.find().findByLabelText('Kebab toggle');
   }
 }
 
