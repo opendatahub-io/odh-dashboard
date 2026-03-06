@@ -144,169 +144,6 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// This middleware enforces RBAC-based authorization for service access in the namespace.
-func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled skip these steps.
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next(w, r, ps)
-			return
-		}
-
-		ctx := r.Context()
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		// Apply LlamaStack authorization check to all endpoints that require namespace access
-		// This ensures consistent security across all services
-		// Namespace must be present in context (set by AttachNamespace middleware).
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Get Kubernetes client to perform SAR
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
-		// This ensures users have proper permissions to access any service in the namespace
-		allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
-		if err != nil {
-			app.handleK8sClientError(w, r, err)
-			return
-		}
-
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("User authorized to access services in namespace", "namespace", namespace)
-		logger.Debug("Request authorized")
-
-		next(w, r, ps)
-	}
-}
-
-// AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
-// This middleware must be used after AttachNamespace middleware.
-//
-// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
-func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-
-		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
-		logger := helper.GetContextLoggerFromReq(r)
-
-		var llamaStackClient ls.LlamaStackClientInterface
-
-		// Check if running in mock mode
-		if app.config.MockLSClient {
-			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
-			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
-		} else if app.config.AuthMethod == config.AuthMethodDisabled {
-			// When auth is disabled, no RequestIdentity is injected into the context.
-			// Service discovery (GetLlamaStackDistributions) requires a k8s client which in turn
-			// requires identity, so it is not available in this mode.
-			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
-			if app.config.LlamaStackURL == "" {
-				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
-				return
-			}
-			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
-		} else {
-			// Read identity once here — needed by both the env-var and service-discovery paths
-			// for passing the user token to the LlamaStack client.
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-			if !ok || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-				return
-			}
-
-			var serviceURL string
-			// Use environment variable if explicitly set (developer override)
-			if app.config.LlamaStackURL != "" {
-				serviceURL = app.config.LlamaStackURL
-				logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
-					"namespace", namespace,
-					"serviceURL", serviceURL)
-			} else {
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-					return
-				}
-
-				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
-				if err != nil {
-					app.handleK8sClientError(w, r, err)
-					return
-				}
-
-				if len(lsdList.Items) == 0 {
-					app.notFoundResponse(w, r)
-					return
-				}
-				if len(lsdList.Items) > 1 {
-					logger.Warn(fmt.Sprintf("warning: %d LlamaStackDistributions found in namespace %q, using the first", len(lsdList.Items), namespace))
-				}
-
-				lsd := lsdList.Items[0]
-				serviceURL = lsd.Status.ServiceURL
-
-				if serviceURL == "" {
-					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
-					return
-				}
-
-				logger.Debug("Using ServiceURL from LlamaStackDistribution",
-					"namespace", namespace,
-					"lsdName", lsd.Name,
-					"serviceURL", serviceURL)
-			}
-
-			logger.Debug("Creating LlamaStack client for namespace",
-				"namespace", namespace,
-				"serviceURL", serviceURL)
-
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
-		}
-
-		// Attach ready-to-use client to context
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
-		r = r.WithContext(ctx)
-
-		next(w, r, ps)
-	}
-}
-
 // AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
 // and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
@@ -358,16 +195,16 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				"serviceURL", app.config.LlamaStackURL)
 			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else if app.config.LlamaStackURL != "" {
-			// Developer override: use LLAMA_STACK_URL, skip secret lookup
-			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-			if !identityOk || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-				return
+			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
+			// Use identity token if available; empty token is acceptable for local dev.
+			var authToken string
+			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+				authToken = identity.Token
 			}
 			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
 				"namespace", namespace,
 				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -402,23 +239,24 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data (case-insensitive key lookup)
+			// Extract LlamaStack credentials from secret data using case-insensitive key matching.
+			// Kubernetes secret keys are case-sensitive, but we accept any casing for flexibility.
 			var baseURL, apiKey string
 			for key, value := range foundSecret.Data {
 				switch strings.ToLower(key) {
 				case "llama_stack_client_base_url":
-					baseURL = string(value)
+					baseURL = strings.TrimSpace(string(value))
 				case "llama_stack_client_api_key":
-					apiKey = string(value)
+					apiKey = strings.TrimSpace(string(value))
 				}
 			}
 
 			if baseURL == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing required key: llama_stack_client_base_url", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
 				return
 			}
 			if apiKey == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing required key: llama_stack_client_api_key", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
 				return
 			}
 

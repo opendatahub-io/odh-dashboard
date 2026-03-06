@@ -33,11 +33,11 @@ func newLSDHandlerTestApp(t *testing.T) *App {
 }
 
 // newHandlerTestRequest creates a GET request with the LlamaStack client already injected into
-// context, simulating what AttachLlamaStackClient middleware does in production.
+// context, simulating what AttachLlamaStackClientFromSecret middleware does in production.
 func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace&secretName=test-secret", nil)
 	assert.NoError(t, err)
 
 	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
