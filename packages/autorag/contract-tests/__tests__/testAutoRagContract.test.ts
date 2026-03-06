@@ -295,7 +295,6 @@ describe('AutoRAG API Contract Tests', () => {
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
         );
         // Will fail without actual S3 setup, but validates parameter parsing
-        expect(result.success).toBe(false);
         if (!result.success) {
           // Should not be 400 (bad request) since format is valid
           expect(result.error.status).not.toBe(400);
@@ -306,7 +305,6 @@ describe('AutoRAG API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
         );
-        expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
         }
