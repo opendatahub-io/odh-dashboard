@@ -131,7 +131,10 @@ export const useHardwareProfileConfig = (
     useExistingSettings: false,
   });
 
-  const profiles = [...dashboardProfiles, ...projectScopedProfiles];
+  const profiles = React.useMemo(
+    () => [...dashboardProfiles, ...projectScopedProfiles],
+    [dashboardProfiles, projectScopedProfiles],
+  );
   const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
   const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
 

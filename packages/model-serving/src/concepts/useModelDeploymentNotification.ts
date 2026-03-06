@@ -5,6 +5,8 @@ import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
+// TODO: fix lint error:
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { useResolvedDeploymentExtension } from '../concepts/extensionUtils';
@@ -145,6 +147,8 @@ export const useModelDeploymentNotification = (
     registerNotification,
     navigate,
     namespace,
+    deployment.model.metadata.name,
+    deployment.model.metadata.namespace,
     notification,
     fetchDeploymentExtension,
     fetchDeploymentExtensionLoaded,

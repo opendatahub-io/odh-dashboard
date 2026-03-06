@@ -216,6 +216,8 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             workbenchEnabled,
             deploymentsTab,
+            currentProject.metadata.name,
+            projectRBACEnabled,
           ],
         )}
       />

@@ -54,14 +54,6 @@ export const useSearchState = ({
     }
   }, [isLoading]);
 
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
   return {
     searchValue,
     setSearchValue,

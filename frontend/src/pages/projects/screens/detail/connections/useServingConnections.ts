@@ -22,7 +22,7 @@ const useServingConnections = (
       error,
       refresh,
     ],
-    [connections, loaded, error, refresh],
+    [connections, loaded, error, refresh, skipCompatibilityCheck],
   );
 };
 

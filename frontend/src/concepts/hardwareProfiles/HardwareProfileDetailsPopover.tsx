@@ -43,7 +43,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   const { localQueues } = React.useContext(ProjectDetailsContext);
   const clusterQueueName = React.useMemo(
     () => getClusterQueueNameFromLocalQueues(localQueueName, localQueues),
-    [localQueueName, localQueues.data, localQueues.loaded],
+    [localQueueName, localQueues],
   );
 
   const renderSection = (title: string, items: string[]) => (
