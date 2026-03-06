@@ -117,7 +117,7 @@ make dev-install-dependencies
 make dev-start
 
 # Or start them separately:
-make dev-bff         # BFF on port 4000 with mocks
+make dev-bff         # BFF on port 4001 with mocks
 make dev-frontend    # Frontend dev server
 ```
 

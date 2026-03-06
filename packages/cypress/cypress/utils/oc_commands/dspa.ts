@@ -1,6 +1,9 @@
 import { applyOpenShiftYaml } from './baseCommands';
 import { replacePlaceholdersInYaml } from '../yaml_files';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { DspaSecretReplacements, DspaReplacements, CommandLineResult } from '../../types';
+
+const DSPA_RESOURCE_NAME = 'dspa';
 
 /**
  * Try to create a DSPA Secret based on the dspaSecretReplacements config
@@ -42,3 +45,75 @@ export const createDSPA = (
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
+
+type DspaCondition = { type?: string; status?: string; reason?: string; message?: string };
+
+/**
+ * Waits for the DSPA (Data Science Pipelines Application) to be ready.
+ * Uses oc wait --for=condition=Ready similar to other resource waits in the codebase.
+ *
+ * @param projectName - The namespace/project containing the DSPA
+ * @param timeout - Timeout in seconds (default 600s = 10 minutes)
+ */
+export const waitForDspaReady = (
+  projectName: string,
+  timeout = '600s',
+): Cypress.Chainable<CommandLineResult> => {
+  const command = `oc wait --for=condition=Ready dspa/${DSPA_RESOURCE_NAME} -n ${projectName} --timeout=${timeout}`;
+  cy.log(`Waiting for DSPA to be ready: ${command}`);
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 610000 })
+    .then((result: CommandLineResult) => {
+      if (result.code !== 0) {
+        cy.log(`DSPA wait failed (exit ${result.code}): ${maskSensitiveInfo(result.stderr)}`);
+      } else {
+        cy.log('DSPA is ready');
+      }
+    });
+};
+
+/**
+ * Logs whether the pipeline server (DSPA) is ready and, if not, why.
+ * Uses oc get dspa -o json and parses status.conditions (Ready + any False conditions).
+ * Does not fail the test if oc fails.
+ */
+export const logDspaStatus = (projectName: string): void => {
+  cy.exec(`oc get dspa ${DSPA_RESOURCE_NAME} -n ${projectName} -o json`, {
+    failOnNonZeroExit: false,
+  }).then((result) => {
+    if (result.code !== 0) {
+      const stderr = result.stderr.trim();
+      cy.log(
+        `[DSPA] Pipeline server not ready: oc get failed (exit ${result.code}). ${maskSensitiveInfo(
+          stderr,
+        )}`,
+      );
+      return;
+    }
+    try {
+      const dspa = JSON.parse(result.stdout || '{}') as {
+        status?: { conditions?: DspaCondition[] };
+      };
+      const conditions = dspa.status?.conditions ?? [];
+      const readyCondition = conditions.find((c) => c.type === 'Ready');
+      if (readyCondition?.status === 'True') {
+        cy.log('[DSPA] Pipeline server is ready.');
+        return;
+      }
+      const notReadyReasons = conditions
+        .filter((c) => c.status === 'False')
+        .map((c) => {
+          const part = [c.type, c.reason, c.message].filter(Boolean).join(': ');
+          return part || 'Unknown';
+        });
+      const reason =
+        notReadyReasons.length > 0
+          ? notReadyReasons.join('; ')
+          : readyCondition?.message || readyCondition?.reason || 'Waiting for Ready condition';
+      cy.log(`[DSPA] Pipeline server not ready: ${maskSensitiveInfo(reason)}`);
+    } catch {
+      cy.log('[DSPA] Pipeline server not ready: failed to parse DSPA status.');
+    }
+  });
+};

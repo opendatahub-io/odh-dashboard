@@ -1,6 +1,7 @@
 package pipelineserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,6 +33,7 @@ func (e *HTTPError) Status() int {
 type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
+	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion
@@ -145,7 +147,6 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add auth token if provided
 	if c.authToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
@@ -157,15 +158,11 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Use bounded read to prevent memory exhaustion from large error responses
 		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 		body, _ := io.ReadAll(limitedReader)
-
-		// Drain and close the body properly
 		_, _ = io.Copy(io.Discard, resp.Body)
 
 		errorMsg := string(body)
-		// Indicate truncation if we hit the size limit
 		if len(body) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}
@@ -181,4 +178,52 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	}
 
 	return &run, nil
+}
+
+// CreateRun creates a new pipeline run via the KFP v2beta1 API.
+func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	var runResponse models.KFPipelineRun
+	if err := json.NewDecoder(resp.Body).Decode(&runResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &runResponse, nil
 }
