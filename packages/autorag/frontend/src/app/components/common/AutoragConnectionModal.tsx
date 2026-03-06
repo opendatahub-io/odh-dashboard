@@ -14,11 +14,14 @@ import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts
 import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
+  getConnectionProtocolType,
   getDefaultValues,
   isConnectionTypeDataField,
-  getConnectionProtocolType,
+  withRequiredFields,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+
+const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
 
 type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -37,10 +40,14 @@ const AutoragConnectionModal: React.FC<Props> = ({
   const [isSaving, setIsSaving] = React.useState(false);
   const [isModified, setIsModified] = React.useState(false);
 
-  const enabledConnectionTypes = React.useMemo(
-    () => filterEnabledConnectionTypes(connectionTypes),
-    [connectionTypes],
-  );
+  const enabledConnectionTypes = React.useMemo(() => {
+    const filtered = filterEnabledConnectionTypes(connectionTypes);
+    return filtered.map((ct) =>
+      getConnectionProtocolType(ct) === 's3'
+        ? (withRequiredFields(ct, S3_REQUIRED_ENV_VARS) ?? ct)
+        : ct,
+    );
+  }, [connectionTypes]);
 
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
