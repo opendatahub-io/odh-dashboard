@@ -31,12 +31,23 @@ export const useKueueStatusForNotebooks = (
 
   const [workloads, loaded, watchError] = useWatchWorkloads(useKueue ? namespace : undefined);
 
+  const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
+
   const kueueStatusByNotebookName = React.useMemo(() => {
     if (!useKueue) return {};
     const workloadMap = buildWorkloadMapForNotebooks(workloads, notebooks);
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
     for (const [name, workload] of Object.entries(workloadMap)) {
-      statusMap[name] = workload ? getKueueWorkloadStatusWithMessage(workload) : null;
+      if (!workload) {
+        statusMap[name] = null;
+        continue;
+      }
+      const statusWithMessage = getKueueWorkloadStatusWithMessage(workload);
+      const notebook = notebooks.find((nb) => nb.metadata.name === name);
+      statusMap[name] = {
+        ...statusWithMessage,
+        queueName: notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL],
+      };
     }
     return statusMap;
   }, [useKueue, workloads, notebooks]);
