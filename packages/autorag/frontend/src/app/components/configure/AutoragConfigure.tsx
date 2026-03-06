@@ -17,31 +17,56 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import createConfigureSchema from '~/app/schemas/configure.schema';
-import { autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector from '~/app/shared/SecretSelector';
+import SecretSelector from '~/app/components/common/SecretSelector';
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
+
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
 const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const autoragConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<
     { uuid: string; name: string; invalid?: boolean } | undefined
   >();
-  const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const modelsInitialized = useRef(false);
+  const { data: allModelsData } = useLlamaStackModelsQuery();
 
   const formInvalid = !selectedSecret || selectedSecret.invalid === true;
-
-  const { data: allModelsData } = useLlamaStackModelsQuery();
-  const modelsInitialized = useRef(false);
 
   const form = useForm({
     mode: 'onChange',
@@ -80,6 +105,10 @@ function AutoragConfigure(): React.JSX.Element {
     setIsExperimentSettingsOpen(false);
   };
 
+  if (!namespace) {
+    return <Navigate to={autoragExperimentsPathname} replace />;
+  }
+
   return (
     <FormProvider {...form}>
       <Panel isScrollable={false}>
@@ -102,25 +131,26 @@ function AutoragConfigure(): React.JSX.Element {
                           }}
                         >
                           <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
-                            {Boolean(namespace) && (
-                              <SecretSelector
-                                namespace={String(namespace)}
-                                type="storage"
-                                additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
-                                value={selectedSecret?.uuid}
-                                onChange={(secret) => setSelectedSecret(secret)}
-                                label="S3 connection"
-                                placeholder="Select connection"
-                                toggleWidth="16rem"
-                                dataTestId="aws-secret-selector"
-                              />
-                            )}
+                            <SecretSelector
+                              namespace={String(namespace)}
+                              type="storage"
+                              additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                              value={selectedSecret?.uuid}
+                              onChange={(secret) => setSelectedSecret(secret)}
+                              onRefreshReady={(refresh) => {
+                                secretsRefreshRef.current = refresh;
+                              }}
+                              label="S3 connection"
+                              placeholder="Select connection"
+                              toggleWidth="16rem"
+                              dataTestId="aws-secret-selector"
+                            />
                           </SplitItem>
                           <SplitItem>
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
@@ -244,6 +274,33 @@ function AutoragConfigure(): React.JSX.Element {
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutoragConnectionModal
+          connectionTypes={autoragConnectionTypes}
+          project={namespace}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
+              const availableKeys = Object.keys(connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                uuid: secret.uuid,
+                name: secret.name,
+                invalid,
+              });
+            }
+          }}
+        />
+      )}
       <FileExplorer
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
