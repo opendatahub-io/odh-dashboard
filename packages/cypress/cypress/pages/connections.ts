@@ -115,5 +115,14 @@ class ConnectionModal extends Modal {
 }
 
 export const connectionsPage = new ConnectionsPage();
+
+export const connectionActions = {
+  findEditConnectionAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-connection-action');
+  },
+  findDeleteConnectionAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-connection-action');
+  },
+};
 export const addConnectionModal = new ConnectionModal(false);
 export const editConnectionModal = new ConnectionModal(true);
