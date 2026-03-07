@@ -38,6 +38,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.mlflow-ui-image
+  - name: eval-hub-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.eval-hub-ui-image
 configurations:
   - params.yaml
 patchesJson6902:
