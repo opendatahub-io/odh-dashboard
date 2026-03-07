@@ -183,11 +183,11 @@ paths:
   # =============================================================================
 
   /api/v1/pipeline-runs:
-    summary: Query pipeline runs from auto-discovered Pipeline Server
+    summary: Pipeline run operations
     description: >-
-      Lists pipeline runs from the Pipeline Server in the specified namespace.
-      The Pipeline Server (DSPipelineApplication) is automatically discovered.
-      Results can be optionally filtered by pipeline version.
+      Endpoints for listing and creating pipeline runs from the Pipeline Server
+      in the specified namespace. The Pipeline Server (DSPipelineApplication)
+      is automatically discovered.
     get:
       tags:
         - PipelineOperation
@@ -220,6 +220,38 @@ paths:
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: Returns pipeline runs optionally filtered by pipeline version ID
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutoRAGRunRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: createPipelineRun
+      summary: Create Pipeline Run
+      description: >-
+        Creates a new AutoRAG pipeline run. The Pipeline Server is auto-discovered
+        in the namespace. The BFF maps AutoRAG-specific parameters to KFP v2beta1
+        runtime config and submits the run.
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID
@@ -426,6 +458,22 @@ components:
               type: string
               description: ID of the pipeline version
               example: "22e57c06-030f-4c63-900d-0a808d577899"
+        runtime_config:
+          type: object
+          description: Runtime configuration used for this run, including pipeline parameters
+          nullable: true
+          properties:
+            parameters:
+              type: object
+              description: Key-value map of pipeline parameters
+              additionalProperties: true
+              example:
+                optimization_metric: "faithfulness"
+                test_data_secret_name: "minio-secret"
+                test_data_bucket_name: "autorag"
+            pipeline_root:
+              type: string
+              description: Root output directory for pipeline artifacts
         state:
           type: string
           enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
@@ -561,6 +609,69 @@ components:
                           type: string
                           description: Name of the Kubernetes pod running this task
                           example: "data-preprocessing-pod-abc123"
+
+    CreateAutoRAGRunRequest:
+      type: object
+      description: Request body for creating an AutoRAG pipeline run
+      required:
+        - display_name
+        - test_data_secret_name
+        - test_data_bucket_name
+        - test_data_key
+        - input_data_secret_name
+        - input_data_bucket_name
+        - input_data_key
+        - llama_stack_secret_name
+      properties:
+        display_name:
+          type: string
+          description: Human-readable name for the run
+          example: "my-optimization-run"
+        description:
+          type: string
+          description: Optional description of the run
+        test_data_secret_name:
+          type: string
+          description: Name of the K8s secret containing test data credentials
+        test_data_bucket_name:
+          type: string
+          description: S3 bucket name for test data
+        test_data_key:
+          type: string
+          description: Object key within the test data bucket
+        input_data_secret_name:
+          type: string
+          description: Name of the K8s secret containing input data credentials
+        input_data_bucket_name:
+          type: string
+          description: S3 bucket name for input data
+        input_data_key:
+          type: string
+          description: Object key within the input data bucket
+        llama_stack_secret_name:
+          type: string
+          description: Name of the K8s secret for LlamaStack access
+        embeddings_models:
+          type: array
+          items:
+            type: string
+          description: Optional list of embedding model identifiers
+        generation_models:
+          type: array
+          items:
+            type: string
+          description: Optional list of generation model identifiers
+        optimization_metric:
+          type: string
+          enum:
+            - faithfulness
+            - answer_correctness
+            - context_correctness
+          description: Metric to optimize (defaults to faithfulness)
+        llama_stack_vector_database_id:
+          type: string
+          description: Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus)
+      additionalProperties: false
 
     PipelineRunsData:
       type: object
@@ -835,6 +946,39 @@ components:
                       state: "SUCCEEDED"
               total_size: 1
               next_page_token: ""
+
+    CreatePipelineRunResponse:
+      description: Successful response containing the created pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "my-optimization-run"
+              state: "PENDING"
+              created_at: "2026-02-25T10:30:00Z"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              runtime_config:
+                parameters:
+                  optimization_metric: "faithfulness"
+                  test_data_secret_name: "minio-secret"
+                  test_data_bucket_name: "autorag"
+                  test_data_key: "test_data.json"
+                  input_data_secret_name: "minio-secret"
+                  input_data_bucket_name: "autorag"
+                  input_data_key: "documents/"
+                  llama_stack_secret_name: "llama-secret"
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run

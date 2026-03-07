@@ -4,7 +4,7 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import createExperimentSchema from '~/app/schemas/experiment.schema';
-import { autoragConfigurePathname } from '~/app/utilities/routes';
+import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
 function AutoragCreate(): React.JSX.Element {
@@ -20,7 +20,7 @@ function AutoragCreate(): React.JSX.Element {
   });
 
   if (!namespace) {
-    return <Navigate to={autoragConfigurePathname} replace />;
+    return <Navigate to={autoragExperimentsPathname} replace />;
   }
 
   return (

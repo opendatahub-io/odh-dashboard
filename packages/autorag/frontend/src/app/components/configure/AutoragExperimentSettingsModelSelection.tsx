@@ -37,12 +37,12 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const { field: generationModelField } = useController({
     control,
-    name: 'generation_constraints',
+    name: 'generation_models',
   });
 
   const { field: embeddingModelField } = useController({
     control,
-    name: 'embeddings_constraints',
+    name: 'embeddings_models',
   });
 
   const tabData = {
@@ -76,24 +76,22 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             const allSelected =
               models.length > 0 &&
               models.every((model) =>
-                selectedModels.some((selectedModel) => selectedModel.model === model.id),
+                selectedModels.some((selectedModel) => selectedModel === model.id),
               );
 
             const handleSelectAll = (isSelecting: boolean) => {
               field.onChange(
                 isSelecting
-                  ? models
-                      .map((model) => ({ model: model.id }))
-                      .toSorted((a, b) => a.model.localeCompare(b.model))
+                  ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
                   : [],
               );
             };
 
             const handleToggleModel = (modelId: string, isSelecting: boolean) => {
               const updated = isSelecting
-                ? [...selectedModels, { model: modelId }]
-                : selectedModels.filter((selectedModel) => selectedModel.model !== modelId);
-              field.onChange(updated.toSorted((a, b) => a.model.localeCompare(b.model)));
+                ? [...selectedModels, modelId]
+                : selectedModels.filter((selectedModel) => selectedModel !== modelId);
+              field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
             };
 
             return (
@@ -133,7 +131,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                                 select={{
                                   rowIndex,
                                   isSelected: selectedModels.some(
-                                    (selectedModel) => selectedModel.model === model.id,
+                                    (selectedModel) => selectedModel === model.id,
                                   ),
                                   onSelect: (_, isSelecting) =>
                                     handleToggleModel(model.id, isSelecting),
