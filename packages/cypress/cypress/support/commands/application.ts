@@ -213,14 +213,16 @@ Cypress.Commands.add(
     // Handle root section expansion if needed
     if (rootSection) {
       cy.wrap(subject).within(() => {
-        const $rootSectionElement = Cypress.$(`:contains('${rootSection}')`).closest('button');
+        const $rootSectionElement = Cypress.$('.pf-v6-c-nav__link, .pf-v6-c-nav__item')
+          .filter((i, el) => Cypress.$(el).text().trim() === rootSection)
+          .closest('button');
 
         if (!$rootSectionElement.length) {
           Cypress.log({
             displayName: 'findAppNavItem',
             message: `Root section '${rootSection}' not found`,
           });
-        } else if ($rootSectionElement.attr('aria-expanded') === 'false') {
+        } else if ($rootSectionElement.attr('aria-expanded') !== 'true') {
           // Expand the root section if it's collapsed
           cy.wrap($rootSectionElement).click();
           cy.wrap($rootSectionElement).should('have.attr', 'aria-expanded', 'true');
@@ -230,27 +232,41 @@ Cypress.Commands.add(
       });
 
       return cy.wrap(subject).then(($el) => {
-        const $rootSectionElement = $el.find(`:contains('${rootSection}')`).closest('button');
+        const $rootSectionElement = $el
+          .find('.pf-v6-c-nav__link, .pf-v6-c-nav__item')
+          .filter((i, el) => Cypress.$(el).text().trim() === rootSection)
+          .closest('button');
 
         if (!$rootSectionElement.length) {
-          return cy.wrap($el.find('__non_existent_selector__'));
+          Cypress.log({
+            displayName: 'findAppNavItem',
+            message: `Root section '${rootSection}' not found in context`,
+            consoleProps: () => ({ rootSection, context: $el }),
+          });
+          throw new Error(`Root section '${rootSection}' not found in navigation`);
         }
 
         const $parent = $rootSectionElement.parent();
 
         // Handle sub-section expansion if needed
         if (subSection) {
-          const $subSectionElement = $parent.find(`:contains('${subSection}')`).closest('button');
+          const $subSectionElement = $parent
+            .find('.pf-v6-c-nav__link, .pf-v6-c-nav__item')
+            .filter((i, el) => Cypress.$(el).text().trim() === subSection)
+            .closest('button');
 
           if (!$subSectionElement.length) {
             Cypress.log({
               displayName: 'findAppNavItem',
               message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
+              consoleProps: () => ({ rootSection, subSection, parent: $parent }),
             });
-            return cy.wrap($parent.find('__non_existent_selector__'));
+            throw new Error(
+              `Sub-section '${subSection}' not found in root section '${rootSection}'`,
+            );
           }
 
-          if ($subSectionElement.attr('aria-expanded') === 'false') {
+          if ($subSectionElement.attr('aria-expanded') !== 'true') {
             cy.wrap($subSectionElement).click();
             cy.wrap($subSectionElement).should('have.attr', 'aria-expanded', 'true');
             // Wait for the expansion animation to complete
@@ -260,22 +276,42 @@ Cypress.Commands.add(
               .find('.pf-v6-c-nav__subnav')
               .should('be.visible')
               .then(() =>
-                cy.wrap($subSectionElement.parent().find(`:contains('${args.name}')`).closest('a')),
+                cy.wrap(
+                  $subSectionElement
+                    .parent()
+                    .find('.pf-v6-c-nav__link')
+                    .filter((i, el) => Cypress.$(el).text().trim() === args.name)
+                    .closest('a'),
+                ),
               );
           }
 
           return cy.wrap(
-            $subSectionElement.parent().find(`:contains('${args.name}')`).closest('a'),
+            $subSectionElement
+              .parent()
+              .find('.pf-v6-c-nav__link')
+              .filter((i, el) => Cypress.$(el).text().trim() === args.name)
+              .closest('a'),
           );
         }
 
-        return cy.wrap($parent.find(`:contains('${args.name}')`).closest('a'));
+        return cy.wrap(
+          $parent
+            .find('.pf-v6-c-nav__link')
+            .filter((i, el) => Cypress.$(el).text().trim() === args.name)
+            .closest('a'),
+        );
       });
     }
 
     // No root section, just find the nav item directly
     return cy.wrap(subject).then(($el) => {
-      return cy.wrap($el.find(`:contains('${args.name}')`).closest('a'));
+      return cy.wrap(
+        $el
+          .find('.pf-v6-c-nav__link')
+          .filter((i, el) => Cypress.$(el).text().trim() === args.name)
+          .closest('a'),
+      );
     });
   },
 );
@@ -454,7 +490,7 @@ Cypress.Commands.add(
       .wrap(subject)
       .findKebab(isDropdownToggle)
       .then(($el) => {
-        if ($el.attr('aria-expanded') === 'false') {
+        if ($el.attr('aria-expanded') !== 'true') {
           cy.wrap($el).click();
           // Wait for the kebab menu to expand
           cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
@@ -467,7 +503,7 @@ Cypress.Commands.add(
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
+    if ($el.attr('aria-expanded') !== 'true') {
       cy.wrap($el).click();
       // Wait for the dropdown to expand
       cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
@@ -479,7 +515,7 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findMenuItem', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
+    if ($el.attr('aria-expanded') !== 'true') {
       cy.wrap($el).click();
       // Wait for the menu to expand
       cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
@@ -491,7 +527,7 @@ Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name)
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
+    if ($el.attr('aria-expanded') !== 'true') {
       cy.wrap($el).click();
       // Wait for the dropdown to expand
       cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
@@ -503,7 +539,7 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
 Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findSelectOption', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
+    if ($el.attr('aria-expanded') !== 'true') {
       cy.wrap($el).click();
       // Wait for the select to expand
       cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
@@ -537,7 +573,7 @@ Cypress.Commands.add('findCheckboxLabelNumberByTestId', (testId) => {
 Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
+    if ($el.attr('aria-expanded') !== 'true') {
       cy.wrap($el).click();
       // Wait for the select to expand
       cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
