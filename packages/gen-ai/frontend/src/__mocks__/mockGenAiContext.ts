@@ -27,6 +27,7 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false }),
       getGuardrailsStatus: jest.fn().mockResolvedValue({ data: null }),
       getSafetyConfig: jest.fn().mockResolvedValue({ data: null }),
+      createExternalModel: jest.fn().mockResolvedValue({ data: null }),
     },
   },
   refreshAPIState: jest.fn(),
