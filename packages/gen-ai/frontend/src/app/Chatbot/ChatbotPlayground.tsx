@@ -474,7 +474,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
-              isOverlay={isCompareMode}
             />
           }
         >

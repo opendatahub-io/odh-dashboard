@@ -62,8 +62,6 @@ interface ChatbotSettingsPanelProps {
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
   guardrailModelsError?: Error;
-  /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
-  isOverlay?: boolean;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width-v2';
@@ -87,7 +85,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModelsLoaded = false,
   onCloseClick,
   guardrailModelsError,
-  isOverlay = false, // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
