@@ -874,7 +874,9 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 			logger.Error("Failed to discover AutoRAG pipeline",
 				"namespace", namespace,
 				"error", err)
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to discover AutoRAG pipeline: %w", err))
+			app.serverErrorResponseWithMessage(w, r,
+				fmt.Errorf("failed to discover AutoRAG pipeline: %w", err),
+				fmt.Sprintf("no AutoRAG pipeline found in namespace %s - ensure a managed AutoRAG pipeline is deployed", namespace))
 			return
 		}
 

@@ -521,9 +521,20 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
+- No AutoRAG pipeline found in namespace (when making requests without explicit `pipelineVersionId` parameter)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
+
+**Example response (no AutoRAG pipeline):**
+```json
+{
+  "error": {
+    "code": "500",
+    "message": "no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"
+  }
+}
+```
 
 ### 503 Service Unavailable
 

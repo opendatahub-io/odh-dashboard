@@ -54,7 +54,9 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		// No explicit pipeline version specified - require discovered AutoRAG pipeline
 		discovered, ok := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
 		if !ok || discovered == nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"))
+			app.serverErrorResponseWithMessage(w, r,
+				fmt.Errorf("no AutoRAG pipeline found in namespace"),
+				"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
 			return
 		}
 		pipelineVersionID = discovered.PipelineVersionID

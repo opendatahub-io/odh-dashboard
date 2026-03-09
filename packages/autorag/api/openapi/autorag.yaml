@@ -298,7 +298,8 @@ paths:
         Returns pipeline runs with automatic filtering to the discovered AutoRAG managed pipeline.
         If pipelineVersionId query parameter is not specified, the BFF automatically discovers
         the AutoRAG pipeline in the namespace and filters runs to that pipeline version.
-        If no AutoRAG pipeline is found and no explicit pipelineVersionId is provided, returns 500 error.
+        If no AutoRAG pipeline is found and no explicit pipelineVersionId is provided, returns 500 error
+        with a user-visible message indicating that a managed AutoRAG pipeline needs to be deployed.
         Explicit pipelineVersionId parameter overrides automatic discovery.
     post:
       tags:
@@ -331,7 +332,8 @@ paths:
       description: >-
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
-        If no AutoRAG pipeline is found, returns a 500 error. The Pipeline Server
+        If no AutoRAG pipeline is found, returns a 500 error with a user-visible message
+        indicating that a managed AutoRAG pipeline needs to be deployed. The Pipeline Server
         (DSPipelineApplication) is also auto-discovered. The BFF maps AutoRAG-specific
         parameters to KFP v2beta1 runtime config and submits the run.
 

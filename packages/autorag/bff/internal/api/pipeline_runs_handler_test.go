@@ -163,7 +163,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		app.PipelineRunsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		// Error message is sanitized for security, just verify it's a 500 error
+		// Error message should be visible to help users understand the issue
 		var response struct {
 			Error struct {
 				Code    string `json:"code"`
@@ -173,6 +173,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "500", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
 	})
 
 	t.Run("should succeed with explicit pipelineVersionId even when no AutoRAG pipeline discovered", func(t *testing.T) {
