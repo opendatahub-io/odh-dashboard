@@ -33,7 +33,10 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(formState);
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+    formState,
+    initialWizardData?.navSourceMetadata,
+  );
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
