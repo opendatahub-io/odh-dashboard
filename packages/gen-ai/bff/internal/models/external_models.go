@@ -15,10 +15,11 @@ type ExternalModelRequest struct {
 type ProviderTypeEnum string
 
 const (
-	ProviderTypeGemini    ProviderTypeEnum = "remote::gemini"
-	ProviderTypeOpenAI    ProviderTypeEnum = "remote::openai"
-	ProviderTypeAnthropic ProviderTypeEnum = "remote::anthropic"
-	ProviderTypeVLLM      ProviderTypeEnum = "remote::vllm"
+	ProviderTypeGemini      ProviderTypeEnum = "remote::gemini"
+	ProviderTypeOpenAI      ProviderTypeEnum = "remote::openai"
+	ProviderTypeAnthropic   ProviderTypeEnum = "remote::anthropic"
+	ProviderTypeVLLM        ProviderTypeEnum = "remote::vllm"
+	ProviderTypePassthrough ProviderTypeEnum = "remote::passthrough"
 )
 
 // ModelTypeEnum represents supported model types
