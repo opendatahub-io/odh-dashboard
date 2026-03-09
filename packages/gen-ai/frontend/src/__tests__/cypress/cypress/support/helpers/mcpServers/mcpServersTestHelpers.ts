@@ -137,13 +137,15 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
+type MCPServerStatus = 'healthy' | 'error' | 'unknown';
+
 type InitInterceptsOptions = {
   config: MCPTestConfig;
   namespace: string;
   serverName: string;
   serverUrl?: string;
-  serverStatus?: string;
-  servers?: Array<{ name: string; status: string }>;
+  serverStatus?: MCPServerStatus;
+  servers?: Array<{ name: string; status: MCPServerStatus }>;
   withStatusInterceptor?: { token: string; serverUrl: string };
   withToolsInterceptor?: { token: string; serverUrl: string };
   withStatusError?: { errorType: '400' | '401'; serverUrl: string };
@@ -154,7 +156,7 @@ export const initIntercepts = ({
   namespace,
   serverName,
   serverUrl,
-  serverStatus = 'Token required',
+  serverStatus = 'unknown',
   servers,
   withStatusInterceptor,
   withToolsInterceptor,
@@ -216,7 +218,7 @@ export const initAutoConnectIntercepts = ({
   const mcpServers = [
     mockMCPServer({
       name: serverName,
-      status: 'Active',
+      status: 'healthy',
       url: serverUrl,
     }),
   ];
@@ -272,7 +274,7 @@ export const initHighToolsCountIntercepts = ({
   const mcpServers = [
     mockMCPServer({
       name: serverName,
-      status: 'Active',
+      status: 'healthy',
       url: serverUrl,
     }),
   ];

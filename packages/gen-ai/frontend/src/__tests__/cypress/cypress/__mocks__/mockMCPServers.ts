@@ -1,30 +1,43 @@
 /* eslint-disable camelcase */
+
+/**
+ * MCPServer type matching MCPServerFromAPI from ~/app/types/mcp.ts
+ */
 export type MCPServer = {
   name: string;
   url: string;
-  status: string;
-  description?: string;
+  transport: 'sse' | 'streamable-http';
+  description: string;
+  logo: string | null;
+  status: 'healthy' | 'error' | 'unknown';
 };
 
-export type MCPServersData = {
-  total_count: number;
-  servers: MCPServer[];
+export type MCPConfigMapInfo = {
+  name: string;
+  namespace: string;
+  last_updated: string;
 };
 
 export type MCPServersResponse = {
-  data: MCPServersData;
+  servers: MCPServer[];
+  total_count: number;
+  config_map_info: MCPConfigMapInfo;
 };
 
 export const mockMCPServer = ({
   name = 'Test-MCP-Server',
   url = 'http://test-mcp-server.test.svc.cluster.local:8080/sse',
-  status = 'Ready',
+  transport = 'sse',
+  status = 'healthy',
   description = 'Test MCP server',
+  logo = null,
 }: Partial<MCPServer> = {}): MCPServer => ({
   name,
   url,
-  status,
+  transport,
   description,
+  logo,
+  status,
 });
 
 export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
@@ -32,21 +45,28 @@ export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
     mockMCPServer({
       name: 'GitHub-MCP-Server',
       url: 'http://github-mcp-server.crimson-show.svc.cluster.local:8080/sse',
-      status: 'Token required',
+      transport: 'sse',
+      status: 'unknown',
       description: 'MCP server for GitHub integration',
+      logo: null,
     }),
     mockMCPServer({
       name: 'Kubernetes-MCP-Server',
       url: 'http://kubernetes-mcp-server.crimson-show.svc.cluster.local:8080/sse',
-      status: 'Ready',
+      transport: 'sse',
+      status: 'healthy',
       description: 'MCP server for Kubernetes cluster access',
+      logo: null,
     }),
   ];
 
   return {
-    data: {
-      total_count: serverList.length,
-      servers: serverList,
+    servers: serverList,
+    total_count: serverList.length,
+    config_map_info: {
+      name: 'mcp-servers-config',
+      namespace: 'crimson-show',
+      last_updated: new Date().toISOString(),
     },
   };
 };
