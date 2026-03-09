@@ -11,7 +11,7 @@ import {
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('Verify Model Catalog Source Enable/Disable', () => {
+describe('[Product Bug: RHOAIENG-52179] Verify Model Catalog Source Enable/Disable', () => {
   let testData: ModelCatalogSourceTestData;
 
   retryableBefore(() => {
@@ -30,7 +30,7 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
 
   it(
     'Admin can enable and disable model catalog sources',
-    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'] },
+    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

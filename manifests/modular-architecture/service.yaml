@@ -26,3 +26,10 @@
     protocol: TCP
     port: 8343
     targetPort: 8343
+- op: add
+  path: /spec/ports/-
+  value:
+    name: eval-hub-ui
+    protocol: TCP
+    port: 8543
+    targetPort: 8543
