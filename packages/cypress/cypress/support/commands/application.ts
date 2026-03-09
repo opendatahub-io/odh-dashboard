@@ -210,10 +210,10 @@ Cypress.Commands.add(
       }`,
     });
 
-    // Helper to find nav element by exact text match (retryable)
+    // Helper to find nav element by exact text match
     const findNavElementByText = (parent: Cypress.Chainable<JQuery>, text: string) =>
-      parent.find('.pf-v6-c-nav__link, .pf-v6-c-nav__item').filter((_, el) => {
-        return Cypress.$(el).text().trim() === text;
+      parent.find('.pf-v6-c-nav__link, .pf-v6-c-nav__item').then(($els) => {
+        return $els.filter((_, el) => Cypress.$(el).text().trim() === text);
       });
 
     // Handle root section expansion if needed
