@@ -44,11 +44,17 @@ export const initializeApp = async (
   fastify.register(fastifyAutoload, {
     dir: path.join(__dirname, 'plugins'),
     options: Object.assign({}, opts),
+    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
+    ignoreFilter: (filePath) =>
+      filePath.includes('/__tests__/') || /\.(spec|test)\.(ts|js|cjs|mjs)$/.test(filePath),
   });
 
   fastify.register(fastifyAutoload, {
     dir: path.join(__dirname, 'routes'),
     options: Object.assign({}, opts),
+    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
+    ignoreFilter: (filePath) =>
+      filePath.includes('/__tests__/') || /\.(spec|test)\.(ts|js|cjs|mjs)$/.test(filePath),
   });
 
   fastify.register(fastifyAccepts);
