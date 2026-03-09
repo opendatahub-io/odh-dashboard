@@ -28,7 +28,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Attach mock client to context
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -56,7 +56,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -87,7 +87,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -139,7 +139,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -175,7 +175,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -230,7 +230,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -277,7 +277,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		require.NoError(t, err)
 
 		// Attach mock client to context
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -313,7 +313,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -346,7 +346,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -405,7 +405,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -474,7 +474,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -510,7 +510,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -547,7 +547,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)

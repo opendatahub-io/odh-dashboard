@@ -6,22 +6,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
+	// Namespace determines which mock data set to return
+	Namespace string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
 }
 
-// NewMockPipelineServerClient creates a new mock pipeline server client
-func NewMockPipelineServerClient() *MockPipelineServerClient {
-	return &MockPipelineServerClient{}
+// NewMockPipelineServerClient creates a new mock pipeline server client.
+// baseURL can be "mock://namespace" to get namespace-specific mock data for UX testing.
+func NewMockPipelineServerClient(baseURL string) *MockPipelineServerClient {
+	namespace := ""
+	if strings.HasPrefix(baseURL, "mock://") {
+		namespace = strings.TrimPrefix(baseURL, "mock://")
+	}
+	return &MockPipelineServerClient{Namespace: namespace}
 }
 
 // ListRuns returns mock pipeline run data with support for filtering and pagination
@@ -376,6 +386,53 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	return mockRun, nil
 }
 
+// CreateRun returns a mock pipeline run response matching real KFP v2beta1 output
+func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	now := time.Now().UTC()
+	runID := uuid.New().String()
+
+	return &models.KFPipelineRun{
+		RunID:        runID,
+		ExperimentID: uuid.New().String(),
+		DisplayName:  request.DisplayName,
+		Description:  request.Description,
+		StorageState: "AVAILABLE",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        request.PipelineVersionReference.PipelineID,
+			PipelineVersionID: request.PipelineVersionReference.PipelineVersionID,
+		},
+		RuntimeConfig:  &request.RuntimeConfig,
+		ServiceAccount: "pipeline-runner-dspa",
+		State:          "PENDING",
+		CreatedAt:      now.Format(time.RFC3339),
+		ScheduledAt:    now.Format(time.RFC3339),
+		StateHistory: []models.RuntimeStatus{
+			{
+				UpdateTime: now.Format(time.RFC3339),
+				State:      "PENDING",
+			},
+		},
+		RunDetails: &models.RunDetails{
+			TaskDetails: []models.TaskDetail{
+				{
+					RunID:       runID,
+					TaskID:      uuid.New().String(),
+					DisplayName: "root-driver",
+					CreateTime:  now.Format(time.RFC3339),
+					StartTime:   now.Format(time.RFC3339),
+					State:       "PENDING",
+					StateHistory: []models.RuntimeStatus{
+						{UpdateTime: now.Format(time.RFC3339), State: "PENDING"},
+					},
+					ChildTasks: []models.ChildTask{
+						{PodName: fmt.Sprintf("%s-%s", request.DisplayName, runID[:8])},
+					},
+				},
+			},
+		},
+	}, nil
+}
+
 // MockClientFactory creates mock pipeline server clients
 type MockClientFactory struct{}
 
@@ -384,7 +441,8 @@ func NewMockClientFactory() *MockClientFactory {
 	return &MockClientFactory{}
 }
 
-// CreateClient creates a mock pipeline server client
+// CreateClient creates a mock pipeline server client.
+// When baseURL is "mock://namespace", returns namespace-specific mock data for UX testing.
 func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) pipelineserver.PipelineServerClientInterface {
-	return NewMockPipelineServerClient()
+	return NewMockPipelineServerClient(baseURL)
 }
