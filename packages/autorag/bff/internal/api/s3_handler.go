@@ -19,7 +19,7 @@ import (
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
 //   - secretName (required): The name of the Kubernetes secret containing S3 credentials
-//   - bucket (required): The S3 bucket name
+//   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
 //   - key (required): The S3 object key to retrieve
 //
 // Note: namespace is provided via the AttachNamespace middleware
@@ -48,10 +48,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	bucket := queryParams.Get("bucket")
-	if bucket == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'bucket' is required"))
-		return
-	}
 
 	key := queryParams.Get("key")
 	if key == "" {
@@ -113,6 +109,15 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+
+	// Determine bucket: use query param if provided, otherwise use bucket from secret
+	if bucket == "" {
+		if creds.Bucket == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+			return
+		}
+		bucket = creds.Bucket
 	}
 
 	// Retrieve the file from S3

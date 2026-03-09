@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * @jest-environment node
  */
@@ -164,7 +165,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 when bucket parameter is missing', async () => {
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
         );

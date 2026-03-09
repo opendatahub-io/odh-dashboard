@@ -19,6 +19,7 @@ type S3Credentials struct {
 	SecretAccessKey string
 	Region          string
 	EndpointURL     string
+	Bucket          string // Optional bucket name from secret (AWS_S3_BUCKET)
 }
 
 type S3Repository struct{}
@@ -63,6 +64,7 @@ func (r *S3Repository) GetS3Credentials(
 	creds.SecretAccessKey = getValue("AWS_SECRET_ACCESS_KEY")
 	creds.Region = getValue("AWS_DEFAULT_REGION")
 	creds.EndpointURL = getValue("AWS_S3_ENDPOINT")
+	creds.Bucket = getValue("AWS_S3_BUCKET") // Optional bucket name
 
 	// Validate that all required fields are present
 	if creds.AccessKeyID == "" {

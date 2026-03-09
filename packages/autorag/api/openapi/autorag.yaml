@@ -165,7 +165,7 @@ paths:
           example: aws-secret-1
         - name: bucket
           in: query
-          required: true
+          required: false
           description: The S3 bucket name
           schema:
             type: string

@@ -51,7 +51,25 @@ func TestGetS3FileHandler_MissingSecretName(t *testing.T) {
 }
 
 func TestGetS3FileHandler_MissingBucket(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
+	// Secret without AWS_S3_BUCKET, and no bucket query param provided
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
@@ -233,6 +251,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 					"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					"AWS_DEFAULT_REGION":    []byte("us-east-1"),
 					"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+					"AWS_S3_BUCKET":         []byte("test-bucket"),
 				},
 			},
 		},
@@ -249,6 +268,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 					"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					"aws_default_region":    []byte("us-east-1"),
 					"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+					"aws_s3_bucket":         []byte("test-bucket"),
 				},
 			},
 		},
@@ -265,6 +285,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 					"Aws_Secret_Access_Key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					"Aws_Default_Region":    []byte("us-east-1"),
 					"Aws_S3_Endpoint":       []byte("https://s3.amazonaws.com"),
+					"Aws_S3_Bucket":         []byte("test-bucket"),
 				},
 			},
 		},
@@ -289,6 +310,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 			assert.Equal(t, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
 			assert.Equal(t, "us-east-1", creds.Region)
 			assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
+			assert.Equal(t, "test-bucket", creds.Bucket)
 		})
 	}
 }
@@ -306,6 +328,7 @@ func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
 				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				"AWS_S3_BUCKET":         []byte("my-bucket"),
 			},
 		},
 	}
@@ -322,6 +345,7 @@ func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 	assert.Equal(t, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
 	assert.Equal(t, "us-east-1", creds.Region)
 	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
+	assert.Equal(t, "my-bucket", creds.Bucket)
 }
 
 func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
@@ -469,4 +493,38 @@ func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, creds)
 	assert.Contains(t, err.Error(), "kubernetes error")
+}
+
+func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
+	// Test that bucket field is empty when AWS_S3_BUCKET is not in the secret
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-no-bucket",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "aws-secret-no-bucket", identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "AKIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+	assert.Equal(t, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
+	assert.Equal(t, "us-east-1", creds.Region)
+	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
+	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
 }
