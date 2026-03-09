@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,7 +55,10 @@ func NewHTTPBFFClientWithHeaders(baseURL string, target BFFTarget, authToken str
 
 // NewHTTPBFFClientWithConfig creates a new HTTP-based BFF client with full auth configuration
 func NewHTTPBFFClientWithConfig(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, authTokenHeader string, authTokenPrefix string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	tlsConfig := &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: insecureSkipVerify,
+	}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
@@ -115,6 +119,13 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		// Provide more specific error messages for common failure modes
+		if errors.Is(err, context.DeadlineExceeded) {
+			return NewConnectionError(c.target, fmt.Sprintf("request to %s BFF timed out", c.target))
+		}
+		if errors.Is(err, context.Canceled) {
+			return NewConnectionError(c.target, fmt.Sprintf("request to %s BFF was canceled", c.target))
+		}
 		return NewConnectionError(c.target, fmt.Sprintf("failed to connect to %s BFF: %v", c.target, err))
 	}
 	defer resp.Body.Close()
@@ -132,7 +143,12 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	// Decode response body if response pointer provided
 	if response != nil && len(respBody) > 0 {
 		if err := json.Unmarshal(respBody, response); err != nil {
-			return NewInvalidResponseError(c.target, fmt.Sprintf("failed to unmarshal response: %v", err))
+			// Include truncated body in error for debugging
+			bodyPreview := string(respBody)
+			if len(bodyPreview) > 200 {
+				bodyPreview = bodyPreview[:200] + "..."
+			}
+			return NewInvalidResponseError(c.target, fmt.Sprintf("failed to unmarshal response: %v (body: %q)", err, bodyPreview))
 		}
 	}
 

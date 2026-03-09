@@ -9,6 +9,7 @@ spec:
       deployment: odh-dashboard
   policyTypes:
     - Ingress
+    - Egress
   ingress:
     - ports:
         - port: 8443
@@ -34,3 +35,36 @@ spec:
               network.openshift.io/policy-group: ingress
         # Allow traffic from pods in the same namespace
         - podSelector: {}
+  egress:
+    # Allow DNS resolution (RHOAIENG-49013)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow inter-BFF communication within same namespace
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: odh-dashboard
+      ports:
+        - port: 8043
+          protocol: TCP
+        - port: 8143
+          protocol: TCP
+        - port: 8243
+          protocol: TCP
+        - port: 8343
+          protocol: TCP
+    # Allow HTTPS egress to external services (LlamaStack, MaaS, MLflow backends)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+        - port: 8321
+          protocol: TCP
