@@ -1,0 +1,56 @@
+# Template LlamaStackDistribution for spike testing (RHOAIENG-51769).
+#
+# A separate LSD was created for each test (rather than modifying the existing lsd-genai-playground)
+# so that llamastack 0.5.0+rhai0 could be used via a custom image (rather than the bundled/installed version 0.4.2
+# which does not support registered_resources.vector_stores and had other changes since then)
+#
+# To use this template for a test:
+#   1. Change `metadata.name` and `openshift.io/display-name` to match your test (e.g. lsd-qdrant-success)
+#   2. Change `userConfig.configMapName` to point at your test's configmap (e.g. llama-stack-config-qdrant-success)
+#   3. Apply with: oc apply -f lsd-template.yaml
+#
+# The LSD spec is identical across all tests — only the name and configMapName differ.
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: lsd-<test-name>
+  namespace: pg-2
+  annotations:
+    openshift.io/display-name: lsd-<test-name>
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  replicas: 1
+  network:
+    allowedFrom:
+      namespaces:
+      - pg-2
+    exposeRoute: false
+  server:
+    distribution:
+      image: quay.io/opendatahub/llama-stack:latest
+    containerSpec:
+      name: llama-stack
+      port: 8321
+      command:
+      - /bin/sh
+      - -c
+      - llama stack run /etc/llama-stack/config.yaml
+      env:
+      - name: VLLM_TLS_VERIFY
+        value: "false"
+      - name: VLLM_MAX_TOKENS
+        value: "4096"
+      - name: VLLM_API_TOKEN_1
+        value: fake
+      - name: LLAMA_STACK_CONFIG_DIR
+        value: /opt/app-root/src/.llama/distributions/rh/
+      resources:
+        requests:
+          cpu: 250m
+          memory: 500Mi
+        limits:
+          cpu: "2"
+          memory: 12Gi
+    userConfig:
+      configMapName: llama-stack-config-<test-name>
