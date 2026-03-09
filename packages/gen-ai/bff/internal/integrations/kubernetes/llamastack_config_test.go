@@ -26,7 +26,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	yamlStr, err := config.ToYAML()
 	assert.NoError(t, err)
 	assert.Contains(t, yamlStr, "version: \"2\"")
-	assert.Contains(t, yamlStr, "image_name: rh")
+	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
 	assert.Contains(t, yamlStr, "default_provider_id: milvus")
 
@@ -34,7 +34,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	jsonStr, err := config.ToJSON()
 	assert.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
-	assert.Contains(t, jsonStr, "\"image_name\":\"rh\"")
+	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
 	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 
@@ -43,7 +43,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	err = parsedConfig.FromYAML(yamlStr)
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
-	assert.Equal(t, config.ImageName, parsedConfig.ImageName)
+	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
 	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
@@ -53,7 +53,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	err = parsedJSONConfig.FromJSON(jsonStr)
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
-	assert.Equal(t, config.ImageName, parsedJSONConfig.ImageName)
+	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
 	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
@@ -132,7 +132,7 @@ func TestDefaultConfig_Validation(t *testing.T) {
 
 	// Test that all required fields are present
 	assert.NotEmpty(t, config.Version)
-	assert.NotEmpty(t, config.ImageName)
+	assert.NotEmpty(t, config.DistroName)
 	assert.NotEmpty(t, config.APIs)
 	assert.NotNil(t, config.Providers)
 	assert.NotNil(t, config.MetadataStore)
@@ -618,11 +618,379 @@ providers:
 	})
 }
 
+func TestRBACAuth_EnableRBACAuth(t *testing.T) {
+	t.Run("should enable RBAC auth with default settings", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+
+		// Verify auth is nil initially
+		assert.Nil(t, config.Server.Auth)
+
+		// Enable RBAC auth with defaults
+		config.EnableRBACAuth("", "")
+
+		// Verify auth is configured
+		require.NotNil(t, config.Server.Auth)
+		require.NotNil(t, config.Server.Auth.ProviderConfig)
+
+		// Verify provider config
+		assert.Equal(t, "kubernetes", config.Server.Auth.ProviderConfig.Type)
+		assert.Contains(t, config.Server.Auth.ProviderConfig.APIServerURL, "kubernetes.default.svc")
+		assert.True(t, config.Server.Auth.ProviderConfig.VerifyTLS)
+		assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", config.Server.Auth.ProviderConfig.TLSCAFile)
+
+		// Verify claims mapping
+		assert.Equal(t, "roles", config.Server.Auth.ProviderConfig.ClaimsMapping["groups"])
+		assert.Equal(t, "roles", config.Server.Auth.ProviderConfig.ClaimsMapping["username"])
+
+		// Verify access policy
+		require.Len(t, config.Server.Auth.AccessPolicy, 2)
+
+		// Admin rule
+		adminRule := config.Server.Auth.AccessPolicy[0]
+		require.NotNil(t, adminRule.Permit)
+		assert.ElementsMatch(t, []string{"create", "read", "delete"}, adminRule.Permit.Actions)
+		assert.Equal(t, "user with admin in roles", adminRule.When)
+
+		// System:authenticated rule
+		authRule := config.Server.Auth.AccessPolicy[1]
+		require.NotNil(t, authRule.Permit)
+		assert.ElementsMatch(t, []string{"read"}, authRule.Permit.Actions)
+		assert.Equal(t, "user with system:authenticated in roles", authRule.When)
+	})
+
+	t.Run("should enable RBAC auth with custom API server URL", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		customURL := "https://api.openshift.example.com:6443"
+
+		config.EnableRBACAuth(customURL, "")
+
+		require.NotNil(t, config.Server.Auth)
+		assert.Equal(t, customURL, config.Server.Auth.ProviderConfig.APIServerURL)
+	})
+
+	t.Run("should enable RBAC auth with custom CA file", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		customCAFile := "/etc/ssl/certs/custom-ca.crt"
+
+		config.EnableRBACAuth("", customCAFile)
+
+		require.NotNil(t, config.Server.Auth)
+		assert.Equal(t, customCAFile, config.Server.Auth.ProviderConfig.TLSCAFile)
+	})
+}
+
+func TestRBACAuth_EnableRBACAuthWithCustomPolicy(t *testing.T) {
+	t.Run("should enable RBAC auth with custom access policy", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+
+		customPolicy := []AccessRule{
+			{
+				Permit: &Scope{
+					Actions: []string{"create", "read", "update", "delete"},
+				},
+				When:        "user with superadmin in roles",
+				Description: "superadmins have full access",
+			},
+			{
+				Permit: &Scope{
+					Actions:  []string{"read"},
+					Resource: "model::*",
+				},
+				When:        "user with viewer in roles",
+				Description: "viewers can only read models",
+			},
+		}
+
+		config.EnableRBACAuthWithCustomPolicy("", "", customPolicy)
+
+		require.NotNil(t, config.Server.Auth)
+		require.Len(t, config.Server.Auth.AccessPolicy, 2)
+		assert.Equal(t, "user with superadmin in roles", config.Server.Auth.AccessPolicy[0].When)
+		assert.Equal(t, "model::*", config.Server.Auth.AccessPolicy[1].Permit.Resource)
+	})
+}
+
+func TestRBACAuth_DisableRBACAuth(t *testing.T) {
+	t.Run("should disable RBAC auth", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+
+		// First enable RBAC auth
+		config.EnableRBACAuth("", "")
+		require.NotNil(t, config.Server.Auth)
+
+		// Then disable it
+		config.DisableRBACAuth()
+		assert.Nil(t, config.Server.Auth)
+	})
+}
+
+func TestRBACAuth_SetRoutePolicy(t *testing.T) {
+	t.Run("should set route policy on config without auth", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		assert.Nil(t, config.Server.Auth)
+
+		routePolicy := []RouteAccessRule{
+			{
+				Permit: &RouteScope{
+					Paths: "/v1/chat/completions",
+				},
+				When:        "user with developer in roles",
+				Description: "developers can access chat completions",
+			},
+		}
+
+		config.SetRoutePolicy(routePolicy)
+
+		require.NotNil(t, config.Server.Auth)
+		require.Len(t, config.Server.Auth.RoutePolicy, 1)
+		assert.Equal(t, "/v1/chat/completions", config.Server.Auth.RoutePolicy[0].Permit.Paths)
+	})
+
+	t.Run("should set route policy on config with existing auth", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnableRBACAuth("", "")
+
+		routePolicy := []RouteAccessRule{
+			{
+				Permit: &RouteScope{
+					Paths: []string{"/v1/files*", "/v1/models*"},
+				},
+				When:        "user with admin in roles",
+				Description: "admins can access files and models routes",
+			},
+		}
+
+		config.SetRoutePolicy(routePolicy)
+
+		// Verify route policy is set
+		require.Len(t, config.Server.Auth.RoutePolicy, 1)
+
+		// Verify access policy is still intact
+		require.Len(t, config.Server.Auth.AccessPolicy, 2)
+	})
+}
+
+func TestRBACAuth_NewDefaultAccessPolicy(t *testing.T) {
+	policy := NewDefaultAccessPolicy()
+
+	require.Len(t, policy, 2)
+
+	// Admin rule
+	assert.NotNil(t, policy[0].Permit)
+	assert.ElementsMatch(t, []string{"create", "read", "delete"}, policy[0].Permit.Actions)
+	assert.Equal(t, "user with admin in roles", policy[0].When)
+
+	// System:authenticated rule
+	assert.NotNil(t, policy[1].Permit)
+	assert.ElementsMatch(t, []string{"read"}, policy[1].Permit.Actions)
+	assert.Equal(t, "user with system:authenticated in roles", policy[1].When)
+}
+
+func TestRBACAuth_NewAccessRule(t *testing.T) {
+	rule := NewAccessRule([]string{"read", "update"}, "user with editor in roles", "editors can read and update")
+
+	require.NotNil(t, rule.Permit)
+	assert.ElementsMatch(t, []string{"read", "update"}, rule.Permit.Actions)
+	assert.Equal(t, "user with editor in roles", rule.When)
+	assert.Equal(t, "editors can read and update", rule.Description)
+	assert.Nil(t, rule.Forbid)
+}
+
+func TestRBACAuth_NewForbidAccessRule(t *testing.T) {
+	rule := NewForbidAccessRule([]string{"delete"}, "user with admin in roles", "only admins can delete")
+
+	require.NotNil(t, rule.Forbid)
+	assert.ElementsMatch(t, []string{"delete"}, rule.Forbid.Actions)
+	assert.Equal(t, "user with admin in roles", rule.Unless)
+	assert.Equal(t, "only admins can delete", rule.Description)
+	assert.Nil(t, rule.Permit)
+}
+
+func TestRBACAuth_NewRouteAccessRule(t *testing.T) {
+	t.Run("should create route access rule with single path", func(t *testing.T) {
+		rule := NewRouteAccessRule("/v1/health", "user with authenticated in roles", "health endpoint")
+
+		require.NotNil(t, rule.Permit)
+		assert.Equal(t, "/v1/health", rule.Permit.Paths)
+		assert.Equal(t, "user with authenticated in roles", rule.When)
+		assert.Equal(t, "health endpoint", rule.Description)
+	})
+
+	t.Run("should create route access rule with multiple paths", func(t *testing.T) {
+		paths := []string{"/v1/files*", "/v1/models*"}
+		rule := NewRouteAccessRule(paths, "user with admin in roles", "admin routes")
+
+		require.NotNil(t, rule.Permit)
+		assert.Equal(t, paths, rule.Permit.Paths)
+	})
+}
+
+func TestRBACAuth_Serialization(t *testing.T) {
+	t.Run("should serialize auth config to YAML", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnableRBACAuth("", "")
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify auth section is present in YAML
+		assert.Contains(t, yamlStr, "auth:")
+		assert.Contains(t, yamlStr, "provider_config:")
+		assert.Contains(t, yamlStr, "type: kubernetes")
+		assert.Contains(t, yamlStr, "api_server_url:")
+		assert.Contains(t, yamlStr, "claims_mapping:")
+		assert.Contains(t, yamlStr, "access_policy:")
+		assert.Contains(t, yamlStr, "user with admin in roles")
+		assert.Contains(t, yamlStr, "user with system:authenticated in roles")
+	})
+
+	t.Run("should serialize and deserialize auth config", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnableRBACAuth("https://api.cluster.example.com:6443", "/custom/ca.crt")
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Parse back
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Verify auth config is preserved
+		require.NotNil(t, parsedConfig.Server.Auth)
+		require.NotNil(t, parsedConfig.Server.Auth.ProviderConfig)
+		assert.Equal(t, "kubernetes", parsedConfig.Server.Auth.ProviderConfig.Type)
+		assert.Equal(t, "https://api.cluster.example.com:6443", parsedConfig.Server.Auth.ProviderConfig.APIServerURL)
+		assert.Equal(t, "/custom/ca.crt", parsedConfig.Server.Auth.ProviderConfig.TLSCAFile)
+		assert.Len(t, parsedConfig.Server.Auth.AccessPolicy, 2)
+	})
+
+	t.Run("should serialize config without auth when not enabled", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify no auth section in YAML (should be omitted when nil)
+		assert.NotContains(t, yamlStr, "provider_config:")
+		assert.NotContains(t, yamlStr, "access_policy:")
+	})
+}
+
+func TestRBACAuth_JSONSerialization(t *testing.T) {
+	t.Run("should serialize auth config to JSON", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnableRBACAuth("", "")
+
+		jsonStr, err := config.ToJSON()
+		require.NoError(t, err)
+
+		// Verify auth section is present in JSON
+		assert.Contains(t, jsonStr, "\"auth\":")
+		assert.Contains(t, jsonStr, "\"provider_config\":")
+		assert.Contains(t, jsonStr, "\"type\":\"kubernetes\"")
+		assert.Contains(t, jsonStr, "\"access_policy\":")
+	})
+
+	t.Run("should serialize and deserialize auth config via JSON", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnableRBACAuth("https://api.cluster.example.com:6443", "/custom/ca.crt")
+
+		jsonStr, err := config.ToJSON()
+		require.NoError(t, err)
+
+		// Parse back
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromJSON(jsonStr)
+		require.NoError(t, err)
+
+		// Verify auth config is preserved
+		require.NotNil(t, parsedConfig.Server.Auth)
+		require.NotNil(t, parsedConfig.Server.Auth.ProviderConfig)
+		assert.Equal(t, "kubernetes", parsedConfig.Server.Auth.ProviderConfig.Type)
+		assert.Equal(t, "https://api.cluster.example.com:6443", parsedConfig.Server.Auth.ProviderConfig.APIServerURL)
+	})
+}
+
+func TestRBACAuth_GeneratedConfigIncludesAuth(t *testing.T) {
+	t.Run("should include RBAC auth in generated config matching install flow", func(t *testing.T) {
+		// Simulate the generateLlamaStackConfig flow:
+		// 1. Create default config
+		// 2. EnsureStorageField
+		// 3. EnableRBACAuth (the new addition)
+		// 4. ToYAML
+		config := NewDefaultLlamaStackConfig()
+		config.EnsureStorageField()
+		config.EnableRBACAuth("", "")
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify the auth section is present in the generated YAML
+		assert.Contains(t, yamlStr, "auth:")
+		assert.Contains(t, yamlStr, "provider_config:")
+		assert.Contains(t, yamlStr, "type: kubernetes")
+		assert.Contains(t, yamlStr, "api_server_url:")
+		assert.Contains(t, yamlStr, "kubernetes.default.svc")
+		assert.Contains(t, yamlStr, "verify_tls: true")
+		assert.Contains(t, yamlStr, "claims_mapping:")
+		assert.Contains(t, yamlStr, "groups: roles")
+		assert.Contains(t, yamlStr, "username: roles")
+		assert.Contains(t, yamlStr, "access_policy:")
+		assert.Contains(t, yamlStr, "user with admin in roles")
+		assert.Contains(t, yamlStr, "user with system:authenticated in roles")
+
+		// Verify the rest of the config is still intact
+		assert.Contains(t, yamlStr, "version:")
+		assert.Contains(t, yamlStr, "providers:")
+		assert.Contains(t, yamlStr, "port: 8321")
+	})
+
+	t.Run("should produce config parseable by LlamaStack with auth section", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.EnsureStorageField()
+		config.EnableRBACAuth("", "")
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify round-trip: parse back and check auth is preserved
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Auth must be present after round-trip
+		require.NotNil(t, parsedConfig.Server.Auth)
+		require.NotNil(t, parsedConfig.Server.Auth.ProviderConfig)
+		assert.Equal(t, "kubernetes", parsedConfig.Server.Auth.ProviderConfig.Type)
+		assert.True(t, parsedConfig.Server.Auth.ProviderConfig.VerifyTLS)
+
+		// Access policies must be preserved
+		require.Len(t, parsedConfig.Server.Auth.AccessPolicy, 2)
+
+		// Admin rule: create, read, delete
+		adminRule := parsedConfig.Server.Auth.AccessPolicy[0]
+		require.NotNil(t, adminRule.Permit)
+		assert.ElementsMatch(t, []string{"create", "read", "delete"}, adminRule.Permit.Actions)
+		assert.Equal(t, "user with admin in roles", adminRule.When)
+
+		// Authenticated rule: read-only
+		authRule := parsedConfig.Server.Auth.AccessPolicy[1]
+		require.NotNil(t, authRule.Permit)
+		assert.ElementsMatch(t, []string{"read"}, authRule.Permit.Actions)
+		assert.Equal(t, "user with system:authenticated in roles", authRule.When)
+
+		// Server port and other fields must remain intact
+		assert.Equal(t, 8321, parsedConfig.Server.Port)
+		assert.Equal(t, "2", parsedConfig.Version)
+	})
+}
+
 func TestEnsureStorageField(t *testing.T) {
 	t.Run("should add storage field when missing", func(t *testing.T) {
 		yamlWithoutStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -658,7 +1026,7 @@ registered_resources:
 	t.Run("should not modify storage field when already present", func(t *testing.T) {
 		yamlWithStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -698,7 +1066,7 @@ storage:
 	t.Run("should add storage field when backends are empty but stores exist", func(t *testing.T) {
 		yamlWithPartialStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -731,7 +1099,7 @@ storage:
 	t.Run("should add storage field when stores are empty but backends exist", func(t *testing.T) {
 		yamlWithPartialStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:

@@ -60,7 +60,7 @@ describe('Gen AI API Contract Tests', () => {
     it('should retrieve LlamaStack Distribution status', async () => {
       const result = await apiClient.get('/gen-ai/api/v1/lsd/status?namespace=default');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/LSDStatusResponse/content/application/json/schema',
+        ref: '#/components/responses/LlamaStackDistributionStatusResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -70,7 +70,7 @@ describe('Gen AI API Contract Tests', () => {
     it('should list AI Available Assets models', async () => {
       const result = await apiClient.get('/gen-ai/api/v1/aaa/models?namespace=default');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/AAAModelsResponse/content/application/json/schema',
+        ref: '#/components/responses/AAModelsResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -80,7 +80,7 @@ describe('Gen AI API Contract Tests', () => {
     it('should list available MaaS models', async () => {
       const result = await apiClient.get('/gen-ai/api/v1/maas/models?namespace=default');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/MaaSModelsResponse/content/application/json/schema',
+        ref: '#/paths/~1gen-ai~1api~1v1~1maas~1models/get/responses/200/content/application~1json/schema',
         status: 200,
       });
     });

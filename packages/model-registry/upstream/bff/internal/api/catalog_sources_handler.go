@@ -15,6 +15,7 @@ import (
 type CatalogSourceListEnvelope Envelope[*models.CatalogSourceList, None]
 type CatalogModelEnvelope Envelope[*models.CatalogModel, None]
 type catalogModelArtifactsListEnvelope Envelope[*models.CatalogModelArtifactList, None]
+type CatalogLabelListEnvelope Envelope[*models.CatalogLabelList, None]
 
 func (app *App) GetAllCatalogSourcesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
@@ -52,18 +53,18 @@ func (app *App) GetCatalogSourceModelHandler(w http.ResponseWriter, r *http.Requ
 
 	newModelName := url.PathEscape(modelName)
 
-	catalogModel, err := app.repositories.ModelCatalogClient.GetCatalogSourceModel(client, ps.ByName(CatalogSourceId), newModelName)
+	model, err := app.repositories.ModelCatalogClient.GetCatalogSourceModel(client, ps.ByName(CatalogSourceId), newModelName)
 
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	sourcesList := CatalogModelEnvelope{
-		Data: catalogModel,
+	catalogModel := CatalogModelEnvelope{
+		Data: model,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, sourcesList, nil)
+	err = app.WriteJSON(w, http.StatusOK, catalogModel, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -121,6 +122,30 @@ func (app *App) GetCatalogModelPerformanceArtifactsHandler(w http.ResponseWriter
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, catalogModelArtifactList, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetCatalogLabelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
+	if !ok {
+		app.serverErrorResponse(w, r, errors.New("catalog REST client not found"))
+		return
+	}
+
+	catalogLabels, err := app.repositories.ModelCatalogClient.GetCatalogLabels(client, r.URL.Query())
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	labelsList := CatalogLabelListEnvelope{
+		Data: catalogLabels,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, labelsList, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

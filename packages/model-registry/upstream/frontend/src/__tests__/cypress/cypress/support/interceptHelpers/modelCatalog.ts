@@ -5,6 +5,7 @@
  */
 import { mockModArchResponse } from 'mod-arch-core';
 import {
+  mockCatalogLabelList,
   mockCatalogModel,
   mockCatalogModelList,
   mockCatalogPerformanceMetricsArtifact,
@@ -16,7 +17,7 @@ import {
 import { mockCatalogPerformanceMetricsArtifactList } from '~/__mocks__/mockCatalogModelArtifactList';
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import type { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
+import type { CatalogLabelList, CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import type { ModelRegistryCustomProperties } from '~/app/types';
 import { ModelRegistryMetadataType } from '~/app/types';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -63,6 +64,19 @@ export const interceptSources = (sources: CatalogSource[]): void => {
     mockCatalogSourceList({
       items: sources,
     }),
+  );
+};
+
+/**
+ * Intercepts the GET /model_catalog/labels endpoint
+ */
+export const interceptLabels = (labels?: Partial<CatalogLabelList>): void => {
+  cy.interceptApi(
+    `GET /api/:apiVersion/model_catalog/labels`,
+    {
+      path: { apiVersion: MODEL_CATALOG_API_VERSION },
+    },
+    mockCatalogLabelList(labels),
   );
 };
 
@@ -348,6 +362,57 @@ export const interceptPerformanceArtifactsList = (overrideArtifacts?: {
 };
 
 /**
+ * Intercepts performance artifacts with dynamic response based on filterQuery presence.
+ * Returns 3 artifacts when filterQuery is present, 5 when absent.
+ * Used to test that perf filters are passed regardless of toggle state.
+ */
+export const interceptPerformanceArtifactsWithFilterCheck = (): void => {
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/sources/.*/performance_artifacts/.*`,
+      ),
+    },
+    (req) => {
+      const hasFilterQuery = req.url.includes('filterQuery');
+      // Return different counts based on whether filterQuery is present
+      const artifactCount = hasFilterQuery ? 3 : 5;
+      const items = Array.from({ length: artifactCount }, (_, i) =>
+        mockCatalogPerformanceMetricsArtifact({
+          customProperties: {
+            hardware_configuration: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: `${i + 1} x H100-80`,
+            },
+            ttft_p90: {
+              metadataType: ModelRegistryMetadataType.DOUBLE,
+              double_value: 50 + i * 10,
+            },
+            replicas: {
+              metadataType: ModelRegistryMetadataType.INT,
+              int_value: String(i + 1),
+            },
+            use_case: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'chatbot',
+            },
+          },
+        }),
+      );
+      req.reply(
+        mockModArchResponse({
+          items,
+          size: artifactCount,
+          pageSize: 10,
+          nextPageToken: '',
+        }),
+      );
+    },
+  ).as('getCatalogSourceModelArtifacts');
+};
+
+/**
  * Intercepts the /artifacts/ endpoint (used to determine if tabs should show)
  * @param overrideArtifacts - Optional override for the artifacts response (e.g., empty list)
  */
@@ -399,8 +464,9 @@ export const setupModelCatalogIntercepts = (options: ModelCatalogInterceptOption
     customNonValidatedModel,
   } = options;
 
-  // Always intercept sources
+  // Always intercept sources and labels
   interceptSources(sources);
+  interceptLabels();
 
   // Intercept models by label
   interceptModelsByLabel(sources, modelsPerCategory, useValidatedModel);

@@ -11,7 +11,7 @@ type InvalidProjectProps = {
 const InvalidProject: React.FC<InvalidProjectProps> = ({ namespace, title, getRedirectPath }) => (
   <EmptyStateErrorMessage
     title={title || 'Project not found'}
-    bodyText={`${namespace ? `Project ${namespace}` : 'The Project'} was not found.`}
+    bodyText={`${namespace ? `Project ${namespace}` : 'The project'} was not found.`}
   >
     <ProjectSelectorNavigator
       getRedirectPath={getRedirectPath}

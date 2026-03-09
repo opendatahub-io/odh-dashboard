@@ -54,6 +54,7 @@ export const mockModelServingPlatform = ({
     id,
     manage: {
       namespaceApplicationCase,
+      priority: 0,
       projectRequirements: enabledProjectMetadata,
     },
     enableCardText: {
@@ -150,6 +151,7 @@ export const mockDeploymentWizardState = (
           connectionTypes: [],
           connectionTypesLoaded: true,
           disableInputFields: false,
+          pvcs: [],
         },
         createConnectionData: {
           data: {
@@ -228,6 +230,7 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        canCreateRoleBindings: true,
       },
       loaded: {
         modelSourceLoaded: true,

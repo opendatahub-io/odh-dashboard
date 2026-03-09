@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
@@ -56,7 +57,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 	if envDir := os.Getenv("ENVTEST_ASSETS_DIR"); envDir != "" {
 		// Construct full path with OS/ARCH suffix
 		binaryAssetsDir = filepath.Join(envDir, "k8s",
-			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
+			fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	} else {
 		// Fall back to project root detection (local development)
 		projectRoot, err := getProjectRoot()
@@ -66,7 +67,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 			os.Exit(1)
 		}
 		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s",
-			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
+			fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
 	testEnv := &envtest.Environment{
@@ -136,6 +137,18 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = createService(mockK8sClient, ctx, "model-registry-bella-prod", "bella-namespace", "Bella Production Registry", "Production model registry for Bella team", "10.0.0.20", "model-registry")
+	if err != nil {
+		return err
+	}
+	err = createService(mockK8sClient, ctx, "model-registry-bella-staging", "bella-namespace", "Bella Staging Registry", "Staging model registry for Bella team", "10.0.0.21", "model-registry")
+	if err != nil {
+		return err
+	}
+	err = createService(mockK8sClient, ctx, "model-registry-bella-dev", "bella-namespace", "Bella Dev Registry", "Development model registry for Bella team", "10.0.0.22", "model-registry")
+	if err != nil {
+		return err
+	}
 	err = createService(mockK8sClient, ctx, "non-model-registry", "kubeflow", "Not a Model Registry", "Not a Model Registry Bella description", "10.0.0.14", "")
 	if err != nil {
 		return err
@@ -169,6 +182,29 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	err = createGroupAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[1], "dora-namespace", "model-registry-dora")
 	if err != nil {
 		return fmt.Errorf("failed to create group-based RBAC: %w", err)
+	}
+
+	err = createNamespaceDefaultSARegistryAccessRBAC(mockK8sClient, ctx, "dora-namespace", "model-registry-dora")
+	if err != nil {
+		return fmt.Errorf("failed to create namespace default SA registry access RBAC: %w", err)
+	}
+
+	err = createNamespaceDefaultSARegistryAccessRBAC(mockK8sClient, ctx, "kubeflow", "model-registry")
+	if err != nil {
+		return fmt.Errorf("failed to create kubeflow default SA registry access RBAC: %w", err)
+	}
+	err = createCrossNamespaceRegistryAccessBinding(mockK8sClient, ctx, "kubeflow", "namespace-sa-registry-access", "dora-namespace")
+	if err != nil {
+		return fmt.Errorf("failed to create dora-namespace cross-namespace access to model-registry: %w", err)
+	}
+
+	err = createNamespaceDefaultSARegistryAccessRBAC(mockK8sClient, ctx, "bella-namespace", "model-registry-bella")
+	if err != nil {
+		return fmt.Errorf("failed to create bella-namespace default SA registry access RBAC: %w", err)
+	}
+	err = createCrossNamespaceRegistryAccessBinding(mockK8sClient, ctx, "bella-namespace", "namespace-sa-registry-access", "dora-namespace")
+	if err != nil {
+		return fmt.Errorf("failed to create dora-namespace cross-namespace access to model-registry-bella: %w", err)
 	}
 
 	err = createGroupNamespaceAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[0], "dora-namespace")
@@ -206,12 +242,32 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
-	err = createModelTransferJob(mockK8sClient, ctx, "kubeflow")
+	err = createModelTransferJob(mockK8sClient, ctx, "kubeflow", "model-registry")
 	if err != nil {
 		return err
 	}
 
-	err = createModelTransferJob(mockK8sClient, ctx, "bella-namespace")
+	err = createModelTransferJob(mockK8sClient, ctx, "bella-namespace", "model-registry-bella")
+	if err != nil {
+		return err
+	}
+
+	err = createTransferJobPods(mockK8sClient, ctx, "kubeflow")
+	if err != nil {
+		return err
+	}
+
+	err = createTransferJobPods(mockK8sClient, ctx, "bella-namespace")
+	if err != nil {
+		return err
+	}
+
+	err = createTransferJobPodEvents(mockK8sClient, ctx, "kubeflow")
+	if err != nil {
+		return err
+	}
+
+	err = createTransferJobPodEvents(mockK8sClient, ctx, "bella-namespace")
 	if err != nil {
 		return err
 	}
@@ -487,6 +543,77 @@ func createGroupAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, 
 	return nil
 }
 
+func createNamespaceDefaultSARegistryAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, namespace, serviceName string) error {
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "namespace-sa-registry-access",
+			Namespace: namespace,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{""},
+				Resources:     []string{"services"},
+				Verbs:         []string{"get"},
+				ResourceNames: []string{serviceName},
+			},
+		},
+	}
+	_, err := k8sClient.RbacV1().Roles(namespace).Create(ctx, role, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create Role for namespace default SA: %w", err)
+	}
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "namespace-sa-registry-access-binding",
+			Namespace: namespace,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "default",
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "Role",
+			Name:     "namespace-sa-registry-access",
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+	_, err = k8sClient.RbacV1().RoleBindings(namespace).Create(ctx, roleBinding, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create RoleBinding for namespace default SA: %w", err)
+	}
+	return nil
+}
+
+func createCrossNamespaceRegistryAccessBinding(k8sClient kubernetes.Interface, ctx context.Context, registryNamespace, roleName, jobNamespace string) error {
+	bindingName := "registry-access-binding-" + strings.ReplaceAll(jobNamespace, ":", "-")
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bindingName,
+			Namespace: registryNamespace,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "default",
+				Namespace: jobNamespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "Role",
+			Name:     roleName,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+	_, err := k8sClient.RbacV1().RoleBindings(registryNamespace).Create(ctx, roleBinding, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create cross-namespace registry access RoleBinding: %w", err)
+	}
+	return nil
+}
+
 func createGroupNamespaceAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, groupName, namespace string) error {
 
 	role := &rbacv1.Role{
@@ -629,7 +756,7 @@ func createModelCatalogService(k8sClient kubernetes.Interface, ctx context.Conte
 	return nil
 }
 
-func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context, namespace string) error {
+func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context, namespace string, registryName string) error {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "transfer-job-001-config",
@@ -666,7 +793,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 		StringData: map[string]string{
 			"AWS_ACCESS_KEY_ID":     "mock-access-key",
 			"AWS_SECRET_ACCESS_KEY": "mock-secret-key",
-			"AWS_REGION":            "us-east-1",
+			"AWS_DEFAULT_REGION":    "us-east-1",
 			"AWS_S3_BUCKET":         "source-bucket",
 		},
 	}
@@ -688,6 +815,10 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 		Type: corev1.SecretTypeDockerConfigJson,
 		StringData: map[string]string{
 			".dockerconfigjson": `{"auths":{"quay.io":{"auth":"bW9jazptb2Nr","email":"test@example.com"}}}`,
+			"username":          "",
+			"password":          "",
+			"email":             "",
+			"registry":          "",
 		},
 	}
 
@@ -703,8 +834,9 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 			Name:      "transfer-job-001",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"modelregistry.kubeflow.org/job-type": "async-upload",
-				"modelregistry.kubeflow.org/job-id":   "001",
+				"modelregistry.kubeflow.org/job-type":            "async-upload",
+				"modelregistry.kubeflow.org/job-id":              "001",
+				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
 				"modelregistry.kubeflow.org/registered-model-id": "1",
@@ -717,6 +849,11 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				"modelregistry.kubeflow.org/dest-type":           "oci",
 				"modelregistry.kubeflow.org/dest-uri":            "quay.io/test/model:v1",
 				"modelregistry.kubeflow.org/upload-intent":       "create_model",
+				"modelregistry.kubeflow.org/author":              "Sherlock Holmes",
+				"modelregistry.kubeflow.org/description":         "Transfer job for Model One",
+				"modelregistry.kubeflow.org/configmap-name":      "transfer-job-001-config",
+				"modelregistry.kubeflow.org/source-secret":       "transfer-job-001-source-secret",
+				"modelregistry.kubeflow.org/dest-secret":         "transfer-job-001-dest-secret",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -732,7 +869,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
 							Env: []corev1.EnvVar{
 								{Name: "MODEL_SYNC_SOURCE_TYPE", Value: "s3"},
 								{Name: "MODEL_SYNC_SOURCE_AWS_KEY", Value: "models/my-model"},
@@ -825,8 +962,9 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 			Name:      "transfer-job-002",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"modelregistry.kubeflow.org/job-type": "async-upload",
-				"modelregistry.kubeflow.org/job-id":   "002",
+				"modelregistry.kubeflow.org/job-type":            "async-upload",
+				"modelregistry.kubeflow.org/job-id":              "002",
+				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
 				"modelregistry.kubeflow.org/registered-model-id": "2",
@@ -849,7 +987,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
 						},
 					},
 				},
@@ -900,8 +1038,9 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 			Name:      "transfer-job-003",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"modelregistry.kubeflow.org/job-type": "async-upload",
-				"modelregistry.kubeflow.org/job-id":   "003",
+				"modelregistry.kubeflow.org/job-type":            "async-upload",
+				"modelregistry.kubeflow.org/job-id":              "003",
+				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
 				"modelregistry.kubeflow.org/registered-model-id": "1",
@@ -924,7 +1063,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
 						},
 					},
 				},
@@ -946,6 +1085,236 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 	_, err = k8sClient.BatchV1().Jobs(namespace).UpdateStatus(ctx, createdJob3, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update job3 status: %w", err)
+	}
+
+	return nil
+}
+
+func createTransferJobPods(k8sClient kubernetes.Interface, ctx context.Context, namespace string) error {
+	// Pod for job1 (RUNNING) - active pod, no termination message
+	pod1 := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "transfer-job-001-pod-abc12",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"job-name":                            "transfer-job-001",
+				"modelregistry.kubeflow.org/job-type": "async-upload",
+				"batch.kubernetes.io/job-name":        "transfer-job-001",
+				"batch.kubernetes.io/controller-uid":  "uid-001",
+			},
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:  "async-upload",
+					Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+				},
+			},
+		},
+	}
+
+	createdPod1, err := k8sClient.CoreV1().Pods(namespace).Create(ctx, pod1, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create pod for job1: %w", err)
+	}
+
+	createdPod1.Status = corev1.PodStatus{
+		Phase: corev1.PodRunning,
+		ContainerStatuses: []corev1.ContainerStatus{
+			{
+				Name:  "async-upload",
+				State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+			},
+		},
+	}
+	_, err = k8sClient.CoreV1().Pods(namespace).UpdateStatus(ctx, createdPod1, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update pod1 status: %w", err)
+	}
+
+	// Pod for job2 (COMPLETED) - succeeded with termination message containing created IDs
+	pod2 := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "transfer-job-002-pod-def34",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"job-name":                            "transfer-job-002",
+				"modelregistry.kubeflow.org/job-type": "async-upload",
+				"batch.kubernetes.io/job-name":        "transfer-job-002",
+				"batch.kubernetes.io/controller-uid":  "uid-002",
+			},
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:  "async-upload",
+					Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+				},
+			},
+		},
+	}
+
+	createdPod2, err := k8sClient.CoreV1().Pods(namespace).Create(ctx, pod2, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create pod for job2: %w", err)
+	}
+
+	createdPod2.Status = corev1.PodStatus{
+		Phase: corev1.PodSucceeded,
+		ContainerStatuses: []corev1.ContainerStatus{
+			{
+				Name: "async-upload",
+				State: corev1.ContainerState{
+					Terminated: &corev1.ContainerStateTerminated{
+						ExitCode: 0,
+						Message:  `{"RegisteredModel":{"id":"2"},"ModelVersion":{"id":"3"},"ModelArtifact":{"id":"5"}}`,
+					},
+				},
+			},
+		},
+	}
+	_, err = k8sClient.CoreV1().Pods(namespace).UpdateStatus(ctx, createdPod2, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update pod2 status: %w", err)
+	}
+
+	// Pod for job3 (FAILED) - failed with error in termination message
+	pod3 := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "transfer-job-003-pod-ghi56",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"job-name":                            "transfer-job-003",
+				"modelregistry.kubeflow.org/job-type": "async-upload",
+				"batch.kubernetes.io/job-name":        "transfer-job-003",
+				"batch.kubernetes.io/controller-uid":  "uid-003",
+			},
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:  "async-upload",
+					Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
+				},
+			},
+		},
+	}
+
+	createdPod3, err := k8sClient.CoreV1().Pods(namespace).Create(ctx, pod3, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create pod for job3: %w", err)
+	}
+
+	createdPod3.Status = corev1.PodStatus{
+		Phase: corev1.PodFailed,
+		ContainerStatuses: []corev1.ContainerStatus{
+			{
+				Name: "async-upload",
+				State: corev1.ContainerState{
+					Terminated: &corev1.ContainerStateTerminated{
+						ExitCode: 1,
+						Message:  "Connection timeout: failed to push model artifact to quay.io/test/model-one:v2 after 3 retries",
+					},
+				},
+			},
+		},
+	}
+	_, err = k8sClient.CoreV1().Pods(namespace).UpdateStatus(ctx, createdPod3, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update pod3 status: %w", err)
+	}
+
+	return nil
+}
+
+func createTransferJobPodEvents(k8sClient kubernetes.Interface, ctx context.Context, namespace string) error {
+	baseTime := time.Date(2025, 5, 27, 15, 38, 28, 0, time.UTC)
+
+	podEvents := []struct {
+		podName   string
+		eventName string
+		events    []struct {
+			reason  string
+			evType  string
+			message string
+			offset  time.Duration
+		}
+	}{
+		{
+			podName:   "transfer-job-001-pod-abc12",
+			eventName: "transfer-job-001-pod-abc12",
+			events: []struct {
+				reason  string
+				evType  string
+				message string
+				offset  time.Duration
+			}{
+				{"Pulling", "Normal", "Pulling image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 0},
+				{"Pulled", "Normal", "Successfully pulled image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 5 * time.Second},
+				{"Created", "Normal", "Created container async-upload", 6 * time.Second},
+				{"Started", "Normal", "Started container async-upload", 7 * time.Second},
+			},
+		},
+		{
+			podName:   "transfer-job-002-pod-def34",
+			eventName: "transfer-job-002-pod-def34",
+			events: []struct {
+				reason  string
+				evType  string
+				message string
+				offset  time.Duration
+			}{
+				{"Pulling", "Normal", "Pulling image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 0},
+				{"Pulled", "Normal", "Successfully pulled image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 4 * time.Second},
+				{"Created", "Normal", "Created container async-upload", 5 * time.Second},
+				{"Started", "Normal", "Started container async-upload", 6 * time.Second},
+			},
+		},
+		{
+			podName:   "transfer-job-003-pod-ghi56",
+			eventName: "transfer-job-003-pod-ghi56",
+			events: []struct {
+				reason  string
+				evType  string
+				message string
+				offset  time.Duration
+			}{
+				{"Pulling", "Normal", "Pulling image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 0},
+				{"Pulled", "Normal", "Successfully pulled image \"quay.io/opendatahub/model-registry-job-async-upload:latest\"", 3 * time.Second},
+				{"Created", "Normal", "Created container async-upload", 4 * time.Second},
+				{"Started", "Normal", "Started container async-upload", 5 * time.Second},
+				{"BackOff", "Warning", "Back-off restarting failed container async-upload", 30 * time.Second},
+			},
+		},
+	}
+
+	for _, pe := range podEvents {
+		for i, ev := range pe.events {
+			eventTime := baseTime.Add(ev.offset)
+			event := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-event-%d", pe.eventName, i),
+					Namespace: namespace,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      pe.podName,
+					Namespace: namespace,
+				},
+				Reason:         ev.reason,
+				Message:        ev.message,
+				Type:           ev.evType,
+				LastTimestamp:  metav1.NewTime(eventTime),
+				FirstTimestamp: metav1.NewTime(eventTime),
+			}
+			_, err := k8sClient.CoreV1().Events(namespace).Create(ctx, event, metav1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to create event for pod %s: %w", pe.podName, err)
+			}
+		}
 	}
 
 	return nil

@@ -17,7 +17,6 @@ import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
-  showCreateButton?: boolean;
 };
 
 const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({

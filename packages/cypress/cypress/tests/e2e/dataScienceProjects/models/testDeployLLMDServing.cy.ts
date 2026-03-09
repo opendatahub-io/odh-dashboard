@@ -76,7 +76,7 @@ describe('A user can deploy an LLMD model', () => {
       tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
@@ -101,6 +101,12 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
@@ -122,9 +128,11 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
       // Patch the LLM Inference Service to set image to VLLM CPU
       // workaround for model to be deployed without GPUs.
-      patchOpenShiftResource(resourceType, modelName, Image, projectName);
-      cy.step('Verify that the Model is ready');
-      checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
+        cy.step('Verify that the Model is ready');
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       modelServingGlobal.visit(projectName);

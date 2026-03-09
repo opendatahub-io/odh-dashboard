@@ -2,6 +2,21 @@ import { mergeRequestInit } from '#~/api/apiMergeUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { EitherOrNone } from '#~/typeHelpers';
 
+/**
+ * Thrown when a proxy call receives a transient HTTP error (e.g. 502/503) from the
+ * upstream server. This typically happens during pipeline server startup when the
+ * OpenShift route exists and is Admitted but HAProxy hasn't finished propagating.
+ */
+export class ProxyTransientError extends Error {
+  public status: number;
+
+  constructor(status: number) {
+    super(`Received transient ${status} response from pipeline server`);
+    this.name = 'ProxyTransientError';
+    this.status = status;
+  }
+}
+
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;
   parseJSON?: boolean;
@@ -57,14 +72,21 @@ const callProxyJSON = <T>(
     ...(contentType && { headers: { 'Content-Type': contentType } }),
     method,
     body: formData ?? requestData,
-  }).then((response) =>
-    response.text().then((fetchedData) => {
+  }).then((response) => {
+    // Detect transient server errors (502/503) before attempting to parse the response
+    // body as JSON. During pipeline server startup, HAProxy returns 502 with an empty
+    // body — JSON.parse("") would throw SyntaxError and produce a misleading error message.
+    if (response.status === 502 || response.status === 503) {
+      throw new ProxyTransientError(response.status);
+    }
+
+    return response.text().then((fetchedData) => {
       if (parseJSON) {
         return JSON.parse(fetchedData);
       }
       return fetchedData;
-    }),
-  );
+    });
+  });
 };
 
 export const proxyGET = <T>(

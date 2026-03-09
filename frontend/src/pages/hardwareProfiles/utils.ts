@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileKind, LocalQueueKind } from '#~/k8sTypes';
 import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
 import {
   HardwareProfileWarningType,
@@ -242,4 +242,20 @@ export const orderHardwareProfiles = (
     });
   }
   return alphaSortHardwareProfilesByName(profiles);
+};
+
+export const getClusterQueueNameFromLocalQueues = (
+  localQueueName: string | undefined,
+  localQueues: { data: LocalQueueKind[]; loaded: boolean },
+): string | undefined => {
+  if (
+    !localQueueName ||
+    !localQueues.loaded ||
+    !Array.isArray(localQueues.data) ||
+    localQueues.data.length === 0
+  ) {
+    return undefined;
+  }
+  const queue = localQueues.data.find((q) => q.metadata?.name === localQueueName);
+  return queue?.spec.clusterQueue;
 };

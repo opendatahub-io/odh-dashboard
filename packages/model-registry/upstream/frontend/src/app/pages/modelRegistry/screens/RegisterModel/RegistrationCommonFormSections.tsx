@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Content,
   FormGroup,
   TextInput,
   TextArea,
@@ -31,6 +32,9 @@ type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> =
   isFirstVersion: boolean;
   latestVersion?: ModelVersion;
   isCatalogModel?: boolean;
+  namespaceHasAccess?: boolean;
+  isNamespaceAccessLoading?: boolean;
+  namespaceAccessError?: Error | undefined;
 };
 
 const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
@@ -39,6 +43,9 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   isFirstVersion,
   latestVersion,
   isCatalogModel,
+  namespaceHasAccess,
+  isNamespaceAccessLoading,
+  namespaceAccessError,
 }: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
   const isVersionNameValid = isNameValid(formData.versionName);
   const isRegistryStorageFeatureAvailable = useTempDevFeatureAvailable(
@@ -55,6 +62,17 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
       setData('namespace', '');
     }
   };
+
+  React.useEffect(() => {
+    if (
+      !isRegistryStorageFeatureAvailable &&
+      registrationMode === RegistrationMode.RegisterAndStore
+    ) {
+      // When the feature is turned off, force the mode back to "Register"
+      setData('registrationMode', RegistrationMode.Register);
+      setData('namespace', '');
+    }
+  }, [isRegistryStorageFeatureAvailable, registrationMode, setData]);
 
   const versionNameInput = (
     <TextInput
@@ -163,7 +181,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
         {isRegistryStorageFeatureAvailable && (
           <ToggleGroup
             aria-label="Registration mode"
-            className={spacing.myMd}
+            className={spacing.mtMd}
             data-testid="registration-mode-toggle-group"
           >
             <ToggleGroupItem
@@ -180,6 +198,14 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             />
           </ToggleGroup>
         )}
+        {registrationMode === RegistrationMode.RegisterAndStore && (
+          <Content component="p">
+            <strong>Register and store</strong> initiates a model transfer job to copy the artifact
+            to the specified storage location. Requires connections for both the model origin and
+            destination. If you are storing a local model or prefer to store a model without a
+            transfer job, see the documentation for more details.
+          </Content>
+        )}
         {registrationMode === RegistrationMode.Register ? (
           <RegistrationModelLocationFields
             formData={formData}
@@ -191,6 +217,9 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             formData={formData}
             setData={setData}
             isCatalogModel={isCatalogModel}
+            namespaceHasAccess={namespaceHasAccess}
+            isNamespaceAccessLoading={isNamespaceAccessLoading}
+            namespaceAccessError={namespaceAccessError}
           />
         )}
       </FormSection>

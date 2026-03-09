@@ -1,9 +1,9 @@
-[Mod arch server set up]: ../../bff/docs/dev-guide.md
+[AutoRAG server set up]: local-deployment-guide.md
 
-# Deploying the Mod Arch UI in a local cluster
+# Deploying the AutoRAG UI in a local cluster
 
 For this guide, we will be using kind for locally deploying our cluster. See
-the [Mod arch server set up] guide for prerequisites on setting up kind
+the [AutoRAG server set up] guide for prerequisites on setting up kind
 and deploying the model registry server.
 
 ## Setup
@@ -35,7 +35,7 @@ make docker-push-standalone
 
 **Note: You will need to set up `IMG_UI_STANDALONE` in your .env.local file to push the image to your own registry.**
 
-### 4. Deploy Mod Arch UI to cluster
+### 4. Deploy AutoRAG UI to cluster
 
 You can now deploy the UI and BFF to your newly created cluster using the kustomize configs in the root manifest directory:
 
@@ -66,7 +66,7 @@ NAME                                  READY   STATUS    RESTARTS   AGE
 mod-arch-ui-58755c4754-zdrnr    1/1     Running   0          11s
 ```
 
-### 5. Access the Mod Arch UI running in the cluster
+### 5. Access the AutoRAG UI running in the cluster
 
 Now that the pods are up and running you can access the UI.
 

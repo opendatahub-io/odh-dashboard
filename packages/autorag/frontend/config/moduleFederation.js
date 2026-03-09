@@ -2,7 +2,7 @@ const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack'
 const deps = require('../package.json').dependencies;
 
 const moduleFederationConfig = {
-  name: 'autoRag',
+  name: 'autorag',
   filename: 'remoteEntry.js',
   shared: {
     react: { singleton: true, requiredVersion: deps.react },
@@ -16,6 +16,14 @@ const moduleFederationConfig = {
     '@odh-dashboard/plugin-core': {
       singleton: true,
       requiredVersion: '0.0.0',
+    },
+    '@openshift/dynamic-plugin-sdk': {
+      singleton: true,
+      requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
+    },
+    '@openshift/dynamic-plugin-sdk-utils': {
+      singleton: true,
+      requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
     },
   },
   exposes: {

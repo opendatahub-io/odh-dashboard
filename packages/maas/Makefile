@@ -40,8 +40,8 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.0.2
-ENVTEST_VERSION ?= release-0.17
-ENVTEST_K8S_VERSION ?= 1.29.0
+ENVTEST_VERSION ?= release-0.19
+ENVTEST_K8S_VERSION ?= 1.29.3
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
@@ -78,7 +78,7 @@ test: fmt vet envtest
 	cd bff && \
 	ABS_BIN_DIR="$$(pwd)/../bin" && \
 	ASSETS_PATH="$$( $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir "$$ABS_BIN_DIR" -p path )" && \
-	ENVTEST_ASSETS_DIR="$$(dirname "$$(dirname "$$ASSETS_PATH")")" \
+	ENVTEST_ASSETS="$$ASSETS_PATH" \
 	go test ./internal/api -v
 
 ############ Dev Environment ############
@@ -127,7 +127,17 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL=${MAAS_API_URL}
+
+.PHONY: dev-bff-federated-mock
+dev-bff-federated-mock:
+	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL=${MAAS_API_URL}
+
+.PHONY: dev-start-mock-federated
+dev-start-mock-federated:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated-mock dev-frontend-federated
+
 
 ############ Build ############
 

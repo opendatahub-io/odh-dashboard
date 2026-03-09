@@ -67,7 +67,7 @@ describe('A model can be deployed with token auth', () => {
     { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.log('Model Name:', modelName);
-      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
@@ -92,6 +92,12 @@ describe('A model can be deployed with token auth', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -113,8 +119,9 @@ describe('A model can be deployed with token auth', () => {
       // Verify the model created
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');

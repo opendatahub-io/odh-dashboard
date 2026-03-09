@@ -86,8 +86,8 @@ describe('Verify that admin users can edit model registry database configuration
       cy.step('Verify original database configuration in backend');
       getModelRegistryDatabaseConfig(registryName).then((config) => {
         expect(config.host).to.equal(databaseName);
-        expect(config.port).to.equal(3306);
-        expect(config.database).to.equal('model-registry');
+        expect(config.port).to.equal(parseInt(testData.defaultMysqlPort, 10));
+        expect(config.database).to.equal(testData.defaultDatabaseName);
         expect(config.username).to.equal('mlmduser');
         expect(config.passwordSecret.name).to.equal(databaseName);
         expect(config.passwordSecret.key).to.equal('database-password');
@@ -95,10 +95,8 @@ describe('Verify that admin users can edit model registry database configuration
       });
 
       cy.step('Find and edit the model registry');
-      modelRegistrySettings
-        .findModelRegistryRow(registryName)
-        .findKebabAction('Edit model registry')
-        .click();
+      modelRegistrySettings.findModelRegistryRow(registryName).findKebab().click();
+      modelRegistrySettings.findEditRegistryAction().click();
 
       cy.step('Verify the current database values are loaded in the form');
       modelRegistrySettings
@@ -106,10 +104,10 @@ describe('Verify that admin users can edit model registry database configuration
         .should('have.value', databaseName);
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.PORT)
-        .should('have.value', '3306');
+        .should('have.value', testData.defaultMysqlPort);
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.DATABASE)
-        .should('have.value', 'model-registry');
+        .should('have.value', testData.defaultDatabaseName);
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.USERNAME)
         .should('have.value', 'mlmduser');
@@ -166,10 +164,8 @@ describe('Verify that admin users can edit model registry database configuration
       });
 
       cy.step('Verify updated configuration is displayed in the UI');
-      modelRegistrySettings
-        .findModelRegistryRow(registryName)
-        .findKebabAction('Edit model registry')
-        .click();
+      modelRegistrySettings.findModelRegistryRow(registryName).findKebab().click();
+      modelRegistrySettings.findEditRegistryAction().click();
 
       // Verify the updated values are shown when reopening the edit form
       modelRegistrySettings
@@ -184,8 +180,6 @@ describe('Verify that admin users can edit model registry database configuration
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.USERNAME)
         .should('have.value', newDatabaseUsername);
-      // Note: Password field is not verified as it's typically cleared for security
-      // The password secret reference is verified in the backend validation above
 
       cy.log('✅ Updated database configuration verified in UI form');
 

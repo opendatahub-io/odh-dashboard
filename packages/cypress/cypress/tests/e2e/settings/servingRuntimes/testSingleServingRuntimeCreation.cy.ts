@@ -1,3 +1,4 @@
+import { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
 import { servingRuntimes } from '../../../../pages/servingRuntimes';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { getSingleModelPath } from '../../../../utils/fileImportUtils';
@@ -36,7 +37,7 @@ retryableBefore(() => {
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent', '@SettingsCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -55,7 +56,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol('REST');
+      servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
 
       cy.step('Select Model Types');
       servingRuntimes.findSelectModelTypes().click();

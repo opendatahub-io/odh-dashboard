@@ -1,5 +1,6 @@
 import type { PollOptions } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Type for LlamaStackDistribution status response
@@ -99,7 +100,8 @@ export const waitForLlamaStackDistributionReady = (
 
       // Handle command failure
       if (result.code !== 0) {
-        throw new Error(`Command failed with exit code ${result.code}: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Command failed with exit code ${result.code}: ${maskedStderr}`);
       }
 
       // Handle empty output

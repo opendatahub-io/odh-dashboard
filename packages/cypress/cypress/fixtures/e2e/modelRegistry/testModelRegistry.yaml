@@ -44,6 +44,17 @@ permissionsRegistryNamePrefix: "test-mr-permissions-registry"
 testProjectNamePrefix: "test-mr-permissions-project"
 rhodsUsersGroup: "rhods-users"
 
+# Default database form values
+defaultMysqlPort: "3306"
+defaultPostgresPort: "5432"
+defaultDatabaseName: "model-registry"
+statusAvailable: "Available"
+
+# Database credentials for E2E tests
+mysqlUsername: "mlmduser"
+postgresUsername: "modelregistryuser"
+databasePassword: "TheBlurstOfTimes"
+
 # Database configuration testing
 databaseName: "model-registry-db-test"
 newDatabaseHost: "model-registry-db-test-new"
@@ -51,3 +62,6 @@ newDatabasePort: "3307"
 newDatabaseName: "model_registry_updated"
 newDatabaseUsername: "mlmduser_updated"
 newDatabasePassword: "NewTestPassword123"
+
+# Object storage paths for v2
+objectStoragePathV2: "models/test-model/v2.0"

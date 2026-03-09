@@ -26,6 +26,7 @@ const UnauthorizedError: React.FC<UnauthorizedErrorProps> = ({
       icon={LockIcon}
       titleText="Access permissions needed"
       variant={EmptyStateVariant.lg}
+      data-testid="unauthorized-error-title"
     >
       <EmptyStateBody>
         To access {accessDomain}, ask your administrator to adjust your permissions.

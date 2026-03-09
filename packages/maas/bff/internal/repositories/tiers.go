@@ -482,7 +482,7 @@ func buildRateLimitPolicy(tierName, gatewayNamespace, gatewayName string, rateLi
 				"rates": convertRateLimitToKubernetesFormat(rateLimits),
 				"when": []map[string]interface{}{
 					{
-						"predicate": "auth.identity.tier == \"" + tierName + "\"",
+						"predicate": "auth.identity.tier == \"" + tierName + "\" && !request.path.endsWith(\"/v1/models\")",
 					},
 				},
 				"counters": []map[string]interface{}{
@@ -524,7 +524,7 @@ func buildTokenRateLimitPolicy(tierName, gatewayNamespace, gatewayName string, r
 				"rates": convertRateLimitToKubernetesFormat(rateLimits),
 				"when": []map[string]interface{}{
 					{
-						"predicate": "auth.identity.tier == \"" + tierName + "\"",
+						"predicate": "auth.identity.tier == \"" + tierName + "\" && !request.path.endsWith(\"/v1/models\")",
 					},
 				},
 				"counters": []map[string]interface{}{

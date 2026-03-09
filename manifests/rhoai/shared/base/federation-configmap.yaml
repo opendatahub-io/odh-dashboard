@@ -67,5 +67,74 @@ data:
             "namespace": "redhat-ods-applications",
             "port": 8243
         }
+      },
+      {
+          "name": "mlflow",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/mlflow/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "rhods-dashboard",
+            "namespace": "redhat-ods-applications",
+            "port": 8343
+        }
+      },
+      {
+          "name": "evalHub",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/eval-hub/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "rhods-dashboard",
+            "namespace": "redhat-ods-applications",
+            "port": 8543
+        }
+      },
+      {
+        "name": "perses",
+        "proxyService": [
+          {
+            "authorize": true,
+            "path": "/perses/api",
+            "pathRewrite": "",
+            "tls": false,
+            "service": {
+              "name": "data-science-perses",
+              "namespace": "redhat-ods-monitoring",
+              "port": 8080
+            }
+          }
+        ]
+      },
+      {
+        "name": "mlflowEmbedded",
+        "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
+        "authorize": true,
+        "tls": true,
+        "service": {
+            "name": "mlflow",
+            "namespace": "redhat-ods-applications",
+            "port": 8443
+        }
       }
     ]

@@ -35,6 +35,7 @@ import {
   ModelRegistrySelectIcon,
   ModelEvaluationIcon,
   LabTuningIcon,
+  ModelConnectionRocketIcon,
 } from '#~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -119,7 +120,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       Icon = DeployedModelIcon;
       break;
     case ProjectObjectType.connectedModels:
-      Icon = CheckmarkIcon;
+      Icon = ModelConnectionRocketIcon;
       break;
     case ProjectObjectType.servingRuntime:
       Icon = ServingRuntimeIcon;

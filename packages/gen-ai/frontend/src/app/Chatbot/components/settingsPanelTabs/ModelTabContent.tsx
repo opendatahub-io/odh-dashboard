@@ -32,6 +32,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
           selectedModel={selectedModel}
           onModelChange={onModelChange}
           style={{ width: '100%' }}
+          testId="settings-model-selector-toggle"
         />
       </FormGroup>
       <ModelParameterFormGroup

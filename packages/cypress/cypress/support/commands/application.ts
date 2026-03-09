@@ -267,7 +267,7 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
   cy.get('#username, input[name="username"]').clear();
   cy.get('#username, input[name="username"]').type(credentials.USERNAME);
   cy.get('#password, input[name="password"]').clear();
-  cy.get('#password, input[name="password"]').type(credentials.PASSWORD);
+  cy.get('#password, input[name="password"]').type(credentials.PASSWORD, { log: false });
 
   // Click the Sign In button
   cy.get('#kc-login, input[type="submit"], button[type="submit"]').click();
@@ -292,7 +292,7 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.get('input[name=username]').clear();
   cy.get('input[name=username]').type(credentials.USERNAME);
   cy.get('input[name=password]').clear();
-  cy.get('input[name=password]').type(credentials.PASSWORD);
+  cy.get('input[name=password]').type(credentials.PASSWORD, { log: false });
   cy.get('input[type="submit"], button[type="submit"]').click();
 
   // Wait for redirect back to dashboard
@@ -312,6 +312,60 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
       fullUrl = new URL(Cypress.config('baseUrl') || '').href;
     }
     cy.step(`Navigate to: ${fullUrl}`);
+
+    // When running against localhost (webpack dev server), check if we need to switch oc user
+    const baseUrl = Cypress.config('baseUrl') || '';
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      cy.log('🔍 Localhost detected - checking if oc user switch is needed');
+      cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then((result) => {
+        const currentOcUser = result.stdout.trim();
+        const requestedUser = credentials.USERNAME;
+
+        if (result.code !== 0) {
+          cy.log(
+            `⚠️ oc whoami failed (exit code: ${result.code}) - may not be logged into cluster`,
+          );
+          return cy.wrap(null);
+        }
+
+        if (currentOcUser !== requestedUser) {
+          cy.log(
+            `🔄 Switching oc user from ${currentOcUser ? '***' : 'none'} to ${
+              requestedUser ? '***' : 'none'
+            }`,
+          );
+
+          const ocServer = Cypress.env('OC_SERVER');
+          if (!ocServer) {
+            const errorMsg =
+              'OC_SERVER is required to switch oc user but was not set in Cypress env. ' +
+              'Set CYPRESS_OC_SERVER environment variable or pass via --env OC_SERVER=...';
+            cy.log(`❌ ${errorMsg}`);
+            throw new Error(errorMsg);
+          }
+
+          return cy
+            .exec(
+              `oc login -u "${requestedUser}" -p "${credentials.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+              { failOnNonZeroExit: false, log: false },
+            )
+            .then((loginResult) => {
+              if (loginResult.code === 0) {
+                cy.log(`✅ oc user switched successfully`);
+              } else {
+                const errorMsg =
+                  `oc login failed (exit code: ${loginResult.code}). ` +
+                  `Output: ${loginResult.stdout || loginResult.stderr || 'No output'}`;
+                cy.log(`❌ ${errorMsg}`);
+                throw new Error(errorMsg);
+              }
+            });
+        }
+
+        cy.log(`✅ Already logged in as correct oc user`);
+        return cy.wrap(null);
+      });
+    }
 
     if (isBYOIDCCluster) {
       cy.log('BYOIDC cluster detected - using Keycloak authentication');
@@ -336,7 +390,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
               cy.wrap($link).click();
             });
           cy.get('input[name=username]').fill(credentials.USERNAME);
-          cy.get('input[name=password]').fill(credentials.PASSWORD);
+          cy.get('input[name=password]').fill(credentials.PASSWORD, { log: false });
           cy.get('form').submit();
         }
       } else if (!interception.response || (statusCode !== 200 && statusCode !== 302)) {

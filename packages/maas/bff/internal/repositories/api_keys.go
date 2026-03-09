@@ -49,9 +49,9 @@ func (r *APIKeysRepository) ListAPIKeys(ctx context.Context) ([]models.APIKeyMet
 	return r.maasClient.ListAPIKeys(ctx)
 }
 
-// DeleteAllAPIKeys removes all API keys
-func (r *APIKeysRepository) DeleteAllAPIKeys() error {
-	r.logger.Debug("Deleting all API keys")
+// DeleteAllAPIKeys revokes all tokens for the authenticated user
+func (r *APIKeysRepository) DeleteAllAPIKeys(ctx context.Context) error {
+	r.logger.Debug("Revoking all tokens (deleting all API keys)")
 
-	return nil
+	return r.maasClient.RevokeAllTokens(ctx)
 }

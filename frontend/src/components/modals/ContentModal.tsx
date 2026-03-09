@@ -17,6 +17,8 @@ export type ButtonAction = {
   onClick: () => void;
   variant?: ButtonProps['variant'];
   dataTestId?: string;
+  isDisabled?: boolean;
+  isLoading?: boolean;
 };
 
 type ContentModalProps = {
@@ -24,6 +26,7 @@ type ContentModalProps = {
   contents: React.ReactNode;
   title: string | React.ReactNode;
   buttonActions?: ButtonAction[];
+  footerContent?: React.ReactNode;
   description?: React.ReactNode;
   disableFocusTrap?: boolean;
   dataTestId?: string;
@@ -49,6 +52,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   contents,
   title,
   buttonActions,
+  footerContent,
   description,
   disableFocusTrap,
   dataTestId = 'content-modal',
@@ -81,16 +85,19 @@ const ContentModal: React.FC<ContentModalProps> = ({
         {contents}
       </ModalBody>
       <ModalFooter>
-        {buttonActions?.map((action, index) => (
-          <Button
-            key={`${action.label}-${index}`}
-            variant={action.variant}
-            onClick={action.onClick}
-            data-testid={action.dataTestId}
-          >
-            {action.label}
-          </Button>
-        ))}
+        {footerContent ??
+          buttonActions?.map((action, index) => (
+            <Button
+              key={`${action.label}-${index}`}
+              variant={action.variant}
+              onClick={action.onClick}
+              data-testid={action.dataTestId}
+              isDisabled={action.isDisabled}
+              isLoading={action.isLoading}
+            >
+              {action.label}
+            </Button>
+          ))}
       </ModalFooter>
     </Modal>
   );

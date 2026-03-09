@@ -1,4 +1,3 @@
-import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -22,6 +21,9 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
+
+// Local copy of the key used by the stop modal preference (avoid restricted import from internal)
+const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -71,7 +73,7 @@ describe('A model can be stopped and started', () => {
     },
     () => {
       cy.log('Model Name:', modelName);
-      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
@@ -99,6 +101,12 @@ describe('A model can be stopped and started', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -114,7 +122,9 @@ describe('A model can be stopped and started', () => {
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       //Stop the model with the modal
       cy.step('Stop the model');
       //Ensure the modal is shown
@@ -134,10 +144,12 @@ describe('A model can be stopped and started', () => {
 
       //Verify the model is stopped
       // Verify model is stopped
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
@@ -148,7 +160,9 @@ describe('A model can be stopped and started', () => {
 
       //Verify the model is running again
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       kServeRow
         .findStatusLabel()
         .invoke('text')

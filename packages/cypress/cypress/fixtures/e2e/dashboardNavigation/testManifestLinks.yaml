@@ -14,3 +14,6 @@ excludedSubstrings:
   - scikit-learn.org/stable/getting_started.html
   - 2Fopentracker
   - 2Ftracker.openbittorrent
+  - ww3.
+  - www3.
+  - w3.org

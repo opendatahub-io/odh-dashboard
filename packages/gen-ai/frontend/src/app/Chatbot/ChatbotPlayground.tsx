@@ -31,7 +31,7 @@ import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
-import NewChatModal from './components/NewChatModal';
+import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
 import {
   useChatbotConfigStore,
@@ -387,7 +387,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Settings panel header label
   const settingsHeaderLabel = isCompareMode
-    ? `Configure ${getConfigDisplayLabel(configIds.indexOf(activePaneConfigId))}`
+    ? `Configure - ${configIds.indexOf(activePaneConfigId) + 1}`
     : 'Configure';
 
   // Render chatbot content for a config
@@ -442,7 +442,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         mcpServerTokens={mcpServerTokens}
         namespace={namespace?.name}
       />
-      <NewChatModal
+      <ChatModal
         isOpen={isNewChatModalOpen}
         onClose={() => setIsNewChatModalOpen(false)}
         onConfirm={() => {
@@ -474,6 +474,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
+              isOverlay={isCompareMode}
             />
           }
         >
@@ -488,6 +489,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
+                  isDarkMode={isDarkMode}
                 />
               )}
 

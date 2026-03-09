@@ -1,0 +1,27 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-2-7b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local",
+      "display_name": "Llama 2 7B Chat",
+      "description": "Meta Llama 2 7B model fine-tuned for conversational AI and chat applications",
+      "usecase": "Chat, Question answering"
+    },
+    {
+      "id": "granite-7b-lab",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local",
+      "display_name": "Granite 7B Lab",
+      "description": "IBM Granite 7B model optimized for enterprise lab experiments and testing",
+      "usecase": "Code generation, Text completion"
+    }
+  ]
+}

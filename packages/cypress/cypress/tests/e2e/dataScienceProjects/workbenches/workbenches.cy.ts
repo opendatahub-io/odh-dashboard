@@ -97,7 +97,7 @@ describe('Workbench and PVSs tests', () => {
         '@ODS-1814',
         '@Dashboard',
         '@Workbenches',
-        '@ci-dashboard-set-1',
+        '@ci-dashboard-regression-tags',
       ],
     },
     () => {

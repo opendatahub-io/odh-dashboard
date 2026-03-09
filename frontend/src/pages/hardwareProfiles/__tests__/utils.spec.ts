@@ -2,9 +2,11 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
+  getClusterQueueNameFromLocalQueues,
   isHardwareProfileIdentifierValid,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
@@ -418,5 +420,84 @@ describe('determine unit', () => {
       defaultCount: '2Gi',
     };
     expect(determineIdentifierUnit(nodeUnknownResource)).toEqual(OTHER);
+  });
+});
+
+describe('getClusterQueueNameFromLocalQueues', () => {
+  it('should return undefined when localQueueName is undefined', () => {
+    const localQueues = {
+      data: [mockLocalQueueK8sResource({ name: 'my-queue', namespace: 'test-project' })],
+      loaded: true,
+    };
+    expect(getClusterQueueNameFromLocalQueues(undefined, localQueues)).toBeUndefined();
+  });
+
+  it('should return undefined when localQueueName is empty string', () => {
+    const localQueues = {
+      data: [mockLocalQueueK8sResource({ name: 'my-queue', namespace: 'test-project' })],
+      loaded: true,
+    };
+    expect(getClusterQueueNameFromLocalQueues('', localQueues)).toBeUndefined();
+  });
+
+  it('should return undefined when localQueues.loaded is false', () => {
+    const localQueues = {
+      data: [mockLocalQueueK8sResource({ name: 'my-queue', namespace: 'test-project' })],
+      loaded: false,
+    };
+    expect(getClusterQueueNameFromLocalQueues('my-queue', localQueues)).toBeUndefined();
+  });
+
+  it('should return undefined when localQueues.data is not an array', () => {
+    expect(
+      getClusterQueueNameFromLocalQueues('my-queue', {
+        data: undefined as unknown as never[],
+        loaded: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined when localQueues.data is empty', () => {
+    expect(
+      getClusterQueueNameFromLocalQueues('my-queue', { data: [], loaded: true }),
+    ).toBeUndefined();
+  });
+
+  it('should return cluster queue name when matching LocalQueue is found', () => {
+    const localQueues = {
+      data: [
+        mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+        mockLocalQueueK8sResource({
+          name: 'other-queue',
+          namespace: 'test-project',
+        }),
+      ],
+      loaded: true,
+    };
+    expect(getClusterQueueNameFromLocalQueues('test-queue', localQueues)).toBe(
+      'test-cluster-queue',
+    );
+  });
+
+  it('should return undefined when no LocalQueue matches localQueueName', () => {
+    const localQueues = {
+      data: [mockLocalQueueK8sResource({ name: 'other-queue', namespace: 'test-project' })],
+      loaded: true,
+    };
+    expect(getClusterQueueNameFromLocalQueues('nonexistent-queue', localQueues)).toBeUndefined();
+  });
+
+  it('should return undefined when matching queue has no spec.clusterQueue', () => {
+    const queueWithoutClusterQueue = mockLocalQueueK8sResource({
+      name: 'no-cluster-queue',
+      namespace: 'test-project',
+    });
+    const localQueues = {
+      data: [{ ...queueWithoutClusterQueue, spec: { ...queueWithoutClusterQueue.spec } }],
+      loaded: true,
+    };
+    // Remove clusterQueue to simulate missing field
+    delete (localQueues.data[0].spec as { clusterQueue?: string }).clusterQueue;
+    expect(getClusterQueueNameFromLocalQueues('no-cluster-queue', localQueues)).toBeUndefined();
   });
 });

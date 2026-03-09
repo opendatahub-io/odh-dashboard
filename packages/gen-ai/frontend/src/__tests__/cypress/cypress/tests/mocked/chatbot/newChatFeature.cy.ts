@@ -86,11 +86,7 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
     cy.wait('@aaModels');
 
     // Verify that a model is selected by checking the dropdown shows a model name
-    // Use .first() since there are two model dropdowns (header and settings panel)
-    cy.findAllByTestId('model-selector-toggle')
-      .first()
-      .should('be.visible')
-      .and('contain', 'Llama');
+    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   it(
@@ -141,7 +137,7 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
       const newChatModal = new NewChatModal();
       newChatModal.shouldBeOpen();
 
-      cy.step('Click confirm button to start new chat');
+      cy.step('Click confirm button to start a new chat session');
       newChatModal.findConfirmButton().should('be.visible').click();
 
       cy.step('Verify modal closes');
@@ -198,7 +194,10 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
       newChatModal.shouldBeOpen();
 
       cy.step('Verify confirm button has correct text');
-      newChatModal.findConfirmButton().should('be.visible').and('contain', 'Start new chat');
+      newChatModal
+        .findConfirmButton()
+        .should('be.visible')
+        .and('contain', 'Start a new chat session');
 
       cy.step('Verify cancel button has correct text');
       newChatModal.findCancelButton().should('be.visible').and('contain', 'Cancel');

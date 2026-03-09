@@ -8,6 +8,7 @@ export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_API_KEYS_ID = 'maasApiKeys';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
+const ADMIN_USER = 'ADMIN_USER';
 
 const ODH_EXTENSIONS: ODHExtensions[] = [
   {
@@ -28,7 +29,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
       id: 'maas-tiers-view',
@@ -56,10 +57,20 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      path: '/maas/*',
+      path: '/maas/tiers/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MAAS_API_KEYS_ID],
+    },
+    properties: {
+      path: '/maas/tokens/*',
       component: () => import('./MaaSWrapper'),
     },
   },

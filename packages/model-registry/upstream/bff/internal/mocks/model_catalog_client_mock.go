@@ -175,7 +175,14 @@ func (m *ModelCatalogClientMock) GetCatalogSourceModel(client httpclient.HTTPCli
 }
 
 func (m *ModelCatalogClientMock) GetAllCatalogSources(client httpclient.HTTPClientInterface, pageValues url.Values) (*models.CatalogSourceList, error) {
-	allMockSources := GetCatalogSourceListMock()
+	var allMockSources models.CatalogSourceList
+	assetType := pageValues.Get("assetType")
+
+	if assetType == "mcp_servers" {
+		allMockSources = GetMcpServerCatalogSourceListMock()
+	} else {
+		allMockSources = GetCatalogSourceListMock()
+	}
 	var filteredMockSources []models.CatalogSource
 
 	name := pageValues.Get("name")
@@ -246,6 +253,11 @@ func (m *ModelCatalogClientMock) GetCatalogFilterOptions(client httpclient.HTTPC
 	return &filterOptions, nil
 }
 
+func (m *ModelCatalogClientMock) GetCatalogLabels(client httpclient.HTTPClientInterface, pageValues url.Values) (*models.CatalogLabelList, error) {
+	labels := GetCatalogLabelListMock()
+	return &labels, nil
+}
+
 func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HTTPClientInterface, sourcePreviewPayload models.CatalogSourcePreviewRequest, pageValues url.Values) (*models.CatalogSourcePreviewResult, error) {
 	filterStatus := pageValues.Get("filterStatus")
 	if filterStatus == "" {
@@ -262,4 +274,28 @@ func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HT
 	catalogSourcePreview := CreateCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
 
 	return &catalogSourcePreview, nil
+}
+
+func (m *ModelCatalogClientMock) GetAllMcpServers(client httpclient.HTTPClientInterface, pageValues url.Values) (*models.McpServerList, error) {
+	mcpServers := GetMcpServerListMock()
+
+	return &mcpServers, nil
+}
+
+func (m *ModelCatalogClientMock) GetMcpServersFilter(client httpclient.HTTPClientInterface) (*models.FilterOptionsList, error) {
+	mcpFilterOptions := GetMcpFilterOptionsListMock()
+
+	return &mcpFilterOptions, nil
+}
+
+func (m *ModelCatalogClientMock) GetMcpServer(client httpclient.HTTPClientInterface, serverId string) (*models.McpServer, error) {
+	mcpServer := GetMcpServerMocks()[0]
+
+	return &mcpServer, nil
+}
+
+func (m *ModelCatalogClientMock) GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string) (*models.McpToolList, error) {
+	mcpServerTools := GetMcpToolListMock()
+
+	return &mcpServerTools, nil
 }

@@ -13,12 +13,14 @@ import {
   mockSecretK8sResource,
   mockStorageClassList,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import type { PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
 import { workbenchPage, editSpawnerPage } from '../../../pages/workbench';
@@ -26,6 +28,7 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 import {
   HardwareProfileModel,
   ImageStreamModel,
+  LocalQueueModel,
   NotebookModel,
   PVCModel,
   PodModel,
@@ -317,6 +320,101 @@ describe('Workbench Hardware Profiles', () => {
       '17',
       'Must not exceed 16 GiB',
     );
+  });
+
+  it('should display Local queue and Cluster queue in View details popover when Kueue is enabled', () => {
+    const queueProfile = mockHardwareProfile({
+      name: 'queue-profile',
+      displayName: 'Queue Profile',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'test-queue',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+          resourceType: IdentifierResourceType.CPU,
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '4Gi',
+          defaultCount: '2Gi',
+          resourceType: IdentifierResourceType.MEMORY,
+        },
+      ],
+    });
+    const globalProfilesWithQueue = [...mockGlobalScopedHardwareProfiles, queueProfile];
+
+    asProductAdminUser();
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(globalProfilesWithQueue),
+    ).as('hardwareProfiles');
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+    );
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+          [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+    );
+    cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+    cy.interceptK8sList(
+      { model: LocalQueueModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+      ]),
+    );
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([mockImageStreamK8sResource({ namespace: 'opendatahub' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([mockNotebookK8sResource({ displayName: 'Test Notebook' })]),
+    );
+    cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'test-storage-1' })]),
+    );
+
+    projectDetails.visit(projectName);
+    projectDetails.findSectionTab('workbenches').click();
+    workbenchPage.findCreateButton().click();
+
+    cy.wait('@hardwareProfiles');
+    hardwareProfileSection.findSelect().should('exist').and('contain', 'Queue Profile');
+    hardwareProfileSection.findDetailsPopover().click();
+    hardwareProfileSection
+      .findDetails()
+      .should('be.visible')
+      .within(() => {
+        cy.contains('Local queue').should('be.visible');
+        cy.contains('test-queue').should('be.visible');
+        cy.contains('Cluster queue').should('be.visible');
+        cy.contains('test-cluster-queue').should('be.visible');
+      });
   });
 
   describe('Edit Workbench Hardware Profiles', () => {

@@ -169,21 +169,6 @@ const extensions: NavExtension[] = [
     },
   },
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
-    },
-    properties: {
-      id: 'experiments-mlflow',
-      title: 'Experiments (MLflow)',
-      href: '/develop-train/experiments-mlflow',
-      section: 'develop-and-train',
-      path: '/develop-train/experiments-mlflow/*',
-      label: 'Tech Preview',
-    },
-  },
-
-  {
     type: 'app.navigation/section',
     properties: {
       id: 'observe-and-monitor',
