@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
@@ -124,8 +125,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	objectReader, contentType, err := app.repositories.S3.GetS3Object(ctx, creds, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
-		errStr := err.Error()
-		if strings.Contains(errStr, "NoSuchKey") || strings.Contains(errStr, "NotFound") {
+		var noSuchKey *types.NoSuchKey
+		var notFound *types.NotFound
+		if errors.As(err, &noSuchKey) || errors.As(err, &notFound) {
 			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
 				ErrorResponse: integrations.ErrorResponse{
@@ -137,7 +139,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
+		// Check for access denied errors
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", bucket, key))
 			return
 		}
