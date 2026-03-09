@@ -1,4 +1,5 @@
 import { MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdDeployment } from '../types';
 
 /**
@@ -18,12 +19,14 @@ export const validateExtraction = (deployment: LLMdDeployment): string[] => {
     );
   }
 
+  const { uri } = deployment.model.spec.model;
+  const hasPVC = !!uri && isPVCUri(uri);
   const hasConnectionAnnotation =
     !!deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName];
   const hasImagePullSecrets =
     !!template?.imagePullSecrets?.length && template.imagePullSecrets.length > 0;
 
-  if (!hasConnectionAnnotation && !hasImagePullSecrets) {
+  if (!hasPVC && !hasConnectionAnnotation && !hasImagePullSecrets) {
     errors.push('No connection could be resolved for this deployment.');
   }
 
