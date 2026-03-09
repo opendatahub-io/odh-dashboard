@@ -105,7 +105,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           isDarkTheme={theme === 'dark'}
           isLanguageLabelVisible
           isFullHeight
-          isReadOnly={viewMode === 'yaml-preview' && !isAutoFallback}
+          isReadOnly={viewMode === 'yaml-preview'}
           isCopyEnabled
           isDownloadEnabled
           onEditorDidMount={(editor) => {

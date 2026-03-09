@@ -22,18 +22,6 @@ export const extractHardwareProfileConfig = (
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     getExistingResources(kserveDeployment.model, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS);
 
-  const errors: string[] = [];
-
-  const { tolerations, nodeSelector } = kserveDeployment.model.spec.predictor;
-  if (tolerations && tolerations.length > 0) {
-    errors.push(
-      `Tolerations are configured (${tolerations.length} toleration(s)) but are not supported in the wizard form.`,
-    );
-  }
-  if (nodeSelector && Object.keys(nodeSelector).length > 0) {
-    errors.push('Node selectors are configured but are not supported in the wizard form.');
-  }
-
   return {
     data: [
       name,
@@ -44,7 +32,6 @@ export const extractHardwareProfileConfig = (
       kserveDeployment.model.metadata.namespace,
       hardwareProfileNamespace,
     ],
-    error: errors.length > 0 ? errors.join(' ') : undefined,
   };
 };
 

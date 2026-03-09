@@ -23,17 +23,6 @@ export const extractHardwareProfileConfig = (
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     getExistingResources(llmdDeployment.model, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS);
 
-  const errors: string[] = [];
-
-  if (existingTolerations && existingTolerations.length > 0) {
-    errors.push(
-      `Tolerations are configured (${existingTolerations.length} toleration(s)) but are not supported in the wizard form.`,
-    );
-  }
-  if (existingNodeSelector && Object.keys(existingNodeSelector).length > 0) {
-    errors.push('Node selectors are configured but are not supported in the wizard form.');
-  }
-
   return {
     data: [
       name,
@@ -44,7 +33,6 @@ export const extractHardwareProfileConfig = (
       llmdDeployment.model.metadata.namespace,
       hardwareProfileNamespace,
     ],
-    error: errors.length > 0 ? errors.join(' ') : undefined,
   };
 };
 

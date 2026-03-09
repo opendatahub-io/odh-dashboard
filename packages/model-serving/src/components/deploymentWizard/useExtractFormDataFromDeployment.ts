@@ -1,7 +1,7 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { type InitialWizardFormData } from './types';
+import { ModelLocationType, type InitialWizardFormData } from './types';
 import {
   getModelTypeFromDeployment,
   getExternalRouteFromDeployment,
@@ -216,7 +216,10 @@ export const useExtractFormDataFromDeployment = (
         `Unsupported model type "${rawModelType}". Only "predictive" and "generative" are supported.`,
       );
     }
-    if (!deployment.model.metadata.annotations?.['opendatahub.io/connections']) {
+    if (
+      formData.modelLocationData?.type === ModelLocationType.EXISTING &&
+      !deployment.model.metadata.annotations?.['opendatahub.io/connections']
+    ) {
       errors.push('Missing connection annotation (opendatahub.io/connections).');
     }
 
