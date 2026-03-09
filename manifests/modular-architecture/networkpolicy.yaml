@@ -58,7 +58,7 @@ spec:
           protocol: TCP
         - port: 8343
           protocol: TCP
-    # Allow HTTPS egress to external services (LlamaStack, MaaS, MLflow backends)
+    # Allow egress to in-cluster services (any namespace) on common ports
     - to:
         - namespaceSelector: {}
       ports:
@@ -67,4 +67,14 @@ spec:
         - port: 80
           protocol: TCP
         - port: 8321
+          protocol: TCP
+    # Allow egress to external services (off-cluster backends like MaaS, MLflow, LlamaStack)
+    # ipBlock with 0.0.0.0/0 matches all external IPs; namespaceSelector only matches in-cluster pods
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
           protocol: TCP

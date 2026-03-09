@@ -156,7 +156,7 @@
       - name: BFF_MAAS_SERVICE_PORT
         value: "8243"
       - name: BFF_MAAS_TLS_ENABLED
-        value: "false"
+        value: "true"
       - name: BFF_MAAS_AUTH_METHOD
         value: "user_token"
       - name: BFF_MAAS_AUTH_TOKEN_HEADER
