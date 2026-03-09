@@ -390,6 +390,7 @@ export type ExternalModelRequest = {
     | 'remote::passthrough';
   model_type: 'llm' | 'embedding';
   use_cases?: string;
+  embedding_dimension?: number;
 };
 
 export type ExternalModelResponse = AAModelResponse;

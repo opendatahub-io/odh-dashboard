@@ -89,6 +89,18 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Validate embedding_dimension for embedding models
+	if req.ModelType == models.ModelTypeEmbedding {
+		if req.EmbeddingDimension == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension is required for embedding models"))
+			return
+		}
+		if *req.EmbeddingDimension <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
+			return
+		}
+	}
+
 	// Get Kubernetes client
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
