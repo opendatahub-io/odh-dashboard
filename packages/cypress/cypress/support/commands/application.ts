@@ -210,84 +210,93 @@ Cypress.Commands.add(
       }`,
     });
 
-    // Helper to find nav element by exact text match
-    const findNavElementByText = (parent: Cypress.Chainable<JQuery>, text: string) =>
+    // Helper to find nav element by exact text match and get closest ancestor
+    const findNavButtonByText = (parent: Cypress.Chainable<JQuery>, text: string) =>
       parent.find('.pf-v6-c-nav__link, .pf-v6-c-nav__item').then(($els) => {
-        return $els.filter((_, el) => Cypress.$(el).text().trim() === text);
+        const filtered = $els.filter((_, el) => Cypress.$(el).text().trim() === text);
+        if (filtered.length === 0) {
+          return cy.wrap(Cypress.$());
+        }
+        return cy.wrap(filtered.closest('button'));
+      });
+
+    // Helper to find nav link by exact text match
+    const findNavLinkByText = (parent: Cypress.Chainable<JQuery>, text: string) =>
+      parent.find('.pf-v6-c-nav__link').then(($els) => {
+        const filtered = $els.filter((_, el) => Cypress.$(el).text().trim() === text);
+        if (filtered.length === 0) {
+          return cy.wrap(Cypress.$());
+        }
+        return cy.wrap(filtered.closest('a'));
       });
 
     // Handle root section expansion if needed
     if (rootSection) {
-      // Find and possibly expand root section (using retryable queries)
-      findNavElementByText(cy.wrap(subject), rootSection)
-        .closest('button')
-        .then(($rootBtn) => {
-          if ($rootBtn.length === 0) {
-            Cypress.log({
-              displayName: 'findAppNavItem',
-              message: `Root section '${rootSection}' not found`,
-              consoleProps: () => ({ rootSection }),
-            });
-            throw new Error(`Root section '${rootSection}' not found in navigation`);
-          }
+      // Find and possibly expand root section
+      findNavButtonByText(cy.wrap(subject), rootSection).then(($rootBtn) => {
+        if ($rootBtn.length === 0) {
+          Cypress.log({
+            displayName: 'findAppNavItem',
+            message: `Root section '${rootSection}' not found`,
+            consoleProps: () => ({ rootSection }),
+          });
+          throw new Error(`Root section '${rootSection}' not found in navigation`);
+        }
 
-          if ($rootBtn.attr('aria-expanded') !== 'true') {
-            cy.wrap($rootBtn).click();
-            cy.wrap($rootBtn).should('have.attr', 'aria-expanded', 'true');
-            cy.wrap($rootBtn).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
-          }
-        });
+        if ($rootBtn.attr('aria-expanded') !== 'true') {
+          cy.wrap($rootBtn).click();
+          cy.wrap($rootBtn).should('have.attr', 'aria-expanded', 'true');
+          cy.wrap($rootBtn).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
+        }
+      });
 
-      // Now navigate to the final item (using retryable queries)
-      return findNavElementByText(cy.wrap(subject), rootSection)
-        .closest('button')
+      // Now navigate to the final item
+      return findNavButtonByText(cy.wrap(subject), rootSection)
         .parent()
         .then(($parent) => {
           if (subSection) {
             // Find and possibly expand subsection
-            return findNavElementByText(cy.wrap($parent), subSection)
-              .closest('button')
-              .then(($subBtn) => {
-                if ($subBtn.length === 0) {
-                  Cypress.log({
-                    displayName: 'findAppNavItem',
-                    message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
-                    consoleProps: () => ({ rootSection, subSection }),
-                  });
-                  throw new Error(
-                    `Sub-section '${subSection}' not found in root section '${rootSection}'`,
-                  );
-                }
+            return findNavButtonByText(cy.wrap($parent), subSection).then(($subBtn) => {
+              if ($subBtn.length === 0) {
+                Cypress.log({
+                  displayName: 'findAppNavItem',
+                  message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
+                  consoleProps: () => ({ rootSection, subSection }),
+                });
+                throw new Error(
+                  `Sub-section '${subSection}' not found in root section '${rootSection}'`,
+                );
+              }
 
-                if ($subBtn.attr('aria-expanded') !== 'true') {
-                  cy.wrap($subBtn).click();
-                  cy.wrap($subBtn).should('have.attr', 'aria-expanded', 'true');
-                  return cy
-                    .wrap($subBtn)
-                    .parent()
-                    .find('.pf-v6-c-nav__subnav')
-                    .should('be.visible')
-                    .then(() =>
-                      findNavElementByText(cy.wrap($subBtn).parent(), args.name).closest('a'),
-                    ) as unknown as Cypress.Chainable<JQuery>;
-                }
+              if ($subBtn.attr('aria-expanded') !== 'true') {
+                cy.wrap($subBtn).click();
+                cy.wrap($subBtn).should('have.attr', 'aria-expanded', 'true');
+                return cy
+                  .wrap($subBtn)
+                  .parent()
+                  .find('.pf-v6-c-nav__subnav')
+                  .should('be.visible')
+                  .then(() =>
+                    findNavLinkByText(cy.wrap($subBtn).parent(), args.name),
+                  ) as unknown as Cypress.Chainable<JQuery>;
+              }
 
-                return findNavElementByText(cy.wrap($subBtn).parent(), args.name).closest(
-                  'a',
-                ) as unknown as Cypress.Chainable<JQuery>;
-              });
+              return findNavLinkByText(
+                cy.wrap($subBtn).parent(),
+                args.name,
+              ) as unknown as Cypress.Chainable<JQuery>;
+            });
           }
 
-          return findNavElementByText(cy.wrap($parent), args.name).closest(
-            'a',
+          return findNavLinkByText(
+            cy.wrap($parent),
+            args.name,
           ) as unknown as Cypress.Chainable<JQuery>;
         });
     }
 
-    // No root section, just find the nav item directly (retryable)
-    return findNavElementByText(cy.wrap(subject), args.name).closest(
-      'a',
-    ) as unknown as Cypress.Chainable<JQuery>;
+    // No root section, just find the nav item directly
+    return findNavLinkByText(cy.wrap(subject), args.name) as unknown as Cypress.Chainable<JQuery>;
   },
 );
 
