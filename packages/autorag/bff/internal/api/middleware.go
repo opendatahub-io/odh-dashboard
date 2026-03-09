@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -43,6 +45,41 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// Only http and https schemes are allowed. Loopback addresses and the link-local range (169.254.0.0/16),
+// which includes cloud metadata endpoints (AWS/Azure/GCP all use 169.254.169.254), are blocked.
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// services typically run as cluster-internal services with private IPs.
+func isValidLlamaStackURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme %q: only http and https are allowed", parsedURL.Scheme)
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must contain a host")
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if ip.IsLoopback() {
+			return fmt.Errorf("loopback addresses are not allowed")
+		}
+		if ip.IsLinkLocalUnicast() {
+			return fmt.Errorf("link-local addresses are not allowed")
+		}
+		if ip.IsUnspecified() {
+			return fmt.Errorf("unspecified addresses are not allowed")
+		}
+	}
+
+	return nil
 }
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -239,17 +276,9 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data using case-insensitive key matching.
-			// Kubernetes secret keys are case-sensitive, but we accept any casing for flexibility.
-			var baseURL, apiKey string
-			for key, value := range foundSecret.Data {
-				switch strings.ToLower(key) {
-				case "llama_stack_client_base_url":
-					baseURL = strings.TrimSpace(string(value))
-				case "llama_stack_client_api_key":
-					apiKey = strings.TrimSpace(string(value))
-				}
-			}
+			// Extract LlamaStack credentials from secret data using direct key lookups.
+			baseURL := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_base_url"]))
+			apiKey := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_api_key"]))
 
 			if baseURL == "" {
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
@@ -257,6 +286,10 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 			}
 			if apiKey == "" {
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
+				return
+			}
+			if err := isValidLlamaStackURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
 				return
 			}
 
