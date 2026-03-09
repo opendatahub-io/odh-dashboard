@@ -136,7 +136,9 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               isSeparator: true,
             },
             {
-              title: 'Delete pipeline version',
+              title: (
+                <span data-testid="delete-pipeline-version-action">Delete pipeline version</span>
+              ),
               onClick: () => {
                 onDeleteVersion();
               },

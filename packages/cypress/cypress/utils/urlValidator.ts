@@ -50,12 +50,15 @@ const sleep = (ms: number): Promise<void> =>
 // Check if an error is retryable based on error codes and messages
 const isRetryableError = (error: Error & { code?: string }): boolean => {
   const retryableCodes = ['ENETUNREACH', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'];
-  // Only retry errors with known retryable codes or timeout-related errors without codes
   return (
     retryableCodes.includes(error.code || '') ||
     (!error.code && error.message.includes('timed out'))
   );
 };
+
+// 5xx status codes are sometimes transient server and throttling related errors worth retrying
+const isRetryableStatusCode = (statusCode: number): boolean =>
+  statusCode >= 500 && statusCode < 600;
 
 // Make HTTP/HTTPS request with retry logic, redirect handling, and proxy support
 const makeRequest = async (
@@ -110,6 +113,12 @@ const makeRequest = async (
     const statusCode = response.statusCode || 0;
     const { location } = response.headers;
 
+    // Consume response data to properly close the connection
+    await new Promise<void>((resolve) => {
+      response.on('data', () => undefined);
+      response.on('end', resolve);
+    });
+
     // Handle HTTP redirects (3xx status codes)
     if (statusCode >= 300 && statusCode < 400 && location) {
       try {
@@ -132,11 +141,17 @@ const makeRequest = async (
       }
     }
 
-    // Consume response data to properly close the connection
-    await new Promise<void>((resolve) => {
-      response.on('data', () => undefined);
-      response.on('end', resolve);
-    });
+    if (isRetryableStatusCode(statusCode) && retryCount < maxRetries) {
+      const delay = initialRetryDelay * Math.pow(2, retryCount);
+      await sleep(delay);
+      return await makeRequest(
+        urlToTest,
+        proxyUrlFromTask,
+        redirectCount,
+        retryCount + 1,
+        effectiveOriginalUrl,
+      );
+    }
 
     return { url: urlToTest, originalUrl: effectiveOriginalUrl, status: statusCode };
   } catch (err: unknown) {
@@ -169,12 +184,23 @@ const makeRequest = async (
   }
 };
 
-// Validate multiple URLs concurrently with proxy support and retry logic
+const CONCURRENCY_LIMIT = 10;
+
+// Validate multiple URLs with proxy support, retries, and concurrency limiting
 export async function validateHttpsUrls(
   urls: string[],
   proxyUrlFromTask?: string,
 ): Promise<UrlValidationResult[]> {
-  return Promise.all(urls.map((url) => makeRequest(url, proxyUrlFromTask)));
+  const uniqueUrls = [...new Set(urls)];
+  const results: UrlValidationResult[] = [];
+
+  for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {
+    const batch = uniqueUrls.slice(i, i + CONCURRENCY_LIMIT);
+    const batchResults = await Promise.all(batch.map((url) => makeRequest(url, proxyUrlFromTask)));
+    results.push(...batchResults);
+  }
+
+  return results;
 }
 
 // Categorize HTTP status codes and network errors into error types

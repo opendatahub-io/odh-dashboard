@@ -58,7 +58,7 @@ const DeployedModelsSection: React.FC = () => {
     }
 
     setDeployedModels(inferenceServices);
-  }, [inferenceServices, inferenceServicesLoaded]);
+  }, [inferenceServices, inferenceServicesLoaded, modelServersLoaded]);
 
   const renderError = (message?: string): React.ReactElement => (
     <Bullseye>
@@ -90,7 +90,7 @@ const DeployedModelsSection: React.FC = () => {
         <OverviewCard
           objectType={ProjectObjectType.deployedModels}
           sectionType={SectionType.serving}
-          title={'Deployments'}
+          title="Deployments"
           headerInfo={
             <Flex gap={{ default: 'gapSm' }}>
               <Label>
@@ -122,9 +122,7 @@ const DeployedModelsSection: React.FC = () => {
                   {platformError.message}
                 </Alert>
               ) : (
-                <Content component="small">
-                  {'Each model is deployed on its own model server.'}
-                </Content>
+                <Content component="small">Each model is deployed on its own model server.</Content>
               )}
             </Stack>
           </CardBody>

@@ -30,6 +30,14 @@ help: ## Display this help.
 dev-install-dependencies:
 	cd frontend && npm install
 
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server, LlamaStack)
+	cd bff && make run PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_LS_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+
+.PHONY: dev-bff-mock-debug
+dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
+	cd bff && make debug PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_LS_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
@@ -38,6 +46,14 @@ dev-bff:
 .PHONY: dev-frontend
 dev-frontend:
 	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+
+.PHONY: dev-start-mock
+dev-start-mock: ## Run frontend and BFF with all mocks in development mode
+	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start-mock-debug
+dev-start-mock-debug: ## Run frontend and BFF with all mocks and Delve debugger (VSCode: F5 → "Attach to BFF")
+	make -j 2 dev-bff-mock-debug dev-frontend
 
 .PHONY: dev-start
 dev-start:
@@ -73,6 +89,18 @@ dev-frontend-federated:
 .PHONY: dev-bff-federated
 dev-bff-federated:
 	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
+########### Dev Federated Mock ###########
+# Same as dev-start-federated but with mock pipeline server client enabled.
+# Use this when developing without a real KFP cluster.
+.PHONY: dev-start-federated-mock
+dev-start-federated-mock:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated-mock dev-frontend-federated
+
+.PHONY: dev-bff-federated-mock
+dev-bff-federated-mock:
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from 'react';
 
 interface LineageCenterContextType {
   forceCenter: boolean;
@@ -36,10 +44,16 @@ export const LineageCenterProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      forceCenter,
+      triggerCenter,
+    }),
+    [forceCenter, triggerCenter],
+  );
+
   return (
-    <LineageCenterContext.Provider value={{ forceCenter, triggerCenter }}>
-      {children}
-    </LineageCenterContext.Provider>
+    <LineageCenterContext.Provider value={contextValue}>{children}</LineageCenterContext.Provider>
   );
 };
 

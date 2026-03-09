@@ -14,6 +14,7 @@ import (
 
 type ModelTransferJobListEnvelope Envelope[*models.ModelTransferJobList, None]
 type ModelTransferJobEnvelope Envelope[*models.ModelTransferJob, None]
+type ModelTransferJobEventsEnvelope Envelope[models.ModelTransferJobEventsResponse, None]
 
 func (app *App) GetAllModelTransferJobsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -49,6 +50,56 @@ func (app *App) GetAllModelTransferJobsHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *App) GetModelTransferJobHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
+		return
+	}
+
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, errors.New("kubernetes client not found"))
+		return
+	}
+
+	jobName := ps.ByName(ModelTransferJobName)
+	if jobName == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("job name is required"))
+		return
+	}
+
+	modelRegistryID := ps.ByName(ModelRegistryId)
+	if modelRegistryID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
+		return
+	}
+
+	modelTransferJob, err := app.repositories.ModelRegistry.GetModelTransferJob(ctx, client, namespace, jobName, modelRegistryID)
+
+	if err != nil {
+		if errors.Is(err, repositories.ErrJobNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		if errors.Is(err, repositories.ErrJobValidationFailed) {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	response := ModelTransferJobEnvelope{Data: modelTransferJob}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }
 
 func (app *App) CreateModelTransferJobHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -211,11 +262,64 @@ func (app *App) DeleteModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := Envelope[*models.ModelTransferJob, any]{
-		Data: deletedJob,
-	}
+	response := ModelTransferJobEnvelope{Data: deletedJob}
+
 	err = app.WriteJSON(w, http.StatusOK, response, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetModelTransferJobEventsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
+		return
+	}
+
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, errors.New("kubernetes client not found"))
+		return
+	}
+
+	jobName := ps.ByName(ModelTransferJobName)
+	if jobName == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("job name is required"))
+		return
+	}
+
+	modelRegistryID := ps.ByName(ModelRegistryId)
+	if modelRegistryID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
+		return
+	}
+
+	jobNamespace := r.URL.Query().Get("jobNamespace")
+	if jobNamespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("jobNamespace query parameter is required"))
+		return
+	}
+
+	events, err := app.repositories.ModelRegistry.GetModelTransferJobEvents(ctx, client, jobNamespace, jobName, modelRegistryID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrJobNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := ModelTransferJobEventsEnvelope{
+		Data: models.ModelTransferJobEventsResponse{Events: events},
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 }

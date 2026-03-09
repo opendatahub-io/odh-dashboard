@@ -222,6 +222,7 @@ export type UpdateModelTransferJob = (
   opts: APIOptions,
   jobId: string,
   data: Partial<ModelTransferJob>,
+  additionalQueryParams?: Record<string, unknown>,
 ) => Promise<ModelTransferJob>;
 
 export type DeleteModelTransferJob = (opts: APIOptions, jobId: string) => Promise<void>;
@@ -243,6 +244,7 @@ export type ModelRegistryAPIs = {
   createModelTransferJob: CreateModelTransferJob;
   updateModelTransferJob: UpdateModelTransferJob;
   deleteModelTransferJob: DeleteModelTransferJob;
+  getModelTransferJobEvents: GetModelTransferJobEvents;
 };
 
 // Model Transfer Job Types
@@ -322,6 +324,13 @@ export type ModelTransferJobDestination =
   | ModelTransferJobS3Destination
   | ModelTransferJobOCIDestination;
 
+export type ModelTransferJobEvent = {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
+};
+
 export type ModelTransferJob = {
   id: string;
   name: string;
@@ -349,6 +358,7 @@ export type ModelTransferJob = {
   versionCustomProperties?: ModelRegistryCustomProperties;
   sourceSecretName?: string;
   destSecretName?: string;
+  events?: ModelTransferJobEvent[];
 };
 
 export type CreateModelTransferJobData = Omit<
@@ -359,3 +369,9 @@ export type CreateModelTransferJobData = Omit<
 export type ModelTransferJobList = ModelRegistryListParams & { items: ModelTransferJob[] };
 
 export type GetListModelTransferJobs = (opts: APIOptions) => Promise<ModelTransferJobList>;
+
+export type GetModelTransferJobEvents = (
+  opts: APIOptions,
+  jobName: string,
+  jobNamespace: string,
+) => Promise<ModelTransferJobEvent[]>;

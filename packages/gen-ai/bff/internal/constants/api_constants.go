@@ -44,7 +44,8 @@ const (
 	ModelsAAPath       = ApiPathPrefix + "/aaa/models"
 	VectorStoresAAPath = ApiPathPrefix + "/aaa/vectorstores"
 
-	// External vector stores endpoint
+	// External endpoints
+	ExternalModelsPath       = ApiPathPrefix + "/models/external"
 	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
 	// Model as a Service (MaaS) endpoints

@@ -87,6 +87,7 @@ export enum SupportedArea {
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
+  RAY_JOBS = 'ray-jobs',
 
   /* MLflow */
   MLFLOW = 'mlflow',

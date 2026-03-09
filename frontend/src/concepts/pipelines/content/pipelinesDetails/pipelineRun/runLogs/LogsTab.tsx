@@ -110,10 +110,17 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
     const logWindowElement = document.querySelector(
       '#dashboard-logviewer .pf-v6-c-log-viewer__main',
     );
+    const onMouseDown: EventListener = () => {
+      setIsPaused(true);
+    };
     if (logWindowElement) {
-      logWindowElement.addEventListener('mousedown', () => setIsPaused(true));
+      logWindowElement.addEventListener('mousedown', onMouseDown);
     }
-    return logWindowElement?.removeEventListener('mousedown', () => setIsPaused(true));
+    return () => {
+      if (logWindowElement) {
+        logWindowElement.removeEventListener('mousedown', onMouseDown);
+      }
+    };
   }, []);
 
   const onScroll: React.ComponentProps<typeof LogViewer>['onScroll'] = ({
