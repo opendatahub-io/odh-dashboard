@@ -80,7 +80,7 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 
 	job, err := client.CreateEvaluationJob(ctx, input)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create evaluation job: %w", err))
+		app.evalHubErrorResponse(w, r, err, "failed to create evaluation job")
 		return
 	}
 

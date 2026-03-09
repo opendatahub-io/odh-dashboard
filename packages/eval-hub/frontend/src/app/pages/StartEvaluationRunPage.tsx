@@ -23,6 +23,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { createEvaluationJob } from '~/app/api/k8s';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
+import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
@@ -159,10 +160,8 @@ const StartEvaluationRunPage: React.FC = () => {
       );
       navigate(evaluationsBaseRoute(namespace));
     } catch (e) {
-      notification.error(
-        'Failed to start evaluation',
-        e instanceof Error ? e.message : 'An unknown error occurred.',
-      );
+      const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+      notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
     } finally {
       setIsSubmitting(false);
     }
