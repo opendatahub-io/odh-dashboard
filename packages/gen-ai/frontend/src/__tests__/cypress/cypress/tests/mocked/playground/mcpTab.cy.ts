@@ -70,10 +70,16 @@ describe('Playground - MCP Servers', () => {
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify server is now authenticated and tools button is enabled');
-      serverRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('exist')
+        .should('not.have.attr', 'aria-disabled');
 
       cy.step('Open tools modal');
-      serverRow.findToolsButton().click();
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Wait for tools API call');
       cy.wait('@toolsRequest', { timeout: 10000 });
@@ -613,7 +619,11 @@ describe('Playground - MCP Servers', () => {
         .and('contain.text', 'Performance may be degraded with more than 40 active tools');
 
       cy.step('Verify tools count shows 45 active');
-      serverRow.findToolsButton().should('contain.text', '45 active');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('contain.text', '45 active');
 
       cy.step('Test completed - Tools warning alert works correctly');
     },
@@ -653,7 +663,11 @@ describe('Playground - MCP Servers', () => {
       cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
 
       cy.step('Verify tools count shows 40 active');
-      serverRow.findToolsButton().should('contain.text', '40 active');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('contain.text', '40 active');
 
       cy.step('Test completed - No warning for 40 or fewer tools');
     },
