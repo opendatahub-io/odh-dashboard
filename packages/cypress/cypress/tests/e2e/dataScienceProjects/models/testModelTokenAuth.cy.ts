@@ -20,7 +20,7 @@ import {
   provisionProjectForModelServing,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+// import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 
 let testData: DataScienceProjectData;
@@ -57,15 +57,15 @@ describe('A model can be deployed with token auth', () => {
       },
     );
   });
-  after(() => {
-    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
-    // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
-  });
+  // after(() => {
+  //   // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+  //   // TODO: Review this timeout once RHOAIENG-19969 is resolved
+  //   deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+  // });
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@AnthonyTest'] },
     () => {
       cy.log('Model Name:', modelName);
       cy.step('Log into the application as admin');
