@@ -268,4 +268,36 @@ describe('AutoragResults Polling Behavior', () => {
 
     expect(container).toBeInTheDocument();
   });
+
+  it('should stop polling when pipeline run reaches terminal state', async () => {
+    jest.useFakeTimers();
+
+    // First call returns RUNNING, second call returns SUCCEEDED
+    mockGetPipelineRunFromBFF
+      .mockResolvedValueOnce(createMockRun('RUNNING'))
+      .mockResolvedValueOnce(createMockRun('SUCCEEDED'));
+
+    renderComponent();
+
+    // Wait for the first fetch (initial load)
+    await waitFor(() => {
+      expect(mockGetPipelineRunFromBFF).toHaveBeenCalledTimes(1);
+    });
+
+    // Advance timers by 10000ms to trigger the next poll
+    await jest.advanceTimersByTimeAsync(10000);
+
+    // Wait for the second fetch
+    await waitFor(() => {
+      expect(mockGetPipelineRunFromBFF).toHaveBeenCalledTimes(2);
+    });
+
+    // Advance timers again - should NOT trigger another fetch because state is SUCCEEDED
+    await jest.advanceTimersByTimeAsync(10000);
+
+    // Assert that exactly 2 calls were made (no further calls after terminal state)
+    expect(mockGetPipelineRunFromBFF).toHaveBeenCalledTimes(2);
+
+    jest.useRealTimers();
+  });
 });

@@ -33,6 +33,7 @@ export const TERMINAL_STATES = [
   PipelineRunState.SUCCEEDED,
   PipelineRunState.FAILED,
   PipelineRunState.CANCELED,
+  PipelineRunState.SKIPPED,
 ];
 
 /**
