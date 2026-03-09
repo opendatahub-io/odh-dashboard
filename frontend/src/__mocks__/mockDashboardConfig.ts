@@ -40,8 +40,10 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
-  autoRag?: boolean;
+  automl?: boolean;
+  autorag?: boolean;
   modelAsService?: boolean;
+  aiAssetExternalModels?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -50,6 +52,13 @@ export type MockDashboardConfigType = {
   mlflow?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  deploymentWizardYAMLViewer?: boolean;
+  genAiStudioConfig?: {
+    aiAssetExternalModels?: {
+      externalProviders?: boolean;
+      clusterDomains?: string[];
+    };
+  };
 };
 
 export const mockDashboardConfig = ({
@@ -62,8 +71,10 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
-  autoRag = false,
+  automl = false,
+  autorag = false,
   modelAsService = true,
+  aiAssetExternalModels = true,
   maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -93,7 +104,14 @@ export const mockDashboardConfig = ({
   trainingJobs = true,
   observabilityDashboard = false,
   disableLLMd = false,
+  deploymentWizardYAMLViewer = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  genAiStudioConfig = {
+    aiAssetExternalModels: {
+      externalProviders: false,
+      clusterDomains: [],
+    },
+  },
   modelServerSizes = [
     {
       name: 'Small',
@@ -238,8 +256,10 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
-      autoRag,
+      automl,
+      autorag,
       modelAsService,
+      aiAssetExternalModels,
       maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
@@ -259,6 +279,7 @@ export const mockDashboardConfig = ({
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      deploymentWizardYAMLViewer,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -273,5 +294,6 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    genAiStudioConfig,
   },
 });

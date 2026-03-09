@@ -4,7 +4,7 @@ import { header } from '../../../pages/components/Header';
 describe('Verify that logged in users display on the Dashboard', () => {
   it(
     'Verify that Admin Users can login and that login information displays on the dashboard',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-354', '@Dashboard', '@ci-dashboard-set-1'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-354', '@Dashboard', '@ci-dashboard-regression-tags'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

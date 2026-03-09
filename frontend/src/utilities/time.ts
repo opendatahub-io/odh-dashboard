@@ -23,6 +23,19 @@ export const convertDateToSimpleDateString = (date?: Date): string | null => {
   )}`;
 };
 
+/* Format date for display in user's local timezone (for tooltips that should not show UTC) */
+export const formatDateForLocalTooltip = (date: Date): string => {
+  // Defensive check: creationTimestamp from API may be empty/malformed (e.g. new Date(''))
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+  return date.toLocaleString(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+    hour12: false,
+  });
+};
+
 /** As HH:MM *M */
 export const convertDateToTimeString = (date?: Date): string | null => {
   if (!date) {

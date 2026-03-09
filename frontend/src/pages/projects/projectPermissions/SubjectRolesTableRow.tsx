@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Split, SplitItem, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { relativeTime } from '#~/utilities/time';
+import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
 import RoleDetailsLink from './components/RoleDetailsLink';
@@ -24,7 +24,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
     : undefined;
 
   const actionItems = [
-    { title: 'Manage roles', onClick: onManageRoles },
+    { title: 'Manage permissions', onClick: onManageRoles },
     { title: 'Unassign', onClick: onRemove },
   ];
 
@@ -43,7 +43,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
       >
         <Split hasGutter>
           <SplitItem>
-            <RoleDetailsLink roleRef={row.roleRef} role={row.role} showAssigneesTab />
+            <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
           </SplitItem>
           <SplitItem>
             <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />
@@ -52,7 +52,13 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
       </Td>
       <Td dataLabel="Date created">
         {createdDate ? (
-          <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
+          <Timestamp
+            date={createdDate}
+            tooltip={{
+              variant: TimestampTooltipVariant.custom,
+              content: formatDateForLocalTooltip(createdDate),
+            }}
+          >
             {relativeTime(Date.now(), createdDate.getTime())}
           </Timestamp>
         ) : (

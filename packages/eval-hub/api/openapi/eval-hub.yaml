@@ -1,0 +1,1134 @@
+openapi: 3.0.3
+info:
+  title: 'EvalHub REST API'
+  version: '1.0.0'
+  description: 'REST API for EvalHub Backend for Frontend (BFF) using OpenAI SDK v2'
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+servers:
+  - url: 'http://localhost:4000'
+    description: 'Local development server'
+
+security:
+  - Bearer: []
+
+paths:
+  # =============================================================================
+  # UTILITY ENDPOINTS
+  # =============================================================================
+
+  /healthcheck:
+    summary: BFF service health check
+    description: >-
+      Health check endpoint to verify BFF service availability. This is a local
+      service check and does not validate external EvalHub connectivity.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: healthcheck
+      summary: BFF Health Check
+      description: Returns BFF service status and version information.
+      security: []
+
+  /eval-hub/api/v1/health:
+    summary: EvalHub API health status
+    description: >-
+      Returns the health and version status of the BFF API layer.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: health
+      summary: API Health
+      description: Returns API availability status and version information.
+      security: []
+
+  # =============================================================================
+  # KUBERNETES ENDPOINTS
+  # =============================================================================
+
+  /eval-hub/api/v1/namespaces:
+    summary: List Kubernetes cluster namespaces
+    description: >-
+      Lists all namespaces in the Kubernetes cluster.
+      Returns namespace information including name and display name.
+      Requires valid Kubernetes authentication token.
+    get:
+      tags:
+        - Kubernetes
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listNamespaces
+      summary: List All Namespaces
+      description: Gets a list of all namespaces in the Kubernetes cluster.
+
+  /eval-hub/api/v1/user:
+    summary: Get current user information
+    description: >-
+      Retrieves information about the currently authenticated user.
+      Returns user details including identity and permissions.
+    get:
+      tags:
+        - Identity
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/kubeflowUserId'
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCurrentUser
+      summary: Get Current User
+      description: Returns information about the currently authenticated user.
+
+  # =============================================================================
+  # EVALHUB EVALUATION ENDPOINTS
+  # =============================================================================
+
+  /eval-hub/api/v1/evaluations/collections:
+    summary: List benchmark collections
+    description: >-
+      Lists all benchmark collections from the EvalHub control plane.
+      Returns collections with their benchmarks, tags, and metadata.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listCollections
+      summary: List Collections
+      description: Gets a list of all benchmark collections from the EvalHub server.
+
+  /eval-hub/api/v1/evaluations/providers:
+    summary: List evaluation providers
+    description: >-
+      Lists all evaluation providers from the EvalHub control plane.
+      Each provider exposes a catalogue of benchmarks available for evaluation.
+    get:
+      tags:
+        - Providers
+      security:
+        - Bearer: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of providers to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Offset for pagination
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Filter benchmarks by name (case-insensitive substring match)
+      responses:
+        '200':
+          $ref: '#/components/responses/ProvidersResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listProviders
+      summary: List Providers
+      description: Gets a list of all evaluation providers with their benchmark catalogues.
+
+  /eval-hub/api/v1/evaluations/jobs:
+    summary: List evaluation jobs
+    description: >-
+      Lists all evaluation jobs from the EvalHub control plane.
+      Returns jobs with their status, framework, model, and metadata.
+      Supports server-side pagination, filtering by status/name/tags.
+    get:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/nameFilter'
+        - $ref: '#/components/parameters/tagsFilter'
+      responses:
+        '200':
+          $ref: '#/components/responses/EvaluationJobsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listEvaluationJobs
+      summary: List Evaluation Jobs
+      description: Gets a list of all evaluation jobs from the EvalHub server.
+
+  /eval-hub/api/v1/evaluations/jobs/{id}:
+    summary: Cancel or delete an evaluation job
+    description: >-
+      Cancels a running evaluation job or permanently deletes it from
+      the EvalHub control plane. When hard_delete is false (default),
+      the job is cancelled. When hard_delete is true, the job is
+      permanently removed.
+    delete:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/hardDelete'
+      responses:
+        '200':
+          $ref: '#/components/responses/CancelEvaluationJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: cancelEvaluationJob
+      summary: Cancel or Delete Evaluation Job
+      description: >-
+        Cancels a running evaluation job (soft cancel) or permanently
+        deletes it (hard delete) depending on the hard_delete parameter.
+
+components:
+  # =============================================================================
+  # SCHEMAS
+  # =============================================================================
+  schemas:
+    HealthCheckModel:
+      type: object
+      required:
+        - status
+        - system_info
+      properties:
+        status:
+          type: string
+          example: 'available'
+          description: BFF service availability status
+        system_info:
+          $ref: '#/components/schemas/SystemInfo'
+
+    SystemInfo:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          example: '1.0.0'
+          description: BFF service version
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - system_info
+      properties:
+        status:
+          type: string
+          example: 'available'
+          description: API availability status
+        system_info:
+          $ref: '#/components/schemas/SystemInfo'
+
+    NamespaceModel:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: 'default'
+          description: Kubernetes namespace name
+        displayName:
+          type: string
+          nullable: true
+          example: 'default'
+          description: Human-readable display name for the namespace (optional, defaults to name)
+
+    NamespacesData:
+      type: array
+      items:
+        $ref: '#/components/schemas/NamespaceModel'
+      description: Array of Kubernetes namespaces
+
+    UserModel:
+      type: object
+      required:
+        - userId
+        - clusterAdmin
+      properties:
+        userId:
+          type: string
+          example: 'user@example.com'
+        clusterAdmin:
+          type: boolean
+          example: true
+
+    PaginationLink:
+      type: object
+      properties:
+        href:
+          type: string
+          description: URL for the pagination link
+
+    JobMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        message_code:
+          type: string
+
+    JobResource:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 'eval-job-001'
+          description: Unique identifier for the evaluation job
+        tenant:
+          type: string
+          description: Display name / tenant label for the job
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-02-20T10:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-02-20T11:30:00Z'
+        message:
+          $ref: '#/components/schemas/JobMessage'
+
+    JobStatus:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - pending
+            - running
+            - completed
+            - failed
+            - cancelled
+            - stopping
+            - stopped
+          example: 'completed'
+          description: Current state of the evaluation job
+        message:
+          $ref: '#/components/schemas/JobMessage'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BenchmarkState'
+
+    BenchmarkState:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+        provider_id:
+          type: string
+        status:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+        error_message:
+          $ref: '#/components/schemas/JobMessage'
+
+    BenchmarkResult:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        provider_id:
+          type: string
+        metrics:
+          type: object
+          additionalProperties:
+            type: number
+          description: Key-value metric scores
+        artifacts:
+          $ref: '#/components/schemas/BenchmarkArtifact'
+
+    BenchmarkArtifact:
+      type: object
+      properties:
+        oci_digest:
+          type: string
+        oci_reference:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+
+    JobResults:
+      type: object
+      properties:
+        total_evaluations:
+          type: integer
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BenchmarkResult'
+
+    JobModel:
+      type: object
+      required:
+        - name
+      properties:
+        url:
+          type: string
+        name:
+          type: string
+          example: 'meta-llama/Llama-3.1-8B-Instruct'
+          description: Model being evaluated
+
+    JobBenchmark:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 'arc_easy'
+          description: Benchmark identifier
+        provider_id:
+          type: string
+          example: 'lm_evaluation_harness'
+        parameters:
+          type: object
+          additionalProperties: true
+
+    EvaluationJob:
+      type: object
+      required:
+        - resource
+        - status
+        - results
+        - model
+        - benchmarks
+      properties:
+        resource:
+          $ref: '#/components/schemas/JobResource'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        results:
+          $ref: '#/components/schemas/JobResults'
+        model:
+          $ref: '#/components/schemas/JobModel'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
+
+    EvaluationJobsData:
+      type: object
+      properties:
+        first:
+          $ref: '#/components/schemas/PaginationLink'
+        next:
+          $ref: '#/components/schemas/PaginationLink'
+        limit:
+          type: integer
+          example: 50
+          description: Maximum number of items returned
+        total_count:
+          type: integer
+          example: 2
+          description: Total number of evaluation jobs
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluationJob'
+        errors:
+          type: array
+          items:
+            type: string
+      description: Paginated list of evaluation jobs
+
+    CollectionResource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'collection-001'
+        tenant:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        read_only:
+          type: boolean
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+
+    CollectionPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+        lower_is_better:
+          type: boolean
+
+    CollectionPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+
+    CollectionBenchmark:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 'arc_challenge'
+        provider_id:
+          type: string
+          nullable: true
+        weight:
+          type: number
+          nullable: true
+        primary_score:
+          $ref: '#/components/schemas/CollectionPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        parameters:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    Collection:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/CollectionResource'
+        name:
+          type: string
+          example: 'Open LLM Leaderboard v2'
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        custom:
+          type: object
+          additionalProperties: true
+          nullable: true
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
+          nullable: true
+
+    CollectionsData:
+      type: array
+      items:
+        $ref: '#/components/schemas/Collection'
+      description: Array of benchmark collections
+
+    ProviderResource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'lm_evaluation_harness'
+        tenant:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        read_only:
+          type: boolean
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+
+    ProviderBenchmarkPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+        lower_is_better:
+          type: boolean
+
+    ProviderBenchmarkPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+
+    ProviderBenchmark:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: 'truthfulqa_mc1'
+        name:
+          type: string
+          example: 'Truthfulness Testing'
+        description:
+          type: string
+          nullable: true
+          example: 'Tests whether models give truthful answers to questions where humans often answer incorrectly.'
+        category:
+          type: string
+          nullable: true
+          example: 'Safety'
+        metrics:
+          type: array
+          items:
+            type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        num_few_shot:
+          type: integer
+          nullable: true
+        dataset_size:
+          type: integer
+          nullable: true
+        primary_score:
+          $ref: '#/components/schemas/ProviderBenchmarkPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/ProviderBenchmarkPassCriteria'
+
+    ProviderEnvVar:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    ProviderK8sRuntime:
+      type: object
+      description: Kubernetes-specific runtime configuration for a provider.
+      properties:
+        image:
+          type: string
+          nullable: true
+        entrypoint:
+          type: array
+          items:
+            type: string
+          nullable: true
+        cpu_request:
+          type: string
+          nullable: true
+        memory_request:
+          type: string
+          nullable: true
+        cpu_limit:
+          type: string
+          nullable: true
+        memory_limit:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderLocalRuntime:
+      type: object
+      description: Local execution runtime configuration for a provider.
+      properties:
+        command:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderRuntime:
+      type: object
+      description: Describes how a provider executes benchmarks (Kubernetes or local).
+      properties:
+        k8s:
+          $ref: '#/components/schemas/ProviderK8sRuntime'
+        local:
+          $ref: '#/components/schemas/ProviderLocalRuntime'
+
+    Provider:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/ProviderResource'
+        name:
+          type: string
+          example: 'lm_evaluation_harness'
+        title:
+          type: string
+          nullable: true
+          example: 'LM Evaluation Harness'
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        runtime:
+          $ref: '#/components/schemas/ProviderRuntime'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderBenchmark'
+          nullable: true
+
+    ProvidersData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+        total_count:
+          type: integer
+          nullable: true
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: '400'
+          description: HTTP status code
+        message:
+          type: string
+          example: 'Bad request'
+          description: Human-readable error message
+
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+
+  # =============================================================================
+  # RESPONSES
+  # =============================================================================
+  responses:
+    HealthCheckResponse:
+      description: BFF service health status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthCheckModel'
+          example:
+            status: 'available'
+            system_info:
+              version: '1.0.0'
+
+    HealthResponse:
+      description: API health status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthResponse'
+          example:
+            status: 'available'
+            system_info:
+              version: '1.0.0'
+
+    NamespacesResponse:
+      description: List of Kubernetes namespaces
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/NamespacesData'
+          example:
+            data:
+              - name: 'default'
+                displayName: 'default'
+              - name: 'eval-workloads'
+                displayName: 'eval-workloads'
+
+    UserResponse:
+      description: Current user information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/UserModel'
+          example:
+            data:
+              userId: 'user@example.com'
+              clusterAdmin: true
+
+    EvaluationJobsResponse:
+      description: Paginated list of evaluation jobs from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/EvaluationJobsData'
+          example:
+            data:
+              first:
+                href: '/api/v1/evaluations/jobs?offset=0&limit=50'
+              next:
+                href: '/api/v1/evaluations/jobs?offset=50&limit=50'
+              limit: 50
+              total_count: 2
+              items:
+                - resource:
+                    id: 'eval-job-001'
+                    tenant: 'MMLU Benchmark'
+                    created_at: '2026-02-20T10:00:00Z'
+                    updated_at: '2026-02-20T11:30:00Z'
+                  status:
+                    state: 'completed'
+                  results:
+                    total_evaluations: 1
+                    benchmarks:
+                      - id: 'arc_easy'
+                        provider_id: 'lm_evaluation_harness'
+                        metrics:
+                          score: 0.85
+                  model:
+                    name: 'meta-llama/Llama-3.1-8B-Instruct'
+                  benchmarks:
+                    - id: 'arc_easy'
+                      provider_id: 'lm_evaluation_harness'
+                - resource:
+                    id: 'eval-job-002'
+                    tenant: 'HellaSwag Eval'
+                    created_at: '2026-02-24T08:00:00Z'
+                  status:
+                    state: 'running'
+                  model:
+                    name: 'mistralai/Mistral-7B-v0.1'
+                  benchmarks:
+                    - id: 'hellaswag'
+                      provider_id: 'lm_evaluation_harness'
+              errors: []
+
+    CollectionsResponse:
+      description: List of benchmark collections from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionsData'
+          example:
+            data:
+              - resource:
+                  id: 'collection-001'
+                name: 'Open LLM Leaderboard v2'
+                description: 'Comprehensive evaluation suite for general-purpose language models.'
+                tags:
+                  - 'Comprehensive'
+                  - 'Industry Standard'
+                benchmarks:
+                  - id: 'arc_challenge'
+                    provider_id: 'lm_evaluation_harness'
+                    weight: 1
+
+    ProvidersResponse:
+      description: List of evaluation providers with their benchmark catalogues
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/ProvidersData'
+          example:
+            data:
+              items:
+                - resource:
+                    id: 'lm_evaluation_harness'
+                  name: 'lm_evaluation_harness'
+                  title: 'LM Evaluation Harness'
+                  runtime:
+                    k8s:
+                      image: 'quay.io/opendatahub/lm-eval:latest'
+                  benchmarks:
+                    - id: 'truthfulqa_mc1'
+                      name: 'Truthfulness Testing'
+                      category: 'Safety'
+                      metrics:
+                        - 'Instruction adherence'
+                        - 'Format compliance'
+              total_count: 20
+
+    CancelEvaluationJobResponse:
+      description: Evaluation job cancelled or deleted successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: string
+                example: 'ok'
+          example:
+            data: 'ok'
+
+    BadRequest:
+      description: Bad Request - Invalid parameters or missing required fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: '400'
+              message: 'invalid request parameters'
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    NotFound:
+      description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    InternalServerError:
+      description: Internal Server Error - Server encountered an unexpected condition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+  # =============================================================================
+  # PARAMETERS
+  # =============================================================================
+  parameters:
+    kubeflowUserId:
+      in: header
+      name: kubeflow-userid
+      schema:
+        type: string
+      required: true
+      description: User email address from Kubeflow authentication
+    namespace:
+      in: query
+      name: namespace
+      schema:
+        type: string
+      required: false
+      description: Kubernetes namespace to scope the request (optional)
+    limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      required: false
+      description: Maximum number of evaluations to return
+    offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      required: false
+      description: Offset for pagination
+    statusFilter:
+      in: query
+      name: status
+      schema:
+        type: string
+      required: false
+      description: Filter by evaluation job status
+    nameFilter:
+      in: query
+      name: name
+      schema:
+        type: string
+      required: false
+      description: Name to search for
+    tagsFilter:
+      in: query
+      name: tags
+      schema:
+        type: string
+      required: false
+      description: Tags to search for
+    evaluationJobId:
+      in: path
+      name: id
+      schema:
+        type: string
+      required: true
+      description: Unique identifier for the evaluation job
+      example: 'eval-job-001'
+    hardDelete:
+      in: query
+      name: hard_delete
+      schema:
+        type: boolean
+        default: false
+      required: false
+      description: >-
+        When false (default), cancels a running evaluation job.
+        When true, permanently deletes the evaluation job.
+
+  # =============================================================================
+  # SECURITY
+  # =============================================================================
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      in: header
+      name: x-forwarded-access-token
+      description: User access token (use `oc whoami -t` to get your cluster token)
+
+tags:
+  - name: HealthCheck
+    description: Health check and status endpoints
+  - name: Kubernetes
+    description: Kubernetes cluster operations
+  - name: Identity
+    description: User identity and authentication
+  - name: Evaluations
+    description: LLM evaluation job management via EvalHub
+  - name: Collections
+    description: Benchmark collection management via EvalHub
+  - name: Providers
+    description: Evaluation provider and benchmark catalogue management via EvalHub

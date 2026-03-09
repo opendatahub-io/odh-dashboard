@@ -9,6 +9,7 @@ jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
+  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -65,8 +66,8 @@ const setupMocks = (): void => {
   jest.clearAllMocks();
   // Ensure createResponse mock is properly reset
   mockCreateResponse.mockReset();
-  // Mock useContext to return the namespace
-  mockUseContext.mockReturnValue({ namespace: mockNamespace });
+  // Mock useContext for ChatbotContext (aiModels) and other contexts (namespace)
+  mockUseContext.mockReturnValue({ namespace: mockNamespace, aiModels: [] });
 
   // Mock useGenAiAPI to return the API object with mocked functions
   mockUseGenAiAPI.mockReturnValue({
@@ -451,7 +452,7 @@ describe('useChatbotMessages - controls', () => {
         role: 'bot',
         content:
           'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: 'Bot',
+        name: mockModelId,
       });
     });
 

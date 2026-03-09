@@ -27,6 +27,10 @@ describe('updateTimestamps', () => {
     patchModelVersion: jest.fn(),
     patchModelArtifact: jest.fn(),
     listModelTransferJobs: jest.fn(),
+    createModelTransferJob: jest.fn(),
+    updateModelTransferJob: jest.fn(),
+    deleteModelTransferJob: jest.fn(),
+    getModelTransferJobEvents: jest.fn(),
   });
   const fakeModelVersionId = 'test-model-version-id';
   const fakeRegisteredModelId = 'test-registered-model-id';

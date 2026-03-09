@@ -1,0 +1,9 @@
+# pipelines.cy.ts Test Data #
+projectNamePrefix: "test-pipelines-prj"
+pipelineName: test-pipelines-pipeline
+pipelineDescription: "Pipeline Description"
+runName: test-pipelines-run
+runDescription: "Run Description"
+experimentName: "Default"
+dspaSecretName: dashboard-dspa-secret
+pipelineUrl: https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/packages/cypress/resources/pipelines_samples/dummy_pipeline_compiled.yaml

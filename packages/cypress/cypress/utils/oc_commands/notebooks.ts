@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Check for specific tolerations in a pod across all namespaces.
@@ -53,7 +54,8 @@ export const checkNotebookTolerations = (
         cy.exec(getPodCommand, { failOnNonZeroExit: false }).then(
           (podResult: CommandLineResult) => {
             if (podResult.code !== 0) {
-              throw new Error(`Failed to get pod details: ${podResult.stderr}`);
+              const maskedStderr = maskSensitiveInfo(podResult.stderr);
+              throw new Error(`Failed to get pod details: ${maskedStderr}`);
             }
 
             const podSpec = JSON.parse(podResult.stdout);

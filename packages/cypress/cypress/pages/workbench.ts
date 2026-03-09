@@ -836,8 +836,36 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('expand-logs');
   }
 
+  findResourcesTab() {
+    return cy.findByTestId('expand-resources');
+  }
+
   findLogEntry(text: string) {
     return cy.findByTestId('event-logs').find('li span').contains(text);
+  }
+
+  findResourcesNoQueueMessage() {
+    return cy.findByTestId('resources-no-queue');
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
   }
 
   getNotebookStatus(expectedStatus: string, timeout?: number) {

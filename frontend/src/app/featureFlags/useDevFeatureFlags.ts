@@ -161,6 +161,9 @@ const useDevFeatureFlags = (
     if (devFeatureFlags !== sessionFlags) {
       setSessionFlags(devFeatureFlags);
     }
+
+    // Notify other components (like model-registry plugin) when dev flags change
+    window.dispatchEvent(new CustomEvent('odh-dev-flags-changed'));
   }, [devFeatureFlags, sessionFlags, setSessionFlags]);
 
   // construct the new dashbaord config by merging in the dev feature flags

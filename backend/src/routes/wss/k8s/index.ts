@@ -10,10 +10,23 @@ const base64 = (data: string): string =>
   // eslint-disable-next-line no-restricted-properties
   Buffer.from(data).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').split('=', 1)[0];
 
+/**
+ * Convert reserved WebSocket close codes to valid codes that can be sent in a close frame.
+ *
+ * Per RFC 6455, certain codes cannot be set by applications:
+ * - 1004: Reserved
+ * - 1005: No Status Received (MUST NOT be set in close frame)
+ * - 1006: Abnormal Closure (MUST NOT be set in close frame, indicates no close frame received)
+ *
+ * The `ws` module enforces this and throws if you try to close with these codes.
+ *
+ * We convert these to 1011 (Internal Error) which is semantically appropriate:
+ * "The server is terminating the connection because it encountered an unexpected condition"
+ */
 const liftErrorCode = (code: number) => {
   if (code === 1004 || code === 1005 || code === 1006) {
-    // ws module forbid those error codes usage, lift to "application level" (4xxx)
-    return 3000 + code;
+    // Use 1011 (Internal Error) as a valid substitute for reserved codes
+    return 1011;
   }
   return code;
 };
@@ -43,8 +56,17 @@ type ConnectionMetrics = {
   lastResourceVersion?: string;
 };
 
+// Connection tracking includes metrics plus socket references for proper cleanup
+type TrackedConnection = {
+  metrics: ConnectionMetrics;
+  source: WebSocket;
+  target: WebSocket;
+  kubeUri: string;
+  heartbeatInterval: NodeJS.Timeout | null;
+};
+
 // Global connection tracking for monitoring and cleanup
-const activeConnections = new Map<string, ConnectionMetrics>();
+const activeConnections = new Map<string, TrackedConnection>();
 
 // Constants for connection management (exported for testing)
 export const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds to establish connection
@@ -56,7 +78,8 @@ const cleanupStaleConnections = (fastify: KubeFastifyInstance) => {
   const now = Date.now();
   let cleanedCount = 0;
 
-  for (const [connectionId, metrics] of activeConnections.entries()) {
+  for (const [connectionId, tracked] of activeConnections.entries()) {
+    const { metrics, source, target, kubeUri, heartbeatInterval } = tracked;
     const inactivityDuration = now - Math.max(metrics.lastMessageReceived, metrics.lastMessageSent);
 
     if (inactivityDuration > STALE_CONNECTION_MS) {
@@ -66,9 +89,21 @@ const cleanupStaleConnections = (fastify: KubeFastifyInstance) => {
           inactivityDuration,
           messagesReceived: metrics.messagesReceived,
           messagesSent: metrics.messagesSent,
+          duration: now - metrics.created,
         },
-        `Removing stale connection from tracking: ${connectionId}`,
+        `Closing stale websocket connection: ${kubeUri}`,
       );
+
+      // Clear heartbeat interval if it exists
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+
+      // Close both websockets so the client receives the close event and can reconnect
+      // Use code 1001 (going away) to indicate the server is closing due to inactivity
+      closeWebSocket(source, 1001, 'Connection stale due to inactivity');
+      closeWebSocket(target, 1001, 'Connection stale due to inactivity');
+
       activeConnections.delete(connectionId);
       cleanedCount++;
     }
@@ -121,7 +156,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           messagesReceived: 0,
           messagesSent: 0,
         };
-        activeConnections.set(connectionId, metrics);
 
         fastify.log.info(
           {
@@ -147,6 +181,16 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           ca: https.globalAgent.options.ca as WebSocket.CertMeta,
         });
 
+        // Track connection with socket references for proper cleanup
+        const tracked: TrackedConnection = {
+          metrics,
+          source,
+          target,
+          kubeUri,
+          heartbeatInterval: null,
+        };
+        activeConnections.set(connectionId, tracked);
+
         // Close both connections and log diagnostics
         const close = (code: number, reason: string | Buffer) => {
           // Make idempotent - only run once per connection
@@ -169,6 +213,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             `Closing websocket connection: ${kubeUri}`,
           );
 
+          // Clear heartbeat interval if it exists
+          if (tracked.heartbeatInterval) {
+            clearInterval(tracked.heartbeatInterval);
+            tracked.heartbeatInterval = null;
+          }
+
           closeWebSocket(source, code, reason);
           closeWebSocket(target, code, reason);
           activeConnections.delete(connectionId);
@@ -188,9 +238,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             close(1011, 'Connection timeout');
           }
         }, CONNECTION_TIMEOUT_MS);
-
-        // Heartbeat monitoring
-        let heartbeatInterval: NodeJS.Timeout | null = null;
 
         const onUnexpectedResponse = (_: ClientRequest, response: IncomingMessage) => {
           const statusCode = response.statusCode || 'unknown';
@@ -219,7 +266,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           );
 
           // Start heartbeat monitoring
-          heartbeatInterval = setInterval(() => {
+          tracked.heartbeatInterval = setInterval(() => {
             // Send ping to keep connection alive
             if (target.readyState === WebSocket.OPEN) {
               try {
@@ -311,8 +358,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         // Handle K8s API connection close
         target.on('close', (code, reason) => {
-          if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
+          if (tracked.heartbeatInterval) {
+            clearInterval(tracked.heartbeatInterval);
+            tracked.heartbeatInterval = null;
           }
 
           const reasonStr = String(reason);
@@ -378,8 +426,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         // Handle client connection close
         source.on('close', (code, reason) => {
-          if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
+          if (tracked.heartbeatInterval) {
+            clearInterval(tracked.heartbeatInterval);
+            tracked.heartbeatInterval = null;
           }
           clearTimeout(connectionTimeout);
 

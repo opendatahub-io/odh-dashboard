@@ -3,7 +3,7 @@ import { NotebookRunningState } from '#~/types';
 import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useSpecificNotebookUserState } from '#~/utilities/notebookControllerUtils';
-import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
+import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 import useNamespaces from './useNamespaces';
 
@@ -33,9 +33,12 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
 
   // Generate workbench link using same-origin relative path
   const currentLink =
-    notebook?.metadata.namespace && notebook.metadata.name
-      ? getRoutePathForWorkbench(notebook.metadata.namespace, notebook.metadata.name)
-      : '';
+    useGetNotebookRoute(
+      notebook?.metadata.namespace,
+      notebook?.metadata.name,
+      notebook?.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true',
+      true,
+    ) ?? '';
 
   React.useEffect(() => {
     if (notebook !== undefined && isCurrentlyRunning !== undefined) {

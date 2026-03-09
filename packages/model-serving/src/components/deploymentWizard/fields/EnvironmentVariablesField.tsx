@@ -95,7 +95,7 @@ type EnvironmentVariablesFieldProps = {
 export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   data = { enabled: false, variables: [] },
   onChange,
-  allowCreate = false,
+  allowCreate = true,
   predefinedVars,
 }) => {
   const lastNameFieldRef = React.useRef<HTMLInputElement>(null);

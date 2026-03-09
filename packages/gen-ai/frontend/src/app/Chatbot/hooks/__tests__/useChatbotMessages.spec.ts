@@ -17,6 +17,7 @@ jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
+  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -46,8 +47,8 @@ const setupMocks = (): void => {
   jest.clearAllMocks();
   // Ensure createResponse mock is properly reset
   mockCreateResponse.mockReset();
-  // Mock useContext to return the namespace
-  mockUseContext.mockReturnValue({ namespace: mockNamespace });
+  // Mock useContext for ChatbotContext (aiModels) and other contexts (namespace)
+  mockUseContext.mockReturnValue({ namespace: mockNamespace, aiModels: [] });
 
   // Mock useGenAiAPI to return the API object with mocked functions
   mockUseGenAiAPI.mockReturnValue({
@@ -97,7 +98,7 @@ describe('useChatbotMessages', () => {
         role: 'bot',
         content:
           'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.scrollToBottomRef).toBeDefined();
@@ -124,11 +125,11 @@ describe('useChatbotMessages', () => {
         name: 'User',
       });
 
-      // Test bot response - only check what matters
+      // Test bot response - only check what matters (name shows selected model)
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -222,7 +223,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).toHaveBeenCalledWith(
@@ -259,7 +260,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'API Error',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -295,7 +296,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'API is not available',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -315,7 +316,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: customErrorMessage,
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -347,7 +348,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: streamingErrorMessage,
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);

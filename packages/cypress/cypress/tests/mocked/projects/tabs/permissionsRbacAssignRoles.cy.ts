@@ -41,7 +41,7 @@ describe('Assign Roles Page - Discard Changes Modal', () => {
 
     // Discard modal should appear
     discardModal.find().should('exist');
-    discardModal.shouldContainMessage(/Switching the subject kind will discard/);
+    discardModal.shouldContainMessage(/Editing the subject kind will discard your changes/);
 
     // Cancel should close modal and keep current state
     discardModal.findCancelButton().click();
@@ -122,7 +122,7 @@ describe('Assign Roles Page - Discard Changes Modal', () => {
 
     // Discard modal should appear
     discardModal.find().should('exist');
-    discardModal.shouldContainMessage(/Clearing the user selection will discard/);
+    discardModal.shouldContainMessage(/Editing the subject name will discard your changes/);
 
     // Confirm discard
     discardModal.findDiscardButton().click();
@@ -149,7 +149,7 @@ describe('Assign Roles Page - Discard Changes Modal', () => {
 
     // Discard modal should appear
     discardModal.find().should('exist');
-    discardModal.shouldContainMessage(/Switching to a different user will discard/);
+    discardModal.shouldContainMessage(/Editing the subject name will discard your changes/);
   });
 
   it('should show discard modal when clearing selection with unsaved changes', () => {
@@ -171,7 +171,7 @@ describe('Assign Roles Page - Discard Changes Modal', () => {
 
     // Discard modal should appear
     discardModal.find().should('exist');
-    discardModal.shouldContainMessage(/Clearing the user selection will discard/);
+    discardModal.shouldContainMessage(/Editing the subject name will discard your changes/);
   });
 
   it('should show navigation blocker modal when navigating away with unsaved changes', () => {
@@ -254,7 +254,7 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
     initProjectRbacIntercepts({ items: [rbCustom] });
     projectRbacPermissions.visit(NAMESPACE);
 
-    // Use Manage roles action on the user
+    // Use Manage permissions action on the user
     projectRbacPermissions.getUsersTable().findManageRolesAction('custom-role-user').click();
 
     // The custom role should be checked (currently assigned)
@@ -340,7 +340,7 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
 
     projectRbacPermissions.visit(NAMESPACE);
 
-    // Use Manage roles action
+    // Use Manage permissions action
     projectRbacPermissions.getUsersTable().findManageRolesAction('user-to-unassign').click();
 
     // Unassign Admin
@@ -623,7 +623,7 @@ describe('Assign Roles Page - Additional Scenarios', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    // Use Manage roles action to navigate
+    // Use Manage permissions action to navigate
     projectRbacPermissions.getUsersTable().findManageRolesAction('test-user-1').click();
 
     // Subject should be displayed as read-only
@@ -637,18 +637,18 @@ describe('Assign Roles Page - Additional Scenarios', () => {
     projectRbacPermissions.findAssignRolesSubjectKindRadio('group').should('not.exist');
   });
 
-  it('should show page title as "Manage roles" when in manage mode', () => {
+  it('should show page title as "Manage permissions" when in manage mode', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    // Use Manage roles action
+    // Use Manage permissions action
     projectRbacPermissions.getUsersTable().findManageRolesAction('test-user-1').click();
 
     // Check page title
-    cy.contains('h1', 'Manage roles').should('exist');
+    cy.contains('h1', 'Manage permissions').should('exist');
   });
 
-  it('should show page title as "Assign roles" when in assign mode', () => {
+  it('should show page title as "Manage permissions" when in assign mode', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
@@ -656,6 +656,6 @@ describe('Assign Roles Page - Additional Scenarios', () => {
     projectRbacPermissions.findAssignRolesButton().click();
 
     // Check page title
-    cy.contains('h1', 'Assign roles').should('exist');
+    cy.contains('h1', 'Manage permissions').should('exist');
   });
 });

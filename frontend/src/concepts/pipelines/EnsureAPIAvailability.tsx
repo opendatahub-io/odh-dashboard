@@ -182,7 +182,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
         />
       )}
       {isDeleting ? (
-        <DeleteServerModal removeConfirmation={true} onClose={() => setIsDeleting(false)} />
+        <DeleteServerModal removeConfirmation onClose={() => setIsDeleting(false)} />
       ) : null}
     </>
   );

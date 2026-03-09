@@ -120,17 +120,17 @@ describe('Feature Store Page Validation', () => {
       cy.step(`Verify entities count is displayed correctly`);
       shouldHaveTotalCount(entityCount);
 
-      cy.step(`Navigate to the Feature Store Datasets page`);
-      featureStoreGlobal.navigateToDatasets();
-      featureStoreGlobal.selectProject(testData.feastCreditScoringProject);
-      cy.step(`Verify datasets count is displayed correctly`);
-      shouldHaveTotalCount(datasetCount);
-
       cy.step(`Navigate to the Feature Store Data Sources page`);
       featureStoreGlobal.navigateToDataSources();
       featureStoreGlobal.selectProject(testData.feastCreditScoringProject);
       cy.step(`Verify data sources count is displayed correctly`);
       shouldHaveTotalCount(dataSourceCount);
+
+      cy.step(`Navigate to the Feature Store Datasets page`);
+      featureStoreGlobal.navigateToDatasets();
+      featureStoreGlobal.selectProject(testData.feastCreditScoringProject);
+      cy.step(`Verify datasets count is displayed correctly`);
+      shouldHaveTotalCount(datasetCount);
 
       cy.step(`Navigate to the Feature Store Features page`);
       featureStoreGlobal.navigateToFeatures();

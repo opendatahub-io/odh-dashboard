@@ -1301,13 +1301,16 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
-  autoRag?: boolean;
+  automl?: boolean;
+  autorag?: boolean;
   modelAsService?: boolean;
+  aiAssetExternalModels?: boolean;
   maasApiKeys?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  deploymentWizardYAMLViewer?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1334,6 +1337,12 @@ export type DashboardConfigKind = K8sResourceCommon & {
     modelServing?: {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
+    };
+    genAiStudioConfig?: {
+      aiAssetExternalModels?: {
+        externalProviders?: boolean;
+        clusterDomains?: string[];
+      };
     };
   };
 };
@@ -1530,6 +1539,10 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
+  // Added by the backend to identify the monitoring namespace
+  monitoring?: {
+    namespace?: string;
+  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {

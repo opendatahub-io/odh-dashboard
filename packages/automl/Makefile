@@ -1,0 +1,164 @@
+DEFAULT_ENV_FILE := .env
+ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
+include ${DEFAULT_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
+endif
+
+DEV_ENV_FILE := .env.development
+ifneq ("$(wildcard $(DEV_ENV_FILE))","")
+include ${DEV_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEV_ENV_FILE})
+endif
+
+ENV_FILE := .env.local
+ifneq ("$(wildcard $(ENV_FILE))","")
+include ${ENV_FILE}
+export $(shell sed 's/=.*//' ${ENV_FILE})
+endif
+
+.PHONY: all
+all: build
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+
+############ Dev Environment ############
+
+.PHONY: dev-install-dependencies
+dev-install-dependencies:
+	cd frontend && npm install
+
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server)
+	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+
+.PHONY: dev-bff-mock-debug
+dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
+	cd bff && make debug LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+
+.PHONY: dev-bff
+dev-bff:
+	trap 'exit 0' INT; \
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+
+.PHONY: dev-frontend
+dev-frontend:
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+
+.PHONY: dev-start-mock
+dev-start-mock: ## Run frontend and BFF with all mocks in development mode
+	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start-mock-debug
+dev-start-mock-debug: ## Run frontend and BFF with all mocks and Delve debugger (VSCode: F5 → "Attach to BFF")
+	make -j 2 dev-bff-mock-debug dev-frontend
+
+.PHONY: dev-start
+dev-start:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff dev-frontend
+
+########### Dev Kubeflow ############
+.PHONY: dev-start-kubeflow
+dev-start-kubeflow:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-kubeflow dev-frontend-kubeflow
+
+.PHONY: dev-frontend-kubeflow
+dev-frontend-kubeflow:
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+
+.PHONY: dev-bff-kubeflow
+dev-bff-kubeflow:
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
+
+########### Dev Federated ###########
+# Note: BFF runs on port 4003 to avoid conflict with autorag (4001) and eval-hub (4002)
+# Frontend proxies /api to BFF via PROXY_PORT=4003
+.PHONY: dev-start-federated
+dev-start-federated:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated dev-frontend-federated
+
+.PHONY: dev-frontend-federated
+dev-frontend-federated:
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9108 PROXY_PORT=4003 npm run start:dev
+
+.PHONY: dev-bff-federated
+dev-bff-federated:
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
+############ Build ############
+
+.PHONY: docker-build
+docker-build:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+
+.PHONY: docker-build-standalone
+docker-build-standalone:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+
+.PHONY: docker-build-federated
+docker-build-federated:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+
+.PHONY: docker-buildx
+docker-buildx:
+	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+
+.PHONY: docker-buildx-standalone
+docker-buildx-standalone:
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+
+.PHONY: docker-buildx-federated
+docker-buildx-federated:
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+
+############ Push ############
+
+.PHONY: docker-push
+docker-push:
+	${CONTAINER_TOOL} push ${IMG_UI}
+
+.PHONY: docker-push-standalone
+docker-push-standalone:
+	${CONTAINER_TOOL} push ${IMG_UI_STANDALONE}
+
+.PHONY: docker-push-federated
+docker-push-federated:
+	${CONTAINER_TOOL} push ${IMG_UI_FEDERATED}
+
+############ Deployment ############
+
+.PHONY: kind-deployment
+kind-deployment:
+	./scripts/deploy_kind_cluster.sh
+
+.PHONY: kubeflow-deployment
+kubeflow-deployment:
+	./scripts/deploy_kubeflow_cluster.sh
+
+############ Build ############
+.PHONY: frontend-build
+frontend-build:
+	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+
+.PHONY: frontend-build-standalone
+frontend-build-standalone:
+	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+
+.PHONY: bff-build
+bff-build:
+	cd bff && make build
+
+.PHONY: build
+build: frontend-build bff-build
+
+############ Run mocked ########
+.PHONY: run-local-mocked
+run-local-mocked: frontend-build-standalone bff-build
+	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
+
+

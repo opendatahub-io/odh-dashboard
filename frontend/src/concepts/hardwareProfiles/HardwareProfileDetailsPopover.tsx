@@ -14,9 +14,11 @@ import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { Toleration, NodeSelector, ContainerResources } from '#~/types';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
+  getClusterQueueNameFromLocalQueues,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
 } from '#~/pages/hardwareProfiles/utils.ts';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
@@ -38,6 +40,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   hardwareProfile,
   tableView = false,
 }) => {
+  const { localQueues } = React.useContext(ProjectDetailsContext);
+  const clusterQueueName = React.useMemo(
+    () => getClusterQueueNameFromLocalQueues(localQueueName, localQueues),
+    [localQueueName, localQueues.data, localQueues.loaded],
+  );
+
   const renderSection = (title: string, items: string[]) => (
     <DescriptionList>
       <DescriptionListGroup>
@@ -69,7 +77,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     }));
   }, [resources, hardwareProfile]);
 
-  if (!tolerations && !nodeSelector && !resources) {
+  if (
+    !tolerations &&
+    !nodeSelector &&
+    !resources &&
+    !(localQueueName || clusterQueueName || priorityClass)
+  ) {
     return null;
   }
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
@@ -108,6 +121,9 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             ))}
           {localQueueName && (
             <StackItem>{renderSection('Local queue', [localQueueName])}</StackItem>
+          )}
+          {clusterQueueName && (
+            <StackItem>{renderSection('Cluster queue', [clusterQueueName])}</StackItem>
           )}
           {priorityClass && (
             <StackItem>{renderSection('Workload priority', [priorityClass])}</StackItem>

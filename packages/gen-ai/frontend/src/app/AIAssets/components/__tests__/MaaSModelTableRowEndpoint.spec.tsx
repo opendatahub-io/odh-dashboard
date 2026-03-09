@@ -12,6 +12,43 @@ jest.mock('~/app/hooks/useGenerateMaaSToken', () => ({
   default: jest.fn(),
 }));
 
+// Mock ClipboardCopy to trigger onCopy callback
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    ClipboardCopy: ({
+      children,
+      onCopy,
+      'data-testid': dataTestId,
+      ...props
+    }: {
+      children: string;
+      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
+      'data-testid'?: string;
+      [key: string]: unknown;
+    }) => {
+      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (onCopy) {
+          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
+        }
+      };
+      return (
+        <div data-testid={dataTestId}>
+          <input readOnly value={children} />
+          <button
+            aria-label={(props['aria-label'] as string) || 'Copy to clipboard'}
+            onClick={handleClick}
+            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
+          >
+            Copy
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
 const mockUseGenerateMaaSToken = jest.mocked(useGenerateMaaSToken);
 
 const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
@@ -207,6 +244,16 @@ describe('MaaSModelTableRowEndpoint', () => {
   });
 
   describe('ClipboardCopy functionality', () => {
+    let writeTextSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      writeTextSpy.mockRestore();
+    });
+
     it('should render ClipboardCopy for MaaS route URL', async () => {
       const user = userEvent.setup();
       const model = createMockMaaSModel({ url: 'https://example.com/maas/route' });
@@ -237,6 +284,20 @@ describe('MaaSModelTableRowEndpoint', () => {
 
       const tokenClipboard = screen.getByDisplayValue('token-to-copy');
       expect(tokenClipboard).toBeInTheDocument();
+    });
+
+    it('should copy MaaS URL to clipboard when copy button is clicked', async () => {
+      const user = userEvent.setup();
+      const model = createMockMaaSModel({ url: 'https://example.com/maas/route' });
+      render(<MaaSModelTableRowEndpoint model={model} />);
+
+      const viewButton = screen.getByTestId('maas-view-button');
+      await user.click(viewButton);
+
+      const copyButton = screen.getByTestId('maas-endpoint-copy-copy-button');
+      await user.click(copyButton);
+
+      expect(writeTextSpy).toHaveBeenCalledWith('https://example.com/maas/route');
     });
   });
 });

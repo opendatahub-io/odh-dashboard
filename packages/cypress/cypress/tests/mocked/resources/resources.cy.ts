@@ -24,13 +24,13 @@ describe('Resources page', () => {
     resourcesToolbar.findListToggleButton().click();
     cardView.find().should('not.exist');
     listView.find().should('exist');
-    listView.findListItems().should('have.length', 9);
+    listView.findListItems().should('have.length', 10);
 
     //check for card view
     resourcesToolbar.findCardToggleButton().click();
     cardView.find().should('exist');
     listView.find().should('not.exist');
-    cardView.findCardItems().should('have.length', 9);
+    cardView.findCardItems().should('have.length', 10);
   });
 
   it('Category filter for card', () => {
@@ -111,9 +111,9 @@ describe('Resources page', () => {
     // Enabled filter
     resourceFilters.findFilter('enabled-filter-checkbox').should('not.be.checked');
     resourceFilters.findFilter('enabled-filter-checkbox').check();
-    cardView.findCardItems().should('have.length', 9);
+    cardView.findCardItems().should('have.length', 10);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 9);
+    listView.findListItems().should('have.length', 10);
     resourceFilters.findFilter('enabled-filter-checkbox').should('be.checked');
     resourceFilters.findFilter('enabled-filter-checkbox').uncheck();
 
@@ -135,9 +135,9 @@ describe('Resources page', () => {
     // Documentations
     resourceFilters.findFilter('documentation').should('not.be.checked');
     resourceFilters.findFilter('documentation').check();
-    cardView.findCardItems().should('have.length', 2);
+    cardView.findCardItems().should('have.length', 3);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 2);
+    listView.findListItems().should('have.length', 3);
     resourceFilters.findFilter('documentation').should('be.checked');
     resourceFilters.findFilter('documentation').uncheck();
 
@@ -190,9 +190,9 @@ describe('Resources page', () => {
     resourcesToolbar.findCardToggleButton().click();
     resourceFilters.findFilter('Red Hat managed').should('not.be.checked');
     resourceFilters.findFilter('Red Hat managed').check();
-    cardView.findCardItems().should('have.length', 9);
+    cardView.findCardItems().should('have.length', 10);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 9);
+    listView.findListItems().should('have.length', 10);
     resourceFilters.findFilter('Red Hat managed').should('be.checked');
     resourceFilters.findFilter('Red Hat managed').uncheck();
   });
@@ -205,7 +205,7 @@ describe('Resources page', () => {
     resources.findClearFilterButton().click();
 
     resources.findEmptyState().should('not.exist');
-    cardView.findCardItems().should('have.length', 9);
+    cardView.findCardItems().should('have.length', 10);
   });
 
   it('Search functionality for card view', () => {

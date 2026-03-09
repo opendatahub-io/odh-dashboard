@@ -28,7 +28,7 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 
   findManageRolesAction(rowName: string) {
-    return this.getRowByName(rowName).findKebabAction('Manage roles');
+    return this.getRowByName(rowName).findKebabAction('Manage permissions');
   }
 
   findTableHeaderButton(name: string | RegExp) {
@@ -90,6 +90,18 @@ class RoleAssigneesTable extends Contextual<HTMLElement> {
 class ProjectRbacPermissionsTab {
   visit(projectName: string) {
     projectDetails.visitSection(projectName, 'permissions');
+  }
+
+  getAssignRolesButtonSelector() {
+    return '[data-testid="permissions-assign-roles-button"]';
+  }
+
+  getConfirmModalSelector() {
+    return '[data-testid="assign-roles-confirm-modal"]';
+  }
+
+  waitForAssignRolesButton() {
+    return this.findAssignRolesButton().should('be.visible', { timeout: 15000 });
   }
 
   findAssignRolesButton() {

@@ -42,6 +42,7 @@ export function transformNamespaceVariable(
         kind: 'ListVariable' as const,
         spec: {
           ...variable.spec,
+          customAllValue: `(${projectNames.join('|')})`,
           // Use the initial value from URL if provided, otherwise keep the original default
           defaultValue: initialNamespaceValue ?? variable.spec.defaultValue,
           plugin: {

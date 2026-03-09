@@ -16,6 +16,7 @@ import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import GetStartedPanel from './GetStartedPanel';
@@ -101,6 +102,7 @@ ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
+  const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedId = searchParams.get('selectId');
@@ -129,8 +131,9 @@ const ExploreApplications: React.FC = () => {
     () =>
       _.cloneDeep(components)
         .filter((component) => !component.spec.hidden)
+        .filter((component) => component.metadata.name !== 'mlflow' || mlflowEnabled)
         .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
-    [components],
+    [components, mlflowEnabled],
   );
 
   React.useEffect(() => {

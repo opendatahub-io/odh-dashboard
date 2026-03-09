@@ -136,13 +136,13 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Preview',
+              title: <span data-testid="preview-connection-type-action">Preview</span>,
               onClick: () => setShowPreview(true),
             },
             ...(!isOOTB(obj)
               ? [
                   {
-                    title: 'Edit',
+                    title: <span data-testid="edit-connection-type-action">Edit</span>,
                     onClick: () =>
                       navigate(
                         `/settings/environment-setup/connection-types/edit/${obj.metadata.name}`,
@@ -151,7 +151,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
                 ]
               : []),
             {
-              title: 'Duplicate',
+              title: <span data-testid="duplicate-connection-type-action">Duplicate</span>,
               onClick: () =>
                 navigate(
                   `/settings/environment-setup/connection-types/duplicate/${obj.metadata.name}`,
@@ -161,7 +161,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               ? [
                   { isSeparator: true },
                   {
-                    title: 'Delete',
+                    title: <span data-testid="delete-connection-type-action">Delete</span>,
                     onClick: () => handleDelete(obj),
                   },
                 ]

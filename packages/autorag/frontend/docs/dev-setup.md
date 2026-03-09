@@ -13,13 +13,13 @@ This project requires the following tools to be installed on your system:
 1. Clone the repository
 
       ``` bash
-      git clone https://github.com/opendatahub-io/mod-arch-library
+      git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
 2. Within the repo context, install project dependencies
 
      ```bash
-     cd mod-arch/clients/ui/frontend && npm install
+     cd packages/autorag/frontend && npm install
      ```
 
 ### Build project
@@ -36,7 +36,7 @@ This is the default context for running a local UI.  Make sure you build the pro
 npm run start:dev
 ```
 
-For in-depth local run guidance review the [contribution guidelines](../../../ui/CONTRIBUTING.md).
+For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
 
 ### Testing
 

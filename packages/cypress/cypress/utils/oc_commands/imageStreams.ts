@@ -1,3 +1,5 @@
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
+
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'opendatahub';
 
 export interface NotebookImageInfo {
@@ -46,7 +48,8 @@ export const getImageStreamDisplayName = (
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get image stream: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get image stream: ${maskedStderr}`);
       }
       const imageStream: ImageStream = JSON.parse(result.stdout);
 
@@ -83,7 +86,8 @@ export const getAvailableNotebookImageStreams = (
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get image streams: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get image streams: ${maskedStderr}`);
       }
       const imageNames = result.stdout.trim().split(' ').filter(Boolean);
       return imageNames.filter((imageName) => imageName.includes('notebook'));
@@ -146,7 +150,8 @@ export const getImageStreamTags = (
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get image stream: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get image stream: ${maskedStderr}`);
       }
       const imageStream: ImageStream = JSON.parse(result.stdout);
       return imageStream.spec.tags.map((tag) => tag.name);
@@ -158,7 +163,8 @@ export const getNotebookImageNames = (namespace: string): Cypress.Chainable<Note
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get image streams: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get image streams: ${maskedStderr}`);
       }
       const imageNames = result.stdout.trim().split(' ');
       const imageInfos: NotebookImageInfo[] = [];
@@ -173,7 +179,8 @@ export const getNotebookImageNames = (namespace: string): Cypress.Chainable<Note
             )
             .then((tagResult: ExecResult) => {
               if (tagResult.code !== 0) {
-                throw new Error(`Failed to get image stream tags: ${tagResult.stderr}`);
+                const maskedStderr = maskSensitiveInfo(tagResult.stderr);
+                throw new Error(`Failed to get image stream tags: ${maskedStderr}`);
               }
               const versions = tagResult.stdout.trim().split(' ');
               imageInfos.push({ image: imageName, name: imageName, versions });

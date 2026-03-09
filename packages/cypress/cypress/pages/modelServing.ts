@@ -4,6 +4,8 @@ import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
+import { DeleteModal } from './components/DeleteModal';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -199,6 +201,12 @@ class ServingModal extends Modal {
 
   findServingRuntimeVersionLabel() {
     return cy.findByTestId('serving-runtime-version-label');
+  }
+}
+
+class DeleteModelServingModal extends DeleteModal {
+  constructor() {
+    super('Delete tier?');
   }
 }
 
@@ -940,6 +948,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-description');
   }
 
+  findResourceNameButton() {
+    return cy.findByTestId('model-deployment-editResourceLink');
+  }
+
+  findResourceNameInput() {
+    return cy.findByTestId('model-deployment-resourceName');
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
@@ -1326,6 +1342,30 @@ class ModelServingWizard extends Wizard {
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
   }
+
+  findYAMLViewerToggle(name: 'YAML' | 'Form') {
+    return cy.findByRole('button', { name });
+  }
+
+  findYAMLCodeEditor() {
+    const editor = new DashboardCodeEditor(() =>
+      cy.findByTestId('yaml-editor').find('.monaco-editor'),
+    );
+    editor.waitForReady();
+    return editor;
+  }
+
+  findYAMLEditorEmptyState() {
+    return cy.findByTestId('yaml-editor-empty-state');
+  }
+
+  findManualEditModeButton() {
+    return cy.findByTestId('manual-edit-mode-button');
+  }
+
+  findSwitchToYAMLEditorConfirmButton() {
+    return cy.findByTestId('switch-to-manual-yaml-editor');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
@@ -1338,3 +1378,4 @@ export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
 export const modelServingWizard = new ModelServingWizard(false);
 export const modelServingWizardEdit = new ModelServingWizard(true);
+export const deleteModelServingModal = new DeleteModelServingModal();

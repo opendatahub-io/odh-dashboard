@@ -14,6 +14,14 @@ export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chai
     if (this.currentTest?.isPending() || !shouldRun) {
       return;
     }
+
+    // Skip admin-only setup in non-admin mode (controlled by workflow)
+    if (Cypress.env('IS_NON_ADMIN_RUN')) {
+      cy.log('⏭️ Skipping admin setup (running in non-admin mode)');
+      shouldRun = false;
+      return;
+    }
+
     shouldRun = false;
     setupPerformed = true;
     cy.wrap(null).then(fn);

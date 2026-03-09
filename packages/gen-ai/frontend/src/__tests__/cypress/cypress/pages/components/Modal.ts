@@ -96,12 +96,32 @@ export class NewChatModal extends Modal {
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByText('Start a new chat?');
+    return this.find().findByText('Start a new session?');
   }
 
   findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByText(
-      /Starting a new chat clears your previous chat history permanently/i,
-    );
+    return this.find().findByText(/The current chat history will be deleted/i);
+  }
+}
+
+export class CompareChatModal extends Modal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('compare-chat-modal');
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-compare-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cancel-compare-button');
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Start a new session?');
+  }
+
+  findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText(/The current chat history will be deleted/i);
   }
 }

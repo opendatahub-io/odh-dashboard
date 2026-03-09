@@ -21,7 +21,7 @@ class GenAiPlayground {
   }
 
   findModelToggleButton() {
-    return cy.findByTestId('model-selector-toggle');
+    return cy.findByTestId('chatbot-model-selector-toggle');
   }
 
   findMessageInput() {

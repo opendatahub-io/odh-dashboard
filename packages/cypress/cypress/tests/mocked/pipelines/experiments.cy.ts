@@ -96,7 +96,7 @@ describe('Experiments', () => {
       experimentsTabs.visit(projectName);
       experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
       experimentsPage.findEmbeddedMLflowExperimentsLink().should('exist').click();
-      cy.url().should('contain', '/develop-train/experiments-mlflow');
+      cy.url().should('contain', '/develop-train/mlflow/experiments');
     });
 
     it('experiments table time', () => {
@@ -335,7 +335,9 @@ describe('Experiments', () => {
 
     it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
-      cy.findByLabelText('Breadcrumb').findByText(mockExperiment.display_name).click();
+      cy.findByLabelText('Breadcrumb')
+        .findByRole('link', { name: mockExperiment.display_name })
+        .click();
       verifyRelativeURL(
         `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/runs`,
       );

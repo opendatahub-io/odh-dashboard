@@ -22,6 +22,9 @@ import {
   selectTemperature,
   selectStreamingEnabled,
   selectSelectedMcpServerIds,
+  selectSelectedModel,
+  selectRagEnabled,
+  DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -38,6 +41,8 @@ import {
 
 interface ChatbotSettingsPanelProps {
   configId?: string;
+  /** Header label for the drawer (e.g., "Configure - 1" in compare mode) */
+  headerLabel?: string;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -56,13 +61,18 @@ interface ChatbotSettingsPanelProps {
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
+  guardrailModelsError?: Error;
+  /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
+  isOverlay?: boolean;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
+const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
-  configId = 'default',
+  configId = DEFAULT_CONFIG_ID,
+  headerLabel = 'Configure',
   alerts,
   sourceManagement,
   fileManagement,
@@ -76,6 +86,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModels = [],
   guardrailModelsLoaded = false,
   onCloseClick,
+  guardrailModelsError,
+  isOverlay = false,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
@@ -86,11 +98,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
+  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -114,16 +129,33 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     [configId, updateStreamingEnabled],
   );
 
+  const handleModelChange = React.useCallback(
+    (model: string) => {
+      updateSelectedModel(configId, model);
+    },
+    [configId, updateSelectedModel],
+  );
+
   // Panel width state with session storage persistence
   const [panelWidth, setPanelWidth] = React.useState<string>(() => {
     const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
     return storedWidth || DEFAULT_WIDTH;
   });
 
+  // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
+  const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
   ) => {
+    if (width < AUTO_CLOSE_WIDTH_THRESHOLD) {
+      setPanelWidth(DEFAULT_WIDTH);
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, DEFAULT_WIDTH);
+      setPanelSizeKey((k) => k + 1);
+      onCloseClick?.();
+      return;
+    }
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
@@ -138,15 +170,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     setActiveTabKey(tabIndex);
   };
 
+  // Overlay drawer (compare mode) needs explicit background color
+  const panelStyle: React.CSSProperties | undefined = isOverlay
+    ? {
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }
+    : undefined;
+
   return (
     <DrawerPanelContent
+      key={panelSizeKey}
       isResizable
       defaultSize={panelWidth}
       minSize="300px"
       onResize={handlePanelResize}
+      style={panelStyle}
     >
       <DrawerHead>
-        <Title headingLevel="h2">Configure</Title>
+        <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+          {headerLabel}
+        </Title>
         <DrawerActions>
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
@@ -169,6 +212,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}
               onStreamingToggle={handleStreamingToggle}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
             />
           </Tab>
 
@@ -191,11 +236,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   <TabTitleText>Knowledge</TabTitleText>
                 </FlexItem>
                 <FlexItem>
-                  <Badge
-                    isRead={!sourceManagement.isRawUploaded}
-                    data-testid="knowledge-status-badge"
-                  >
-                    {sourceManagement.isRawUploaded ? 'On' : 'Off'}
+                  <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
+                    {isRagEnabled ? 'On' : 'Off'}
                   </Badge>
                 </FlexItem>
               </Flex>
@@ -203,6 +245,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-knowledge"
           >
             <KnowledgeTabContent
+              configId={configId}
               sourceManagement={sourceManagement}
               fileManagement={fileManagement}
               alerts={alerts}
@@ -259,6 +302,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 configId={configId}
                 guardrailModels={guardrailModels}
                 guardrailModelsLoaded={guardrailModelsLoaded}
+                guardrailModelsError={guardrailModelsError}
               />
             </Tab>
           ) : null}

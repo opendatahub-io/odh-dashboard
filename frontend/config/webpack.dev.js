@@ -69,10 +69,11 @@ module.exports = smp.wrap(
         proxy: (() => {
           if (process.env.EXT_CLUSTER) {
             // Environment variables:
+            // - ODH_DASHBOARD_HOST: Explicit dashboard hostname (bypasses oc get routes)
             // - DEV_LEGACY=true: Forces legacy behavior for oauth-proxy clusters
             //   (uses old subdomain format and sends x-forwarded-access-token header)
             const devLegacy = process.env.DEV_LEGACY === 'true';
-            let dashboardHost;
+            let dashboardHost = process.env.ODH_DASHBOARD_HOST;
             let token;
 
             try {
@@ -87,9 +88,43 @@ module.exports = smp.wrap(
               throw new Error('Login with `oc login` prior to starting dev server.');
             }
 
+            // Token refresh mechanism (for when oc user is switched during tests)
+            // Only refreshes when token is actually used, with 5s minimum interval to avoid blocking
+            let cachedToken = token;
+            let lastTokenFetch = Date.now();
+            const TOKEN_REFRESH_MIN_INTERVAL = 5000; // Don't refresh more than once per 5 seconds
+
+            const getCurrentToken = () => {
+              const now = Date.now();
+              // Only refresh if enough time has passed since last fetch (prevents excessive blocking)
+              if (now - lastTokenFetch > TOKEN_REFRESH_MIN_INTERVAL) {
+                try {
+                  const newToken = execSync('oc whoami --show-token', {
+                    stdio: ['pipe', 'pipe', 'ignore'],
+                  })
+                    .toString()
+                    .trim();
+                  // Only update if token actually changed
+                  if (newToken !== cachedToken) {
+                    console.info('Token refreshed (oc user may have switched)');
+                    cachedToken = newToken;
+                  }
+                  lastTokenFetch = now;
+                } catch (e) {
+                  // If refresh fails, keep using cached token
+                  console.warn('Failed to refresh oc token, using cached token');
+                }
+              }
+              return cachedToken;
+            };
+
             const odhProject = process.env.OC_PROJECT || 'opendatahub';
             const app = process.env.ODH_APP || 'odh-dashboard';
             console.info('Using project:', odhProject);
+
+            if (dashboardHost) {
+              console.info('Using explicit ODH_DASHBOARD_HOST:', dashboardHost);
+            }
 
             // try to get dashboard host from HttpRoute and Gateway
             try {
@@ -139,7 +174,7 @@ module.exports = smp.wrap(
 
             if (!dashboardHost) {
               // default to legacy behavior if ODH_SUBDOMAIN is not set
-              const subdomain = devLegacy ? `${app}-${odhProject}` : `data-science-gateway`;
+              const subdomain = devLegacy ? `${app}-${odhProject}` : `rh-ai`;
               console.info(
                 `Failed to GET dashboard hostname, constructing hostname using subdomain '${subdomain}'.`,
               );
@@ -189,6 +224,13 @@ module.exports = smp.wrap(
                 secure: false,
                 changeOrigin: true,
                 headers,
+                onProxyReq: (proxyReq) => {
+                  const currentToken = getCurrentToken();
+                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                  if (shouldFwdAccessToken) {
+                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
+                  }
+                },
               },
               {
                 context: ['/wss/k8s'],
@@ -197,6 +239,13 @@ module.exports = smp.wrap(
                 ws: true,
                 changeOrigin: true,
                 headers,
+                onProxyReq: (proxyReq) => {
+                  const currentToken = getCurrentToken();
+                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                  if (shouldFwdAccessToken) {
+                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
+                  }
+                },
               },
             ];
           }

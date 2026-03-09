@@ -49,7 +49,7 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
             bodyContent="Model route and token authentication can only be changed by administrator users."
           >
             <Button variant="link" icon={<OutlinedQuestionCircleIcon />} isInline>
-              Why can't I change the model route and token authentication fields?
+              Why can&#39;t I change the model route and token authentication fields?
             </Button>
           </Popover>
         </StackItem>

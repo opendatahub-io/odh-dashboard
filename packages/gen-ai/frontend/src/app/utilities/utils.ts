@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig } from '~/app/types';
 import type { MaaSModel } from '~/odh/extension-points/maas';
 
@@ -134,3 +135,33 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   isMaaSModel: true,
   maasModelId: maasModel.id,
 });
+
+/**
+ * Properties for clipboard copy tracking events
+ */
+export type ClipboardCopyTrackingProperties = {
+  assetType?: 'model' | 'maas_model';
+  assetId?: string;
+  copyTarget?: 'endpoint' | 'service_token';
+  endpointType?: 'external' | 'internal' | 'maas_route';
+};
+
+/**
+ * Copies text to clipboard and fires a tracking event
+ *
+ * @param text - The text to copy to the clipboard
+ * @param eventName - Name of the tracking event
+ * @param properties - Properties of the tracking event
+ */
+export const copyToClipboardWithTracking = async (
+  text: string,
+  eventName: string,
+  properties: ClipboardCopyTrackingProperties,
+): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    fireMiscTrackingEvent(eventName, properties);
+  } catch {
+    // Do nothing
+  }
+};

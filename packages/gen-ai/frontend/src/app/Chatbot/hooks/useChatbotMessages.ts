@@ -4,7 +4,7 @@ import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId } from '~/app/utilities/utils';
+import { getId, getLlamaModelDisplayName } from '~/app/utilities/utils';
 import {
   ChatbotSourceSettings,
   ChatMessageRole,
@@ -24,6 +24,7 @@ import {
   ToolResponseCardBody,
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
@@ -39,6 +40,10 @@ export interface UseChatbotMessagesReturn {
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
+  /** Metrics from the last bot response (latency, tokens, TTFT) */
+  lastResponseMetrics: ResponseMetrics | null;
+  /** Display name of the selected model (for showing in message headers) */
+  modelDisplayName: string;
 }
 
 interface UseChatbotMessagesProps {
@@ -84,12 +89,21 @@ const useChatbotMessages = ({
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
+  const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
+    null,
+  );
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
   const { api, apiAvailable } = useGenAiAPI();
+  const { aiModels } = React.useContext(ChatbotContext);
+
+  const modelDisplayName = React.useMemo(
+    () => (modelId ? getLlamaModelDisplayName(modelId, aiModels) || modelId : 'Bot'),
+    [modelId, aiModels],
+  );
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
@@ -151,6 +165,15 @@ const useChatbotMessages = ({
     [],
   );
 
+  // Update initial message name with the initially selected model (runs once on mount)
+  React.useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
+        ? [{ ...prev[0], name: modelDisplayName }]
+        : prev,
+    );
+  }, [modelDisplayName]);
+
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
     if (scrollToBottomRef.current) {
@@ -211,11 +234,12 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
 
-    // Reset everything to initial state
-    setMessages([initialBotMessage()]);
+    // Reset everything to initial state (use model display name for consistency)
+    setMessages([{ ...initialBotMessage(), name: modelDisplayName }]);
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
+    setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
 
     // Reset clearing flag after state updates complete
@@ -223,7 +247,7 @@ const useChatbotMessages = ({
     setTimeout(() => {
       isClearingRef.current = false;
     }, 0);
-  }, []);
+  }, [modelDisplayName]);
 
   const handleMessageSend = async (message: string) => {
     const userMessage: MessageProps = {
@@ -300,7 +324,7 @@ const useChatbotMessages = ({
           id: botMessageId,
           role: 'bot',
           content: '',
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           isLoading: true, // Show loading dots until first content
           timestamp: new Date().toLocaleString(),
@@ -427,6 +451,10 @@ const useChatbotMessages = ({
                 : msg,
             ),
           );
+          // Update last response metrics for pane header display
+          if (streamingResponse.metrics) {
+            setLastResponseMetrics(streamingResponse.metrics);
+          }
         }
       } else {
         // Handle non-streaming response
@@ -455,7 +483,7 @@ const useChatbotMessages = ({
           id: getId(),
           role: 'bot',
           content: response.content || 'No response received',
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
@@ -463,6 +491,10 @@ const useChatbotMessages = ({
           ...(response.metrics && { metrics: response.metrics }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
+        // Update last response metrics for pane header display
+        if (response.metrics) {
+          setLastResponseMetrics(response.metrics);
+        }
       }
     } catch (error) {
       // Check if this is an abort error
@@ -512,7 +544,7 @@ const useChatbotMessages = ({
           id: getId(),
           role: 'bot',
           content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
         };
@@ -536,6 +568,8 @@ const useChatbotMessages = ({
     handleStopStreaming,
     clearConversation,
     scrollToBottomRef,
+    lastResponseMetrics,
+    modelDisplayName,
   };
 };
 

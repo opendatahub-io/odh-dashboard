@@ -3,9 +3,9 @@ import { Alert, Button, Content, Stack, StackItem } from '@patternfly/react-core
 import { useNavigate } from 'react-router-dom';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { MLFLOW_EXPERIMENTS_ROUTE } from '#~/routes/pipelines/mlflowExperiments';
 import { SupportedArea } from '#~/concepts/areas/types';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
 
 type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
@@ -32,13 +32,13 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
             data-testid="pipeline-experiment-deprecated-alert"
           >
             <Content component="p" style={{ maxWidth: '620px' }}>
-              We've updated Experiments with MLflow integration for a better tracking experience. To
-              manage your runs, go to the new{' '}
+              We&#39;ve updated Experiments with MLflow integration for a better tracking
+              experience. To manage your runs, go to the new{' '}
               <Button
                 data-testid="embedded-mlflow-experiments-link"
                 variant="link"
                 isInline
-                onClick={() => navigate(MLFLOW_EXPERIMENTS_ROUTE)}
+                onClick={() => navigate(mlflowExperimentsPath)}
               >
                 <strong>Experiments page</strong>
               </Button>

@@ -113,7 +113,7 @@ describe('Permissions tab', () => {
     cy.url().should('include', '/projects/test-project?section=overview');
   });
 
-  it('should not allow deep-link access to Assign roles page for non-project admins', () => {
+  it('should not allow deep-link access to Manage permissions page for non-project admins', () => {
     asProjectEditUser();
     initIntercepts({ isEmpty: false });
     permissions.visitAssignRoles('test-project');

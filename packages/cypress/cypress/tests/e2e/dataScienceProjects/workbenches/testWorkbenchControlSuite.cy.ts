@@ -19,7 +19,7 @@ import {
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
 
-describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
+describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
   const uuid = generateTestUUID();
@@ -63,6 +63,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@WorkbenchesCI',
+        '@Bug',
       ],
     },
     () => {
@@ -140,6 +142,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@WorkbenchesCI',
+        '@Bug',
       ],
     },
     () => {

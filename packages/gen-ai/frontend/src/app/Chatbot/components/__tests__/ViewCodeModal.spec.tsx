@@ -7,7 +7,7 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { FileModel } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
-import { useChatbotConfigStore, ChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, ChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
@@ -28,21 +28,27 @@ const createMockStore = (configOverrides = {}) => {
   const defaultConfig = {
     selectedModel: 'test-model',
     systemInstruction: 'You are a helpful assistant.',
-    selectedMcpServerIds: [],
+    selectedMcpServerIds: [] as string[],
     temperature: 0.1,
     isStreamingEnabled: true,
     guardrailsEnabled: false,
     mcpToolSelections: {},
+    isRagEnabled: false,
     ...configOverrides,
   };
 
-  return {
-    configurations: {
-      default: defaultConfig,
-    },
-    configIds: ['default'],
+  const configurations: Record<string, typeof defaultConfig | undefined> = {
+    [DEFAULT_CONFIG_ID]: defaultConfig,
+  };
+
+  const store = {
+    configurations,
+    configIds: [DEFAULT_CONFIG_ID],
     getToolSelections: jest.fn().mockReturnValue(undefined),
-  } as unknown as ChatbotConfigStore;
+    getConfiguration: (id: string) => configurations[id],
+  };
+
+  return store as unknown as ChatbotConfigStore;
 };
 
 const setupMockStore = (configOverrides = {}) => {
@@ -83,7 +89,6 @@ describe('ViewCodeModal', () => {
   const defaultProps = {
     isOpen: true,
     onToggle: jest.fn(),
-    configId: 'default',
     input: 'What is machine learning?',
     files: mockFiles,
   };
@@ -267,7 +272,11 @@ describe('ViewCodeModal', () => {
     };
 
     const mockGetToolSelections = jest.fn((configId: string, ns: string, url: string) => {
-      if (configId === 'default' && ns === 'test-namespace' && url === 'http://test-server') {
+      if (
+        configId === DEFAULT_CONFIG_ID &&
+        ns === 'test-namespace' &&
+        url === 'http://test-server'
+      ) {
         return ['tool1', 'tool2'];
       }
       return undefined;
@@ -411,9 +420,12 @@ describe('ViewCodeModal', () => {
   });
 
   it('includes file_search tool when RAG is enabled and files are present', async () => {
+    // Setup store with RAG enabled
+    setupMockStore({ isRagEnabled: true });
+
     render(
       <TestWrapper>
-        <ViewCodeModal {...defaultProps} isRagEnabled />
+        <ViewCodeModal {...defaultProps} />
       </TestWrapper>,
     );
 
@@ -428,9 +440,12 @@ describe('ViewCodeModal', () => {
   });
 
   it('does not include tools when RAG is disabled even with files present', async () => {
+    // Setup store with RAG disabled (default)
+    setupMockStore({ isRagEnabled: false });
+
     render(
       <TestWrapper>
-        <ViewCodeModal {...defaultProps} isRagEnabled={false} />
+        <ViewCodeModal {...defaultProps} />
       </TestWrapper>,
     );
 
@@ -448,9 +463,12 @@ describe('ViewCodeModal', () => {
   });
 
   it('does not include tools when RAG is enabled but no files are present', async () => {
+    // Setup store with RAG enabled
+    setupMockStore({ isRagEnabled: true });
+
     render(
       <TestWrapper>
-        <ViewCodeModal {...defaultProps} files={[]} isRagEnabled />
+        <ViewCodeModal {...defaultProps} files={[]} />
       </TestWrapper>,
     );
 

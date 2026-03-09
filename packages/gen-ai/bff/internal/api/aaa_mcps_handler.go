@@ -10,31 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// MCPServerSummary represents a single MCP server for frontend table display
-type MCPServerSummary struct {
-	Name        string  `json:"name"`
-	URL         string  `json:"url"`
-	Transport   string  `json:"transport"`
-	Description string  `json:"description"`
-	Logo        *string `json:"logo"`   // nullable
-	Status      string  `json:"status"` // "healthy", "error", "unknown" - from ConfigMap only
-}
-
-// ConfigMapInfo provides metadata about the source ConfigMap
-type ConfigMapInfo struct {
-	Name        string `json:"name"`
-	Namespace   string `json:"namespace"`
-	LastUpdated string `json:"last_updated"` // ISO 8601 format
-}
-
-// MCPListData represents the enhanced response data structure
-type MCPListData struct {
-	Servers       []MCPServerSummary `json:"servers"`
-	TotalCount    int                `json:"total_count"`
-	ConfigMapInfo ConfigMapInfo      `json:"config_map_info"`
-}
-
-type MCPListEnvelope = Envelope[MCPListData, None]
+type MCPListEnvelope = Envelope[models.MCPListData, None]
 
 // MCPListHandler handles GET /genai/v1/aa/mcps?namespace=<>
 func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -64,7 +40,7 @@ func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	servers := make([]MCPServerSummary, 0, len(result.Servers))
+	servers := make([]models.MCPServerSummary, 0, len(result.Servers))
 	for _, serverInfo := range result.Servers {
 		status := app.determineServerStatusFromConfig(serverInfo.Config)
 		var logo *string
@@ -72,7 +48,7 @@ func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httpro
 			logo = &serverInfo.Config.Logo
 		}
 
-		servers = append(servers, MCPServerSummary{
+		servers = append(servers, models.MCPServerSummary{
 			Name:        serverInfo.Name,
 			URL:         serverInfo.Config.URL,
 			Transport:   app.normalizeTransportType(serverInfo.Config.Transport),
@@ -82,14 +58,10 @@ func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httpro
 		})
 	}
 
-	responseData := MCPListData{
-		Servers:    servers,
-		TotalCount: len(servers),
-		ConfigMapInfo: ConfigMapInfo{
-			Name:        result.ConfigMapInfo.Name,
-			Namespace:   result.ConfigMapInfo.Namespace,
-			LastUpdated: result.ConfigMapInfo.LastUpdated,
-		},
+	responseData := models.MCPListData{
+		Servers:       servers,
+		TotalCount:    len(servers),
+		ConfigMapInfo: result.ConfigMapInfo,
 	}
 
 	response := MCPListEnvelope{

@@ -10,11 +10,20 @@ import {
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { isLlamaModelEnabled } from '~/app/utilities';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
+import ChatModal from '~/app/Chatbot/components/ChatModal';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
+import {
+  useChatbotConfigStore,
+  selectConfigIds,
+  selectSelectedModel,
+  DEFAULT_CONFIG_ID,
+} from './store';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -30,6 +39,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
+  const { data: bffConfig } = useFetchBFFConfig();
 
   const navigate = useNavigate();
 
@@ -37,9 +47,51 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = React.useState(false);
+  const [isCompareChatModalOpen, setIsCompareChatModalOpen] = React.useState(false);
+  // Track which pane's settings are active in compare mode
+  const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
+
+  // Ref to clear all chat messages (will be set by ChatbotPlayground)
+  const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
+
+  // Derive compare mode from Zustand store (configIds.length > 1)
+  const configIds = useChatbotConfigStore(selectConfigIds);
+  const isCompareMode = configIds.length > 1;
+  const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
+
+  // Handle closing a pane - set active pane to the remaining config
+  const handleClosePane = React.useCallback((configIdToClose: string) => {
+    const currentConfigIds = useChatbotConfigStore.getState().configIds;
+    const remainingConfigId = currentConfigIds.find((id) => id !== configIdToClose);
+    useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
+    // Set active pane to the remaining config (or default if somehow none remain)
+    setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
+    fireSimpleTrackingEvent('Playground Compare Mode Exited');
+  }, []);
+
+  // Handle compare chat confirmation - clears messages and enters compare mode
+  const handleCompareConfirm = React.useCallback(() => {
+    // Clear all chat messages
+    if (clearAllMessagesRef.current) {
+      clearAllMessagesRef.current();
+    }
+    // Enter compare mode by duplicating the first config
+    const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
+    useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
+    fireSimpleTrackingEvent('Playground Compare Mode Entered');
+  }, []);
+
+  // Check if there are any models in the project or if no model is selected
+  const hasNoModels = models.length === 0;
+  const isSelectedModelDisabled = selectedModel
+    ? !isLlamaModelEnabled(selectedModel, aiModels, maasModels, bffConfig?.isCustomLSD ?? false)
+    : false;
+
+  const hasNoModelsOrSelectedModelDisabled = hasNoModels || isSelectedModelDisabled;
 
   return (
     <>
@@ -97,27 +149,78 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
-          <ChatbotHeaderActions
-            onViewCode={() => {
-              setIsViewCodeModalOpen(true);
-              fireSimpleTrackingEvent('Playground View Code Selected');
-            }}
-            onConfigurePlayground={() => setConfigurationModalOpen(true)}
-            onDeletePlayground={() => setDeleteModalOpen(true)}
-            onNewChat={() => {
-              setIsNewChatModalOpen(true);
-              fireSimpleTrackingEvent('Playground New Chat Selected');
-            }}
-          />
+          hasNoModelsOrSelectedModelDisabled ? undefined : (
+            <ChatbotHeaderActions
+              onViewCode={() => {
+                setIsViewCodeModalOpen(true);
+                fireSimpleTrackingEvent('Playground View Code Selected');
+              }}
+              onConfigurePlayground={() => setConfigurationModalOpen(true)}
+              onDeletePlayground={() => setDeleteModalOpen(true)}
+              onNewChat={() => {
+                setIsNewChatModalOpen(true);
+                fireSimpleTrackingEvent('Playground New Chat Selected');
+              }}
+              onCompareChat={() => {
+                setIsCompareChatModalOpen(true);
+                fireSimpleTrackingEvent('Playground Compare Chat Selected');
+              }}
+              isCompareMode={isCompareMode}
+            />
+          )
         }
       >
         {lsdStatus?.phase === 'Ready' ? (
-          <ChatbotPlayground
-            isViewCodeModalOpen={isViewCodeModalOpen}
-            setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-            isNewChatModalOpen={isNewChatModalOpen}
-            setIsNewChatModalOpen={setIsNewChatModalOpen}
-          />
+          hasNoModelsOrSelectedModelDisabled ? (
+            <ChatbotEmptyState
+              title="You need at least one model"
+              data-testid="no-models-empty-state"
+              description={
+                <Content
+                  style={{
+                    textAlign: 'left',
+                  }}
+                >
+                  <Content component="p">
+                    Looks like your project is missing at least one model to use the playground.
+                    <br />
+                    Follow the steps below to deploy and make a model available.
+                  </Content>
+                  <Content component="ol">
+                    <Content component="li">
+                      Go to your <b>Model Deployments </b> page and identify an LLM model
+                    </Content>
+                    <Content component="li">
+                      Select <b>&apos;Edit&apos;</b> to update your deployment
+                    </Content>
+                    <Content component="li">
+                      Check the box:{' '}
+                      <b>&apos;Make this deployment available as an AI asset&apos;</b>
+                    </Content>
+                  </Content>
+                </Content>
+              }
+              actionButtonText={
+                <>
+                  Go to <b>Model deployments</b>
+                </>
+              }
+              handleActionButtonClick={() => {
+                navigate(`/ai-hub/deployments/${namespace?.name}`);
+              }}
+            />
+          ) : (
+            <ChatbotPlayground
+              isViewCodeModalOpen={isViewCodeModalOpen}
+              setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+              isNewChatModalOpen={isNewChatModalOpen}
+              setIsNewChatModalOpen={setIsNewChatModalOpen}
+              activePaneConfigId={activePaneConfigId}
+              setActivePaneConfigId={setActivePaneConfigId}
+              onClosePane={handleClosePane}
+              clearAllMessagesRef={clearAllMessagesRef}
+            />
+          )
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState
             headingLevel="h4"
@@ -148,6 +251,12 @@ const ChatbotMain: React.FunctionComponent = () => {
           }}
         />
       )}
+      <ChatModal
+        isOpen={isCompareChatModalOpen}
+        onClose={() => setIsCompareChatModalOpen(false)}
+        onConfirm={handleCompareConfirm}
+        variant="compare"
+      />
     </>
   );
 };

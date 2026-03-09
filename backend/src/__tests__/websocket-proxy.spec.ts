@@ -586,6 +586,36 @@ describe('WebSocket K8s Proxy', () => {
         expect.stringContaining('Unexpected response from K8s API'),
       );
     });
+
+    it('should convert reserved close code 1006 to 1011 when forwarding to client', async () => {
+      // Code 1006 (Abnormal Closure) cannot be sent in a close frame per RFC 6455
+      // The ws module enforces this. We convert it to 1011 (Internal Error).
+      await routeHandler(mockConnection, mockRequest);
+
+      const targetCloseHandler = mockTargetSocket.on.mock.calls.find(
+        (call: any) => call[0] === 'close',
+      )?.[1];
+
+      // K8s API closes with code 1006 (abnormal closure - e.g., network drop)
+      targetCloseHandler(1006, 'Abnormal closure');
+
+      // Client socket should receive 1011 instead of 1006
+      expect(mockSourceSocket.close).toHaveBeenCalledWith(1011, 'Abnormal closure');
+    });
+
+    it('should pass through normal close codes unchanged', async () => {
+      await routeHandler(mockConnection, mockRequest);
+
+      const targetCloseHandler = mockTargetSocket.on.mock.calls.find(
+        (call: any) => call[0] === 'close',
+      )?.[1];
+
+      // K8s API closes with normal code 1000
+      targetCloseHandler(1000, 'Normal closure');
+
+      // Client socket should receive 1000 unchanged
+      expect(mockSourceSocket.close).toHaveBeenCalledWith(1000, 'Normal closure');
+    });
   });
 
   describe('Stale Connection Cleanup', () => {
@@ -602,7 +632,7 @@ describe('WebSocket K8s Proxy', () => {
       // Connection is still active, so no cleanup warning yet
       expect(mockLog.warn).not.toHaveBeenCalledWith(
         expect.anything(),
-        expect.stringContaining('Removing stale connection'),
+        expect.stringContaining('Closing stale websocket connection'),
       );
 
       // Advance time beyond stale threshold
@@ -614,8 +644,77 @@ describe('WebSocket K8s Proxy', () => {
         expect.objectContaining({
           inactivityDuration: expect.any(Number),
         }),
-        expect.stringContaining('Removing stale connection from tracking'),
+        expect.stringContaining('Closing stale websocket connection'),
       );
+    });
+
+    /**
+     * This test verifies the fix for the zombie connection bug:
+     *
+     * When a connection becomes stale, both websockets are now properly closed
+     * so that the client receives the close event and can reconnect.
+     */
+    it('should close websockets when cleaning up stale connections', async () => {
+      await wssK8sRoutes(mockFastify);
+      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
+
+      // Create a connection
+      await routeHandler(mockConnection, mockRequest);
+
+      // Verify sockets haven't been closed yet
+      expect(mockSourceSocket.close).not.toHaveBeenCalled();
+      expect(mockTargetSocket.close).not.toHaveBeenCalled();
+
+      // Let connection become stale (advance past threshold + cleanup cycle)
+      jest.advanceTimersByTime(STALE_CONNECTION_MS + 60000);
+
+      // Verify stale cleanup ran
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inactivityDuration: expect.any(Number),
+        }),
+        expect.stringContaining('Closing stale websocket connection'),
+      );
+
+      // Both websockets should be closed with code 1001 (Going Away)
+      expect(mockSourceSocket.close).toHaveBeenCalledWith(
+        1001,
+        'Connection stale due to inactivity',
+      );
+      expect(mockTargetSocket.close).toHaveBeenCalledWith(
+        1001,
+        'Connection stale due to inactivity',
+      );
+    });
+
+    /**
+     * This test verifies that heartbeat intervals are properly cleared
+     * when cleaning up stale connections.
+     */
+    it('should clear heartbeat interval when cleaning up stale connections', async () => {
+      await wssK8sRoutes(mockFastify);
+      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
+
+      // Create a connection
+      await routeHandler(mockConnection, mockRequest);
+
+      // Simulate connection opening to start heartbeat
+      const openHandler = mockTargetSocket.on.mock.calls.find(
+        (call: any) => call[0] === 'open',
+      )?.[1];
+      openHandler();
+
+      // Verify heartbeat is running
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
+      expect(mockTargetSocket.ping).toHaveBeenCalledTimes(1);
+
+      // Advance time beyond stale threshold + cleanup cycle
+      jest.advanceTimersByTime(STALE_CONNECTION_MS + 60000);
+
+      // After cleanup, heartbeat should be stopped - no more pings
+      const pingCountAfterCleanup = mockTargetSocket.ping.mock.calls.length;
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS * 3);
+      expect(mockTargetSocket.ping.mock.calls.length).toBe(pingCountAfterCleanup);
     });
   });
 

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	"github.com/rs/cors"
 )
 
@@ -378,6 +380,52 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 
 		// Attach ready-to-use client to context
 		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachMLflowClient middleware creates a per-request MLflow client with auth and workspace headers.
+// Extracts the user's token from RequestIdentity and namespace from context.
+func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Extract auth token from RequestIdentity (set by InjectRequestIdentity middleware)
+		var token string
+		if app.config.AuthMethod != config.AuthMethodDisabled {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+			token = identity.Token
+		}
+
+		// Extract namespace (set by AttachNamespace middleware)
+		namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
+		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx, token, namespace)
+		if err != nil {
+			if errors.Is(err, mlflowpkg.ErrMLflowNotConfigured) {
+				logger := helper.GetContextLoggerFromReq(r)
+				logger.Warn("MLflow endpoint called but MLflow is not configured",
+					"method", r.Method, "uri", r.URL.RequestURI())
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "service_unavailable",
+						Message: "MLflow is not configured on this deployment",
+					},
+				})
+				return
+			}
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get MLflow client: %w", err))
+			return
+		}
+
+		ctx = context.WithValue(ctx, constants.MLflowClientKey, mlflowClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

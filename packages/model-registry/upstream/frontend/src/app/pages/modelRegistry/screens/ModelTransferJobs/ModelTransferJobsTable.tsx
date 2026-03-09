@@ -8,21 +8,21 @@ type ModelTransferJobsTableProps = {
   jobs: ModelTransferJob[];
   clearFilters: () => void;
   toolbarContent?: React.ComponentProps<typeof Table>['toolbarContent'];
+  onRequestDelete?: (job: ModelTransferJob) => void;
+  onRequestRetry?: (job: ModelTransferJob) => void;
 };
 
 const ModelTransferJobsTable: React.FC<ModelTransferJobsTableProps> = ({
   jobs,
   clearFilters,
   toolbarContent,
+  onRequestDelete,
+  onRequestRetry,
 }) => {
-  const { defaultSortColumnIndex } = React.useMemo(() => {
-    const columns = [...modelTransferJobsColumns];
-    const createdIndex = columns.findIndex((col) => col.field === 'created');
-    return {
-      extendedColumns: columns,
-      defaultSortColumnIndex: createdIndex,
-    };
-  }, []);
+  const defaultSortColumnIndex = React.useMemo(
+    () => modelTransferJobsColumns.findIndex((col) => col.field === 'created'),
+    [],
+  );
 
   const sortedJobs = React.useMemo(() => {
     const createdColumn = modelTransferJobsColumns.find((col) => col.field === 'created');
@@ -43,7 +43,14 @@ const ModelTransferJobsTable: React.FC<ModelTransferJobsTableProps> = ({
       onClearFilters={clearFilters}
       enablePagination
       emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-      rowRenderer={(job) => <ModelTransferJobTableRow key={job.id} job={job} />}
+      rowRenderer={(job) => (
+        <ModelTransferJobTableRow
+          key={job.id}
+          job={job}
+          onRequestDelete={onRequestDelete}
+          onRequestRetry={onRequestRetry}
+        />
+      )}
     />
   );
 };
