@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Label, type LabelProps } from '@patternfly/react-core';
+import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { relativeTime } from 'mod-arch-shared';
 import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
 
@@ -44,6 +45,20 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run }) => (
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
+      {run.created_at ? (
+        <Timestamp
+          date={new Date(run.created_at)}
+          tooltip={{
+            variant: TimestampTooltipVariant.default,
+          }}
+        >
+          {relativeTime(Date.now(), new Date(run.created_at).getTime())}
+        </Timestamp>
+      ) : (
+        '—'
+      )}
+    </Td>
+    <Td dataLabel={autoragRunsColumns[3].label}>
       {run.state ? (
         <Label isCompact {...getStatusLabelProps(run.state)}>
           {run.state}
