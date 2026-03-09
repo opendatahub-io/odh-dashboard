@@ -1,3 +1,4 @@
+import { MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
 import type { LLMdDeployment } from '../types';
 
 /**
@@ -15,6 +16,15 @@ export const validateExtraction = (deployment: LLMdDeployment): string[] => {
     errors.push(
       `Multiple containers (${template.containers.length}) are configured. The wizard form only supports a single main container.`,
     );
+  }
+
+  const hasConnectionAnnotation =
+    !!deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName];
+  const hasImagePullSecrets =
+    !!template?.imagePullSecrets?.length && template.imagePullSecrets.length > 0;
+
+  if (!hasConnectionAnnotation && !hasImagePullSecrets) {
+    errors.push('No connection could be resolved for this deployment.');
   }
 
   return errors;
