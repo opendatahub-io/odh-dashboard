@@ -18,10 +18,15 @@ export type MCPConfigMapInfo = {
   last_updated: string;
 };
 
-export type MCPServersResponse = {
+export type MCPServersData = {
   servers: MCPServer[];
   total_count: number;
   config_map_info: MCPConfigMapInfo;
+};
+
+// The API returns data wrapped in { data: ... } which modArchRestGET unwraps
+export type MCPServersResponse = {
+  data: MCPServersData;
 };
 
 export const mockMCPServer = ({
@@ -61,12 +66,14 @@ export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
   ];
 
   return {
-    servers: serverList,
-    total_count: serverList.length,
-    config_map_info: {
-      name: 'mcp-servers-config',
-      namespace: 'crimson-show',
-      last_updated: new Date().toISOString(),
+    data: {
+      servers: serverList,
+      total_count: serverList.length,
+      config_map_info: {
+        name: 'mcp-servers-config',
+        namespace: 'crimson-show',
+        last_updated: new Date().toISOString(),
+      },
     },
   };
 };
