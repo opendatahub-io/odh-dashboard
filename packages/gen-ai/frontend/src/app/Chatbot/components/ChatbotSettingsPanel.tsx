@@ -148,6 +148,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Key to force Tabs remount when panel width changes so overflow arrows recalculate
   const [tabsKey, setTabsKey] = React.useState(0);
 
+  // Debounce timeout for Tabs remount
+  const resizeEndTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
@@ -163,9 +166,24 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
 
-    // Force Tabs to remount and recalculate overflow arrows
-    setTabsKey((k) => k + 1);
+    // Debounce Tabs remount: only remount after resize ends (300ms after last resize event)
+    if (resizeEndTimeoutRef.current) {
+      clearTimeout(resizeEndTimeoutRef.current);
+    }
+    resizeEndTimeoutRef.current = setTimeout(() => {
+      setTabsKey((k) => k + 1);
+    }, 300);
   };
+
+  // Cleanup resize debounce timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (resizeEndTimeoutRef.current) {
+        clearTimeout(resizeEndTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // Tab state
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);

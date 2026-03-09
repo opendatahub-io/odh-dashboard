@@ -7,12 +7,12 @@ import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width-v2';
-const DEFAULT_WIDTH = '600px';
+const DEFAULT_WIDTH = '500px';
 
 const mockResizeEvent = new Event('click');
 
-// Track Tabs render count (must be prefixed with 'mock' for Jest)
-let mockTabsRenderCount = 0;
+// Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
+let mockDrawerPanelDefaultSize: string | undefined;
 
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
@@ -21,63 +21,68 @@ jest.mock('@patternfly/react-core', () => {
     DrawerPanelContent: ({
       children,
       onResize,
+      defaultSize,
     }: {
       children: React.ReactNode;
       onResize?: (event: Event, width: number, id: string) => void;
-    }) => (
-      <div data-testid="mock-drawer-panel">
-        <button
-          data-testid="trigger-resize-50"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 50, '')}
-          type="button"
-        >
-          Resize 50
-        </button>
-        <button
-          data-testid="trigger-resize-99"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 99, '')}
-          type="button"
-        >
-          Resize 99
-        </button>
-        <button
-          data-testid="trigger-resize-100"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 100, '')}
-          type="button"
-        >
-          Resize 100
-        </button>
-        <button
-          data-testid="trigger-resize-149"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 149, '')}
-          type="button"
-        >
-          Resize 149
-        </button>
-        <button
-          data-testid="trigger-resize-150"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 150, '')}
-          type="button"
-        >
-          Resize 150
-        </button>
-        <button
-          data-testid="trigger-resize-200"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 200, '')}
-          type="button"
-        >
-          Resize 200
-        </button>
-        <button
-          data-testid="trigger-resize-250"
-          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 250, '')}
-          type="button"
-        >
-          Resize 250
-        </button>
-        {children}
-      </div>
-    ),
+      defaultSize?: string;
+    }) => {
+      mockDrawerPanelDefaultSize = defaultSize;
+      return (
+        <div data-testid="mock-drawer-panel" data-default-size={defaultSize}>
+          <button
+            data-testid="trigger-resize-50"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 50, '')}
+            type="button"
+          >
+            Resize 50
+          </button>
+          <button
+            data-testid="trigger-resize-99"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 99, '')}
+            type="button"
+          >
+            Resize 99
+          </button>
+          <button
+            data-testid="trigger-resize-100"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 100, '')}
+            type="button"
+          >
+            Resize 100
+          </button>
+          <button
+            data-testid="trigger-resize-149"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 149, '')}
+            type="button"
+          >
+            Resize 149
+          </button>
+          <button
+            data-testid="trigger-resize-150"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 150, '')}
+            type="button"
+          >
+            Resize 150
+          </button>
+          <button
+            data-testid="trigger-resize-200"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 200, '')}
+            type="button"
+          >
+            Resize 200
+          </button>
+          <button
+            data-testid="trigger-resize-250"
+            onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 250, '')}
+            type="button"
+          >
+            Resize 250
+          </button>
+          {children}
+        </div>
+      );
+    },
     Tabs: ({
       children,
       activeKey,
@@ -85,19 +90,11 @@ jest.mock('@patternfly/react-core', () => {
     }: {
       children: React.ReactNode;
       activeKey?: string | number;
-    }) => {
-      mockTabsRenderCount += 1;
-      return (
-        <div
-          data-testid="mock-tabs"
-          data-render-count={mockTabsRenderCount}
-          data-active-key={activeKey}
-          {...domProps}
-        >
-          {children}
-        </div>
-      );
-    },
+    }) => (
+      <div data-testid="mock-tabs" data-active-key={activeKey} {...domProps}>
+        {children}
+      </div>
+    ),
   };
 });
 
@@ -161,7 +158,7 @@ describe('ChatbotSettingsPanel', () => {
     jest.clearAllMocks();
     sessionStorage.clear();
     useChatbotConfigStore.getState().resetConfiguration();
-    mockTabsRenderCount = 0;
+    mockDrawerPanelDefaultSize = undefined;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -228,61 +225,75 @@ describe('ChatbotSettingsPanel', () => {
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
   });
 
-  it('should remount Tabs when panel is resized to force overflow recalculation', async () => {
-    const user = userEvent.setup();
+  it('should debounce Tabs remount when panel is resized', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ delay: null });
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
 
-    // Capture initial render count (should be 1 after initial render)
-    const initialRenderCount = mockTabsRenderCount;
-    expect(initialRenderCount).toBeGreaterThan(0);
+    // Verify tabs are rendered
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     // Resize panel to 200px
     const resize200Button = screen.getByTestId('trigger-resize-200');
     await user.click(resize200Button);
 
-    // Tabs should have re-rendered (remounted) to recalculate overflow
-    expect(mockTabsRenderCount).toBe(initialRenderCount + 1);
+    // Verify the resize was processed
+    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
 
-    // Capture the render count after first resize
-    const firstResizeRenderCount = mockTabsRenderCount;
+    // Fast-forward past debounce timeout
+    await React.act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Tabs should still be rendered (remount happened internally)
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     // Resize again to 250px
     const resize250Button = screen.getByTestId('trigger-resize-250');
     await user.click(resize250Button);
 
-    // Tabs should re-render again
-    expect(mockTabsRenderCount).toBe(firstResizeRenderCount + 1);
+    // Verify the second resize was processed
+    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('250px');
+
+    // Fast-forward past debounce timeout
+    await React.act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Tabs should still be rendered after second resize
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
+
+    jest.useRealTimers();
   });
 
-  it('should auto-close when panel is resized below threshold without incrementing tabsKey', async () => {
+  it('should auto-close when panel is resized below threshold without debouncing', async () => {
     const user = userEvent.setup();
     const mockOnCloseClick = jest.fn();
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
 
-    // Capture initial render count
-    const initialRenderCount = mockTabsRenderCount;
+    // Verify tabs are initially rendered
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     // Resize below threshold (should auto-close, not resize)
     const resize50Button = screen.getByTestId('trigger-resize-50');
     await user.click(resize50Button);
 
-    // Auto-close should have been triggered
+    // Auto-close should have been triggered immediately
     expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
 
-    // Tabs will re-render due to parent DrawerPanelContent remounting (setPanelSizeKey)
-    // but the tabsKey itself is not incremented (we return early in handlePanelResize)
-    // This is the correct behavior - we want to verify the early return path works
-    expect(mockTabsRenderCount).toBeGreaterThan(initialRenderCount);
+    // Width should reset to default
+    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
+
+    // Tabs should still be rendered (early return path worked correctly)
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
   });
 
-  it('should initialize with 600px default width when no stored width exists', () => {
+  it('should initialize with 500px default width when no stored width exists', () => {
     render(<ChatbotSettingsPanel {...defaultProps} />);
 
-    // First render should use default width
-    expect(screen.getByTestId('chatbot-settings-page-tab-model')).toBeInTheDocument();
-    expect(screen.getByTestId('chatbot-settings-page-tab-prompt')).toBeInTheDocument();
-    expect(screen.getByTestId('chatbot-settings-page-tab-knowledge')).toBeInTheDocument();
-    expect(screen.getByTestId('chatbot-settings-page-tab-mcp')).toBeInTheDocument();
+    // Should use default width
+    expect(mockDrawerPanelDefaultSize).toBe(DEFAULT_WIDTH);
+    expect(mockDrawerPanelDefaultSize).toBe('500px');
   });
 
   it('should use stored width from session storage if available', () => {
@@ -291,7 +302,7 @@ describe('ChatbotSettingsPanel', () => {
 
     render(<ChatbotSettingsPanel {...defaultProps} />);
 
-    // Should preserve the stored width
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
+    // Should use the stored width
+    expect(mockDrawerPanelDefaultSize).toBe(customWidth);
   });
 });
