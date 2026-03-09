@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,5 +104,119 @@ func TestBuildFilter(t *testing.T) {
 		// Should be valid JSON
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")
+	})
+}
+
+func newValidCreateRequest() models.CreateAutoMLRunRequest {
+	topN := 3
+	return models.CreateAutoMLRunRequest{
+		DisplayName:         "test-run",
+		TrainDataSecretName: "minio-secret",
+		TrainDataBucketName: "automl",
+		TrainDataFileKey:    "data/train.csv",
+		LabelColumn:         "target",
+		TaskType:            "binary",
+		TopN:                &topN,
+	}
+}
+
+func TestBuildKFPRunRequest(t *testing.T) {
+	t.Run("should map all required parameters correctly", func(t *testing.T) {
+		req := newValidCreateRequest()
+		result := BuildKFPRunRequest(req)
+
+		assert.Equal(t, "test-run", result.DisplayName)
+		assert.Equal(t, constants.AutoMLPipelineID, result.PipelineVersionReference.PipelineID)
+		assert.Equal(t, constants.AutoMLPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
+
+		params := result.RuntimeConfig.Parameters
+		assert.Equal(t, "minio-secret", params["train_data_secret_name"])
+		assert.Equal(t, "automl", params["train_data_bucket_name"])
+		assert.Equal(t, "data/train.csv", params["train_data_file_key"])
+		assert.Equal(t, "target", params["label_column"])
+		assert.Equal(t, "binary", params["task_type"])
+	})
+
+	t.Run("should default top_n to 3 when nil", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.TopN = nil
+		result := BuildKFPRunRequest(req)
+
+		assert.Equal(t, constants.DefaultTopN, result.RuntimeConfig.Parameters["top_n"])
+	})
+
+	t.Run("should use provided top_n", func(t *testing.T) {
+		req := newValidCreateRequest()
+		topN := 5
+		req.TopN = &topN
+		result := BuildKFPRunRequest(req)
+
+		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
+	})
+
+	t.Run("should pass description to KFP request", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.Description = "my description"
+		result := BuildKFPRunRequest(req)
+
+		assert.Equal(t, "my description", result.Description)
+	})
+}
+
+func TestValidateCreateAutoMLRunRequest(t *testing.T) {
+	t.Run("should pass with all required fields", func(t *testing.T) {
+		req := newValidCreateRequest()
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should fail when display_name is missing", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.DisplayName = ""
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "display_name")
+	})
+
+	t.Run("should fail when multiple required fields are missing", func(t *testing.T) {
+		req := models.CreateAutoMLRunRequest{}
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "display_name")
+		assert.Contains(t, err.Error(), "train_data_secret_name")
+		assert.Contains(t, err.Error(), "task_type")
+	})
+
+	t.Run("should accept valid task_type values", func(t *testing.T) {
+		for _, taskType := range []string{"binary", "multiclass", "regression"} {
+			req := newValidCreateRequest()
+			req.TaskType = taskType
+			err := ValidateCreateAutoMLRunRequest(req)
+			assert.NoError(t, err, "task_type %q should be valid", taskType)
+		}
+	})
+
+	t.Run("should reject invalid task_type", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.TaskType = "invalid_type"
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid task_type")
+	})
+
+	t.Run("should reject non-positive top_n", func(t *testing.T) {
+		req := newValidCreateRequest()
+		topN := 0
+		req.TopN = &topN
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "top_n")
+	})
+
+	t.Run("should allow nil top_n", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.TopN = nil
+		err := ValidateCreateAutoMLRunRequest(req)
+		assert.NoError(t, err)
 	})
 }
