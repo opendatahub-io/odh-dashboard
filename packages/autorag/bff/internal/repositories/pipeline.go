@@ -25,6 +25,11 @@ const (
 	// Set to 5 minutes to balance freshness vs API load
 	pipelineCacheTTL = 5 * time.Minute
 
+	// maxCacheEntries limits the number of cached pipelines to prevent unbounded memory growth
+	// in multi-tenant deployments. When the cache reaches this limit, the least recently
+	// accessed entry is evicted to make room for new entries.
+	maxCacheEntries = 1000
+
 	// defaultPipelineNamePrefix is the default prefix used when none is configured
 	// TODO: Replace name-based identification with pipeline attribute/metadata
 	// Managed pipelines should have an attribute (label, annotation, or field) that explicitly
@@ -43,10 +48,11 @@ type DiscoveredPipeline struct {
 	DiscoveredAt      time.Time
 }
 
-// pipelineCacheEntry wraps discovered pipeline with expiration
+// pipelineCacheEntry wraps discovered pipeline with expiration and LRU tracking
 type pipelineCacheEntry struct {
-	pipeline  *DiscoveredPipeline
-	expiresAt time.Time
+	pipeline     *DiscoveredPipeline
+	expiresAt    time.Time
+	lastAccessed time.Time
 }
 
 // pipelineCache is a simple in-memory cache for discovered pipelines
@@ -63,9 +69,10 @@ var globalPipelineCache = &pipelineCache{
 }
 
 // get retrieves a cached pipeline for a namespace if still valid
+// Updates the last accessed time for LRU eviction
 func (c *pipelineCache) get(namespace string) *DiscoveredPipeline {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	entry, exists := c.entries[namespace]
 	if !exists {
@@ -74,20 +81,35 @@ func (c *pipelineCache) get(namespace string) *DiscoveredPipeline {
 
 	// Check if entry has expired
 	if time.Now().After(entry.expiresAt) {
+		// Clean up expired entry
+		delete(c.entries, namespace)
 		return nil
 	}
+
+	// Update last accessed time for LRU tracking
+	entry.lastAccessed = time.Now()
 
 	return entry.pipeline
 }
 
 // set stores a discovered pipeline in the cache
+// Evicts the least recently accessed entry if cache is at capacity
 func (c *pipelineCache) set(namespace string, pipeline *DiscoveredPipeline) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// If at capacity and this is a new entry (not an update), evict oldest
+	if len(c.entries) >= maxCacheEntries {
+		if _, exists := c.entries[namespace]; !exists {
+			c.evictOldest()
+		}
+	}
+
+	now := time.Now()
 	c.entries[namespace] = &pipelineCacheEntry{
-		pipeline:  pipeline,
-		expiresAt: time.Now().Add(pipelineCacheTTL),
+		pipeline:     pipeline,
+		expiresAt:    now.Add(pipelineCacheTTL),
+		lastAccessed: now,
 	}
 }
 
@@ -97,6 +119,26 @@ func (c *pipelineCache) invalidate(namespace string) {
 	defer c.mu.Unlock()
 
 	delete(c.entries, namespace)
+}
+
+// evictOldest removes the least recently accessed entry from the cache
+// Must be called with lock held
+func (c *pipelineCache) evictOldest() {
+	var oldestKey string
+	var oldestTime time.Time
+
+	// Find the entry with the oldest lastAccessed time
+	for key, entry := range c.entries {
+		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.lastAccessed
+		}
+	}
+
+	// Evict the oldest entry
+	if oldestKey != "" {
+		delete(c.entries, oldestKey)
+	}
 }
 
 // PipelineRepository handles pipeline discovery logic

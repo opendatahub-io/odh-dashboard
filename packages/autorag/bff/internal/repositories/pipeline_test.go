@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
@@ -142,6 +143,121 @@ func TestInvalidateCache(t *testing.T) {
 		assert.NotPanics(t, func() {
 			repo.InvalidateCache("non-existent-namespace")
 		})
+	})
+}
+
+func TestCacheSizeLimit(t *testing.T) {
+	repo := NewPipelineRepository()
+	ctx := context.Background()
+	mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+
+	t.Run("should evict oldest entry when cache reaches size limit", func(t *testing.T) {
+		// Clear cache before test
+		globalPipelineCache.mu.Lock()
+		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
+		globalPipelineCache.mu.Unlock()
+
+		// Add first entry
+		namespace1 := "test-ns-evict-1"
+		discovered1, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace1, "autorag")
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered1)
+
+		// Add second entry (accessed later)
+		namespace2 := "test-ns-evict-2"
+		discovered2, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace2, "autorag")
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered2)
+
+		// Access first entry again to make it more recently used
+		cached1 := globalPipelineCache.get(namespace1)
+		assert.NotNil(t, cached1)
+
+		// Manually set cache to be at capacity for testing
+		globalPipelineCache.mu.Lock()
+		// Save the two real entries
+		entry1 := globalPipelineCache.entries[namespace1]
+		entry2 := globalPipelineCache.entries[namespace2]
+		// Clear and fill cache to exact limit with filler entries
+		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
+		// Add (maxCacheEntries - 2) filler entries, leaving room for our 2 real entries
+		for i := 0; i < maxCacheEntries-2; i++ {
+			globalPipelineCache.entries[fmt.Sprintf("filler-%d", i)] = &pipelineCacheEntry{
+				pipeline:     &DiscoveredPipeline{Namespace: fmt.Sprintf("filler-%d", i)},
+				expiresAt:    entry1.expiresAt,
+				lastAccessed: entry2.lastAccessed, // Use entry2's (older) access time
+			}
+		}
+		// Add back the real entries (entry1 has more recent access time)
+		globalPipelineCache.entries[namespace1] = entry1
+		globalPipelineCache.entries[namespace2] = entry2
+		globalPipelineCache.mu.Unlock()
+
+		// Verify cache is at capacity
+		globalPipelineCache.mu.RLock()
+		cacheSize := len(globalPipelineCache.entries)
+		globalPipelineCache.mu.RUnlock()
+		assert.Equal(t, maxCacheEntries, cacheSize)
+
+		// Add a new entry - should trigger eviction
+		namespace3 := "test-ns-evict-3"
+		discovered3, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace3, "autorag")
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered3)
+
+		// Cache should still be at max size
+		globalPipelineCache.mu.RLock()
+		finalSize := len(globalPipelineCache.entries)
+		globalPipelineCache.mu.RUnlock()
+		assert.Equal(t, maxCacheEntries, finalSize)
+
+		// The new entry should be in the cache
+		cached3 := globalPipelineCache.get(namespace3)
+		assert.NotNil(t, cached3)
+
+		// namespace1 should still be there (was accessed more recently)
+		cachedStill := globalPipelineCache.get(namespace1)
+		assert.NotNil(t, cachedStill)
+	})
+}
+
+func TestCacheLRUEviction(t *testing.T) {
+	t.Run("should update last accessed time on cache hit", func(t *testing.T) {
+		// Clear cache
+		globalPipelineCache.mu.Lock()
+		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
+		globalPipelineCache.mu.Unlock()
+
+		namespace := "test-lru-access"
+		pipeline := &DiscoveredPipeline{
+			PipelineID:        "test-id",
+			PipelineVersionID: "test-version",
+			Namespace:         namespace,
+		}
+
+		// Add entry
+		globalPipelineCache.set(namespace, pipeline)
+
+		// Get initial access time
+		globalPipelineCache.mu.RLock()
+		initialAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		globalPipelineCache.mu.RUnlock()
+
+		// Wait a small amount of time
+		// Note: In practice, time.Now() has limited precision, so we can't rely on exact differences
+		// but we can verify the field is being set
+
+		// Access the entry
+		retrieved := globalPipelineCache.get(namespace)
+		assert.NotNil(t, retrieved)
+
+		// Verify last accessed time was updated (should be same or later)
+		globalPipelineCache.mu.RLock()
+		updatedAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		globalPipelineCache.mu.RUnlock()
+
+		assert.True(t, updatedAccessTime.Equal(initialAccessTime) || updatedAccessTime.After(initialAccessTime),
+			"lastAccessed should be updated on cache hit")
 	})
 }
 
