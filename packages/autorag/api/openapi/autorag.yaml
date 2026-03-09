@@ -82,7 +82,7 @@ paths:
       tags:
         - K8SOperation
       parameters:
-        - name: resource
+        - name: namespace
           in: query
           required: true
           description: The namespace name to query secrets from
@@ -139,6 +139,81 @@ paths:
         - 'storage': Returns only secrets classified as storage types (currently: s3)
         - 'lls': Returns only secrets classified as LLS type
         - No type: Returns all secrets with their detected type classification
+  /api/v1/s3/file:
+    summary: Path used to get a file from S3.
+    description: >-
+      The REST endpoint/path used to retrieve an arbitrary file from S3 storage.
+      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
+      Returns the file with transfer-encoding: chunked for efficient streaming.
+    get:
+      tags:
+        - S3Operation
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: The name of the Kubernetes secret containing S3 credentials
+          schema:
+            type: string
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: The S3 bucket name
+          schema:
+            type: string
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: The S3 object key to retrieve
+          schema:
+            type: string
+          example: documents/myfile.pdf
+      responses:
+        "200":
+          description: File retrieved successfully
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+                description: The binary content of the requested file
+          headers:
+            Transfer-Encoding:
+              description: Set to 'chunked' for streaming large files
+              schema:
+                type: string
+                example: chunked
+            Content-Type:
+              description: The MIME type of the file
+              schema:
+                type: string
+                example: application/pdf
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getS3File
+      summary: Get file from S3
+      description: >-
+        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
+        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
+        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
 
   # =============================================================================
   # LSD ENDPOINTS
@@ -1159,6 +1234,8 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: S3Operation
+    description: Operation performed on S3 storage
   - name: Models
     description: AI model discovery and management from LlamaStack Distribution
   - name: PipelineOperation

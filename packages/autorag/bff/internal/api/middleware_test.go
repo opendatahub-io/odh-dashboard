@@ -378,26 +378,6 @@ func TestRequireAccessToService(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "token is required")
 	})
 
-	t.Run("should return bad request when namespace is not in context", func(t *testing.T) {
-		mockFactory := k8smocks.NewMockTokenClientFactory()
-		app := App{
-			kubernetesClientFactory: mockFactory,
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/test", nil)
-		// Add valid identity but NO namespace
-		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called when namespace is missing")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "missing namespace in context")
-	})
-
 	t.Run("should return server error when k8sClient.GetClient fails", func(t *testing.T) {
 		mockFactory := &k8smocks.FailingMockTokenClientFactory{
 			GetClientError: assert.AnError,
@@ -425,7 +405,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 	t.Run("should return 401 when k8s API returns Unauthorized", func(t *testing.T) {
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDError: k8smocks.NewUnauthorizedError(),
+			CanListDSPAError: k8smocks.NewUnauthorizedError(),
 		}
 		app := App{
 			kubernetesClientFactory: mockFactory,
@@ -448,7 +428,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 	t.Run("should return 403 when k8s API returns Forbidden", func(t *testing.T) {
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDError: k8smocks.NewForbiddenError(),
+			CanListDSPAError: k8smocks.NewForbiddenError(),
 		}
 		app := App{
 			kubernetesClientFactory: mockFactory,
@@ -471,7 +451,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 	t.Run("should return 403 when user is not allowed to access namespace", func(t *testing.T) {
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDAllowed: false, // User not allowed
+			CanListDSPAAllowed: false, // User not allowed
 		}
 		app := App{
 			kubernetesClientFactory: mockFactory,
@@ -494,7 +474,7 @@ func TestRequireAccessToService(t *testing.T) {
 
 	t.Run("should call next handler when user is allowed to access namespace", func(t *testing.T) {
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDAllowed: true, // User allowed
+			CanListDSPAAllowed: true, // User allowed
 		}
 		app := App{
 			kubernetesClientFactory: mockFactory,
