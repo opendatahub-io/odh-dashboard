@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
+import { ManageColumnsModal, useManageColumns } from 'mod-arch-shared';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { TableBase, getTableColumnSort, useCheckboxTable, SortableData } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
@@ -34,10 +35,9 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
-import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
-import { filterByMlflowExperiment } from './utils';
+import { filterByMlflowExperiment, getMetricsColumnsLocalStorageKey } from './utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -76,31 +76,55 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
-    metricsColumnNames,
-    runs: runsWithMetrics,
+    runs,
     contextsError,
     runArtifactsError,
     runArtifactsLoaded,
     metricsNames,
-  } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+  } = useMetricColumns(runWithoutMetrics);
 
   const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
-  const runs = React.useMemo(
-    () => filterByMlflowExperiment(runsWithMetrics, mlflowFilter),
-    [runsWithMetrics, mlflowFilter],
+  const filteredRuns = React.useMemo(() => filterByMlflowExperiment(runs, mlflowFilter), [runs, mlflowFilter]);
+  const effectiveTotalSize = mlflowFilter ? filteredRuns.length : totalSize;
+  const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
+    () =>
+      [...metricsNames].map(
+        (metricName): SortableData<PipelineRunKF> => ({
+          label: metricName,
+          field: metricName,
+          sortable: false,
+        }),
+      ),
+    [metricsNames],
   );
-  const effectiveTotalSize = mlflowFilter ? runs.length : totalSize;
+  const defaultVisibleMetricColumnIds = React.useMemo(() => {
+    const [firstDefaultMetricColumn, secondDefaultMetricColumn] = [...metricsNames];
+    return [
+      ...(firstDefaultMetricColumn ? [firstDefaultMetricColumn] : []),
+      ...(secondDefaultMetricColumn ? [secondDefaultMetricColumn] : []),
+    ];
+  }, [metricsNames]);
+  const manageColumnsResult = useManageColumns<PipelineRunKF>({
+    allColumns: metricColumns,
+    storageKey: getMetricsColumnsLocalStorageKey(experiment?.experiment_id),
+    defaultVisibleColumnIds: defaultVisibleMetricColumnIds,
+    maxVisibleColumns: 10,
+  });
+  const visibleMetricColumns = manageColumnsResult.visibleColumns;
+  const visibleMetricColumnNames = React.useMemo(
+    () => visibleMetricColumns.map((column) => column.field),
+    [visibleMetricColumns],
+  );
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
     toggleSelection,
     isSelected,
     setSelections: setSelectedIds,
-  } = useCheckboxTable(runs.map(({ run_id: runId }) => runId));
+  } = useCheckboxTable(filteredRuns.map(({ run_id: runId }) => runId));
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-  const [isCustomColModalOpen, setIsCustomColModalOpen] = React.useState(false);
   const selectedRuns = selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
     const selectedRun = runs.find((run) => run.run_id === selectedId);
 
@@ -218,10 +242,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames, isMlflowAvailable).filter(
+    ? getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable).filter(
         (column) => column.field !== 'run_group',
       )
-    : getPipelineRunColumns(metricsColumnNames, isMlflowAvailable);
+    : getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable);
 
   return (
     <>
@@ -238,7 +262,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={effectiveTotalSize}
-        data={runs}
+        data={filteredRuns}
         columns={columns}
         enablePagination="compact"
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
@@ -257,7 +281,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   content={
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
-                      : !(metricsColumnNames.length || metricsNames.size)
+                      : !metricsNames.size
                       ? 'Customize metrics columns: No metrics available'
                       : 'Customize metrics columns'
                   }
@@ -265,10 +289,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   <Button
                     variant="plain"
                     aria-label="Customize metrics column button"
+                    data-testid="customize-metrics-columns-button"
                     isAriaDisabled={
-                      !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                      !runArtifactsLoaded || !metricsNames.size
                     }
-                    onClick={() => setIsCustomColModalOpen(true)}
+                    onClick={manageColumnsResult.openModal}
                     icon={<ColumnsIcon />}
                   />
                 </Tooltip>,
@@ -295,7 +320,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
             }}
-            customCells={metricsColumnNames.map((metricName: string) => (
+            customCells={visibleMetricColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
@@ -366,18 +391,12 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           }}
         />
       )}
-      {isCustomColModalOpen && (
-        <CustomMetricsColumnsModal
-          key={metricsNames.size}
-          experimentId={experiment?.experiment_id}
-          columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
-            id: metricName,
-            content: metricName,
-            props: { checked: metricsColumnNames.includes(metricName) },
-          }))}
-          onClose={() => setIsCustomColModalOpen(false)}
-        />
-      )}
+      <ManageColumnsModal
+        manageColumnsResult={manageColumnsResult}
+        maxSelections={10}
+        dataTestId="pipeline-runs-manage-columns-modal"
+        description="Select metrics columns to display in the pipeline runs table."
+      />
     </>
   );
 };
