@@ -9,13 +9,15 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discov
 ## Endpoints
 
 ```http
-GET /api/v1/pipeline-runs
-GET /api/v1/pipeline-runs/{runId}
+GET  /api/v1/pipeline-runs
+GET  /api/v1/pipeline-runs/{runId}
+POST /api/v1/pipeline-runs
 ```
 
-The API provides two endpoints:
+The API provides three endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
+- **Create Run**: Submit a new AutoRAG pipeline run with optimization parameters
 
 ## Authentication
 
@@ -161,6 +163,7 @@ The endpoint returns a JSON response with the following structure:
 | `description` | string | Optional run description |
 | `experiment_id` | string | ID of the experiment this run belongs to |
 | `pipeline_version_reference` | object | Reference to pipeline and version (see below) |
+| `runtime_config` | object | Runtime configuration including pipeline parameters (see below) |
 | `state` | string | Current run state (UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED) |
 | `storage_state` | string | Storage state of the run (e.g., AVAILABLE) |
 | `service_account` | string | Service account used to run the pipeline |
@@ -177,6 +180,13 @@ The endpoint returns a JSON response with the following structure:
 |-------|------|-------------|
 | `pipeline_id` | string | ID of the pipeline |
 | `pipeline_version_id` | string | ID of the pipeline version |
+
+#### RuntimeConfig Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parameters` | object | Key-value map of pipeline parameters (e.g., optimization_metric, data source names, secrets) |
+| `pipeline_root` | string | Root output directory for pipeline artifacts |
 
 #### StateHistory Object
 
@@ -324,6 +334,109 @@ Returned when the specified run ID does not exist:
   "message": "the requested resource could not be found"
 }
 ```
+
+## Create Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+
+### Request Body
+
+The request body accepts AutoRAG-specific parameters. The BFF translates these into a KFP v2beta1 CreateRun request with the appropriate `runtime_config`.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `display_name` | string | Yes | Human-readable name for the run |
+| `description` | string | No | Optional description of the run |
+| `test_data_secret_name` | string | Yes | Name of the K8s secret containing test data credentials |
+| `test_data_bucket_name` | string | Yes | S3 bucket name for test data |
+| `test_data_key` | string | Yes | Object key within the test data bucket |
+| `input_data_secret_name` | string | Yes | Name of the K8s secret containing input data credentials |
+| `input_data_bucket_name` | string | Yes | S3 bucket name for input data |
+| `input_data_key` | string | Yes | Object key within the input data bucket |
+| `llama_stack_secret_name` | string | Yes | Name of the K8s secret for LlamaStack access |
+| `embeddings_models` | string[] | No | List of embedding model identifiers |
+| `generation_models` | string[] | No | List of generation model identifiers |
+| `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
+| `llama_stack_vector_database_id` | string | No | Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+
+**Notes:**
+- Unknown JSON fields are rejected (strict decoding)
+- `pipeline_id` and `pipeline_version_id` are currently hardcoded constants; a future pipeline discovery endpoint will provide dynamic values
+- `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "kubeflow-userid: user@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "my-optimization-run",
+    "description": "Testing AutoRAG optimization",
+    "test_data_secret_name": "minio-secret",
+    "test_data_bucket_name": "autorag",
+    "test_data_key": "test_data.json",
+    "input_data_secret_name": "minio-secret",
+    "input_data_bucket_name": "autorag",
+    "input_data_key": "documents/",
+    "llama_stack_secret_name": "llama-secret",
+    "optimization_metric": "faithfulness"
+  }'
+```
+
+### Response Format
+
+Returns `200 OK` with the created pipeline run:
+
+```json
+{
+  "data": {
+    "run_id": "8839038d-09b4-40b7-aa19-0e68f6e1a6c3",
+    "display_name": "my-optimization-run",
+    "description": "Testing AutoRAG optimization",
+    "experiment_id": "8c51d49e-9e6b-4d62-827c-63d58edb9374",
+    "pipeline_version_reference": {
+      "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
+      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+    },
+    "runtime_config": {
+      "parameters": {
+        "optimization_metric": "faithfulness",
+        "test_data_secret_name": "minio-secret",
+        "test_data_bucket_name": "autorag",
+        "test_data_key": "test_data.json",
+        "input_data_secret_name": "minio-secret",
+        "input_data_bucket_name": "autorag",
+        "input_data_key": "documents/",
+        "llama_stack_secret_name": "llama-secret"
+      }
+    },
+    "state": "PENDING",
+    "storage_state": "AVAILABLE",
+    "created_at": "2026-02-25T10:30:00Z"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing required fields, invalid `optimization_metric`, unknown JSON fields, malformed JSON, or missing `namespace` |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `500 Internal Server Error` | KFP client failure or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 ## Pipeline Filtering
 
@@ -475,12 +588,13 @@ This auto-discovery approach:
 
 The AutoRAG frontend can use these endpoints to:
 
-1. List all runs for a specific pipeline version
-2. Display run status and results
-3. Implement pagination for large result sets
-4. Access run state history and metadata
-5. View detailed task execution information for each run
-6. Track individual task progress and status
+1. Create new AutoRAG optimization runs with user-specified parameters
+2. List all runs for a specific pipeline version
+3. Display run status and results
+4. Implement pagination for large result sets
+5. Access run state history and metadata
+6. View detailed task execution information for each run
+7. Track individual task progress and status
 
 ### Example Frontend Integration
 
@@ -515,6 +629,21 @@ async function fetchPipelineRun(namespace, runId, token) {
     headers: {
       'Authorization': `Bearer ${token}`
     }
+  });
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Create a new pipeline run
+async function createPipelineRun(namespace, params, token) {
+  const response = await fetch(`/api/v1/pipeline-runs?namespace=${namespace}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(params)
   });
 
   const data = await response.json();

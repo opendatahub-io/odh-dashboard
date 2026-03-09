@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
@@ -122,6 +123,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
+		RuntimeConfig:            kfRun.RuntimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -132,6 +134,112 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
 	}
+}
+
+// ValidateCreateAutoRAGRunRequest checks that all required fields are present
+// and that optional enum fields have valid values.
+func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
+	var missing []string
+	if req.DisplayName == "" {
+		missing = append(missing, "display_name")
+	}
+	if req.TestDataSecretName == "" {
+		missing = append(missing, "test_data_secret_name")
+	}
+	if req.TestDataBucketName == "" {
+		missing = append(missing, "test_data_bucket_name")
+	}
+	if req.TestDataKey == "" {
+		missing = append(missing, "test_data_key")
+	}
+	if req.InputDataSecretName == "" {
+		missing = append(missing, "input_data_secret_name")
+	}
+	if req.InputDataBucketName == "" {
+		missing = append(missing, "input_data_bucket_name")
+	}
+	if req.InputDataKey == "" {
+		missing = append(missing, "input_data_key")
+	}
+	if req.LlamaStackSecretName == "" {
+		missing = append(missing, "llama_stack_secret_name")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %v", missing)
+	}
+
+	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
+		return fmt.Errorf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric)
+	}
+
+	return nil
+}
+
+// BuildKFPRunRequest maps AutoRAG parameters to a KFP v2beta1 create-run request.
+func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest) models.CreatePipelineRunKFRequest {
+	params := map[string]interface{}{
+		"test_data_secret_name":   req.TestDataSecretName,
+		"test_data_bucket_name":   req.TestDataBucketName,
+		"test_data_key":           req.TestDataKey,
+		"input_data_secret_name":  req.InputDataSecretName,
+		"input_data_bucket_name":  req.InputDataBucketName,
+		"input_data_key":          req.InputDataKey,
+		"llama_stack_secret_name": req.LlamaStackSecretName,
+	}
+
+	if len(req.EmbeddingsModels) > 0 {
+		params["embeddings_models"] = req.EmbeddingsModels
+	}
+	if len(req.GenerationModels) > 0 {
+		params["generation_models"] = req.GenerationModels
+	}
+
+	metric := req.OptimizationMetric
+	if metric == "" {
+		metric = constants.DefaultOptimizationMetric
+	}
+	params["optimization_metric"] = metric
+
+	if req.LlamaStackVectorDatabaseID != "" {
+		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	}
+
+	return models.CreatePipelineRunKFRequest{
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+		PipelineVersionReference: models.PipelineVersionReference{
+			PipelineID:        constants.AutoRAGPipelineID,
+			PipelineVersionID: constants.AutoRAGPipelineVersionID,
+		},
+		RuntimeConfig: models.RuntimeConfig{
+			Parameters: params,
+		},
+	}
+}
+
+// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+func (r *PipelineRunsRepository) CreatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	req models.CreateAutoRAGRunRequest,
+) (*models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
+		return nil, err
+	}
+
+	kfpRequest := BuildKFPRunRequest(req)
+
+	kfRun, err := client.CreateRun(ctx, kfpRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
+	}
+
+	run := toPipelineRun(kfRun)
+	return &run, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID

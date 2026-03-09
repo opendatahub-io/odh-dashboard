@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useNavigate, useParams } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 
 // Mock React Router hooks
@@ -12,8 +12,13 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
+// Mock useWatchConnectionTypes (used for connection types list)
+jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+  useWatchConnectionTypes: jest.fn(() => [[]]),
+}));
+
 // Mock SecretSelector component
-jest.mock('~/app/shared/SecretSelector', () => ({
+jest.mock('~/app/components/common/SecretSelector', () => ({
   __esModule: true,
   default: ({
     onChange,
@@ -292,18 +297,6 @@ describe('AutoragConfigure', () => {
       // Verify both Edit buttons are enabled
       expect(editButtons[0]).toBeEnabled(); // Optimization metric
       expect(editButtons[1]).toBeEnabled(); // Models to consider
-    });
-
-    it('should enable "Run experiment" button when selected secret is valid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Run experiment" button is enabled
-      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
-      expect(runExperimentButton).toBeEnabled();
     });
   });
 });

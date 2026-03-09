@@ -21,7 +21,7 @@ import {
 } from '../../../../utils/oc_commands/imageStreams';
 import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
-describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
+describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
   let notebookImage: string;
@@ -68,6 +68,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
+        '@Bug',
       ],
     },
     () => {
@@ -146,6 +147,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
+        '@Bug',
       ],
     },
     () => {

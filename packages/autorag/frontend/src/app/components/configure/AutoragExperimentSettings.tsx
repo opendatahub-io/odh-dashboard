@@ -25,26 +25,29 @@ import {
   EXPERIMENT_SETTINGS_FIELDS,
   MIN_RAG_PATTERNS,
   MAX_RAG_PATTERNS,
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
 } from '~/app/schemas/configure.schema';
 import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
 
 const OPTIMIZATION_METRICS: {
-  value: ConfigureSchema['optimization']['metric'];
+  value: ConfigureSchema['optimization_metric'];
   label: string;
   description: string;
 }[] = [
   {
-    value: 'faithfulness',
+    value: RAG_METRIC_FAITHFULNESS,
     label: 'Answer faithfulness',
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
-    value: 'answer_correctness',
+    value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: 'Answer correctness',
     description: 'How correct the generated answer is compared to the ground truth.',
   },
   {
-    value: 'context_correctness',
+    value: RAG_METRIC_CONTEXT_CORRECTNESS,
     label: 'Context correctness',
     description: 'How precisely the retrieval step identifies relevant chunks.',
   },
@@ -96,14 +99,14 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
                 </Title>
                 <Controller
                   control={control}
-                  name="optimization.metric"
+                  name="optimization_metric"
                   render={({ field }) => (
                     <Stack hasGutter>
                       {OPTIMIZATION_METRICS.map((metric) => (
                         <StackItem key={metric.value}>
                           <Radio
                             id={`metric-${metric.value}`}
-                            name="optimization.metric"
+                            name="optimization_metric"
                             label={
                               <span>
                                 {metric.label}
@@ -129,7 +132,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
                 </Title>
                 <Controller
                   control={control}
-                  name="optimization.max_number_of_rag_patterns"
+                  name="optimization_max_rag_patterns"
                   render={({ field, fieldState }) => (
                     <>
                       <NumberInput
