@@ -80,15 +80,18 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Choose benchmark collection' : 'Single benchmark';
 
+  const hasBenchmarks =
+    !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
+
   const isValid = React.useMemo(() => {
-    if (evaluationName.trim() === '') {
+    if (evaluationName.trim() === '' || !hasBenchmarks) {
       return false;
     }
     if (inputMode === 'inference') {
       return modelName.trim() !== '' && endpointUrl.trim() !== '';
     }
     return sourceName.trim() !== '' && datasetUrl.trim() !== '';
-  }, [evaluationName, inputMode, modelName, endpointUrl, sourceName, datasetUrl]);
+  }, [evaluationName, inputMode, modelName, endpointUrl, sourceName, datasetUrl, hasBenchmarks]);
 
   const handleAdditionalArgsFileChange = React.useCallback(
     (
@@ -125,10 +128,19 @@ const StartEvaluationRunPage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    let parsedArgs: Record<string, unknown> = {};
+    const parsedArgs: Record<string, unknown> = {};
     if (showAdditionalArgs && additionalArgs.trim()) {
       try {
-        parsedArgs = JSON.parse(additionalArgs);
+        const parsed: unknown = JSON.parse(additionalArgs);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          notification.error(
+            'Invalid additional arguments',
+            'Additional arguments must be a JSON object (e.g. {"key": "value"}).',
+          );
+          setIsSubmitting(false);
+          return;
+        }
+        Object.assign(parsedArgs, parsed);
       } catch {
         notification.error(
           'Invalid additional arguments',
@@ -306,13 +318,22 @@ const StartEvaluationRunPage: React.FC = () => {
                   />
                 </FormGroup>
 
-                <FormGroup label="API Key" fieldId="api-key">
+                <FormGroup
+                  label="API key secret name"
+                  fieldId="api-key"
+                  labelHelp={
+                    <LabelHelpPopover
+                      ariaLabel="More info for API key secret"
+                      content="Name of the Kubernetes Secret that contains the API key for the inference endpoint."
+                    />
+                  }
+                >
                   <TextInput
                     id="api-key"
                     data-testid="api-key-input"
-                    type="password"
                     value={apiKey}
                     onChange={(_e, val) => setApiKey(val)}
+                    placeholder="e.g. my-model-api-key"
                   />
                 </FormGroup>
               </>
@@ -359,13 +380,22 @@ const StartEvaluationRunPage: React.FC = () => {
                   />
                 </FormGroup>
 
-                <FormGroup label="Access token" fieldId="access-token">
+                <FormGroup
+                  label="Access token secret name"
+                  fieldId="access-token"
+                  labelHelp={
+                    <LabelHelpPopover
+                      ariaLabel="More info for access token secret"
+                      content="Name of the Kubernetes Secret that contains the access token for the dataset source."
+                    />
+                  }
+                >
                   <TextInput
                     id="access-token"
                     data-testid="access-token-input"
-                    type="password"
                     value={accessToken}
                     onChange={(_e, val) => setAccessToken(val)}
+                    placeholder="e.g. my-dataset-credentials"
                   />
                 </FormGroup>
               </>

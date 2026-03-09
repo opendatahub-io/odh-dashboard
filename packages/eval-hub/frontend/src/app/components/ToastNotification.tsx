@@ -11,23 +11,27 @@ interface ToastNotificationProps {
 
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
   const notifications = useNotification();
-  const [timedOut, setTimedOut] = React.useState(false);
   const [mouseOver, setMouseOver] = React.useState(false);
+  const remainingRef = React.useRef(TOAST_NOTIFICATION_TIMEOUT);
+  const startRef = React.useRef(Date.now());
 
   React.useEffect(() => {
+    if (mouseOver) {
+      return;
+    }
+
+    startRef.current = Date.now();
     const handle = setTimeout(() => {
-      setTimedOut(true);
-    }, TOAST_NOTIFICATION_TIMEOUT);
+      if (!notification.hidden) {
+        notifications.remove(notification.id);
+      }
+    }, remainingRef.current);
+
     return () => {
+      remainingRef.current -= Date.now() - startRef.current;
       clearTimeout(handle);
     };
-  }, [setTimedOut]);
-
-  React.useEffect(() => {
-    if (!notification.hidden && timedOut && !mouseOver) {
-      notifications.remove(notification.id);
-    }
-  }, [mouseOver, notification, timedOut, notifications]);
+  }, [mouseOver, notification, notifications]);
 
   if (notification.hidden) {
     return null;

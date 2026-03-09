@@ -70,7 +70,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                   <Content component="h4">Benchmarks</Content>
                 </StackItem>
                 {collection.benchmarks.map((b) => (
-                  <StackItem key={b.id}>
+                  <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
                     <Panel variant="bordered">
                       <PanelMain>
                         <PanelMainBody>

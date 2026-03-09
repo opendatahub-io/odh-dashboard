@@ -32,7 +32,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
     <Card
       isSelected={isSelected}
       style={{ cursor: 'pointer' }}
-      data-testid={`benchmark-card-${benchmark.id}`}
+      data-testid={`benchmark-card-${benchmark.providerId}-${benchmark.id}`}
       onClick={onSelect}
     >
       {benchmark.category && (

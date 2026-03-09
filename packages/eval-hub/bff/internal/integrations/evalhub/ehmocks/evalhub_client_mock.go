@@ -262,7 +262,7 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
-func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, req evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
+func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
 	benchmarks := req.Benchmarks
 	if benchmarks == nil {
 		benchmarks = []evalhub.JobBenchmark{}

@@ -703,6 +703,7 @@ components:
           $ref: '#/components/schemas/JobPassCriteria'
         benchmarks:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/JobBenchmark'
         collection:

@@ -63,6 +63,8 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
 	var input evalhub.CreateEvaluationJobRequest
 	if err := app.ReadJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -78,9 +80,13 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	job, err := client.CreateEvaluationJob(ctx, input)
+	job, err := client.CreateEvaluationJob(ctx, namespace, input)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to create evaluation job")
+		return
+	}
+	if job == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned empty response for evaluation job"))
 		return
 	}
 

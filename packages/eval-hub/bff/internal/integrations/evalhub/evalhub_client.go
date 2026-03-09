@@ -27,7 +27,7 @@ type ListEvaluationJobsParams struct {
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
-	CreateEvaluationJob(ctx context.Context, req CreateEvaluationJobRequest) (*EvaluationJob, error)
+	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error
 	ListCollections(ctx context.Context) (CollectionsResponse, error)
 	ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error)
@@ -87,7 +87,7 @@ type JobStatus struct {
 type BenchmarkState struct {
 	ID             string     `json:"id"`
 	ProviderID     string     `json:"provider_id,omitempty"`
-	BenchmarkIndex int        `json:"benchmark_index,omitempty"`
+	BenchmarkIndex *int       `json:"benchmark_index,omitempty"`
 	Status         string     `json:"status"`
 	StartedAt      string     `json:"started_at,omitempty"`
 	CompletedAt    string     `json:"completed_at,omitempty"`
@@ -102,21 +102,21 @@ type JobResults struct {
 }
 
 type ResultTest struct {
-	Score     float64 `json:"score,omitempty"`
-	Threshold float64 `json:"threshold,omitempty"`
-	Pass      bool    `json:"pass,omitempty"`
+	Score     *float64 `json:"score,omitempty"`
+	Threshold *float64 `json:"threshold,omitempty"`
+	Pass      *bool    `json:"pass,omitempty"`
 }
 
 type BenchmarkResultTest struct {
-	PrimaryScore float64 `json:"primary_score,omitempty"`
-	Threshold    float64 `json:"threshold,omitempty"`
-	Pass         bool    `json:"pass,omitempty"`
+	PrimaryScore *float64 `json:"primary_score,omitempty"`
+	Threshold    *float64 `json:"threshold,omitempty"`
+	Pass         *bool    `json:"pass,omitempty"`
 }
 
 type BenchmarkResult struct {
 	ID             string               `json:"id"`
 	ProviderID     string               `json:"provider_id,omitempty"`
-	BenchmarkIndex int                  `json:"benchmark_index,omitempty"`
+	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
 	Metrics        map[string]float64   `json:"metrics,omitempty"`
 	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
 	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
@@ -435,8 +435,12 @@ func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, hard
 }
 
 // CreateEvaluationJob submits a new evaluation run to the EvalHub API.
-func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, req CreateEvaluationJobRequest) (*EvaluationJob, error) {
-	resp, err := post[EvaluationJob](c, ctx, "/evaluations/jobs", req)
+func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error) {
+	path := "/evaluations/jobs"
+	if namespace != "" {
+		path = fmt.Sprintf("%s?namespace=%s", path, url.QueryEscape(namespace))
+	}
+	resp, err := post[EvaluationJob](c, ctx, path, req)
 	if err != nil {
 		return nil, wrapClientError(err, "CreateEvaluationJob")
 	}
