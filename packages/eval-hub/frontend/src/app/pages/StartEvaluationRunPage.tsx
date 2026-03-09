@@ -67,6 +67,14 @@ const StartEvaluationRunPage: React.FC = () => {
   const [additionalArgsFilename, setAdditionalArgsFilename] = React.useState('');
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const benchmarkDisplayName = React.useMemo(() => {
     if (collection) {
@@ -104,9 +112,13 @@ const StartEvaluationRunPage: React.FC = () => {
         const text = typeof reader.result === 'string' ? reader.result : '';
         setAdditionalArgs(text);
       };
+      reader.onerror = () => {
+        notification.error('File read failed', `Unable to read file "${file.name}".`);
+        setAdditionalArgsFilename('');
+      };
       reader.readAsText(file);
     },
-    [],
+    [notification],
   );
 
   const handleAdditionalArgsTextChange = React.useCallback(
@@ -166,18 +178,20 @@ const StartEvaluationRunPage: React.FC = () => {
       additionalArgs: parsedArgs,
     });
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      await createEvaluationJob(
-        '',
-        namespace ?? '',
-        request,
-      )({ signal: new AbortController().signal });
+      await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
       notification.success(
         'Evaluation started',
         `Evaluation "${evaluationName}" has been started.`,
       );
       navigate(evaluationsBaseRoute(namespace));
     } catch (e) {
+      if (controller.signal.aborted) {
+        return;
+      }
       const message = e instanceof Error ? e.message : 'An unknown error occurred.';
       notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
     } finally {
@@ -188,7 +202,7 @@ const StartEvaluationRunPage: React.FC = () => {
   if (!dataLoaded) {
     return (
       <Bullseye>
-        <Spinner />
+        <Spinner aria-label="Loading evaluation data" />
       </Bullseye>
     );
   }

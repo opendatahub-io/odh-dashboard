@@ -211,7 +211,12 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: '#/components/parameters/namespace'
+        - in: query
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the evaluation job
       requestBody:
         required: true
         content:
