@@ -17,6 +17,8 @@ rather than assumptions.
 | **Llamastack Server Version** | `0.5.0+rhai0` |
 | **Operator Version** | `0.4.0` |
 | **Image** | `quay.io/opendatahub/llama-stack:latest` (see lsd-template.yaml) |
+| **Image manifest** | `https://quay.io/repository/opendatahub/llama-stack/manifest/sha256:175563c0461cc717c5918791cfcda8f5f55580e96445fa302c3dbb4d24805cdb` |
+
 
 ---
 
