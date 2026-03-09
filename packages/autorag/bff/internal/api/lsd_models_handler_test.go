@@ -63,11 +63,13 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		// Verify response contains models array
-		assert.Contains(t, response, "models")
+		// Verify response contains data envelope with models array
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Contains(t, data, "models")
 
 		// Verify models array contains all models (7 total from mock)
-		models := response["models"].([]interface{})
+		models := data["models"].([]interface{})
 		assert.Len(t, models, 7, "Should return all 7 models")
 	})
 
@@ -83,7 +85,8 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		models := response["models"].([]interface{})
+		data := response["data"].(map[string]interface{})
+		models := data["models"].([]interface{})
 
 		// Verify first model has stable public API structure
 		firstModel := models[0].(map[string]interface{})
@@ -115,7 +118,8 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		assert.Len(t, response["models"].([]interface{}), 0, "Should return empty models array")
+		data := response["data"].(map[string]interface{})
+		assert.Len(t, data["models"].([]interface{}), 0, "Should return empty models array")
 	})
 }
 
