@@ -455,9 +455,9 @@ The API provides intelligent filtering with automatic pipeline discovery:
 When **no** `pipelineVersionId` parameter is provided, the BFF automatically:
 1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
-3. Falls back to showing all runs if no AutoRAG pipeline is found
+3. Returns a 500 error if no AutoRAG pipeline is found
 
-This ensures users see only AutoRAG-related runs by default without manual configuration.
+This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
 
 ### Explicit Filtering
 

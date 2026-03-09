@@ -298,7 +298,7 @@ paths:
         Returns pipeline runs with automatic filtering to the discovered AutoRAG managed pipeline.
         If pipelineVersionId query parameter is not specified, the BFF automatically discovers
         the AutoRAG pipeline in the namespace and filters runs to that pipeline version.
-        If no AutoRAG pipeline is found, returns all runs in the namespace.
+        If no AutoRAG pipeline is found and no explicit pipelineVersionId is provided, returns 500 error.
         Explicit pipelineVersionId parameter overrides automatic discovery.
     post:
       tags:

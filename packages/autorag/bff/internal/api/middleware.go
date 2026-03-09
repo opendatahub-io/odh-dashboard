@@ -843,8 +843,8 @@ func (app *App) discoverReadyDSPA(
 //	discovered := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
 //
 // Usage Pattern:
-//   - GET /pipeline-runs: Uses discovered pipeline as default filter (graceful if nil)
-//   - POST /pipeline-runs: Requires discovered pipeline (returns error if nil)
+//   - GET /pipeline-runs: Requires discovered pipeline when no explicit pipelineVersionId filter provided (returns 500 if nil)
+//   - POST /pipeline-runs: Requires discovered pipeline (returns 500 if nil)
 func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -879,8 +879,7 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 		}
 
 		if discovered == nil {
-			// No AutoRAG pipeline found - this is acceptable for GET requests (return all runs)
-			// but should fail for POST requests (handler will check)
+			// No AutoRAG pipeline found - handlers will return 500 unless explicit filter provided
 			logger.Debug("No AutoRAG pipeline discovered in namespace", "namespace", namespace)
 		} else {
 			logger.Debug("Discovered AutoRAG pipeline",

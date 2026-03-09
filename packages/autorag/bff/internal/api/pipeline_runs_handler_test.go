@@ -11,9 +11,22 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// withDiscoveredPipeline adds a mock discovered pipeline to the request context
+func withDiscoveredPipeline(req *http.Request) *http.Request {
+	discovered := &repositories.DiscoveredPipeline{
+		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		PipelineName:      "autorag-pipeline",
+		Namespace:         "test-namespace",
+	}
+	ctx := context.WithValue(req.Context(), constants.DiscoveredPipelineKey, discovered)
+	return req.WithContext(ctx)
+}
 
 func TestPipelineRunsHandler_Success(t *testing.T) {
 	app := newTestApp(t)
@@ -32,6 +45,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -42,8 +56,9 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, response.Data)
-		assert.Len(t, response.Data.Runs, 3, "Should return 3 pipeline runs from mock")
-		assert.Equal(t, int32(3), response.Data.TotalSize)
+		// With discovered pipeline filter, mock returns only runs from that pipeline version (2 runs)
+		assert.Len(t, response.Data.Runs, 2, "Should return filtered pipeline runs from discovered pipeline")
+		assert.Equal(t, int32(2), response.Data.TotalSize)
 	})
 
 	t.Run("should filter by pipeline version ID", func(t *testing.T) {
@@ -60,6 +75,8 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		// Explicit filter doesn't require discovered pipeline, but include it for consistency
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -91,6 +108,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -125,6 +143,58 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("should return 500 when no AutoRAG pipeline discovered and no explicit filter", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// Explicitly set discovered pipeline to nil (no AutoRAG pipeline found)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, (*repositories.DiscoveredPipeline)(nil))
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		// Error message is sanitized for security, just verify it's a 500 error
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "500", response.Error.Code)
+	})
+
+	t.Run("should succeed with explicit pipelineVersionId even when no AutoRAG pipeline discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=explicit-version-123",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// No discovered pipeline, but explicit filter should work
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, (*repositories.DiscoveredPipeline)(nil))
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
 }
 
 func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
@@ -143,6 +213,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -179,6 +250,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -234,6 +306,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 

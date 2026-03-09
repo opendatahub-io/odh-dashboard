@@ -21,16 +21,20 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 // Returns pipeline runs with intelligent filtering:
 //  1. If pipelineVersionId query parameter is provided, filters to that specific version
 //  2. If no query parameter, uses the discovered AutoRAG pipeline version (from middleware)
-//  3. If no AutoRAG pipeline is discovered, returns all runs in the namespace
+//  3. If no AutoRAG pipeline is discovered and no explicit filter, returns 500 error
 //
-// This automatic filtering ensures users see only AutoRAG runs by default while
-// allowing explicit filtering when needed.
+// This ensures users see only AutoRAG runs and prevents accidentally showing
+// unrelated pipeline runs from the namespace.
 //
 // Query Parameters:
 //   - namespace: Kubernetes namespace (required, validated by middleware)
 //   - pipelineVersionId: Explicit pipeline version filter (optional)
 //   - pageSize: Number of results per page (optional, default: 20, max: 100)
 //   - nextPageToken: Pagination token (optional)
+//
+// Error Responses:
+//   - 400: Invalid query parameters
+//   - 500: No AutoRAG pipeline found (when pipelineVersionId not explicitly provided)
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -47,11 +51,13 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Get pipeline version ID - prioritize explicit query param, fall back to discovered pipeline
 	pipelineVersionID := query.Get("pipelineVersionId")
 	if pipelineVersionID == "" {
-		// No explicit pipeline version specified - use discovered AutoRAG pipeline if available
-		if discovered, ok := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline); ok && discovered != nil {
-			pipelineVersionID = discovered.PipelineVersionID
+		// No explicit pipeline version specified - require discovered AutoRAG pipeline
+		discovered, ok := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
+		if !ok || discovered == nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"))
+			return
 		}
-		// If still empty, repository will return all runs (no filter)
+		pipelineVersionID = discovered.PipelineVersionID
 	}
 
 	// Parse pagination parameters
