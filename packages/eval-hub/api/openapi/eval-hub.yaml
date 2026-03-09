@@ -227,7 +227,7 @@ paths:
               name: 'test-eval-02-03'
               description: 'A test evaluation'
               model:
-                url: 'http://llama-32-1b-instruct-predictor.eikeola.svc.cluster.local:8080/v1'
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
                 name: 'llama-32-1b-instruct'
               benchmarks:
                 - id: 'arc_easy'
@@ -1245,7 +1245,7 @@ components:
                 state: 'pending'
               results: {}
               model:
-                url: 'http://llama-32-1b-instruct-predictor.eikeola.svc.cluster.local:8080/v1'
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
                 name: 'llama-32-1b-instruct'
               name: 'test-eval-02-03'
               description: 'A test evaluation'

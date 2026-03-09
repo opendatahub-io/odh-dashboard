@@ -22,6 +22,8 @@ import {
   EmptyStateBody,
   EmptyStateActions,
   EmptyStateFooter,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -416,19 +418,23 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormSection>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Checkbox
-              id="show-additional-args"
-              data-testid="show-additional-args"
-              label="Add additional arguments"
-              isChecked={showAdditionalArgs}
-              onChange={(_e, checked) => setShowAdditionalArgs(checked)}
-            />
-            <InlineHelpIcon
-              ariaLabel="More info for additional arguments"
-              content="Additional runtime arguments passed to the evaluation provider as a JSON object."
-            />
-          </div>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Checkbox
+                id="show-additional-args"
+                data-testid="show-additional-args"
+                label="Add additional arguments"
+                isChecked={showAdditionalArgs}
+                onChange={(_e, checked) => setShowAdditionalArgs(checked)}
+              />
+            </FlexItem>
+            <FlexItem>
+              <InlineHelpIcon
+                ariaLabel="More info for additional arguments"
+                content="Additional runtime arguments passed to the evaluation provider as a JSON object."
+              />
+            </FlexItem>
+          </Flex>
           {showAdditionalArgs && (
             <FormGroup fieldId="additional-args">
               <FileUpload
