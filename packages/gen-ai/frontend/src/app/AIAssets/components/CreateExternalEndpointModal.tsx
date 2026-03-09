@@ -23,6 +23,9 @@ import {
 import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { ExternalModelRequest, ExternalModelResponse } from '~/app/types';
 
+const MODEL_TYPE_LLM = 'llm' as const;
+const MODEL_TYPE_EMBEDDING = 'embedding' as const;
+
 type CreateExternalEndpointModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -60,12 +63,12 @@ const PROVIDER_TYPE_OPTIONS: ProviderTypeOption[] = [
 
 const MODEL_TYPE_OPTIONS: ModelTypeOption[] = [
   {
-    value: 'llm',
+    value: MODEL_TYPE_LLM,
     label: 'Inferencing model',
     description: 'Inferencing models generate text responses and are used in the Playground.',
   },
   {
-    value: 'embedding',
+    value: MODEL_TYPE_EMBEDDING,
     label: 'Embedding model',
     description: 'Embedding models convert text to vectors and are used in RAG pipelines.',
   },
@@ -89,7 +92,8 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   onSubmit,
 }) => {
   // Form fields
-  const [modelType, setModelType] = React.useState<ExternalModelRequest['model_type']>('llm');
+  const [modelType, setModelType] =
+    React.useState<ExternalModelRequest['model_type']>(MODEL_TYPE_LLM);
   const [providerType, setProviderType] =
     React.useState<ExternalModelRequest['provider_type']>('remote::vllm');
   const [modelId, setModelId] = React.useState('');
@@ -118,7 +122,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   // Reset form when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setModelType('llm');
+      setModelType(MODEL_TYPE_LLM);
       setProviderType('remote::vllm');
       setModelId('');
       setDisplayName('');
@@ -137,7 +141,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     modelId.trim() !== '' &&
     endpointUrl.trim() !== '' &&
     token.trim() !== '' &&
-    (modelType === 'llm' ||
+    (modelType === MODEL_TYPE_LLM ||
       (embeddingDimension.trim() !== '' && parseInt(embeddingDimension, 10) > 0));
 
   const handleSubmit = React.useCallback(async () => {
@@ -157,7 +161,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         provider_type: providerType,
         model_type: modelType,
         ...(useCases.trim() && { use_cases: useCases.trim() }),
-        ...(modelType === 'embedding' &&
+        ...(modelType === MODEL_TYPE_EMBEDDING &&
           embeddingDimension.trim() && {
             embedding_dimension: parseInt(embeddingDimension.trim(), 10),
           }),
@@ -220,13 +224,13 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           variant="info"
           isInline
           title={
-            modelType === 'embedding'
+            modelType === MODEL_TYPE_EMBEDDING
               ? 'This model must expose an OpenAI-compatible embeddings API.'
               : 'This model must expose an OpenAI-compatible chat/completions API.'
           }
           style={{ marginBottom: '1rem' }}
         >
-          {modelType === 'embedding'
+          {modelType === MODEL_TYPE_EMBEDDING
             ? 'Embedding models convert text into numerical vectors for semantic search, RAG pipelines, and retrieval workflows.'
             : 'Most major providers support the OpenAI format. It is required for the playground and other features.'}
         </Alert>
@@ -237,7 +241,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isOpen={isModelTypeOpen}
               selected={modelType}
               onSelect={(_event, value) => {
-                if (value === 'llm' || value === 'embedding') {
+                if (value === MODEL_TYPE_LLM || value === MODEL_TYPE_EMBEDDING) {
                   setModelType(value);
                 }
                 setIsModelTypeOpen(false);
@@ -340,7 +344,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onBlur={() => setTouched({ ...touched, modelId: true })}
               validated={touched.modelId && !modelId.trim() ? 'error' : 'default'}
               placeholder={
-                modelType === 'embedding'
+                modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. text-embedding-3-small, BAAI/bge-large-en-v1.5'
                   : 'e.g. gpt-4o, meta-llama/Llama-3.1-8B-Instruct'
               }
@@ -376,7 +380,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               value={displayName}
               onChange={(_event, value) => setDisplayName(value)}
               placeholder={
-                modelType === 'embedding'
+                modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. OpenAI Small Embeddings, BGE Large EN'
                   : 'e.g. Our GPT-4o, Team Llama'
               }
@@ -441,7 +445,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormHelperText>
           </FormGroup>
 
-          {modelType === 'embedding' && (
+          {modelType === MODEL_TYPE_EMBEDDING && (
             <FormGroup label="Embedding dimension" isRequired fieldId="embedding-dimension">
               <TextInput
                 isRequired
@@ -475,7 +479,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               value={useCases}
               onChange={(_event, value) => setUseCases(value)}
               placeholder={
-                modelType === 'embedding'
+                modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. Document search, Semantic similarity'
                   : 'e.g. General chat, Code generation, Image analysis'
               }
