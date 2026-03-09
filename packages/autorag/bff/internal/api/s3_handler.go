@@ -44,15 +44,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required"))
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
 		return
 	}
 
-	bucket := queryParams.Get("bucket")
-
 	key := queryParams.Get("key")
 	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required"))
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
 		return
 	}
 
@@ -113,6 +111,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	// Determine bucket: use query param if provided, otherwise use bucket from secret
+	bucket := queryParams.Get("bucket")
 	if bucket == "" {
 		if creds.Bucket == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
