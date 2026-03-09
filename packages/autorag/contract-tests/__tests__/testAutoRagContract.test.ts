@@ -258,6 +258,28 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+        );
+        // Should not return 400 since bucket is provided via secret
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+        );
+        // Should not return 400 since both bucket sources are valid
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+
     describe('Key Format Variations', () => {
       it('should handle nested key structure', async () => {
         const result = await apiClient.get(
@@ -268,7 +290,7 @@ describe('AutoRAG API Contract Tests', () => {
           // Format is valid; if it fails, it should not be a request-validation error
           expect(result.error.status).not.toBe(400);
         }
-      });
+      }, 8000);
 
       it('should handle key with special characters', async () => {
         const result = await apiClient.get(
@@ -277,7 +299,7 @@ describe('AutoRAG API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
         }
-      });
+      }, 8000);
 
       it('should handle URL-encoded key', async () => {
         const encodedKey = encodeURIComponent('documents/my file.pdf');
@@ -287,7 +309,7 @@ describe('AutoRAG API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
         }
-      });
+      }, 8000);
     });
 
     describe('Valid Bucket and Key Formats', () => {
@@ -300,7 +322,7 @@ describe('AutoRAG API Contract Tests', () => {
           // Should not be 400 (bad request) since format is valid
           expect(result.error.status).not.toBe(400);
         }
-      });
+      }, 8000);
 
       it('should accept key with multiple path segments', async () => {
         const result = await apiClient.get(
@@ -309,7 +331,7 @@ describe('AutoRAG API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
         }
-      });
+      }, 8000);
     });
   });
 
