@@ -9,12 +9,11 @@ function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
 
   const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
-
   const invalidPipelineRunId = pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<TitleWithIcon title={pipelineRun?.display_name} objectType={ProjectObjectType.pipelineExperiment} />}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
       loadError={pipelineRunQuery.error ?? undefined}
@@ -22,7 +21,7 @@ function AutoragResultsPage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoragResults pipelineRun={pipelineRun} />
+      <AutoragResults />
     </ApplicationsPage>
   );
 }

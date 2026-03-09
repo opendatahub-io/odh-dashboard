@@ -66,13 +66,19 @@ export async function getPipelineRunsFromBFF(
   throw new Error('Invalid response format');
 }
 
+/**
+ * Fetches a single pipeline run by ID from the BFF API.
+ * @see packages/autorag/docs/pipeline-runs-api.md
+ */
 export async function getPipelineRunFromBFF(
   hostPath: string,
-  runId: string,
   namespace: string,
+  runId: string,
   opts?: APIOptions,
 ): Promise<PipelineRun> {
-  const queryParams: Record<string, string> = { namespace };
+  const queryParams: Record<string, string> = {
+    namespace,
+  };
 
   const response = await handleRestFailures(
     restGET(

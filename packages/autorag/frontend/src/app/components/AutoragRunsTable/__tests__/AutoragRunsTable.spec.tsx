@@ -5,6 +5,15 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 jest.mock('@odh-dashboard/internal/components/table', () => {
   const MockTableBase = ({
     data,
@@ -55,6 +64,7 @@ const mockRuns: PipelineRun[] = [
 ];
 
 const defaultPaginationProps = {
+  namespace: 'test-namespace',
   totalSize: 2,
   page: 1,
   pageSize: 20,
@@ -72,7 +82,7 @@ describe('AutoragRunsTable', () => {
       <MemoryRouter>
         <AutoragRunsTable
           runs={mockRuns}
-          namespace="test-ns"
+          namespace={defaultPaginationProps.namespace}
           totalSize={defaultPaginationProps.totalSize}
           page={defaultPaginationProps.page}
           pageSize={defaultPaginationProps.pageSize}
@@ -90,7 +100,7 @@ describe('AutoragRunsTable', () => {
       <MemoryRouter>
         <AutoragRunsTable
           runs={mockRuns}
-          namespace="test-ns"
+          namespace={defaultPaginationProps.namespace}
           totalSize={defaultPaginationProps.totalSize}
           page={defaultPaginationProps.page}
           pageSize={defaultPaginationProps.pageSize}
@@ -108,7 +118,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={[]}
-        namespace="test-ns"
+        namespace="test-namespace"
         totalSize={0}
         page={1}
         pageSize={20}
@@ -127,7 +137,7 @@ describe('AutoragRunsTable', () => {
       <MemoryRouter>
         <AutoragRunsTable
           runs={mockRuns}
-          namespace="test-ns"
+          namespace={defaultPaginationProps.namespace}
           totalSize={defaultPaginationProps.totalSize}
           page={defaultPaginationProps.page}
           pageSize={defaultPaginationProps.pageSize}

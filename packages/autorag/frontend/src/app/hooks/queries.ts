@@ -2,6 +2,9 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { getLlamaStackModels } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { LlamaStackModelType, LlamaStackModelsResponse, PipelineRun } from '~/app/types';
+import { isTerminalState } from '~/app/utilities/pipelineRunStates';
+
+const PIPELINE_RUN_POLL_INTERVAL = 10000; // 10 seconds
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -77,23 +80,40 @@ export function useLlamaStackModelsQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
-const POLL_INTERVAL_MS = 5000;
-
+/**
+ * Fetches a pipeline run with automatic polling.
+ * Polls every 10 seconds until the run reaches a terminal state (SUCCEEDED, FAILED, CANCELED).
+ */
 export function usePipelineRunQuery(
   runId?: string,
   namespace?: string,
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId, namespace],
-    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
+    queryKey: ['pipelineRun', namespace, runId],
+	queryFn: ({ signal }) => {
+      if (!runId) {
+        throw new Error('Run ID is required');
+      }
+      if (!namespace) {
+        throw new Error('Namespace is required');
+      }
+      return getPipelineRunFromBFF('', namespace!, runId!, { signal })
+    },
     enabled: !!runId && !!namespace,
+    // Poll every 10 seconds
     refetchInterval: (query) => {
-      const state = query.state.data?.state;
-      if (!state || TERMINAL_STATES.has(state)) {
+      const { data } = query.state;
+      // Stop polling if we have data and it's in a terminal state
+      if (data && isTerminalState(data.state)) {
         return false;
       }
-      return POLL_INTERVAL_MS;
+      return PIPELINE_RUN_POLL_INTERVAL;
+    },
+    // Also refetch on window focus, but respect the terminal state
+    refetchOnWindowFocus: (query) => {
+      const { data } = query.state;
+      // Don't refetch on focus if in terminal state
+      return !(data && isTerminalState(data.state));
     },
   });
 }

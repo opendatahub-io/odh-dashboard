@@ -14,12 +14,19 @@ jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
-jest.mock('~/app/components/results/AutoragResults', () => ({
-  __esModule: true,
-  default: ({ pipelineRun }: { pipelineRun?: { display_name: string } }) => (
-    <div data-testid="autorag-results">{pipelineRun?.display_name}</div>
-  ),
-}));
+jest.mock('~/app/components/results/AutoragResults', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: () => {
+      const { usePipelineRunQuery } = require('~/app/hooks/queries');
+      const { useParams } = require('react-router');
+      const { namespace, runId } = useParams();
+      const { data: pipelineRun } = usePipelineRunQuery(runId, namespace);
+      return React.createElement('div', { 'data-testid': 'autorag-results' }, pipelineRun?.display_name);
+    },
+  };
+});
 
 jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
   __esModule: true,

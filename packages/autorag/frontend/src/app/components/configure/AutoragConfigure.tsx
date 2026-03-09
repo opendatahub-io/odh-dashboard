@@ -323,7 +323,7 @@ function AutoragConfigure(): React.JSX.Element {
             variant="primary"
             isDisabled={formDisabled}
             onClick={() => {
-              navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
+              navigate(`${autoragResultsPathname}/${namespace}/FAKE_RUN_ID`);
             }}
           >
             Run experiment
