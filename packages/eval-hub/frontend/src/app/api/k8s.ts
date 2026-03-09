@@ -1,6 +1,5 @@
 import {
   APIOptions,
-  assembleModArchBody,
   handleRestFailures,
   UserSettings,
   isModArchResponse,
@@ -163,7 +162,7 @@ export const createEvaluationJob =
       restCREATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`,
-        assembleModArchBody(request),
+        request,
         { namespace },
         opts,
       ),

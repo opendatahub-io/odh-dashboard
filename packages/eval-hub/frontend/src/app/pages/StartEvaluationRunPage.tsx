@@ -18,7 +18,12 @@ import {
   Spinner,
   TextArea,
   TextInput,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateActions,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { createEvaluationJob } from '~/app/api/k8s';
@@ -42,7 +47,8 @@ const StartEvaluationRunPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
 
-  const { benchmark, collection, isCollectionFlow, dataLoaded } = useEvaluationSelection(namespace);
+  const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
+    useEvaluationSelection(namespace);
 
   const [evaluationName, setEvaluationName] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -171,6 +177,28 @@ const StartEvaluationRunPage: React.FC = () => {
     return (
       <Bullseye>
         <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to load evaluation data"
+          status="danger"
+        >
+          <EmptyStateBody>{loadError.message}</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="primary" onClick={() => navigate(evaluationsBaseRoute(namespace))}>
+                Return to evaluations
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
       </Bullseye>
     );
   }
@@ -371,6 +399,9 @@ const StartEvaluationRunPage: React.FC = () => {
                 onClearClick={handleAdditionalArgsClear}
                 browseButtonText="Upload"
                 allowEditingUploadedText
+                textAreaPlaceholder={
+                  '{\n  "num_examples": 10,\n  "experiment": {\n    "name": "my-experiment"\n  }\n}'
+                }
                 dropzoneProps={{
                   accept: { 'application/json': ['.json'] },
                 }}

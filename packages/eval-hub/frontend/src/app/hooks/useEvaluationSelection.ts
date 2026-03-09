@@ -15,6 +15,7 @@ type UseEvaluationSelectionResult = {
   collection: Collection | undefined;
   isCollectionFlow: boolean;
   dataLoaded: boolean;
+  loadError: Error | undefined;
 };
 
 export const useEvaluationSelection = (
@@ -32,12 +33,16 @@ export const useEvaluationSelection = (
   const isBenchmarkFlow = flowType === 'benchmark' && !!providerId && !!benchmarkId;
   const isCollectionFlow = flowType === 'collection' && !!collectionId;
 
-  const { providers, loaded: providersLoaded } = useProviders(
-    isBenchmarkFlow ? (namespace ?? '') : '',
-  );
-  const { collections, loaded: collectionsLoaded } = useCollections(
-    isCollectionFlow ? (namespace ?? '') : '',
-  );
+  const {
+    providers,
+    loaded: providersLoaded,
+    loadError: providersError,
+  } = useProviders(isBenchmarkFlow ? (namespace ?? '') : '');
+  const {
+    collections,
+    loaded: collectionsLoaded,
+    loadError: collectionsError,
+  } = useCollections(isCollectionFlow ? (namespace ?? '') : '');
 
   const benchmark = React.useMemo<FlatBenchmark | undefined>(() => {
     if (!isBenchmarkFlow || !providersLoaded) {
@@ -61,17 +66,23 @@ export const useEvaluationSelection = (
     return collections.find((c) => c.resource.id === collectionId);
   }, [isCollectionFlow, collectionsLoaded, collections, collectionId]);
 
-  const dataLoaded = isBenchmarkFlow
-    ? providersLoaded
+  const loadError = isBenchmarkFlow
+    ? providersError
     : isCollectionFlow
-      ? collectionsLoaded
+      ? collectionsError
+      : undefined;
+
+  const dataLoaded = isBenchmarkFlow
+    ? providersLoaded || !!providersError
+    : isCollectionFlow
+      ? collectionsLoaded || !!collectionsError
       : true;
   const hasValidSelection = !!benchmark || !!collection;
 
   React.useEffect(() => {
     if (!isBenchmarkFlow && !isCollectionFlow) {
       navigate(evaluationCreateRoute(namespace), { replace: true });
-    } else if (dataLoaded && !hasValidSelection) {
+    } else if (dataLoaded && !loadError && !hasValidSelection) {
       notification.warning(
         'Selection not found',
         'The selected benchmark or collection could not be found. Please select again.',
@@ -87,11 +98,12 @@ export const useEvaluationSelection = (
     isBenchmarkFlow,
     isCollectionFlow,
     dataLoaded,
+    loadError,
     hasValidSelection,
     navigate,
     namespace,
     notification,
   ]);
 
-  return { benchmark, collection, isCollectionFlow, dataLoaded };
+  return { benchmark, collection, isCollectionFlow, dataLoaded, loadError };
 };
