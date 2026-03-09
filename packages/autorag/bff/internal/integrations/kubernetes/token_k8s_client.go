@@ -268,4 +268,3 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 
 	return username, nil
 }
-

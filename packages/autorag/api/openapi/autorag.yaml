@@ -149,7 +149,8 @@ paths:
     description: >-
       Lists all available models from LlamaStack Distribution (LSD).
       Returns a flat list of models with their identifiers, types, provider information, and resource paths.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
+      containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
     get:
       tags:
         - Models
@@ -158,11 +159,18 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace where LSD is deployed
+          description: Kubernetes namespace containing the LlamaStack credentials secret
           required: true
           schema:
             type: string
             example: 'default'
+        - name: secretName
+          in: query
+          description: Name of the Kubernetes secret containing LlamaStack credentials (llama_stack_client_base_url and llama_stack_client_api_key)
+          required: true
+          schema:
+            type: string
+            example: 'my-lls-secret'
       responses:
         "200":
           $ref: "#/components/responses/LSDModelsResponse"
@@ -170,13 +178,13 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getLSDModels
       summary: Get LSD Models
-      description: Returns available models from LlamaStack Distribution
+      description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
