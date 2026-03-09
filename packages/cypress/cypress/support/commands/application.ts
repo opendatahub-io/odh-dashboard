@@ -199,7 +199,7 @@ Cypress.Commands.add(
   function findAppNavItem(
     subject,
     args: { name: string; rootSection?: string; subSection?: string },
-  ): Cypress.Chainable<JQuery<HTMLElement>> {
+  ) {
     const rootSection = args.rootSection ?? '';
     const subSection = args.subSection ?? '';
 
@@ -211,10 +211,7 @@ Cypress.Commands.add(
     });
 
     // Helper to find nav element by exact text match (retryable)
-    const findNavElementByText = (
-      parent: Cypress.Chainable<JQuery>,
-      text: string,
-    ): Cypress.Chainable<JQuery> =>
+    const findNavElementByText = (parent: Cypress.Chainable<JQuery>, text: string) =>
       parent.find('.pf-v6-c-nav__link, .pf-v6-c-nav__item').filter((_, el) => {
         return Cypress.$(el).text().trim() === text;
       });
@@ -272,25 +269,25 @@ Cypress.Commands.add(
                     .should('be.visible')
                     .then(() =>
                       findNavElementByText(cy.wrap($subBtn).parent(), args.name).closest('a'),
-                    ) as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+                    ) as unknown as Cypress.Chainable<JQuery>;
                 }
 
                 return findNavElementByText(cy.wrap($subBtn).parent(), args.name).closest(
                   'a',
-                ) as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+                ) as unknown as Cypress.Chainable<JQuery>;
               });
           }
 
           return findNavElementByText(cy.wrap($parent), args.name).closest(
             'a',
-          ) as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+          ) as unknown as Cypress.Chainable<JQuery>;
         });
     }
 
     // No root section, just find the nav item directly (retryable)
     return findNavElementByText(cy.wrap(subject), args.name).closest(
       'a',
-    ) as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+    ) as unknown as Cypress.Chainable<JQuery>;
   },
 );
 
