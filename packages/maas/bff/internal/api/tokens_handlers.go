@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -22,7 +23,6 @@ const (
 // STUB IMPLEMENTATION: Returns mock tokens. Real MaaS backend integration
 // will be implemented in a future PR.
 func (app *App) IssueTokenHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
 
 	var tokenRequest models.TokenRequest
@@ -59,7 +59,6 @@ func (app *App) IssueTokenHandler(w http.ResponseWriter, r *http.Request, _ http
 	logger.Debug("Issued mock token",
 		"ttl", ttl.String(),
 		"expiresAt", expiresAt.Unix(),
-		"context", ctx,
 	)
 
 	response := Envelope[models.TokenResponse, None]{
@@ -110,6 +109,6 @@ func generateMockToken() (string, error) {
 
 // attachTokenHandlers registers the token endpoints
 func attachTokenHandlers(router *httprouter.Router, app *App) {
-	router.POST("/api/v1/tokens", app.IssueTokenHandler)
-	router.DELETE("/api/v1/tokens", app.RevokeAllTokensHandler)
+	router.POST(constants.TokensPath, app.IssueTokenHandler)
+	router.DELETE(constants.TokensPath, app.RevokeAllTokensHandler)
 }

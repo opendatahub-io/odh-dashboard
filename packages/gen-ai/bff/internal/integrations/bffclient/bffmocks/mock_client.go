@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -138,9 +139,10 @@ func (m *MockBFFClient) SetAvailable(available bool) {
 
 // MockClientFactory creates mock BFF clients for testing
 type MockClientFactory struct {
-	config  *bffclient.BFFClientConfig
-	clients map[bffclient.BFFTarget]*MockBFFClient
-	logger  *slog.Logger
+	config    *bffclient.BFFClientConfig
+	clients   map[bffclient.BFFTarget]*MockBFFClient
+	clientsMu sync.RWMutex
+	logger    *slog.Logger
 }
 
 // NewMockClientFactory creates a new mock client factory
@@ -162,12 +164,23 @@ func (f *MockClientFactory) CreateClient(target bffclient.BFFTarget, authToken s
 
 // CreateClientWithHeaders creates a new mock BFF client (headers are ignored in mock)
 func (f *MockClientFactory) CreateClientWithHeaders(target bffclient.BFFTarget, authToken string, headers map[string]string) bffclient.BFFClientInterface {
-	// Return cached client if exists
+	// Check if client already exists (read lock)
+	f.clientsMu.RLock()
+	if client, ok := f.clients[target]; ok {
+		f.clientsMu.RUnlock()
+		return client
+	}
+	f.clientsMu.RUnlock()
+
+	// Create new mock client (write lock)
+	f.clientsMu.Lock()
+	defer f.clientsMu.Unlock()
+
+	// Double-check after acquiring write lock
 	if client, ok := f.clients[target]; ok {
 		return client
 	}
 
-	// Create new mock client
 	client := NewMockBFFClient(target)
 	f.clients[target] = client
 
@@ -190,6 +203,8 @@ func (f *MockClientFactory) IsTargetConfigured(target bffclient.BFFTarget) bool 
 
 // GetMockClient returns the mock client for a specific target (for test assertions)
 func (f *MockClientFactory) GetMockClient(target bffclient.BFFTarget) *MockBFFClient {
+	f.clientsMu.RLock()
+	defer f.clientsMu.RUnlock()
 	return f.clients[target]
 }
 

@@ -39,7 +39,7 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 
 		// Simulate AttachBFFMaaSClient middleware by adding client to context
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
-		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget("maas")), maasClient)
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
 
 		app.BFFMaaSIssueTokenHandler(rr, req, nil)
@@ -69,7 +69,7 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 
 		// Simulate AttachBFFMaaSClient middleware
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
-		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget("maas")), maasClient)
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
 
 		app.BFFMaaSIssueTokenHandler(rr, req, nil)
@@ -101,7 +101,7 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 
 		// Simulate AttachBFFMaaSClient middleware
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
-		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget("maas")), maasClient)
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
 
 		app.BFFMaaSIssueTokenHandler(rr, req, nil)
@@ -129,7 +129,7 @@ func TestBFFMaaSRevokeAllTokensHandler(t *testing.T) {
 
 		// Simulate AttachBFFMaaSClient middleware
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
-		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget("maas")), maasClient)
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
 
 		app.BFFMaaSRevokeAllTokensHandler(rr, req, nil)
