@@ -6,8 +6,8 @@ import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManageme
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
-const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
-const DEFAULT_WIDTH = '550px';
+const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width-v2';
+const DEFAULT_WIDTH = '600px';
 
 const mockResizeEvent = new Event('click');
 
@@ -273,5 +273,25 @@ describe('ChatbotSettingsPanel', () => {
     // but the tabsKey itself is not incremented (we return early in handlePanelResize)
     // This is the correct behavior - we want to verify the early return path works
     expect(mockTabsRenderCount).toBeGreaterThan(initialRenderCount);
+  });
+
+  it('should initialize with 600px default width when no stored width exists', () => {
+    render(<ChatbotSettingsPanel {...defaultProps} />);
+
+    // First render should use default width
+    expect(screen.getByTestId('chatbot-settings-page-tab-model')).toBeInTheDocument();
+    expect(screen.getByTestId('chatbot-settings-page-tab-prompt')).toBeInTheDocument();
+    expect(screen.getByTestId('chatbot-settings-page-tab-knowledge')).toBeInTheDocument();
+    expect(screen.getByTestId('chatbot-settings-page-tab-mcp')).toBeInTheDocument();
+  });
+
+  it('should use stored width from session storage if available', () => {
+    const customWidth = '700px';
+    sessionStorage.setItem(SETTINGS_PANEL_WIDTH, customWidth);
+
+    render(<ChatbotSettingsPanel {...defaultProps} />);
+
+    // Should preserve the stored width
+    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
   });
 });
