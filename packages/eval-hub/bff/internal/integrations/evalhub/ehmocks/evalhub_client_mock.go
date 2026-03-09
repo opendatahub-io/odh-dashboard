@@ -262,6 +262,25 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
+func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, req evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
+	return &evalhub.EvaluationJob{
+		Resource: evalhub.JobResource{
+			ID:        "eval-job-mock-new",
+			CreatedAt: "2026-03-09T12:00:00Z",
+			UpdatedAt: "2026-03-09T12:00:00Z",
+		},
+		Status: evalhub.JobStatus{State: "pending"},
+		Model:  req.Model,
+		Name:   req.Name,
+		Benchmarks: func() []evalhub.JobBenchmark {
+			if len(req.Benchmarks) > 0 {
+				return req.Benchmarks
+			}
+			return []evalhub.JobBenchmark{}
+		}(),
+	}, nil
+}
+
 func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ bool) error {
 	return nil
 }
