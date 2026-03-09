@@ -10,7 +10,8 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(namespace, runId);
 
-  const invalidPipelineRunId = pipelineRunQuery.isError;
+  // Treat missing route params as invalid immediately
+  const invalidPipelineRunId = !namespace || !runId || pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
