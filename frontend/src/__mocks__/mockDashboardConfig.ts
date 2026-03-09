@@ -50,6 +50,7 @@ export type MockDashboardConfigType = {
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
@@ -92,6 +93,7 @@ export const mockDashboardConfig = ({
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
+  mcpCatalog = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
@@ -266,6 +268,7 @@ export const mockDashboardConfig = ({
       disableKServeRaw,
       disableDistributedWorkloads,
       disableModelCatalog,
+      mcpCatalog,
       disableModelRegistry,
       disableModelRegistrySecureDB,
       disableServingRuntimeParams,

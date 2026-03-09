@@ -10,6 +10,7 @@ export const techPreviewFlags = {
   aiAssetExternalModels: false,
   maasApiKeys: false,
   mlflow: false,
+  mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
@@ -164,6 +165,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_CATALOG]: {
     featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
+  [SupportedArea.MCP_CATALOG]: {
+    featureFlags: ['mcpCatalog'],
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
