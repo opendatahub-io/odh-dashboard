@@ -50,6 +50,7 @@ export type Sources = Source[];
 
 export interface File {
   name: string;
+  path: string;
   size: string;
   type: string;
   items?: number;
