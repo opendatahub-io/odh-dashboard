@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { Button, Flex } from '@patternfly/react-core';
 import { clone } from 'es-toolkit';
 import FileExplorer from './FileExplorer';
-import type { File, Files, Source } from './FileExplorer.tsx';
+import type { Directory, File, Files, Source } from './FileExplorer.tsx';
 
 const App: React.FC = () => {
   const mockSource: Source = {
@@ -33,6 +33,12 @@ const App: React.FC = () => {
     newFile.name = newFile.name.replace('000', String(index + 1));
     return newFile;
   });
+
+  const mockDirectories: Directory[] = [
+    { name: 'path-level-1', path: '/path-level-1' },
+    { name: 'path-level-2', path: '/path-level-1/path-level-2' },
+    { name: 'path-level-3', path: '/path-level-1/path-level-2/path-level-3' },
+  ];
 
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
@@ -79,10 +85,18 @@ const App: React.FC = () => {
       <FileExplorer
         files={filesToRender}
         source={mockSource}
+        directories={mockDirectories}
+        rootLabel="mock-bucket (root)"
+        bucket="mock-bucket"
+        path="/documents/reports/2024"
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {
           setSelectedSource(source);
+        }}
+        onNavigate={(dir) => {
+          // eslint-disable-next-line no-console
+          console.log('Navigate to:', dir.path);
         }}
         onPrimary={(files) => {
           setSelectedFiles(files);

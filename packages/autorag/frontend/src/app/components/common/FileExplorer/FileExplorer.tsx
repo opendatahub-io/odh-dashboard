@@ -170,6 +170,62 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
   );
 };
 
+interface PathBreadcrumbsProps {
+  directories?: Directory[];
+  rootLabel?: string;
+  onNavigate?: (directory: Directory) => void;
+}
+const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
+  directories,
+  rootLabel = 'Root',
+  onNavigate,
+}) => (
+  <Breadcrumb>
+    <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
+    {Array.isArray(directories) &&
+      directories.map((dir) => (
+        <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
+          {dir.name}
+        </BreadcrumbItem>
+      ))}
+  </Breadcrumb>
+);
+
+interface FileDetailsPanelProps {
+  bucket?: string;
+  path?: string;
+  selectedFiles?: Files;
+}
+const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ bucket, path, selectedFiles }) => (
+  <Card isFullHeight>
+    <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+    <CardBody>
+      <DescriptionList>
+        {bucket && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Bucket</DescriptionListTerm>
+            <DescriptionListDescription>{bucket}</DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
+        {path && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Path</DescriptionListTerm>
+            <DescriptionListDescription>{path}</DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
+        {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Selected files</DescriptionListTerm>
+            <DescriptionListDescription>
+              {selectedFiles.map((f) => f.name).join(', ')}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
+      </DescriptionList>
+    </CardBody>
+  </Card>
+);
+
 interface FileExplorerProps {
   id?: string;
   isOpen: boolean;
@@ -177,7 +233,12 @@ interface FileExplorerProps {
   sources?: Sources;
   source?: Source;
   files?: Files;
+  directories?: Directory[];
+  rootLabel?: string;
+  bucket?: string;
+  path?: string;
   onSelectSource: (source: Source) => void;
+  onNavigate?: (directory: Directory) => void;
   onPrimary: (files: Files) => void;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
@@ -187,7 +248,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   sources,
   source,
   files,
+  directories,
+  rootLabel,
+  bucket,
+  path,
   onSelectSource,
+  onNavigate,
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
@@ -227,30 +293,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             />
           </FlexItem>
           <FlexItem>
-            <Breadcrumb>
-              <BreadcrumbItem>S3 bucket name (root)</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 01</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 02</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 03</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 04</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 05</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 06</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 07</BreadcrumbItem>
-              {/* TODO: Use a BreadCrum w/ Dropdown if levels exceed 6 https://www.patternfly.org/components/breadcrumb#with-dropdown*/}
-              <BreadcrumbItem to="#">Folder 08</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 09</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 10</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 11</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 12</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 13</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 14</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 15</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 16</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 17</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 18</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 19</BreadcrumbItem>
-              <BreadcrumbItem to="#">Folder 20</BreadcrumbItem>
-            </Breadcrumb>
+            {/* TODO: Use a BreadCrumb w/ Dropdown if levels exceed 6 https://www.patternfly.org/components/breadcrumb#with-dropdown*/}
+            <PathBreadcrumbs
+              directories={directories}
+              rootLabel={rootLabel}
+              onNavigate={onNavigate}
+            />
           </FlexItem>
           <FlexItem>
             <Grid hasGutter>
@@ -265,25 +313,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </GridItem>
               <GridItem span={4}>
-                <Card isFullHeight>
-                  <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
-                  <CardBody>
-                    <DescriptionList>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Bucket</DescriptionListTerm>
-                        <DescriptionListDescription>Bucket001</DescriptionListDescription>
-                      </DescriptionListGroup>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Path</DescriptionListTerm>
-                        <DescriptionListDescription>/foo/bar/baz</DescriptionListDescription>
-                      </DescriptionListGroup>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Selected files</DescriptionListTerm>
-                        <DescriptionListDescription>/foo/bar/baz</DescriptionListDescription>
-                      </DescriptionListGroup>
-                    </DescriptionList>
-                  </CardBody>
-                </Card>
+                <FileDetailsPanel bucket={bucket} path={path} selectedFiles={selectedFiles} />
               </GridItem>
             </Grid>
           </FlexItem>
