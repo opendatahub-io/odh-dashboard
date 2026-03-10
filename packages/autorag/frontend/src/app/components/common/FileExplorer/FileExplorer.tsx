@@ -257,6 +257,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   />
                   <Td dataLabel={columns.name}>
                     {isDirectory(file) ? (
+                      // Should this be a Content/a/href or should it be Button variant link
                       <Content
                         component="a"
                         href="#"
@@ -441,6 +442,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
               )}
             </>
           )}
+          {/* // TODO [ Gustavo ] Render a selected files section with slight left margins to differentiate these details from the source details. Selected files should also show an X so we can remove them from this panel */}
           {Array.isArray(selectedFiles) &&
             selectedFiles.length > 0 &&
             selectedFiles.map((f) => (

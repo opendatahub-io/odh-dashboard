@@ -57,7 +57,7 @@ const createFiles = (count: number, basePath = ''): Files =>
 
 const sortFiles = (files: Files) => files.toSorted((fA, fB) => fA.name.localeCompare(fB.name));
 
-// Navigation helpers ---------------------------------------------------------
+// Navigation helpers --------------------------------------------------------->
 
 interface BrowsableDataset {
   allDirectories: Directory[];
@@ -185,7 +185,7 @@ const realisticFiles: Files = [
 ];
 /* eslint-enable prettier/prettier */
 
-// Scenarios ----------------------------------------------------------------
+// Scenarios ------------------------------------------------------------------>
 
 interface Scenario {
   label: string;
@@ -305,7 +305,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
   ],
 };
 
-// App ----------------------------------------------------------------------
+// App ------------------------------------------------------------------------>
 
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -437,7 +437,12 @@ const App: React.FC = () => {
                     <Flex>
                       {scenarios.map((scenario) => (
                         <FlexItem key={scenario.label}>
-                          <Button onClick={() => openScenario(scenario)}>{scenario.label}</Button>
+                          <Button
+                            variant={scenario.browsable ? 'primary' : 'secondary'}
+                            onClick={() => openScenario(scenario)}
+                          >
+                            {scenario.label}
+                          </Button>
                         </FlexItem>
                       ))}
                     </Flex>
