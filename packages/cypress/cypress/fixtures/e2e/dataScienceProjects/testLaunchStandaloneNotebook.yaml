@@ -1,0 +1,3 @@
+# testLaunchStandaloneNotebook.cy.ts Test Data #
+notebookImage: 'code-server-notebook'
+notebookPodPrefix: 'jupyter-nb'

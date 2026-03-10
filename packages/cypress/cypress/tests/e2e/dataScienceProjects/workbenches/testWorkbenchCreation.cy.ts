@@ -3,6 +3,7 @@ import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   workbenchPage,
+  workbenchActions,
   createSpawnerPage,
   notebookConfirmModal,
 } from '../../../../pages/workbench';
@@ -11,15 +12,20 @@ import { loadPVCEditFixture } from '../../../../utils/dataLoader';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteOpenShiftProject, addUserToProject } from '../../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-import { addConnectionModal, connectionsPage } from '../../../../pages/connections';
+import {
+  addConnectionModal,
+  connectionsPage,
+  connectionActions,
+} from '../../../../pages/connections';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
-import { clusterStorage } from '../../../../pages/clusterStorage';
+import { clusterStorage, clusterStorageActions } from '../../../../pages/clusterStorage';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Tests', () => {
   let editTestNamespace: string;
@@ -27,10 +33,12 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
   let editedTestDescription: string;
   let pvcEditDisplayName: string;
   let pvcStorageName: string;
+  let connectionDescription: string;
   let contributor: string;
   let s3Config: AWSS3BucketDetails;
   let s3AccessKey: string;
   let s3SecretKey: string;
+  let notebookImage: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -43,6 +51,8 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
         pvcEditDisplayName = fixtureData.pvcEditDisplayName;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         pvcStorageName = `${fixtureData.pvcStorageName}-${uuid}-storage`;
+        connectionDescription = fixtureData.connectionDescription;
+        notebookImage = fixtureData.notebookImage;
         const bucketKey = 'BUCKET_1' as const;
         const bucketConfig = AWS_BUCKETS[bucketKey];
 
@@ -83,7 +93,7 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
       ],
     },
     () => {
-      const workbenchName = editTestNamespace.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(editTestNamespace);
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -103,7 +113,7 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
       createSpawnerPage.getNameInput().fill(workbenchName);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
@@ -129,7 +139,7 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
             cy.step('Editing the workbench - both the Name and Description');
             notebookRow.findKebab().click();
             // If we click to edit the wb immediately after stopping we risk encountering a sync issue when editing the wb, delay remedies this
-            notebookRow.findKebabAction('Edit workbench').trigger('click', { delay: 2000 });
+            workbenchActions.findEditWorkbenchAction().trigger('click', { delay: 2000 });
             createSpawnerPage.getNameInput().clear().type(editedTestNamespace);
             createSpawnerPage.getDescriptionInput().type(editedTestDescription);
             createSpawnerPage.findSubmitButton().click();
@@ -182,7 +192,7 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
       addConnectionModal.findConnectionTypeDropdown().click();
       addConnectionModal.findS3CompatibleStorageOption().click();
       addConnectionModal.findConnectionNameInput().type(s3Config.NAME);
-      addConnectionModal.findConnectionDescriptionInput().type('S3 Bucket Connection');
+      addConnectionModal.findConnectionDescriptionInput().type(connectionDescription);
       addConnectionModal.findAwsKeyInput().type(s3AccessKey);
       addConnectionModal.findAwsSecretKeyInput().type(s3SecretKey);
       addConnectionModal.findEndpointInput().type(s3Config.ENDPOINT);
@@ -193,8 +203,8 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
 
       // Delete the Connection and confirm that the deletion was successful
       cy.step('Delete the Connection and verify deletion');
-      connectionsPage.findKebabToggle().click();
-      connectionsPage.getConnectionRow(s3Config.NAME).findKebabAction('Delete').click();
+      connectionsPage.getConnectionRow(s3Config.NAME).findKebab().click();
+      connectionActions.findDeleteConnectionAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(s3Config.NAME);
       deleteModal.findSubmitButton().should('be.enabled').click();
@@ -207,11 +217,8 @@ describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Test
       cy.step('Delete the Cluster Storage and verify deletion');
       // Note reload is required to ensure that the new edited name is propagated
       cy.reload();
-      clusterStorage.findKebabToggle().click();
-      clusterStorage
-        .getClusterStorageRow(pvcStorageName)
-        .findKebabAction('Delete storage')
-        .click({ force: true });
+      clusterStorage.getClusterStorageRow(pvcStorageName).findKebab().click();
+      clusterStorageActions.findDeleteStorageAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(pvcStorageName);
       deleteModal.findSubmitButton().should('be.enabled').click();

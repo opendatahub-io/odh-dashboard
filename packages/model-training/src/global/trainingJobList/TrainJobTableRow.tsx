@@ -11,7 +11,7 @@ import {
 import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import TrainingJobProject from './TrainingJobProject';
+import JobProject from './JobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import PauseTrainingJobModal from './PauseTrainingJobModal';
@@ -22,9 +22,10 @@ import StateActionToggle from './StateActionToggle';
 import { useTrainingJobPauseResume } from './hooks/useTrainingJobPauseResume';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
-type TrainingJobTableRowProps = {
+type TrainJobTableRowProps = {
   job: TrainJobKind;
   jobStatus?: TrainingJobState;
   onDelete: (job: TrainJobKind) => void;
@@ -33,7 +34,7 @@ type TrainingJobTableRowProps = {
   isExternallyToggling?: boolean;
 };
 
-const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
+const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   job,
   jobStatus,
   onDelete,
@@ -67,7 +68,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     setDontShowModalValue,
   } = useTrainingJobPauseResume(job, onStatusUpdate);
 
-  const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
+  const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
 
@@ -80,7 +81,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     // 1. Edit node count (only when allowed)
     if (canScaleNodes) {
       items.push({
-        title: 'Edit node count',
+        title: <span data-testid="edit-node-count-action">Edit node count</span>,
         onClick: () => setScaleNodesModalOpen(true),
       });
     }
@@ -132,7 +133,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           </Button>
         </Td>
         <Td dataLabel="Project">
-          <TrainingJobProject trainingJob={job} />
+          <JobProject job={job} />
         </Td>
         <Td dataLabel="Nodes">
           <Flex
@@ -174,6 +175,8 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
             namespace={job.metadata.namespace}
           />
         </Td>
+        <Td dataLabel="Ray cluster">-</Td>
+        <Td dataLabel="Type">TrainJob</Td>
         <Td dataLabel="Created">
           {job.metadata.creationTimestamp ? (
             <Timestamp
@@ -248,4 +251,4 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   );
 };
 
-export default TrainingJobTableRow;
+export default TrainJobTableRow;

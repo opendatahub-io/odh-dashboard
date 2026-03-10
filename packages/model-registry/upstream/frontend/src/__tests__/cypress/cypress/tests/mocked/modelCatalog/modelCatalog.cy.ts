@@ -505,7 +505,7 @@ describe('Performance Empty State', () => {
       modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
 
       modelCatalog.findPerformanceEmptyState().should('not.exist');
-      modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No result found');
+      modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No results found');
 
       modelCatalog.findEmptyStateResetFiltersButton().click();
       modelCatalog.findPerformanceEmptyState().should('be.visible');
@@ -539,7 +539,7 @@ describe('Performance Empty State', () => {
     modelCatalog.findModelCatalogCards().should('not.exist');
   });
 
-  it('should show "No result found" when toggle is ON and user applies filter that returns 0 results', () => {
+  it('should show "No results found" when toggle is ON and user applies filter that returns 0 results', () => {
     initIntercepts({
       sources: [mockCatalogSource({ labels: ['Provider one'] })],
       hasValidatedModels: true,
@@ -552,10 +552,10 @@ describe('Performance Empty State', () => {
     modelCatalog.findFilterShowMoreButton('Task').click();
     modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
     modelCatalog.findPerformanceEmptyState().should('not.exist');
-    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No result found');
+    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No results found');
     modelCatalog.findAllModelsToggle().click();
     modelCatalog.findPerformanceEmptyState().should('not.exist');
-    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No result found');
+    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No results found');
   });
 });
 

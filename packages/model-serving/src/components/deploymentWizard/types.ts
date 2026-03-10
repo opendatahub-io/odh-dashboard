@@ -104,6 +104,7 @@ export type InitialWizardFormData = {
   // wizard
   wizardStartIndex?: number;
   isEditing?: boolean;
+  viewMode?: 'form' | 'yaml-preview' | 'yaml-edit';
   // fields
   project?: ProjectKind | null;
   modelTypeField?: ModelTypeFieldData;

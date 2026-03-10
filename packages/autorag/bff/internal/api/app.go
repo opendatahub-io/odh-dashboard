@@ -36,6 +36,7 @@ const (
 	UserPath         = ApiPathPrefix + "/user"
 	NamespacePath    = ApiPathPrefix + "/namespaces"
 	SecretsPath      = ApiPathPrefix + "/secrets"
+	S3FilePath       = ApiPathPrefix + "/s3/file"
 	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -169,17 +170,22 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
-	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
+	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
+	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
 
-	//LSD Models
+	// Secrets
+	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
+
+	// S3 operations
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+
+	// LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunHandler))))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.CreatePipelineRunHandler))))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.PipelineRunHandler))))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.PipelineRunsHandler))))
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.CreatePipelineRunHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

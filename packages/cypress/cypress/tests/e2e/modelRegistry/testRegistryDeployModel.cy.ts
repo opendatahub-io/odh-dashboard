@@ -158,7 +158,8 @@ describe('[Product Bug: RHOAIENG-51443] Verify models can be deployed from model
 
       cy.step('Deploy the model from the versions table');
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
-      modelVersionRow.findKebabAction('Deploy').click();
+      modelVersionRow.findKebab().click();
+      modelRegistry.findDeployAction().click();
 
       cy.step('Select the project for deployment');
       modelVersionDeployModal.selectProjectByName(projectName);

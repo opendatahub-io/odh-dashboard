@@ -1,23 +1,19 @@
 import * as React from 'react';
 import { SearchInput } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import {
-  TrainingJobToolbarFilterOptions,
-  TrainingJobFilterDataType,
-  TrainingJobFilterOptions,
-} from './const';
+import { JobsToolbarFilterOptions, JobsFilterDataType, JobsFilterOptions } from './const';
 
-type TrainingJobToolbarProps = {
-  filterData: TrainingJobFilterDataType;
+type JobsToolbarProps = {
+  filterData: JobsFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
 };
 
-const TrainingJobToolbar: React.FC<TrainingJobToolbarProps> = ({ filterData, onFilterUpdate }) => (
-  <FilterToolbar<keyof typeof TrainingJobFilterOptions>
+const JobsToolbar: React.FC<JobsToolbarProps> = ({ filterData, onFilterUpdate }) => (
+  <FilterToolbar<keyof typeof JobsFilterOptions>
     data-testid="training-job-table-toolbar"
-    filterOptions={TrainingJobFilterOptions}
+    filterOptions={JobsFilterOptions}
     filterOptionRenders={{
-      [TrainingJobToolbarFilterOptions.name]: ({ onChange, ...props }) => (
+      [JobsToolbarFilterOptions.name]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
           aria-label="Filter by name"
@@ -25,7 +21,7 @@ const TrainingJobToolbar: React.FC<TrainingJobToolbarProps> = ({ filterData, onF
           onChange={(_event, value) => onChange(value)}
         />
       ),
-      [TrainingJobToolbarFilterOptions.clusterQueue]: ({ onChange, ...props }) => (
+      [JobsToolbarFilterOptions.clusterQueue]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
           aria-label="Filter by cluster queue"
@@ -33,7 +29,7 @@ const TrainingJobToolbar: React.FC<TrainingJobToolbarProps> = ({ filterData, onF
           onChange={(_event, value) => onChange(value)}
         />
       ),
-      [TrainingJobToolbarFilterOptions.status]: ({ onChange, ...props }) => (
+      [JobsToolbarFilterOptions.status]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
           aria-label="Filter by status"
@@ -47,4 +43,4 @@ const TrainingJobToolbar: React.FC<TrainingJobToolbarProps> = ({ filterData, onF
   />
 );
 
-export default TrainingJobToolbar;
+export default JobsToolbar;

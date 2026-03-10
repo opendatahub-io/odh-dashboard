@@ -18,6 +18,8 @@ import type {
   ModelRegistryTestData,
   PipelineTestData,
   TiersTestData,
+  ResourcesFiltersTestData,
+  WorkloadMetricsTestData,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -159,6 +161,24 @@ export const loadPipelineFixture = (fixturePath: string): Cypress.Chainable<Pipe
 export const loadTiersFixture = (fixturePath: string): Cypress.Chainable<TiersTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as TiersTestData;
+
+    return data;
+  });
+
+export const loadResourcesFiltersFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ResourcesFiltersTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ResourcesFiltersTestData;
+
+    return data;
+  });
+
+export const loadWorkloadMetricsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WorkloadMetricsTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WorkloadMetricsTestData;
 
     return data;
   });

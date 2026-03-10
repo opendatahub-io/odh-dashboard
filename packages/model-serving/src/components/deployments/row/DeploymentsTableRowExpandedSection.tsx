@@ -165,7 +165,7 @@ export const DeploymentRowExpandedSection: React.FC<{
     [formDataExtension, deployment],
   );
   const replicas = React.useMemo(
-    () => formDataExtension?.properties.extractReplicas(deployment),
+    () => formDataExtension?.properties.extractReplicas(deployment).data,
     [formDataExtension, deployment],
   );
   const description = React.useMemo(
