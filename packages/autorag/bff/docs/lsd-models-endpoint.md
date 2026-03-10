@@ -20,7 +20,7 @@ This document describes the GET endpoint for retrieving available models from a 
 The endpoint:
 1. Validates `namespace` and `secretName` query parameters
 2. Reads the specified Kubernetes secret from the namespace
-3. Extracts `llama_stack_client_base_url` and `llama_stack_client_api_key` from the secret (case-insensitive key matching)
+3. Extracts `llama_stack_client_base_url` and `llama_stack_client_api_key` from the secret (exact key match, case-sensitive)
 4. Creates a LlamaStack client using those credentials
 5. Calls the LlamaStack server to list available models
 6. Translates the response from LlamaStack's native format into a stable public API format
@@ -28,7 +28,7 @@ The endpoint:
 
 ### Secret Requirements
 
-The secret must contain the following keys (case-insensitive):
+The secret must contain the following keys (exact match, case-sensitive):
 
 | Key | Description |
 |-----|-------------|
@@ -104,14 +104,14 @@ The response follows the envelope pattern:
 
 ```bash
 curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4001/api/v1/lsd/models?namespace=my-namespace&secretName=my-lls-secret'
+  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace&secretName=my-lls-secret'
 ```
 
 ### Error: Missing secretName
 
 ```bash
 curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4001/api/v1/lsd/models?namespace=my-namespace'
+  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace'
 ```
 
 Response (400):
@@ -128,7 +128,7 @@ Response (400):
 
 ```bash
 curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4001/api/v1/lsd/models?namespace=my-namespace&secretName=nonexistent'
+  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace&secretName=nonexistent'
 ```
 
 Response (404):
@@ -153,7 +153,7 @@ make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
 ```
 
 ```bash
-curl 'http://localhost:4001/api/v1/lsd/models?namespace=default&secretName=any-secret'
+curl 'http://localhost:4000/api/v1/lsd/models?namespace=default&secretName=any-secret'
 ```
 
 ### Developer Override
@@ -167,7 +167,7 @@ make run LLAMA_STACK_URL=http://localhost:8321
 
 ```bash
 curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4001/api/v1/lsd/models?namespace=default&secretName=any-secret'
+  'http://localhost:4000/api/v1/lsd/models?namespace=default&secretName=any-secret'
 ```
 
 ### Full E2E
@@ -194,7 +194,7 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 4. Call the endpoint:
    ```bash
    curl -H "Authorization: Bearer $(oc whoami -t)" \
-     'http://localhost:4001/api/v1/lsd/models?namespace=<namespace>&secretName=my-lls-secret'
+     'http://localhost:4000/api/v1/lsd/models?namespace=<namespace>&secretName=my-lls-secret'
    ```
 
 ## Security
