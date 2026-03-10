@@ -13,6 +13,8 @@ const mockResizeEvent = new Event('click');
 
 // Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
 let mockDrawerPanelDefaultSize: string | undefined;
+let mockDrawerHeadStyle: React.CSSProperties | undefined;
+let mockDrawerBodyStyle: React.CSSProperties | undefined;
 
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
@@ -79,6 +81,34 @@ jest.mock('@patternfly/react-core', () => {
           >
             Resize 250
           </button>
+          {children}
+        </div>
+      );
+    },
+    DrawerHead: ({
+      children,
+      style,
+    }: {
+      children: React.ReactNode;
+      style?: React.CSSProperties;
+    }) => {
+      mockDrawerHeadStyle = style;
+      return (
+        <div data-testid="mock-drawer-head" style={style}>
+          {children}
+        </div>
+      );
+    },
+    DrawerPanelBody: ({
+      children,
+      style,
+    }: {
+      children: React.ReactNode;
+      style?: React.CSSProperties;
+    }) => {
+      mockDrawerBodyStyle = style;
+      return (
+        <div data-testid="mock-drawer-body" style={style}>
           {children}
         </div>
       );
@@ -159,6 +189,8 @@ describe('ChatbotSettingsPanel', () => {
     sessionStorage.clear();
     useChatbotConfigStore.getState().resetConfiguration();
     mockDrawerPanelDefaultSize = undefined;
+    mockDrawerHeadStyle = undefined;
+    mockDrawerBodyStyle = undefined;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -304,5 +336,59 @@ describe('ChatbotSettingsPanel', () => {
 
     // Should use the stored width
     expect(mockDrawerPanelDefaultSize).toBe(customWidth);
+  });
+
+  it('should apply background color to DrawerHead and DrawerPanelBody when isOverlay is true', () => {
+    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+    const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
+
+    // Both DrawerHead and DrawerPanelBody should have the background color
+    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+  });
+
+  it('should not apply background color when isOverlay is false', () => {
+    render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+
+    // Style should be undefined when not in overlay mode
+    expect(mockDrawerHeadStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toBeUndefined();
+  });
+
+  it('should not apply background color when isOverlay is not provided', () => {
+    render(<ChatbotSettingsPanel {...defaultProps} />);
+
+    // Style should be undefined when isOverlay defaults to false
+    expect(mockDrawerHeadStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toBeUndefined();
+  });
+
+  it('should use default width of 500px even when isOverlay is true', () => {
+    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+    // Should still use the default width, overlay only affects background color
+    expect(mockDrawerPanelDefaultSize).toBe(DEFAULT_WIDTH);
+    expect(mockDrawerPanelDefaultSize).toBe('500px');
+
+    // And should have the overlay background color
+    const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
+    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+  });
+
+  it('should preserve stored width and apply overlay background when both are active', () => {
+    const customWidth = '700px';
+    sessionStorage.setItem(SETTINGS_PANEL_WIDTH, customWidth);
+
+    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+    // Should use stored width
+    expect(mockDrawerPanelDefaultSize).toBe(customWidth);
+
+    // And should have overlay background
+    const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
+    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
   });
 });
