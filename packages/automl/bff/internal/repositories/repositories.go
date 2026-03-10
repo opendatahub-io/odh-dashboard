@@ -9,6 +9,7 @@ type Repositories struct {
 	HealthCheck  *HealthCheckRepository
 	User         *UserRepository
 	Namespace    *NamespaceRepository
+	Pipeline     *PipelineRepository
 	PipelineRuns *PipelineRunsRepository
 }
 
@@ -20,6 +21,7 @@ func NewRepositories(logger *slog.Logger) *Repositories {
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),
 		Namespace:    NewNamespaceRepository(),
+		Pipeline:     NewPipelineRepository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

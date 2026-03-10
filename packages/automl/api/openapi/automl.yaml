@@ -25,6 +25,21 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
+  /api/v1/user:
+    summary: Path used to retrieve a user associated with the token.
+    description: >-
+      The REST endpoint/path used to get the configuration object.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/ConfigResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getUser
+      summary: Get User
+      description: Get User endpoint.
   /api/v1/namespaces:
     summary: Path used to get available namespaces.
     description: >-
@@ -53,26 +68,83 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getNamespaces
       summary: Get Available Namespaces
-      description: Returns available namespaces in the cluster.
-  /api/v1/user:
-    summary: Path used to Retrieve a user based on the header.
+      description: Get Available Namespaces endpoint.
+  /api/v1/pipeline-runs:
+    summary: Pipeline run operations
     description: >-
-      The REST endpoint/path used pass all the config information needed for the UI.
+      Endpoints for listing pipeline runs from the Pipeline Server
+      in the specified namespace. The Pipeline Server (DSPipelineApplication)
+      and AutoML managed pipeline are automatically discovered.
     get:
       tags:
-        - K8SOperation
+        - PipelineOperation
+      security:
+        - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineVersionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID of the pipeline version to filter runs by
+          example: "22e57c06-030f-4c63-900d-0a808d577899"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/nextPageToken"
       responses:
         "200":
-          $ref: "#/components/responses/ConfigResponse"
+          $ref: "#/components/responses/PipelineRunsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-      operationId: getConfig
-      summary: Get configuration info
-      description: Gets the configuration information needed for the UI [TBD]
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRuns
+      summary: Get Pipeline Runs
+      description: Returns pipeline runs optionally filtered by pipeline version ID
+
+  /api/v1/pipeline-runs/{runId}:
+    summary: Get a single pipeline run by ID
+    description: >-
+      Retrieves a single pipeline run by its unique identifier from the
+      Pipeline Server in the specified namespace. The Pipeline Server
+      (DSPipelineApplication) and AutoML managed pipeline are automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRunById
+      summary: Get Pipeline Run by ID
+      description: Returns a single pipeline run by its unique identifier
+
 components:
   schemas:
     Config:
@@ -87,110 +159,240 @@ components:
         clusterAdmin:
           type: boolean
           example: true
-    BaseResource:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceCreate"
-        - type: object
-          properties:
-            id:
-              format: int64
-              description: Output only. The unique server generated id of the resource.
-              type: string
-              readOnly: true
-            createTimeSinceEpoch:
-              format: int64
-              description: Output only. Create time of the resource in millisecond since epoch.
-              type: string
-              readOnly: true
-            lastUpdateTimeSinceEpoch:
-              format: int64
-              description: |-
-                Output only. Last update time of the resource since epoch in millisecond
-                since epoch.
-              type: string
-              readOnly: true
-    BaseResourceCreate:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceUpdate"
-        - type: object
-          properties:
-            name:
-              description: |-
-                The client provided name of the artifact. This field is optional. If set,
-                it must be unique among all the artifacts of the same artifact type within
-                a database instance and cannot be changed once set.
-              type: string
-    BaseResourceUpdate:
-      type: object
-      properties:
-        customProperties:
-          description: User provided custom properties which are not defined by its type.
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
-        description:
-          description: |-
-            An optional description about the resource.
-          type: string
-        externalId:
-          description: |-
-            The external id that come from the clients' system. This field is optional.
-            If set, it must be unique among all resources within a database instance.
-          type: string
 
-    Error:
-      description: Error code and message.
-      required:
-        - code
-        - message
+    # Pipeline Run Schemas
+    PipelineRun:
       type: object
+      description: A Kubeflow Pipeline run
+      required:
+        - run_id
+        - display_name
+        - state
+      properties:
+        run_id:
+          type: string
+          description: Unique run identifier
+          example: "run-abc123-def456"
+        display_name:
+          type: string
+          description: Human-readable run name
+          example: "AutoML Optimization Run 1"
+        description:
+          type: string
+          description: Optional run description
+          example: "Test optimization run"
+        experiment_id:
+          type: string
+          description: ID of the experiment this run belongs to
+          example: "exp-123"
+        pipeline_version_reference:
+          $ref: "#/components/schemas/PipelineVersionReference"
+        state:
+          type: string
+          enum:
+            - PENDING
+            - RUNNING
+            - SUCCEEDED
+            - FAILED
+            - CANCELED
+            - PAUSED
+            - CANCELING
+          description: Current state of the pipeline run
+          example: "SUCCEEDED"
+        storage_state:
+          type: string
+          description: Storage state of the run
+          example: "AVAILABLE"
+        service_account:
+          type: string
+          description: Service account used by the run
+          example: "pipeline-runner-dspa"
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run was created
+          example: "2026-02-24T10:30:00Z"
+        scheduled_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run was scheduled
+          example: "2026-02-24T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run finished
+          example: "2026-02-24T11:15:00Z"
+        state_history:
+          type: array
+          description: History of state transitions
+          items:
+            $ref: "#/components/schemas/RuntimeStatus"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+        run_details:
+          $ref: "#/components/schemas/RunDetails"
+
+    PipelineVersionReference:
+      type: object
+      description: Reference to a pipeline version
+      properties:
+        pipeline_id:
+          type: string
+          description: ID of the pipeline
+          example: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+        pipeline_version_id:
+          type: string
+          description: ID of the pipeline version
+          example: "22e57c06-030f-4c63-900d-0a808d577899"
+
+    RuntimeStatus:
+      type: object
+      description: Runtime status entry in state history
+      properties:
+        update_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the status update
+          example: "2026-02-24T10:30:00Z"
+        state:
+          type: string
+          description: State at this point in history
+          example: "RUNNING"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+
+    ErrorInfo:
+      type: object
+      description: Error information for failed runs or tasks
       properties:
         code:
+          type: integer
           description: Error code
-          type: string
+          example: 500
         message:
-          description: Error message
           type: string
-    SortOrder:
-      description: Supported sort direction for ordering result entities.
-      enum:
-        - ASC
-        - DESC
-      type: string
-    OrderByField:
-      description: Supported fields for ordering result entities.
-      enum:
-        - CREATE_TIME
-        - LAST_UPDATE_TIME
-        - Id
-      type: string
+          description: Error message
+          example: "Pipeline execution failed: unable to connect to data source"
+
+    RunDetails:
+      type: object
+      description: Detailed information about a run's execution
+      properties:
+        task_details:
+          type: array
+          description: Details of individual tasks in the run
+          items:
+            $ref: "#/components/schemas/TaskDetail"
+
+    TaskDetail:
+      type: object
+      description: Details of a single task within a pipeline run
+      properties:
+        run_id:
+          type: string
+          description: ID of the parent run
+          example: "run-abc123-def456"
+        task_id:
+          type: string
+          description: Unique task identifier
+          example: "task-data-preprocessing"
+        display_name:
+          type: string
+          description: Human-readable task name
+          example: "Data Preprocessing"
+        create_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task creation
+          example: "2026-02-24T10:30:00Z"
+        start_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task start
+          example: "2026-02-24T10:30:05Z"
+        end_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task completion
+          example: "2026-02-24T10:35:00Z"
+        state:
+          type: string
+          description: Current state of the task
+          example: "SUCCEEDED"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+        child_tasks:
+          type: array
+          description: Child tasks or pods
+          items:
+            $ref: "#/components/schemas/ChildTask"
+
+    ChildTask:
+      type: object
+      description: Child task or pod reference
+      properties:
+        pod_name:
+          type: string
+          description: Name of the pod executing the task
+          example: "data-preprocessing-pod-abc123"
+
+    PipelineRunsData:
+      type: object
+      description: Container for pipeline runs list response data
+      properties:
+        runs:
+          type: array
+          description: List of pipeline runs
+          items:
+            $ref: "#/components/schemas/PipelineRun"
+        total_size:
+          type: integer
+          description: Total number of runs available
+          example: 10
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page of results
+          example: "next-page-token-123"
+
+    PipelineRunData:
+      type: object
+      description: Container for single pipeline run response data
+      properties:
+        run:
+          $ref: "#/components/schemas/PipelineRun"
+
+  parameters:
+    namespace:
+      name: namespace
+      in: query
+      required: true
+      schema:
+        type: string
+      description: Kubernetes namespace
+      example: "default"
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Number of items to return per page
+      example: 20
+    nextPageToken:
+      name: nextPageToken
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Token for retrieving the next page of results
+      example: "next-page-token-123"
 
   responses:
-    NotFound:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: The specified resource was not found
-    BadRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Bad Request parameters
-    Unauthorized:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Unauthorized
-    InternalServerError:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Unexpected internal server error
     ConfigResponse:
+      description: User configuration response
       content:
         application/json:
           schema:
@@ -198,118 +400,124 @@ components:
             properties:
               metadata:
                 type: object
-                description: Metadata about the response
+                description: Response metadata
               data:
                 $ref: "#/components/schemas/Config"
-      description: A response containing a list of Config entities.
-    ConflictResponse:
+
+    PipelineRunsResponse:
+      description: List of pipeline runs
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
-      description: Conflict - Role Binding with the same name already exists
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRunsData"
 
-  parameters:
-    kubeflowUserId:
-      in: header
-      name: kubeflow-userid
-      schema:
-        type: string
-      required: true
-    id:
-      name: id
-      description: The ID of resource.
-      schema:
-        type: string
-      in: path
-      required: true
-    name:
-      examples:
-        name:
-          value: entity-name
-      name: name
-      description: Name of entity to search.
-      schema:
-        type: string
-      in: query
-      required: false
-    externalId:
-      examples:
-        externalId:
-          value: "10"
-      name: externalId
-      description: External ID of entity to search.
-      schema:
-        type: string
-      in: query
-      required: false
-    parentResourceId:
-      examples:
-        parentResourceId:
-          value: "10"
-      name: parentResourceId
-      description: ID of the parent resource to use for search.
-      schema:
-        type: string
-      in: query
-      required: false
-    pageSize:
-      examples:
-        pageSize:
-          value: "100"
-      name: pageSize
-      description: Number of entities in each page.
-      schema:
-        type: string
-      in: query
-      required: false
-    nextPageToken:
-      name: nextPageToken
-      description: Token to use to retrieve next page of results.
-      schema:
-        type: string
-      in: query
-      required: false
-    orderBy:
-      style: form
-      explode: true
-      examples:
-        orderBy:
-          value: Id
-      name: orderBy
-      description: Specifies the order by criteria for listing entities.
-      schema:
-        $ref: "#/components/schemas/OrderByField"
-      in: query
-      required: false
-    sortOrder:
-      style: form
-      explode: true
-      examples:
-        sortOrder:
-          value: DESC
-      name: sortOrder
-      description: "Specifies the sort order for listing entities, defaults to ASC."
-      schema:
-        $ref: "#/components/schemas/SortOrder"
-      in: query
-      required: false
-    namespace:
-      name: namespace
-      description: The namespace to filter resources by.
-      schema:
-        type: string
-      in: query
-      required: false
+    PipelineRunResponse:
+      description: Single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRunData"
+
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "400"
+                  message:
+                    type: string
+                    example: "Invalid request parameters"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "401"
+                  message:
+                    type: string
+                    example: "Authentication required"
+
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "404"
+                  message:
+                    type: string
+                    example: "Resource not found"
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "500"
+                  message:
+                    type: string
+                    example: "Internal server error"
+
+    ServiceUnavailable:
+      description: Service Unavailable
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "503"
+                  message:
+                    type: string
+                    example: "Service temporarily unavailable"
 
   securitySchemes:
     Bearer:
+      type: http
       scheme: bearer
       bearerFormat: JWT
-      type: http
-      description: Bearer JWT scheme
-security:
-  - Bearer: []
-tags:
-  - name: K8SOperation
-    description: Operation performed in Kubernetes
+      description: JWT bearer token authentication

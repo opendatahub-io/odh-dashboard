@@ -388,3 +388,56 @@ func NewMockClientFactory() *MockClientFactory {
 func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) pipelineserver.PipelineServerClientInterface {
 	return NewMockPipelineServerClient()
 }
+
+// ListPipelines returns mock pipeline data for discovery testing
+func (m *MockPipelineServerClient) ListPipelines(ctx context.Context) (*models.KFPipelinesResponse, error) {
+	return &models.KFPipelinesResponse{
+		Pipelines: []models.KFPipeline{
+			{
+				PipelineID:  "9e3940d5-b275-4b64-be10-b914cd06c58e",
+				DisplayName: "automl-optimization-pipeline",
+				Description: "AutoML optimization pipeline for hyperparameter tuning",
+				CreatedAt:   "2026-01-01T00:00:00Z",
+			},
+			{
+				PipelineID:  "other-pipeline-id",
+				DisplayName: "other-pipeline",
+				Description: "Some other pipeline",
+				CreatedAt:   "2026-01-02T00:00:00Z",
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+// ListPipelineVersions returns mock pipeline version data for discovery testing
+func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipelineID is required")
+	}
+
+	// Return mock versions for the AutoML pipeline
+	if pipelineID == "9e3940d5-b275-4b64-be10-b914cd06c58e" {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        pipelineID,
+					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+					DisplayName:       "v1.0.0",
+					Description:       "Latest version",
+					CreatedAt:         "2026-01-01T00:00:00Z",
+				},
+			},
+			TotalSize:     1,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Return empty for other pipelines
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{},
+		TotalSize:        0,
+		NextPageToken:    "",
+	}, nil
+}

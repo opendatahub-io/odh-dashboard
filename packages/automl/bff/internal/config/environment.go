@@ -106,6 +106,13 @@ type EnvConfig struct {
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
 
+	// ─── PIPELINE DISCOVERY ─────────────────────────────────────
+	// AutoMLPipelineNamePrefix is the prefix used to identify AutoML managed pipelines
+	// during automatic pipeline discovery. The discovery process searches for pipelines
+	// with display names starting with this prefix (case-insensitive).
+	// Default: "automl"
+	AutoMLPipelineNamePrefix string
+
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
