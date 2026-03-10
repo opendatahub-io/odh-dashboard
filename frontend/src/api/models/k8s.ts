@@ -103,3 +103,17 @@ export const DataScienceClusterModel: K8sModelCommon = {
   kind: 'DataScienceCluster',
   plural: 'datascienceclusters',
 };
+
+export const GatewayModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'gateway.networking.k8s.io',
+  kind: 'Gateway',
+  plural: 'gateways',
+};
+
+export const HTTPRouteModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'gateway.networking.k8s.io',
+  kind: 'HTTPRoute',
+  plural: 'httproutes',
+};
