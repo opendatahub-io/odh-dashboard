@@ -73,7 +73,7 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Maintain'],
     },
     () => {
       cy.step('Log into the application as admin');
