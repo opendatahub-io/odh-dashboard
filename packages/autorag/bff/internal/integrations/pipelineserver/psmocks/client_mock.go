@@ -498,6 +498,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	return mockRun, nil
 }
 
+// GetPipelineVersion returns a mock pipeline version with no pipeline_spec (mock mode)
+func (m *MockPipelineServerClient) GetPipelineVersion(_ context.Context, _, _ string) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		DisplayName:       "mock-pipeline-version",
+	}, nil
+}
+
 // CreateRun returns a mock pipeline run response matching real KFP v2beta1 output
 func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	now := time.Now().UTC()

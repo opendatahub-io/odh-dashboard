@@ -130,6 +130,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		CreatedAt:                kfRun.CreatedAt,
 		ScheduledAt:              kfRun.ScheduledAt,
 		FinishedAt:               kfRun.FinishedAt,
+		PipelineSpec:             kfRun.PipelineSpec,
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
@@ -272,7 +273,8 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 	return &run, nil
 }
 
-// GetPipelineRun retrieves a single pipeline run by ID
+// GetPipelineRun retrieves a single pipeline run by ID.
+// It also fetches the pipeline version to include pipeline_spec for topology visualization.
 func (r *PipelineRunsRepository) GetPipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
@@ -300,5 +302,19 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 
 	// Transform Kubeflow format to our stable API format
 	run := toPipelineRun(kfRun)
+
+	// Enrich with pipeline_spec from the pipeline version (needed for DAG topology)
+	if ref := kfRun.PipelineVersionReference; ref != nil && ref.PipelineID != "" && ref.PipelineVersionID != "" {
+		version, vErr := client.GetPipelineVersion(ctx, ref.PipelineID, ref.PipelineVersionID)
+		if vErr != nil {
+			slog.Warn("failed to fetch pipeline version for spec enrichment",
+				"pipelineID", ref.PipelineID,
+				"versionID", ref.PipelineVersionID,
+				"error", vErr)
+		} else if version != nil && len(version.PipelineSpec) > 0 {
+			run.PipelineSpec = version.PipelineSpec
+		}
+	}
+
 	return &run, nil
 }

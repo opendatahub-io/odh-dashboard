@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 // PipelineRun represents a Kubeflow Pipeline Run from the v2beta1 API
 // This is the stable public API format exposed to the frontend
 type PipelineRun struct {
@@ -15,6 +17,7 @@ type PipelineRun struct {
 	CreatedAt                string                    `json:"created_at"`
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
+	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
@@ -55,6 +58,7 @@ type KFPipelineRun struct {
 	CreatedAt                string                    `json:"created_at,omitempty"`
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
+	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
@@ -102,6 +106,14 @@ type TaskDetail struct {
 // ChildTask represents a child task reference
 type ChildTask struct {
 	PodName string `json:"pod_name,omitempty"`
+}
+
+// KFPipelineVersion represents a pipeline version from the KFP v2beta1 API
+type KFPipelineVersion struct {
+	PipelineID        string          `json:"pipeline_id"`
+	PipelineVersionID string          `json:"pipeline_version_id"`
+	DisplayName       string          `json:"display_name"`
+	PipelineSpec      json.RawMessage `json:"pipeline_spec,omitempty"`
 }
 
 // CreateAutoRAGRunRequest is the BFF-level input for creating an AutoRAG pipeline run.

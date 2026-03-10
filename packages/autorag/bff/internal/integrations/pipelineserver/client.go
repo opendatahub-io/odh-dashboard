@@ -36,6 +36,7 @@ type PipelineServerClientInterface interface {
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
+	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
@@ -184,6 +185,45 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	}
 
 	return &run, nil
+}
+
+// GetPipelineVersion retrieves a pipeline version (including its pipeline_spec) from the KFP API
+func (c *RealPipelineServerClient) GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error) {
+	if pipelineID == "" || versionID == "" {
+		return nil, fmt.Errorf("pipelineID and versionID are required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions/%s",
+		c.baseURL, url.PathEscape(pipelineID), url.PathEscape(versionID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		body, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: string(body)}
+	}
+
+	var version models.KFPipelineVersion
+	if err := json.NewDecoder(resp.Body).Decode(&version); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &version, nil
 }
 
 // CreateRun creates a new pipeline run via the KFP v2beta1 API.
