@@ -9,6 +9,9 @@ module.exports = {
       // Handle virtual files extracted from markdown
       files: ['**/*.md/*.js', '**/*.md/*.jsx', '**/*.md/*.ts', '**/*.md/*.tsx'],
       extends: ['plugin:@typescript-eslint/disable-type-checked'],
+      parserOptions: {
+        sourceType: 'module',
+      },
       rules: {
         'no-constant-condition': 'off',
         'no-lone-blocks': 'off',
