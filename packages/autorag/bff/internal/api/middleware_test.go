@@ -270,12 +270,30 @@ func TestIsValidLlamaStackURL(t *testing.T) {
 		assert.Contains(t, err.Error(), "must contain a host")
 	})
 
-	t.Run("should accept DNS names without resolving them", func(t *testing.T) {
-		// DNS names are not resolved during validation - only IP literals are checked.
-		// This means metadata.google.internal passes here, but it would only resolve
-		// to 169.254.169.254 inside GCP (not in an OpenShift cluster).
-		err := isValidLlamaStackURL("http://metadata.google.internal")
+	t.Run("should reject localhost (resolves to loopback)", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://localhost:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "loopback")
+	})
+
+	t.Run("should allow non-resolving hostname (fails at connection time instead)", func(t *testing.T) {
+		// Hostnames that don't resolve are allowed through — they may only be resolvable
+		// inside a cluster (e.g., svc.cluster.local). The HTTP client will fail later
+		// with a connection error, handled as 502 Bad Gateway.
+		err := isValidLlamaStackURL("http://this-hostname-does-not-exist.invalid:8321")
 		assert.NoError(t, err)
+	})
+
+	t.Run("should block metadata.google.internal if it resolves to link-local", func(t *testing.T) {
+		// In OpenShift/CI environments this hostname doesn't resolve, so it passes
+		// validation (non-resolving hostnames are allowed through).
+		// In GCP environments it would resolve to 169.254.169.254 and be blocked as link-local.
+		err := isValidLlamaStackURL("http://metadata.google.internal")
+		if err != nil {
+			// If it resolved (e.g., in GCP), it should be blocked as link-local
+			assert.Contains(t, err.Error(), "link-local")
+		}
+		// If it didn't resolve (e.g., in OpenShift/CI), no error — that's expected
 	})
 }
 

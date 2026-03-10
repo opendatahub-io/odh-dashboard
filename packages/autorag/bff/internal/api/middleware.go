@@ -22,7 +22,6 @@ import (
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,6 +37,10 @@ var ErrNoDSPAFound = errors.New("no DSPipelineApplication found in namespace")
 // Rules: lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars
 var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
+// dns1123SubdomainRegex matches valid DNS-1123 subdomains
+// Rules: lowercase alphanumeric, '-', or '.', must start/end with alphanumeric, max 253 chars
+var dns1123SubdomainRegex = regexp.MustCompile(`^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$`)
+
 // isValidDNS1123Label validates a string against DNS-1123 label rules
 // Returns true if the label is valid, false otherwise
 func isValidDNS1123Label(label string) bool {
@@ -47,9 +50,34 @@ func isValidDNS1123Label(label string) bool {
 	return dns1123LabelRegex.MatchString(label)
 }
 
+// isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
+// Returns true if the subdomain is valid, false otherwise
+func isValidDNS1123Subdomain(name string) bool {
+	if len(name) == 0 || len(name) > 253 {
+		return false
+	}
+	return dns1123SubdomainRegex.MatchString(name)
+}
+
+// validateIP checks an IP address against the SSRF blocklist.
+// Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
+// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.
+func validateIP(ip net.IP) error {
+	if ip.IsLoopback() {
+		return fmt.Errorf("loopback addresses are not allowed")
+	}
+	if ip.IsLinkLocalUnicast() {
+		return fmt.Errorf("link-local addresses are not allowed")
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("unspecified addresses are not allowed")
+	}
+	return nil
+}
+
 // isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
-// Only http and https schemes are allowed. Loopback addresses and the link-local range (169.254.0.0/16),
-// which includes cloud metadata endpoints (AWS/Azure/GCP all use 169.254.169.254), are blocked.
+// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
+// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
 // Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
 // services typically run as cluster-internal services with private IPs.
 func isValidLlamaStackURL(rawURL string) error {
@@ -67,15 +95,21 @@ func isValidLlamaStackURL(rawURL string) error {
 		return fmt.Errorf("URL must contain a host")
 	}
 
+	// Check IP literals directly
 	if ip := net.ParseIP(host); ip != nil {
-		if ip.IsLoopback() {
-			return fmt.Errorf("loopback addresses are not allowed")
-		}
-		if ip.IsLinkLocalUnicast() {
-			return fmt.Errorf("link-local addresses are not allowed")
-		}
-		if ip.IsUnspecified() {
-			return fmt.Errorf("unspecified addresses are not allowed")
+		return validateIP(ip)
+	}
+
+	// Resolve DNS hostnames and validate all resulting IPs.
+	// If DNS resolution fails, allow it through — the hostname may only be resolvable
+	// inside the cluster (e.g., svc.cluster.local). The HTTP client will fail with a
+	// connection error later, which is handled as a 502 Bad Gateway.
+	ips, err := net.LookupIP(host)
+	if err == nil {
+		for _, ip := range ips {
+			if err := validateIP(ip); err != nil {
+				return fmt.Errorf("hostname %q resolves to blocked address: %w", host, err)
+			}
 		}
 	}
 
@@ -257,8 +291,8 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
 			return
 		}
-		if !isValidDNS1123Label(secretName) {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 label (lowercase alphanumeric or '-', start/end with alphanumeric, max 63 chars)"))
+		if !isValidDNS1123Subdomain(secretName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 			return
 		}
 
@@ -313,19 +347,16 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// List secrets in namespace and find the one matching secretName
-			allSecrets, err := k8sClient.GetSecrets(ctx, namespace, identity)
+			// Get the specific secret by name
+			foundSecret, err := k8sClient.GetSecret(ctx, namespace, secretName, identity)
 			if err != nil {
-				app.handleK8sClientError(w, r, err)
-				return
-			}
-
-			var foundSecret *corev1.Secret
-			for i := range allSecrets {
-				if allSecrets[i].Name == secretName {
-					foundSecret = &allSecrets[i]
-					break
+				// Check if the underlying error is a Kubernetes "not found" error
+				if k8serrors.IsNotFound(err) {
+					app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				} else {
+					app.handleK8sClientError(w, r, err)
 				}
+				return
 			}
 
 			if foundSecret == nil {

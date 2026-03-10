@@ -73,4 +73,3 @@ func IsK8sUnauthorized(err error) bool {
 func IsK8sForbidden(err error) bool {
 	return k8serrors.IsForbidden(err)
 }
-

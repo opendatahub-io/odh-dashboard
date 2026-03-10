@@ -260,13 +260,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
         "502":
-          description: Bad Gateway - LlamaStack service is unreachable
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+          $ref: "#/components/responses/BadGateway"
       operationId: getLSDModels
       summary: Get LSD Models
       description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
@@ -852,6 +846,14 @@ components:
         message:
           description: Error message
           type: string
+    ErrorEnvelope:
+      description: Envelope wrapping an Error response.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -871,38 +873,44 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
     Forbidden:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Forbidden - insufficient permissions
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unexpected internal server error
     ServiceUnavailable:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Service temporarily unavailable
+    BadGateway:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Bad Gateway - upstream service is unreachable
     ConfigResponse:
       content:
         application/json:
@@ -1149,7 +1157,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Conflict - Role Binding with the same name already exists
 
   parameters:
