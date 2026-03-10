@@ -120,7 +120,7 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Optional Fields - displayName and description', () => {
       it('should include displayName when openshift.io/display-name annotation is present', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -138,7 +138,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should include description when openshift.io/description annotation is present', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -156,7 +156,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should omit displayName and description when annotations are not present', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -181,7 +181,7 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Optional Type Field', () => {
       it('should include type field when secret matches a recognized type or has connection-type annotation', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default&type=storage');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -201,7 +201,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should omit type field when secret does not match any recognized type and has no connection-type annotation', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -226,7 +226,7 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Field Type Validation', () => {
       it('should return secrets with all fields matching schema types', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,

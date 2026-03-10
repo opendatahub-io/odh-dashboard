@@ -821,7 +821,7 @@ func TestGetSecretsHandler_DisplayName_WithAnnotation(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -857,7 +857,7 @@ func TestGetSecretsHandler_DisplayName_WithoutAnnotation(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -924,7 +924,7 @@ func TestGetSecretsHandler_DisplayName_MixedSecrets(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -975,7 +975,7 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_OverridesKeyBasedDetection(t
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -1012,7 +1012,7 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_FallsBackToKeyDetection(t *t
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -1052,7 +1052,7 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_EmptyAnnotationFallsBackToKe
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -1117,7 +1117,7 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_MixedAnnotatedAndNonAnnotate
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -1167,7 +1167,7 @@ func TestGetSecretsHandler_Description_WithAnnotation(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -1203,7 +1203,7 @@ func TestGetSecretsHandler_Description_WithoutAnnotation(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -1270,7 +1270,7 @@ func TestGetSecretsHandler_Description_MixedSecrets(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -1321,7 +1321,7 @@ func TestGetSecretsHandler_DisplayNameAndDescription_BothPresent(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
