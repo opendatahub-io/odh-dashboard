@@ -216,8 +216,9 @@ missing embedding model + malformed config).
 | 00b — Success scenario (valid qdrant) | **Yes** — Running 1/1 | **No** — no connectivity log at startup; qdrant defers connection until first use | N/A (no error) | Same pre-registration behaviour as pgvector. `vector_store_name` works. Unlike pgvector, qdrant does not attempt a DB connection at startup. |
 | 00c — Success scenario (valid remote milvus) | **Yes** — Running 1/1 | **Yes** — logs `Connecting to Milvus server at ...` at startup | N/A (no error) | Same pre-registration behaviour. `token` is required by Pydantic model regardless of auth config — use `""` for unauthenticated, `"username:password"` for auth-enabled. Token-protected Milvus (`root:Milvus`) confirmed working with end-to-end RAG. |
 | 00d — Success scenario (external Qdrant Cloud) | **Yes** — Running 1/1 | **No** — same as in-cluster qdrant, defers connection until first use | N/A (no error) | Confirms llamastack can connect to a vector store outside the cluster. Pre-registration and end-to-end RAG work identically to in-cluster qdrant. `api_key` used for auth. |
-| 01 — Unreachable endpoint (missing `persistence`) | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `AttributeError` (Python traceback) | Crashed due to missing `persistence` field, not the unreachable host. |
-| 01 — Unreachable endpoint (with `persistence`) | No — CrashLoopBackOff | **Yes** — DNS lookup attempted at startup | `psycopg2.OperationalError` (Python traceback) | Llamastack attempts DB connection at startup. One bad provider causes entire instance to fail. |
+| 01a — Unreachable pgvector (missing `persistence`) | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `AttributeError` (Python traceback) | Crashed due to missing `persistence` field, not the unreachable host. |
+| 01a — Unreachable pgvector (with `persistence`) | No — CrashLoopBackOff | **Yes** — DNS lookup attempted at startup | `psycopg2.OperationalError` (Python traceback) | Llamastack attempts DB connection at startup. One bad provider causes entire instance to fail. |
+| 01b — Unreachable qdrant | **Yes** — Running 1/1 | **No** — zero qdrant log lines at startup | `{"code":"server_error","message":"[Errno -2] Name or service not known"}` (HTTP 200, error in response body) | Pod starts fine. Error is deferred to first use — surfaces as a `failed` status on the vector store file attachment, not a startup crash. |
 | 02 — Missing embedding model | | | | |
 | 03 — Malformed provider config | | | | |
 | 04 — Invalid credentials | | | | |
@@ -566,3 +567,51 @@ RuntimeError: Could not connect to PGVector database server
 - **Error format:** Raw Python traceback. Root cause is `psycopg2.OperationalError` (DNS/connectivity failure), re-raised as `RuntimeError("Could not connect to PGVector database server")`. No structured JSON error.
 - DNS resolution failure is fast (not a timeout — fails immediately, no 30s wait).
 - **Implication for BFF:** The BFF must validate that vector store endpoints are reachable *before* writing them to the configmap — a single bad provider entry takes down the entire llamastack instance.
+
+---
+
+### Test 01b — Unreachable Qdrant Endpoint
+
+**Config file:** `configmaps/01b-unreachable-endpoint-qdrant.yaml`
+
+**Result: Pod started successfully — Running 1/1**
+
+Unlike pgvector, llamastack made **no connectivity attempt at startup**. There are zero qdrant-related
+log lines during startup — the provider loads silently and the instance comes up healthy:
+
+```
+GET /v1/health → {"status": "OK"}
+```
+
+The pre-registered store also appeared as `"status": "completed"` in `GET /v1/vector_stores` — giving
+no indication that the endpoint is unreachable.
+
+The error was only surfaced when the store was actually used — attaching a file triggered the DNS
+lookup, which failed:
+
+```bash
+POST /v1/vector_stores/vs_test_unreachable_qdrant/files
+→ HTTP 200, body:
+{
+  "status": "failed",
+  "last_error": {
+    "code": "server_error",
+    "message": "[Errno -2] Name or service not known"
+  }
+}
+```
+
+**Key findings:**
+- **Pod starts successfully** — a bad qdrant endpoint does not cause a startup failure.
+- **No connectivity check at startup** — confirmed with zero qdrant log lines. Consistent with
+  the success scenario observations (Tests 00b and 00d).
+- **Error is deferred to first use** — surfaces on the first API call that actually touches the
+  provider (e.g. attaching a file to the store). The response is HTTP 200 with `"status": "failed"`
+  and an error embedded in the response body, not an HTTP error code.
+- **`GET /v1/vector_stores` shows `"status": "completed"`** — the store appears healthy until
+  first use. There is no way to detect the bad endpoint from the listing alone.
+- **Contrast with pgvector:** A bad pgvector endpoint brings the entire instance down at startup.
+  A bad qdrant endpoint is invisible at startup and only fails silently at the call site.
+- **Implication for BFF:** For qdrant providers, startup success is not a reliable signal that
+  the endpoint is valid. The BFF should validate qdrant connectivity independently before writing
+  the configmap, as there is no startup-time feedback to rely on.
