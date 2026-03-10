@@ -11,11 +11,7 @@ import {
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../types';
 

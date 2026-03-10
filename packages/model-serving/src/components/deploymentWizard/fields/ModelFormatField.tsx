@@ -5,8 +5,6 @@ import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,

@@ -90,36 +90,40 @@ const ContentModal: React.FC<ContentModalProps> = ({
       <ModalBody className={bodyClassName} aria-label={bodyLabel}>
         {contents}
       </ModalBody>
-      <ModalFooter>
-        <Stack hasGutter style={{ flex: 'auto' }}>
-          {error && (
-            <StackItem>
-              <Alert
-                data-testid="error-message-alert"
-                variant="danger"
-                isInline
-                title={alertTitle}
-                actionLinks={alertLinks}
-              >
-                {error instanceof Error ? error.message : error}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            {buttonActions?.map((action, index) => (
-              <Button
-                key={`${action.label}-${index}`}
-                variant={action.variant}
-                onClick={action.onClick}
-                data-testid={action.dataTestId}
-                isDisabled={action.isDisabled}
-              >
-                {action.label}
-              </Button>
-            ))}
-          </StackItem>
-        </Stack>
-      </ModalFooter>
+      {(error || (buttonActions && buttonActions.length > 0)) && (
+        <ModalFooter>
+          <Stack hasGutter style={{ flex: 'auto' }}>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="error-message-alert"
+                  variant="danger"
+                  isInline
+                  title={alertTitle}
+                  actionLinks={alertLinks}
+                >
+                  {error instanceof Error ? error.message : error}
+                </Alert>
+              </StackItem>
+            )}
+            {buttonActions && buttonActions.length > 0 && (
+              <StackItem>
+                {buttonActions.map((action, index) => (
+                  <Button
+                    key={`${action.label}-${index}`}
+                    variant={action.variant}
+                    onClick={action.onClick}
+                    data-testid={action.dataTestId}
+                    isDisabled={action.isDisabled}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              </StackItem>
+            )}
+          </Stack>
+        </ModalFooter>
+      )}
     </Modal>
   );
 };

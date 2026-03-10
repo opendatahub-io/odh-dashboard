@@ -14,11 +14,7 @@ import type {
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/internal/k8sTypes';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
 import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
@@ -27,8 +23,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getModelTypesFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
@@ -37,8 +31,6 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { IdentifierResourceType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-// TODO: fix lint error:
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
