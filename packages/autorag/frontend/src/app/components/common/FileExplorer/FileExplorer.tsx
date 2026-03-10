@@ -51,14 +51,16 @@ export interface File {
   name: string;
   size: string;
   type: string;
+  items?: number;
   details?: object;
 }
 export type Files = File[];
 
+// TODO [ Claude ] Should Directory be an extension of File? Forced type="Directory" and adds items number field. That way Files interface can contain both Files & Directories.
 export interface Directory {
   name: string;
   path: string;
-  childCount?: number;
+  items?: number;
 }
 
 // Globals -------------------------------------------------------------------->
@@ -79,11 +81,15 @@ const defaults = {
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
     tableColumnType: 'Type',
-    tableColumnSize: 'Size',
+    tableColumnItems: 'Items',
 
     detailsPanelTitle: 'Details',
   },
 };
+
+const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
+const BREADCRUMB_LEADING_VISIBLE = 2;
+const BREADCRUMB_TRAILING_VISIBLE = 2;
 
 // Components ----------------------------------------------------------------->
 
@@ -117,7 +123,7 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
   const columns = {
     name: defaults.labels.tableColumnName,
     type: defaults.labels.tableColumnType,
-    size: defaults.labels.tableColumnSize,
+    items: defaults.labels.tableColumnItems,
   };
 
   // TODO [ Gustavo ] Render an empty state if files.length === 0. See https://www.patternfly.org/components/table#empty-state
@@ -133,10 +139,12 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
         >
           <Thead>
             <Tr>
-              <Th isStickyColumn screenReaderText="File select" />
-              <Th isStickyColumn>{columns.name}</Th>
+              <Th isStickyColumn width={10} screenReaderText="File select" />
+              <Th isStickyColumn width={40}>
+                {columns.name}
+              </Th>
               <Th isStickyColumn>{columns.type}</Th>
-              <Th isStickyColumn>{columns.size}</Th>
+              <Th isStickyColumn>{columns.items}</Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -154,7 +162,7 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
                   />
                   <Td dataLabel={columns.name}>{file.name}</Td>
                   <Td dataLabel={columns.type}>{file.type}</Td>
-                  <Td dataLabel={columns.size}>{file.size}</Td>
+                  <Td dataLabel={columns.items}>{file.items}</Td>
                 </Tr>
               ))}
           </Tbody>
@@ -179,9 +187,6 @@ interface PathBreadcrumbsProps {
   rootLabel?: string;
   onNavigate?: (directory: Directory) => void;
 }
-const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
-const BREADCRUMB_LEADING_VISIBLE = 1;
-const BREADCRUMB_TRAILING_VISIBLE = 2;
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   directories,
   rootLabel = 'Root',
