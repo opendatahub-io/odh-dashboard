@@ -256,8 +256,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     }}
                   />
                   <Td dataLabel={columns.name}>
-                    {isDirectory(file) ? (
-                      // Should this be a Content/a/href or should it be Button variant link
+                    {/* Should this be a Content/a/href or should it be Button variant link */}
+                    {isDirectory(file) && (
                       <Content
                         component="a"
                         href="#"
@@ -268,9 +268,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       >
                         {file.name}
                       </Content>
-                    ) : (
-                      file.name
                     )}
+                    {!isDirectory(file) && file.name}
                   </Td>
                   <Td dataLabel={columns.type}>
                     {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
@@ -403,30 +402,39 @@ interface DetailsPanelProps {
   selectedFiles?: Files;
   loading?: boolean;
 }
-const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, loading }) => (
-  <Card isFullHeight>
-    <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
-    <CardBody>
-      {loading ? (
-        <DescriptionList>
-          <DescriptionListGroup>
-            <DescriptionListTerm>
-              <Skeleton width="60px" height="1em" />
-            </DescriptionListTerm>
-            <DescriptionListDescription>
-              <Skeleton width="120px" height="1em" />
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>
-              <Skeleton width="40px" height="1em" />
-            </DescriptionListTerm>
-            <DescriptionListDescription>
-              <Skeleton width="180px" height="1em" />
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-      ) : (
+const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, loading }) => {
+  if (loading) {
+    return (
+      <Card isFullHeight>
+        <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+        <CardBody>
+          <DescriptionList>
+            <DescriptionListGroup>
+              <DescriptionListTerm>
+                <Skeleton width="60px" height="1em" />
+              </DescriptionListTerm>
+              <DescriptionListDescription>
+                <Skeleton width="120px" height="1em" />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>
+                <Skeleton width="40px" height="1em" />
+              </DescriptionListTerm>
+              <DescriptionListDescription>
+                <Skeleton width="180px" height="1em" />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  return (
+    <Card isFullHeight>
+      <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+      <CardBody>
         <DescriptionList>
           {source && (
             <>
@@ -445,14 +453,14 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
           {/* // TODO [ Gustavo ] Render a selected files section with slight left margins to differentiate these details from the source details. Selected files should also show an X so we can remove them from this panel */}
           {Array.isArray(selectedFiles) &&
             selectedFiles.length > 0 &&
-            selectedFiles.map((f) => (
-              <React.Fragment key={f.path}>
+            selectedFiles.map((selectedFile) => (
+              <React.Fragment key={selectedFile.path}>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>{f.name}</DescriptionListTerm>
-                  <DescriptionListDescription>{f.path}</DescriptionListDescription>
+                  <DescriptionListTerm>{selectedFile.name}</DescriptionListTerm>
+                  <DescriptionListDescription>{selectedFile.path}</DescriptionListDescription>
                 </DescriptionListGroup>
-                {f.details &&
-                  Object.entries(f.details).map(([key, value]) => (
+                {selectedFile.details &&
+                  Object.entries(selectedFile.details).map(([key, value]) => (
                     <DescriptionListGroup key={key}>
                       <DescriptionListTerm>{key}</DescriptionListTerm>
                       <DescriptionListDescription>{String(value)}</DescriptionListDescription>
@@ -461,10 +469,10 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
               </React.Fragment>
             ))}
         </DescriptionList>
-      )}
-    </CardBody>
-  </Card>
-);
+      </CardBody>
+    </Card>
+  );
+};
 
 interface FileExplorerProps {
   id?: string;
