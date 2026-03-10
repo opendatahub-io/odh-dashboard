@@ -1,16 +1,8 @@
 import * as z from 'zod';
 import { createSchema } from '../utilities/schema';
 
-function createExperimentSchema(): z.ZodPipe<
-  z.ZodObject<
-    { name: z.ZodDefault<z.ZodString>; description: z.ZodOptional<z.ZodDefault<z.ZodString>> },
-    z.core.$strip
-  >,
-  z.ZodTransform<
-    { name: string; description?: string | undefined },
-    { name: string; description?: string | undefined }
-  >
-> {
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+function createExperimentSchema() {
   return createSchema({
     // Make sure all fields (including optional ones) have a default to ensure RHF works as intended.
     schema: z.object({
