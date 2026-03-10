@@ -334,12 +334,12 @@ describe('SecretSelector', () => {
         uuid: '2',
         name: 'aws-secret-2',
         type: 's3',
-        availableKeys: [
-          'aws_access_key_id',
-          'aws_secret_access_key',
-          'aws_default_region',
-          'aws_s3_endpoint',
-        ],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+        },
         invalid: false,
       });
     });
@@ -666,7 +666,11 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'incomplete-secret',
-          availableKeys: ['aws_access_key_id', 'aws_secret_access_key', 'aws_default_region'],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+            aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -694,7 +698,11 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'incomplete-secret',
         type: 's3',
-        availableKeys: ['aws_access_key_id', 'aws_secret_access_key', 'aws_default_region'],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+        },
         invalid: true,
       });
     });
@@ -704,7 +712,10 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'incomplete-secret',
-          availableKeys: ['aws_access_key_id', 'aws_secret_access_key'],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -734,7 +745,10 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'incomplete-secret',
         type: 's3',
-        availableKeys: ['aws_access_key_id', 'aws_secret_access_key'],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+        },
         invalid: true,
       });
     });
@@ -744,13 +758,13 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'complete-secret',
-          availableKeys: [
-            'aws_access_key_id',
-            'aws_secret_access_key',
-            'aws_default_region',
-            'aws_s3_endpoint',
-            'aws_s3_bucket',
-          ],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+            aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+            aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+            aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -778,13 +792,13 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'complete-secret',
         type: 's3',
-        availableKeys: [
-          'aws_access_key_id',
-          'aws_secret_access_key',
-          'aws_default_region',
-          'aws_s3_endpoint',
-          'aws_s3_bucket',
-        ],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+          aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+        },
         invalid: false,
       });
     });
@@ -794,13 +808,13 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'uppercase-secret',
-          availableKeys: [
-            'AWS_ACCESS_KEY_ID',
-            'AWS_SECRET_ACCESS_KEY',
-            'AWS_DEFAULT_REGION',
-            'AWS_S3_ENDPOINT',
-            'AWS_S3_BUCKET',
-          ],
+          data: {
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+            AWS_DEFAULT_REGION: '[REDACTED]',
+            AWS_S3_ENDPOINT: '[REDACTED]',
+            AWS_S3_BUCKET: 'my-bucket',
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -828,13 +842,13 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'uppercase-secret',
         type: 's3',
-        availableKeys: [
-          'AWS_ACCESS_KEY_ID',
-          'AWS_SECRET_ACCESS_KEY',
-          'AWS_DEFAULT_REGION',
-          'AWS_S3_ENDPOINT',
-          'AWS_S3_BUCKET',
-        ],
+        data: {
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
+          AWS_S3_BUCKET: 'my-bucket',
+        },
         invalid: false,
       });
     });
@@ -844,7 +858,9 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'any-secret',
-          availableKeys: ['aws_access_key_id'],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -869,7 +885,9 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'any-secret',
         type: 's3',
-        availableKeys: ['aws_access_key_id'],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+        },
         invalid: false,
       });
     });
@@ -879,7 +897,10 @@ describe('SecretSelector', () => {
         mockLLSSecret({
           uuid: '1',
           name: 'lls-secret',
-          availableKeys: ['llama_stack_client_api_key', 'llama_stack_client_base_url'],
+          data: {
+            llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
+            llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -905,7 +926,10 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'lls-secret',
         type: 'lls',
-        availableKeys: ['llama_stack_client_api_key', 'llama_stack_client_base_url'],
+        data: {
+          llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
+          llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+        },
         invalid: false,
       });
     });
@@ -915,12 +939,17 @@ describe('SecretSelector', () => {
         mockStorageSecret({
           uuid: '1',
           name: 'valid-secret',
-          availableKeys: ['aws_access_key_id', 'aws_s3_bucket'],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+          },
         }),
         mockStorageSecret({
           uuid: '2',
           name: 'incomplete-secret',
-          availableKeys: ['aws_access_key_id'],
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          },
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1078,12 +1107,12 @@ describe('SecretSelector', () => {
         uuid: '1',
         name: 'aws-prod-credentials',
         type: 's3',
-        availableKeys: [
-          'aws_access_key_id',
-          'aws_secret_access_key',
-          'aws_default_region',
-          'aws_s3_endpoint',
-        ],
+        data: {
+          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+        },
         displayName: 'Production AWS Credentials',
         invalid: false,
       });

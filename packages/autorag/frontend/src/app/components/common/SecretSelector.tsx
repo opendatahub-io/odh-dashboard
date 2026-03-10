@@ -115,7 +115,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return [];
       }
 
-      return getMissingRequiredKeys(requiredKeysForType, secret.availableKeys);
+      return getMissingRequiredKeys(requiredKeysForType, Object.keys(secret.data));
     },
     [additionalRequiredKeys],
   );

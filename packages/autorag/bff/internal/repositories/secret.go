@@ -99,8 +99,8 @@ func (r *SecretRepository) GetFilteredSecrets(
 			}
 		}
 
-		// Extract and sort available keys from the secret
-		availableKeys := extractAndSortKeys(secret)
+		// Extract available keys from the secret and build map with actual/sanitized values
+		availableKeys := buildAvailableKeysMap(secret)
 
 		// Extract display name from annotation if it exists
 		displayName := secret.Annotations["openshift.io/display-name"]
@@ -201,6 +201,54 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 		}
 	}
 	return true
+}
+
+// allowedSecretKeys defines the keys whose actual values can be returned to the client.
+// All other keys will be sanitized with "[REDACTED]".
+// Key matching is case-insensitive.
+var allowedSecretKeys = []string{
+	"aws_s3_bucket",
+}
+
+// buildAvailableKeysMap extracts all keys from a secret's Data and StringData fields
+// and builds a map where:
+// - Keys in the allowedSecretKeys list have their actual values
+// - All other keys have the value "[REDACTED]"
+// Key matching for allowed keys is case-insensitive.
+func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
+	result := make(map[string]string)
+
+	// Create a map of lowercase allowed keys for case-insensitive lookup
+	allowedKeysLower := make(map[string]bool)
+	for _, key := range allowedSecretKeys {
+		allowedKeysLower[strings.ToLower(key)] = true
+	}
+
+	// Process Data field
+	for key, value := range secret.Data {
+		if allowedKeysLower[strings.ToLower(key)] {
+			// Return actual value for allowed keys
+			result[key] = string(value)
+		} else {
+			// Sanitize other keys
+			result[key] = "[REDACTED]"
+		}
+	}
+
+	// Process StringData field (avoiding duplicates)
+	for key, value := range secret.StringData {
+		if _, exists := result[key]; !exists {
+			if allowedKeysLower[strings.ToLower(key)] {
+				// Return actual value for allowed keys
+				result[key] = value
+			} else {
+				// Sanitize other keys
+				result[key] = "[REDACTED]"
+			}
+		}
+	}
+
+	return result
 }
 
 // extractAndSortKeys extracts all keys from a secret's Data and StringData fields,
