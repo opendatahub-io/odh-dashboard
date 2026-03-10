@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
@@ -114,9 +115,14 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 // in the namespace before returning it. This prevents users from accessing runs from other
 // pipelines that may exist in the same namespace.
 //
+// Validation includes:
+//   - PipelineVersionReference must exist (defense-in-depth for data integrity)
+//   - Pipeline ID must match discovered AutoRAG pipeline
+//   - Pipeline version ID must match discovered AutoRAG pipeline version
+//
 // Error Responses:
 //   - 400: Missing runId or pipeline server client
-//   - 404: Run not found, or run belongs to a different pipeline
+//   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
 //   - 500: Pipeline Server error or no AutoRAG pipeline discovered
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
@@ -159,13 +165,25 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 
 	// Verify that the run belongs to the discovered AutoRAG pipeline
 	// This ensures users can only access runs from the AutoRAG pipeline in their namespace
-	if run.PipelineVersionReference != nil {
-		if run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-			run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
-			// Run exists but belongs to a different pipeline - return 404 for security
-			app.notFoundResponse(w, r)
-			return
-		}
+
+	// Defense-in-depth: Validate that PipelineVersionReference exists
+	// KFP should always set this field, but we check explicitly for data integrity
+	if run.PipelineVersionReference == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
+			"runId", runID,
+			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
+		// Return 404 for security (don't leak that run exists with invalid data)
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Validate that the run belongs to the discovered AutoRAG pipeline
+	if run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		// Run exists but belongs to a different pipeline - return 404 for security
+		app.notFoundResponse(w, r)
+		return
 	}
 
 	// Wrap in envelope response

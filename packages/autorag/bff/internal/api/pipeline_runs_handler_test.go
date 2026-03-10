@@ -771,6 +771,43 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, "500", response.Error.Code)
 		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
 	})
+
+	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-nil-reference"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Create mock client that returns a run with nil PipelineVersionReference
+		mockClient := &nilPipelineReferenceMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+
+		// Discovered pipeline
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 404 for security (data integrity issue)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
 }
 
 // differentPipelineMockClient returns runs with a different pipeline ID
@@ -788,6 +825,22 @@ func (m *differentPipelineMockClient) GetRun(ctx context.Context, runID string) 
 			PipelineVersionID: "different-version-id",
 		},
 		CreatedAt: "2024-01-01T00:00:00Z",
+	}
+	return run, nil
+}
+
+// nilPipelineReferenceMockClient returns runs with nil PipelineVersionReference
+type nilPipelineReferenceMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *nilPipelineReferenceMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run := &models.KFPipelineRun{
+		RunID:                    runID,
+		DisplayName:              "Run Without Pipeline Reference",
+		State:                    "SUCCEEDED",
+		PipelineVersionReference: nil, // Missing pipeline reference
+		CreatedAt:                "2024-01-01T00:00:00Z",
 	}
 	return run, nil
 }
