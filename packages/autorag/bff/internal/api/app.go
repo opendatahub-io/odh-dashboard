@@ -178,6 +178,7 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.PostS3FileHandler)))
 
 	// LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))

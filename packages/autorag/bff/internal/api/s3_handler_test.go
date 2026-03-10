@@ -1,11 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
@@ -527,4 +534,223 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "us-east-1", creds.Region)
 	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
 	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
+}
+
+// --- PostS3FileHandler tests ---
+
+func TestPostS3FileHandler_MissingNamespace(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingSecretName(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingBucket(t *testing.T) {
+	// Secret without AWS_S3_BUCKET, and no bucket query param -> 400
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_SecretNotFound(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{}}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+func TestPostS3FileHandler_NoFilePart(t *testing.T) {
+	// POST with JSON body instead of multipart -> MultipartReader fails -> 400
+	// Use mock with valid secret so handler gets past credential check and fails on body.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com")},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"POST",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		map[string]string{},
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MultipartWithoutFilePart(t *testing.T) {
+	// Valid multipart/form-data but no part named "file" -> 400
+	// Use mock with valid secret so handler gets past credential check and fails on missing file part.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	if err := w.WriteField("other", "value"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf", &buf)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	if identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  logger,
+		kubernetesClientFactory: factory,
+		repositories:            repositories.NewRepositories(logger),
+	}
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_NamespaceNotFound(t *testing.T) {
+	// Create a Kubernetes NotFound error for namespace
+	notFoundErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "namespaces \"non-existent\" not found",
+			Reason:  metav1.StatusReasonNotFound,
+			Code:    http.StatusNotFound,
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{err: notFoundErr}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }

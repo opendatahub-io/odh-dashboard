@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -167,4 +168,150 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			"key", key,
 		)
 	}
+}
+
+// PostS3FileHandler uploads a file to S3 storage using credentials from a Kubernetes secret.
+// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
+// Request body: multipart/form-data with a file part named "file". Streams the file to S3 without buffering.
+//
+// Note: namespace is provided via the AttachNamespace middleware
+func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
+
+	// Get namespace from context (set by AttachNamespace middleware)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		return
+	}
+
+	queryParams := r.URL.Query()
+
+	secretName := queryParams.Get("secretName")
+	if secretName == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
+		return
+	}
+
+	key := queryParams.Get("key")
+	if key == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	// Resolve credentials before reading the body so we fail fast without consuming large uploads.
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return
+	}
+
+	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	if err != nil {
+		var statusErr *apierrors.StatusError
+		if errors.As(err, &statusErr) {
+			if apierrors.IsNotFound(statusErr) {
+				httpError := &integrations.HTTPError{
+					StatusCode: http.StatusNotFound,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusNotFound),
+						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
+					},
+				}
+				app.errorResponse(w, r, httpError)
+				return
+			}
+			if apierrors.IsForbidden(statusErr) {
+				app.forbiddenResponse(w, r, err.Error())
+				return
+			}
+			if apierrors.IsUnauthorized(statusErr) {
+				app.unauthorizedResponse(w, r, err.Error())
+				return
+			}
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: err.Error(),
+				},
+			}
+			app.errorResponse(w, r, httpError)
+			return
+		}
+		if strings.Contains(err.Error(), "missing required field") {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Determine bucket: use query param if provided, otherwise use bucket from secret
+	bucket := queryParams.Get("bucket")
+	if bucket == "" {
+		if creds.Bucket == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+			return
+		}
+		bucket = creds.Bucket
+	}
+
+	// Stream multipart body: do not buffer the entire file.
+	mr, err := r.MultipartReader()
+	if err != nil || mr == nil {
+		if err == nil {
+			err = fmt.Errorf("request must be multipart/form-data with a boundary")
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("request must be multipart/form-data with a boundary: %w", err))
+		return
+	}
+
+	var filePart *multipart.Part
+	for {
+		part, nextErr := mr.NextPart()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
+			return
+		}
+		if part.FormName() == "file" {
+			filePart = part
+			break
+		}
+		// Consume and discard non-file parts so the stream advances
+		_, _ = io.Copy(io.Discard, part)
+	}
+
+	if filePart == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing 'file' part in multipart form"))
+		return
+	}
+
+	contentType := filePart.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	if err := app.repositories.S3.UploadS3Object(ctx, creds, bucket, key, filePart, contentType); err != nil {
+		errStr := err.Error()
+		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
+		return
+	}
+
+	body := map[string]bool{"uploaded": true}
+	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
 }
