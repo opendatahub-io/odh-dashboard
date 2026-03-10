@@ -61,14 +61,25 @@ The response follows the envelope pattern:
       "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "aws-secret-1",
       "type": "s3",
-      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"],
+      "data": {
+        "aws_access_key_id": "[REDACTED]",
+        "aws_default_region": "[REDACTED]",
+        "aws_s3_endpoint": "[REDACTED]",
+        "aws_secret_access_key": "[REDACTED]",
+        "aws_s3_bucket": "my-production-bucket"
+      },
       "displayName": "Production S3 Bucket"
     },
     {
       "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
       "name": "aws-secret-2",
       "type": "s3",
-      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+      "data": {
+        "aws_access_key_id": "[REDACTED]",
+        "aws_default_region": "[REDACTED]",
+        "aws_s3_endpoint": "[REDACTED]",
+        "aws_secret_access_key": "[REDACTED]"
+      }
     }
   ]
 }
@@ -81,7 +92,7 @@ The response follows the envelope pattern:
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
 | `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "lls"). Omitted from the response only when neither is available. |
-| `availableKeys` | string[] | Sorted list of all keys available in the secret (without values) |
+| `data` | object | Object mapping all keys available in the secret to their values. Keys are case-preserved. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `aws_s3_bucket`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
 | `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
 | `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
 
@@ -123,14 +134,20 @@ Response:
       "uuid": "c3d4e5f6-a7b8-9012-cdef-012345678901",
       "name": "llama-stack-secret-1",
       "type": "lls",
-      "availableKeys": ["llama_stack_client_api_key", "llama_stack_client_base_url"],
+      "data": {
+        "llama_stack_client_api_key": "[REDACTED]",
+        "llama_stack_client_base_url": "[REDACTED]"
+      },
       "displayName": "Development LLS"
     },
     {
       "uuid": "d4e5f6a7-b8c9-0123-def0-123456789012",
       "name": "llama-stack-secret-2",
       "type": "lls",
-      "availableKeys": ["llama_stack_client_api_key", "llama_stack_client_base_url"]
+      "data": {
+        "llama_stack_client_api_key": "[REDACTED]",
+        "llama_stack_client_base_url": "[REDACTED]"
+      }
     }
   ]
 }
@@ -220,19 +237,21 @@ A secret missing any of these required keys would NOT match and would be exclude
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-insensitive, so `LLAMA_STACK_CLIENT_API_KEY` and `llama_stack_client_api_key` are treated as equivalent.
 
-### Available Keys
+### Secret Data Field
 
-The `availableKeys` field exposes the names of all keys present in the secret (but not their values). This allows clients to:
-- Determine if a secret has optional parameters
-- Validate that required keys are present before using the secret
-- Display configuration options to users
+The `data` field exposes an object mapping all keys present in the secret to their values. For security, most values are sanitized as `"[REDACTED]"`, with only specific allowed keys returning their actual values.
+
+**Allowed keys (returning actual values):**
+- `aws_s3_bucket` (case-insensitive matching)
 
 **Key characteristics:**
+- **Object format**: Returns a `Record<string, string>` mapping keys to values
 - **Case-preserved**: Keys are returned exactly as they appear in Kubernetes (e.g., `AWS_ACCESS_KEY_ID`, `aws_access_key_id`, `Aws_Access_Key_Id` are all preserved)
-- **Sorted alphabetically**: Keys are always returned in alphabetical order for consistency
+- **Sanitized values**: Most values are `"[REDACTED]"` for security
+- **Selective exposure**: Only allowed keys (currently `aws_s3_bucket`) return actual values
 - **Includes both Data and StringData**: Keys from both `Data` and `StringData` fields are included
-- **No duplicates**: If a key appears in both `Data` and `StringData`, it only appears once in the list
-- **Empty secrets**: Secrets with no keys return an empty array `[]`
+- **No duplicates**: If a key appears in both `Data` and `StringData`, it only appears once in the object
+- **Empty secrets**: Secrets with no keys return an empty object `{}`
 
 **Example:**
 ```json
@@ -240,17 +259,21 @@ The `availableKeys` field exposes the names of all keys present in the secret (b
   "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "my-s3-secret",
   "type": "s3",
-  "availableKeys": [
-    "aws_access_key_id",
-    "aws_default_region",
-    "aws_s3_bucket",
-    "aws_s3_endpoint",
-    "aws_secret_access_key"
-  ]
+  "data": {
+    "aws_access_key_id": "[REDACTED]",
+    "aws_default_region": "[REDACTED]",
+    "aws_s3_bucket": "my-bucket-name",
+    "aws_s3_endpoint": "[REDACTED]",
+    "aws_secret_access_key": "[REDACTED]"
+  }
 }
 ```
 
-In this example, the secret has an optional `aws_s3_bucket` key in addition to the required S3 keys. Clients can detect this and offer additional configuration options.
+In this example:
+- The secret has an optional `aws_s3_bucket` key in addition to the required S3 keys
+- The `aws_s3_bucket` value is exposed (`"my-bucket-name"`) because it's in the allowed list
+- All other keys have sanitized values (`"[REDACTED]"`)
+- Clients can use `Object.keys(data)` to determine which keys are present and offer additional configuration options
 
 ### Connection Type Annotation
 
@@ -283,7 +306,10 @@ data:
   "uuid": "...",
   "name": "my-database-connection",
   "type": "postgresql",
-  "availableKeys": ["db_host", "db_password"]
+  "data": {
+    "db_host": "[REDACTED]",
+    "db_password": "[REDACTED]"
+  }
 }
 ```
 
@@ -323,7 +349,11 @@ data:
   "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "my-s3-credentials",
   "type": "s3",
-  "availableKeys": ["aws_access_key_id", "aws_secret_access_key", ...],
+  "data": {
+    "aws_access_key_id": "[REDACTED]",
+    "aws_secret_access_key": "[REDACTED]",
+    "aws_s3_bucket": "production-bucket"
+  },
   "displayName": "Production S3 Bucket",
   "description": "Main S3 bucket for production data storage and backups"
 }
@@ -344,7 +374,9 @@ data:
 {
   "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
   "name": "my-other-secret",
-  "availableKeys": ["password"]
+  "data": {
+    "password": "[REDACTED]"
+  }
 }
 ```
 
@@ -356,10 +388,12 @@ The implementation includes comprehensive tests covering:
   - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-insensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
-- **Available keys**:
-  - Keys are sorted alphabetically
+- **Secret data field**:
+  - Data is returned as an object mapping keys to values
   - Keys are case-preserved
-  - Empty secrets return empty array
+  - Most values are sanitized as `"[REDACTED]"`
+  - Allowed keys (e.g., `aws_s3_bucket`) return actual values
+  - Empty secrets return empty object `{}`
   - Keys from both Data and StringData are included
 - **Display name**:
   - Secrets with `openshift.io/display-name` annotation include displayName field
