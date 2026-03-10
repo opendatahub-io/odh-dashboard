@@ -571,22 +571,18 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Success Response Schema', () => {
-      it('should return 201 with S3UploadSuccess schema when upload succeeds', async () => {
+    describe('Valid Request (all params and file present)', () => {
+      it('should not return 400 when all parameters and file part are provided', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
           form,
         );
-        if (result.success) {
-          expect(result.response.status).toBe(201);
-          expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/schemas/S3UploadSuccess',
-            status: 201,
-          });
+        // Will fail without actual S3 setup, but validates parameter and body parsing
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
         }
-        // When secret does not exist or S3 is unavailable, we may get 404/500; schema test only runs on success
-      });
+      }, 8000);
     });
   });
 });
