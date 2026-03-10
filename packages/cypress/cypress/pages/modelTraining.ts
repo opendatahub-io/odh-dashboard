@@ -20,7 +20,7 @@ class ModelTrainingGlobal {
 
     appChrome
       .findNavItem({
-        name: 'Training jobs',
+        name: 'Jobs',
         rootSection: 'Develop & train',
       })
       .click();
@@ -34,7 +34,7 @@ class ModelTrainingGlobal {
   }
 
   findNavItem() {
-    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+    return appChrome.findNavItem({ name: 'Jobs', rootSection: 'Develop & train' });
   }
 
   shouldNotFoundPage() {
@@ -156,8 +156,24 @@ class TrainingJobTableRow extends TableRow {
     return this.findTrainingJobName().find('button');
   }
 
+  findType() {
+    return this.find().find('[data-label="Type"]');
+  }
+
+  findRayCluster() {
+    return this.find().find('[data-label="Ray cluster"]');
+  }
+
   findPauseResumeToggle() {
     return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusCell() {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findKebabButton() {
+    return this.find().findByLabelText('Kebab toggle');
   }
 }
 
@@ -215,6 +231,10 @@ class TrainingJobDetailsDrawer {
 
   findKebabMenuItem(itemName: string) {
     return cy.findByRole('menuitem', { name: itemName });
+  }
+
+  findEditNodeCountAction() {
+    return cy.findByTestId('edit-node-count-action');
   }
 }
 
@@ -427,8 +447,12 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('retry-job-button');
   }
 
-  findPauseResumeButton() {
-    return cy.findByTestId('pause-resume-job-button');
+  findResumeJobButton() {
+    return cy.findByTestId('resume-job-button');
+  }
+
+  findPauseJobButton() {
+    return cy.findByTestId('pause-job-button');
   }
 
   findDeleteButton() {

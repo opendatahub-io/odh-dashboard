@@ -303,7 +303,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
             onClick={isPaused ? onResumeClick : handlePauseClick}
             isDisabled={isToggling}
             isLoading={isToggling}
-            data-testid="pause-resume-job-button"
+            data-testid={isPaused ? 'resume-job-button' : 'pause-job-button'}
           >
             {isPaused ? 'Resume job' : 'Pause job'}
           </Button>

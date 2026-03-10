@@ -158,7 +158,7 @@ export const DeploymentRow: React.FC<{
             resource={deployment.model}
             items={[
               {
-                title: 'Edit',
+                title: <span data-testid="edit-inference-service-action">Edit</span>,
                 onClick: () => {
                   navigateToDeploymentWizard(deployment.model.metadata.namespace);
                 },
@@ -168,7 +168,7 @@ export const DeploymentRow: React.FC<{
               },
               { isSeparator: true },
               {
-                title: 'Delete',
+                title: <span data-testid="delete-inference-service-action">Delete</span>,
                 onClick: () => {
                   onDelete(deployment);
                 },

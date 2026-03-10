@@ -1307,6 +1307,7 @@ export type DashboardCommonConfig = {
   aiAssetExternalModels?: boolean;
   maasApiKeys?: boolean;
   mlflow?: boolean;
+  mcpCatalog?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;

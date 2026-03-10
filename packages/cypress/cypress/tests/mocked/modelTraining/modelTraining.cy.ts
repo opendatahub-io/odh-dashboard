@@ -1,7 +1,12 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
+import { mockRayJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
 import { createMockEventsForTrainJob } from '@odh-dashboard/model-training/__mocks__/mockEventK8sResource';
-import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import {
+  TrainingJobState,
+  RayJobDeploymentStatus,
+  RayJobStatusValue,
+} from '@odh-dashboard/model-training/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -151,6 +156,23 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
     numNodes: 8,
     localQueueName: 'overconsumed-queue',
     creationTimestamp: '2024-01-18T10:00:00Z',
+  },
+]);
+
+const mockRayJobs = mockRayJobK8sResourceList([
+  {
+    name: 'ray-data-processing',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    entrypoint: 'python process_data.py',
+  },
+  {
+    name: 'ray-completed-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.SUCCEEDED,
+    jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
+    succeeded: 1,
   },
 ]);
 
@@ -444,6 +466,14 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
 
   cy.interceptK8sList(
     {
+      model: RayJobModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(isEmpty ? [] : mockRayJobs),
+  );
+
+  cy.interceptK8sList(
+    {
       model: LocalQueueModel,
       ns: projectName,
     },
@@ -688,17 +718,32 @@ describe('Model Training', () => {
     imageClassificationRow.findProject().should('contain', projectDisplayName);
     imageClassificationRow.findNodes().should('contain', '4');
     imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findType().should('contain', 'TrainJob');
+    imageClassificationRow.findRayCluster().should('contain', '-');
     imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
   });
 
-  it('should show empty state when no training jobs exist', () => {
+  it('should show empty state when no jobs exist', () => {
     initIntercepts({ isEmpty: true });
     modelTrainingGlobal.visit(projectName);
 
-    modelTrainingGlobal.findEmptyState().should('contain', 'No training jobs');
+    modelTrainingGlobal.findEmptyState().should('contain', 'No jobs');
     modelTrainingGlobal
       .findEmptyStateDescription()
-      .should('contain', 'No training jobs have been found in this project.');
+      .should('contain', 'No TrainJobs or RayJobs have been found in this project.');
+  });
+
+  it('should display RayJobs alongside TrainJobs in the table', () => {
+    initIntercepts();
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.findTable().should('be.visible');
+
+    const trainJobRow = trainingJobTable.getTableRow('image-classification-job');
+    trainJobRow.findTrainingJobName().should('contain', 'image-classification-job');
+
+    const rayJobRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayJobRow.findTrainingJobName().should('contain', 'ray-data-processing');
   });
 
   describe('Training Job Details Drawer', () => {

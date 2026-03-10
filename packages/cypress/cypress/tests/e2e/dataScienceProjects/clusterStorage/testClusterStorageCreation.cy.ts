@@ -7,6 +7,7 @@ import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import {
   clusterStorage,
+  clusterStorageActions,
   addClusterStorageModal,
   updateClusterStorageModal,
 } from '../../../../pages/clusterStorage';
@@ -99,8 +100,8 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
       // Edit the Cluster Storage, amend the name and update
       cy.step('Edit the Cluster Storage and verify edits are successful');
-      clusterStorage.findKebabToggle().click();
-      clusterStorage.getClusterStorageRow(pvStorageName).findKebabAction('Edit storage').click();
+      clusterStorage.getClusterStorageRow(pvStorageName).findKebab().click();
+      clusterStorageActions.findEditStorageAction().click();
       updateClusterStorageModal.findNameInput().clear();
       updateClusterStorageModal.findNameInput().type(pvStorageNameEdited);
       updateClusterStorageModal.findSubmitButton().click({ force: true });
@@ -110,11 +111,8 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       cy.step('Delete the Cluster Storage and verify deletion');
       // Note reload is required to ensure that the new edited name is propagated
       cy.reload();
-      clusterStorage.findKebabToggle().click();
-      clusterStorage
-        .getClusterStorageRow(pvStorageNameEdited)
-        .findKebabAction('Delete storage')
-        .click({ force: true });
+      clusterStorage.getClusterStorageRow(pvStorageNameEdited).findKebab().click();
+      clusterStorageActions.findDeleteStorageAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(pvStorageNameEdited);
       deleteModal.findSubmitButton().should('be.enabled').click();

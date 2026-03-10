@@ -392,3 +392,37 @@ export const getSelfManagedResourceCount = (
       ),
     ),
   );
+
+const resourceTypeCountLoaderMap: Partial<Record<string, () => void>> = {
+  documentation: getDocumentationResourceCount,
+  'how-to': getHowToResourceCount,
+  quickstart: getQuickstartResourceCount,
+  tutorial: getTutorialResourceCount,
+};
+
+const rhoaiProviderCountLoaderMap: Partial<Record<string, () => void>> = {
+  Elastic: getElasticResourceCount,
+  IBM: getIBMResourceCount,
+  'Intel®': getIntelResourceCount,
+  NVIDIA: getNVIDIAResourceCount,
+  Pachyderm: getPachydermResourceCount,
+  'Red Hat': getRedHatResourceCount,
+  Starburst: getStarburstResourceCount,
+  'Self-managed': getSelfManagedResourceCount,
+};
+
+export const loadResourceTypeCount = (filterType: string): void => {
+  const loader = resourceTypeCountLoaderMap[filterType];
+  if (!loader) {
+    throw new Error(`Unknown resource type filter: ${filterType}`);
+  }
+  loader();
+};
+
+export const loadRhoaiProviderCount = (provider: string): void => {
+  const loader = rhoaiProviderCountLoaderMap[provider];
+  if (!loader) {
+    throw new Error(`Unknown RHOAI provider filter: ${provider}`);
+  }
+  loader();
+};

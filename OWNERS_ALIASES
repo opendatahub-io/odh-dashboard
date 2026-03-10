@@ -9,7 +9,6 @@ aliases:
     - emilys314
     - DaoDaoNoCode
     - antowaddle
-    - manosnoam
     - FedeAlonso
     - Griffin-Sullivan
     - YuliaKrimerman
@@ -107,13 +106,11 @@ aliases:
   quality-e2e-testing-approvers:
     - antowaddle
     - FedeAlonso
-    - manosnoam
     - sridarna
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
     - FedeAlonso
-    - manosnoam
     - sridarna
 
   # Workbenches (formerly Notebooks)

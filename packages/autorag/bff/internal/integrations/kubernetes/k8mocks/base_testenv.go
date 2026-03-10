@@ -116,6 +116,29 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
+	// Secret without bucket - for testing bucket parameter validation
+	err = createSecret(mockK8sClient, ctx, "test-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Secret with bucket - for testing successful S3 operations
+	err = createSecret(mockK8sClient, ctx, "test-secret-with-bucket", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_BUCKET":         "test-bucket",
+	})
+	if err != nil {
+		return err
+	}
+
 	err = createService(mockK8sClient, ctx, "mod-arch", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "mod-arch")
 	if err != nil {
 		return err
@@ -175,6 +198,29 @@ func createNamespace(k8sClient kubernetes.Interface, ctx context.Context, namesp
 	_, err := k8sClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+	}
+
+	return nil
+}
+
+func createSecret(k8sClient kubernetes.Interface, ctx context.Context, name, namespace string, data map[string]string) error {
+	secretData := make(map[string][]byte)
+	for key, value := range data {
+		secretData[key] = []byte(value)
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: secretData,
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	_, err := k8sClient.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create secret %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return nil

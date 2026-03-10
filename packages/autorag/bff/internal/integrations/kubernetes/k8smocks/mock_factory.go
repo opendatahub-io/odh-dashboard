@@ -13,7 +13,8 @@ import (
 // NewMockTokenClientFactory creates a basic mock factory for simple tests
 func NewMockTokenClientFactory() k8s.KubernetesClientFactory {
 	return &ConfigurableMockTokenClientFactory{
-		CanListLSDAllowed: true, // Default to allowed
+		CanListLSDAllowed:  true, // Default to allowed
+		CanListDSPAAllowed: true, // Default to allowed
 	}
 }
 
@@ -41,6 +42,8 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *k8s.Re
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed    bool
 	CanListLSDError      error
+	CanListDSPAAllowed   bool
+	CanListDSPAError     error
 	GetLSDList           *lsdapi.LlamaStackDistributionList // Can be set to custom LlamaStackDistributionList
 	GetLSDError          error
 	ShouldReturnEmptyLSD bool
@@ -51,6 +54,8 @@ func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s
 	return &ConfigurableMockKubernetesClient{
 		CanListLSDAllowed:    f.CanListLSDAllowed,
 		CanListLSDError:      f.CanListLSDError,
+		CanListDSPAAllowed:   f.CanListDSPAAllowed,
+		CanListDSPAError:     f.CanListDSPAError,
 		GetLSDList:           f.GetLSDList,
 		GetLSDError:          f.GetLSDError,
 		ShouldReturnEmptyLSD: f.ShouldReturnEmptyLSD,
@@ -74,6 +79,8 @@ type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
 	CanListLSDAllowed    bool
 	CanListLSDError      error
+	CanListDSPAAllowed   bool
+	CanListDSPAError     error
 	GetLSDList           *lsdapi.LlamaStackDistributionList
 	GetLSDError          error
 	ShouldReturnEmptyLSD bool
@@ -85,6 +92,13 @@ func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx co
 		return false, c.CanListLSDError
 	}
 	return c.CanListLSDAllowed, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+	if c.CanListDSPAError != nil {
+		return false, c.CanListDSPAError
+	}
+	return c.CanListDSPAAllowed, nil
 }
 
 func (c *ConfigurableMockKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {

@@ -301,6 +301,10 @@ class ModelRegistry {
     return cy.findByRole('button', { name: "Who's my administrator?" });
   }
 
+  findDeployAction() {
+    return cy.findByTestId('deploy-model-version-action');
+  }
+
   findArchiveModelVersionAction() {
     return cy.findByTestId('archive-model-version-action');
   }

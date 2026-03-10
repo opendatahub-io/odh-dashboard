@@ -2,13 +2,13 @@ import * as React from 'react';
 import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { TrainJobKind } from '../../k8sTypes';
+import { UnifiedJobKind } from '../../types';
 
-type TrainingJobProjectProps = {
-  trainingJob: TrainJobKind;
+type JobProjectProps = {
+  job: UnifiedJobKind;
 };
 
-const TrainingJobProject: React.FC<TrainingJobProjectProps> = ({ trainingJob }) => {
+const JobProject: React.FC<JobProjectProps> = ({ job }) => {
   const { projects, loaded, loadError } = React.useContext(ProjectsContext);
 
   if (!loaded) {
@@ -19,15 +19,15 @@ const TrainingJobProject: React.FC<TrainingJobProjectProps> = ({ trainingJob }) 
     return (
       <HelperText>
         <HelperTextItem variant="warning">
-          Failed to get project for this training job. {loadError.message}
+          Failed to get project for this job. {loadError.message}
         </HelperTextItem>
       </HelperText>
     );
   }
 
-  const project = projects.find(byName(trainingJob.metadata.namespace));
+  const project = projects.find(byName(job.metadata.namespace));
 
-  return <>{project ? getDisplayNameFromK8sResource(project) : trainingJob.metadata.namespace}</>;
+  return <>{project ? getDisplayNameFromK8sResource(project) : job.metadata.namespace}</>;
 };
 
-export default TrainingJobProject;
+export default JobProject;
