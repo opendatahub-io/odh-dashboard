@@ -4,13 +4,19 @@ import { createRoot } from 'react-dom/client';
 import { Button, Flex } from '@patternfly/react-core';
 import { clone } from 'es-toolkit';
 import FileExplorer from './FileExplorer';
-import type { Directory, File, Files, Source } from './FileExplorer.tsx';
+import type { Directory, File, Files, Source, Sources } from './FileExplorer.tsx';
 
 const App: React.FC = () => {
   const mockSource: Source = {
     name: 'Foo connection',
     count: 999999999,
   };
+
+  const mockSources: Sources = [
+    { name: 'Connection Alpha', count: 42 },
+    { name: 'Connection Beta', count: 7 },
+    { name: 'Connection Gamma', count: 1337 },
+  ];
 
   const mockFile: File = {
     name: 'FooFile.000.md',
@@ -54,6 +60,8 @@ const App: React.FC = () => {
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
+  const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
+  const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
 
   return (
     <div style={{ padding: 24 }}>
@@ -70,6 +78,8 @@ const App: React.FC = () => {
           onClick={() => {
             setFilesToRender(mock20Files);
             setDirectoriesToRender(mockDirectories);
+            setSourceToRender(mockSource);
+            setSourcesToRender(undefined);
             setIsOpen(true);
           }}
         >
@@ -79,6 +89,8 @@ const App: React.FC = () => {
           onClick={() => {
             setFilesToRender(mock100Files);
             setDirectoriesToRender(mockDirectories);
+            setSourceToRender(mockSource);
+            setSourcesToRender(undefined);
             setIsOpen(true);
           }}
         >
@@ -88,6 +100,8 @@ const App: React.FC = () => {
           onClick={() => {
             setFilesToRender(mock1000Files);
             setDirectoriesToRender(mockDirectories);
+            setSourceToRender(mockSource);
+            setSourcesToRender(undefined);
             setIsOpen(true);
           }}
         >
@@ -97,16 +111,52 @@ const App: React.FC = () => {
           onClick={() => {
             setFilesToRender(mock20Files);
             setDirectoriesToRender(mock10Directories);
+            setSourceToRender(mockSource);
+            setSourcesToRender(undefined);
             setIsOpen(true);
           }}
         >
           Open FileExplorer (10 nested levels)
         </Button>
+        <Button
+          onClick={() => {
+            setFilesToRender(mock20Files);
+            setDirectoriesToRender(mockDirectories);
+            setSourceToRender(undefined);
+            setSourcesToRender(mockSources);
+            setIsOpen(true);
+          }}
+        >
+          Open FileExplorer (multiple sources, none selected)
+        </Button>
+        <Button
+          onClick={() => {
+            setFilesToRender(mock20Files);
+            setDirectoriesToRender(mockDirectories);
+            setSourceToRender(mockSource);
+            setSourcesToRender(undefined);
+            setIsOpen(true);
+          }}
+        >
+          Open FileExplorer (source selected)
+        </Button>
+        <Button
+          onClick={() => {
+            setFilesToRender(mock20Files);
+            setDirectoriesToRender(mockDirectories);
+            setSourceToRender(undefined);
+            setSourcesToRender(undefined);
+            setIsOpen(true);
+          }}
+        >
+          Open FileExplorer (no source, no sources)
+        </Button>
       </Flex>
 
       <FileExplorer
         files={filesToRender}
-        source={mockSource}
+        source={sourceToRender}
+        sources={sourcesToRender}
         directories={directoriesToRender}
         rootLabel="mock-bucket (root)"
         bucket="mock-bucket"

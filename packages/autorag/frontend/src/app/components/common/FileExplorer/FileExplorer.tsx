@@ -18,6 +18,7 @@ import {
   FlexItem,
   Grid,
   GridItem,
+  Label,
   MenuToggle,
   Modal,
   ModalBody,
@@ -74,6 +75,7 @@ const defaults = {
 
     sourceSelector: 'Source Selector',
     sourceCaption: 'Files',
+    noSourcesMessage: 'No source of documents provided',
 
     searchAriaLabel: 'Search input to find by name',
     searchPlaceholder: 'Find by name',
@@ -93,26 +95,35 @@ const BREADCRUMB_TRAILING_VISIBLE = 2;
 
 // Components ----------------------------------------------------------------->
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface SourceSelectorProps {
   sources?: Sources;
   source?: Source;
   onSelectSource: (source: Source) => void;
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSelectSource }) => (
-  // TODO [ Gustavo ] When a single source is selected: render it and it's count
-  // TODO [ Gustavo ] When no source is selected, render sources as PF/Label components that can be picked: Using onSelectSource
-  // TODO [ Gustavo ] When no source or sources are provided render empty state
-  <div data-temp-placeholder>
-    <Flex direction={{ default: 'row' }}>
-      <FlexItem>{defaults.labels.sourceSelector}</FlexItem>
-      <FlexItem>
-        {source ? `${source.name} (${source.count})` : defaults.labels.sourceCaption}
-      </FlexItem>
+const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSelectSource }) => {
+  if (source) {
+    return null;
+  }
+
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return <p>{defaults.labels.noSourcesMessage}</p>;
+  }
+
+  const sourceLabel = (s: Source) => (s.count !== undefined ? `${s.name} (${s.count})` : s.name);
+
+  return (
+    <Flex direction={{ default: 'row' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>{defaults.labels.sourceSelector}:</FlexItem>
+      {sources.map((s) => (
+        <FlexItem key={s.name}>
+          <Label onClick={() => onSelectSource(s)} style={{ cursor: 'pointer' }}>
+            {sourceLabel(s)}
+          </Label>
+        </FlexItem>
+      ))}
     </Flex>
-  </div>
-);
+  );
+};
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FilesTableProps {
   files?: Files;
