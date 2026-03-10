@@ -57,6 +57,41 @@ const createFiles = (count: number, basePath = ''): Files =>
 
 const sortFiles = (files: Files) => files.toSorted((fA, fB) => fA.name.localeCompare(fB.name));
 
+// Navigation helpers ---------------------------------------------------------
+
+interface BrowsableDataset {
+  allDirectories: Directory[];
+  allFiles: Files;
+}
+
+/** Returns the direct children (subdirectories + files) at the given path. */
+const getChildItems = (dataset: BrowsableDataset, parentPath: string): Files => {
+  const parent = parentPath === '/' ? '' : parentPath;
+  const allItems: Files = [...dataset.allDirectories, ...dataset.allFiles];
+  return allItems.filter((item) => {
+    const itemParent = item.path.substring(0, item.path.lastIndexOf('/'));
+    return itemParent === parent;
+  });
+};
+
+/** Builds the ordered breadcrumb trail from root to the given path. */
+const getBreadcrumbTrail = (allDirs: Directory[], targetPath: string): Directory[] => {
+  if (targetPath === '/') {
+    return [];
+  }
+  const segments = targetPath.split('/').filter(Boolean);
+  const trail: Directory[] = [];
+  let accumulated = '';
+  for (const seg of segments) {
+    accumulated += `/${seg}`;
+    const dir = allDirs.find((d) => d.path === accumulated);
+    if (dir) {
+      trail.push(dir);
+    }
+  }
+  return trail;
+};
+
 const mock20Files = createFiles(20);
 const mock100Files = createFiles(100);
 const mock1000Files = createFiles(1000);
@@ -109,7 +144,8 @@ const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) =
  * │   ├── raw/
  * │   │   ├── dataset-001.csv
  * │   │   ├── dataset-002.csv
- * │   │   └── dataset-003.csv
+ * │   │   ├── dataset-003.csv
+ * │   │   └── <200 generated test files (dataset-004.csv … dataset-203.csv)>
  * │   └── processed/
  * │       ├── output-001.json
  * │       └── output-002.json
@@ -121,8 +157,8 @@ const realisticDirectories: Directory[] = [
   { name: 'api', path: '/docs/api', type: 'directory', items: 2 },
   { name: 'reports', path: '/reports', type: 'directory', items: 4 },
   { name: '2024', path: '/reports/2024', type: 'directory', items: 3 },
-  { name: 'data', path: '/data', type: 'directory', items: 5 },
-  { name: 'raw', path: '/data/raw', type: 'directory', items: 3 },
+  { name: 'data', path: '/data', type: 'directory', items: 205 },
+  { name: 'raw', path: '/data/raw', type: 'directory', items: 203 },
   { name: 'processed', path: '/data/processed', type: 'directory', items: 2 },
 ];
 const realisticFiles: Files = [
@@ -139,6 +175,10 @@ const realisticFiles: Files = [
   createFile('dataset-001.csv', '/data/raw/dataset-001.csv', 'csv', '34500000', { rows: 150000, columns: 12 }),
   createFile('dataset-002.csv', '/data/raw/dataset-002.csv', 'csv', '28700000', { rows: 125000, columns: 12 }),
   createFile('dataset-003.csv', '/data/raw/dataset-003.csv', 'csv', '41200000', { rows: 180000, columns: 12 }),
+  ...createFiles(200, '/data/raw').map((f, i) => {
+    const num = String(i + 4).padStart(3, '0');
+    return createFile(`dataset-${num}.csv`, `/data/raw/dataset-${num}.csv`, 'csv', `${20000000 + i * 100000}`, { rows: 80000 + i * 500, columns: 12 });
+  }),
   createFile('output-001.json', '/data/processed/output-001.json', 'json', '890000', { schema: 'v3', records: 4200 }),
   createFile('output-002.json', '/data/processed/output-002.json', 'json', '1200000', { schema: 'v3', records: 5800 }),
   createFile('changelog.md', '/changelog.md', 'markdown', '3400', { encoding: 'utf-8', lastModified: '2026-03-01T08:00:00Z' }),
@@ -159,6 +199,8 @@ interface Scenario {
   page?: number;
   perPage?: number;
   itemCount?: number;
+  /** When set, enables interactive directory navigation for this scenario. */
+  browsable?: BrowsableDataset;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
@@ -175,10 +217,11 @@ const scenarioGroups: Record<string, Scenario[]> = {
       source: mockSource,
     },
     {
-      label: 'realistic nested structure',
-      files: [...realisticDirectories, ...realisticFiles],
-      directories: realisticDirectories,
+      label: 'realistic nested structure (browsable)',
+      files: getChildItems({ allDirectories: realisticDirectories, allFiles: realisticFiles }, '/'),
+      directories: [],
       source: mockSource,
+      browsable: { allDirectories: realisticDirectories, allFiles: realisticFiles },
     },
   ],
   Sources: [
@@ -231,9 +274,9 @@ const scenarioGroups: Record<string, Scenario[]> = {
   ],
   Selection: [
     {
-      label: 'checkbox multi-select with directories',
-      files: [...realisticDirectories.slice(0, 3), ...realisticFiles.slice(0, 5)],
-      directories: realisticDirectories.slice(0, 3),
+      label: 'checkbox multi-select',
+      files: mock20Files,
+      directories: mockDirectories,
       source: mockSource,
       selection: 'checkbox',
     },
@@ -270,7 +313,7 @@ const App: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
-  const [lastDirectoryClicked, setLastDirectoryClicked] = useState<File | null>(null);
+  const [lastDirectoryClicked, setLastDirectoryClicked] = useState<Directory | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
@@ -286,6 +329,10 @@ const App: React.FC = () => {
   const [selectionToRender, setSelectionToRender] = useState<'radio' | 'checkbox' | undefined>(
     undefined,
   );
+  const [activeDataset, setActiveDataset] = useState<BrowsableDataset | null>(null);
+  const [currentPath, setCurrentPath] = useState('/');
+  const [allChildItems, setAllChildItems] = useState<Files>([]);
+  const [filteredChildItems, setFilteredChildItems] = useState<Files>([]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -296,17 +343,49 @@ const App: React.FC = () => {
     }
   }, [isDarkTheme]);
 
+  const defaultPerPage = 10;
+
+  const paginateItems = (items: Files, page: number, perPage: number): Files =>
+    items.slice((page - 1) * perPage, page * perPage);
+
+  const applyView = (items: Files, page: number, perPage: number) => {
+    setPageToRender(page);
+    setPerPageToRender(perPage);
+    setItemCountToRender(items.length);
+    setFilesToRender(paginateItems(items, page, perPage));
+  };
+
+  const navigateTo = (dataset: BrowsableDataset, path: string) => {
+    const children = sortFiles(getChildItems(dataset, path));
+    setCurrentPath(path);
+    setAllChildItems(children);
+    setFilteredChildItems(children);
+    setDirectoriesToRender(getBreadcrumbTrail(dataset.allDirectories, path));
+    setSearchResultsCountToRender(undefined);
+    applyView(children, 1, defaultPerPage);
+  };
+
   const openScenario = (scenario: Scenario) => {
-    setFilesToRender(sortFiles(scenario.files));
-    setDirectoriesToRender(scenario.directories);
     setSourceToRender(scenario.source);
     setSourcesToRender(scenario.sources);
     setLoadingToRender(scenario.loading ?? false);
     setSearchResultsCountToRender(scenario.searchResultsCount);
-    setPageToRender(scenario.page);
-    setPerPageToRender(scenario.perPage);
-    setItemCountToRender(scenario.itemCount);
     setSelectionToRender(scenario.selection);
+    setActiveDataset(scenario.browsable ?? null);
+
+    if (scenario.browsable) {
+      navigateTo(scenario.browsable, '/');
+    } else {
+      setFilesToRender(sortFiles(scenario.files));
+      setDirectoriesToRender(scenario.directories);
+      setPageToRender(scenario.page);
+      setPerPageToRender(scenario.perPage);
+      setItemCountToRender(scenario.itemCount);
+      setCurrentPath('/');
+      setAllChildItems([]);
+      setFilteredChildItems([]);
+    }
+
     setIsOpen(true);
   };
 
@@ -336,6 +415,7 @@ const App: React.FC = () => {
               {selectedFiles.length > 0 ? selectedFiles.map((f) => f.name).join(', ') : '—'}
             </p>
             <p>Selected source: {selectedSource ? JSON.stringify(selectedSource) : '—'}</p>
+            <p>Current path: {currentPath}</p>
             <p>Last navigated dir: {lastNavigatedDir ? lastNavigatedDir.path : '—'}</p>
             <p>Last directory clicked: {lastDirectoryClicked ? lastDirectoryClicked.path : '—'}</p>
             <p>Last search query: {lastSearchQuery || '—'}</p>
@@ -385,21 +465,49 @@ const App: React.FC = () => {
         onSelectSource={(source) => {
           setSelectedSource(source);
         }}
-        onDirectoryClick={(file) => {
-          setLastDirectoryClicked(file);
+        onDirectoryClick={(directory) => {
+          setLastDirectoryClicked(directory);
+          if (activeDataset) {
+            navigateTo(activeDataset, directory.path);
+          }
         }}
         onNavigate={(dir) => {
           setLastNavigatedDir(dir);
+          if (activeDataset) {
+            navigateTo(activeDataset, dir.path);
+          }
+        }}
+        onNavigateRoot={() => {
+          if (activeDataset) {
+            navigateTo(activeDataset, '/');
+          }
         }}
         onSearch={(query) => {
           setLastSearchQuery(query);
+          if (activeDataset) {
+            const lowerQuery = query.toLowerCase();
+            const filtered = lowerQuery
+              ? allChildItems.filter((f) => f.name.toLowerCase().includes(lowerQuery))
+              : allChildItems;
+            setFilteredChildItems(filtered);
+            setSearchResultsCountToRender(lowerQuery ? filtered.length : undefined);
+            applyView(filtered, 1, perPageToRender ?? defaultPerPage);
+          }
         }}
         onSetPage={(newPage) => {
           setPageToRender(newPage);
+          if (activeDataset) {
+            setFilesToRender(
+              paginateItems(filteredChildItems, newPage, perPageToRender ?? defaultPerPage),
+            );
+          }
         }}
         onPerPageSelect={(newPerPage) => {
           setPerPageToRender(newPerPage);
           setPageToRender(1);
+          if (activeDataset) {
+            setFilesToRender(paginateItems(filteredChildItems, 1, newPerPage));
+          }
         }}
         onPrimary={(files) => {
           setSelectedFiles(files);

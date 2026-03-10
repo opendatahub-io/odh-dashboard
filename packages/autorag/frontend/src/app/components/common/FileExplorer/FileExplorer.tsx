@@ -70,6 +70,8 @@ export interface Directory extends File {
   items: number;
 }
 
+const isDirectory = (file: File): file is Directory => file.type === 'directory';
+
 // Globals -------------------------------------------------------------------->
 
 const defaults = {
@@ -148,7 +150,7 @@ interface FilesTableProps {
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
-  onDirectoryClick?: (file: File) => void;
+  onDirectoryClick?: (directory: Directory) => void;
   loading?: boolean;
   page?: number;
   perPage?: number;
@@ -254,7 +256,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     }}
                   />
                   <Td dataLabel={columns.name}>
-                    {file.type === 'directory' ? (
+                    {isDirectory(file) ? (
                       <Content
                         component="a"
                         href="#"
@@ -270,7 +272,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     )}
                   </Td>
                   <Td dataLabel={columns.type}>
-                    {file.type === 'directory' ? defaults.labels.fileTypeDirectory : file.type}
+                    {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
                   </Td>
                   <Td dataLabel={columns.items}>
                     {typeof file.items === 'number' && (
@@ -306,15 +308,18 @@ interface PathBreadcrumbsProps {
   directories?: Directory[];
   source?: Source;
   onNavigate?: (directory: Directory) => void;
+  onNavigateRoot?: () => void;
   loading?: boolean;
 }
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   directories,
   source,
   onNavigate,
+  onNavigateRoot,
   loading,
 }) => {
   const rootLabel = source ? `${source.name} (root)` : 'Root';
+  const isAtRoot = !Array.isArray(directories) || directories.length === 0;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dirs = Array.isArray(directories) ? directories : [];
@@ -341,7 +346,11 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
 
   return (
     <Breadcrumb>
-      <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
+      <BreadcrumbItem
+        {...(!isAtRoot && onNavigateRoot ? { to: '#', onClick: onNavigateRoot } : {})}
+      >
+        {rootLabel}
+      </BreadcrumbItem>
       {leadingDirs.map((dir) => (
         <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
           {dir.name}
@@ -470,8 +479,9 @@ interface FileExplorerProps {
   itemCount?: number;
   selection?: 'radio' | 'checkbox';
   onSelectSource: (source: Source) => void;
-  onDirectoryClick?: (file: File) => void;
+  onDirectoryClick?: (directory: Directory) => void;
   onNavigate?: (directory: Directory) => void;
+  onNavigateRoot?: () => void;
   onSearch?: (query: string) => void;
   onSetPage?: (page: number) => void;
   onPerPageSelect?: (perPage: number) => void;
@@ -494,6 +504,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSelectSource,
   onDirectoryClick,
   onNavigate,
+  onNavigateRoot,
   onSearch,
   onSetPage,
   onPerPageSelect,
@@ -562,6 +573,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               directories={directories}
               source={source}
               onNavigate={onNavigate}
+              onNavigateRoot={onNavigateRoot}
               loading={loading}
             />
           </FlexItem>
