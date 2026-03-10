@@ -157,12 +157,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   return (
     <OuterScrollContainer>
       <InnerScrollContainer>
-        <Table
-          aria-label={defaults.labels.tableAriaLabel}
-          variant="compact"
-          borders={false}
-          isStickyHeader
-        >
+        <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders isStickyHeader>
           <Thead>
             <Tr>
               <Th isStickyColumn width={10} screenReaderText="File select" />
@@ -229,7 +224,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   </Td>
                   <Td dataLabel={columns.items}>
                     {typeof file.items === 'number' && (
-                      <Label variant="outline" color="green">
+                      <Label variant="outline" color="green" isCompact>
                         {file.items}{' '}
                         {file.items > 0
                           ? defaults.labels.tableItemsPlural
@@ -447,7 +442,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   //   or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const rowHeight = 37;
+  const rowHeight = 37.8;
   const headerHeight = 38;
   const paginationHeight = 53;
   const numberOfRowsToShow = 10;
