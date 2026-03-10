@@ -27,7 +27,7 @@ module.exports = require('@odh-dashboard/eslint-config')
             'error',
             {
               selector:
-                "ImportDeclaration[importKind!='type'][source.value=/^@odh-dashboard\\u002F(?!internal\\u002F__mocks__)(?!internal\\u002Fapi\\u002Fmodels)(?!internal\\u002Fapi\\u002Fk8s)(?!app-config)(?!.*\\u002Fmocks)(?!.*(types|Types|__mocks__|__tests__|getCorePipelineSpec|utils|storageEnums|useStopModalPreference)).*$/]",
+                "ImportDeclaration[importKind!='type'][source.value=/^@odh-dashboard\\u002F(?!internal\\u002F__mocks__)(?!internal\\u002Fapi\\u002Fmodels)(?!internal\\u002Fapi\\u002Fk8s)(?!app-config)(?!.*\\u002Fmocks)(?!.*(types|Types|__mocks__|__tests__|getCorePipelineSpec|utils|storageEnums|useStopModalPreference|const)).*$/]",
               message:
                 "Must use 'import type' when importing from @odh-dashboard packages. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression.",
             },

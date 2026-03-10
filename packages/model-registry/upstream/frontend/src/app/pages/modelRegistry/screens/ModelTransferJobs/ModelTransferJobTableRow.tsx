@@ -1,12 +1,4 @@
-import {
-  Button,
-  Content,
-  ContentVariants,
-  HelperText,
-  HelperTextItem,
-  Label,
-  Truncate,
-} from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import {
   CheckCircleIcon,
@@ -20,21 +12,23 @@ import { useNavigate } from 'react-router-dom';
 import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTimestamp';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { registeredModelUrl, modelVersionUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import {
-  ModelTransferJob,
-  ModelTransferJobStatus,
-  ModelTransferJobUploadIntent,
-} from '~/app/types';
+import { ModelTransferJob, ModelTransferJobStatus } from '~/app/types';
 import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+import ModelTransferJobStatusModal from './ModelTransferJobStatusModal';
 
 type ModelTransferJobTableRowProps = {
   job: ModelTransferJob;
   onRequestDelete?: (job: ModelTransferJob) => void;
+  onRequestRetry?: (job: ModelTransferJob) => void;
 };
 
-const getStatusLabel = (
+export const getStatusLabel = (
   status: ModelTransferJobStatus,
-): { label: string; color: React.ComponentProps<typeof Label>['color']; icon: React.ReactNode } => {
+): {
+  label: string;
+  color: React.ComponentProps<typeof Label>['color'];
+  icon: React.ReactNode;
+} => {
   switch (status) {
     case ModelTransferJobStatus.COMPLETED:
       return { label: 'Complete', color: 'green', icon: <CheckCircleIcon /> };
@@ -54,9 +48,11 @@ const getStatusLabel = (
 const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps> = ({
   job,
   onRequestDelete,
+  onRequestRetry,
 }) => {
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const [isStatusModalOpen, setIsStatusModalOpen] = React.useState(false);
 
   const handleModelNameClick = () => {
     if (job.registeredModelId) {
@@ -74,46 +70,29 @@ const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps> = ({
 
   const statusInfo = getStatusLabel(job.status);
 
-  const actions = React.useMemo(() => {
-    const items = [];
-
-    // Show Retry action for failed jobs
-    if (job.status === ModelTransferJobStatus.FAILED) {
-      items.push({
-        title: 'Retry',
+  // Actions menu - just Delete (retry is handled via button in status column)
+  const actions = React.useMemo(
+    () => [
+      {
+        title: 'Delete',
         onClick: () => {
-          // TODO: Implement retry functionality
+          onRequestDelete?.(job);
         },
-      });
-    }
-
-    // Always show Delete action
-    items.push({
-      title: 'Delete',
-      onClick: () => {
-        onRequestDelete?.(job);
       },
-    });
-
-    return items;
-  }, [job, onRequestDelete]);
+    ],
+    [job, onRequestDelete],
+  );
 
   return (
     <Tr>
       <Td dataLabel="Job name">
         <div data-testid="job-name">
-          <Truncate content={job.name} />
+          <Truncate content={job.jobDisplayName || job.name} />
         </div>
-        {job.description && (
-          <Content data-testid="job-description" component={ContentVariants.small}>
-            <Truncate content={job.description} />
-          </Content>
-        )}
       </Td>
       <Td dataLabel="Model name">
         {job.registeredModelName ? (
-          job.uploadIntent === ModelTransferJobUploadIntent.CREATE_MODEL &&
-          job.status === ModelTransferJobStatus.COMPLETED ? (
+          job.registeredModelId ? (
             <Button variant="link" isInline onClick={handleModelNameClick}>
               <Truncate content={job.registeredModelName} />
             </Button>
@@ -126,9 +105,7 @@ const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps> = ({
       </Td>
       <Td dataLabel="Model version name">
         {job.modelVersionName ? (
-          (job.uploadIntent === ModelTransferJobUploadIntent.CREATE_MODEL ||
-            job.uploadIntent === ModelTransferJobUploadIntent.CREATE_VERSION) &&
-          job.status === ModelTransferJobStatus.COMPLETED ? (
+          job.registeredModelId && job.modelVersionId ? (
             <Button variant="link" isInline onClick={handleVersionNameClick}>
               <Truncate content={job.modelVersionName} />
             </Button>
@@ -153,22 +130,42 @@ const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps> = ({
         </Content>
       </Td>
       <Td dataLabel="Transfer job status">
-        <div>
-          <Label color={statusInfo.color} icon={statusInfo.icon} data-testid="job-status">
-            {statusInfo.label}
-          </Label>
-          {job.status === ModelTransferJobStatus.FAILED && job.errorMessage && (
-            <HelperText data-testid="job-error-message">
-              <HelperTextItem variant="error">
-                <Truncate content={job.errorMessage} />
-              </HelperTextItem>
-            </HelperText>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem>
+            <Label
+              color={statusInfo.color}
+              icon={statusInfo.icon}
+              data-testid="job-status"
+              isClickable
+              onClick={() => setIsStatusModalOpen(true)}
+            >
+              {statusInfo.label}
+            </Label>
+          </FlexItem>
+          {job.status === ModelTransferJobStatus.FAILED && onRequestRetry && (
+            <FlexItem>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => onRequestRetry(job)}
+                data-testid="job-retry-button"
+              >
+                Retry
+              </Button>
+            </FlexItem>
           )}
-        </div>
+        </Flex>
       </Td>
       <Td isActionCell>
         <ActionsColumn items={actions} />
       </Td>
+      {isStatusModalOpen && (
+        <ModelTransferJobStatusModal
+          job={job}
+          isOpen={isStatusModalOpen}
+          onClose={() => setIsStatusModalOpen(false)}
+        />
+      )}
     </Tr>
   );
 };

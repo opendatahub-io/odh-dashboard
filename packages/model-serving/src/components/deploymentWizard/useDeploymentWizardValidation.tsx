@@ -27,6 +27,7 @@ export type ModelDeploymentWizardValidation = {
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
+  isAllValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
@@ -111,14 +112,32 @@ export const useModelDeploymentWizardValidation = (
       modelFormatValidation.getFieldValidation(undefined, true).length === 0);
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;
-  return {
-    modelSource: modelSourceStepValidation,
-    hardwareProfile: hardwareProfileValidation,
-    modelServer: modelServerValidation,
-    modelFormat: modelFormatValidation,
-    numReplicas: numReplicasValidation,
-    isModelSourceStepValid,
-    isModelDeploymentStepValid,
-    isAdvancedSettingsStepValid,
-  };
+
+  const isAllValid =
+    isModelSourceStepValid && isModelDeploymentStepValid && isAdvancedSettingsStepValid;
+
+  return React.useMemo(
+    () => ({
+      modelSource: modelSourceStepValidation,
+      hardwareProfile: hardwareProfileValidation,
+      modelServer: modelServerValidation,
+      modelFormat: modelFormatValidation,
+      numReplicas: numReplicasValidation,
+      isModelSourceStepValid,
+      isModelDeploymentStepValid,
+      isAdvancedSettingsStepValid,
+      isAllValid,
+    }),
+    [
+      modelSourceStepValidation,
+      hardwareProfileValidation,
+      modelServerValidation,
+      modelFormatValidation,
+      numReplicasValidation,
+      isModelSourceStepValid,
+      isModelDeploymentStepValid,
+      isAdvancedSettingsStepValid,
+      isAllValid,
+    ],
+  );
 };

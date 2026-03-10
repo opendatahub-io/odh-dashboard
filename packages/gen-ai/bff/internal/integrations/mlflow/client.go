@@ -24,14 +24,9 @@ type Client struct {
 	sdk *sdkmlflow.Client
 }
 
-// NewClient creates a new MLflow client pointing at the given tracking URI.
-// Set insecure to true to allow HTTP connections (required for localhost).
-func NewClient(trackingURI string, insecure bool) (*Client, error) {
-	opts := []sdkmlflow.Option{sdkmlflow.WithTrackingURI(trackingURI)}
-	if insecure {
-		opts = append(opts, sdkmlflow.WithInsecure())
-	}
-
+// NewClient creates a new MLflow client with the given SDK options.
+// Callers pass WithTrackingURI, WithHeaders, WithHTTPClient, etc. directly.
+func NewClient(opts ...sdkmlflow.Option) (*Client, error) {
 	sdk, err := sdkmlflow.NewClient(opts...)
 	if err != nil {
 		return nil, err

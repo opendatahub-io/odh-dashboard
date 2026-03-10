@@ -1,4 +1,5 @@
 import * as yaml from 'js-yaml';
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
@@ -198,7 +199,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Model details - Configure model location');
       // Select URI as model location and enter the model URI
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
       // Uncheck "Create a connection to this location" since connection was already created in previous test
       modelServingWizard.findSaveConnectionCheckbox().uncheck();

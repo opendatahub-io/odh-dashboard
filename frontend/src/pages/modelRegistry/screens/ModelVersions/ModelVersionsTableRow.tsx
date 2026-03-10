@@ -97,7 +97,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const actions: IAction[] = isArchiveRow
     ? [
         {
-          title: 'Restore model version',
+          title: <span data-testid="restore-model-version-action">Restore model version</span>,
           onClick: () => setIsRestoreModalOpen(true),
         },
       ]
@@ -113,7 +113,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           : []),
         { isSeparator: true },
         {
-          title: 'Archive model version',
+          title: <span data-testid="archive-model-version-action">Archive model version</span>,
           onClick: () => setIsArchiveModalOpen(true),
           isAriaDisabled: hasDeployment,
           tooltipProps: hasDeployment

@@ -31,7 +31,7 @@ import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
-import NewChatModal from './components/NewChatModal';
+import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
 import {
   useChatbotConfigStore,
@@ -442,7 +442,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         mcpServerTokens={mcpServerTokens}
         namespace={namespace?.name}
       />
-      <NewChatModal
+      <ChatModal
         isOpen={isNewChatModalOpen}
         onClose={() => setIsNewChatModalOpen(false)}
         onConfirm={() => {
