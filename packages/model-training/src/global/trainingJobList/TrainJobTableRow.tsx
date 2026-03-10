@@ -81,7 +81,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
     // 1. Edit node count (only when allowed)
     if (canScaleNodes) {
       items.push({
-        title: 'Edit node count',
+        title: <span data-testid="edit-node-count-action">Edit node count</span>,
         onClick: () => setScaleNodesModalOpen(true),
       });
     }

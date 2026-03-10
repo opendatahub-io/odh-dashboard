@@ -232,6 +232,10 @@ class TrainingJobDetailsDrawer {
   findKebabMenuItem(itemName: string) {
     return cy.findByRole('menuitem', { name: itemName });
   }
+
+  findEditNodeCountAction() {
+    return cy.findByTestId('edit-node-count-action');
+  }
 }
 
 class TrainingJobResourcesTab {
@@ -443,8 +447,12 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('retry-job-button');
   }
 
-  findPauseResumeButton() {
-    return cy.findByTestId('pause-resume-job-button');
+  findResumeJobButton() {
+    return cy.findByTestId('resume-job-button');
+  }
+
+  findPauseJobButton() {
+    return cy.findByTestId('pause-job-button');
   }
 
   findDeleteButton() {
