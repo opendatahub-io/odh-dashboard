@@ -49,8 +49,12 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
     label: 'Ray cluster',
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
-      const aCluster = isRayJob(a) ? a.status?.rayClusterName ?? '' : '';
-      const bCluster = isRayJob(b) ? b.status?.rayClusterName ?? '' : '';
+      const aCluster = isRayJob(a)
+        ? a.status?.rayClusterName || a.spec.clusterSelector?.['ray.io/cluster'] || ''
+        : '';
+      const bCluster = isRayJob(b)
+        ? b.status?.rayClusterName || b.spec.clusterSelector?.['ray.io/cluster'] || ''
+        : '';
       return aCluster.localeCompare(bCluster);
     },
   },
