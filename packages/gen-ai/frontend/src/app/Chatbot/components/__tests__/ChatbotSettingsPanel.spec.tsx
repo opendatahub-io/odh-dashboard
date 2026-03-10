@@ -15,6 +15,31 @@ const mockResizeEvent = new Event('click');
 let mockDrawerPanelDefaultSize: string | undefined;
 let mockDrawerHeadStyle: React.CSSProperties | undefined;
 let mockDrawerBodyStyle: React.CSSProperties | undefined;
+let mockTabsMountCount = 0;
+
+// Component to track Tabs mounts - must be outside jest.mock to use React hooks
+const TabsMountTracker: React.FC<{
+  children: React.ReactNode;
+  activeKey?: string | number;
+  role?: string;
+  [key: string]: unknown;
+}> = ({ children, activeKey, role, ...props }) => {
+  const mountedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      mockTabsMountCount += 1;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div data-testid="mock-tabs" data-active-key={activeKey} role={role} {...props}>
+      {children}
+    </div>
+  );
+};
 
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
@@ -116,14 +141,19 @@ jest.mock('@patternfly/react-core', () => {
     Tabs: ({
       children,
       activeKey,
+      role,
       ...domProps
     }: {
       children: React.ReactNode;
       activeKey?: string | number;
+      onSelect?: (event: unknown, key: string | number) => void;
+      role?: string;
+      'aria-label'?: string;
+      'data-testid'?: string;
     }) => (
-      <div data-testid="mock-tabs" data-active-key={activeKey} {...domProps}>
+      <TabsMountTracker activeKey={activeKey} role={role} {...domProps}>
         {children}
-      </div>
+      </TabsMountTracker>
     ),
   };
 });
@@ -191,6 +221,7 @@ describe('ChatbotSettingsPanel', () => {
     mockDrawerPanelDefaultSize = undefined;
     mockDrawerHeadStyle = undefined;
     mockDrawerBodyStyle = undefined;
+    mockTabsMountCount = 0;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -262,8 +293,10 @@ describe('ChatbotSettingsPanel', () => {
     const user = userEvent.setup({ delay: null });
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
 
-    // Verify tabs are rendered
+    // Verify tabs are rendered and track initial mount count
     expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
+    const initialMountCount = mockTabsMountCount;
+    expect(initialMountCount).toBe(1);
 
     // Resize panel to 200px
     const resize200Button = screen.getByTestId('trigger-resize-200');
@@ -272,12 +305,16 @@ describe('ChatbotSettingsPanel', () => {
     // Verify the resize was processed
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
 
-    // Fast-forward past debounce timeout  (300ms)
+    // Before debounce timeout, Tabs should not have remounted yet (tabsKey not incremented)
+    expect(mockTabsMountCount).toBe(initialMountCount);
+
+    // Fast-forward past debounce timeout (300ms)
     await React.act(async () => {
       jest.advanceTimersByTime(300);
     });
 
-    // Tabs should still be rendered after debounce (remount happened internally)
+    // Tabs should have remounted after debounce (tabsKey incremented)
+    expect(mockTabsMountCount).toBe(initialMountCount + 1);
     expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     // Resize again to 250px
@@ -287,12 +324,17 @@ describe('ChatbotSettingsPanel', () => {
     // Verify the second resize was processed
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('250px');
 
+    // Mount count should stay the same before debounce
+    const mountCountAfterFirstDebounce = mockTabsMountCount;
+    expect(mountCountAfterFirstDebounce).toBe(initialMountCount + 1);
+
     // Fast-forward past debounce timeout again
     await React.act(async () => {
       jest.advanceTimersByTime(300);
     });
 
-    // Tabs should still be rendered after second resize
+    // Tabs should have remounted again (tabsKey incremented)
+    expect(mockTabsMountCount).toBe(initialMountCount + 2);
     expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     jest.useRealTimers();
