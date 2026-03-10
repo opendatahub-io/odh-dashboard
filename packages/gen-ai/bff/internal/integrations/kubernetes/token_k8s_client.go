@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -564,29 +566,37 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 		GenAIAssetLabelKey: "true",
 	})
 
-	// Convert InferenceServices to AAModel structs
-	aaModelsFromInfSvc, err := kc.getAAModelsFromInferenceService(ctx, namespace, labelSelector)
-	if err != nil {
+	g, gCtx := errgroup.WithContext(ctx)
+	var aaModelsFromInfSvc, aaModelsFromLLMInfSvc, aaModelsFromExternal []models.AAModel
+
+	g.Go(func() error {
+		var err error
+		aaModelsFromInfSvc, err = kc.getAAModelsFromInferenceService(gCtx, namespace, labelSelector)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		aaModelsFromLLMInfSvc, err = kc.getAAModelsFromLLMInferenceService(gCtx, namespace, labelSelector)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		aaModelsFromExternal, err = kc.GetAAModelsFromExternalModels(gCtx, identity, namespace)
+		if err != nil {
+			kc.Logger.Warn("failed to get external models, continuing with namespace models only",
+				"error", err,
+				"namespace", namespace)
+			aaModelsFromExternal = []models.AAModel{}
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
-	// Convert LLMInferenceServices to AAModel structs
-	aaModelsFromLLMInfSvc, err := kc.getAAModelsFromLLMInferenceService(ctx, namespace, labelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert external models from ConfigMap to AAModel structs
-	aaModelsFromExternal, err := kc.GetAAModelsFromExternalModels(ctx, identity, namespace)
-	if err != nil {
-		// Log error but don't fail - continue with namespace models only
-		kc.Logger.Warn("failed to get external models, continuing with namespace models only",
-			"error", err,
-			"namespace", namespace)
-		aaModelsFromExternal = []models.AAModel{}
-	}
-
-	// Combine all lists
 	var allAAModels []models.AAModel
 	allAAModels = append(allAAModels, aaModelsFromInfSvc...)
 	allAAModels = append(allAAModels, aaModelsFromLLMInfSvc...)
@@ -621,6 +631,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
+		usecase := kc.extractUseCaseFromLLMInferenceService(&llmSvc)
 
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
@@ -628,11 +639,12 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Description:     kc.extractDescriptionFromLLMInferenceService(&llmSvc),
 			ServingRuntime:  "Distributed inference with llm-d",
 			APIProtocol:     "REST",
-			Usecase:         kc.extractUseCaseFromLLMInferenceService(&llmSvc),
+			Usecase:         usecase,
 			Endpoints:       kc.extractEndpointsFromLLMInferenceService(&llmSvc),
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			ModelType:       models.DeriveModelTypeFromUsecase(usecase),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -668,6 +680,8 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
+		usecase := kc.extractUseCaseFromInferenceService(&isvc)
+
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -675,11 +689,12 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			APIProtocol:     kc.extractAPIProtocolFromAnnotations(servingRuntime),
 			Version:         kc.extractVersionFromAnnotations(servingRuntime),
 			Description:     kc.extractDescriptionFromInferenceService(&isvc),
-			Usecase:         kc.extractUseCaseFromInferenceService(&isvc),
+			Usecase:         usecase,
 			Endpoints:       kc.extractEndpoints(&isvc),
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			ModelType:       models.DeriveModelTypeFromUsecase(usecase),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1053,10 +1068,17 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 		}
 
 		// Determine model source type based on URL
-		// Use proper URL parsing to prevent manipulation via query params or paths
 		sourceType := models.ModelSourceTypeExternalProvider
+		endpoint := fmt.Sprintf("external: %s", provider.Config.BaseURL)
 		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
 			sourceType = models.ModelSourceTypeExternalCluster
+			endpoint = fmt.Sprintf("internal: %s", provider.Config.BaseURL)
+		}
+
+		// Derive model type from usecase if not stored (backward compat for older ConfigMaps)
+		modelType := model.ModelType
+		if modelType == "" {
+			modelType = models.DeriveModelTypeFromUsecase(useCases)
 		}
 
 		aaModel := models.AAModel{
@@ -1068,10 +1090,11 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Version:         "",
 			Usecase:         useCases,
 			Description:     "",
-			Endpoints:       []string{provider.Config.BaseURL},
+			Endpoints:       []string{endpoint},
 			Status:          "Running",
 			SAToken:         models.SAToken{},
 			ModelSourceType: sourceType,
+			ModelType:       modelType,
 		}
 		aaModels = append(aaModels, aaModel)
 	}

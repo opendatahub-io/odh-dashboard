@@ -49,9 +49,9 @@ func TestMaaSModelsHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Verify mock returns 4 models
+		// Verify mock returns 5 models
 		assert.Equal(t, "list", response.Object)
-		assert.Len(t, response.Data, 4)
+		assert.Len(t, response.Data, 5)
 
 		// Verify the structure of returned models
 		firstModel := response.Data[0]
@@ -59,8 +59,9 @@ func TestMaaSModelsHandler(t *testing.T) {
 		assert.Equal(t, "model", firstModel.Object)
 		assert.Equal(t, "model-namespace", firstModel.OwnedBy)
 		assert.True(t, firstModel.Ready)
-		assert.Equal(t, "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local", firstModel.URL)
+		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.URL)
 		assert.NotZero(t, firstModel.Created)
+		assert.Equal(t, "llm", firstModel.ModelType)
 	})
 
 	t.Run("should have correct response structure", func(t *testing.T) {
@@ -94,6 +95,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 			assert.NotEmpty(t, model.URL)
 			assert.NotZero(t, model.Created)
 			// Ready can be true or false, but should be set
+			assert.NotEmpty(t, model.ModelType)
 		}
 	})
 
