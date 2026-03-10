@@ -460,12 +460,15 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
                   <DescriptionListDescription>{selectedFile.path}</DescriptionListDescription>
                 </DescriptionListGroup>
                 {selectedFile.details &&
-                  Object.entries(selectedFile.details).map(([key, value]) => (
-                    <DescriptionListGroup key={key}>
-                      <DescriptionListTerm>{key}</DescriptionListTerm>
-                      <DescriptionListDescription>{String(value)}</DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ))}
+                  Object.entries(selectedFile.details)
+                    // Only render basic details Record<string, string>. Type might evolve once S3FileExplorer exists
+                    .filter(([key, value]) => key && typeof value === 'string')
+                    .map(([key, value]) => (
+                      <DescriptionListGroup key={key}>
+                        <DescriptionListTerm>{key}</DescriptionListTerm>
+                        <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
               </React.Fragment>
             ))}
         </DescriptionList>
