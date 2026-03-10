@@ -1,9 +1,9 @@
 // Modules -------------------------------------------------------------------->
 
 import '@patternfly/react-core/dist/styles/base.css';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Flex } from '@patternfly/react-core';
+import { Button, Card, CardTitle, CardBody, Flex, FlexItem, Switch } from '@patternfly/react-core';
 import { clone } from 'es-toolkit';
 import FileExplorer from './FileExplorer';
 import type { Directory, File, Files, Source, Sources } from './FileExplorer';
@@ -163,6 +163,7 @@ const scenarios: Scenario[] = [
 // App ----------------------------------------------------------------------
 
 const App: React.FC = () => {
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
@@ -170,6 +171,15 @@ const App: React.FC = () => {
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
   const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
+
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    if (isDarkTheme) {
+      htmlElement.classList.add('pf-v6-theme-dark');
+    } else {
+      htmlElement.classList.remove('pf-v6-theme-dark');
+    }
+  }, [isDarkTheme]);
 
   const openScenario = (scenario: Scenario) => {
     setFilesToRender(scenario.files);
@@ -186,15 +196,38 @@ const App: React.FC = () => {
         direction={{ default: 'column' }}
         spaceItems={{ default: 'spaceItemsMd' }}
       >
-        {selectedFiles.length > 0 && (
-          <p>Selected files: {selectedFiles.map((f) => f.name).join(', ')}</p>
-        )}
-        {selectedSource && <p>Selected source: {JSON.stringify(selectedSource)}</p>}
-        {scenarios.map((scenario) => (
-          <Button key={scenario.label} onClick={() => openScenario(scenario)}>
-            Open FileExplorer ({scenario.label})
-          </Button>
-        ))}
+        <Card>
+          <CardTitle>Controls</CardTitle>
+          <CardBody>
+            <Switch
+              id="theme-toggle"
+              label={isDarkTheme ? 'Dark theme' : 'Light theme'}
+              isChecked={isDarkTheme}
+              onChange={(_event, checked) => setIsDarkTheme(checked)}
+            />
+          </CardBody>
+        </Card>
+        <Card>
+          <CardTitle>State</CardTitle>
+          <CardBody>
+            {selectedFiles.length > 0 && (
+              <p>Selected files: {selectedFiles.map((f) => f.name).join(', ')}</p>
+            )}
+            {selectedSource && <p>Selected source: {JSON.stringify(selectedSource)}</p>}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardTitle>Scenarios</CardTitle>
+          <CardBody>
+            <Flex>
+              {scenarios.map((scenario) => (
+                <FlexItem key={scenario.label}>
+                  <Button onClick={() => openScenario(scenario)}>{scenario.label}</Button>
+                </FlexItem>
+              ))}
+            </Flex>
+          </CardBody>
+        </Card>
       </Flex>
 
       <FileExplorer
