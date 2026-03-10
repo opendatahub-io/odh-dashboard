@@ -208,7 +208,7 @@ Describe the data flow, not just the directory structure.
 | Template file | `<type>-template.md` | `frontend-template.md` |
 | Agent rule | `kebab-case.md` | `cypress-e2e.md` |
 | Skill file | `kebab-case.md` | `create-doc.md` |
-| Command file | `<scope>.<action>.md` | `docs.create.md` |
+| Command file | `<scope>-<action>.md` | `docs-create.md` |
 
 Do NOT use spaces or underscores in doc file names.
 

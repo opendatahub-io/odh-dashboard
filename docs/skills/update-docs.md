@@ -13,21 +13,77 @@ It identifies which docs are affected and updates them to conform to `docs/guide
 ## Inputs
 
 ```
-$ARGUMENTS (optional) — a git reference to diff against, or a natural language description
-of what changed. Examples:
-  HEAD~1            — last commit
-  abc1234           — a specific commit hash
-  abc1234..def5678  — a commit range
-  HEAD              — all uncommitted changes (staged + unstaged)
+$ARGUMENTS (optional) — flags, a git reference, or a natural language description.
+
+Flags:
+  --no-cache          Skip git diff entirely; re-read source code and rewrite every
+                      section of all targeted docs from scratch as if they were freshly
+                      generated. Combine with a scope filter to limit which docs are
+                      refreshed (see examples below).
+
+Positional / descriptive arguments (after flags):
+  HEAD~1              — last commit
+  abc1234             — a specific commit hash
+  abc1234..def5678    — a commit range
+  HEAD                — all uncommitted changes (staged + unstaged)
   "updated the auth middleware to support BYO OIDC"
-  (empty)           — agent determines scope from current uncommitted changes
+  (empty)             — agent determines scope from current uncommitted changes
+
+Combined examples:
+  --no-cache                           — full refresh of ALL indexed docs
+  --no-cache backend                   — full refresh of backend docs only
+  --no-cache packages/model-registry   — full refresh of model-registry package docs only
+  --no-cache frontend/docs/pipelines.md — full refresh of a single doc
+  HEAD~3                               — diff-based update for the last 3 commits
 ```
 
-If `$ARGUMENTS` is empty, default to `HEAD` (all uncommitted staged + unstaged changes).
-If it is not a valid git reference, treat it as a description and ask the user which files
-or areas changed, or inspect recent commits to determine scope.
+If `$ARGUMENTS` has no flags and is empty, default to `HEAD` (all uncommitted staged +
+unstaged changes).
+If the positional part is not a valid git reference, treat it as a description and ask the
+user which files or areas changed, or inspect recent commits to determine scope.
 
 ## Workflow
+
+### A. `--no-cache` mode (full refresh)
+
+Use this path when `--no-cache` is present in `$ARGUMENTS`.
+
+1. **Determine target docs**
+   - If a scope filter follows `--no-cache` (path or keyword), resolve it to the matching
+     doc(s) using the mapping table in step B-2.
+   - If no scope filter is given, collect **every doc** listed in `docs/BOOKMARKS.md`.
+
+2. **Read `docs/guidelines.md`** for style rules.
+
+3. **For each target doc**:
+   a. Read the doc.
+   b. If the doc was created from a template, read the template
+      (`docs/templates/frontend-template.md`, `backend-template.md`, or
+      `package-template.md`).
+   c. **Read the source code** the doc describes — the same directories/files you would
+      research when creating the doc from scratch (READMEs, route files, Makefiles,
+      package.json, BFF directories, frontend source trees, etc.).
+   d. Rewrite **every section** of the doc using the current source code as the single
+      source of truth. Do not preserve stale content — treat this as regenerating the doc
+      while keeping its existing structure and template.
+   e. Update the `Last Updated` metadata to today's date.
+   f. For template-based docs, verify all template sections are present.
+   g. Keep the file under 500 lines.
+
+4. **Show a summary** of proposed changes and ask for confirmation before writing:
+   ```
+   The following docs will be fully refreshed (--no-cache):
+   - <file>: All sections rewritten from current source
+   Proceed? (yes/no)
+   ```
+
+5. **Write the updated files** after confirmation.
+
+6. **Verify BOOKMARKS.md** still links to all updated files correctly.
+
+### B. Diff-based mode (default)
+
+Use this path when `--no-cache` is **not** present.
 
 1. **Determine the change scope**
    - If `$ARGUMENTS` is a git reference (or empty → default `HEAD`):
