@@ -24,8 +24,8 @@ is listed here with a one-line description. Start here when you need to find any
 | [Frontend Template] | Template for frontend area docs (`frontend/docs/`) |
 | [Backend Template] | Template for backend module docs (`backend/docs/`) |
 | [Package Template] | Template for package docs (`packages/*/docs/`) |
-| [Update Docs Skill] | `/docs.update` — adapt existing docs to guidelines based on git diff |
-| [Create Doc Skill] | `/docs.create` — create a new doc from a natural language prompt |
+| [Update Docs Skill] | `/docs-update` — adapt existing docs to guidelines based on git diff |
+| [Create Doc Skill] | `/docs-create` — create a new doc from a natural language prompt |
 | [Create Package Doc Skill] | `/create-package-doc` — scaffold a package doc and register it here |
 
 ---
