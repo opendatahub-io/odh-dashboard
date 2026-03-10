@@ -81,10 +81,49 @@ describe('getRayJobNodeCount', () => {
     expect(getRayJobNodeCount(job)).toBe(6);
   });
 
+  it('should treat undefined replicas as 0', () => {
+    const job = mockRayJobK8sResource({});
+    job.spec.rayClusterSpec = {
+      headGroupSpec: { template: {} },
+      workerGroupSpecs: [{ groupName: 'workers', replicas: undefined, template: {} }],
+    };
+    expect(getRayJobNodeCount(job)).toBe(1);
+  });
+
   it('should return 0 when rayClusterSpec is missing and no cluster selector', () => {
     const job = mockRayJobK8sResource({});
     job.spec.rayClusterSpec = undefined;
     expect(getRayJobNodeCount(job)).toBe(0);
+  });
+
+  it('should resolve node count from rayClustersMap for workspace jobs', () => {
+    const job = mockRayJobK8sResource({});
+    job.spec.rayClusterSpec = undefined;
+    job.spec.clusterSelector = { 'ray.io/cluster': 'my-cluster' };
+
+    const rayClustersMap = new Map([
+      [
+        'my-cluster',
+        {
+          metadata: { name: 'my-cluster', namespace: 'ns' },
+          spec: {
+            headGroupSpec: { template: {} },
+            workerGroupSpecs: [{ groupName: 'workers', replicas: 3, template: {} }],
+          },
+        } as never,
+      ],
+    ]);
+
+    expect(getRayJobNodeCount(job, rayClustersMap)).toBe(4);
+  });
+
+  it('should return 0 for workspace job when cluster is not in map', () => {
+    const job = mockRayJobK8sResource({});
+    job.spec.rayClusterSpec = undefined;
+    job.spec.clusterSelector = { 'ray.io/cluster': 'missing-cluster' };
+
+    const rayClustersMap = new Map();
+    expect(getRayJobNodeCount(job, rayClustersMap)).toBe(0);
   });
 });
 

@@ -1,3 +1,5 @@
+import * as React from 'react';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
 import { getUnifiedJobStatusSync } from './utils';
 import { UnifiedJobKind, isRayJob } from '../../types';
@@ -31,7 +33,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
     },
     info: {
       popoverProps: { hasAutoWidth: true },
-      popover: 'The total number of master and worker nodes assigned to a job.',
+      popover: 'The total number of nodes assigned to a job.',
     },
   },
   {
@@ -66,8 +68,16 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
       (a.kind || '').localeCompare(b.kind || ''),
     info: {
       popoverProps: { hasAutoWidth: true },
-      popover:
-        'TrainJobs are training workloads managed by the Trainer component. RayJobs are computing workloads that use the Ray framework.',
+      popover: (
+        <Content component={ContentVariants.ul}>
+          <Content component={ContentVariants.li}>
+            <b>TrainJobs</b> are training workloads managed by the Trainer component.
+          </Content>
+          <Content component={ContentVariants.li}>
+            <b>RayJobs</b> are computing workloads that use the Ray framework.
+          </Content>
+        </Content>
+      ),
     },
   },
   {
