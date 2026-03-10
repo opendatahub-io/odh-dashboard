@@ -450,6 +450,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const rowHeight = 37;
   const headerHeight = 38;
   const paginationHeight = 53;
+  const numberOfRowsToShow = 10;
+  const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight + paginationHeight;
+
   return (
     <Modal
       id={id}
@@ -497,10 +500,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           </FlexItem>
           <FlexItem>
             <Grid hasGutter>
-              <GridItem
-                span={8}
-                style={{ height: `${rowHeight * 20 + headerHeight + paginationHeight}px` }}
-              >
+              <GridItem span={8} style={{ height: `${stickyTableHeight}px` }}>
                 <FilesTable
                   files={files}
                   selectedFiles={selectedFiles}
