@@ -15,6 +15,7 @@ import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobKind, RayJobKind } from '../../k8sTypes';
 import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 
 export enum TrainJobConditionType {
   Succeeded = 'Succeeded',
@@ -45,9 +46,6 @@ export enum JobSectionName {
   DataInitializer = 'data-initializer',
   ModelInitializer = 'model-initializer',
 }
-
-// Kueue label keys
-const KUEUE_QUEUE_NAME_LABEL = 'kueue.x-k8s.io/queue-name';
 
 export const getStatusInfo = (
   status: TrainingJobState,
@@ -304,7 +302,7 @@ export const getTrainingJobStatus = async (
 
     // Check if job has Kueue queue label
     const hasQueueLabel =
-      job.metadata.labels?.[KUEUE_QUEUE_NAME_LABEL] || job.spec.labels?.[KUEUE_QUEUE_NAME_LABEL];
+      job.metadata.labels?.[KUEUE_QUEUE_LABEL] || job.spec.labels?.[KUEUE_QUEUE_LABEL];
 
     // ==============
     // NON-KUEUE JOBS

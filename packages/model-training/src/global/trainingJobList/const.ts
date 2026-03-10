@@ -1,6 +1,7 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
 import { getUnifiedJobStatusSync, getUnifiedJobNodeCount } from './utils';
 import { UnifiedJobKind, isRayJob } from '../../types';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 
 export const columns: SortableData<UnifiedJobKind>[] = [
   {
@@ -35,8 +36,8 @@ export const columns: SortableData<UnifiedJobKind>[] = [
     label: 'Cluster queue',
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
-      const aQueue = a.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '';
-      const bQueue = b.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '';
+      const aQueue = a.metadata.labels?.[KUEUE_QUEUE_LABEL] || '';
+      const bQueue = b.metadata.labels?.[KUEUE_QUEUE_LABEL] || '';
       return aQueue.localeCompare(bQueue);
     },
   },

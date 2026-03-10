@@ -164,7 +164,7 @@ const ModelTraining = (): React.ReactElement => {
           job={jobToDelete}
           onClose={(deleted) => {
             setJobToDelete(undefined);
-            if (deleted) {
+            if (deleted && selectedJob && selectedJob.metadata.uid === jobToDelete.metadata.uid) {
               setSelectedJob(undefined);
             }
           }}

@@ -5,6 +5,7 @@ import JobsToolbar from './JobsToolbar';
 import { initialJobsFilterData, JobsFilterDataType } from './const';
 import { getStatusInfo, getUnifiedJobStatusSync } from './utils';
 import { UnifiedJobKind, TrainingJobState } from '../../types';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 
 type JobsListViewProps = {
   jobs: UnifiedJobKind[];
@@ -52,7 +53,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
 
         if (
           clusterQueueFilter &&
-          !(job.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '')
+          !(job.metadata.labels?.[KUEUE_QUEUE_LABEL] || '')
             .toLowerCase()
             .includes(clusterQueueFilter)
         ) {

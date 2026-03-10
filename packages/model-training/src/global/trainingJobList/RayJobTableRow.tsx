@@ -14,6 +14,7 @@ import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import { getRayJobStatusSync, getRayJobNodeCount, getStatusInfo, getStatusFlags } from './utils';
 import StateActionToggle from './StateActionToggle';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 import { RayJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { useRayClusterDashboardURL } from '../../hooks/useRayClusterDashboardURL';
@@ -35,7 +36,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
 }) => {
   const displayName = job.metadata.name;
   const nodesCount = getRayJobNodeCount(job);
-  const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
+  const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
   const status = jobStatus || getRayJobStatusSync(job);
   const statusInfo = getStatusInfo(status);
   const { isPaused, canPauseResume } = getStatusFlags(status);
@@ -49,19 +50,19 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    items.push({
-      title: 'View job details',
-      onClick: () => onSelectJob(job),
-    });
-
-    items.push({
-      isSeparator: true,
-    });
-
-    items.push({
-      title: 'Delete job',
-      onClick: () => onDelete(job),
-    });
+    items.push(
+      {
+        title: 'View job details',
+        onClick: () => onSelectJob(job),
+      },
+      {
+        isSeparator: true,
+      },
+      {
+        title: 'Delete job',
+        onClick: () => onDelete(job),
+      },
+    );
 
     return items;
   }, [job, onDelete, onSelectJob]);

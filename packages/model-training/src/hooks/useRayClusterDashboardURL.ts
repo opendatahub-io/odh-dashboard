@@ -58,6 +58,10 @@ export const useRayClusterDashboardURL = (
       return;
     }
 
+    setUrl(null);
+    setError(undefined);
+    setLoaded(false);
+
     let cancelled = false;
 
     const fetchURL = async () => {

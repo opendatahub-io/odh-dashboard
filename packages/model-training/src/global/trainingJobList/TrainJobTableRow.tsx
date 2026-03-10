@@ -22,6 +22,7 @@ import StateActionToggle from './StateActionToggle';
 import { useTrainingJobPauseResume } from './hooks/useTrainingJobPauseResume';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
+import { KUEUE_QUEUE_LABEL } from '../../const';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainJobTableRowProps = {
@@ -67,7 +68,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
     setDontShowModalValue,
   } = useTrainingJobPauseResume(job, onStatusUpdate);
 
-  const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
+  const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
 
