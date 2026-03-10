@@ -42,9 +42,14 @@ const mock100Files = createFiles(100);
 const mock1000Files = createFiles(1000);
 
 const mockDirectories: Directory[] = [
-  { name: 'path-level-1', path: '/path-level-1' },
-  { name: 'path-level-2', path: '/path-level-1/path-level-2' },
-  { name: 'path-level-3', path: '/path-level-1/path-level-2/path-level-3' },
+  { name: 'path-level-1', path: '/path-level-1', type: 'directory', items: 5 },
+  { name: 'path-level-2', path: '/path-level-1/path-level-2', type: 'directory', items: 3 },
+  {
+    name: 'path-level-3',
+    path: '/path-level-1/path-level-2/path-level-3',
+    type: 'directory',
+    items: 1,
+  },
 ];
 
 const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) => {
@@ -53,7 +58,12 @@ const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) =
     .fill(null)
     .map((__, i) => `path-level-${i + 1}`)
     .join('/');
-  return { name: `path-level-${level}`, path: `/${path}` };
+  return {
+    name: `path-level-${level}`,
+    path: `/${path}`,
+    type: 'directory' as const,
+    items: level,
+  };
 });
 
 /* eslint-disable prettier/prettier -- No need to make file size crazy-long just for mock data*/
@@ -86,14 +96,14 @@ const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) =
  * └── changelog.md
  */
 const realisticDirectories: Directory[] = [
-  { name: 'docs', path: '/docs', items: 6 },
-  { name: 'guides', path: '/docs/guides', items: 3 },
-  { name: 'api', path: '/docs/api', items: 2 },
-  { name: 'reports', path: '/reports', items: 4 },
-  { name: '2024', path: '/reports/2024', items: 3 },
-  { name: 'data', path: '/data', items: 5 },
-  { name: 'raw', path: '/data/raw', items: 3 },
-  { name: 'processed', path: '/data/processed', items: 2 },
+  { name: 'docs', path: '/docs', type: 'directory', items: 6 },
+  { name: 'guides', path: '/docs/guides', type: 'directory', items: 3 },
+  { name: 'api', path: '/docs/api', type: 'directory', items: 2 },
+  { name: 'reports', path: '/reports', type: 'directory', items: 4 },
+  { name: '2024', path: '/reports/2024', type: 'directory', items: 3 },
+  { name: 'data', path: '/data', type: 'directory', items: 5 },
+  { name: 'raw', path: '/data/raw', type: 'directory', items: 3 },
+  { name: 'processed', path: '/data/processed', type: 'directory', items: 2 },
 ];
 const realisticFiles: Files = [
   { name: 'getting-started.md', path: '/docs/guides/getting-started.md', type: 'markdown', size: '4200' },
@@ -154,7 +164,9 @@ const scenarios: Scenario[] = [
   },
   {
     label: 'realistic nested structure',
-    files: realisticFiles,
+    files: [...realisticDirectories, ...realisticFiles].toSorted((fA, fB) =>
+      fA.name.localeCompare(fB.name),
+    ),
     directories: realisticDirectories,
     source: mockSource,
   },

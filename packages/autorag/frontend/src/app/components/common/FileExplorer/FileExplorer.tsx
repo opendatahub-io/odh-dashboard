@@ -51,18 +51,16 @@ export type Sources = Source[];
 export interface File {
   name: string;
   path: string;
-  size: string;
+  size?: string;
   type: string;
   items?: number;
   details?: object;
 }
-export type Files = File[];
+export type Files<T extends File = File> = T[];
 
-// TODO [ Claude ] Should Directory be an extension of File? Forced type="Directory" and adds items number field. That way Files interface can contain both Files & Directories.
-export interface Directory {
-  name: string;
-  path: string;
-  items?: number;
+export interface Directory extends File {
+  type: 'directory';
+  items: number;
 }
 
 // Globals -------------------------------------------------------------------->
@@ -73,6 +71,8 @@ const defaults = {
     modalDescription: 'Select which files to use for your data collection and evaluation sources',
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
+
+    fileTypeDirectory: 'Folder',
 
     sourceSelector: 'Source Selector',
     sourceCaption: 'Files',
@@ -85,6 +85,9 @@ const defaults = {
     tableColumnName: 'Name',
     tableColumnType: 'Type',
     tableColumnItems: 'Items',
+
+    tableItemsSingular: 'item',
+    tableItemsPlural: 'items',
 
     detailsPanelTitle: 'Details',
   },
@@ -155,8 +158,12 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
               <Th isStickyColumn width={40}>
                 {columns.name}
               </Th>
-              <Th isStickyColumn>{columns.type}</Th>
-              <Th isStickyColumn>{columns.items}</Th>
+              <Th isStickyColumn width={40}>
+                {columns.type}
+              </Th>
+              <Th isStickyColumn width={10}>
+                {columns.items}
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -173,8 +180,19 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
                     }}
                   />
                   <Td dataLabel={columns.name}>{file.name}</Td>
-                  <Td dataLabel={columns.type}>{file.type}</Td>
-                  <Td dataLabel={columns.items}>{file.items}</Td>
+                  <Td dataLabel={columns.type}>
+                    {file.type === 'directory' ? defaults.labels.fileTypeDirectory : file.type}
+                  </Td>
+                  <Td dataLabel={columns.items}>
+                    {typeof file.items === 'number' && (
+                      <Label variant="outline" color="green">
+                        {file.items}{' '}
+                        {file.items > 0
+                          ? defaults.labels.tableItemsPlural
+                          : defaults.labels.tableItemsSingular}
+                      </Label>
+                    )}
+                  </Td>
                 </Tr>
               ))}
           </Tbody>
