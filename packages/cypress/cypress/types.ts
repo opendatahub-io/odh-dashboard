@@ -582,13 +582,13 @@ export type GenAiTestData = {
   playgroundServiceName: string;
   servingRuntimesPath?: string;
   // Filter test values
-  filterByNameValue?: string;
-  filterByKeywordValue?: string;
-  filterByUseCaseValue?: string;
+  filterByNameValue: string;
+  filterByKeywordValue: string;
+  filterByUseCaseValue: string;
   // Expected values for verification
-  expectedModelDisplayName?: string;
-  expectedUseCase?: string;
-  expectedStatus?: string;
+  expectedModelDisplayName: string;
+  expectedUseCase: string;
+  expectedStatus: string;
   enableAiAsset?: boolean;
 };
 
