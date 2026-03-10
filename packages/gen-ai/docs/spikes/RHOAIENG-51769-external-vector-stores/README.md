@@ -869,20 +869,58 @@ credential issues earlier, this approach is not preferred due to the implementat
 place on the BFF — each provider requires a different probe mechanism (PostgreSQL wire protocol
 for pgvector, REST calls for milvus and qdrant), adding complexity and dependencies.
 
-Instead, the BFF should perform **field-level validation** before writing the configmap:
+Instead, the BFF should perform **field-level validation** before writing the configmap. The
+remaining risk (unreachable endpoints, bad credentials) is accepted on the basis that the UI
+will present users with a structured form for each provider type, reducing the likelihood of
+malformed input reaching the BFF.
 
-- Check that all required fields are present and non-empty for the given provider type (e.g.
-  `host`, `db`, `user`, `password` for pgvector — since llamastack silently defaults missing
-  fields like `host` to `localhost` rather than rejecting them).
-- Check that the `persistence` field is included for providers that require it (`remote::pgvector`,
-  `remote::milvus`) — omitting it crashes llamastack before any connectivity attempt.
-- Check that `embedding_model` references a model ID registered in llamastack
-  (`GET /v1/models` can be used for this without touching the vector store provider at all).
-- Apply any basic format validation (e.g. port is a valid integer, URL is well-formed).
+**Cross-provider (applies to all)**
 
-This reduces risk without requiring network probes. The remaining risk (unreachable endpoints,
-bad credentials) is accepted on the basis that the UI will present users with a structured form
-for each provider type, reducing the likelihood of malformed input reaching the BFF.
+- `embedding_model` must reference a model ID registered in llamastack — use `GET /v1/models`
+  to verify. The ID must match exactly including any prefix (e.g. `sentence-transformers/...`).
+- `persistence.backend` must reference a backend name defined in `storage.backends` in the
+  configmap (e.g. `kv_default`).
+- `persistence.namespace` should be unique per provider to avoid KV store key collisions.
+
+**`remote::pgvector`**
+
+All fields are technically optional in the Pydantic model (with defaults like `localhost`,
+`postgres`, `mysecretpassword`), but these defaults are clearly placeholder values that would
+never be correct in a real deployment. The BFF should treat the following as required:
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `host` | `str` | Required (non-empty). Pydantic defaults to `localhost` if omitted — silently misconfigures. |
+| `port` | `int` | Required. Must be a valid port number (1–65535). Defaults to `5432`. |
+| `db` | `str` | Required (non-empty). Pydantic defaults to `postgres` if omitted. |
+| `user` | `str` | Required (non-empty). Pydantic defaults to `postgres` if omitted. |
+| `password` | `str` | Required (non-empty). Pydantic defaults to `mysecretpassword` if omitted. |
+| `persistence` | object | Required. Omitting it crashes llamastack with `AttributeError` before any connectivity attempt (confirmed in Test 01a). |
+| `distance_metric` | `str` | Optional. If provided, must be one of `COSINE`, `L2`, `L1`, `INNER_PRODUCT`. |
+
+**`remote::qdrant`**
+
+All fields are optional in the Pydantic model. The BFF should require at least one endpoint
+identifier:
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `url` | `str` | Required if `location` and `host` are not provided. Must be a well-formed URL. |
+| `location` | `str` | Alternative to `url` for specifying the endpoint. |
+| `host` | `str` | Alternative to `url`/`location`. |
+| `port` | `int` | Optional. Must be a valid port number (1–65535) if provided. Defaults to `6333`. |
+| `grpc_port` | `int` | Optional. Must be a valid port number if provided. Defaults to `6334`. |
+| `api_key` | `str` | Optional. Required for auth-enabled instances (e.g. Qdrant Cloud). |
+| `persistence` | object | Recommended. Include to ensure consistent KV store behaviour across restarts. |
+
+**`remote::milvus`**
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `uri` | `str` | Required (non-empty). Must be a well-formed URI (e.g. `http://host:19530`). |
+| `token` | `str` | Required in `0.5.0+rhai0` — Pydantic raises `ValidationError` if omitted entirely, even for unauthenticated instances. Use `""` for no auth, `"username:password"` for auth-enabled. |
+| `persistence` | object | Required. Confirmed necessary for stable operation across restarts. |
+| `consistency_level` | `str` | Optional. Defaults to `Strong`. |
 
 ### `registered_resources.vector_stores` pre-registration works reliably
 
