@@ -108,7 +108,16 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 }
 
 // PipelineRunHandler handles GET /api/v1/pipeline-runs/:runId
-// Returns a single pipeline run by ID
+// Returns a single pipeline run by ID, but only if it belongs to the discovered AutoRAG pipeline.
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before returning it. This prevents users from accessing runs from other
+// pipelines that may exist in the same namespace.
+//
+// Error Responses:
+//   - 400: Missing runId or pipeline server client
+//   - 404: Run not found, or run belongs to a different pipeline
+//   - 500: Pipeline Server error or no AutoRAG pipeline discovered
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
 
@@ -116,6 +125,15 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
 		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	// Get discovered pipeline from context (added by AttachDiscoveredPipeline middleware)
+	discovered, ok := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
+	if !ok || discovered == nil {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("no AutoRAG pipeline found in namespace"),
+			"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
 		return
 	}
 
@@ -137,6 +155,17 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		// For all other errors, return 500
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
 		return
+	}
+
+	// Verify that the run belongs to the discovered AutoRAG pipeline
+	// This ensures users can only access runs from the AutoRAG pipeline in their namespace
+	if run.PipelineVersionReference != nil {
+		if run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+			run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+			// Run exists but belongs to a different pipeline - return 404 for security
+			app.notFoundResponse(w, r)
+			return
+		}
 	}
 
 	// Wrap in envelope response

@@ -251,6 +251,22 @@ GET /api/v1/pipeline-runs/{runId}
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `runId` | path parameter | Yes | Unique identifier of the pipeline run to retrieve |
 
+### Security & Filtering
+
+This endpoint automatically discovers the AutoRAG managed pipeline in the namespace and validates that the requested run belongs to it. This ensures:
+
+- **Namespace isolation**: Users can only access runs from the AutoRAG pipeline in their namespace
+- **Pipeline filtering**: Runs from other pipelines in the same namespace are not accessible
+- **Automatic discovery**: No need to manually specify pipeline IDs
+
+**Behavior:**
+- Returns the run if it exists and belongs to the discovered AutoRAG pipeline
+- Returns `404 Not Found` if:
+  - The run does not exist, OR
+  - The run belongs to a different pipeline (not the AutoRAG pipeline)
+- Returns `500 Internal Server Error` if:
+  - No AutoRAG managed pipeline is found in the namespace
+
 ### Request Example
 
 ```bash

@@ -342,7 +342,10 @@ paths:
     description: >-
       Retrieves a single pipeline run by its unique identifier from the
       Pipeline Server in the specified namespace. The Pipeline Server
-      (DSPipelineApplication) is automatically discovered.
+      (DSPipelineApplication) and AutoRAG managed pipeline are automatically discovered.
+      The run is validated to ensure it belongs to the discovered AutoRAG pipeline before
+      being returned. Returns 404 if the run doesn't exist or belongs to a different pipeline.
+      Returns 500 if no AutoRAG pipeline is found in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -372,7 +375,10 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
-      description: Returns a single pipeline run by its unique identifier
+      description: >-
+        Returns a single pipeline run by its unique identifier, but only if it belongs to the
+        discovered AutoRAG managed pipeline in the namespace. This ensures users can only access
+        runs from the AutoRAG pipeline and not runs from other pipelines in the same namespace.
 
 components:
   schemas:
