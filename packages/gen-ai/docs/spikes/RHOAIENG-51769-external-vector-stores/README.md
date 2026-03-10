@@ -222,7 +222,7 @@ missing embedding model + malformed config).
 | 02 — Missing embedding model | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `ModelNotFoundError` (Python traceback) | Validated at startup during resource registration. Clear error message names the missing model. One bad entry crashes the entire instance. |
 | 03 — Malformed provider config (missing `host`/`db`) | No — CrashLoopBackOff | **Yes** — attempted connection to `localhost:5432` | `psycopg2.OperationalError: Connection refused` (Python traceback) | No Pydantic validation error — missing `host` silently defaulted to `localhost`. Crash is indistinguishable from Test 01a at the error level. |
 | 04 — Invalid credentials | No — CrashLoopBackOff | **Yes** — auth attempted at startup | `psycopg2.OperationalError: FATAL: password authentication failed` → `RuntimeError` (Python traceback) | Host reached successfully; auth failure is distinct and specific in the error message, but re-raised under the same generic `RuntimeError` wrapper as connectivity failures. |
-| 05 — Multiple bad configs | | | | |
+| 05 — Multiple bad configs (unreachable endpoint + missing embedding model) | No — CrashLoopBackOff | **Yes** — pgvector connectivity checked at startup | `psycopg2.OperationalError` → `RuntimeError` (Python traceback) | Stops at first error — provider instantiation (phase 1) fails before resource registration (phase 2) is reached. `ModelNotFoundError` never surfaces. Only one error reported regardless of how many exist. |
 | 06 — One bad, one valid | | | | |
 
 ---
@@ -724,3 +724,40 @@ RuntimeError: Could not connect to PGVector database server
 - **Implication for BFF:** Auth failures and connectivity failures produce the same top-level
   `RuntimeError` — the BFF cannot distinguish them from the llamastack error alone. Both result
   in CrashLoopBackOff. Credential validation must happen before the configmap is written.
+
+---
+
+### Test 05 — Multiple Bad Configurations
+
+**Config file:** `configmaps/05-multiple-bad-configs.yaml`
+**Bad entries:**
+1. `remote::pgvector` provider pointing at `pgvector.does-not-exist.svc.cluster.local` (unreachable — same as Test 01a)
+2. A registered vector store entry referencing `non-existent-embedding-model` (same as Test 02)
+
+**Result: Pod failed to start — CrashLoopBackOff**
+
+Llamastack stopped at the **first** error encountered and never reached the second. The pgvector
+connectivity failure (provider instantiation, phase 1) fired before the missing embedding model
+check (resource registration, phase 2):
+
+```
+psycopg2.OperationalError: could not translate host name
+  "pgvector.does-not-exist.svc.cluster.local" to address: Name or service not known
+
+RuntimeError: Could not connect to PGVector database server
+```
+
+`ModelNotFoundError` did not appear anywhere in the logs.
+
+**Key findings:**
+- **Llamastack stops at the first error** — no aggregation of multiple failures. Only one error
+  is reported regardless of how many bad entries are present.
+- **Startup phases are sequential and fail-fast:**
+  1. Provider instantiation (connectivity checks, Pydantic validation)
+  2. Resource registration (embedding model lookup, vector store pre-registration)
+
+  A failure in phase 1 prevents phase 2 from running entirely.
+- **Implication for BFF:** The BFF cannot rely on llamastack to surface all problems at once.
+  If the configmap contains multiple errors, only the first will be visible in the pod logs.
+  All validation must happen in the BFF before the configmap is written — not incrementally
+  in response to llamastack error feedback.
