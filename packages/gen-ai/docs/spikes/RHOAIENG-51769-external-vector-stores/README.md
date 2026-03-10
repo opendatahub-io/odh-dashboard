@@ -807,12 +807,25 @@ provider to the configmap**:
 | Provider field defaults | `host` and `db` have defaults in the pgvector Pydantic model — omitting them does not raise a validation error but produces a silent misconfiguration. BFF should enforce these fields explicitly. |
 | Multiple bad entries | All entries must be individually valid before writing the configmap. Llamastack will only report the first error encountered. |
 
-### Qdrant requires a different validation approach
+### Recommended validation strategy: probe all providers uniformly
 
-For `remote::qdrant` providers, startup success is **not a reliable signal** that the endpoint or
-credentials are valid. The BFF must independently probe the qdrant endpoint (e.g. via the Qdrant
-HTTP API health check) before writing the configmap, and should not rely on the llamastack pod
-status to detect misconfiguration.
+Although pgvector and milvus fail at startup and qdrant defers, the BFF should **probe all
+provider endpoints before writing the configmap**, regardless of provider type. Relying on the
+provider-specific startup behaviour is fragile:
+
+- It is an implementation detail of llamastack that could change across versions.
+- For pgvector/milvus, a CrashLoopBackOff is a poor user experience — the BFF can catch the same
+  problem earlier and return a proper HTTP error before any cluster state is touched.
+- For qdrant, without probing there is no feedback at all until a user tries to use the store.
+
+A uniform "probe before write" approach is simpler, version-independent, and gives users
+consistent, early feedback across all provider types. Each provider exposes a lightweight check:
+
+| Provider | Probe |
+|----------|-------|
+| `remote::pgvector` | Attempt a TCP connection + authentication (e.g. `psycopg2.connect()` or equivalent) |
+| `remote::milvus` | `GET /healthz` on the Milvus REST endpoint |
+| `remote::qdrant` | `GET /healthz` or `GET /collections` on the Qdrant HTTP endpoint |
 
 ### `registered_resources.vector_stores` pre-registration works reliably
 
