@@ -278,9 +278,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     {typeof file.items === 'number' && (
                       <Label variant="outline" color="green" isCompact>
                         {file.items}{' '}
-                        {file.items > 0
-                          ? defaults.labels.tableItemsPlural
-                          : defaults.labels.tableItemsSingular}
+                        {file.items === 1
+                          ? defaults.labels.tableItemsSingular
+                          : defaults.labels.tableItemsPlural}
                       </Label>
                     )}
                   </Td>

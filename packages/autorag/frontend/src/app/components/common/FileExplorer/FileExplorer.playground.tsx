@@ -429,7 +429,7 @@ const App: React.FC = () => {
           <CardBody>
             <Stack>
               {Object.entries(scenarioGroups).map(([groupLabel, scenarios]) => (
-                <>
+                <React.Fragment key={groupLabel}>
                   <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md pf-v6-u-mt-sm pf-v6-u-mb-sm">
                     {groupLabel}
                   </StackItem>
@@ -447,7 +447,7 @@ const App: React.FC = () => {
                       ))}
                     </Flex>
                   </StackItem>
-                </>
+                </React.Fragment>
               ))}
             </Stack>
           </CardBody>
