@@ -168,6 +168,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MCP_CATALOG]: {
     featureFlags: ['mcpCatalog'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
