@@ -9,8 +9,10 @@ When asked to update documentation after code changes, read and follow the skill
 
 Key points:
 - Input is optional. If no git reference or description is given, default to uncommitted changes (`HEAD`).
+- **`--no-cache` flag**: Skip git diff entirely and rewrite all sections of targeted docs from scratch by re-reading source code. Can be scoped to a specific path (e.g., `--no-cache backend`). Without a scope filter, refreshes every doc in BOOKMARKS.md.
 - Map changed source files to affected docs using `docs/BOOKMARKS.md` as the index.
 - A code change can affect multiple doc types — check overview docs, guides, READMEs, ADRs, and agent rules.
-- Update only the affected sections; do not rewrite unaffected content.
+- In diff mode (default), update only the affected sections; do not rewrite unaffected content.
+- In `--no-cache` mode, rewrite every section treating the current source code as the single source of truth.
 - Update the `Last Updated` date if the doc uses one.
 - Show a summary of proposed changes before writing.
