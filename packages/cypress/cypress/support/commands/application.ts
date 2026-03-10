@@ -469,21 +469,28 @@ Cypress.Commands.add(
   'findKebabAction',
   { prevSubject: 'element' },
   (subject, name, isDropdownToggle) => {
-    Cypress.log({ displayName: 'findKebab', message: name });
+    Cypress.log({ displayName: 'findKebabAction', message: name });
+
+    // Break up the chain as recommended by Cypress to handle async re-renders
+    // Store reference to kebab element
     return cy
       .wrap(subject)
       .findKebab(isDropdownToggle)
+      .as('kebabToggle')
       .then(($el) => {
+        // Only click if not already expanded
         if ($el.attr('aria-expanded') !== 'true') {
-          cy.wrap($el).click();
-          // Wait for the kebab menu to expand
-          cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
+          // Re-query before click to get fresh reference (handles async updates)
+          return cy.wrap(subject).findKebab(isDropdownToggle).click();
         }
-        // Re-query the kebab to ensure we have a fresh reference after any potential re-renders
+      })
+      .then(() => {
+        // Re-query again after click to ensure we have latest state
         return cy.wrap(subject).findKebab(isDropdownToggle);
       })
+      .should('have.attr', 'aria-expanded', 'true')
       .then(($kebab) => {
-        // Get the menu ID from aria-controls or find menu by proximity
+        // Get the menu ID from aria-controls or find menu globally
         const menuId = $kebab.attr('aria-controls');
         if (menuId) {
           return cy.get(`#${menuId}`).findByRole('menuitem', { name });
