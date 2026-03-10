@@ -341,13 +341,7 @@ function AutoragConfigure(): React.JSX.Element {
         onSelectSource={
           (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
         }
-        files={[
-          {
-            name: 'FooFile.000.md',
-            type: 'markdown',
-            size: '1000000000',
-          },
-        ]}
+        files={[]}
         source={{
           name: 'Foo connection',
           count: 999999999,
