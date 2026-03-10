@@ -185,7 +185,7 @@ make dev-start-federated
 | `AUTH_TOKEN_HEADER` | Header carrying the user token in `user_token` mode | `Authorization` | No |
 | `AUTH_TOKEN_PREFIX` | Prefix stripped from the token header value | `Bearer` | No |
 | `DEV_MODE` | Enable development mode (local kubeconfig) | `false` | No |
-| `DEV_MODE_CLIENT_PORT` | Kubeflow client port in dev mode | `8080` | No |
+| `DEV_MODE_CLIENT_PORT` | Frontend client port the BFF proxies to in dev mode (set to `8085` by kubeflow and federated Makefile targets) | `8080` | No |
 | `MOCK_K8S_CLIENT` | Use in-memory Kubernetes mock | `false` | No |
 | `INSECURE_SKIP_VERIFY` | Skip TLS verification for outbound calls (dev only) | `false` | No |
 | `LOG_LEVEL` | BFF log level: `error`, `warn`, `info`, `debug` | `INFO` | No |
@@ -227,9 +227,9 @@ Contract tests follow the `@odh-dashboard/contract-tests` framework. Start the B
 
 ## Known Issues / Gotchas
 
-- The MLflow package has no kubeflow deployment mode — only `standalone` and `federated`.
-  The README mentions kubeflow in its targeted environments section, but the Makefile does
-  not define `dev-start-kubeflow` targets.
+- The MLflow package supports three deployment modes: `kubeflow`, `federated`, and
+  `standalone`. The Makefile provides `dev-start-kubeflow`, `dev-start-federated`, and
+  `dev-start` (standalone) targets, and the default `docker-build` uses `DEPLOYMENT_MODE=kubeflow`.
 - MLflow domain data (experiments, runs) bypasses the BFF entirely and flows through the
   main dashboard backend proxy. The OpenAPI spec covers only infrastructure endpoints.
 - `STYLE_THEME=mui-theme` is the default even for standalone mode; set it explicitly to
