@@ -11,10 +11,14 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   Grid,
   GridItem,
+  MenuToggle,
   Modal,
   ModalBody,
   ModalFooter,
@@ -175,21 +179,72 @@ interface PathBreadcrumbsProps {
   rootLabel?: string;
   onNavigate?: (directory: Directory) => void;
 }
+const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
+const BREADCRUMB_LEADING_VISIBLE = 1;
+const BREADCRUMB_TRAILING_VISIBLE = 2;
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   directories,
   rootLabel = 'Root',
   onNavigate,
-}) => (
-  <Breadcrumb>
-    <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
-    {Array.isArray(directories) &&
-      directories.map((dir) => (
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const dirs = Array.isArray(directories) ? directories : [];
+  const shouldCollapse = dirs.length > BREADCRUMB_COLLAPSE_THRESHOLD;
+  const leadingDirs = shouldCollapse ? dirs.slice(0, BREADCRUMB_LEADING_VISIBLE) : [];
+  const hiddenDirs = shouldCollapse
+    ? dirs.slice(BREADCRUMB_LEADING_VISIBLE, dirs.length - BREADCRUMB_TRAILING_VISIBLE)
+    : [];
+  const visibleDirs = shouldCollapse ? dirs.slice(dirs.length - BREADCRUMB_TRAILING_VISIBLE) : dirs;
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
+      {leadingDirs.map((dir) => (
         <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
           {dir.name}
         </BreadcrumbItem>
       ))}
-  </Breadcrumb>
-);
+      {shouldCollapse && (
+        <BreadcrumbItem>
+          <Dropdown
+            isOpen={isDropdownOpen}
+            onOpenChange={setIsDropdownOpen}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                variant="plain"
+                aria-label="Collapsed breadcrumb items"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+              >
+                ...
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              {hiddenDirs.map((dir) => (
+                <DropdownItem
+                  key={dir.path}
+                  onClick={() => {
+                    onNavigate?.(dir);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {dir.name}
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
+        </BreadcrumbItem>
+      )}
+      {visibleDirs.map((dir) => (
+        <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
+          {dir.name}
+        </BreadcrumbItem>
+      ))}
+    </Breadcrumb>
+  );
+};
 
 interface FileDetailsPanelProps {
   bucket?: string;
@@ -293,7 +348,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             />
           </FlexItem>
           <FlexItem>
-            {/* TODO: Use a BreadCrumb w/ Dropdown if levels exceed 6 https://www.patternfly.org/components/breadcrumb#with-dropdown*/}
             <PathBreadcrumbs
               directories={directories}
               rootLabel={rootLabel}

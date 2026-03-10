@@ -40,10 +40,20 @@ const App: React.FC = () => {
     { name: 'path-level-3', path: '/path-level-1/path-level-2/path-level-3' },
   ];
 
+  const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) => {
+    const level = index + 1;
+    const path = new Array(level)
+      .fill(null)
+      .map((__, i) => `path-level-${i + 1}`)
+      .join('/');
+    return { name: `path-level-${level}`, path: `/${path}` };
+  });
+
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
+  const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
 
   return (
     <div style={{ padding: 24 }}>
@@ -59,6 +69,7 @@ const App: React.FC = () => {
         <Button
           onClick={() => {
             setFilesToRender(mock20Files);
+            setDirectoriesToRender(mockDirectories);
             setIsOpen(true);
           }}
         >
@@ -67,6 +78,7 @@ const App: React.FC = () => {
         <Button
           onClick={() => {
             setFilesToRender(mock100Files);
+            setDirectoriesToRender(mockDirectories);
             setIsOpen(true);
           }}
         >
@@ -75,17 +87,27 @@ const App: React.FC = () => {
         <Button
           onClick={() => {
             setFilesToRender(mock1000Files);
+            setDirectoriesToRender(mockDirectories);
             setIsOpen(true);
           }}
         >
           Open FileExplorer (1000 files)
+        </Button>
+        <Button
+          onClick={() => {
+            setFilesToRender(mock20Files);
+            setDirectoriesToRender(mock10Directories);
+            setIsOpen(true);
+          }}
+        >
+          Open FileExplorer (10 nested levels)
         </Button>
       </Flex>
 
       <FileExplorer
         files={filesToRender}
         source={mockSource}
-        directories={mockDirectories}
+        directories={directoriesToRender}
         rootLabel="mock-bucket (root)"
         bucket="mock-bucket"
         path="/documents/reports/2024"
