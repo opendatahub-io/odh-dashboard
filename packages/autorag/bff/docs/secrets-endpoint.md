@@ -80,7 +80,7 @@ The response follows the envelope pattern:
 |-------|------|-------------|
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
-| `type` | string | **(Optional)** The storage type that the secret matches (e.g., "s3", "lls"). Omitted from response if the secret doesn't match any recognized type. |
+| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "lls"). Omitted from the response only when neither is available. |
 | `availableKeys` | string[] | Sorted list of all keys available in the secret (without values) |
 | `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
 | `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
