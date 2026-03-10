@@ -310,10 +310,12 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 	assert.Equal(t, "other-secret", envelope.Data[2].Name)
 	// Type field omitted for secrets that don't match any known type
 	assert.Equal(t, []string{"password"}, envelope.Data[2].AvailableKeys)
+	assert.Equal(t, "", envelope.Data[2].Type)
 	assert.Equal(t, "uid-3", envelope.Data[3].UUID)
 	assert.Equal(t, "database-secret", envelope.Data[3].Name)
 	// Type field omitted for secrets that don't match any known type
 	assert.Equal(t, []string{"db_connection"}, envelope.Data[3].AvailableKeys)
+	assert.Equal(t, "", envelope.Data[3].Type)
 }
 
 func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {

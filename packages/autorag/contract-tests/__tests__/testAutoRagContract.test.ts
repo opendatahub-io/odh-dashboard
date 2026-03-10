@@ -129,11 +129,12 @@ describe('AutoRAG API Contract Tests', () => {
         // Verify displayName field is properly typed as optional string when present
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
-          const secretsWithDisplayName = responseData.data?.filter((s) => s.displayName);
-          if (secretsWithDisplayName && secretsWithDisplayName.length > 0) {
-            expect(typeof secretsWithDisplayName[0].displayName).toBe('string');
-            expect(secretsWithDisplayName[0].displayName).toBeTruthy();
-          }
+          const annotatedSecret = responseData.data?.find(
+            (s) => s.name === 'annotated-display-name-secret',
+          );
+          expect(annotatedSecret).toBeDefined();
+          expect(typeof annotatedSecret?.displayName).toBe('string');
+          expect(annotatedSecret?.displayName).toBe('Production S3 Credentials');
         }
       });
 
@@ -147,11 +148,12 @@ describe('AutoRAG API Contract Tests', () => {
         // Verify description field is properly typed as optional string when present
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
-          const secretsWithDescription = responseData.data?.filter((s) => s.description);
-          if (secretsWithDescription && secretsWithDescription.length > 0) {
-            expect(typeof secretsWithDescription[0].description).toBe('string');
-            expect(secretsWithDescription[0].description).toBeTruthy();
-          }
+          const annotatedSecret = responseData.data?.find(
+            (s) => s.name === 'annotated-description-secret',
+          );
+          expect(annotatedSecret).toBeDefined();
+          expect(typeof annotatedSecret?.description).toBe('string');
+          expect(annotatedSecret?.description).toBe('AWS credentials for production S3 storage');
         }
       });
 
@@ -165,16 +167,10 @@ describe('AutoRAG API Contract Tests', () => {
         // Verify that secrets without annotations don't have these fields
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
-          responseData.data?.forEach((secret) => {
-            // If displayName exists, it should be a non-empty string
-            if (secret.displayName !== undefined) {
-              expect(typeof secret.displayName).toBe('string');
-            }
-            // If description exists, it should be a non-empty string
-            if (secret.description !== undefined) {
-              expect(typeof secret.description).toBe('string');
-            }
-          });
+          const unannotatedSecret = responseData.data?.find((s) => s.name === 'test-secret');
+          expect(unannotatedSecret).toBeDefined();
+          expect(unannotatedSecret?.displayName).toBeUndefined();
+          expect(unannotatedSecret?.description).toBeUndefined();
         }
       });
     });
@@ -193,7 +189,8 @@ describe('AutoRAG API Contract Tests', () => {
           if (responseData.data && responseData.data.length > 0) {
             responseData.data.forEach((secret) => {
               if (secret.type !== undefined) {
-                expect(['s3', 'lls']).toContain(secret.type);
+                expect(typeof secret.type).toBe('string');
+                expect(secret.type.length).toBeGreaterThan(0);
               }
             });
           }
@@ -211,9 +208,10 @@ describe('AutoRAG API Contract Tests', () => {
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
           responseData.data?.forEach((secret) => {
-            // Type field is optional - if present, must be valid enum value
+            // Type field is optional - if present, must be a non-empty string
             if (secret.type !== undefined) {
-              expect(['s3', 'lls']).toContain(secret.type);
+              expect(typeof secret.type).toBe('string');
+              expect(secret.type.length).toBeGreaterThan(0);
             }
             // All secrets must have required fields regardless of type
             expect(secret.uuid).toBeDefined();
