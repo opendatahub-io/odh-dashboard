@@ -7,7 +7,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ModelCustomizationFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '#~/concepts/pipelines/content/createRun/useRunFormData';
@@ -82,10 +82,6 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   const navigate = useNavigate();
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
   const contextPath = globalPipelineRunsRoute(namespace);
-  const cancelHref =
-    state && state.modelVersionId && state.registeredModelId && state.modelRegistryName
-      ? modelVersionRoute(state.modelVersionId, state.registeredModelId, state.modelRegistryName)
-      : modelCustomizationRootPath;
   const {
     isValid: isNewConnectionFieldValid,
     nameDescData,
@@ -335,7 +331,24 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             <Button
               variant="link"
               data-testid="model-customization-cancel-button"
-              component={(props: React.ComponentProps<'a'>) => <Link {...props} to={cancelHref} />}
+              onClick={() => {
+                if (
+                  state &&
+                  state.modelVersionId &&
+                  state.registeredModelId &&
+                  state.modelRegistryName
+                ) {
+                  navigate(
+                    modelVersionRoute(
+                      state.modelVersionId,
+                      state.registeredModelId,
+                      state.modelRegistryName,
+                    ),
+                  );
+                } else {
+                  navigate(modelCustomizationRootPath);
+                }
+              }}
             >
               Cancel
             </Button>

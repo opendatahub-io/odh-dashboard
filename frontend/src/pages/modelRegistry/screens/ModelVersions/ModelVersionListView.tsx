@@ -204,10 +204,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                   >
                     <DropdownList>
                       <DropdownItem
-                        component="a"
-                        href={modelVersionArchiveRoute(
-                          rm.id,
-                          preferredModelRegistry?.metadata.name,
+                        component={(props: React.ComponentProps<'a'>) => (
+                          <Link
+                            {...props}
+                            to={modelVersionArchiveRoute(
+                              rm.id,
+                              preferredModelRegistry?.metadata.name,
+                            )}
+                          />
                         )}
                         data-testid="view-archived-versions-action"
                       >

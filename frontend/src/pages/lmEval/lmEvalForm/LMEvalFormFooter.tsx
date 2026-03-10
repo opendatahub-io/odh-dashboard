@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
 import { createModelEvaluation } from '#~/api';
 import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';
@@ -64,9 +64,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) 
             <Button
               variant="link"
               data-testid="lm-evaluation-cancel-button"
-              component={(props: React.ComponentProps<'a'>) => (
-                <Link {...props} to="/develop-train/evaluations" />
-              )}
+              onClick={() => navigate('/develop-train/evaluations')}
             >
               Cancel
             </Button>

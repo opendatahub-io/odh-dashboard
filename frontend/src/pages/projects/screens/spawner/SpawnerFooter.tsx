@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ActionList,
   ActionListItem,
@@ -310,15 +310,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           <ActionListItem>
             <Button
               variant="link"
-              component={(props: React.ComponentProps<'a'>) => (
-                <Link {...props} to={workbenchesHref} />
-              )}
               id="cancel-button"
               data-testid="cancel-button"
               onClick={() => {
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
+                navigate(workbenchesHref);
               }}
             >
               Cancel

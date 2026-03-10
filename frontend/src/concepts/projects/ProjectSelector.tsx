@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Button,
-  Divider,
-  Flex,
-  FlexItem,
-  MenuItem,
-  Truncate,
-} from '@patternfly/react-core';
+import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -105,25 +97,17 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <MenuItem
               key={n.name}
               isSelected={n.name === selection?.name}
+              component={
+                selectionHref
+                  ? (props: React.ComponentProps<'a'>) => <Link {...props} to={selectionHref} />
+                  : undefined
+              }
               onClick={() => {
                 setSearchText('');
                 onSelection(n.name);
               }}
             >
-              {selectionHref ? (
-                <Button
-                  variant="link"
-                  isInline
-                  component={(props: React.ComponentProps<'a'>) => (
-                    <Link {...props} to={selectionHref} />
-                  )}
-                  style={{ color: 'inherit', textDecoration: 'none' }}
-                >
-                  <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
-                </Button>
-              ) : (
-                <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
-              )}
+              <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
             </MenuItem>
           );
         })}

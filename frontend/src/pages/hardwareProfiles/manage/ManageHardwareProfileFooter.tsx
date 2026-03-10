@@ -133,12 +133,8 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               <Button
                 variant="link"
                 id="cancel-button"
-                component={
-                  isLoading
-                    ? 'button'
-                    : (props: React.ComponentProps<'a'>) => <Link {...props} to={redirectPath} />
-                }
-                isAriaDisabled={isLoading}
+                onClick={() => navigate(redirectPath)}
+                isDisabled={isLoading}
               >
                 Cancel
               </Button>
