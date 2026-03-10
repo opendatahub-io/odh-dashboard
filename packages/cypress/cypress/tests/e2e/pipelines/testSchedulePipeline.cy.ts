@@ -6,32 +6,37 @@ import { createSchedulePage } from '../../../pages/pipelines/createRunPage';
 import { pipelineDetails, pipelineRecurringRunDetails } from '../../../pages/pipelines/topology';
 import { pipelineRunsGlobal, pipelineRecurringRunTable } from '../../../pages/pipelines';
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 
 const uuid = generateTestUUID();
-const projectName = `test-dsp-schedule-prj-${uuid}`;
-const dspaSecretName = 'dashboard-dspa-secret';
 const awsBucket = 'BUCKET_3' as const;
 
 describe('Verify that a pipeline can be scheduled to run', { testIsolation: false }, () => {
+  let projectName = '';
   let pipelineName = '';
   let pipelineDescription = '';
   let scheduleName = '';
   let scheduleDescription = '';
   let pipelineUrl = '';
+  let experimentName = '';
+  let runEveryUnit = '';
 
   retryableBefore(() => {
     cy.fixture('e2e/pipelines/testSchedulePipeline.yaml').then((yamlString) => {
       const cfg = yaml.load(yamlString as string) as Record<string, string>;
+      projectName = `${cfg.projectNamePrefix}-${uuid}`;
       pipelineName = cfg.pipelineName;
       pipelineDescription = cfg.pipelineDescription;
       scheduleName = cfg.scheduleName;
       scheduleDescription = cfg.scheduleDescription;
       pipelineUrl = cfg.pipelineUrl;
+      experimentName = cfg.experimentName;
+      runEveryUnit = cfg.runEveryUnit;
+      provisionProjectForPipelines(projectName, cfg.dspaSecretName, awsBucket);
     });
-    provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
   });
 
   after(() => {
@@ -49,8 +54,14 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
+      cy.step('Wait for pipeline server (DSPA) to be ready');
+      waitForDspaReady(projectName);
+
+      cy.step('Ensure Import Pipeline button is loaded');
+      projectDetails.ensureImportPipelineButtonLoaded();
+
       cy.step('Import a pipeline by URL');
-      projectDetails.findImportPipelineButton(300000).click();
+      projectDetails.findImportPipelineButton().click();
       pipelineImportModal.findPipelineNameInput().type(pipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type(pipelineDescription);
       pipelineImportModal.findImportPipelineRadio().click();
@@ -68,7 +79,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
 
       cy.step('Schedule the pipeline to run every 1 minute');
       createSchedulePage.experimentSelect.findToggleButton().click();
-      createSchedulePage.selectExperimentByName('Default');
+      createSchedulePage.selectExperimentByName(experimentName);
       createSchedulePage.fillName(scheduleName);
       createSchedulePage.fillDescription(scheduleDescription);
 
@@ -78,7 +89,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       createSchedulePage.findRunEveryUnitDropdown().click();
       // Use the page object method to select the Minute option
       createSchedulePage.selectRunEveryUnitMinute().click();
-      createSchedulePage.findRunEveryUnitDropdown().should('contain.text', 'Minute');
+      createSchedulePage.findRunEveryUnitDropdown().should('contain.text', runEveryUnit);
 
       createSchedulePage.pipelineSelect.openAndSelectItem(pipelineName);
       createSchedulePage.findUseLatestVersionRadio().click();

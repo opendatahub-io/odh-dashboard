@@ -22,7 +22,7 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
     {
       properties: {
         extractModelFormat: () => ({ name: 'test-model-format' }),
-        extractReplicas: () => 1,
+        extractReplicas: () => ({ data: 1 }),
         hardwareProfilePaths: {
           containerResourcesPath: 'spec.predictor.model.resources',
           tolerationsPath: 'spec.predictor.tolerations',

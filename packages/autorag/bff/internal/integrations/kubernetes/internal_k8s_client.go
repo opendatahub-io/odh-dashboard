@@ -6,13 +6,27 @@ import (
 	"log/slog"
 	"time"
 
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// InternalKubernetesClient uses the backend's service account credentials to perform
+// operations with user impersonation via SubjectAccessReview.
+//
+// This client validates namespace existence before permission checks in GetSecrets,
+// providing clearer error messages that distinguish "namespace not found" from
+// "permission denied". This is feasible because the service account has cluster-level
+// access. TokenKubernetesClient omits this check since it uses the user's token directly
+// and cannot distinguish these cases as easily.
 type InternalKubernetesClient struct {
 	SharedClientLogic
 }
@@ -36,12 +50,24 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Create controller-runtime client for CRD access
+	runtimeScheme := runtime.NewScheme()
+	_ = scheme.AddToScheme(runtimeScheme)
+	_ = lsdapi.AddToScheme(runtimeScheme)
+
+	runtimeClient, err := client.New(kubeconfig, client.Options{Scheme: runtimeScheme})
+	if err != nil {
+		logger.Error("failed to create controller-runtime client", "error", err)
+		return nil, fmt.Errorf("failed to create runtime client: %w", err)
+	}
+
 	return &InternalKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client:     clientset,
-			Logger:     logger,
-			Token:      NewBearerToken(kubeconfig.BearerToken),
-			RestConfig: kubeconfig,
+			Client:        clientset,
+			RuntimeClient: runtimeClient,
+			Logger:        logger,
+			Token:         NewBearerToken(kubeconfig.BearerToken),
+			RestConfig:    kubeconfig,
 		},
 	}, nil
 }
@@ -185,6 +211,111 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	return allowed, nil
 }
 
+// GetSecrets lists secrets in a namespace.
+func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Verify the namespace exists before permission checks to provide clearer error messages.
+	// The service account can distinguish "namespace not found" from "permission denied",
+	// improving UX compared to TokenKubernetesClient which cannot make this distinction.
+	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
+	}
+
+	// Check if user has permission to list secrets in the namespace
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Resource:  "secrets",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check secret list permissions", "namespace", namespace, "user", identity.UserID, "error", err)
+		return nil, fmt.Errorf("failed to check permissions to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	if !response.Status.Allowed {
+		kc.Logger.Warn("user not allowed to list secrets", "namespace", namespace, "user", identity.UserID)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
+	}
+
+	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	return secretList.Items, nil
+}
+
+// GetSecret retrieves a specific secret by name from a namespace.
+func (kc *InternalKubernetesClient) GetSecret(ctx context.Context, namespace, secretName string, identity *RequestIdentity) (*corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Verify the namespace exists first
+	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
+	}
+
+	// Check if user has permission to get the secret in the namespace
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "get",
+				Resource:  "secrets",
+				Namespace: namespace,
+				Name:      secretName,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check secret get permissions", "namespace", namespace, "secretName", secretName, "user", identity.UserID, "error", err)
+		return nil, fmt.Errorf("failed to check permissions to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	if !response.Status.Allowed {
+		kc.Logger.Warn("user not allowed to get secret", "namespace", namespace, "secretName", secretName, "user", identity.UserID)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to get secret %s in namespace %s", identity.UserID, secretName, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
+	}
+
+	secret, err := kc.Client.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get secret", "namespace", namespace, "secretName", secretName, "error", err)
+		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	return secret, nil
+}
+
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -213,6 +344,64 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
+}
+
+// CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources.
+func (kc *InternalKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create SubjectAccessReview to check if user can list LlamaStackDistribution resources
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "llamastack.io",
+				Resource:  "llamastackdistributions",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+// GetLlamaStackDistributions retrieves LlamaStackDistribution resources from the specified namespace.
+// It filters for resources with the opendatahub.io/dashboard=true label.
+func (kc *InternalKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	lsdList := &lsdapi.LlamaStackDistributionList{}
+
+	listOptions := &client.ListOptions{
+		Namespace: namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			OpenDataHubDashboardLabelKey: "true",
+		}),
+	}
+
+	err := kc.RuntimeClient.List(ctx, lsdList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list LlamaStackDistributions", "error", err, "namespace", namespace)
+		return nil, err
+	}
+
+	return lsdList, nil
 }
 
 // CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
