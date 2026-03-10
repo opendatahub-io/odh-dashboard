@@ -479,6 +479,16 @@ Cypress.Commands.add(
           // Wait for the kebab menu to expand
           cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
         }
+        // Re-query the kebab to ensure we have a fresh reference after any potential re-renders
+        return cy.wrap(subject).findKebab(isDropdownToggle);
+      })
+      .then(($kebab) => {
+        // Get the menu ID from aria-controls or find menu by proximity
+        const menuId = $kebab.attr('aria-controls');
+        if (menuId) {
+          return cy.get(`#${menuId}`).findByRole('menuitem', { name });
+        }
+        // Fallback to finding menu globally
         return cy.findByRole('menuitem', { name });
       });
   },
