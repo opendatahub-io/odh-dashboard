@@ -547,16 +547,22 @@ AttributeError: 'NoneType' object has no attribute 'backend'
 With `persistence` included, llamastack attempted a real DNS lookup / DB connection at startup:
 
 ```
-INFO  vector_io::pgvector: Initializing PGVector memory adapter with config:
-      {'host': 'pgvector.does-not-exist.svc.cluster.local', 'port': 5432, ...}
+INFO   vector_io::pgvector: Initializing PGVector memory adapter with config:
+       {'host': 'pgvector.does-not-exist.svc.cluster.local', 'port': 5432,
+        'db': 'vectordb', 'user': 'vectoruser', 'password': '******',
+        'persistence': {'namespace': 'vector_io::pgvector-bad', 'backend': 'kv_default'}}
 
-psycopg2.OperationalError: could not translate host name
-  "pgvector.does-not-exist.svc.cluster.local" to address: Name or service not known
+ERROR  vector_io::pgvector: Could not connect to PGVector database server
+       │ psycopg2.__init__.py:122 in connect
+       OperationalError: could not translate host name
+         "pgvector.does-not-exist.svc.cluster.local" to address: Name or service not known
+
+RuntimeError: Could not connect to PGVector database server
 ```
 
 **Key findings:**
 - **Llamastack performs connectivity checks at startup** — attempts a real DB connection during provider initialisation.
 - **One bad provider causes the entire instance to fail** — no partial loading of other providers.
-- **Error format:** Raw Python traceback — `psycopg2.OperationalError` with a human-readable message. No structured JSON.
-- DNS resolution failure is fast (not a timeout).
+- **Error format:** Raw Python traceback. Root cause is `psycopg2.OperationalError` (DNS/connectivity failure), re-raised as `RuntimeError("Could not connect to PGVector database server")`. No structured JSON error.
+- DNS resolution failure is fast (not a timeout — fails immediately, no 30s wait).
 - **Implication for BFF:** The BFF must validate that vector store endpoints are reachable *before* writing them to the configmap — a single bad provider entry takes down the entire llamastack instance.

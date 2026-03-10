@@ -1,0 +1,141 @@
+# Test 01 (v2): Unreachable vector store endpoint (llamastack 0.5.0+rhai0)
+# Adds a remote::pgvector provider pointing at a non-existent host, with the `persistence` field included.
+# Expected: crash during connectivity attempt — DNS lookup failure.
+version: "2"
+distro_name: rh
+apis:
+- agents
+- datasetio
+- files
+- inference
+- safety
+- scoring
+- tool_runtime
+- vector_io
+providers:
+  inference:
+  - provider_id: sentence-transformers
+    provider_type: inline::sentence-transformers
+    config: {}
+  - provider_id: vllm-inference-1
+    provider_type: remote::vllm
+    config:
+      api_token: ${env.VLLM_API_TOKEN_1:=fake}
+      base_url: http://llama-32-1b-instruct-predictor.pg-2.svc.cluster.local:8080/v1
+      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+  vector_io:
+  - provider_id: milvus
+    provider_type: inline::milvus
+    config:
+      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+      persistence:
+        backend: kv_default
+        namespace: vector_io::milvus
+  - provider_id: bad-pgvector-provider
+    provider_type: remote::pgvector
+    config:
+      host: pgvector.does-not-exist.svc.cluster.local
+      port: 5432
+      db: vectordb
+      user: vectoruser
+      password: vectorpass
+      persistence:
+        backend: kv_default
+        namespace: vector_io::pgvector-bad
+  agents:
+  - provider_id: meta-reference
+    provider_type: inline::meta-reference
+    config:
+      persistence:
+        agent_state:
+          backend: kv_default
+          namespace: agents
+        responses:
+          backend: sql_default
+          table_name: responses
+  eval: []
+  files:
+  - provider_id: meta-reference-files
+    provider_type: inline::localfs
+    config:
+      metadata_store:
+        backend: sql_default
+        table_name: files_metadata
+      storage_dir: /opt/app-root/src/.llama/distributions/rh/files
+  datasetio:
+  - provider_id: huggingface
+    provider_type: remote::huggingface
+    config:
+      kvstore:
+        backend: kv_default
+        namespace: datasetio::huggingface
+  scoring:
+  - provider_id: basic
+    provider_type: inline::basic
+    config: {}
+  - provider_id: llm-as-judge
+    provider_type: inline::llm-as-judge
+    config: {}
+  tool_runtime:
+  - provider_id: rag-runtime
+    provider_type: inline::rag-runtime
+    config: {}
+  - provider_id: model-context-protocol
+    provider_type: remote::model-context-protocol
+    config: {}
+  safety: []
+metadata_store:
+  type: sqlite
+  db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+storage:
+  backends:
+    kv_default:
+      db_path: /opt/app-root/src/.llama/distributions/rh/kvstore.db
+      type: kv_sqlite
+    sql_default:
+      db_path: /opt/app-root/src/.llama/distributions/rh/sql_store.db
+      type: sql_sqlite
+  stores:
+    conversations:
+      backend: sql_default
+      table_name: openai_conversations
+    inference:
+      backend: sql_default
+      table_name: inference_store
+    metadata:
+      backend: kv_default
+      namespace: registry
+vector_stores:
+  default_provider_id: milvus
+  default_embedding_model:
+    provider_id: sentence-transformers
+    model_id: ibm-granite/granite-embedding-125m-english
+registered_resources:
+  models:
+  - provider_id: sentence-transformers
+    model_id: sentence-transformers/ibm-granite/granite-embedding-125m-english
+    provider_model_id: ibm-granite/granite-embedding-125m-english
+    model_type: embedding
+    metadata:
+      embedding_dimension: 768
+  - provider_id: vllm-inference-1
+    model_id: llama-32-1b-instruct
+    model_type: llm
+    metadata:
+      description: ""
+      display_name: llama-3.2-1b-instruct
+  shields: []
+  vector_stores:
+  - provider_id: bad-pgvector-provider
+    vector_store_id: vs_test_unreachable
+    embedding_model: sentence-transformers/ibm-granite/granite-embedding-125m-english
+    embedding_dimension: 768
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+  - toolgroup_id: builtin::rag
+    provider_id: rag-runtime
+server:
+  port: 8321
