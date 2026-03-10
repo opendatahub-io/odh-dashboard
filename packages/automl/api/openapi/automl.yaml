@@ -406,6 +406,7 @@ components:
       properties:
         display_name:
           type: string
+          minLength: 1
           description: Human-readable name for the run
           example: "my-training-run"
         description:
@@ -413,18 +414,22 @@ components:
           description: Optional description of the run
         train_data_secret_name:
           type: string
+          minLength: 1
           description: Kubernetes secret name with S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT, AWS_DEFAULT_REGION)
           example: "minio-secret"
         train_data_bucket_name:
           type: string
+          minLength: 1
           description: S3-compatible bucket name containing the tabular data file
           example: "automl-bucket"
         train_data_file_key:
           type: string
+          minLength: 1
           description: S3 object key of the CSV file (features and target column)
           example: "data/train.csv"
         label_column:
           type: string
+          minLength: 1
           description: Name of the target/label column in the dataset
           example: "target"
         task_type:
@@ -786,9 +791,12 @@ components:
       required: false
     namespace:
       name: namespace
-      description: The namespace to filter resources by.
+      description: The namespace to filter resources by. Must be a valid DNS-1123 label.
       schema:
         type: string
+        minLength: 1
+        maxLength: 63
+        pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
       in: query
       required: true
 

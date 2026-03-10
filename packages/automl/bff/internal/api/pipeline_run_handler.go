@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -25,10 +24,8 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	var req models.CreateAutoMLRunRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+	if err := app.ReadJSON(w, r, &req); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

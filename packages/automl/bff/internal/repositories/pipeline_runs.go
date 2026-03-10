@@ -223,6 +223,10 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
 
+	if kfRun == nil {
+		return nil, fmt.Errorf("pipeline server returned nil run")
+	}
+
 	run := toPipelineRun(kfRun)
 	return &run, nil
 }

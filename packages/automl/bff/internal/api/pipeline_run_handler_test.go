@@ -61,7 +61,7 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 
 func TestCreatePipelineRunHandler_Success(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should create run with all required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -143,7 +143,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should reject empty body", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -252,7 +252,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should return envelope with data field", func(t *testing.T) {
 		rr := httptest.NewRecorder()

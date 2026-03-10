@@ -12,7 +12,7 @@ import (
 
 func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	repo := NewPipelineRunsRepository()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {

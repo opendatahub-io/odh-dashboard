@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +15,6 @@ import (
 
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
-	// Namespace determines which mock data set to return
-	Namespace string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
@@ -25,13 +22,8 @@ type MockPipelineServerClient struct {
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
-// baseURL can be "mock://namespace" to get namespace-specific mock data for UX testing.
-func NewMockPipelineServerClient(baseURL string) *MockPipelineServerClient {
-	namespace := ""
-	if strings.HasPrefix(baseURL, "mock://") {
-		namespace = strings.TrimPrefix(baseURL, "mock://")
-	}
-	return &MockPipelineServerClient{Namespace: namespace}
+func NewMockPipelineServerClient() *MockPipelineServerClient {
+	return &MockPipelineServerClient{}
 }
 
 // ListRuns returns mock pipeline run data with support for filtering and pagination
@@ -442,7 +434,6 @@ func NewMockClientFactory() *MockClientFactory {
 }
 
 // CreateClient creates a mock pipeline server client.
-// When baseURL is "mock://namespace", returns namespace-specific mock data for UX testing.
 func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) pipelineserver.PipelineServerClientInterface {
-	return NewMockPipelineServerClient(baseURL)
+	return NewMockPipelineServerClient()
 }

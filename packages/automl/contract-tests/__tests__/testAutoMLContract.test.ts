@@ -157,6 +157,11 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 for unknown JSON fields', async () => {
         const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
           display_name: 'test',
+          train_data_secret_name: 'minio-secret',
+          train_data_bucket_name: 'automl-bucket',
+          train_data_file_key: 'data/train.csv',
+          label_column: 'target',
+          task_type: 'binary',
           unknown_field: 'should be rejected',
         });
         expect(result.success).toBe(false);
