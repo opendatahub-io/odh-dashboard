@@ -181,6 +181,63 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
+// This middleware enforces RBAC-based authorization for service access in the namespace.
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled skip these steps.
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		// Apply DSPA authorization check to all endpoints that require namespace access
+		// This ensures consistent security across all services
+		// Namespace must be present in context (set by AttachNamespace middleware).
+		if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && namespace != "" {
+			// Get Kubernetes client to perform SAR
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// Perform SubjectAccessReview to check if user can list DSPipelineApplications
+			// This ensures users have proper permissions to access any service in the namespace
+			allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+				return
+			}
+
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("Request authorized")
+
+		next(w, r, ps)
+	}
+}
+
 // AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
 // and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
@@ -304,64 +361,6 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 		// Attach ready-to-use client to context
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		r = r.WithContext(ctx)
-
-		next(w, r, ps)
-	}
-}
-
-// RequireAccessToPipelineServers enforces RBAC-based authorization for Pipeline Server access in the namespace.
-// This middleware performs a proactive SubjectAccessReview to check if the user can list DSPipelineApplications
-// in the requested namespace before attempting service discovery.
-func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled skip RBAC checks.
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next(w, r, ps)
-			return
-		}
-
-		ctx := r.Context()
-		logger := helper.GetContextLoggerFromReq(r)
-
-		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Get request identity
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		// Get Kubernetes client to perform RBAC check
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list DSPipelineApplications
-		allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
-			return
-		}
-
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to access pipeline servers in this namespace")
-			return
-		}
-
-		logger.Debug("User authorized to access pipeline servers in namespace", "namespace", namespace)
 
 		next(w, r, ps)
 	}

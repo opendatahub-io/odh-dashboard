@@ -32,6 +32,18 @@ func (m *mockKubernetesClientForSecrets) GetSecrets(ctx context.Context, namespa
 	return m.secrets, nil
 }
 
+func (m *mockKubernetesClientForSecrets) GetSecret(ctx context.Context, namespace, secretName string, identity *kubernetes.RequestIdentity) (*corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	for i := range m.secrets {
+		if m.secrets[i].Name == secretName && m.secrets[i].Namespace == namespace {
+			return &m.secrets[i], nil
+		}
+	}
+	return nil, fmt.Errorf("secret '%s' not found in namespace '%s'", secretName, namespace)
+}
+
 func (m *mockKubernetesClientForSecrets) IsClusterAdmin(identity *kubernetes.RequestIdentity) (bool, error) {
 	return false, nil
 }
@@ -49,7 +61,7 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 }
 
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
-	return false, nil
+	return true, nil
 }
 
 // mockKubernetesClientFactoryForSecrets implements KubernetesClientFactory for testing
@@ -127,7 +139,7 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -196,7 +208,7 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -268,7 +280,7 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -349,7 +361,7 @@ func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
+		"/api/v1/secrets?namespace=test-namespace&type=lls",
 		nil,
 		factory,
 		identity,
@@ -412,7 +424,7 @@ func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
+		"/api/v1/secrets?namespace=test-namespace&type=lls",
 		nil,
 		factory,
 		identity,
@@ -461,7 +473,7 @@ func TestGetSecretsHandler_TypeLls_EmptyList(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=lls",
+		"/api/v1/secrets?namespace=test-namespace&type=lls",
 		nil,
 		factory,
 		identity,
@@ -480,7 +492,7 @@ func TestGetSecretsHandler_InvalidType_ReturnsBadRequest(t *testing.T) {
 
 	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=invalid",
+		"/api/v1/secrets?namespace=test-namespace&type=invalid",
 		nil,
 		factory,
 		identity,
@@ -522,7 +534,7 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace&type=storage",
+		"/api/v1/secrets?namespace=test-namespace&type=storage",
 		nil,
 		factory,
 		identity,
@@ -534,7 +546,7 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 	assert.Empty(t, envelope.Data) // No secrets have all required S3 keys
 }
 
-func TestGetSecretsHandler_MissingResourceParameter(t *testing.T) {
+func TestGetSecretsHandler_MissingNamespaceParameter(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
@@ -561,7 +573,7 @@ func TestGetSecretsHandler_KubernetesClientError(t *testing.T) {
 
 	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -590,7 +602,7 @@ func TestGetSecretsHandler_NamespaceNotFound(t *testing.T) {
 
 	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=non-existent",
+		"/api/v1/secrets?namespace=non-existent",
 		nil,
 		factory,
 		identity,
@@ -619,7 +631,7 @@ func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
 
 	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=restricted",
+		"/api/v1/secrets?namespace=restricted",
 		nil,
 		factory,
 		identity,
@@ -649,7 +661,7 @@ func TestGetSecretsHandler_UnauthorizedError(t *testing.T) {
 
 	_, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=restricted",
+		"/api/v1/secrets?namespace=restricted",
 		nil,
 		factory,
 		identity,
@@ -684,7 +696,7 @@ func TestGetSecretsHandler_AvailableKeys_Sorted(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -718,7 +730,7 @@ func TestGetSecretsHandler_AvailableKeys_EmptySecret(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -758,7 +770,7 @@ func TestGetSecretsHandler_AvailableKeys_DataAndStringData(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretsEnvelope](
 		"GET",
-		"/api/v1/secrets?resource=test-namespace",
+		"/api/v1/secrets?namespace=test-namespace",
 		nil,
 		factory,
 		identity,

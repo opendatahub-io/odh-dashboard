@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8smocks"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
@@ -275,5 +276,159 @@ func TestIsValidLlamaStackURL(t *testing.T) {
 		// to 169.254.169.254 inside GCP (not in an OpenShift cluster).
 		err := isValidLlamaStackURL("http://metadata.google.internal")
 		assert.NoError(t, err)
+	})
+}
+
+func TestRequireAccessToService(t *testing.T) {
+	t.Run("should return bad request when RequestIdentity is missing", func(t *testing.T) {
+		app := App{}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing RequestIdentity in context")
+	})
+
+	t.Run("should return bad request when ValidateRequestIdentity fails", func(t *testing.T) {
+		mockFactory := k8smocks.NewMockTokenClientFactory()
+		app := App{
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: ""})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "token is required")
+	})
+
+	t.Run("should return server error when k8sClient.GetClient fails", func(t *testing.T) {
+		mockFactory := &k8smocks.FailingMockTokenClientFactory{
+			GetClientError: assert.AnError,
+		}
+		app := App{
+			kubernetesClientFactory: mockFactory,
+			logger:                  slog.Default(),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
+		// add a namespace so we enter block to test for namespace access
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		// Server errors return generic message (detailed error is logged but not exposed to client)
+		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	})
+
+	t.Run("should return 401 when k8s API returns Unauthorized", func(t *testing.T) {
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListDSPAError: k8smocks.NewUnauthorizedError(),
+		}
+		app := App{
+			kubernetesClientFactory: mockFactory,
+			logger:                  slog.Default(),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "invalid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Contains(t, rr.Body.String(), "authentication failed")
+	})
+
+	t.Run("should return 403 when k8s API returns Forbidden", func(t *testing.T) {
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListDSPAError: k8smocks.NewForbiddenError(),
+		}
+		app := App{
+			kubernetesClientFactory: mockFactory,
+			logger:                  slog.Default(),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Contains(t, rr.Body.String(), "insufficient permissions")
+	})
+
+	t.Run("should return 403 when user is not allowed to access namespace", func(t *testing.T) {
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListDSPAAllowed: false, // User not allowed
+		}
+		app := App{
+			kubernetesClientFactory: mockFactory,
+			logger:                  slog.Default(),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Contains(t, rr.Body.String(), "user does not have permission to access services in this namespace")
+	})
+
+	t.Run("should call next handler when user is allowed to access namespace", func(t *testing.T) {
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListDSPAAllowed: true, // User allowed
+		}
+		app := App{
+			kubernetesClientFactory: mockFactory,
+			logger:                  slog.Default(),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, testNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled, "Next handler should be called when user is authorized")
 	})
 }

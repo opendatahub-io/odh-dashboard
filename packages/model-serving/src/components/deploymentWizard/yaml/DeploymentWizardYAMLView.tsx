@@ -10,6 +10,8 @@ import {
   EmptyState,
   EmptyStateBody,
   Tooltip,
+  Alert,
+  AlertVariant,
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
@@ -22,6 +24,7 @@ type DeploymentWizardYAMLViewProps = {
   viewMode: ModelDeploymentWizardViewMode;
   setViewMode: (viewMode: ModelDeploymentWizardViewMode) => void;
   canEnterYAMLEditMode: boolean;
+  isAutoFallback?: boolean;
 };
 
 export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> = ({
@@ -30,6 +33,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   viewMode,
   setViewMode,
   canEnterYAMLEditMode = true,
+  isAutoFallback,
 }) => {
   const { theme } = useThemeContext();
 
@@ -37,7 +41,22 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
 
   return (
     <Stack hasGutter style={{ height: '100%' }}>
-      {viewMode === 'yaml-preview' && (
+      {isAutoFallback && (
+        <StackItem>
+          <Alert
+            variant={AlertVariant.info}
+            isInline
+            title="YAML edit mode"
+            data-testid="yaml-fallback-alert"
+          >
+            <p>
+              This deployment contains custom configuration that cannot be displayed in the form.
+              You can edit it directly in YAML below.
+            </p>
+          </Alert>
+        </StackItem>
+      )}
+      {viewMode === 'yaml-preview' && !isAutoFallback && (
         <StackItem>
           <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
             <FlexItem>

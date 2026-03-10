@@ -19,7 +19,6 @@ function AutoragConfigurePage(): React.JSX.Element {
       emptyStatePage={<InvalidExperiment />}
       loadError={experimentQuery.error ?? undefined}
       loaded={experimentQuery.isFetched}
-      provideChildrenPadding
       removeChildrenTopPadding
     >
       <AutoragConfigure />
