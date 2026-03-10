@@ -3,8 +3,11 @@
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [AutoML Overview]: ../../automl/docs/overview.md
-[Local Deployment Guide]: ./local-deployment-guide.md
-[Kubeflow Development Guide]: ./kubeflow-development-guide.md
+[Install Guide]: install.md
+[Local Deployment Guide]: local-deployment-guide.md
+[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
+[Kubeflow Development Guide]: kubeflow-development-guide.md
+[Pipeline Runs API]: pipeline-runs-api.md
 
 # AutoRAG
 
@@ -116,12 +119,7 @@ packages/autorag/
 │   │   ├── pages/            # Page-level components
 │   │   └── api/              # Frontend API calls to BFF
 │   └── config/               # Webpack / Module Federation config
-├── docs/
-│   ├── overview.md           # This file
-│   ├── local-deployment-guide.md
-│   ├── local-deployment-guide-ui.md
-│   ├── kubeflow-development-guide.md
-│   └── install.md
+├── docs/                    # See Package Documentation below
 ├── Dockerfile
 ├── Makefile
 └── package.json
@@ -231,12 +229,18 @@ npm run test:cypress-ci -- --spec "**/autorag/**"
   endpoint; omitting it will cause BFF startup errors if the endpoint is unreachable.
 - Docker deployment is not yet documented. Use `make dev-start` for all local workflows.
 
+## Package Documentation
+
+- [Install Guide] — installation and cluster prerequisites
+- [Local Deployment Guide] — detailed cluster setup and local deployment steps
+- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
+- [Kubeflow Development Guide] — kubeflow-mode development environment setup
+- [Pipeline Runs API] — pipeline run API reference and usage
+
 ## Related Docs
 
 - [Guidelines] — documentation style guide for this repository
 - [Module Federation Docs] — how Module Federation works in this monorepo
 - [Backend Overview] — main ODH Dashboard backend reference
 - [AutoML Overview] — sibling package with an identical BFF pattern
-- [Local Deployment Guide] — detailed cluster setup and local deployment steps
-- [Kubeflow Development Guide] — kubeflow-mode development environment setup
 - [BOOKMARKS] — full doc index
