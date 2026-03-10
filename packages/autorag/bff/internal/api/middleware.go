@@ -23,10 +23,10 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
