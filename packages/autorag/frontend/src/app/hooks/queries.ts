@@ -84,11 +84,10 @@ export function usePipelineRunQuery(
   runId?: string,
   namespace?: string,
 ): UseQueryResult<PipelineRun, Error> {
-  const ns = namespace || 'anish-autorag';
   return useQuery({
-    queryKey: ['pipelineRun', runId, ns],
-    queryFn: () => getPipelineRunFromBFF('', runId!, ns),
-    enabled: !!runId,
+    queryKey: ['pipelineRun', runId, namespace],
+    queryFn: () => getPipelineRunFromBFF('', runId!, namespace!),
+    enabled: !!runId && !!namespace,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       if (!state || TERMINAL_STATES.has(state)) {

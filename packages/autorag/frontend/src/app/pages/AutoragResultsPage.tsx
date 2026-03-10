@@ -6,9 +6,9 @@ import { useExperimentQuery, usePipelineRunQuery } from '~/app/hooks/queries';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 
 function AutoragResultsPage(): React.JSX.Element {
-  const { runId } = useParams();
+  const { namespace, runId } = useParams();
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId);
+  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
   const { ...experimentQuery } = useExperimentQuery(pipelineRun?.experiment_id);
 
   const invalidPipelineRunId = pipelineRunQuery.isError;
