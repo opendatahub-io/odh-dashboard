@@ -4,8 +4,6 @@
 [DistributedWorkloadsContext]: ../src/concepts/distributedWorkloads/DistributedWorkloadsContext.tsx
 [utils.tsx]: ../src/concepts/distributedWorkloads/utils.tsx
 [useDistributedWorkloadsTabs]: ../src/pages/distributedWorkloads/global/useDistributedWorkloadsTabs.tsx
-[GlobalDistributedWorkloads]: ../src/pages/distributedWorkloads/global/GlobalDistributedWorkloads.tsx
-[GlobalDistributedWorkloadsTabs]: ../src/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs.tsx
 
 # Distributed Workloads
 

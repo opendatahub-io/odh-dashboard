@@ -5,9 +5,6 @@
 [ProjectsContext]: ../src/concepts/projects/ProjectsContext.tsx
 [ProjectDetailsContext]: ../src/pages/projects/ProjectDetailsContext.tsx
 [ProjectViewRoutes]: ../src/pages/projects/ProjectViewRoutes.tsx
-[ProjectDetails]: ../src/pages/projects/screens/detail/ProjectDetails.tsx
-[ProjectView]: ../src/pages/projects/screens/projects/ProjectView.tsx
-[accessChecks]: ../src/concepts/projects/accessChecks.tsx
 
 # Data Science Projects
 

@@ -6,7 +6,7 @@ module.exports = {
   env: {
     node: true,
   },
-  ignorePatterns: ['.turbo', 'dist', 'jest-coverage'],
+  ignorePatterns: ['.turbo', 'dist', 'jest-coverage', 'docs'],
   // tell the TypeScript parser that we want to use JSX syntax
   parserOptions: {
     tsx: true,

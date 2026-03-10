@@ -7,8 +7,6 @@
 [Install Guide]: install.md
 [Local Deployment Guide]: local-deployment-guide.md
 [Local Deployment Guide (UI)]: local-deployment-guide-ui.md
-[Kubeflow Development Guide]: kubeflow-development-guide.md
-
 # MLflow
 
 **Last Updated**: 2026-03-09 | **Template**: package-template v1
@@ -184,7 +182,7 @@ make dev-start-federated
 | `STYLE_THEME` | UI theme: `mui-theme` or `patternfly-theme` | `mui-theme` | No |
 | `AUTH_METHOD` | `internal` (service account) or `user_token` (forwarded token) | `internal` | No |
 | `AUTH_TOKEN_HEADER` | Header carrying the user token in `user_token` mode | `Authorization` | No |
-| `AUTH_TOKEN_PREFIX` | Prefix stripped from the token header value | `Bearer ` | No |
+| `AUTH_TOKEN_PREFIX` | Prefix stripped from the token header value | `Bearer` | No |
 | `DEV_MODE` | Enable development mode (local kubeconfig) | `false` | No |
 | `DEV_MODE_CLIENT_PORT` | Kubeflow client port in dev mode | `8080` | No |
 | `MOCK_K8S_CLIENT` | Use in-memory Kubernetes mock | `false` | No |
@@ -243,7 +241,6 @@ Contract tests follow the `@odh-dashboard/contract-tests` framework. Start the B
 - [Install Guide] — installation and cluster prerequisites
 - [Local Deployment Guide] — detailed local development and cluster setup
 - [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
-- [Kubeflow Development Guide] — kubeflow-mode development environment setup
 
 ## Related Docs
 
