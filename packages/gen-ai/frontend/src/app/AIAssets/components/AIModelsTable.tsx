@@ -1,8 +1,18 @@
 import * as React from 'react';
-import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  ButtonVariant,
+  Content,
+  ContentVariants,
+  Label,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import {
@@ -14,69 +24,63 @@ import AIModelTableRow from './AIModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
 
 type AIModelsTableProps = {
-  aiModels: AIModel[];
-  maasModels: MaaSModel[];
+  models: AIModel[];
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   toolbarActions?: React.ReactNode;
 };
 
-export const AIModelStatusPopoverContent: React.ReactNode = (
+const RegisterExternalEndpointButton: React.FC = () => (
+  <Button
+    variant={ButtonVariant.primary}
+    data-testid="register-external-endpoint-button"
+    onClick={() => {
+      fireSimpleTrackingEvent('Register External Endpoint Clicked');
+    }}
+  >
+    Register external endpoint
+  </Button>
+);
+
+export const AIModelStatusPopoverContent = (
   <Stack hasGutter>
     <StackItem>
-      <Content component="p">
-        This page displays only model deployments that are available as AI assets.
-      </Content>
-      <Content component="p">
-        To make a deployment available as an AI asset, edit it from the{' '}
-        <strong>Model deployments</strong> page.
+      <Content component={ContentVariants.dl}>
+        <Content component={ContentVariants.dt}>
+          <Label color="green" icon={<CheckCircleIcon />} isCompact>
+            Active
+          </Label>
+        </Content>
+        <Content component={ContentVariants.dd}>
+          The model endpoint is running and ready to serve requests.
+        </Content>
+        <Content component={ContentVariants.dt}>
+          <Label color="red" icon={<ExclamationCircleIcon />} isCompact>
+            Inactive
+          </Label>
+        </Content>
+        <Content component={ContentVariants.dd}>
+          The model endpoint is not currently available.
+        </Content>
       </Content>
     </StackItem>
   </Stack>
 );
 
-export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
-  modelsVisibleCount,
-}) => (
-  <Popover
-    position="bottom"
-    showClose
-    aria-label="Information about making model deployments available"
-    headerComponent="h2"
-    bodyContent={AIModelStatusPopoverContent}
-  >
-    <Button
-      variant={ButtonVariant.link}
-      data-testid="dont-see-model-button"
-      onClick={() => {
-        fireMiscTrackingEvent('Available Endpoints Model Not Found Clicked', {
-          modelsVisibleCount,
-        });
-      }}
-    >
-      Don&apos;t see the model you&apos;re looking for?
-    </Button>
-  </Popover>
-);
+const AI_FILTER_COLORS: Record<string, AssetsFilterColors> = {
+  [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
+  [AssetsFilterOptions.SOURCE]: AssetsFilterColors.SOURCE,
+  [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
+  [AssetsFilterOptions.STATUS]: AssetsFilterColors.STATUS,
+  [AssetsFilterOptions.MODEL_TYPE]: AssetsFilterColors.MODEL_TYPE,
+};
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({
-  aiModels,
-  maasModels,
-  playgroundModels,
-  lsdStatus,
-  toolbarActions,
-}) => {
-  const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
-    useAIModelsFilter(aiModels);
-
-  const aiFilterColors = {
-    [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
-    [AssetsFilterOptions.KEYWORD]: AssetsFilterColors.KEYWORD,
-    [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
-  };
+const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
+  const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
   return (
     <Table
+      variant="compact"
       data-testid="ai-models-table"
       data={filteredModels}
       columns={aiModelColumns}
@@ -88,8 +92,8 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           onFilterUpdate={onFilterUpdate}
           filterData={filterData}
           filterOptions={assetsFilterOptions}
-          filterColors={aiFilterColors}
-          infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
+          filterColors={AI_FILTER_COLORS}
+          infoPopover={<RegisterExternalEndpointButton />}
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
           toolbarActions={toolbarActions}
@@ -99,10 +103,9 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
       rowRenderer={(model) => (
         <AIModelTableRow
           lsdStatus={lsdStatus}
-          key={model.model_name}
+          key={`${model.modelSource || 'namespace'}-${model.model_id}`}
           model={model}
-          aiModels={aiModels}
-          maasModels={maasModels}
+          allModels={models}
           playgroundModels={playgroundModels}
         />
       )}

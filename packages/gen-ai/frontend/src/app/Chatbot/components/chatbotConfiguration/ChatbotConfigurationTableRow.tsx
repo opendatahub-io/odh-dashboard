@@ -20,7 +20,11 @@ import {
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { AIModel } from '~/app/types';
-import { convertAIModelToK8sResource } from '~/app/utilities/utils';
+import {
+  convertAIModelToK8sResource,
+  getSourceLabel,
+  getSourceLabelColor,
+} from '~/app/utilities/utils';
 
 type ChatbotConfigurationTableRowProps = {
   model: AIModel;
@@ -39,6 +43,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
 }) => {
   // Sanitize model name for testid: remove all characters except alphanumeric and hyphens
   const sanitizedModelName = model.model_name.replace(/[^a-zA-Z0-9-]/g, '');
+  const sourceLabel = getSourceLabel(model);
 
   // Validation state for max_tokens
   const [maxTokensValue, setMaxTokensValue] = React.useState<string>(maxTokens?.toString() || '');
@@ -124,13 +129,15 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
                   </ResourceNameTooltip>
                 )}
               </FlexItem>
-              {model.isMaaSModel && (
+              {sourceLabel !== 'Internal' && (
                 <FlexItem>
-                  <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
-                    <Label color="orange" aria-label="Model as a Service">
-                      MaaS
-                    </Label>
-                  </Popover>
+                  <Label
+                    color={getSourceLabelColor(sourceLabel)}
+                    isCompact
+                    data-testid="model-source-badge"
+                  >
+                    {sourceLabel}
+                  </Label>
                 </FlexItem>
               )}
             </Flex>
