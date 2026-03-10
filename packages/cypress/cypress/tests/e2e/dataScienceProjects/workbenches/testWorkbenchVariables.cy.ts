@@ -1,3 +1,9 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import {
+  EnvironmentVariableType,
+  SecretCategory,
+  ConfigMapCategory,
+} from '@odh-dashboard/internal/pages/projects/types';
 import type { WBVariablesTestData } from '../../../../types';
 import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -13,6 +19,7 @@ import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -52,7 +59,7 @@ describe('Workbenches - variable tests', () => {
     },
     () => {
       const workbenchName = projectName;
-      const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
+      const workbenchName2 = deriveWorkbenchName(projectName, 'secondwb-');
       let selectedImageStream: string;
       let selectedImageStream2: string;
 
@@ -74,15 +81,15 @@ describe('Workbenches - variable tests', () => {
       createSpawnerPage.getDescriptionInput().type(projectDescription);
 
       // Select notebook image with fallback for first workbench
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
 
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-          secretEnvVarField.selectEnvironmentVariableType('Secret');
-          secretEnvVarField.selectEnvDataType('Upload');
+          secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
+          secretEnvVarField.selectEnvDataTypeByTestId(SecretCategory.UPLOAD);
           secretEnvVarField.uploadConfigYaml(testData.secretYamlPath);
           createSpawnerPage.findSubmitButton().click();
 
@@ -111,15 +118,17 @@ describe('Workbenches - variable tests', () => {
             createSpawnerPage.getDescriptionInput().type(projectDescription);
 
             // Select notebook image with fallback for second workbench
-            selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+            selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
               (imageStreamName2) => {
                 selectedImageStream2 = imageStreamName2;
                 cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
 
                 createSpawnerPage.findAddVariableButton().click();
                 const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
-                secretEnvVarField2.selectEnvironmentVariableType('Config Map');
-                secretEnvVarField2.selectEnvDataType('Upload');
+                secretEnvVarField2.selectEnvironmentVariableTypeByTestId(
+                  EnvironmentVariableType.CONFIG_MAP,
+                );
+                secretEnvVarField2.selectEnvDataTypeByTestId(ConfigMapCategory.UPLOAD);
                 secretEnvVarField2.uploadConfigYaml(testData.configMapYamlPath);
                 createSpawnerPage.findSubmitButton().click();
 
@@ -159,7 +168,7 @@ describe('Workbenches - variable tests', () => {
     },
     () => {
       const workbenchName = projectName;
-      const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
+      const workbenchName2 = deriveWorkbenchName(projectName, 'secondwb-');
       let selectedImageStream: string;
       let selectedImageStream2: string;
 
@@ -181,15 +190,15 @@ describe('Workbenches - variable tests', () => {
       createSpawnerPage.getDescriptionInput().type(projectDescription);
 
       // Select notebook image with fallback for first workbench
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
 
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-          secretEnvVarField.selectEnvironmentVariableType('Secret');
-          secretEnvVarField.selectEnvDataType('Key / value');
+          secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
+          secretEnvVarField.selectEnvDataTypeByTestId(SecretCategory.GENERIC);
           secretEnvVarField.findKeyInput().fill(testData.FAKE_SECRET_KEY);
           secretEnvVarField.findKeyValue().fill(testData.FAKE_SECRET_VALUE);
           createSpawnerPage.findSubmitButton().click();
@@ -218,15 +227,17 @@ describe('Workbenches - variable tests', () => {
             createSpawnerPage.getDescriptionInput().type(projectDescription);
 
             // Select notebook image with fallback for second workbench
-            selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+            selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
               (imageStreamName2) => {
                 selectedImageStream2 = imageStreamName2;
                 cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
 
                 createSpawnerPage.findAddVariableButton().click();
                 const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
-                secretEnvVarField2.selectEnvironmentVariableType('Config Map');
-                secretEnvVarField2.selectEnvDataType('Key / value');
+                secretEnvVarField2.selectEnvironmentVariableTypeByTestId(
+                  EnvironmentVariableType.CONFIG_MAP,
+                );
+                secretEnvVarField2.selectEnvDataTypeByTestId(ConfigMapCategory.GENERIC);
                 secretEnvVarField2.findKeyInput().fill(testData.FAKE_CM_KEY);
                 secretEnvVarField2.findKeyValue().fill(testData.FAKE_CM_VALUE);
                 createSpawnerPage.findSubmitButton().click();

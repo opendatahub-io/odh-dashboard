@@ -163,6 +163,11 @@ module.exports = {
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
                 eager: true,
               },
+              '@openshift/dynamic-plugin-sdk-utils': {
+                singleton: true,
+                requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
+                eager: true,
+              },
               '@odh-dashboard/plugin-core': {
                 singleton: true,
                 requiredVersion: deps['@odh-dashboard/plugin-core'],

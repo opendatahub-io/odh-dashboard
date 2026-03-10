@@ -17,37 +17,74 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import createConfigureSchema from '~/app/schemas/configure.schema';
-import { autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector from '~/app/shared/SecretSelector';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
+
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
 const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const autoragConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [selectedSecret, setSelectedSecret] = useState<
-    { uuid: string; name: string; invalid?: boolean } | undefined
-  >();
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
-
-  const formInvalid = !selectedSecret || selectedSecret.invalid === true;
-
-  const { data: allModelsData } = useLlamaStackModelsQuery();
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
+  const { data: allModelsData } = useLlamaStackModelsQuery();
 
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema),
     defaultValues: configureSchema.parse({}),
   });
+  const {
+    control,
+    setValue,
+    watch,
+    formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
+  } = form;
+
+  const inputDataSecretName = watch('input_data_secret_name');
+  const optimizationMetric = watch('optimization_metric');
+  const generationModels = watch('generation_models') ?? [];
+  const embeddingModels = watch('embeddings_models') ?? [];
+
+  const canSelectDocs = Boolean(inputDataSecretName);
+  // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
+  const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
+  const formDisabled = !formIsValid || formIsSubmitting;
 
   useEffect(() => {
     //Initialize available generation and embedding models into the form data
@@ -56,15 +93,15 @@ function AutoragConfigure(): React.JSX.Element {
       form.reset({
         ...form.getValues(),
         // eslint-disable-next-line camelcase
-        generation_constraints: allModelsData.models
+        generation_models: allModelsData.models
           .filter((model) => model.type === 'llm')
-          .map((model) => ({ model: model.id }))
-          .toSorted((a, b) => a.model.localeCompare(b.model)),
+          .map((model) => model.id)
+          .toSorted((a, b) => a.localeCompare(b)),
         // eslint-disable-next-line camelcase
-        embeddings_constraints: allModelsData.models
+        embeddings_models: allModelsData.models
           .filter((model) => model.type === 'embedding')
-          .map((model) => ({ model: model.id }))
-          .toSorted((a, b) => a.model.localeCompare(b.model)),
+          .map((model) => model.id)
+          .toSorted((a, b) => a.localeCompare(b)),
       });
     }
   }, [allModelsData, form]);
@@ -79,6 +116,10 @@ function AutoragConfigure(): React.JSX.Element {
     // TODO: add form update logic once ready
     setIsExperimentSettingsOpen(false);
   };
+
+  if (!namespace) {
+    return <Navigate to={autoragExperimentsPathname} replace />;
+  }
 
   return (
     <FormProvider {...form}>
@@ -103,16 +144,28 @@ function AutoragConfigure(): React.JSX.Element {
                         >
                           <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
                             {Boolean(namespace) && (
-                              <SecretSelector
-                                namespace={String(namespace)}
-                                type="storage"
-                                additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
-                                value={selectedSecret?.uuid}
-                                onChange={(secret) => setSelectedSecret(secret)}
-                                label="S3 connection"
-                                placeholder="Select connection"
-                                toggleWidth="16rem"
-                                dataTestId="aws-secret-selector"
+                              <Controller
+                                control={control}
+                                name="input_data_secret_name"
+                                render={({ field: { onChange } }) => (
+                                  <SecretSelector
+                                    namespace={String(namespace)}
+                                    type="storage"
+                                    additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                    value={selectedSecret?.uuid}
+                                    onChange={(secret) => {
+                                      setSelectedSecret(secret);
+                                      onChange(secret?.invalid ? undefined : secret?.name);
+                                    }}
+                                    onRefreshReady={(refresh) => {
+                                      secretsRefreshRef.current = refresh;
+                                    }}
+                                    label="S3 connection"
+                                    placeholder="Select connection"
+                                    toggleWidth="16rem"
+                                    dataTestId="aws-secret-selector"
+                                  />
+                                )}
                               />
                             )}
                           </SplitItem>
@@ -120,7 +173,7 @@ function AutoragConfigure(): React.JSX.Element {
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
@@ -134,7 +187,10 @@ function AutoragConfigure(): React.JSX.Element {
                           </StackItem>
                           <StackItem>
                             <Label
-                              onClose={() => setSelectedSecret(undefined)}
+                              onClose={() => {
+                                setSelectedSecret(undefined);
+                                setValue('input_data_secret_name', undefined);
+                              }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
                               {selectedSecret?.name}
@@ -149,7 +205,7 @@ function AutoragConfigure(): React.JSX.Element {
                               key="select-files"
                               variant="secondary"
                               onClick={() => setIsFileExplorerOpen(true)}
-                              isDisabled={formInvalid}
+                              isDisabled={!canSelectDocs || formIsSubmitting}
                             >
                               Select files
                             </Button>
@@ -180,7 +236,7 @@ function AutoragConfigure(): React.JSX.Element {
 
                       <Grid hasGutter className="pf-v6-u-mt-md">
                         <GridItem span={6}>
-                          <Card>
+                          <Card className="pf-v6-u-h-100">
                             <CardHeader
                               hasWrap
                               actions={{
@@ -189,7 +245,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-optimization-metric"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
-                                    isDisabled={formInvalid}
+                                    isDisabled={!hasFiles || formIsSubmitting}
                                   >
                                     Edit
                                   </Button>,
@@ -198,11 +254,11 @@ function AutoragConfigure(): React.JSX.Element {
                             >
                               <CardTitle>Optimization metric</CardTitle>
                             </CardHeader>
-                            <CardBody />
+                            <CardBody className="pf-v6-u-mb-sm">{optimizationMetric}</CardBody>
                           </Card>
                         </GridItem>
                         <GridItem span={6}>
-                          <Card>
+                          <Card className="pf-v6-u-h-100">
                             <CardHeader
                               hasWrap
                               actions={{
@@ -211,7 +267,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     key="edit-considered-models"
                                     variant="secondary"
                                     onClick={openExperimentSettings}
-                                    isDisabled={formInvalid}
+                                    isDisabled={!hasFiles || formIsSubmitting}
                                   >
                                     Edit
                                   </Button>,
@@ -220,7 +276,13 @@ function AutoragConfigure(): React.JSX.Element {
                             >
                               <CardTitle>Models to consider</CardTitle>
                             </CardHeader>
-                            <CardBody />
+                            <CardBody>
+                              <strong>Foundation models:</strong>&nbsp;
+                              {generationModels.length || 'None'}
+                              <br />
+                              <strong>Embedding models:</strong>&nbsp;
+                              {embeddingModels.length || 'None'}
+                            </CardBody>
                           </Card>
                         </GridItem>
                       </Grid>
@@ -234,7 +296,7 @@ function AutoragConfigure(): React.JSX.Element {
         <PanelFooter>
           <Button
             variant="primary"
-            isDisabled={formInvalid}
+            isDisabled={formDisabled}
             onClick={() => {
               navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
             }}
@@ -244,6 +306,33 @@ function AutoragConfigure(): React.JSX.Element {
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutoragConnectionModal
+          connectionTypes={autoragConnectionTypes}
+          project={namespace}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
+              const availableKeys = Object.keys(connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                ...secret,
+                invalid,
+              });
+              setValue('input_data_secret_name', invalid ? undefined : secret.name);
+            }
+          }}
+        />
+      )}
       <FileExplorer
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}

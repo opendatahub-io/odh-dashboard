@@ -90,6 +90,27 @@ data:
         }
       },
       {
+          "name": "evalHub",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/eval-hub/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "odh-dashboard",
+            "namespace": "opendatahub",
+            "port": 8543
+        }
+      },
+      {
         "name": "perses",
         "proxyService": [
           {

@@ -7,6 +7,7 @@ import {
   restDELETE,
   restGET,
 } from 'mod-arch-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   BackendResponseData,
   BFFConfig,
@@ -36,6 +37,8 @@ import {
   ModArchRestDELETE,
   ModArchRestCREATE,
   ModArchRestGET,
+  ExternalModelRequest,
+  ExternalModelResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
@@ -320,14 +323,22 @@ const streamCreateResponse = (
                     if (data.delta && data.type === 'response.output_text.delta') {
                       fullContent += data.delta;
                       onStreamData(data.delta);
-                    } else if (data.delta && data.type === 'response.refusal.delta') {
-                      const isFirstRefusal = !receivedRefusal;
-                      if (isFirstRefusal) {
-                        receivedRefusal = true;
-                        fullContent = '';
+                    } else if (data.type === 'response.refusal.delta') {
+                      // Check event type first, then guard content appending on non-empty data.delta
+                      // This ensures receivedRefusal flag and tracking fire on first non-empty delta
+                      if (data.delta) {
+                        const isFirstRefusal = !receivedRefusal;
+                        if (isFirstRefusal) {
+                          receivedRefusal = true;
+                          fullContent = '';
+                          // Track guardrail violation on first non-empty refusal delta
+                          fireMiscTrackingEvent('Guardrail Activated', {
+                            violationDetected: true,
+                          });
+                        }
+                        fullContent += data.delta;
+                        onStreamData(data.delta, isFirstRefusal);
                       }
-                      fullContent += data.delta;
-                      onStreamData(data.delta, isFirstRefusal);
                     } else if (data.type === 'response.completed' && data.response) {
                       completeResponseData = data.response;
                     } else if (
@@ -519,6 +530,9 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
+export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
+  '/models/external',
+);
 
 export const getMCPServers = (
   hostPath: string,

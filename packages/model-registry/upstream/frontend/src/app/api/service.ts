@@ -21,6 +21,7 @@ import {
   RegisteredModel,
   ModelTransferJobList,
   ModelTransferJob,
+  ModelTransferJobEvent,
 } from '~/app/types';
 import { bumpRegisteredModelTimestamp } from '~/app/api/updateTimestamps';
 
@@ -262,14 +263,14 @@ export const updateModelTransferJob =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (
     opts: APIOptions,
-    jobId: string,
+    jobName: string,
     data: Partial<ModelTransferJob>,
     additionalQueryParams?: Record<string, unknown>,
   ): Promise<ModelTransferJob> =>
     handleRestFailures(
       restPATCH(
         hostPath,
-        `/model_transfer_jobs/${jobId}`,
+        `/model_transfer_jobs/${jobName}`,
         assembleModArchBody(data),
         { ...queryParams, ...additionalQueryParams },
         opts,
@@ -283,13 +284,33 @@ export const updateModelTransferJob =
 
 export const deleteModelTransferJob =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
-  (opts: APIOptions, jobName: string): Promise<void> =>
+  (opts: APIOptions, jobName: string, jobNamespace: string): Promise<void> =>
     handleRestFailures(
       restDELETE(
         hostPath,
         `/model_transfer_jobs/${encodeURIComponent(jobName)}`,
         {},
-        queryParams,
+        { ...queryParams, jobNamespace },
         opts,
       ),
     );
+
+export const getModelTransferJobEvents =
+  (hostPath: string, queryParams: Record<string, unknown> = {}) =>
+  (opts: APIOptions, jobName: string, jobNamespace: string): Promise<ModelTransferJobEvent[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `/model_transfer_jobs/${encodeURIComponent(jobName)}/events`,
+        { ...queryParams, jobNamespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (
+        isModArchResponse<{ events: ModelTransferJobEvent[] }>(response) &&
+        Array.isArray(response.data.events)
+      ) {
+        return response.data.events;
+      }
+      throw new Error('Invalid response format');
+    });

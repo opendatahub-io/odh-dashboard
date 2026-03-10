@@ -12,13 +12,13 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `resource` | string | **Yes** | The namespace name to query secrets from |
+| `namespace` | string | **Yes** | The namespace name to query secrets from |
 | `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `lls` for LLS (Llama Stack) secrets, or omit for all secrets |
 
 ## Functionality
 
 The endpoint:
-1. Lists secrets in the specified namespace (resource)
+1. Lists secrets in the specified namespace
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
@@ -95,19 +95,19 @@ The response follows the envelope pattern:
 ### List all secrets in a namespace
 
 ```bash
-GET /api/v1/secrets?resource=my-namespace
+GET /api/v1/secrets?namespace=my-namespace
 ```
 
 ### List storage (AWS) secrets only
 
 ```bash
-GET /api/v1/secrets?resource=my-namespace&type=storage
+GET /api/v1/secrets?namespace=my-namespace&type=storage
 ```
 
 ### List LLS (Llama Stack) secrets only
 
 ```bash
-GET /api/v1/secrets?resource=my-namespace&type=lls
+GET /api/v1/secrets?namespace=my-namespace&type=lls
 ```
 
 Response:

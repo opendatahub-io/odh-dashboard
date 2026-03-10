@@ -27,6 +27,7 @@ type ModelsListToolbarProps = {
   infoPopover?: React.ReactNode;
   onClearFilters: () => void;
   resultsCount?: number;
+  toolbarActions?: React.ReactNode;
 };
 
 const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
@@ -37,6 +38,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   infoPopover,
   onClearFilters,
   resultsCount,
+  toolbarActions,
 }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
@@ -115,6 +117,12 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
             />
           </ToolbarItem>
         </ToolbarGroup>
+
+        {toolbarActions && (
+          <ToolbarGroup variant="action-group-plain">
+            <ToolbarItem>{toolbarActions}</ToolbarItem>
+          </ToolbarGroup>
+        )}
 
         {infoPopover && (
           <ToolbarGroup variant="action-group">

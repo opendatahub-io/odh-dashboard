@@ -1,4 +1,4 @@
-PORT ?= 4001
+PORT ?= 4000
 MOCK_K8S_CLIENT ?= false
 MOCK_LS_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false

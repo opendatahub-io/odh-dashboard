@@ -164,7 +164,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
       trainingJobStatusModal.shouldBeOpen();
 
       cy.step('Click Pause button to pause the running job');
-      trainingJobStatusModal.findPauseResumeButton().should('be.visible').click();
+      trainingJobStatusModal.findPauseJobButton().should('be.visible').click();
 
       cy.step('Confirm pause in the confirmation modal');
       pauseTrainingJobModal.shouldBeOpen();
@@ -197,7 +197,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
 
       cy.step('Click Edit node count via kebab menu');
       trainingJobDetailsDrawer.clickKebabMenu();
-      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+      trainingJobDetailsDrawer.findEditNodeCountAction().click();
 
       cy.step('Verify scale nodes modal opens');
       scaleNodesModal.shouldBeOpen();
@@ -231,7 +231,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
       trainingJobStatusModal.shouldBeOpen();
 
       cy.step('Click Resume button to resume the paused job');
-      trainingJobStatusModal.findPauseResumeButton().should('contain', 'Resume').click();
+      trainingJobStatusModal.findResumeJobButton().click();
 
       cy.step('Wait for job status to show Running after resume');
       trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.RUNNING, 60000);
