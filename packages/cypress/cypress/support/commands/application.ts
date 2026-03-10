@@ -232,67 +232,67 @@ Cypress.Commands.add(
 
     // Handle root section expansion if needed
     if (rootSection) {
-      // Find and possibly expand root section
-      findNavButtonByText(cy.wrap(subject), rootSection).then(($rootBtn) => {
+      // Find and possibly expand root section, then navigate to the item
+      return findNavButtonByText(cy.wrap(subject), rootSection).then(($rootBtn) => {
         if ($rootBtn.length === 0) {
           Cypress.log({
             displayName: 'findAppNavItem',
-            message: `Root section '${rootSection}' not found`,
+            message: `Root section '${rootSection}' not found - returning empty result`,
             consoleProps: () => ({ rootSection }),
           });
-          throw new Error(`Root section '${rootSection}' not found in navigation`);
+          // Return empty jQuery object instead of throwing error
+          // This allows .should('not.exist') assertions to work properly
+          return cy.wrap(Cypress.$()) as unknown as Cypress.Chainable<JQuery>;
         }
 
+        // Expand root section if needed
         if ($rootBtn.attr('aria-expanded') !== 'true') {
           cy.wrap($rootBtn).click();
           cy.wrap($rootBtn).should('have.attr', 'aria-expanded', 'true');
           cy.wrap($rootBtn).parent().find('.pf-v6-c-nav__subnav').should('be.visible');
         }
+
+        // Navigate to the final item within the root section
+        const $parent = $rootBtn.parent();
+
+        if (subSection) {
+          // Find and possibly expand subsection
+          return findNavButtonByText(cy.wrap($parent), subSection).then(($subBtn) => {
+            if ($subBtn.length === 0) {
+              Cypress.log({
+                displayName: 'findAppNavItem',
+                message: `Sub-section '${subSection}' not found in root section '${rootSection}' - returning empty result`,
+                consoleProps: () => ({ rootSection, subSection }),
+              });
+              // Return empty jQuery object instead of throwing error
+              return cy.wrap(Cypress.$()) as unknown as Cypress.Chainable<JQuery>;
+            }
+
+            if ($subBtn.attr('aria-expanded') !== 'true') {
+              cy.wrap($subBtn).click();
+              cy.wrap($subBtn).should('have.attr', 'aria-expanded', 'true');
+              return cy
+                .wrap($subBtn)
+                .parent()
+                .find('.pf-v6-c-nav__subnav')
+                .should('be.visible')
+                .then(() =>
+                  findNavLinkByText(cy.wrap($subBtn).parent(), args.name),
+                ) as unknown as Cypress.Chainable<JQuery>;
+            }
+
+            return findNavLinkByText(
+              cy.wrap($subBtn).parent(),
+              args.name,
+            ) as unknown as Cypress.Chainable<JQuery>;
+          });
+        }
+
+        return findNavLinkByText(
+          cy.wrap($parent),
+          args.name,
+        ) as unknown as Cypress.Chainable<JQuery>;
       });
-
-      // Now navigate to the final item
-      return findNavButtonByText(cy.wrap(subject), rootSection)
-        .parent()
-        .then(($parent) => {
-          if (subSection) {
-            // Find and possibly expand subsection
-            return findNavButtonByText(cy.wrap($parent), subSection).then(($subBtn) => {
-              if ($subBtn.length === 0) {
-                Cypress.log({
-                  displayName: 'findAppNavItem',
-                  message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
-                  consoleProps: () => ({ rootSection, subSection }),
-                });
-                throw new Error(
-                  `Sub-section '${subSection}' not found in root section '${rootSection}'`,
-                );
-              }
-
-              if ($subBtn.attr('aria-expanded') !== 'true') {
-                cy.wrap($subBtn).click();
-                cy.wrap($subBtn).should('have.attr', 'aria-expanded', 'true');
-                return cy
-                  .wrap($subBtn)
-                  .parent()
-                  .find('.pf-v6-c-nav__subnav')
-                  .should('be.visible')
-                  .then(() =>
-                    findNavLinkByText(cy.wrap($subBtn).parent(), args.name),
-                  ) as unknown as Cypress.Chainable<JQuery>;
-              }
-
-              return findNavLinkByText(
-                cy.wrap($subBtn).parent(),
-                args.name,
-              ) as unknown as Cypress.Chainable<JQuery>;
-            });
-          }
-
-          return findNavLinkByText(
-            cy.wrap($parent),
-            args.name,
-          ) as unknown as Cypress.Chainable<JQuery>;
-        });
     }
 
     // No root section, just find the nav item directly
