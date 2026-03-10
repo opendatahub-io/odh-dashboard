@@ -115,6 +115,30 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'mcpCatalog',
+      title: 'MCP Catalog',
+      href: '/ai-hub/mcp-catalog',
+      section: 'ai-hub',
+      path: '/ai-hub/mcp-catalog/*',
+      group: '1_aihub',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/ai-hub/mcp-catalog/*',
+      component: () => import('./McpCatalogWrapper'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
       required: [ADMIN_USER],
     },
     properties: {
