@@ -472,20 +472,15 @@ Cypress.Commands.add(
     Cypress.log({ displayName: 'findKebabAction', message: name });
 
     // Break up the chain as recommended by Cypress to handle async re-renders
-    // Store reference to kebab element
     return cy
       .wrap(subject)
       .findKebab(isDropdownToggle)
-      .as('kebabToggle')
       .then(($el) => {
-        // Only click if not already expanded
         if ($el.attr('aria-expanded') !== 'true') {
           // Re-query before click to get fresh reference (handles async updates)
-          return cy.wrap(subject).findKebab(isDropdownToggle).click();
+          cy.wrap(subject).findKebab(isDropdownToggle).click();
         }
-      })
-      .then(() => {
-        // Re-query again after click to ensure we have latest state
+        // Re-query to get fresh reference after any state changes
         return cy.wrap(subject).findKebab(isDropdownToggle);
       })
       .should('have.attr', 'aria-expanded', 'true')
