@@ -117,13 +117,21 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
   }
 
   if (!Array.isArray(sources) || sources.length === 0) {
-    return <p>{defaults.labels.noSourcesMessage}</p>;
+    return (
+      <Content component="p" className="pf-v6-u-mb-sm">
+        {defaults.labels.noSourcesMessage}
+      </Content>
+    );
   }
 
   const sourceLabel = (s: Source) => (s.count !== undefined ? `${s.name} (${s.count})` : s.name);
 
   return (
-    <Flex direction={{ default: 'row' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <Flex
+      className="pf-v6-u-mb-sm"
+      direction={{ default: 'row' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+    >
       <FlexItem>{defaults.labels.sourceSelector}:</FlexItem>
       {sources.map((s) => (
         <FlexItem key={s.name}>

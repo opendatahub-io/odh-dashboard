@@ -1,9 +1,20 @@
 // Modules -------------------------------------------------------------------->
 
 import '@patternfly/react-core/dist/styles/base.css';
+import '@patternfly/patternfly/utilities/_index.css';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Card, CardTitle, CardBody, Flex, FlexItem, Switch } from '@patternfly/react-core';
+import {
+  Button,
+  Card,
+  CardTitle,
+  CardBody,
+  Stack,
+  StackItem,
+  Flex,
+  FlexItem,
+  Switch,
+} from '@patternfly/react-core';
 import FileExplorer from './FileExplorer';
 import type { Directory, File, Files, Source, Sources } from './FileExplorer';
 
@@ -150,94 +161,106 @@ interface Scenario {
   itemCount?: number;
 }
 
-const scenarios: Scenario[] = [
-  { label: '20 files', files: mock20Files, directories: mockDirectories, source: mockSource },
-  { label: '100 files', files: mock100Files, directories: mockDirectories, source: mockSource },
-  { label: '1000 files', files: mock1000Files, directories: mockDirectories, source: mockSource },
-  {
-    label: '10 nested levels',
-    files: mock20Files,
-    directories: mock10Directories,
-    source: mockSource,
-  },
-  {
-    label: 'multiple sources, none selected',
-    files: mock20Files,
-    directories: mockDirectories,
-    sources: mockSources,
-  },
-  {
-    label: 'source selected',
-    files: mock20Files,
-    directories: mockDirectories,
-    source: mockSource,
-  },
-  {
-    label: 'no source, no sources',
-    files: mock20Files,
-    directories: mockDirectories,
-  },
-  {
-    label: 'realistic nested structure',
-    files: [...realisticDirectories, ...realisticFiles],
-    directories: realisticDirectories,
-    source: mockSource,
-  },
-  {
-    label: 'loading state',
-    files: [],
-    directories: [],
-    source: mockSource,
-    loading: true,
-  },
-  {
-    label: 'empty files',
-    files: [],
-    directories: mockDirectories,
-    source: mockSource,
-  },
-  {
-    label: 'search with results count',
-    files: mock20Files,
-    directories: mockDirectories,
-    source: mockSource,
-    searchResultsCount: 5,
-  },
-  {
-    label: 'paginated (page 1 of 10)',
-    files: mock100Files.slice(0, 10),
-    directories: mockDirectories,
-    source: mockSource,
-    page: 1,
-    perPage: 10,
-    itemCount: 100,
-  },
-  {
-    label: 'paginated (page 5 of 10)',
-    files: mock100Files.slice(40, 50),
-    directories: mockDirectories,
-    source: mockSource,
-    page: 5,
-    perPage: 10,
-    itemCount: 100,
-  },
-  {
-    label: 'checkbox multi-select with directories',
-    files: [...realisticDirectories.slice(0, 3), ...realisticFiles.slice(0, 5)],
-    directories: realisticDirectories.slice(0, 3),
-    source: mockSource,
-    selection: 'checkbox',
-  },
-  {
-    label: 'paginated (25 per page)',
-    files: mock1000Files.slice(0, 25),
-    directories: mockDirectories,
-    source: mockSource,
-    page: 1,
-    perPage: 25,
-    itemCount: 1000,
-  },
-];
+const scenarioGroups: Record<string, Scenario[]> = {
+  'File counts': [
+    { label: '20 files', files: mock20Files, directories: mockDirectories, source: mockSource },
+    { label: '100 files', files: mock100Files, directories: mockDirectories, source: mockSource },
+    { label: '1000 files', files: mock1000Files, directories: mockDirectories, source: mockSource },
+  ],
+  'Directory structure': [
+    {
+      label: '10 nested levels',
+      files: mock20Files,
+      directories: mock10Directories,
+      source: mockSource,
+    },
+    {
+      label: 'realistic nested structure',
+      files: [...realisticDirectories, ...realisticFiles],
+      directories: realisticDirectories,
+      source: mockSource,
+    },
+  ],
+  Sources: [
+    {
+      label: 'multiple sources, none selected',
+      files: mock20Files,
+      directories: mockDirectories,
+      sources: mockSources,
+    },
+    {
+      label: 'source selected',
+      files: mock20Files,
+      directories: mockDirectories,
+      source: mockSource,
+    },
+    {
+      label: 'no source, no sources',
+      files: mock20Files,
+      directories: mockDirectories,
+    },
+  ],
+  Pagination: [
+    {
+      label: 'page 1 of 10',
+      files: mock100Files.slice(0, 10),
+      directories: mockDirectories,
+      source: mockSource,
+      page: 1,
+      perPage: 10,
+      itemCount: 100,
+    },
+    {
+      label: 'page 5 of 10',
+      files: mock100Files.slice(40, 50),
+      directories: mockDirectories,
+      source: mockSource,
+      page: 5,
+      perPage: 10,
+      itemCount: 100,
+    },
+    {
+      label: '25 per page',
+      files: mock1000Files.slice(0, 25),
+      directories: mockDirectories,
+      source: mockSource,
+      page: 1,
+      perPage: 25,
+      itemCount: 1000,
+    },
+  ],
+  Selection: [
+    {
+      label: 'checkbox multi-select with directories',
+      files: [...realisticDirectories.slice(0, 3), ...realisticFiles.slice(0, 5)],
+      directories: realisticDirectories.slice(0, 3),
+      source: mockSource,
+      selection: 'checkbox',
+    },
+  ],
+  States: [
+    {
+      label: 'loading',
+      files: [],
+      directories: [],
+      source: mockSource,
+      loading: true,
+    },
+    {
+      label: 'empty files',
+      files: [],
+      directories: mockDirectories,
+      source: mockSource,
+    },
+    {
+      label: 'search with results count',
+      files: mock20Files,
+      directories: mockDirectories,
+      source: mockSource,
+      searchResultsCount: 5,
+    },
+  ],
+};
 
 // App ----------------------------------------------------------------------
 
@@ -324,13 +347,24 @@ const App: React.FC = () => {
         <Card>
           <CardTitle>Scenarios</CardTitle>
           <CardBody>
-            <Flex>
-              {scenarios.map((scenario) => (
-                <FlexItem key={scenario.label}>
-                  <Button onClick={() => openScenario(scenario)}>{scenario.label}</Button>
-                </FlexItem>
+            <Stack>
+              {Object.entries(scenarioGroups).map(([groupLabel, scenarios]) => (
+                <>
+                  <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md pf-v6-u-mt-sm pf-v6-u-mb-sm">
+                    {groupLabel}
+                  </StackItem>
+                  <StackItem>
+                    <Flex>
+                      {scenarios.map((scenario) => (
+                        <FlexItem key={scenario.label}>
+                          <Button onClick={() => openScenario(scenario)}>{scenario.label}</Button>
+                        </FlexItem>
+                      ))}
+                    </Flex>
+                  </StackItem>
+                </>
               ))}
-            </Flex>
+            </Stack>
           </CardBody>
         </Card>
       </Flex>
