@@ -862,26 +862,27 @@ provider to the configmap**:
 | Provider field defaults | `host` and `db` have defaults in the pgvector Pydantic model — omitting them does not raise a validation error but produces a silent misconfiguration. BFF should enforce these fields explicitly. |
 | Multiple bad entries | All entries must be individually valid before writing the configmap. Llamastack will only report the first error encountered. |
 
-### Recommended validation strategy: probe all providers uniformly
+### Recommended validation strategy: field validation before write
 
-Although pgvector and milvus fail at startup and qdrant defers, the BFF should **probe all
-provider endpoints before writing the configmap**, regardless of provider type. Relying on the
-provider-specific startup behaviour is fragile:
+Although probing provider endpoints before writing the configmap would catch connectivity and
+credential issues earlier, this approach is not preferred due to the implementation burden it would
+place on the BFF — each provider requires a different probe mechanism (PostgreSQL wire protocol
+for pgvector, REST calls for milvus and qdrant), adding complexity and dependencies.
 
-- It is an implementation detail of llamastack that could change across versions.
-- For pgvector/milvus, a CrashLoopBackOff is a poor user experience — the BFF can catch the same
-  problem earlier and return a proper HTTP error before any cluster state is touched.
-- For qdrant, without probing there is no feedback at all until a user tries to use the store.
+Instead, the BFF should perform **field-level validation** before writing the configmap:
 
-A uniform "probe before write" approach is simpler, version-independent, and gives users
-consistent, early feedback across all provider types. Each provider can be validated with a
-**single probe** that checks both connectivity and credentials in one call:
+- Check that all required fields are present and non-empty for the given provider type (e.g.
+  `host`, `db`, `user`, `password` for pgvector — since llamastack silently defaults missing
+  fields like `host` to `localhost` rather than rejecting them).
+- Check that the `persistence` field is included for providers that require it (`remote::pgvector`,
+  `remote::milvus`) — omitting it crashes llamastack before any connectivity attempt.
+- Check that `embedding_model` references a model ID registered in llamastack
+  (`GET /v1/models` can be used for this without touching the vector store provider at all).
+- Apply any basic format validation (e.g. port is a valid integer, URL is well-formed).
 
-| Provider | Single probe |
-|----------|-------------|
-| `remote::pgvector` | Attempt a PostgreSQL connection using the supplied credentials. The wire protocol handshake covers both TCP connectivity and auth in one step. Requires a PostgreSQL client library in the BFF (e.g. `lib/pq` in Go, `pg` in Node.js) — no HTTP endpoint is available. |
-| `remote::milvus` | `GET /v2/vectordb/databases/list` with `Authorization: Bearer <token>`. A connection error means the host is unreachable; an auth error means a bad token. Works regardless of whether Milvus auth is enabled — if auth is disabled, the endpoint responds normally with `token: ""`. |
-| `remote::qdrant` | `GET /collections` with `api-key: <key>` header. A connection error means the host is unreachable; 401/403 means a bad key. Works for both in-cluster (no key needed) and Qdrant Cloud. |
+This reduces risk without requiring network probes. The remaining risk (unreachable endpoints,
+bad credentials) is accepted on the basis that the UI will present users with a structured form
+for each provider type, reducing the likelihood of malformed input reaching the BFF.
 
 ### `registered_resources.vector_stores` pre-registration works reliably
 
