@@ -154,6 +154,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                   {canScaleNodes && (
                     <DropdownItem
                       key="scale-nodes"
+                      data-testid="edit-node-count-action"
                       onClick={() => {
                         setIsKebabOpen(false);
                         setScaleNodesModalOpen(true);

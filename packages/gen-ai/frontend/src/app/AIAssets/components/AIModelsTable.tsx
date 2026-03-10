@@ -19,6 +19,7 @@ type AIModelsTableProps = {
   maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
+  toolbarActions?: React.ReactNode;
 };
 
 export const AIModelStatusPopoverContent: React.ReactNode = (
@@ -64,6 +65,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   maasModels,
   playgroundModels,
   lsdStatus,
+  toolbarActions,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
     useAIModelsFilter(aiModels);
@@ -91,6 +93,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
+          toolbarActions={toolbarActions}
         />
       }
       onClearFilters={onClearFilters}
