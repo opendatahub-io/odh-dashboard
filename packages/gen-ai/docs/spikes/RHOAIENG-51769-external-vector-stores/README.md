@@ -203,20 +203,75 @@ missing embedding model + malformed config).
 
 ## Findings
 
-| Test | Pod Starts? | Connectivity Check at Startup? | Error Format | Notes |
-|------|-------------|-------------------------------|--------------|-------|
-| 00a — Success scenario (valid pgvector) | **Yes** — Running 1/1 | **Yes** — DB connection + extension check at startup | N/A (no error) | `registered_resources.vector_stores` works in 0.5.0 — pre-registered store appears in API and survives pod restarts. Custom metadata fields silently ignored. |
-| 00b — Success scenario (valid qdrant) | **Yes** — Running 1/1 | **No** — no connectivity log at startup; qdrant defers connection until first use | N/A (no error) | Same pre-registration behaviour as pgvector. `vector_store_name` works. Unlike pgvector, qdrant does not attempt a DB connection at startup. |
-| 00c — Success scenario (valid remote milvus) | **Yes** — Running 1/1 | **Yes** — logs `Connecting to Milvus server at ...` at startup | N/A (no error) | Same pre-registration behaviour. `token` is required by Pydantic model regardless of auth config — use `""` for unauthenticated, `"username:password"` for auth-enabled. Token-protected Milvus (`root:Milvus`) confirmed working with end-to-end RAG. |
-| 00d — Success scenario (external Qdrant Cloud) | **Yes** — Running 1/1 | **No** — same as in-cluster qdrant, defers connection until first use | N/A (no error) | Confirms llamastack can connect to a vector store outside the cluster. Pre-registration and end-to-end RAG work identically to in-cluster qdrant. `api_key` used for auth. |
-| 01a — Unreachable pgvector (missing `persistence`) | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `AttributeError` (Python traceback) | Crashed due to missing `persistence` field, not the unreachable host. |
-| 01a — Unreachable pgvector (with `persistence`) | No — CrashLoopBackOff | **Yes** — DNS lookup attempted at startup | `psycopg2.OperationalError` (Python traceback) | Llamastack attempts DB connection at startup. One bad provider causes entire instance to fail. |
-| 01b — Unreachable qdrant | **Yes** — Running 1/1 | **No** — zero qdrant log lines at startup | `{"code":"server_error","message":"[Errno -2] Name or service not known"}` (HTTP 200, error in response body) | Pod starts fine. Error is deferred to first use — surfaces as a `failed` status on the vector store file attachment, not a startup crash. |
-| 02 — Missing embedding model | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `ModelNotFoundError` (Python traceback) | Validated at startup during resource registration. Clear error message names the missing model. One bad entry crashes the entire instance. |
-| 03 — Malformed provider config (missing `host`/`db`) | No — CrashLoopBackOff | **Yes** — attempted connection to `localhost:5432` | `psycopg2.OperationalError: Connection refused` (Python traceback) | No Pydantic validation error — missing `host` silently defaulted to `localhost`. Crash is indistinguishable from Test 01a at the error level. |
-| 04 — Invalid credentials | No — CrashLoopBackOff | **Yes** — auth attempted at startup | `psycopg2.OperationalError: FATAL: password authentication failed` → `RuntimeError` (Python traceback) | Host reached successfully; auth failure is distinct and specific in the error message, but re-raised under the same generic `RuntimeError` wrapper as connectivity failures. |
-| 05 — Multiple bad configs (unreachable endpoint + missing embedding model) | No — CrashLoopBackOff | **Yes** — pgvector connectivity checked at startup | `psycopg2.OperationalError` → `RuntimeError` (Python traceback) | Stops at first error — provider instantiation (phase 1) fails before resource registration (phase 2) is reached. `ModelNotFoundError` never surfaces. Only one error reported regardless of how many exist. |
-| 06 — One bad, one valid | N/A — skipped | N/A | N/A | Answered by prior tests: llamastack does not partial-load. Any startup-phase failure takes the whole instance down. |
+### 00a — Success scenario (valid pgvector)
+- **Pod starts?** Yes — Running 1/1
+- **Connectivity check at startup?** Yes — DB connection + pgvector extension version check
+- **Error format:** N/A
+- **Notes:** `registered_resources.vector_stores` works in 0.5.0 — pre-registered store appears in `GET /v1/vector_stores` and survives pod restarts. `vector_store_name` sets the human-readable name. Custom metadata fields silently ignored by Pydantic.
+
+### 00b — Success scenario (valid qdrant)
+- **Pod starts?** Yes — Running 1/1
+- **Connectivity check at startup?** No — zero qdrant log lines; connection deferred until first use
+- **Error format:** N/A
+- **Notes:** Same pre-registration behaviour as pgvector. Unlike pgvector, qdrant does not attempt a connection at startup — a misconfigured qdrant endpoint will not cause a startup failure.
+
+### 00c — Success scenario (valid remote milvus)
+- **Pod starts?** Yes — Running 1/1
+- **Connectivity check at startup?** Yes — logs `Connecting to Milvus server at ...`
+- **Error format:** N/A
+- **Notes:** Same pre-registration behaviour. `token` is required by Pydantic regardless of whether Milvus auth is enabled — use `""` for unauthenticated, `"username:password"` for auth-enabled. Token-protected Milvus confirmed working with end-to-end RAG.
+
+### 00d — Success scenario (external Qdrant Cloud)
+- **Pod starts?** Yes — Running 1/1
+- **Connectivity check at startup?** No — same deferred behaviour as in-cluster qdrant
+- **Error format:** N/A
+- **Notes:** Confirms llamastack can connect to a vector store outside the cluster. Pre-registration and end-to-end RAG work identically to in-cluster qdrant. `api_key` used for auth.
+
+### 01a — Unreachable pgvector endpoint (missing `persistence` field)
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** No — crashed before connectivity attempt
+- **Error format:** `AttributeError: 'NoneType' object has no attribute 'backend'` (Python traceback)
+- **Notes:** Crashed due to missing `persistence` field, not the unreachable host. `persistence` is required for `remote::pgvector`.
+
+### 01a — Unreachable pgvector endpoint (with `persistence` field)
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** Yes — DNS lookup attempted immediately
+- **Error format:** `psycopg2.OperationalError: could not translate host name ... Name or service not known` → `RuntimeError: Could not connect to PGVector database server` (Python traceback)
+- **Notes:** One bad provider causes the entire instance to fail. DNS failure is immediate, not a timeout.
+
+### 01b — Unreachable qdrant endpoint
+- **Pod starts?** Yes — Running 1/1
+- **Connectivity check at startup?** No — zero qdrant log lines at startup
+- **Error format:** `{"code": "server_error", "message": "[Errno -2] Name or service not known"}` in HTTP 200 response body (on first use)
+- **Notes:** Pod starts fine and `GET /v1/vector_stores` shows `"status": "completed"` — no indication of the bad endpoint. Error only surfaces when the store is first used (e.g. attaching a file).
+
+### 02 — Missing embedding model
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** No — crashed during resource registration, before connectivity
+- **Error format:** `ModelNotFoundError: Model 'non-existent-embedding-model' not found` (Python traceback)
+- **Notes:** Validated at startup during `register_resources` (phase 2). Error message is specific and names the missing model ID. One bad entry crashes the entire instance.
+
+### 03 — Malformed provider config (missing `host`/`db`)
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** Yes — attempted connection to `localhost:5432`
+- **Error format:** `psycopg2.OperationalError: connection to server at "localhost" ... Connection refused` → `RuntimeError` (Python traceback)
+- **Notes:** No Pydantic validation error — `host` silently defaulted to `localhost`. The crash is indistinguishable from a plain unreachable endpoint error. BFF must enforce required fields explicitly.
+
+### 04 — Invalid credentials
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** Yes — auth attempted as part of the startup connection
+- **Error format:** `psycopg2.OperationalError: FATAL: password authentication failed for user "vectoruser"` → `RuntimeError: Could not connect to PGVector database server` (Python traceback)
+- **Notes:** Auth failure is specific in the `psycopg2` cause but re-raised under the same generic `RuntimeError` as connectivity and DNS failures. Password is redacted (`'password': '******'`) in the startup log.
+
+### 05 — Multiple bad configs (unreachable endpoint + missing embedding model)
+- **Pod starts?** No — CrashLoopBackOff
+- **Connectivity check at startup?** Yes — pgvector connectivity checked first
+- **Error format:** `psycopg2.OperationalError` → `RuntimeError` (Python traceback); `ModelNotFoundError` never surfaced
+- **Notes:** Llamastack stops at the first error. Provider instantiation (phase 1) runs before resource registration (phase 2), so the connectivity failure masked the missing model error entirely. Only one error is reported regardless of how many bad entries exist.
+
+### 06 — One bad, one valid
+- **Pod starts?** N/A — skipped
+- **Notes:** Answered by prior tests. Llamastack does not partial-load — any startup-phase failure takes the whole instance down.
 
 ---
 
