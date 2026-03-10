@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
-import { TrainJobKind, RayJobKind } from '../../k8sTypes';
+import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
 import { KUEUE_QUEUE_LABEL } from '../../const';
@@ -847,24 +847,47 @@ export const handleRetry = async (
   }
 };
 
-/**
- * Get node count for a RayJob by aggregating workerGroupSpecs replicas + 1 head node.
- */
-export const getRayJobNodeCount = (job: RayJobKind): number => {
-  if (!job.spec.rayClusterSpec) {
-    return 0;
-  }
-  const workerSpecs = job.spec.rayClusterSpec.workerGroupSpecs ?? [];
+const getNodeCountFromClusterSpec = (spec: RayClusterSpec): number => {
+  const workerSpecs = spec.workerGroupSpecs ?? [];
   const workerCount = workerSpecs.reduce((sum, group) => sum + (group.replicas ?? 0), 0);
   return workerCount + 1;
 };
 
 /**
+ * Get node count for a RayJob by aggregating workerGroupSpecs replicas + 1 head node.
+ *
+ * Lifecycled clusters use the inline `rayClusterSpec`.
+ * Workspace clusters resolve via `clusterSelector['ray.io/cluster']` against
+ * the provided `rayClustersMap`.
+ */
+export const getRayJobNodeCount = (
+  job: RayJobKind,
+  rayClustersMap?: Map<string, RayClusterKind>,
+): number => {
+  if (job.spec.rayClusterSpec) {
+    return getNodeCountFromClusterSpec(job.spec.rayClusterSpec);
+  }
+
+  const clusterName = job.spec.clusterSelector?.['ray.io/cluster'];
+  if (clusterName && rayClustersMap) {
+    const cluster = rayClustersMap.get(clusterName);
+    if (cluster) {
+      return getNodeCountFromClusterSpec(cluster.spec);
+    }
+  }
+
+  return 0;
+};
+
+/**
  * Get node count for any job type using type guards.
  */
-export const getUnifiedJobNodeCount = (job: UnifiedJobKind): number => {
+export const getUnifiedJobNodeCount = (
+  job: UnifiedJobKind,
+  rayClustersMap?: Map<string, RayClusterKind>,
+): number => {
   if (isRayJob(job)) {
-    return getRayJobNodeCount(job);
+    return getRayJobNodeCount(job, rayClustersMap);
   }
   if (isTrainJob(job)) {
     return job.spec.trainer?.numNodes ?? 0;

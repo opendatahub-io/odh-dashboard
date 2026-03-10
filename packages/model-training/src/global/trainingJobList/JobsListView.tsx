@@ -10,6 +10,7 @@ import { KUEUE_QUEUE_LABEL } from '../../const';
 type JobsListViewProps = {
   jobs: UnifiedJobKind[];
   jobStatuses: Map<string, TrainingJobState>;
+  nodeCountMap: Map<string, number>;
   onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
   onDelete: (job: UnifiedJobKind) => void;
@@ -19,6 +20,7 @@ type JobsListViewProps = {
 const JobsListView: React.FC<JobsListViewProps> = ({
   jobs: unfilteredJobs,
   jobStatuses,
+  nodeCountMap,
   onStatusUpdate,
   onSelectJob,
   onDelete,
@@ -75,6 +77,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
     <JobsTable
       jobs={filteredJobs}
       jobStatuses={jobStatuses}
+      nodeCountMap={nodeCountMap}
       onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}
       onDelete={onDelete}

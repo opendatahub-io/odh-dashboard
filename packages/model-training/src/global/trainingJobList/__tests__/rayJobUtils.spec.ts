@@ -69,7 +69,7 @@ describe('getRayJobNodeCount', () => {
     expect(getRayJobNodeCount(job)).toBe(1);
   });
 
-  it('should aggregate worker replicas + 1 head node', () => {
+  it('should aggregate worker replicas across all groups plus head node', () => {
     const job = mockRayJobK8sResource({});
     job.spec.rayClusterSpec = {
       headGroupSpec: { template: {} },
@@ -81,10 +81,10 @@ describe('getRayJobNodeCount', () => {
     expect(getRayJobNodeCount(job)).toBe(6);
   });
 
-  it('should handle missing rayClusterSpec', () => {
+  it('should return 0 when rayClusterSpec is missing and no cluster selector', () => {
     const job = mockRayJobK8sResource({});
     job.spec.rayClusterSpec = undefined;
-    expect(getRayJobNodeCount(job)).toBe(1);
+    expect(getRayJobNodeCount(job)).toBe(0);
   });
 });
 

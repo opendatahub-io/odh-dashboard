@@ -20,9 +20,11 @@ import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDeta
 import JobsListView from './trainingJobList/JobsListView';
 import DeleteJobModal from './trainingJobList/DeleteJobModal';
 import { useJobStatuses } from './trainingJobList/hooks/useJobStatuses';
+import { getUnifiedJobNodeCount } from './trainingJobList/utils';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
-import { TrainJobKind } from '../k8sTypes';
+import { TrainJobKind, RayClusterKind } from '../k8sTypes';
 import { TrainingJobState, UnifiedJobKind, isTrainJob } from '../types';
+import { useRayClusters } from '../api';
 
 const title = 'Jobs';
 const description =
@@ -45,6 +47,33 @@ const ModelTraining = (): React.ReactElement => {
   );
   const allJobsLoaded = trainJobLoaded && rayJobLoaded;
   const allJobsLoadError = trainJobLoadError || rayJobLoadError;
+
+  const hasWorkspaceRayJobs = React.useMemo(
+    () =>
+      rayJobData.some(
+        (job) => !job.spec.rayClusterSpec && job.spec.clusterSelector?.['ray.io/cluster'],
+      ),
+    [rayJobData],
+  );
+
+  const [rayClusterData] = useRayClusters(
+    hasWorkspaceRayJobs ? project?.metadata.name ?? '' : null,
+  );
+
+  const nodeCountMap = React.useMemo(() => {
+    const rayClustersMap = hasWorkspaceRayJobs
+      ? new Map<string, RayClusterKind>(
+          rayClusterData.map((cluster) => [cluster.metadata.name, cluster]),
+        )
+      : undefined;
+
+    const map = new Map<string, number>();
+    for (const job of allJobs) {
+      const jobId = job.metadata.uid || job.metadata.name;
+      map.set(jobId, getUnifiedJobNodeCount(job, rayClustersMap));
+    }
+    return map;
+  }, [allJobs, hasWorkspaceRayJobs, rayClusterData]);
 
   const { jobStatuses, updateJobStatus } = useJobStatuses(allJobs);
 
@@ -150,6 +179,7 @@ const ModelTraining = (): React.ReactElement => {
             <JobsListView
               jobs={allJobs}
               jobStatuses={jobStatuses}
+              nodeCountMap={nodeCountMap}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
               onDelete={handleDelete}

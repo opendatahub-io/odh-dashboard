@@ -1,9 +1,9 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
-import { getUnifiedJobStatusSync, getUnifiedJobNodeCount } from './utils';
+import { getUnifiedJobStatusSync } from './utils';
 import { UnifiedJobKind, isRayJob } from '../../types';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 
-export const columns: SortableData<UnifiedJobKind>[] = [
+export const getColumns = (nodeCountMap: Map<string, number>): SortableData<UnifiedJobKind>[] => [
   {
     field: 'name',
     label: 'Name',
@@ -24,8 +24,11 @@ export const columns: SortableData<UnifiedJobKind>[] = [
     field: 'nodes',
     label: 'Nodes',
     width: 10,
-    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
-      getUnifiedJobNodeCount(a) - getUnifiedJobNodeCount(b),
+    sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
+      const aId = a.metadata.uid || a.metadata.name;
+      const bId = b.metadata.uid || b.metadata.name;
+      return (nodeCountMap.get(aId) ?? 0) - (nodeCountMap.get(bId) ?? 0);
+    },
     info: {
       popoverProps: { hasAutoWidth: true },
       popover: 'The total number of master and worker nodes assigned to a job.',
