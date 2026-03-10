@@ -219,7 +219,7 @@ missing embedding model + malformed config).
 | 01a — Unreachable pgvector (missing `persistence`) | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `AttributeError` (Python traceback) | Crashed due to missing `persistence` field, not the unreachable host. |
 | 01a — Unreachable pgvector (with `persistence`) | No — CrashLoopBackOff | **Yes** — DNS lookup attempted at startup | `psycopg2.OperationalError` (Python traceback) | Llamastack attempts DB connection at startup. One bad provider causes entire instance to fail. |
 | 01b — Unreachable qdrant | **Yes** — Running 1/1 | **No** — zero qdrant log lines at startup | `{"code":"server_error","message":"[Errno -2] Name or service not known"}` (HTTP 200, error in response body) | Pod starts fine. Error is deferred to first use — surfaces as a `failed` status on the vector store file attachment, not a startup crash. |
-| 02 — Missing embedding model | | | | |
+| 02 — Missing embedding model | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `ModelNotFoundError` (Python traceback) | Validated at startup during resource registration. Clear error message names the missing model. One bad entry crashes the entire instance. |
 | 03 — Malformed provider config | | | | |
 | 04 — Invalid credentials | | | | |
 | 05 — Multiple bad configs | | | | |
@@ -615,3 +615,41 @@ POST /v1/vector_stores/vs_test_unreachable_qdrant/files
 - **Implication for BFF:** For qdrant providers, startup success is not a reliable signal that
   the endpoint is valid. The BFF should validate qdrant connectivity independently before writing
   the configmap, as there is no startup-time feedback to rely on.
+
+---
+
+### Test 02 — Missing Embedding Model
+
+**Config file:** `configmaps/02-missing-embedding-model.yaml`
+**Base:** qdrant success config (00b) with `embedding_model` in the registered vector store
+entry changed to `non-existent-embedding-model`.
+
+**Result: Pod failed to start — CrashLoopBackOff**
+
+Llamastack validated the embedding model reference during the resource registration phase at startup
+and raised a clear, named error:
+
+```
+llama_stack_api.common.errors.ModelNotFoundError: Model 'non-existent-embedding-model' not found.
+Use 'client.models.list()' to list available Models.
+
+  File ".../llama_stack/core/stack.py", line 238, in register_resources
+    await method(**{k: getattr(obj, k) for k in obj.model_dump().keys()})
+  File ".../llama_stack/core/routing_tables/vector_stores.py", line 83, in register_vector_store
+    model = await lookup_model(self, embedding_model)
+  File ".../llama_stack/core/routing_tables/common.py", line 261, in lookup_model
+    raise ModelNotFoundError(model_id)
+```
+
+**Key findings:**
+- **Pod fails to start** — the missing embedding model is validated at startup during
+  `register_resources`, before any vector store connectivity is attempted.
+- **Error is specific and actionable** — `ModelNotFoundError` names the exact missing model ID
+  and hints at how to find valid models. Much clearer than the connectivity errors in Test 01.
+- **One bad entry crashes the entire instance** — consistent with pgvector connectivity failure.
+  No partial loading.
+- **Error format:** Python traceback with a named exception class (`ModelNotFoundError`).
+  No structured JSON.
+- **Implication for BFF:** The BFF must validate that the `embedding_model` specified for a
+  vector store is registered in llamastack before writing it to the configmap. The model ID must
+  match exactly (including any prefix like `sentence-transformers/`).
