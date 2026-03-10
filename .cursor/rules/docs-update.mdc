@@ -1,0 +1,16 @@
+---
+description: Update existing docs after code changes. Use when asked to update documentation, sync docs with code, or refresh docs after a commit.
+alwaysApply: false
+---
+
+# Update Documentation
+
+When asked to update documentation after code changes, read and follow the skill at `docs/skills/update-docs.md`.
+
+Key points:
+- Input is optional. If no git reference or description is given, default to uncommitted changes (`HEAD`).
+- Map changed source files to affected docs using `docs/BOOKMARKS.md` as the index.
+- A code change can affect multiple doc types — check overview docs, guides, READMEs, ADRs, and agent rules.
+- Update only the affected sections; do not rewrite unaffected content.
+- Update the `Last Updated` date if the doc uses one.
+- Show a summary of proposed changes before writing.
