@@ -41,6 +41,8 @@ import {
   ModArchRestDELETE,
   ModArchRestCREATE,
   ModArchRestGET,
+  ExternalModelRequest,
+  ExternalModelResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
@@ -532,6 +534,9 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
+export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
+  '/models/external',
+);
 
 export const getMCPServers = (
   hostPath: string,

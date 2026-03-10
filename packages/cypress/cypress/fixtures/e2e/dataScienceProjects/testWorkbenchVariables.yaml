@@ -11,4 +11,5 @@ FAKE_SECRET_KEY: 'NEW_VALUE'
 FAKE_SECRET_VALUE: 'abc-1.2_3@'
 FAKE_CM_KEY: 'NEW_CM_VALUE'
 FAKE_CM_VALUE: 'CMabc-1_2.3!'
+notebookImage: 'code-server-notebook'
 

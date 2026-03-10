@@ -5,6 +5,7 @@ import {
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import {
   modelServingGlobal,
+  inferenceServiceActions,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
@@ -107,9 +108,9 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Enable Model access through an external route');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
+      modelServingWizard.findServiceAccountByIndex(0).clear().type(testData.serviceAccountName1);
       modelServingWizard.findAddServiceAccountButton().click();
-      modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findServiceAccountByIndex(1).clear().type(testData.serviceAccountName2);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 4: Review');
@@ -163,19 +164,20 @@ describe('A model can be deployed with token auth', () => {
 
       // Remove the token
       cy.step('Remove the token');
-      modelServingSection
-        .getKServeRow(testData.singleModelName)
-        .find()
-        .findKebabAction('Edit')
-        .click();
+      modelServingSection.getKServeRow(testData.singleModelName).findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
       // Check the service accounts are showing up in the UI
       // Go to the next step
       modelServingWizardEdit.findNextButton().click();
       // Go to the next step
       modelServingWizardEdit.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'secret');
-      modelServingWizardEdit.findServiceAccountByIndex(1).should('have.value', 'secret2');
+      modelServingWizardEdit
+        .findServiceAccountByIndex(0)
+        .should('have.value', testData.serviceAccountName1);
+      modelServingWizardEdit
+        .findServiceAccountByIndex(1)
+        .should('have.value', testData.serviceAccountName2);
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
       modelServingWizardEdit.findNextButton().click();

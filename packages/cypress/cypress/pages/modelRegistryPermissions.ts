@@ -94,3 +94,12 @@ class PermissionTable extends Contextual<HTMLElement> {
 }
 
 export const modelRegistryPermissions = new MRPermissions();
+
+export const permissionActions = {
+  findEditPermissionAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-permission-action');
+  },
+  findDeletePermissionAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-permission-action');
+  },
+};

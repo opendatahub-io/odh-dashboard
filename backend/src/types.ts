@@ -55,6 +55,7 @@ export type DashboardConfig = K8sResourceCommon & {
       autorag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
+      mcpCatalog: boolean;
       aiAssetExternalModels: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;

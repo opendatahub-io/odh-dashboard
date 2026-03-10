@@ -377,6 +377,24 @@ export interface AIModel extends AAModelResponse {
   maasModelId?: string;
 }
 
+export type ExternalModelRequest = {
+  model_id: string;
+  model_display_name: string;
+  base_url: string;
+  secret_value: string;
+  provider_type:
+    | 'remote::vllm'
+    | 'remote::openai'
+    | 'remote::anthropic'
+    | 'remote::gemini'
+    | 'remote::passthrough';
+  model_type: 'llm' | 'embedding';
+  use_cases?: string;
+  embedding_dimension?: number;
+};
+
+export type ExternalModelResponse = AAModelResponse;
+
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,
@@ -490,6 +508,7 @@ export type GenAiAPIs = {
   registerMLflowPrompt: RegisterMLflowPrompt;
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
+  createExternalModel: CreateExternalModel;
 };
 
 export type ModArchRestGET<T> = (
@@ -536,3 +555,4 @@ type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
+type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;

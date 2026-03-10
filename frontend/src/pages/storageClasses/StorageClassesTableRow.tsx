@@ -334,7 +334,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
           <ActionsColumn
             items={[
               {
-                title: 'Edit',
+                title: <span data-testid="edit-storage-class-action">Edit</span>,
                 onClick: () => {
                   editModalAlertRef.current = !hasReadableConfig
                     ? {
