@@ -220,7 +220,7 @@ missing embedding model + malformed config).
 | 01a — Unreachable pgvector (with `persistence`) | No — CrashLoopBackOff | **Yes** — DNS lookup attempted at startup | `psycopg2.OperationalError` (Python traceback) | Llamastack attempts DB connection at startup. One bad provider causes entire instance to fail. |
 | 01b — Unreachable qdrant | **Yes** — Running 1/1 | **No** — zero qdrant log lines at startup | `{"code":"server_error","message":"[Errno -2] Name or service not known"}` (HTTP 200, error in response body) | Pod starts fine. Error is deferred to first use — surfaces as a `failed` status on the vector store file attachment, not a startup crash. |
 | 02 — Missing embedding model | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `ModelNotFoundError` (Python traceback) | Validated at startup during resource registration. Clear error message names the missing model. One bad entry crashes the entire instance. |
-| 03 — Malformed provider config | | | | |
+| 03 — Malformed provider config (missing `host`/`db`) | No — CrashLoopBackOff | **Yes** — attempted connection to `localhost:5432` | `psycopg2.OperationalError: Connection refused` (Python traceback) | No Pydantic validation error — missing `host` silently defaulted to `localhost`. Crash is indistinguishable from Test 01a at the error level. |
 | 04 — Invalid credentials | | | | |
 | 05 — Multiple bad configs | | | | |
 | 06 — One bad, one valid | | | | |
@@ -653,3 +653,35 @@ Use 'client.models.list()' to list available Models.
 - **Implication for BFF:** The BFF must validate that the `embedding_model` specified for a
   vector store is registered in llamastack before writing it to the configmap. The model ID must
   match exactly (including any prefix like `sentence-transformers/`).
+
+---
+
+### Test 03 — Malformed Provider Config (Missing Required Fields)
+
+**Config file:** `configmaps/03-malformed-provider.yaml`
+**Change:** `remote::pgvector` provider with `host` and `db` fields omitted entirely.
+
+**Result: Pod failed to start — CrashLoopBackOff**
+
+Pydantic did **not** raise a validation error for the missing `host` field — it silently defaulted
+to `localhost`. Llamastack proceeded to attempt a connection and crashed at the connectivity step:
+
+```
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed:
+  Connection refused
+  Is the server running on that host and accepting TCP/IP connections?
+
+RuntimeError: Could not connect to PGVector database server
+```
+
+**Key findings:**
+- **No Pydantic validation error** — `host` is an optional field in the pgvector config model
+  with a default of `localhost`. Omitting it is not a config error from llamastack's perspective.
+- **`db` field also has a default** — similarly, omitting `db` did not trigger a validation error.
+- **Crash is indistinguishable from Test 01a** — the error at the pod level is the same
+  `psycopg2.OperationalError` / `RuntimeError` pattern, just with `localhost` as the host and
+  "Connection refused" rather than a DNS failure.
+- **Implication for BFF:** Llamastack does not validate whether provider config fields are
+  semantically meaningful (e.g. whether `host` points at something real). The BFF cannot rely on
+  llamastack to catch missing or defaulted fields — it must enforce its own schema validation
+  before writing the configmap.
