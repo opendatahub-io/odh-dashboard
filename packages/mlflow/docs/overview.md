@@ -15,9 +15,10 @@
 
 The MLflow package integrates MLflow experiment tracking into ODH Dashboard, letting data
 scientists browse experiments, inspect and compare runs, and view artifacts without leaving
-the dashboard. It is a frontend-only package — all MLflow data is fetched by proxying through
-the dashboard backend to an external MLflow server; there is no package-owned BFF for MLflow
-domain data. The package is production-ready and ships as a Module Federation remote.
+the dashboard. The package includes a minimal Go BFF that handles auth (user identity via
+`/api/v1/user`), namespace resolution (`/api/v1/namespaces`), and static asset serving; all
+MLflow experiment data is fetched by proxying through the dashboard backend to an external
+MLflow server. The package ships as a Module Federation remote.
 
 **Package path**: `packages/mlflow/`
 

@@ -64,7 +64,7 @@ frontend/src/pages/projects/
 └── components/                    # Shared project-scoped components
 ```
 
-`ProjectViewRoutes` defines the React Router tree. The `/:namespace/*` branch mounts
+[ProjectViewRoutes] defines the React Router tree. The `/:namespace/*` branch mounts
 `ProjectDetailsContextProvider` as a layout route, which resolves the namespace param
 to a `ProjectKind`, starts all polling hooks, and renders child routes via `<Outlet>`.
 `ProjectDetails` is the index child; it renders a `GenericHorizontalBar` whose visible

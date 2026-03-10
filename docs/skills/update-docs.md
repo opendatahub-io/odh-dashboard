@@ -58,8 +58,8 @@ Use this path when `--no-cache` is present in `$ARGUMENTS`.
 3. **For each target doc**:
    a. Read the doc.
    b. If the doc was created from a template, read the template
-      (`docs/templates/frontend-template.md`, `backend-template.md`, or
-      `package-template.md`).
+      (`docs/templates/frontend-template.md`, `docs/templates/backend-template.md`, or
+      `docs/templates/package-template.md`).
    c. **Read the source code** the doc describes — the same directories/files you would
       research when creating the doc from scratch (READMEs, route files, Makefiles,
       package.json, BFF directories, frontend source trees, etc.).
@@ -89,8 +89,11 @@ Use this path when `--no-cache` is **not** present.
    - If `$ARGUMENTS` is a git reference (or empty → default `HEAD`):
      ```bash
      git diff $ARGUMENTS --name-only
+     git ls-files --others --exclude-standard
      git diff $ARGUMENTS -- <relevant files>
      ```
+     Merge the output of both commands — `git diff --name-only` covers tracked changed files;
+     `git ls-files --others --exclude-standard` covers new untracked files not yet staged.
    - If `$ARGUMENTS` is a description, identify the affected source directories from context
      and list changed files manually or by inspecting recent commits.
 
@@ -125,7 +128,8 @@ Use this path when `--no-cache` is **not** present.
 
 3. **Read each affected doc**.
    If the doc was created from a template, also read the applicable template
-   (`docs/templates/frontend-template.md`, `backend-template.md`, or `package-template.md`).
+   (`docs/templates/frontend-template.md`, `docs/templates/backend-template.md`, or
+   `docs/templates/package-template.md`).
 
 4. **Read `docs/guidelines.md`** to confirm current style rules.
 
