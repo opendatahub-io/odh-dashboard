@@ -4,7 +4,6 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
   ConnectionTypeValueType,
-  Connection,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   ModelServingCompatibleTypes,
@@ -24,17 +23,13 @@ type Props = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   modelLocationData?: ModelLocationData;
   connectionType?: ConnectionTypeConfigMapObj;
-  connections?: Connection[];
 };
 
 const NewConnectionField: React.FC<Props> = ({
   setModelLocationData,
   modelLocationData,
   connectionType,
-  connections: _connections,
 }) => {
-  void _connections;
-
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
     return modelLocationData.fieldValues;

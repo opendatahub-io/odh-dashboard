@@ -43,7 +43,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const { triggerCenter, forceCenter } = useLineageCenter();
   const [lineageKey, setLineageKey] = useState(0);
   const featureViewLineageState = useFeatureViewLineage(project, featureViewName);
-  const featureStoreLineageState = useFeatureStoreLineage(project);
+  const featureStoreLineageState = useFeatureStoreLineage(featureViewName ? undefined : project);
 
   // Force re-render when forceCenter is triggered (tab switch)
   useEffect(() => {
