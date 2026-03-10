@@ -221,7 +221,7 @@ missing embedding model + malformed config).
 | 01b — Unreachable qdrant | **Yes** — Running 1/1 | **No** — zero qdrant log lines at startup | `{"code":"server_error","message":"[Errno -2] Name or service not known"}` (HTTP 200, error in response body) | Pod starts fine. Error is deferred to first use — surfaces as a `failed` status on the vector store file attachment, not a startup crash. |
 | 02 — Missing embedding model | No — CrashLoopBackOff | N/A — crashed before connectivity attempt | `ModelNotFoundError` (Python traceback) | Validated at startup during resource registration. Clear error message names the missing model. One bad entry crashes the entire instance. |
 | 03 — Malformed provider config (missing `host`/`db`) | No — CrashLoopBackOff | **Yes** — attempted connection to `localhost:5432` | `psycopg2.OperationalError: Connection refused` (Python traceback) | No Pydantic validation error — missing `host` silently defaulted to `localhost`. Crash is indistinguishable from Test 01a at the error level. |
-| 04 — Invalid credentials | | | | |
+| 04 — Invalid credentials | No — CrashLoopBackOff | **Yes** — auth attempted at startup | `psycopg2.OperationalError: FATAL: password authentication failed` → `RuntimeError` (Python traceback) | Host reached successfully; auth failure is distinct and specific in the error message, but re-raised under the same generic `RuntimeError` wrapper as connectivity failures. |
 | 05 — Multiple bad configs | | | | |
 | 06 — One bad, one valid | | | | |
 
@@ -685,3 +685,42 @@ RuntimeError: Could not connect to PGVector database server
   semantically meaningful (e.g. whether `host` points at something real). The BFF cannot rely on
   llamastack to catch missing or defaulted fields — it must enforce its own schema validation
   before writing the configmap.
+
+---
+
+### Test 04 — Invalid Credentials
+
+**Config file:** `configmaps/04-invalid-credentials.yaml`
+**Base:** pgvector success config (00a) with `password` changed to `this-is-the-wrong-password`.
+The pgvector instance at `pgvector.pg-2.svc.cluster.local` was reachable throughout the test.
+
+**Result: Pod failed to start — CrashLoopBackOff**
+
+Llamastack reached the host successfully but authentication failed at startup:
+
+```
+INFO   vector_io::pgvector: Initializing PGVector memory adapter with config:
+       {'host': 'pgvector.pg-2.svc.cluster.local', 'port': 5432, 'db': 'vectordb',
+        'user': 'vectoruser', 'password': '******', ...}
+
+psycopg2.OperationalError: connection to server at "pgvector.pg-2.svc.cluster.local"
+  (172.30.64.132), port 5432 failed: FATAL: password authentication failed for user "vectoruser"
+
+RuntimeError: Could not connect to PGVector database server
+```
+
+**Key findings:**
+- **Pod fails to start** — auth is checked at startup as part of the same connection attempt
+  that checks connectivity and extension version.
+- **Auth failure is specific and actionable in the raw error** — `psycopg2.OperationalError`
+  includes `FATAL: password authentication failed for user "vectoruser"`, making the root cause
+  clear in the pod logs.
+- **Top-level error is the same generic `RuntimeError`** — the `psycopg2.OperationalError` is
+  caught and re-raised as `RuntimeError("Could not connect to PGVector database server")`,
+  identical to the DNS failure in Test 01. The detailed cause is only visible one level deeper
+  in the traceback.
+- **Password is redacted in the startup log** — `'password': '******'` — so credentials are not
+  leaked in plain text in the logs.
+- **Implication for BFF:** Auth failures and connectivity failures produce the same top-level
+  `RuntimeError` — the BFF cannot distinguish them from the llamastack error alone. Both result
+  in CrashLoopBackOff. Credential validation must happen before the configmap is written.
