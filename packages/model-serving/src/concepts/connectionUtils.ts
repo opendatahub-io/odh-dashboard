@@ -16,6 +16,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { K8sNameDescriptionType } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
 
@@ -67,30 +68,18 @@ export const handleConnectionCreation = async (
   })();
   const description = createConnectionData.nameDesc?.description ?? '';
 
-  const nameDescForAssembly = (() => {
+  const nameDescForAssembly = ((): K8sNameDescriptionType => {
     const stored = createConnectionData.nameDesc;
     if (!stored || isGeneratedSecretName(stored.name)) {
       return {
         name: actualSecretName,
         description,
-        k8sName: {
-          value: actualSecretName,
-          state: {
-            immutable: false,
-            invalidCharacters: false,
-            invalidLength: false,
-            maxLength: 0,
-            touched: false,
-          },
-        },
+        k8sName: actualSecretName,
       };
     }
     return {
       ...stored,
-      k8sName: {
-        ...stored.k8sName,
-        value: translateDisplayNameForK8s(stored.name) || stored.k8sName.value,
-      },
+      k8sName: translateDisplayNameForK8s(stored.name) || stored.k8sName.value,
     };
   })();
   const newConnection = assembleConnectionSecret(
