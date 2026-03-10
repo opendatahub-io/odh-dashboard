@@ -265,16 +265,17 @@ const FilesTable: React.FC<FilesTableProps> = ({
 
 interface PathBreadcrumbsProps {
   directories?: Directory[];
-  rootLabel?: string;
+  source?: Source;
   onNavigate?: (directory: Directory) => void;
   loading?: boolean;
 }
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   directories,
-  rootLabel = 'Root',
+  source,
   onNavigate,
   loading,
 }) => {
+  const rootLabel = source ? `${source.name} (root)` : 'Root';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dirs = Array.isArray(directories) ? directories : [];
@@ -392,20 +393,23 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
               )}
             </>
           )}
-          {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Selected files</DescriptionListTerm>
-              <DescriptionListDescription>
-                {
-                  selectedFiles
-                    .map((f) => f.name)
-                    .join(
-                      ', ',
-                    ) /*  // TODO [ CLAUDE ] Rendering the name of the files is not enough. It should render file.details if available. That type is object for now, but lets wire it up for future growth as I expand on it's type in a later change */
-                }
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
+          {Array.isArray(selectedFiles) &&
+            selectedFiles.length > 0 &&
+            selectedFiles.map((f) => (
+              <React.Fragment key={f.path}>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>{f.name}</DescriptionListTerm>
+                  <DescriptionListDescription>{f.path}</DescriptionListDescription>
+                </DescriptionListGroup>
+                {f.details &&
+                  Object.entries(f.details).map(([key, value]) => (
+                    <DescriptionListGroup key={key}>
+                      <DescriptionListTerm>{key}</DescriptionListTerm>
+                      <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ))}
+              </React.Fragment>
+            ))}
         </DescriptionList>
       )}
     </CardBody>
@@ -420,7 +424,6 @@ interface FileExplorerProps {
   source?: Source;
   files?: Files;
   directories?: Directory[];
-  rootLabel?: string;
   loading?: boolean;
   searchResultsCount?: number;
   page?: number;
@@ -441,7 +444,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   source,
   files,
   directories,
-  rootLabel,
   loading,
   searchResultsCount,
   page,
@@ -461,6 +463,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   // or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  const resetState = () => {
+    setSelectedFiles([]);
+    setSearchQuery('');
+  };
+
   const rowHeight = 37.8;
   const headerHeight = 38;
   const paginationHeight = 53;
@@ -471,7 +478,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     <Modal
       id={id}
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={(e) => {
+        onClose(e);
+        resetState();
+      }}
       variant="large"
       aria-labelledby="FileExplorer-modal-title"
       aria-describedby="FileExplorer-modal-body"
@@ -507,7 +517,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <FlexItem>
             <PathBreadcrumbs
               directories={directories}
-              rootLabel={rootLabel}
+              source={source}
               onNavigate={onNavigate}
               loading={loading}
             />
@@ -540,14 +550,21 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           variant="primary"
           isDisabled={loading}
           onClick={(_event) => {
-            // TODO [ CLAUDE ] Lets wire this up so it sends the list of files selected.
-            onPrimary([]);
+            onPrimary(selectedFiles);
             onClose(_event);
+            resetState();
           }}
         >
           {defaults.labels.modalPrimaryCTA}
         </Button>
-        <Button key="cancel" variant="link" onClick={onClose}>
+        <Button
+          key="cancel"
+          variant="link"
+          onClick={(e) => {
+            onClose(e);
+            resetState();
+          }}
+        >
           {defaults.labels.modalSecondaryCTA}
         </Button>
       </ModalFooter>

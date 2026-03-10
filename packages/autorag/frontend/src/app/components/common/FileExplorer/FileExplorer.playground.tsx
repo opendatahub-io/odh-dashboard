@@ -4,7 +4,6 @@ import '@patternfly/react-core/dist/styles/base.css';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, Card, CardTitle, CardBody, Flex, FlexItem, Switch } from '@patternfly/react-core';
-import { clone } from 'es-toolkit';
 import FileExplorer from './FileExplorer';
 import type { Directory, File, Files, Source, Sources } from './FileExplorer';
 
@@ -22,20 +21,27 @@ const mockSources: Sources = [
   { name: 'Connection Gamma', count: 1337 },
 ];
 
-const mockFile: File = {
-  name: 'FooFile.000.md',
-  path: '/FooFile.000.md',
-  type: 'markdown',
-  size: '1000000000',
-};
+const createFile = (
+  name: string,
+  path: string,
+  type: string,
+  size: string,
+  details?: object,
+): File => ({
+  name,
+  path,
+  type,
+  size,
+  details,
+});
 
 const createFiles = (count: number, basePath = ''): Files =>
   new Array(count).fill(null).map((_, index) => {
-    const newFile = clone(mockFile);
-    const name = newFile.name.replace('000', String(index + 1));
-    newFile.name = name;
-    newFile.path = `${basePath}/${name}`;
-    return newFile;
+    const name = `FooFile.${index + 1}.md`;
+    return createFile(name, `${basePath}/${name}`, 'markdown', '1000000000', {
+      encoding: 'utf-8',
+      lastModified: '2026-01-15T10:30:00Z',
+    });
   });
 
 const mock20Files = createFiles(20);
@@ -107,52 +113,22 @@ const realisticDirectories: Directory[] = [
   { name: 'processed', path: '/data/processed', type: 'directory', items: 2 },
 ];
 const realisticFiles: Files = [
-  {
-    name: 'getting-started.md',
-    path: '/docs/guides/getting-started.md',
-    type: 'markdown',
-    size: '4200',
-  },
-  { name: 'deployment.md', path: '/docs/guides/deployment.md', type: 'markdown', size: '8900' },
-  {
-    name: 'troubleshooting.md',
-    path: '/docs/guides/troubleshooting.md',
-    type: 'markdown',
-    size: '6100',
-  },
-  { name: 'endpoints.md', path: '/docs/api/endpoints.md', type: 'markdown', size: '12400' },
-  {
-    name: 'authentication.md',
-    path: '/docs/api/authentication.md',
-    type: 'markdown',
-    size: '5300',
-  },
-  { name: 'README.md', path: '/docs/README.md', type: 'markdown', size: '2100' },
-  { name: 'q1-summary.pdf', path: '/reports/2024/q1-summary.pdf', type: 'pdf', size: '1048576' },
-  { name: 'q2-summary.pdf', path: '/reports/2024/q2-summary.pdf', type: 'pdf', size: '2097152' },
-  { name: 'q3-summary.pdf', path: '/reports/2024/q3-summary.pdf', type: 'pdf', size: '1572864' },
-  {
-    name: 'annual-overview.pdf',
-    path: '/reports/annual-overview.pdf',
-    type: 'pdf',
-    size: '5242880',
-  },
-  { name: 'dataset-001.csv', path: '/data/raw/dataset-001.csv', type: 'csv', size: '34500000' },
-  { name: 'dataset-002.csv', path: '/data/raw/dataset-002.csv', type: 'csv', size: '28700000' },
-  { name: 'dataset-003.csv', path: '/data/raw/dataset-003.csv', type: 'csv', size: '41200000' },
-  {
-    name: 'output-001.json',
-    path: '/data/processed/output-001.json',
-    type: 'json',
-    size: '890000',
-  },
-  {
-    name: 'output-002.json',
-    path: '/data/processed/output-002.json',
-    type: 'json',
-    size: '1200000',
-  },
-  { name: 'changelog.md', path: '/changelog.md', type: 'markdown', size: '3400' },
+  createFile('getting-started.md', '/docs/guides/getting-started.md', 'markdown', '4200', { encoding: 'utf-8', author: 'jdoe' }),
+  createFile('deployment.md', '/docs/guides/deployment.md', 'markdown', '8900', { encoding: 'utf-8', author: 'asmith' }),
+  createFile('troubleshooting.md', '/docs/guides/troubleshooting.md', 'markdown', '6100', { encoding: 'utf-8', author: 'jdoe' }),
+  createFile('endpoints.md', '/docs/api/endpoints.md', 'markdown', '12400', { encoding: 'utf-8', version: '2.1' }),
+  createFile('authentication.md', '/docs/api/authentication.md', 'markdown', '5300', { encoding: 'utf-8', version: '1.4' }),
+  createFile('README.md', '/docs/README.md', 'markdown', '2100', { encoding: 'utf-8' }),
+  createFile('q1-summary.pdf', '/reports/2024/q1-summary.pdf', 'pdf', '1048576', { pages: 24, author: 'finance-team' }),
+  createFile('q2-summary.pdf', '/reports/2024/q2-summary.pdf', 'pdf', '2097152', { pages: 31, author: 'finance-team' }),
+  createFile('q3-summary.pdf', '/reports/2024/q3-summary.pdf', 'pdf', '1572864', { pages: 28, author: 'finance-team' }),
+  createFile('annual-overview.pdf', '/reports/annual-overview.pdf', 'pdf', '5242880', { pages: 96, author: 'exec-team' }),
+  createFile('dataset-001.csv', '/data/raw/dataset-001.csv', 'csv', '34500000', { rows: 150000, columns: 12 }),
+  createFile('dataset-002.csv', '/data/raw/dataset-002.csv', 'csv', '28700000', { rows: 125000, columns: 12 }),
+  createFile('dataset-003.csv', '/data/raw/dataset-003.csv', 'csv', '41200000', { rows: 180000, columns: 12 }),
+  createFile('output-001.json', '/data/processed/output-001.json', 'json', '890000', { schema: 'v3', records: 4200 }),
+  createFile('output-002.json', '/data/processed/output-002.json', 'json', '1200000', { schema: 'v3', records: 5800 }),
+  createFile('changelog.md', '/changelog.md', 'markdown', '3400', { encoding: 'utf-8', lastModified: '2026-03-01T08:00:00Z' }),
 ];
 /* eslint-enable prettier/prettier */
 
@@ -350,7 +326,6 @@ const App: React.FC = () => {
         source={sourceToRender}
         sources={sourcesToRender}
         directories={directoriesToRender}
-        rootLabel="mock-bucket (root)" // TODO [ CLAUDE ] FileExplorer shouldn't need this prop. It should use `{source.name} (root)`
         loading={loadingToRender}
         searchResultsCount={searchResultsCountToRender}
         page={pageToRender}
