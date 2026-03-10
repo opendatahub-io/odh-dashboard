@@ -19,6 +19,8 @@ A details panel will show info to the user including any files selected and thei
 Breadcrumbs, search and pagination will help the user navigate the source of files.
 Two CTAs render at the bottom: **Select files** and **Cancel**, allowing the user to continue in the wizard with their chosen file(s).
 
+Since both Files and Directories are rendered in the table, selection (multi/singular) can apply to both.
+
 ## UI
 
 The UI implementation will follow our upstream/midstream strategy in RHOAI.
@@ -32,7 +34,7 @@ TypeScript definitions of the nouns used throughout (Source/File/Directory) will
 
 FileExplorer in the future will/should live in PatternFly as a component-group.
 
-For the S3-specific implementation we will implement an S3FileExplorer component. This component will be render a FileExplorer component and manage the state/behaviour connected to the S3 golang BFF.
+For the S3-specific implementation we will implement an S3FileExplorer component. This component will render a FileExplorer component and manage the state/behaviour connected to the S3 golang BFF.
 
 ## API
 
