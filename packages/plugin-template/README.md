@@ -14,8 +14,8 @@ Provides a ready-to-use scaffold for adding a new feature package. Includes pre-
    ```
 2. Update `package.json` — set `name`, `description`, and dependencies.
 3. Update `Dockerfile.workspace` if your package needs a custom BFF image.
-4. Add your package to the Turbo pipeline (`turbo.json`) and BOOKMARKS.md.
-5. Run `/docs.package` to generate `docs/overview.md` and register in BOOKMARKS.
+4. Add your package to the Turbo pipeline (`turbo.json`) and `docs/BOOKMARKS.md`.
+5. Run `/create-package-doc` to generate `docs/overview.md` and register in `docs/BOOKMARKS.md`.
 
 ## Structure
 

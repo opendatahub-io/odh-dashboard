@@ -116,7 +116,7 @@ identity and admin status before invoking the handler.
 |--------|------|--------------|-------------|
 | `GET` | `/api/status` | `routes/api/status/index.ts` | Returns username, admin flag, namespace, cluster ID, segment user ID. Primary bootstrap call. |
 | `GET` | `/api/status/:namespace/allowedUsers` | `routes/api/status/index.ts` | Admin-only: lists users allowed in a namespace. |
-| `GET` | `POST /api/config` | `routes/api/config/index.ts` | Get or patch `OdhDashboardConfig` CR; GET secured, PATCH admin-only. |
+| `GET`, `PATCH` | `/api/config` | `routes/api/config/index.ts` | Get or patch `OdhDashboardConfig` CR; GET secured, PATCH admin-only. |
 | `GET` | `/api/components` | `routes/api/components/index.ts` | Lists `OdhApplication` resources (service-account). |
 | `GET` | `/api/docs` | `routes/api/docs/index.ts` | Lists `OdhDocument` resources (service-account). |
 | `GET` | `/api/quickstarts` | `routes/api/quickstarts/index.ts` | Lists `OdhQuickStart` resources (service-account). |
@@ -141,6 +141,7 @@ identity and admin status before invoking the handler.
 | `GET` | `/api/dsci` | `routes/api/dsci/index.ts` | DataScienceClusterInitialization status. |
 | `*` | `/api/dev-impersonate/*` | `routes/api/dev-impersonate/index.ts` | Dev-mode only (`devRoute` guard). Impersonate a different user. |
 | `GET`, `POST` | `/api/validate-isv` | `routes/api/validate-isv/index.ts` | Validates an ISV application. |
+| `*` | `/api/featurestores/*` | `routes/api/featurestores/index.ts` | Feature store (Feast) resource management. |
 
 Static assets are served from `frontend/public/` via `@fastify/static`. The catch-all `GET /*`
 route in `routes/root.ts` renders `index.html` as an EJS template, injecting the Module Federation

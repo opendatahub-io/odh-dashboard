@@ -268,7 +268,7 @@ Before merging a doc, verify:
 | Term | Definition |
 |------|-----------|
 | **BFF** | Backend-for-Frontend — a Go HTTP server in a package that serves the package's frontend assets, handles auth, and proxies Kubernetes/external API calls. |
-| **Module Federation** | Webpack 5 feature used to load packages as micro-frontends into the main ODH Dashboard at runtime. Each package exposes a remote entry. |
+| **Module Federation** | Webpack 5 feature used to load packages as micro-frontends into the main ODH Dashboard at runtime. Federated packages expose a remote entry (only packages configured for Module Federation). |
 | **PatternFly (PF)** | The primary React component library used in the main dashboard and federated packages. v6 is current. |
 | **Material UI (MUI)** | Secondary UI library used in Kubeflow deployment mode (e.g., packages/maas). |
 | **SSAR** | SelfSubjectAccessReview — Kubernetes API used to check user permissions without relying on Group API. |

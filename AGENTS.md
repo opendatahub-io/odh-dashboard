@@ -71,7 +71,7 @@ npm run type-check
 
 ## Documentation
 
-All documentation is indexed in **[docs/BOOKMARKS.md](docs/BOOKMARKS.md)** — start there when looking for any doc. **Important**: Please review relevent documents related to the area of the task you are working on before starting it. It covers architecture, development guides, testing, process, frontend areas, backend, and all packages.
+All documentation is indexed in **[docs/BOOKMARKS.md](docs/BOOKMARKS.md)** — start there when looking for any doc. **Important**: Please review relevant documents related to the area of the task you are working on before starting it. It covers architecture, development guides, testing, process, frontend areas, backend, and all packages.
 
 ## Package-Specific Guidelines
 

@@ -1,9 +1,9 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
-[Model Serving]: ../model-serving/docs/overview.md
-[KServe Package]: ../kserve/docs/overview.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
+[Model Serving]: ../../model-serving/docs/overview.md
+[KServe Package]: ../../kserve/docs/overview.md
 
 # LLMD Serving
 

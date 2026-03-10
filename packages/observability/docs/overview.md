@@ -1,8 +1,8 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Model Serving]: ../model-serving/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Model Serving]: ../../model-serving/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
 
 # Observability
 

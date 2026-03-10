@@ -12,7 +12,7 @@ It identifies which docs are affected and updates them to conform to `docs/guide
 
 ## Inputs
 
-```
+```text
 $ARGUMENTS (optional) — flags, a git reference, or a natural language description.
 
 Flags:
@@ -71,7 +71,7 @@ Use this path when `--no-cache` is present in `$ARGUMENTS`.
    g. Keep the file under 500 lines.
 
 4. **Show a summary** of proposed changes and ask for confirmation before writing:
-   ```
+   ```text
    The following docs will be fully refreshed (--no-cache):
    - <file>: All sections rewritten from current source
    Proceed? (yes/no)
@@ -139,7 +139,7 @@ Use this path when `--no-cache` is **not** present.
    e. Keep the file under 500 lines.
 
 6. **Show a summary** of proposed changes and ask for confirmation before writing:
-   ```
+   ```text
    The following docs will be updated:
    - <file>: Section "<name>" — <reason>
    - <file>: Section "<name>" — <reason>
