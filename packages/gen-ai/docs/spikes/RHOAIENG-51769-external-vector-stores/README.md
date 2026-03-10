@@ -819,13 +819,14 @@ provider-specific startup behaviour is fragile:
 - For qdrant, without probing there is no feedback at all until a user tries to use the store.
 
 A uniform "probe before write" approach is simpler, version-independent, and gives users
-consistent, early feedback across all provider types. Each provider exposes a lightweight check:
+consistent, early feedback across all provider types. Each provider can be validated with a
+**single probe** that checks both connectivity and credentials in one call:
 
-| Provider | Probe |
-|----------|-------|
-| `remote::pgvector` | Attempt a TCP connection + authentication (e.g. `psycopg2.connect()` or equivalent) |
-| `remote::milvus` | `GET /healthz` on the Milvus REST endpoint |
-| `remote::qdrant` | `GET /healthz` or `GET /collections` on the Qdrant HTTP endpoint |
+| Provider | Single probe |
+|----------|-------------|
+| `remote::pgvector` | Attempt a PostgreSQL connection using the supplied credentials. The wire protocol handshake covers both TCP connectivity and auth in one step. Requires a PostgreSQL client library in the BFF (e.g. `lib/pq` in Go, `pg` in Node.js) — no HTTP endpoint is available. |
+| `remote::milvus` | `GET /v2/vectordb/databases/list` with `Authorization: Bearer <token>`. A connection error means the host is unreachable; an auth error means a bad token. Works regardless of whether Milvus auth is enabled — if auth is disabled, the endpoint responds normally with `token: ""`. |
+| `remote::qdrant` | `GET /collections` with `api-key: <key>` header. A connection error means the host is unreachable; 401/403 means a bad key. Works for both in-cluster (no key needed) and Qdrant Cloud. |
 
 ### `registered_resources.vector_stores` pre-registration works reliably
 
