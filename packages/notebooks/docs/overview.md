@@ -1,8 +1,8 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
-[Workbenches Docs]: ../../frontend/docs/workbenches.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
+[Workbenches Docs]: ../../../frontend/docs/workbenches.md
 
 # Notebooks
 

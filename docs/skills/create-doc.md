@@ -23,7 +23,7 @@ For doc types without a template, follow the general structure rules in `docs/gu
 
 ## Inputs
 
-```
+```text
 $ARGUMENTS — a natural language description of what to document. Examples:
   "Document the Pipelines area — Kubeflow Pipelines integration, DAG viewing, run management"
   "Create a backend doc for the authentication middleware chain"

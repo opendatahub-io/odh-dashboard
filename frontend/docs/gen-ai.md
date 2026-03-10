@@ -104,7 +104,7 @@ inference services and serving runtimes independently to populate the model sele
   `trustyai-service-operator-config` ConfigMap from the dashboard namespace; used by the form to
   determine TrustyAI integration settings.
 - `useLMGenericObjectState<T>` in `utilities/useLMGenericObjectState.ts` — lightweight typed
-  key-value setter for form state; wraps `React.useState` with a memoised per-key setter.
+  key-value setter for form state; wraps `React.useState` with a memoized per-key setter.
 - `useLMDashboardNamespace()` in `utilities/useLMDashboardNamespace.ts` — Redux selector that
   returns `dashboardNamespace` (the operator namespace) from the global store.
 - `useInferenceServices()` / `useServingRuntimes()` (from `pages/modelServing/`) — fetched in

@@ -16,7 +16,7 @@ The following files must exist before invoking this skill:
 
 ## Inputs
 
-```
+```text
 $ARGUMENTS — the package name (directory name under packages/). Examples:
   autorag
   model-registry
@@ -54,29 +54,31 @@ $ARGUMENTS — the package name (directory name under packages/). Examples:
    - `make dev-start-kubeflow` → Kubeflow
    - `make dev-start-federated` → Federated
 
-8. **Create the output directory** if it does not exist:
+8. **Determine package type** — decide before creating any files:
+   - If the package has a user-facing frontend (`frontend/src/`) or BFF (`bff/`) → **full doc**
+   - If tooling-only (no frontend, no BFF) → **stub only** (README.md, no overview.md)
+
+9. **For full-doc packages only** — create `packages/$ARGUMENTS/docs/overview.md`:
    ```bash
    mkdir -p packages/$ARGUMENTS/docs/
    ```
-
-9. **Write the doc** at `packages/$ARGUMENTS/docs/overview.md`:
    - Fill every section with real content (no placeholder text)
    - Interactions section must name the main ODH Dashboard and at least one other dependency
    - Set `Last Updated` to today's date
    - Keep under 500 lines
 
 10. **Update `docs/BOOKMARKS.md`** — append to the correct section:
-    - If the package has a user-facing frontend or BFF → add to **Packages > Full Docs**:
-      ```
+    - Full-doc package → add to **Packages > Full Docs**:
+      ```markdown
       | [Package Name](../packages/$ARGUMENTS/docs/overview.md) | One-line description |
       ```
-    - If tooling-only → add to **Packages > Stubs**:
-      ```
+    - Tooling-only package → add to **Packages > Stubs**:
+      ```markdown
       | [Package Name](../packages/$ARGUMENTS/README.md) | One-line description |
       ```
     - Update the `Last Updated` date in BOOKMARKS.md.
 
 ## Output
 
-- `packages/$ARGUMENTS/docs/overview.md` — fully-populated package doc
+- `packages/$ARGUMENTS/docs/overview.md` — fully-populated package doc (full-doc packages only)
 - `docs/BOOKMARKS.md` — updated with the new entry
