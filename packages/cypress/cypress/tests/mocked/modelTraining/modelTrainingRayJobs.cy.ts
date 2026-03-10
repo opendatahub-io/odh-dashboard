@@ -1,0 +1,184 @@
+/* eslint-disable camelcase */
+import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
+import { mockRayJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
+import {
+  TrainingJobState,
+  RayJobDeploymentStatus,
+  RayJobStatusValue,
+} from '@odh-dashboard/model-training/types';
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
+import {
+  ClusterQueueModel,
+  LocalQueueModel,
+  RayJobModel,
+  TrainJobModel,
+} from '@odh-dashboard/internal/api/models';
+import { asClusterAdminUser } from '../../../utils/mockUsers';
+import { modelTrainingGlobal, trainingJobTable } from '../../../pages/modelTraining';
+import { ProjectModel } from '../../../utils/models';
+
+const projectName = 'test-rayjobs-project';
+const projectDisplayName = 'Test RayJobs Project';
+
+const mockTrainJobs = mockTrainJobK8sResourceList([
+  {
+    name: 'train-job-one',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 4,
+    localQueueName: 'default-queue',
+    creationTimestamp: '2024-01-15T10:30:00Z',
+  },
+]);
+
+const mockRayJobs = mockRayJobK8sResourceList([
+  {
+    name: 'ray-data-processing',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    entrypoint: 'python process_data.py',
+  },
+  {
+    name: 'ray-completed-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.SUCCEEDED,
+    jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
+    succeeded: 1,
+  },
+  {
+    name: 'ray-failed-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.FAILED,
+    jobDeploymentStatus: RayJobDeploymentStatus.FAILED,
+    failed: 1,
+  },
+  {
+    name: 'ray-suspended-job',
+    namespace: projectName,
+    suspend: true,
+    jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED,
+  },
+]);
+
+const mockLocalQueues = [
+  mockLocalQueueK8sResource({
+    name: 'default-queue',
+    namespace: projectName,
+  }),
+];
+
+const mockClusterQueues = [
+  mockClusterQueueK8sResource({
+    name: 'test-cluster-queue',
+  }),
+];
+
+const initIntercepts = () => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      trainingJobs: true,
+    }),
+  );
+
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({
+        k8sName: projectName,
+        displayName: projectDisplayName,
+        enableKueue: true,
+      }),
+    ]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: TrainJobModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(mockTrainJobs),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: RayJobModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(mockRayJobs),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: LocalQueueModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(mockLocalQueues),
+  );
+
+  mockLocalQueues.forEach((queue) => {
+    if (queue.metadata?.name) {
+      cy.interceptK8s(
+        {
+          model: LocalQueueModel,
+          ns: projectName,
+          name: queue.metadata.name,
+        },
+        queue,
+      );
+    }
+  });
+
+  cy.interceptK8s({ model: ClusterQueueModel, name: 'test-cluster-queue' }, mockClusterQueues[0]);
+};
+
+describe('RayJobs in Jobs Table', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should display correct data in RayJob table rows', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
+    rayRow.findProject().should('contain', projectDisplayName);
+    rayRow.findNodes().should('contain', '1');
+    rayRow.findType().should('contain', 'RayJob');
+    rayRow.findRayCluster().should('not.be.empty');
+  });
+
+  it('should show delete option in RayJob kebab menu', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findKebabButton().click();
+
+    cy.findByRole('menuitem', { name: 'Delete job' }).should('exist');
+  });
+
+  it('should filter RayJobs by name', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    cy.findByTestId('training-job-table-toolbar')
+      .findByLabelText('Filter by name')
+      .type('ray-data');
+
+    trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
+    trainingJobTable.findTable().find('tbody tr').should('have.length', 1);
+
+    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
+
+    trainingJobTable.getTableRow('train-job-one').find().should('exist');
+    trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
+  });
+});

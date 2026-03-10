@@ -20,7 +20,7 @@ class ModelTrainingGlobal {
 
     appChrome
       .findNavItem({
-        name: 'Training jobs',
+        name: 'Jobs',
         rootSection: 'Develop & train',
       })
       .click();
@@ -34,7 +34,7 @@ class ModelTrainingGlobal {
   }
 
   findNavItem() {
-    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+    return appChrome.findNavItem({ name: 'Jobs', rootSection: 'Develop & train' });
   }
 
   shouldNotFoundPage() {
@@ -156,8 +156,24 @@ class TrainingJobTableRow extends TableRow {
     return this.findTrainingJobName().find('button');
   }
 
+  findType() {
+    return this.find().find('[data-label="Type"]');
+  }
+
+  findRayCluster() {
+    return this.find().find('[data-label="Ray cluster"]');
+  }
+
   findPauseResumeToggle() {
     return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusCell() {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findKebabButton() {
+    return this.find().findByLabelText('Kebab toggle');
   }
 }
 

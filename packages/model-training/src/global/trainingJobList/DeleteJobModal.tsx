@@ -1,20 +1,16 @@
 import React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { getTrainingJobStatusSync } from './utils';
-import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
-import { deleteTrainJob } from '../../api';
+import { getUnifiedJobStatusSync } from './utils';
+import { TrainingJobState, UnifiedJobKind, isRayJob } from '../../types';
+import { deleteTrainJob, deleteRayJob } from '../../api';
 
-export type DeleteTrainingJobModalProps = {
-  trainingJob: TrainJobKind;
+export type DeleteJobModalProps = {
+  job: UnifiedJobKind;
   onClose: (deleted: boolean) => void;
 };
 
-const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
-  trainingJob,
-  onClose,
-}) => {
+const DeleteJobModal: React.FC<DeleteJobModalProps> = ({ job, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -24,11 +20,13 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
     setError(undefined);
   };
 
-  const deleteName = trainingJob.metadata.name;
-  const status = getTrainingJobStatusSync(trainingJob);
+  const deleteName = job.metadata.name;
+  const status = getUnifiedJobStatusSync(job);
 
   const isTerminalState =
     status === TrainingJobState.SUCCEEDED || status === TrainingJobState.FAILED;
+
+  const performDelete = isRayJob(job) ? deleteRayJob : deleteTrainJob;
 
   return (
     <DeleteModal
@@ -37,7 +35,7 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
       submitButtonLabel="Delete"
       onDelete={() => {
         setIsDeleting(true);
-        deleteTrainJob(trainingJob.metadata.name, trainingJob.metadata.namespace)
+        performDelete(job.metadata.name, job.metadata.namespace)
           .then(() => {
             onBeforeClose(true);
           })
@@ -56,4 +54,4 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
   );
 };
 
-export default DeleteTrainingJobModal;
+export default DeleteJobModal;

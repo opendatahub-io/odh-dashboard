@@ -18,8 +18,10 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
-//   - resource (required): The namespace name to query secrets from
+//   - namespace (required): The namespace name to query secrets from
 //   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
+//
+// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -28,15 +30,15 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Parse query parameters
-	queryParams := r.URL.Query()
-
-	// Resource (namespace) is required
-	namespace := queryParams.Get("resource")
-	if namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'resource' is required"))
+	// Get namespace from context (set by AttachNamespace middleware)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 		return
 	}
+
+	// Parse query parameters
+	queryParams := r.URL.Query()
 
 	// Parse type (optional, default to empty string which means all secrets)
 	secretType := queryParams.Get("type")
