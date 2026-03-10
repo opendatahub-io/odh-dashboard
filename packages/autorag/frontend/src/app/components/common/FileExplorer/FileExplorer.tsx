@@ -14,6 +14,10 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateActions,
+  EmptyStateFooter,
   Flex,
   FlexItem,
   Grid,
@@ -27,6 +31,7 @@ import {
   Pagination,
   PaginationVariant,
   SearchInput,
+  Skeleton,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -128,20 +133,26 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
     </Flex>
   );
 };
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FilesTableProps {
   files?: Files;
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
+  loading?: boolean;
 }
-const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelectedFiles }) => {
+const FilesTable: React.FC<FilesTableProps> = ({
+  files,
+  selectedFiles,
+  setSelectedFiles,
+  loading,
+}) => {
   const columns = {
     name: defaults.labels.tableColumnName,
     type: defaults.labels.tableColumnType,
     items: defaults.labels.tableColumnItems,
   };
 
-  // TODO [ CLAUDE ] Render an empty state if files.length === 0. See https://www.patternfly.org/components/table#empty-state
+  const skeletonRowCount = 5;
+  const isEmpty = !loading && (!Array.isArray(files) || files.length === 0);
 
   return (
     <OuterScrollContainer>
@@ -167,7 +178,40 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
             </Tr>
           </Thead>
           <Tbody>
-            {Array.isArray(files) &&
+            {loading &&
+              Array.from({ length: skeletonRowCount }, (_, i) => (
+                <Tr key={`skeleton-${i}`}>
+                  <Td>
+                    <Skeleton width="16px" height="16px" />
+                  </Td>
+                  <Td>
+                    <Skeleton width="75%" height="1em" />
+                  </Td>
+                  <Td>
+                    <Skeleton width="50%" height="1em" />
+                  </Td>
+                  <Td>
+                    <Skeleton width="40%" height="1em" />
+                  </Td>
+                </Tr>
+              ))}
+            {isEmpty && (
+              <Tr>
+                <Td colSpan={4}>
+                  <EmptyState headingLevel="h3" titleText="No files found">
+                    <EmptyStateBody>
+                      No files are available in the current directory.
+                    </EmptyStateBody>
+                    <EmptyStateFooter>
+                      <EmptyStateActions />
+                    </EmptyStateFooter>
+                  </EmptyState>
+                </Td>
+              </Tr>
+            )}
+            {!loading &&
+              !isEmpty &&
+              Array.isArray(files) &&
               files.map((file, fileIndex) => (
                 <Tr key={file.name}>
                   <Td
@@ -205,6 +249,7 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
           onSetPage={() => null}
           onPerPageSelect={() => null}
           isSticky
+          isDisabled={loading}
           variant={PaginationVariant.bottom}
         />
       </InnerScrollContainer>
@@ -216,11 +261,13 @@ interface PathBreadcrumbsProps {
   directories?: Directory[];
   rootLabel?: string;
   onNavigate?: (directory: Directory) => void;
+  loading?: boolean;
 }
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   directories,
   rootLabel = 'Root',
   onNavigate,
+  loading,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -231,6 +278,20 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
     ? dirs.slice(BREADCRUMB_LEADING_VISIBLE, dirs.length - BREADCRUMB_TRAILING_VISIBLE)
     : [];
   const visibleDirs = shouldCollapse ? dirs.slice(dirs.length - BREADCRUMB_TRAILING_VISIBLE) : dirs;
+
+  if (loading) {
+    return (
+      <Breadcrumb>
+        <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
+        <BreadcrumbItem>
+          <Skeleton width="120px" height="1em" />
+        </BreadcrumbItem>
+        <BreadcrumbItem>
+          <Skeleton width="80px" height="1em" />
+        </BreadcrumbItem>
+      </Breadcrumb>
+    );
+  }
 
   return (
     <Breadcrumb>
@@ -285,33 +346,60 @@ interface FileDetailsPanelProps {
   bucket?: string;
   path?: string;
   selectedFiles?: Files;
+  loading?: boolean;
 }
-const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ bucket, path, selectedFiles }) => (
+const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({
+  bucket,
+  path,
+  selectedFiles,
+  loading,
+}) => (
   <Card isFullHeight>
     <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
     <CardBody>
-      <DescriptionList>
-        {bucket && (
+      {loading ? (
+        <DescriptionList>
           <DescriptionListGroup>
-            <DescriptionListTerm>Bucket</DescriptionListTerm>
-            <DescriptionListDescription>{bucket}</DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
-        {path && (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Path</DescriptionListTerm>
-            <DescriptionListDescription>{path}</DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
-        {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Selected files</DescriptionListTerm>
+            <DescriptionListTerm>
+              <Skeleton width="60px" height="1em" />
+            </DescriptionListTerm>
             <DescriptionListDescription>
-              {selectedFiles.map((f) => f.name).join(', ')}
+              <Skeleton width="120px" height="1em" />
             </DescriptionListDescription>
           </DescriptionListGroup>
-        )}
-      </DescriptionList>
+          <DescriptionListGroup>
+            <DescriptionListTerm>
+              <Skeleton width="40px" height="1em" />
+            </DescriptionListTerm>
+            <DescriptionListDescription>
+              <Skeleton width="180px" height="1em" />
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      ) : (
+        <DescriptionList>
+          {bucket && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Bucket</DescriptionListTerm>
+              <DescriptionListDescription>{bucket}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {path && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Path</DescriptionListTerm>
+              <DescriptionListDescription>{path}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Selected files</DescriptionListTerm>
+              <DescriptionListDescription>
+                {selectedFiles.map((f) => f.name).join(', ')}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+        </DescriptionList>
+      )}
     </CardBody>
   </Card>
 );
@@ -327,11 +415,12 @@ interface FileExplorerProps {
   rootLabel?: string;
   bucket?: string;
   path?: string;
+  loading?: boolean;
+  searchResultsCount?: number;
   onSelectSource: (source: Source) => void;
   onNavigate?: (directory: Directory) => void;
+  onSearch?: (query: string) => void;
   onPrimary: (files: Files) => void;
-
-  // TODO [ CLAUDE ] Implement a new `loading` boolean prop. When true; Show a skeleton table and skeleton details and skeleton breadcrumbs. Controlled input components like the search, pagination and primary buttons should be disabled if loading is true.
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
   id,
@@ -344,16 +433,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   rootLabel,
   bucket,
   path,
+  loading,
+  searchResultsCount,
   onSelectSource,
   onNavigate,
+  onSearch,
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
 
-  // TODO [ CLAUDE ] Implement an onSearch prop
+  // TODO [ CLAUDE ] Consider introducing a FileExplorerContext if prop drilling deepens.
+  //   Revisit when: a child component needs to pass props through to its own children,
+  //   or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // TODO [ CLAUDE ] I fear that as this thing gets more involved and interconnected with it's child-components (SourceSelector, FilesTable, PathBreadcrumbs, FileDetailsPanel) that prop explosion will happen. Should we introduce as FileExplorerContext?
 
   const rowHeight = 37;
   const headerHeight = 38;
@@ -383,12 +475,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               aria-label={defaults.labels.searchAriaLabel}
               placeholder={defaults.labels.searchPlaceholder}
               value={searchQuery}
-              onChange={(_event, value) => setSearchQuery(value)}
-              onClear={() => setSearchQuery('')}
-              resultsCount={
-                // TODO [ CLAUDE ] This prop should be added as a new prop: `searchResultsCount`
-                0
-              }
+              onChange={(_event, value) => {
+                setSearchQuery(value);
+                onSearch?.(value);
+              }}
+              onClear={() => {
+                setSearchQuery('');
+                onSearch?.('');
+              }}
+              resultsCount={searchResultsCount}
+              isDisabled={loading}
             />
           </FlexItem>
           <FlexItem>
@@ -396,6 +492,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               directories={directories}
               rootLabel={rootLabel}
               onNavigate={onNavigate}
+              loading={loading}
             />
           </FlexItem>
           <FlexItem>
@@ -408,10 +505,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   files={files}
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
+                  loading={loading}
                 />
               </GridItem>
               <GridItem span={4}>
-                <FileDetailsPanel bucket={bucket} path={path} selectedFiles={selectedFiles} />
+                <FileDetailsPanel
+                  bucket={bucket}
+                  path={path}
+                  selectedFiles={selectedFiles}
+                  loading={loading}
+                />
               </GridItem>
             </Grid>
           </FlexItem>
@@ -421,6 +524,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         <Button
           key="select-files"
           variant="primary"
+          isDisabled={loading}
           onClick={(_event) => {
             onPrimary([]);
             onClose(_event);

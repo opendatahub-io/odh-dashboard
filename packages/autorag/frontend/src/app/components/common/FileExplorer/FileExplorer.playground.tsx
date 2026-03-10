@@ -106,21 +106,51 @@ const realisticDirectories: Directory[] = [
   { name: 'processed', path: '/data/processed', type: 'directory', items: 2 },
 ];
 const realisticFiles: Files = [
-  { name: 'getting-started.md', path: '/docs/guides/getting-started.md', type: 'markdown', size: '4200' },
+  {
+    name: 'getting-started.md',
+    path: '/docs/guides/getting-started.md',
+    type: 'markdown',
+    size: '4200',
+  },
   { name: 'deployment.md', path: '/docs/guides/deployment.md', type: 'markdown', size: '8900' },
-  { name: 'troubleshooting.md', path: '/docs/guides/troubleshooting.md', type: 'markdown', size: '6100' },
+  {
+    name: 'troubleshooting.md',
+    path: '/docs/guides/troubleshooting.md',
+    type: 'markdown',
+    size: '6100',
+  },
   { name: 'endpoints.md', path: '/docs/api/endpoints.md', type: 'markdown', size: '12400' },
-  { name: 'authentication.md', path: '/docs/api/authentication.md', type: 'markdown', size: '5300' },
+  {
+    name: 'authentication.md',
+    path: '/docs/api/authentication.md',
+    type: 'markdown',
+    size: '5300',
+  },
   { name: 'README.md', path: '/docs/README.md', type: 'markdown', size: '2100' },
   { name: 'q1-summary.pdf', path: '/reports/2024/q1-summary.pdf', type: 'pdf', size: '1048576' },
   { name: 'q2-summary.pdf', path: '/reports/2024/q2-summary.pdf', type: 'pdf', size: '2097152' },
   { name: 'q3-summary.pdf', path: '/reports/2024/q3-summary.pdf', type: 'pdf', size: '1572864' },
-  { name: 'annual-overview.pdf', path: '/reports/annual-overview.pdf', type: 'pdf', size: '5242880' },
+  {
+    name: 'annual-overview.pdf',
+    path: '/reports/annual-overview.pdf',
+    type: 'pdf',
+    size: '5242880',
+  },
   { name: 'dataset-001.csv', path: '/data/raw/dataset-001.csv', type: 'csv', size: '34500000' },
   { name: 'dataset-002.csv', path: '/data/raw/dataset-002.csv', type: 'csv', size: '28700000' },
   { name: 'dataset-003.csv', path: '/data/raw/dataset-003.csv', type: 'csv', size: '41200000' },
-  { name: 'output-001.json', path: '/data/processed/output-001.json', type: 'json', size: '890000' },
-  { name: 'output-002.json', path: '/data/processed/output-002.json', type: 'json', size: '1200000' },
+  {
+    name: 'output-001.json',
+    path: '/data/processed/output-001.json',
+    type: 'json',
+    size: '890000',
+  },
+  {
+    name: 'output-002.json',
+    path: '/data/processed/output-002.json',
+    type: 'json',
+    size: '1200000',
+  },
   { name: 'changelog.md', path: '/changelog.md', type: 'markdown', size: '3400' },
 ];
 /* eslint-enable prettier/prettier */
@@ -133,6 +163,8 @@ interface Scenario {
   directories: Directory[];
   source?: Source;
   sources?: Sources;
+  loading?: boolean;
+  searchResultsCount?: number;
 }
 
 const scenarios: Scenario[] = [
@@ -170,6 +202,26 @@ const scenarios: Scenario[] = [
     directories: realisticDirectories,
     source: mockSource,
   },
+  {
+    label: 'loading state',
+    files: [],
+    directories: [],
+    source: mockSource,
+    loading: true,
+  },
+  {
+    label: 'empty files',
+    files: [],
+    directories: mockDirectories,
+    source: mockSource,
+  },
+  {
+    label: 'search with results count',
+    files: mock20Files,
+    directories: mockDirectories,
+    source: mockSource,
+    searchResultsCount: 5,
+  },
 ];
 
 // App ----------------------------------------------------------------------
@@ -183,6 +235,10 @@ const App: React.FC = () => {
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
   const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
+  const [loadingToRender, setLoadingToRender] = useState(false);
+  const [searchResultsCountToRender, setSearchResultsCountToRender] = useState<number | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -198,6 +254,8 @@ const App: React.FC = () => {
     setDirectoriesToRender(scenario.directories);
     setSourceToRender(scenario.source);
     setSourcesToRender(scenario.sources);
+    setLoadingToRender(scenario.loading ?? false);
+    setSearchResultsCountToRender(scenario.searchResultsCount);
     setIsOpen(true);
   };
 
@@ -250,6 +308,8 @@ const App: React.FC = () => {
         rootLabel="mock-bucket (root)"
         bucket="mock-bucket"
         path="/documents/reports/2024"
+        loading={loadingToRender}
+        searchResultsCount={searchResultsCountToRender}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {
@@ -258,6 +318,10 @@ const App: React.FC = () => {
         onNavigate={(dir) => {
           // eslint-disable-next-line no-console
           console.log('Navigate to:', dir.path);
+        }}
+        onSearch={(query) => {
+          // eslint-disable-next-line no-console
+          console.log('Search:', query);
         }}
         onPrimary={(files) => {
           setSelectedFiles(files);
