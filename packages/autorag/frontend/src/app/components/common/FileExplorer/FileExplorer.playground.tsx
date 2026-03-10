@@ -44,6 +44,8 @@ const createFiles = (count: number, basePath = ''): Files =>
     });
   });
 
+const sortFiles = (files: Files) => files.toSorted((fA, fB) => fA.name.localeCompare(fB.name));
+
 const mock20Files = createFiles(20);
 const mock100Files = createFiles(100);
 const mock1000Files = createFiles(1000);
@@ -140,6 +142,7 @@ interface Scenario {
   directories: Directory[];
   source?: Source;
   sources?: Sources;
+  selection?: 'radio' | 'checkbox';
   loading?: boolean;
   searchResultsCount?: number;
   page?: number;
@@ -176,9 +179,7 @@ const scenarios: Scenario[] = [
   },
   {
     label: 'realistic nested structure',
-    files: [...realisticDirectories, ...realisticFiles].toSorted((fA, fB) =>
-      fA.name.localeCompare(fB.name),
-    ),
+    files: [...realisticDirectories, ...realisticFiles],
     directories: realisticDirectories,
     source: mockSource,
   },
@@ -221,6 +222,13 @@ const scenarios: Scenario[] = [
     itemCount: 100,
   },
   {
+    label: 'checkbox multi-select with directories',
+    files: [...realisticDirectories.slice(0, 3), ...realisticFiles.slice(0, 5)],
+    directories: realisticDirectories.slice(0, 3),
+    source: mockSource,
+    selection: 'checkbox',
+  },
+  {
     label: 'paginated (25 per page)',
     files: mock1000Files.slice(0, 25),
     directories: mockDirectories,
@@ -239,6 +247,7 @@ const App: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
+  const [lastDirectoryClicked, setLastDirectoryClicked] = useState<File | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
@@ -251,6 +260,9 @@ const App: React.FC = () => {
   const [pageToRender, setPageToRender] = useState<number | undefined>(undefined);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(undefined);
   const [itemCountToRender, setItemCountToRender] = useState<number | undefined>(undefined);
+  const [selectionToRender, setSelectionToRender] = useState<'radio' | 'checkbox' | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -262,7 +274,7 @@ const App: React.FC = () => {
   }, [isDarkTheme]);
 
   const openScenario = (scenario: Scenario) => {
-    setFilesToRender(scenario.files);
+    setFilesToRender(sortFiles(scenario.files));
     setDirectoriesToRender(scenario.directories);
     setSourceToRender(scenario.source);
     setSourcesToRender(scenario.sources);
@@ -271,6 +283,7 @@ const App: React.FC = () => {
     setPageToRender(scenario.page);
     setPerPageToRender(scenario.perPage);
     setItemCountToRender(scenario.itemCount);
+    setSelectionToRender(scenario.selection);
     setIsOpen(true);
   };
 
@@ -301,6 +314,7 @@ const App: React.FC = () => {
             </p>
             <p>Selected source: {selectedSource ? JSON.stringify(selectedSource) : '—'}</p>
             <p>Last navigated dir: {lastNavigatedDir ? lastNavigatedDir.path : '—'}</p>
+            <p>Last directory clicked: {lastDirectoryClicked ? lastDirectoryClicked.path : '—'}</p>
             <p>Last search query: {lastSearchQuery || '—'}</p>
             <p>Page: {pageToRender ?? '—'}</p>
             <p>Per page: {perPageToRender ?? '—'}</p>
@@ -331,10 +345,14 @@ const App: React.FC = () => {
         page={pageToRender}
         perPage={perPageToRender}
         itemCount={itemCountToRender}
+        selection={selectionToRender}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {
           setSelectedSource(source);
+        }}
+        onDirectoryClick={(file) => {
+          setLastDirectoryClicked(file);
         }}
         onNavigate={(dir) => {
           setLastNavigatedDir(dir);

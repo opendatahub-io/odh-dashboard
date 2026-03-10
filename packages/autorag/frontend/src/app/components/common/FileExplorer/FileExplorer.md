@@ -49,3 +49,10 @@ In the initial phase, the FileExplorer widget uses the common S3 BFF API primari
 - [ ] _Portability_: Move BFF implementation into common UI/BFF module for reuse between AutoRAG and AutoML.
 - [ ] _Usability_: The table of files should allow checkbox selection (multiple).
 - [ ] _Instrumentation_: Instrument all major interactions to observe how it may evolve based on use
+
+## Notes
+
+AutoRAG has a unique case where use of the FileExplorer is the users main way of providing required resources: folder, test data.
+We may need to make the FileExplorer allow checkboxes for MVP for this case.
+
+Checkboxes should also have a maxBatchSelect prop to allow consumers to define a max

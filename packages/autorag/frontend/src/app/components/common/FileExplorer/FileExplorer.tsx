@@ -7,6 +7,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Content,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -138,6 +139,8 @@ interface FilesTableProps {
   files?: Files;
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
+  selection?: 'radio' | 'checkbox';
+  onDirectoryClick?: (file: File) => void;
   loading?: boolean;
   page?: number;
   perPage?: number;
@@ -149,6 +152,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
   files,
   selectedFiles,
   setSelectedFiles,
+  selection = 'radio',
+  onDirectoryClick,
   loading,
   page = 1,
   perPage = 100,
@@ -223,13 +228,39 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   <Td
                     select={{
                       rowIndex: fileIndex,
-                      onSelect: () => setSelectedFiles([file]),
+                      onSelect: (_event, isSelecting) => {
+                        if (selection === 'radio') {
+                          setSelectedFiles(isSelecting ? [file] : []);
+                        } else {
+                          const current = Array.isArray(selectedFiles) ? selectedFiles : [];
+                          if (isSelecting) {
+                            setSelectedFiles([...current, file]);
+                          } else {
+                            setSelectedFiles(current.filter((f) => f !== file));
+                          }
+                        }
+                      },
                       isSelected: Array.isArray(selectedFiles) && selectedFiles.includes(file),
                       isDisabled: false,
-                      variant: 'radio',
+                      variant: selection,
                     }}
                   />
-                  <Td dataLabel={columns.name}>{file.name}</Td>
+                  <Td dataLabel={columns.name}>
+                    {file.type === 'directory' ? (
+                      <Content
+                        component="a"
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          onDirectoryClick?.(file);
+                        }}
+                      >
+                        {file.name}
+                      </Content>
+                    ) : (
+                      file.name
+                    )}
+                  </Td>
                   <Td dataLabel={columns.type}>
                     {file.type === 'directory' ? defaults.labels.fileTypeDirectory : file.type}
                   </Td>
@@ -429,7 +460,9 @@ interface FileExplorerProps {
   page?: number;
   perPage?: number;
   itemCount?: number;
+  selection?: 'radio' | 'checkbox';
   onSelectSource: (source: Source) => void;
+  onDirectoryClick?: (file: File) => void;
   onNavigate?: (directory: Directory) => void;
   onSearch?: (query: string) => void;
   onSetPage?: (page: number) => void;
@@ -449,7 +482,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   page,
   perPage,
   itemCount,
+  selection = 'radio',
   onSelectSource,
+  onDirectoryClick,
   onNavigate,
   onSearch,
   onSetPage,
@@ -529,6 +564,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   files={files}
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
+                  selection={selection}
+                  onDirectoryClick={onDirectoryClick}
                   loading={loading}
                   page={page}
                   perPage={perPage}
