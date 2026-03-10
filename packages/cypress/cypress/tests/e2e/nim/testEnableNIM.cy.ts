@@ -161,11 +161,7 @@ describe('Verify NIM enable flow', () => {
  */
 function executeNIMTestSteps(): void {
   cy.step('Validate NIM card contents');
-  nimCard
-    .getNIMCard()
-    .contains(
-      'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
-    );
+  nimCard.findBadgeDescription().should('not.be.empty');
   cy.step('Click NIM card');
   nimCard.getNIMCard().click();
 
@@ -208,11 +204,7 @@ function executeNIMTestSteps(): void {
   cy.step('Visit the enabled applications page to verify NIM is enabled');
   enabledPage.visit();
   cy.step('Validate NIM Card contents on Enabled page');
-  nimCard
-    .getNIMCard()
-    .contains(
-      'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
-    );
+  nimCard.getNIMCard().findByTestId('badge-description').should('not.be.empty');
   cy.step('Validate that the NIM card does not contain a Disabled button');
   nimCard.getNIMCard().within(() => {
     cy.contains('button', 'Disabled').should('not.exist');

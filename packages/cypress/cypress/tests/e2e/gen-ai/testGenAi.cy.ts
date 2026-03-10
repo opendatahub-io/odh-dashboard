@@ -1,5 +1,7 @@
 import * as yaml from 'js-yaml';
 import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
@@ -146,7 +148,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol('REST');
+      servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
 
       cy.step('Select Generative AI Model Type');
       servingRuntimes.findSelectModelTypes().click();
@@ -162,7 +164,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         .should('be.enabled')
         .click()
         .then(() => {
-          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+          cy.url().should('include', testData.servingRuntimesPath, {
             timeout: 30000,
           });
         });

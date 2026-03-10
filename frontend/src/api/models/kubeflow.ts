@@ -21,6 +21,13 @@ export const RayJobModel: K8sModelCommon = {
   plural: 'rayjobs',
 };
 
+export const RayClusterModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'ray.io',
+  kind: 'RayCluster',
+  plural: 'rayclusters',
+};
+
 export const ClusterTrainingRuntimeModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'trainer.kubeflow.org',

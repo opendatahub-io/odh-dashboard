@@ -22,7 +22,7 @@ export const NotebookActionsColumn: React.FC<Props> = ({
       id="notebook-actions"
       items={[
         {
-          title: 'Edit workbench',
+          title: <span data-testid="edit-workbench-action">Edit workbench</span>,
           onClick: () => {
             navigate(
               `/projects/${project.metadata.name}/spawner/${notebookState.notebook.metadata.name}`,
@@ -31,7 +31,7 @@ export const NotebookActionsColumn: React.FC<Props> = ({
         },
         { isSeparator: true },
         {
-          title: 'Delete workbench',
+          title: <span data-testid="delete-workbench-action">Delete workbench</span>,
           onClick: () => {
             onNotebookDelete(notebookState.notebook);
           },

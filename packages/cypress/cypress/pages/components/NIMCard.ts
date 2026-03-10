@@ -74,6 +74,10 @@ export class NIMCard extends Card {
     });
   }
 
+  findBadgeDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getNIMCard().findByTestId('badge-description');
+  }
+
   getEnableNIMButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('enable-app');
   }

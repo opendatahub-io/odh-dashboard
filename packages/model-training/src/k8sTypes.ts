@@ -177,6 +177,17 @@ export interface RayClusterStatusInfo {
   }>;
 }
 
+export type RayClusterKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    uid?: string;
+    labels?: Record<string, string | undefined>;
+  };
+  spec: RayClusterSpec;
+  status?: RayClusterStatusInfo;
+};
+
 export type RayJobKind = K8sResourceCommon & {
   metadata: {
     name: string;

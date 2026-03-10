@@ -1369,6 +1369,15 @@ class ModelServingWizard extends Wizard {
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
+
+export const inferenceServiceActions = {
+  findEditInferenceServiceAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-inference-service-action');
+  },
+  findDeleteInferenceServiceAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-inference-service-action');
+  },
+};
 export const inferenceServiceModal = new InferenceServiceModal();
 export const inferenceServiceModalEdit = new InferenceServiceModal(true);
 export const modelServingSection = new ModelServingSection();
