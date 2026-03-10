@@ -1,9 +1,13 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
-[MaaS Overview]: ../../packages/maas/docs/overview.md
-[Model Registry Overview]: ../../packages/model-registry/docs/overview.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
+[MaaS Overview]: ../../maas/docs/overview.md
+[Model Registry Overview]: ../../model-registry/docs/overview.md
+[Install Guide]: install.md
+[Local Deployment Guide]: local-deployment-guide.md
+[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
+[Kubeflow Development Guide]: kubeflow-development-guide.md
 
 # MLflow
 
@@ -116,8 +120,7 @@ packages/mlflow/
 │   │   ├── webpack.common.js      # Common Webpack config
 │   │   └── webpack.dev.js / webpack.prod.js
 │   └── docs/                      # Frontend-specific architecture and env docs
-├── docs/
-│   └── overview.md                # This file
+├── docs/                          # See Package Documentation below
 ├── Dockerfile
 ├── Makefile
 └── README.md
@@ -234,6 +237,13 @@ Contract tests follow the `@odh-dashboard/contract-tests` framework. Start the B
   `patternfly-theme` if you need PatternFly styling outside of federated mode.
 - The `api/openapi/mlflow.yaml` spec describes only the BFF scaffold endpoints, not the full
   MLflow REST API. Refer to upstream MLflow docs for the complete API surface.
+
+## Package Documentation
+
+- [Install Guide] — installation and cluster prerequisites
+- [Local Deployment Guide] — detailed local development and cluster setup
+- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
+- [Kubeflow Development Guide] — kubeflow-mode development environment setup
 
 ## Related Docs
 

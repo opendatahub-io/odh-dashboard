@@ -153,6 +153,14 @@ npm run type-check
 cd packages/gen-ai && npm run build
 ```
 
+## Documentation
+
+All documentation is indexed in **[docs/BOOKMARKS.md](docs/BOOKMARKS.md)** — start there when looking for any doc. It covers architecture, development guides, testing, process, frontend areas, backend, and all packages.
+
+## Package-Specific Guidelines
+
+Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
+
 ## Specialized Agent Rules
 
 Before performing certain tasks, read and follow the corresponding specialized rules:

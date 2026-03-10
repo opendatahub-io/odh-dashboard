@@ -4,6 +4,10 @@
 [Module Federation Docs]: ../../../docs/module-federation.md
 [Model Registry Package]: ../../model-registry/docs/overview.md
 [Model Serving Package]: ../../model-serving/docs/overview.md
+[Install Guide]: install.md
+[Local Deployment Guide]: local-deployment-guide.md
+[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
+[Kubeflow Development Guide]: kubeflow-development-guide.md
 
 # Eval Hub
 
@@ -106,8 +110,7 @@ packages/eval-hub/
 │   │   │   └── utilities/
 │   │   └── odh/          # Extension and extension-point definitions
 │   └── config/           # Webpack / Module Federation config
-├── docs/
-│   └── overview.md       # This file
+├── docs/                # See Package Documentation below
 ├── scripts/
 ├── Dockerfile
 ├── Makefile
@@ -218,6 +221,13 @@ make test
   this to `patternfly-theme` automatically via the Makefile.
 - Port 4002 is shared with other packages in the monorepo — ensure no other BFF is running
   on the same port before starting eval-hub in standalone mode.
+
+## Package Documentation
+
+- [Install Guide] — installation and cluster prerequisites
+- [Local Deployment Guide] — detailed local development and cluster setup
+- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
+- [Kubeflow Development Guide] — kubeflow-mode development environment setup
 
 ## Related Docs
 

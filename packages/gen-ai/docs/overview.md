@@ -5,6 +5,17 @@
 [LLMd Serving Package]: ../../llmd-serving/docs/overview.md
 [MaaS Package]: ../../maas/docs/overview.md
 [Model Serving Package]: ../../model-serving/docs/overview.md
+[BFF Deep Dive]: developer/BFF_OVERVIEW.md
+[Developer Docs]: developer/README.md
+[User Docs]: user/README.md
+[Logging Guide]: user/admin/logging/README.md
+[BFF Logging]: user/admin/logging/bff-logging.md
+[vLLM Logging]: user/admin/logging/vllm-logging.md
+[Logging Troubleshooting]: user/admin/logging/troubleshooting.md
+[Logging Best Practices]: user/admin/logging/best-practices.md
+[Logging Config Examples]: user/admin/logging/configuration-examples.md
+[RBAC Guide]: user/admin/rbac/README.md
+[ADR Index]: adr/README.md
 
 # Gen AI
 
@@ -124,8 +135,7 @@ packages/gen-ai/
 │   │   │   └── utilities/      # Helpers and formatters
 │   │   └── odh/                # Extension and extension-point definitions
 │   └── config/                 # Webpack / Module Federation config
-├── docs/
-│   └── overview.md             # This file
+├── docs/                       # See Package Documentation below
 ├── build.openshift.sh          # OpenShift standalone deploy script
 ├── clean.openshift.sh          # OpenShift cleanup script
 ├── Dockerfile
@@ -252,6 +262,26 @@ make test
   to its public props interface require coordinated updates in the main dashboard extension file.
 - Debugger setup requires Delve (`dlv`) installed and added to `PATH`; see `README.md` for the
   full `launch.json` configuration and `make dev-start-debug` workflow.
+
+## Package Documentation
+
+- [BFF Deep Dive] — comprehensive BFF architecture, handler patterns, integration clients, and testing
+- [Developer Docs] — developer-oriented reference index
+- [User Docs] — user and admin documentation index
+- [ADR Index] — Architecture Decision Records (system architecture, logging strategy, auth, caching, factory patterns, and more)
+
+### Logging
+
+- [Logging Guide] — logging overview and configuration
+- [BFF Logging] — BFF log levels, structured logging, and runtime configuration
+- [vLLM Logging] — vLLM model server log configuration
+- [Logging Troubleshooting] — diagnosing common logging issues
+- [Logging Best Practices] — recommended logging patterns
+- [Logging Config Examples] — sample logging configurations
+
+### Access Control
+
+- [RBAC Guide] — RBAC setup and admin access configuration
 
 ## Related Docs
 
