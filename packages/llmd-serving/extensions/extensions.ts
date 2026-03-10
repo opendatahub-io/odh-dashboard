@@ -80,6 +80,8 @@ const extensions: (
         import('../src/deployments/hardware').then(
           (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
         ),
+      validateExtraction: () =>
+        import('../src/deployments/validateExtraction').then((m) => m.validateExtraction),
     },
     flags: {
       required: [LLMD_SERVING_ID],
