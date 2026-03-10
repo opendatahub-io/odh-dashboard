@@ -23,6 +23,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,10 +38,6 @@ var ErrNoDSPAFound = errors.New("no DSPipelineApplication found in namespace")
 // Rules: lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars
 var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
-// dns1123SubdomainRegex matches valid DNS-1123 subdomains
-// Rules: lowercase alphanumeric, '-', or '.', must start/end with alphanumeric, max 253 chars
-var dns1123SubdomainRegex = regexp.MustCompile(`^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$`)
-
 // isValidDNS1123Label validates a string against DNS-1123 label rules
 // Returns true if the label is valid, false otherwise
 func isValidDNS1123Label(label string) bool {
@@ -51,12 +48,9 @@ func isValidDNS1123Label(label string) bool {
 }
 
 // isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
-// Returns true if the subdomain is valid, false otherwise
+// using the Kubernetes apimachinery validation package.
 func isValidDNS1123Subdomain(name string) bool {
-	if len(name) == 0 || len(name) > 253 {
-		return false
-	}
-	return dns1123SubdomainRegex.MatchString(name)
+	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
 }
 
 // validateIP checks an IP address against the SSRF blocklist.
