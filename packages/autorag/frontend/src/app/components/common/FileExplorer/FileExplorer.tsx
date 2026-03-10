@@ -141,7 +141,7 @@ const FilesTable: React.FC<FilesTableProps> = ({ files, selectedFiles, setSelect
     items: defaults.labels.tableColumnItems,
   };
 
-  // TODO [ Gustavo ] Render an empty state if files.length === 0. See https://www.patternfly.org/components/table#empty-state
+  // TODO [ CLAUDE ] Render an empty state if files.length === 0. See https://www.patternfly.org/components/table#empty-state
 
   return (
     <OuterScrollContainer>
@@ -330,6 +330,8 @@ interface FileExplorerProps {
   onSelectSource: (source: Source) => void;
   onNavigate?: (directory: Directory) => void;
   onPrimary: (files: Files) => void;
+
+  // TODO [ CLAUDE ] Implement a new `loading` boolean prop. When true; Show a skeleton table and skeleton details and skeleton breadcrumbs. Controlled input components like the search, pagination and primary buttons should be disabled if loading is true.
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
   id,
@@ -347,7 +349,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+
+  // TODO [ CLAUDE ] Implement an onSearch prop
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // TODO [ CLAUDE ] I fear that as this thing gets more involved and interconnected with it's child-components (SourceSelector, FilesTable, PathBreadcrumbs, FileDetailsPanel) that prop explosion will happen. Should we introduce as FileExplorerContext?
 
   const rowHeight = 37;
   const headerHeight = 38;
@@ -379,7 +385,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               value={searchQuery}
               onChange={(_event, value) => setSearchQuery(value)}
               onClear={() => setSearchQuery('')}
-              resultsCount={0}
+              resultsCount={
+                // TODO [ CLAUDE ] This prop should be added as a new prop: `searchResultsCount`
+                0
+              }
             />
           </FlexItem>
           <FlexItem>
