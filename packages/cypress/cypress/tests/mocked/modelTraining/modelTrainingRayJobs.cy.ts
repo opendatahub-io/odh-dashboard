@@ -182,3 +182,57 @@ describe('RayJobs in Jobs Table', () => {
     trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
   });
 });
+
+describe('Type filter in Jobs Table', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should filter to show only TrainJobs when TrainJob type is selected', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.selectJobTypeFilter('TrainJob');
+
+    const trainRow = trainingJobTable.getTableRow('train-job-one');
+
+    trainingJobTable.findTypeFilterChip().should('contain', 'TrainJob');
+    trainRow.findType().should('contain', 'TrainJob');
+    trainingJobTable.findTypeColumn().should('not.contain', 'RayJob');
+    trainingJobTable.findRows().should('have.length', 1);
+  });
+
+  it('should filter to show only RayJobs when RayJob type is selected', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.selectJobTypeFilter('RayJob');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+
+    trainingJobTable.findTypeFilterChip().should('contain', 'RayJob');
+    rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
+    trainingJobTable.findTypeColumn().should('not.contain', 'TrainJob');
+    trainingJobTable.findRows().should('have.length', 4);
+  });
+
+  it('should show all jobs after selecting All in type filter', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.selectJobTypeFilter('TrainJob');
+    trainingJobTable.findRows().should('have.length', 1);
+
+    trainingJobTable.findTypeFilterSelectToggle().click();
+    cy.findByRole('option', { name: 'All' }).click();
+
+    const trainRow = trainingJobTable.getTableRow('train-job-one');
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+
+    trainingJobTable.findTypeFilterChip().should('not.exist');
+    trainRow.findTrainingJobName().should('contain', 'train-job-one');
+    rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
+    trainingJobTable.findRows().should('have.length', 5);
+  });
+});
