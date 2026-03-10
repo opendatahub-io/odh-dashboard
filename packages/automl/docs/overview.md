@@ -3,6 +3,10 @@
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [AutoRAG Overview]: ../../autorag/docs/overview.md
+[Install Guide]: install.md
+[Local Deployment Guide]: local-deployment-guide.md
+[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
+[Kubeflow Development Guide]: kubeflow-development-guide.md
 
 # AutoML
 
@@ -112,8 +116,7 @@ packages/automl/
 │   │   ├── pages/            # Page-level components
 │   │   └── api/              # Frontend API calls to BFF
 │   └── config/               # Webpack / Module Federation config
-├── docs/
-│   └── overview.md           # This file
+├── docs/                    # See Package Documentation below
 ├── Dockerfile
 ├── Makefile
 └── package.json
@@ -217,6 +220,13 @@ npm run test:cypress-ci -- --spec "**/automl/**"
 - `MOCK_HTTP_CLIENT=true` is required for local development without a live Kubeflow Pipelines
   endpoint; omitting it will cause BFF startup errors if the endpoint is unreachable.
 - Docker deployment is not yet documented. Use `make dev-start` for all local workflows.
+
+## Package Documentation
+
+- [Install Guide] — installation and cluster prerequisites
+- [Local Deployment Guide] — detailed local development and cluster setup
+- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
+- [Kubeflow Development Guide] — kubeflow-mode development environment setup
 
 ## Related Docs
 

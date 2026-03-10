@@ -1,9 +1,12 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
-[MLflow Overview]: ../../packages/mlflow/docs/overview.md
-[Gen AI Overview]: ../../packages/gen-ai/docs/overview.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
+[MLflow Overview]: ../../mlflow/docs/overview.md
+[Gen AI Overview]: ../../gen-ai/docs/overview.md
+[Install Guide]: install.md
+[Local Deployment Guide]: local-deployment-guide.md
+[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
 
 # MaaS
 
@@ -122,10 +125,7 @@ packages/maas/
 │       ├── moduleFederation.js   # Module Federation plugin config
 │       ├── webpack.common.js     # Common Webpack config; theme path switching
 │       └── webpack.dev.js / webpack.prod.js
-├── docs/
-│   ├── overview.md               # This file
-│   ├── install.md
-│   └── local-deployment-guide.md
+├── docs/                        # See Package Documentation below
 ├── Dockerfile
 ├── Makefile
 └── README.md
@@ -243,10 +243,17 @@ Contract tests follow the `@odh-dashboard/contract-tests` framework. Start the B
   `bff/internal/integrations/maas/testdata/`; the fixtures do not cover all edge cases.
 - Kubeflow mode requires a live Kuadrant-enabled cluster; it cannot run fully mocked.
 
+## Package Documentation
+
+- [Install Guide] — installation and cluster prerequisites
+- [Local Deployment Guide] — detailed local development and cluster setup
+- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
+
 ## Related Docs
 
 - [Guidelines] — documentation style guide
 - [Module Federation Docs] — how Module Federation works in this monorepo
 - [Backend Overview] — main dashboard backend reference
+- [Gen AI Overview] — chatbot package that consumes MaaS endpoints
 - [MLflow Overview] — sibling package using the same BFF scaffold
 - [BOOKMARKS] — full doc index
