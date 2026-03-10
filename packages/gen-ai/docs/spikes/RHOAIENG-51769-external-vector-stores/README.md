@@ -199,13 +199,6 @@ missing embedding model + malformed config).
 - Does llamastack report all errors or stop at the first one?
 - Does one bad entry block other (valid) entries from loading?
 
-### Test 06 — One Bad Store Alongside One Valid Store
-**File:** `configmaps/06-one-bad-one-valid.yaml`
-**Change:** Adds one correctly configured vector store and one misconfigured one.
-**Questions:**
-- Does the bad entry prevent the good entry from loading?
-- Does llamastack start at all?
-
 ---
 
 ## Findings
@@ -223,7 +216,7 @@ missing embedding model + malformed config).
 | 03 — Malformed provider config (missing `host`/`db`) | No — CrashLoopBackOff | **Yes** — attempted connection to `localhost:5432` | `psycopg2.OperationalError: Connection refused` (Python traceback) | No Pydantic validation error — missing `host` silently defaulted to `localhost`. Crash is indistinguishable from Test 01a at the error level. |
 | 04 — Invalid credentials | No — CrashLoopBackOff | **Yes** — auth attempted at startup | `psycopg2.OperationalError: FATAL: password authentication failed` → `RuntimeError` (Python traceback) | Host reached successfully; auth failure is distinct and specific in the error message, but re-raised under the same generic `RuntimeError` wrapper as connectivity failures. |
 | 05 — Multiple bad configs (unreachable endpoint + missing embedding model) | No — CrashLoopBackOff | **Yes** — pgvector connectivity checked at startup | `psycopg2.OperationalError` → `RuntimeError` (Python traceback) | Stops at first error — provider instantiation (phase 1) fails before resource registration (phase 2) is reached. `ModelNotFoundError` never surfaces. Only one error reported regardless of how many exist. |
-| 06 — One bad, one valid | | | | |
+| 06 — One bad, one valid | N/A — skipped | N/A | N/A | Answered by prior tests: llamastack does not partial-load. Any startup-phase failure takes the whole instance down. |
 
 ---
 
@@ -761,3 +754,70 @@ RuntimeError: Could not connect to PGVector database server
   If the configmap contains multiple errors, only the first will be visible in the pod logs.
   All validation must happen in the BFF before the configmap is written — not incrementally
   in response to llamastack error feedback.
+
+---
+
+## Conclusions and BFF Implications
+
+### Startup behaviour by provider type
+
+The most important discovery from this spike is that **providers differ fundamentally in when they
+check connectivity**, and this has direct consequences for BFF validation strategy:
+
+| Provider | Connectivity check at startup? | Bad config outcome |
+|----------|-------------------------------|-------------------|
+| `remote::pgvector` | **Yes** — connects and checks extension version | CrashLoopBackOff |
+| `remote::milvus` | **Yes** — logs connection attempt at startup | CrashLoopBackOff (expected) |
+| `remote::qdrant` | **No** — defers all connectivity until first use | Pod starts; error surfaces on first API call |
+
+### Llamastack does not do partial loading
+
+A bad provider or resource entry causes the **entire llamastack instance to fail** — there is no
+partial loading of the remaining valid config. This is true regardless of whether the error is:
+- An unreachable endpoint
+- Invalid credentials
+- A missing embedding model reference
+- A malformed provider config (fields omitted, silently defaulted)
+
+### Llamastack is fail-fast, not fail-all
+
+When multiple problems exist, **only the first error is reported**. Provider instantiation (phase 1)
+runs before resource registration (phase 2), so a connectivity failure will mask a missing model
+error. The BFF cannot iteratively fix problems based on llamastack feedback — it must validate
+everything upfront.
+
+### Error format is never structured JSON
+
+All errors that crash llamastack at startup are raw Python tracebacks in the pod logs. There is
+no structured error format, no HTTP response, and no machine-readable signal from the llamastack
+process itself. The only observable signal is CrashLoopBackOff.
+
+### BFF validation checklist
+
+Based on the spike findings, the BFF should validate the following **before writing a vector store
+provider to the configmap**:
+
+| Concern | Required BFF validation |
+|---------|------------------------|
+| Provider endpoint reachability | For pgvector/milvus: probe the endpoint before writing. For qdrant: probe independently (startup success is not a signal). |
+| Provider credentials | Validate credentials against the real endpoint before writing. Auth and connectivity errors produce the same generic `RuntimeError` in llamastack. |
+| `persistence` field | Required for `remote::pgvector` and `remote::milvus`. Omitting it crashes llamastack before any connectivity check. |
+| `token` field (milvus) | Required by Pydantic in `0.5.0+rhai0` even for unauthenticated instances. Use `""` for no auth. |
+| `embedding_model` reference | Must match an exactly registered model ID (including prefix, e.g. `sentence-transformers/...`). Validated at startup — mismatch crashes the instance. |
+| Provider field defaults | `host` and `db` have defaults in the pgvector Pydantic model — omitting them does not raise a validation error but produces a silent misconfiguration. BFF should enforce these fields explicitly. |
+| Multiple bad entries | All entries must be individually valid before writing the configmap. Llamastack will only report the first error encountered. |
+
+### Qdrant requires a different validation approach
+
+For `remote::qdrant` providers, startup success is **not a reliable signal** that the endpoint or
+credentials are valid. The BFF must independently probe the qdrant endpoint (e.g. via the Qdrant
+HTTP API health check) before writing the configmap, and should not rely on the llamastack pod
+status to detect misconfiguration.
+
+### `registered_resources.vector_stores` pre-registration works reliably
+
+The `registered_resources.vector_stores` mechanism introduced in llamastack 0.5.0 works as
+expected: pre-registered stores appear in `GET /v1/vector_stores` on every startup and survive
+pod restarts. This is the correct BFF approach for persisting vector store configuration across
+LSD restarts. The `vector_store_name` field (sibling of `vector_store_id`) sets the human-readable
+name in API responses.
