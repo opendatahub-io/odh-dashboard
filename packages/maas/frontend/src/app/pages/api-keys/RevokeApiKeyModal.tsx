@@ -42,7 +42,7 @@ const DeleteApiKeyModal: React.FC<DeleteApiKeyModalProps> = ({ apiKey, onClose }
       genericLabel
     >
       <Alert title="This action is permanent and cannot be undone" variant="warning">
-        Revoking thi API key will immediately and permanently invalidate it. Any applications or
+        Revoking this API key will immediately and permanently invalidate it. Any applications or
         services currently using this key will lose access.
       </Alert>
       <br />
