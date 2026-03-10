@@ -49,6 +49,7 @@ import React, { useState } from 'react';
 
 export interface Source {
   name: string;
+  bucket?: string;
   count?: number;
 }
 export type Sources = Source[];
@@ -138,12 +139,22 @@ interface FilesTableProps {
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   loading?: boolean;
+  page?: number;
+  perPage?: number;
+  itemCount?: number;
+  onSetPage?: (page: number) => void;
+  onPerPageSelect?: (perPage: number) => void;
 }
 const FilesTable: React.FC<FilesTableProps> = ({
   files,
   selectedFiles,
   setSelectedFiles,
   loading,
+  page = 1,
+  perPage = 100,
+  itemCount = 0,
+  onSetPage,
+  onPerPageSelect,
 }) => {
   const columns = {
     name: defaults.labels.tableColumnName,
@@ -238,11 +249,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
         </Table>
         <Pagination
           widgetId="FileExplorer-table-pagination"
-          itemCount={0}
-          perPage={100}
-          page={1}
-          onSetPage={() => null}
-          onPerPageSelect={() => null}
+          itemCount={itemCount}
+          perPage={perPage}
+          page={page}
+          onSetPage={(_event, newPage) => onSetPage?.(newPage)}
+          onPerPageSelect={(_event, newPerPage) => onPerPageSelect?.(newPerPage)}
           isSticky
           isDisabled={loading}
           variant={PaginationVariant.bottom}
@@ -337,18 +348,12 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   );
 };
 
-interface FileDetailsPanelProps {
-  bucket?: string;
-  path?: string;
+interface DetailsPanelProps {
+  source?: Source;
   selectedFiles?: Files;
   loading?: boolean;
 }
-const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({
-  bucket,
-  path,
-  selectedFiles,
-  loading,
-}) => (
+const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, loading }) => (
   <Card isFullHeight>
     <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
     <CardBody>
@@ -373,17 +378,19 @@ const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({
         </DescriptionList>
       ) : (
         <DescriptionList>
-          {bucket && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Bucket</DescriptionListTerm>
-              <DescriptionListDescription>{bucket}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {path && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Path</DescriptionListTerm>
-              <DescriptionListDescription>{path}</DescriptionListDescription>
-            </DescriptionListGroup>
+          {source && (
+            <>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Source</DescriptionListTerm>
+                <DescriptionListDescription>{source.name}</DescriptionListDescription>
+              </DescriptionListGroup>
+              {source.bucket && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Bucket</DescriptionListTerm>
+                  <DescriptionListDescription>{source.bucket}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </>
           )}
           {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
             <DescriptionListGroup>
@@ -408,13 +415,16 @@ interface FileExplorerProps {
   files?: Files;
   directories?: Directory[];
   rootLabel?: string;
-  bucket?: string;
-  path?: string;
   loading?: boolean;
   searchResultsCount?: number;
+  page?: number;
+  perPage?: number;
+  itemCount?: number;
   onSelectSource: (source: Source) => void;
   onNavigate?: (directory: Directory) => void;
   onSearch?: (query: string) => void;
+  onSetPage?: (page: number) => void;
+  onPerPageSelect?: (perPage: number) => void;
   onPrimary: (files: Files) => void;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
@@ -426,18 +436,21 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
   directories,
   rootLabel,
-  bucket,
-  path,
   loading,
   searchResultsCount,
+  page,
+  perPage,
+  itemCount,
   onSelectSource,
   onNavigate,
   onSearch,
+  onSetPage,
+  onPerPageSelect,
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
 
-  // TODO [ CLAUDE ] Consider introducing a FileExplorerContext if prop drilling deepens.
+  // TODO: Consider introducing a FileExplorerContext if prop drilling deepens.
   //   Revisit when: a child component needs to pass props through to its own children,
   //   or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -501,15 +514,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
                   loading={loading}
+                  page={page}
+                  perPage={perPage}
+                  itemCount={itemCount}
+                  onSetPage={onSetPage}
+                  onPerPageSelect={onPerPageSelect}
                 />
               </GridItem>
               <GridItem span={4}>
-                <FileDetailsPanel
-                  bucket={bucket}
-                  path={path}
-                  selectedFiles={selectedFiles}
-                  loading={loading}
-                />
+                <DetailsPanel source={source} selectedFiles={selectedFiles} loading={loading} />
               </GridItem>
             </Grid>
           </FlexItem>

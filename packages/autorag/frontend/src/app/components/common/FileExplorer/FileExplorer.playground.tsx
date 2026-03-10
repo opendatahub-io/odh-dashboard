@@ -12,6 +12,7 @@ import type { Directory, File, Files, Source, Sources } from './FileExplorer';
 
 const mockSource: Source = {
   name: 'Foo connection',
+  bucket: 'mock-bucket',
   count: 999999999,
 };
 
@@ -165,6 +166,9 @@ interface Scenario {
   sources?: Sources;
   loading?: boolean;
   searchResultsCount?: number;
+  page?: number;
+  perPage?: number;
+  itemCount?: number;
 }
 
 const scenarios: Scenario[] = [
@@ -222,6 +226,33 @@ const scenarios: Scenario[] = [
     source: mockSource,
     searchResultsCount: 5,
   },
+  {
+    label: 'paginated (page 1 of 10)',
+    files: mock100Files.slice(0, 10),
+    directories: mockDirectories,
+    source: mockSource,
+    page: 1,
+    perPage: 10,
+    itemCount: 100,
+  },
+  {
+    label: 'paginated (page 5 of 10)',
+    files: mock100Files.slice(40, 50),
+    directories: mockDirectories,
+    source: mockSource,
+    page: 5,
+    perPage: 10,
+    itemCount: 100,
+  },
+  {
+    label: 'paginated (25 per page)',
+    files: mock1000Files.slice(0, 25),
+    directories: mockDirectories,
+    source: mockSource,
+    page: 1,
+    perPage: 25,
+    itemCount: 1000,
+  },
 ];
 
 // App ----------------------------------------------------------------------
@@ -231,6 +262,8 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
+  const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
@@ -239,6 +272,9 @@ const App: React.FC = () => {
   const [searchResultsCountToRender, setSearchResultsCountToRender] = useState<number | undefined>(
     undefined,
   );
+  const [pageToRender, setPageToRender] = useState<number | undefined>(undefined);
+  const [perPageToRender, setPerPageToRender] = useState<number | undefined>(undefined);
+  const [itemCountToRender, setItemCountToRender] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -256,6 +292,9 @@ const App: React.FC = () => {
     setSourcesToRender(scenario.sources);
     setLoadingToRender(scenario.loading ?? false);
     setSearchResultsCountToRender(scenario.searchResultsCount);
+    setPageToRender(scenario.page);
+    setPerPageToRender(scenario.perPage);
+    setItemCountToRender(scenario.itemCount);
     setIsOpen(true);
   };
 
@@ -280,10 +319,16 @@ const App: React.FC = () => {
         <Card>
           <CardTitle>State</CardTitle>
           <CardBody>
-            {selectedFiles.length > 0 && (
-              <p>Selected files: {selectedFiles.map((f) => f.name).join(', ')}</p>
-            )}
-            {selectedSource && <p>Selected source: {JSON.stringify(selectedSource)}</p>}
+            <p>
+              Selected files:{' '}
+              {selectedFiles.length > 0 ? selectedFiles.map((f) => f.name).join(', ') : '—'}
+            </p>
+            <p>Selected source: {selectedSource ? JSON.stringify(selectedSource) : '—'}</p>
+            <p>Last navigated dir: {lastNavigatedDir ? lastNavigatedDir.path : '—'}</p>
+            <p>Last search query: {lastSearchQuery || '—'}</p>
+            <p>Page: {pageToRender ?? '—'}</p>
+            <p>Per page: {perPageToRender ?? '—'}</p>
+            <p>Item count: {itemCountToRender ?? '—'}</p>
           </CardBody>
         </Card>
         <Card>
@@ -306,22 +351,28 @@ const App: React.FC = () => {
         sources={sourcesToRender}
         directories={directoriesToRender}
         rootLabel="mock-bucket (root)"
-        bucket="mock-bucket"
-        path="/documents/reports/2024"
         loading={loadingToRender}
         searchResultsCount={searchResultsCountToRender}
+        page={pageToRender}
+        perPage={perPageToRender}
+        itemCount={itemCountToRender}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {
           setSelectedSource(source);
         }}
         onNavigate={(dir) => {
-          // eslint-disable-next-line no-console
-          console.log('Navigate to:', dir.path);
+          setLastNavigatedDir(dir);
         }}
         onSearch={(query) => {
-          // eslint-disable-next-line no-console
-          console.log('Search:', query);
+          setLastSearchQuery(query);
+        }}
+        onSetPage={(newPage) => {
+          setPageToRender(newPage);
+        }}
+        onPerPageSelect={(newPerPage) => {
+          setPerPageToRender(newPerPage);
+          setPageToRender(1);
         }}
         onPrimary={(files) => {
           setSelectedFiles(files);
