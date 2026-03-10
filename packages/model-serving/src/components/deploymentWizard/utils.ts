@@ -3,6 +3,7 @@ import {
   ServingRuntimeKind,
   type SecretKind,
 } from '@odh-dashboard/internal/k8sTypes';
+import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
@@ -108,7 +109,7 @@ export const deployModel = async (
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
 
   // Dry runs
-  const [dryRunSecret] = await Promise.all([
+  await Promise.all([
     handleConnectionCreation(
       wizardState.createConnectionData.data,
       projectName,
@@ -136,28 +137,24 @@ export const deployModel = async (
       : []),
   ]);
 
-  // The secret name is calculated in handleConnectionCreation dryRun
-  // so ensure we're sending the correct name into the real deploy and secret creation methods
-  const realSecretName = dryRunSecret?.metadata.name ?? secretName;
-
   // Create secret
   const newSecret = await handleConnectionCreation(
     wizardState.createConnectionData.data,
     projectName,
     wizardState.modelLocationData.data,
-    realSecretName,
+    secretName,
     false,
     wizardState.modelLocationData.selectedConnection,
   );
+
   // newSecret.metadata.name is the name of the secret created during secret creation,
-  // use realSecretName as a fallback (should be the same)
-  const actualSecretName = newSecret?.metadata.name ?? realSecretName;
+  const createdSecretName = newSecret?.metadata.name ?? secretName ?? getGeneratedSecretName();
 
   // Create deployment
   const modelResourceWithConnection = structuredClone(modelResource);
   if (modelResourceWithConnection?.metadata.annotations) {
     modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      actualSecretName ?? '';
+      createdSecretName;
   }
   const deploymentResult = await deployMethod.deploy(
     wizardState,
@@ -167,19 +164,19 @@ export const deployModel = async (
     serverResource,
     serverResourceTemplateName,
     false,
-    actualSecretName,
+    createdSecretName,
     overwrite,
     initialWizardData,
     applyFieldData,
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML
-  if (newSecret && actualSecretName && wizardState.modelLocationData.data) {
+  if (newSecret && createdSecretName && wizardState.modelLocationData.data) {
     await handleSecretOwnerReferencePatch(
       wizardState.createConnectionData.data,
       deploymentResult.model,
       wizardState.modelLocationData.data,
-      actualSecretName,
+      createdSecretName,
       deploymentResult.model.metadata.uid ?? '',
       false,
     );
