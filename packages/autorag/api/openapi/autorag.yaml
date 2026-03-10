@@ -98,6 +98,11 @@ paths:
             - 'lls': Filters for Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
             - Omit for all secrets
 
+            Type Classification Precedence:
+            When determining if a secret matches the requested type filter, the following precedence is applied:
+            1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
+            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like aws_access_key_id for ?type=storage, lls keys for ?type=lls)
+
             Note: Classification keys are used to identify the secret type. Additional optional keys (like aws_s3_bucket for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
             present in each secret, allowing clients to validate additional requirements for their specific use cases.
@@ -126,18 +131,21 @@ paths:
         Retrieves secrets from a specified namespace with optional filtering by type.
         All key matching is case-insensitive.
 
-        Secret Type Classification:
-        Secrets are classified based on the presence of specific classification keys:
-        - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
-        - 'lls': Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
+        Secret Type Classification Precedence:
+        The type of each secret is determined using the following precedence:
+        1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
+        2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
+           - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+           - 'lls': Llama Stack secrets (classification keys: llama_stack_client_api_key, llama_stack_client_base_url)
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., aws_s3_bucket for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-        Type filtering:
-        - 'storage': Returns only secrets classified as storage types (currently: s3)
-        - 'lls': Returns only secrets classified as LLS type
+        Type filtering with ?type= parameter:
+        When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
+        - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
+        - 'lls': Returns only secrets classified as LLS type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
   /api/v1/s3/file:
     summary: Path used to get a file from S3.
@@ -478,11 +486,16 @@ components:
         type:
           type: string
           description: >-
-            Optional type of the secret determined by:
+            Optional type of the secret determined by the following precedence:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
                - 'lls': Llama Stack secret (has all required LLS classification keys)
+
+            When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
+            for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
+            results even if it lacks the typical storage classification keys.
+
             This field is omitted from the response if the secret doesn't match any recognized type and has no connection-type annotation.
           example: s3
         data:
