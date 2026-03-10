@@ -12,6 +12,7 @@ In your package `eslint.config.js`:
 
 ```js
 import base from '@odh-dashboard/eslint-config';
+
 export default [...base];
 ```
 

@@ -12,6 +12,7 @@ In your package `jest.config.ts`:
 
 ```ts
 import base from '@odh-dashboard/jest-config';
+
 export default { ...base, displayName: 'my-package' };
 ```
 
