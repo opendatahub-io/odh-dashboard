@@ -25,6 +25,7 @@ First, check the current branch state:
 
 **If on `main`:**
 - Ensure working directory is clean (no uncommitted changes)
+- Run `git pull` to ensure main is up to date before starting the sync
 - Generate branch name: `mr-sync-YYYY-MM-DD` (use today's date)
 - Check if this branch already exists with `git branch --list mr-sync-YYYY-MM-DD`
   - If it exists, ask user if they want to create `mr-sync-YYYY-MM-DD-2` (or find next available suffix)
