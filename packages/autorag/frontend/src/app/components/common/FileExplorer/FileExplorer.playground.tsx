@@ -350,7 +350,7 @@ const App: React.FC = () => {
         source={sourceToRender}
         sources={sourcesToRender}
         directories={directoriesToRender}
-        rootLabel="mock-bucket (root)"
+        rootLabel="mock-bucket (root)" // TODO [ CLAUDE ] FileExplorer shouldn't need this prop. It should use `{source.name} (root)`
         loading={loadingToRender}
         searchResultsCount={searchResultsCountToRender}
         page={pageToRender}

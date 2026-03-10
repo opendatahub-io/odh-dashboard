@@ -162,7 +162,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
     items: defaults.labels.tableColumnItems,
   };
 
-  const skeletonRowCount = 5;
+  const skeletonRowCount = 10;
   const isEmpty = !loading && (!Array.isArray(files) || files.length === 0);
 
   return (
@@ -396,7 +396,13 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
             <DescriptionListGroup>
               <DescriptionListTerm>Selected files</DescriptionListTerm>
               <DescriptionListDescription>
-                {selectedFiles.map((f) => f.name).join(', ')}
+                {
+                  selectedFiles
+                    .map((f) => f.name)
+                    .join(
+                      ', ',
+                    ) /*  // TODO [ CLAUDE ] Rendering the name of the files is not enough. It should render file.details if available. That type is object for now, but lets wire it up for future growth as I expand on it's type in a later change */
+                }
               </DescriptionListDescription>
             </DescriptionListGroup>
           )}
@@ -450,9 +456,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
 
-  // TODO: Consider introducing a FileExplorerContext if prop drilling deepens.
-  //   Revisit when: a child component needs to pass props through to its own children,
-  //   or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
+  // Consider introducing a FileExplorerContext if prop drilling deepens.
+  // Revisit when: a child component needs to pass props through to its own children,
+  // or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const rowHeight = 37.8;
@@ -534,6 +540,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           variant="primary"
           isDisabled={loading}
           onClick={(_event) => {
+            // TODO [ CLAUDE ] Lets wire this up so it sends the list of files selected.
             onPrimary([]);
             onClose(_event);
           }}
