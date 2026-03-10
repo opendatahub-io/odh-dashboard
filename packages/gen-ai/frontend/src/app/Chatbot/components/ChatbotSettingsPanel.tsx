@@ -145,7 +145,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
 
-  // Key to force Tabs remount when panel width changes so overflow arrows recalculate
+  // Key to force Tabs remount when panel width changes so overflow arrows recalculate.
+  // This is safe because:
+  // 1. All tab content state is stored in useChatbotConfigStore (controlled components)
+  // 2. No async operations in tab content that would be canceled
+  // 3. Remount is debounced (300ms after resize ends) to avoid performance issues
+  // 4. PatternFly Tabs doesn't auto-recalculate overflow on container resize
   const [tabsKey, setTabsKey] = React.useState(0);
 
   // Debounce timeout for Tabs remount

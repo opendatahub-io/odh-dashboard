@@ -272,12 +272,12 @@ describe('ChatbotSettingsPanel', () => {
     // Verify the resize was processed
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
 
-    // Fast-forward past debounce timeout
+    // Fast-forward past debounce timeout  (300ms)
     await React.act(async () => {
       jest.advanceTimersByTime(300);
     });
 
-    // Tabs should still be rendered (remount happened internally)
+    // Tabs should still be rendered after debounce (remount happened internally)
     expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
 
     // Resize again to 250px
@@ -287,7 +287,7 @@ describe('ChatbotSettingsPanel', () => {
     // Verify the second resize was processed
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('250px');
 
-    // Fast-forward past debounce timeout
+    // Fast-forward past debounce timeout again
     await React.act(async () => {
       jest.advanceTimersByTime(300);
     });
@@ -325,7 +325,6 @@ describe('ChatbotSettingsPanel', () => {
 
     // Should use default width
     expect(mockDrawerPanelDefaultSize).toBe(DEFAULT_WIDTH);
-    expect(mockDrawerPanelDefaultSize).toBe('500px');
   });
 
   it('should use stored width from session storage if available', () => {
@@ -369,7 +368,6 @@ describe('ChatbotSettingsPanel', () => {
 
     // Should still use the default width, overlay only affects background color
     expect(mockDrawerPanelDefaultSize).toBe(DEFAULT_WIDTH);
-    expect(mockDrawerPanelDefaultSize).toBe('500px');
 
     // And should have the overlay background color
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
