@@ -49,7 +49,7 @@ function AutoragExperiments(): React.JSX.Element {
 
   const createButton = (
     <Button variant="primary" onClick={handleCreateClick}>
-      Create Autorag experiment
+      Create AutoRAG experiment
     </Button>
   );
 
