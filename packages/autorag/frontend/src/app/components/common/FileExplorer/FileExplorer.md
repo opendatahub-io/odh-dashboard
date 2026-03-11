@@ -42,6 +42,18 @@ In the initial phase, the S3FileExplorer widget uses the common S3 BFF API prima
 
 ## Tasks
 
+### Homework
+
+- [ ] Add inline documentation explaining the props for FileExplorer
+- [ ] Implement X button on the details panel for selected files
+- [ ] Handle scroll in details panel when multiple files are selected
+- [ ] Full JEST test suite
+- [ ] Gracefully handle long file/directory names
+- [ ] Playground: Wire the selected source back into FileExplorer: This callback only updates the debug card. The modal keeps receiving source={undefined}, so the chosen source never shows up in breadcrumbs/details and the source selector never exits the "unselected" state (add setSourceToRender(source) alongside setSelectedSource(source) in the onSelectSource handler so the chosen source is actually fed back into the FileExplorer props)
+- [ ] Fall back to the rendered row count when itemCount is omitted: With the current default, the pager shows 0 items even when the table has rows. Using files?.length ?? 0 as the fallback keeps the footer consistent for non-paginated callers.
+
+### Delivery
+
 **Alpha**:
 - [X] Implement basic rendering of the component within this AutoRAG module
 - [ ] Implement a basic BFF integration (w/ mocks) for the S3 BFF
