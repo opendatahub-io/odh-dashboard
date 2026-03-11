@@ -21,6 +21,7 @@ type MaaSFieldProps = {
   id: string;
   value: MaaSFieldValue;
   onChange: (value: MaaSFieldValue) => void;
+  isDisabled?: boolean;
 };
 
 const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange }) => {
@@ -50,6 +51,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange }) => {
             </>
           }
           isChecked={value.isChecked}
+          isDisabled={isDisabled}
           onChange={handleCheckboxChange}
         />
       </Stack>

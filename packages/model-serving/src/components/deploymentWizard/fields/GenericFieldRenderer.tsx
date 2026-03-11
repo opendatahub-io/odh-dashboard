@@ -7,12 +7,14 @@ type GenericFieldRendererProps = {
   wizardState: UseModelDeploymentWizardState;
   parentId: string;
   externalData?: ExternalDataMap;
+  isDisabled?: boolean;
 };
 
 export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   parentId,
   wizardState,
   externalData,
+  isDisabled,
 }) => {
   const fields: WizardField<unknown>[] = React.useMemo(() => {
     return wizardState.fields.filter((f) => f.parentId === parentId);
@@ -32,6 +34,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
               });
             },
             externalData: externalData?.[field.id] ?? undefined,
+            isDisabled,
           })}
         </React.Fragment>
       ))}

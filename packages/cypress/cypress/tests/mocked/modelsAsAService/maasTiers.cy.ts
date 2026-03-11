@@ -22,7 +22,11 @@ import {
   tierDetailsPage,
   tiersPage,
 } from '../../../pages/modelsAsAService';
-import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingSection,
+  modelServingWizard,
+} from '../../../pages/modelServing';
 import { mockTier, mockTiers } from '../../../utils/maasUtils';
 import {
   HardwareProfileModel,
@@ -413,15 +417,24 @@ describe.skip('MaaS Deployment Wizard', () => {
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing
-    // uncheck token auth to simplify test
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-
     // Verify MaaS checkbox is unchecked by default
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
 
-    // Check the MaaS checkbox
+    // // Check the MaaS checkbox
+    modelServingWizard.findSaveAiAssetCheckbox().click();
     maasWizardField.findSaveAsMaaSCheckbox().click();
     maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+    modelServingWizard
+      .findTokenAuthenticationCheckbox()
+      .should('not.be.checked')
+      .should('be.disabled');
+    modelServingWizard.findSaveAiAssetCheckbox().click();
+    maasWizardField.findSaveAsMaaSCheckbox().should('not.be.checked').should('be.disabled');
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked').should('be.enabled');
+
+    modelServingWizard.findSaveAiAssetCheckbox().click();
+    maasWizardField.findSaveAsMaaSCheckbox().click();
 
     // Verify default selection is "All resource tiers"
     maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
@@ -467,5 +480,44 @@ describe.skip('MaaS Deployment Wizard', () => {
 
     cy.wait('@createLLMInferenceService'); // Actual request
     cy.get('@createLLMInferenceService.all').should('have.length', 2);
+
+    // Re-intercept the list with the newly created MaaS deployment
+    const maasDeployment = mockLLMInferenceServiceK8sResource({
+      name: 'test-maas-llmd-model',
+      namespace: 'test-project',
+      displayName: 'test-maas-llmd-model',
+    });
+    maasDeployment.metadata.annotations = {
+      ...maasDeployment.metadata.annotations,
+      'alpha.maas.opendatahub.io/tiers': JSON.stringify(['free', 'premium']),
+    };
+    maasDeployment.metadata.labels = {
+      ...maasDeployment.metadata.labels,
+      'opendatahub.io/genai-asset': 'true',
+    };
+
+    cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([maasDeployment]));
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'small-profile' },
+      mockGlobalScopedHardwareProfiles[0],
+    );
+
+    // Navigate to deployments and verify the expanded row
+    modelServingSection.visit('test-project');
+
+    const row = modelServingSection.getKServeRow('test-maas-llmd-model');
+    row.findToggleButton('llmd-serving').click();
+
+    // Token auth should be hidden when MaaS is enabled
+    row.findDescriptionListItem('Token authentication').should('not.exist');
+
+    // Model availability should show MaaS
+    row.findDescriptionListItem('Model availability').should('exist');
+    row
+      .findDescriptionListItem('Model availability')
+      .next('dd')
+      .should('contain.text', 'Model-as-a-Service (MaaS)');
   });
 });

@@ -219,6 +219,7 @@ export type WizardField<
     value: FieldData;
     onChange: (value: FieldData) => void;
     externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
+    isDisabled?: boolean;
   }>;
   getReviewSections?: (
     value: FieldData,

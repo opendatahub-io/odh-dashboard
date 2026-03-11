@@ -199,7 +199,7 @@ export const DeploymentRowExpandedSection: React.FC<{
               hardwareProfile={hardwareProfileOptions}
             />
             {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
-            <TokenAuthenticationItem deployment={deployment} />
+            {!modelAvailability?.saveAsMaaS && <TokenAuthenticationItem deployment={deployment} />}
           </Stack>
         </ExpandableRowContent>
       </Td>

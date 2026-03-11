@@ -46,6 +46,14 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
   const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
+  const isMaaSChecked = (() => {
+    const field = wizardState.state['maas/save-as-maas-checkbox'];
+    if (typeof field === 'object' && field !== null && 'isChecked' in field) {
+      return !!field.isChecked;
+    }
+    return false;
+  })();
+
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer = React.useMemo(() => {
     const templates = wizardState.state.modelFormatState.templatesFilteredForModelType;
@@ -153,6 +161,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 <TokenAuthenticationField
                   tokens={tokenAuthData}
                   allowCreate={allowCreate}
+                  forceDisabled={isMaaSChecked}
                   onChange={wizardState.state.tokenAuthentication.setData}
                 />
               </FormGroup>
