@@ -99,18 +99,12 @@ const ModelTraining = (): React.ReactElement => {
 
   React.useEffect(() => {
     if (selectedJob) {
-      if (isTrainJob(selectedJob)) {
-        const updatedJob = trainJobData.find(
-          (job) => job.metadata.uid === selectedJob.metadata.uid,
-        );
-        if (updatedJob && updatedJob !== selectedJob) {
-          setSelectedJob(updatedJob);
-        }
-      } else if (isRayJob(selectedJob)) {
-        const updatedJob = rayJobData.find((job) => job.metadata.uid === selectedJob.metadata.uid);
-        if (updatedJob && updatedJob !== selectedJob) {
-          setSelectedJob(updatedJob);
-        }
+      const dataSource = isTrainJob(selectedJob) ? trainJobData : rayJobData;
+      const updatedJob = dataSource.find((job) => job.metadata.uid === selectedJob.metadata.uid);
+      if (!updatedJob) {
+        setSelectedJob(undefined);
+      } else if (updatedJob !== selectedJob) {
+        setSelectedJob(updatedJob);
       }
     }
   }, [trainJobData, rayJobData, selectedJob]);
