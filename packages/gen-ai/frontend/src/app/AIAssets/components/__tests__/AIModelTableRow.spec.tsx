@@ -341,11 +341,7 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow
-            {...defaultProps}
-            model={model}
-            playgroundModels={[playgroundModel]}
-          />
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
         </TestWrapper>,
       );
 
@@ -362,11 +358,7 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow
-            {...defaultProps}
-            model={model}
-            playgroundModels={[playgroundModel]}
-          />
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
         </TestWrapper>,
       );
 
