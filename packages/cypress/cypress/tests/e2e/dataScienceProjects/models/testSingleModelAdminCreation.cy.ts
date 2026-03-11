@@ -1,6 +1,8 @@
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
+  ModelStateLabel,
+  ModelStateToggleLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { DataScienceProjectData } from '../../../../types';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
@@ -20,6 +22,10 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { attemptToClickTooltip } from '../../../../utils/models';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
+
+// Local copy of the key used by the stop modal preference (avoid restricted import from internal)
+const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -62,9 +68,17 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   });
 
   it(
-    'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
+    'Verify that an Admin can Serve, Query a Single Model using both the UI and External links, and Stop/Start the Model',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@ModelServingCI'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2626',
+        '@Dashboard',
+        '@ModelServing',
+        '@ModelServingCI',
+        '@NonConcurrent',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -135,6 +149,58 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         //verify the External URL Matches the Backend
         modelServingSection.findInternalExternalServiceButton().click();
         modelServingSection.findExternalServicePopoverTable().should('contain', url);
+      });
+
+      // Test stop/start functionality
+      const kServeRow = modelServingSection.getKServeRow(testData.singleModelAdminName);
+
+      //Stop the model with the modal
+      cy.step('Stop the model');
+      //Ensure the modal is shown
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
+
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
+      kServeRow.findConfirmStopModal().should('exist');
+      kServeRow.findConfirmStopModalCheckbox().should('exist');
+      kServeRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kServeRow.findConfirmStopModalCheckbox().click();
+      kServeRow.findConfirmStopModalCheckbox().should('be.checked');
+      kServeRow.findConfirmStopModalButton().click();
+      kServeRow
+        .findStatusLabel()
+        .invoke('text')
+        .should('match', new RegExp(`${ModelStateLabel.STOPPING}|${ModelStateLabel.STOPPED}`));
+
+      //Verify the model is stopped
+      cy.step('Verify the model is stopped');
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
+      });
+      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
+
+      //Restart the model
+      cy.step('Restart the model');
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
+      kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
+
+      //Verify the model is running again
+      cy.step('Verify the model is running again');
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
+      kServeRow
+        .findStatusLabel()
+        .invoke('text')
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
+
+      //Verify external access still works after restart
+      cy.step('Verify the model is still accessible externally after restart');
+      modelExternalTester(modelName, projectName).then(({ response }) => {
+        expect(response.status).to.equal(200);
       });
     },
   );
