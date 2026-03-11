@@ -7,6 +7,7 @@ import { getFieldDependencies } from '../dynamicFormUtils';
 type CommonProps = {
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
+  isDisabled?: boolean;
 } & GenericFieldProps;
 
 type GenericFieldRendererProps = CommonProps &
@@ -18,6 +19,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   wizardState,
   externalData,
   isEditing,
+  isDisabled,
 }) => {
   const fields: WizardField<unknown>[] = React.useMemo(() => {
     if (fieldId) {
@@ -46,6 +48,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
             externalData: externalData?.[field.id] ?? undefined,
             dependencies: getFieldDependencies(field, wizardState.state),
             isEditing,
+            isDisabled,
           })}
         </React.Fragment>
       ))}

@@ -235,7 +235,8 @@ export type WizardField<
       onChange: (value: FieldData) => void;
       externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
       dependencies?: Dependencies;
-    } & GenericFieldProps
+      isDisabled?: boolean;
+  } & GenericFieldProps
   >;
   getReviewSections?: (
     value: FieldData,
