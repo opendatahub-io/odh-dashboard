@@ -5,13 +5,13 @@ import {
   Content,
   ContentVariants,
   Label,
+  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
@@ -30,16 +30,42 @@ type AIModelsTableProps = {
   toolbarActions?: React.ReactNode;
 };
 
-const RegisterExternalEndpointButton: React.FC = () => (
-  <Button
-    variant={ButtonVariant.primary}
-    data-testid="register-external-endpoint-button"
-    onClick={() => {
-      fireSimpleTrackingEvent('Register External Endpoint Clicked');
-    }}
+const dontSeeModelPopoverContent: React.ReactNode = (
+  <Stack hasGutter>
+    <StackItem>
+      <Content component="p">
+        This page displays only model deployments that are available as AI assets.
+      </Content>
+      <Content component="p">
+        To make a deployment available as an AI asset, edit it from the{' '}
+        <strong>Model deployments</strong> page.
+      </Content>
+    </StackItem>
+  </Stack>
+);
+
+export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
+  modelsVisibleCount,
+}) => (
+  <Popover
+    position="bottom"
+    showClose
+    aria-label="Information about making model deployments available"
+    headerComponent="h2"
+    bodyContent={dontSeeModelPopoverContent}
   >
-    Register external endpoint
-  </Button>
+    <Button
+      variant={ButtonVariant.link}
+      data-testid="dont-see-model-button"
+      onClick={() => {
+        fireMiscTrackingEvent('Available Endpoints Model Not Found Clicked', {
+          modelsVisibleCount,
+        });
+      }}
+    >
+      Don&apos;t see the model you&apos;re looking for?
+    </Button>
+  </Popover>
 );
 
 export const AIModelStatusPopoverContent = (
@@ -75,7 +101,12 @@ const AI_FILTER_COLORS: Record<string, AssetsFilterColors> = {
   [AssetsFilterOptions.MODEL_TYPE]: AssetsFilterColors.MODEL_TYPE,
 };
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
+const AIModelsTable: React.FC<AIModelsTableProps> = ({
+  models,
+  playgroundModels,
+  lsdStatus,
+  toolbarActions,
+}) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
   return (
@@ -93,7 +124,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels,
           filterData={filterData}
           filterOptions={assetsFilterOptions}
           filterColors={AI_FILTER_COLORS}
-          infoPopover={<RegisterExternalEndpointButton />}
+          infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
           toolbarActions={toolbarActions}

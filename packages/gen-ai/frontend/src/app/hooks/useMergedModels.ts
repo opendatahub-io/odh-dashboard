@@ -9,11 +9,22 @@ type UseMergedModelsResult = {
   loaded: boolean;
   aiError: Error | undefined;
   maasError: Error | undefined;
+  refresh: () => Promise<void>;
 };
 
 const useMergedModels = (): UseMergedModelsResult => {
-  const { data: aiModels = [], loaded: aiLoaded, error: aiError } = useFetchAIModels();
-  const { data: maasModels = [], loaded: maasLoaded, error: maasError } = useFetchMaaSModels();
+  const {
+    data: aiModels = [],
+    loaded: aiLoaded,
+    error: aiError,
+    refresh: refreshAI,
+  } = useFetchAIModels();
+  const {
+    data: maasModels = [],
+    loaded: maasLoaded,
+    error: maasError,
+    refresh: refreshMaaS,
+  } = useFetchMaaSModels();
 
   const aiReady = aiLoaded || !!aiError;
   const maasReady = maasLoaded || !!maasError;
@@ -23,11 +34,17 @@ const useMergedModels = (): UseMergedModelsResult => {
     [aiModels, maasModels],
   );
 
+  const refresh = React.useCallback(
+    () => Promise.all([refreshAI(), refreshMaaS()]).then(() => undefined),
+    [refreshAI, refreshMaaS],
+  );
+
   return {
     models,
     loaded: aiReady && maasReady,
     aiError,
     maasError,
+    refresh,
   };
 };
 

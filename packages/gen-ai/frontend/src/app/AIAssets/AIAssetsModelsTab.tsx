@@ -17,7 +17,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels();
 
-  const { models, loaded, aiError, maasError } = useMergedModels();
+  const { models, loaded, aiError, maasError, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
   const isExternalModelsEnabled = useAiAssetExternalModelsEnabled();

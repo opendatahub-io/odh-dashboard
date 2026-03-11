@@ -333,4 +333,31 @@ describe('useMergedModels', () => {
       expect(result.current.models).toEqual([]);
     });
   });
+
+  describe('refresh', () => {
+    it('should call refresh on both underlying hooks', async () => {
+      const refreshAI = jest.fn().mockResolvedValue(undefined);
+      const refreshMaaS = jest.fn().mockResolvedValue(undefined);
+
+      mockUseFetchAIModels.mockReturnValue({
+        data: [],
+        loaded: true,
+        error: undefined,
+        refresh: refreshAI,
+      });
+      mockUseFetchMaaSModels.mockReturnValue({
+        data: [],
+        loaded: true,
+        error: undefined,
+        refresh: refreshMaaS,
+      });
+
+      const { result } = testHook(useMergedModels)();
+
+      await result.current.refresh();
+
+      expect(refreshAI).toHaveBeenCalledTimes(1);
+      expect(refreshMaaS).toHaveBeenCalledTimes(1);
+    });
+  });
 });

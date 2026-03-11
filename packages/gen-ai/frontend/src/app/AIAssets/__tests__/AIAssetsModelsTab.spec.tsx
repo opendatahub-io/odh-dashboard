@@ -80,6 +80,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: false,
       aiError: undefined,
       maasError: undefined,
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -93,6 +94,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       aiError: undefined,
       maasError: undefined,
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -107,6 +109,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       aiError: new Error('Failed to fetch'),
       maasError: new Error('MaaS unavailable'),
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -128,6 +131,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       aiError: new Error('AI fetch failed'),
       maasError: undefined,
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -151,6 +155,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       aiError: undefined,
       maasError: new Error('MaaS fetch failed'),
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -174,6 +179,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       aiError: undefined,
       maasError: undefined,
+      refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });

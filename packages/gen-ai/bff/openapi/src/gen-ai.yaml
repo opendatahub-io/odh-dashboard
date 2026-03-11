@@ -2007,7 +2007,7 @@ components:
           description: Unique identifier for the model
         model_display_name:
           type: string
-          example: 'Gemini 2.5 Flash Liter'
+          example: 'Gemini 2.5 Flash Lite'
           description: Human-readable display name for the model
         base_url:
           type: string
