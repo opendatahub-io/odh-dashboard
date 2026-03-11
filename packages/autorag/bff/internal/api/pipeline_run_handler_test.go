@@ -63,7 +63,7 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 	// Add discovered pipeline to context (normally set by middleware)
 	discovered := &repositories.DiscoveredPipeline{
 		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 		PipelineName:      "autorag-pipeline",
 		Namespace:         "test-ns",
 	}

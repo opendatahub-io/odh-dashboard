@@ -154,7 +154,7 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
 				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			},
 			State:          "SUCCEEDED",
 			StorageState:   "AVAILABLE",
@@ -268,7 +268,7 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
 				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			},
 			State:          "FAILED",
 			StorageState:   "AVAILABLE",
@@ -400,7 +400,7 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		ExperimentID: "exp-123",
 		PipelineVersionReference: &models.PipelineVersionReference{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 		},
 		State:          "SUCCEEDED",
 		StorageState:   "AVAILABLE",

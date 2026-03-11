@@ -30,14 +30,14 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
+		pipelineVersionID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
 		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock now filters by pipeline version ID - 2 runs have this version ID
-		assert.Len(t, runsData.Runs, 2)
+		// All mock runs reference the current pipeline version
+		assert.Len(t, runsData.Runs, 3)
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {

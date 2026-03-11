@@ -18,7 +18,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		namespace := "test-ns-1"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
@@ -33,7 +33,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "autorag-pipeline", so "autorag" prefix should match
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
@@ -45,7 +45,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "autorag-pipeline", "AUTORAG" prefix should match (case-insensitive)
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "AUTORAG")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "AUTORAG")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
@@ -55,7 +55,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 	t.Run("should return error when namespace is empty", func(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, "", "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, "", "http://mock-ps", "autorag")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -64,7 +64,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 
 	t.Run("should return error when client is nil", func(t *testing.T) {
 		namespace := "test-ns-4"
-		discovered, err := repo.DiscoverAutoRAGPipeline(nil, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(nil, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -76,7 +76,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "autorag-pipeline", "nonexistent" prefix should not match
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "nonexistent")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "nonexistent")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -90,7 +90,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		namespace := "test-ns-6"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
@@ -103,12 +103,12 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// First call should discover and cache
-		discovered1, err1 := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered1, err1 := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 		assert.NoError(t, err1)
 		assert.NotNil(t, discovered1)
 
 		// Second call should return cached result
-		discovered2, err2 := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered2, err2 := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 		assert.NoError(t, err2)
 		assert.NotNil(t, discovered2)
 
@@ -122,15 +122,15 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Discover and cache
-		discovered1, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered1, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered1)
 
 		// Invalidate cache
-		repo.InvalidateCache(namespace)
+		repo.InvalidateCache("http://mock-ps", namespace)
 
 		// Next discovery should fetch fresh (not from cache)
-		discovered2, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "autorag")
+		discovered2, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered2)
 	})
@@ -141,7 +141,7 @@ func TestInvalidateCache(t *testing.T) {
 
 	t.Run("should not panic when invalidating non-existent namespace", func(t *testing.T) {
 		assert.NotPanics(t, func() {
-			repo.InvalidateCache("non-existent-namespace")
+			repo.InvalidateCache("http://mock-ps", "non-existent-namespace")
 		})
 	})
 }
@@ -159,25 +159,29 @@ func TestCacheSizeLimit(t *testing.T) {
 
 		// Add first entry
 		namespace1 := "test-ns-evict-1"
-		discovered1, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace1, "autorag")
+		discovered1, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace1, "http://mock-ps", "autorag")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered1)
 
 		// Add second entry (accessed later)
 		namespace2 := "test-ns-evict-2"
-		discovered2, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace2, "autorag")
+		discovered2, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace2, "http://mock-ps", "autorag")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered2)
 
+		const baseURL = "http://mock-ps"
+		cacheKey1 := fmt.Sprintf("%s:%s", baseURL, namespace1)
+		cacheKey2 := fmt.Sprintf("%s:%s", baseURL, namespace2)
+
 		// Access first entry again to make it more recently used
-		cached1 := globalPipelineCache.get(namespace1)
+		cached1 := globalPipelineCache.get(cacheKey1)
 		assert.NotNil(t, cached1)
 
 		// Manually set cache to be at capacity for testing
 		globalPipelineCache.mu.Lock()
 		// Save the two real entries
-		entry1 := globalPipelineCache.entries[namespace1]
-		entry2 := globalPipelineCache.entries[namespace2]
+		entry1 := globalPipelineCache.entries[cacheKey1]
+		entry2 := globalPipelineCache.entries[cacheKey2]
 		// Clear and fill cache to exact limit with filler entries
 		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
 		// Add (maxCacheEntries - 2) filler entries, leaving room for our 2 real entries
@@ -189,8 +193,8 @@ func TestCacheSizeLimit(t *testing.T) {
 			}
 		}
 		// Add back the real entries (entry1 has more recent access time)
-		globalPipelineCache.entries[namespace1] = entry1
-		globalPipelineCache.entries[namespace2] = entry2
+		globalPipelineCache.entries[cacheKey1] = entry1
+		globalPipelineCache.entries[cacheKey2] = entry2
 		globalPipelineCache.mu.Unlock()
 
 		// Verify cache is at capacity
@@ -201,7 +205,7 @@ func TestCacheSizeLimit(t *testing.T) {
 
 		// Add a new entry - should trigger eviction
 		namespace3 := "test-ns-evict-3"
-		discovered3, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace3, "autorag")
+		discovered3, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace3, baseURL, "autorag")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered3)
 
@@ -212,11 +216,12 @@ func TestCacheSizeLimit(t *testing.T) {
 		assert.Equal(t, maxCacheEntries, finalSize)
 
 		// The new entry should be in the cache
-		cached3 := globalPipelineCache.get(namespace3)
+		cacheKey3 := fmt.Sprintf("%s:%s", baseURL, namespace3)
+		cached3 := globalPipelineCache.get(cacheKey3)
 		assert.NotNil(t, cached3)
 
 		// namespace1 should still be there (was accessed more recently)
-		cachedStill := globalPipelineCache.get(namespace1)
+		cachedStill := globalPipelineCache.get(cacheKey1)
 		assert.NotNil(t, cachedStill)
 	})
 }
@@ -228,19 +233,19 @@ func TestCacheLRUEviction(t *testing.T) {
 		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
 		globalPipelineCache.mu.Unlock()
 
-		namespace := "test-lru-access"
+		cacheKey := "http://mock-ps:test-lru-access"
 		pipeline := &DiscoveredPipeline{
 			PipelineID:        "test-id",
 			PipelineVersionID: "test-version",
-			Namespace:         namespace,
+			Namespace:         "test-lru-access",
 		}
 
 		// Add entry
-		globalPipelineCache.set(namespace, pipeline)
+		globalPipelineCache.set(cacheKey, pipeline)
 
 		// Get initial access time
 		globalPipelineCache.mu.RLock()
-		initialAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		initialAccessTime := globalPipelineCache.entries[cacheKey].lastAccessed
 		globalPipelineCache.mu.RUnlock()
 
 		// Wait a small amount of time
@@ -248,12 +253,12 @@ func TestCacheLRUEviction(t *testing.T) {
 		// but we can verify the field is being set
 
 		// Access the entry
-		retrieved := globalPipelineCache.get(namespace)
+		retrieved := globalPipelineCache.get(cacheKey)
 		assert.NotNil(t, retrieved)
 
 		// Verify last accessed time was updated (should be same or later)
 		globalPipelineCache.mu.RLock()
-		updatedAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		updatedAccessTime := globalPipelineCache.entries[cacheKey].lastAccessed
 		globalPipelineCache.mu.RUnlock()
 
 		assert.True(t, updatedAccessTime.Equal(initialAccessTime) || updatedAccessTime.After(initialAccessTime),
@@ -278,7 +283,7 @@ func TestDiscoverAutoRAGPipeline_ErrorHandling(t *testing.T) {
 		namespace := "test-ns-error-1"
 		failClient := &failingListPipelinesClient{}
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(failClient, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(failClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -307,7 +312,7 @@ func TestDiscoverAutoRAGPipeline_EmptyPipelines(t *testing.T) {
 		namespace := "test-ns-empty"
 		emptyClient := &emptyPipelinesClient{}
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(emptyClient, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(emptyClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -336,7 +341,7 @@ func TestDiscoverAutoRAGPipeline_NoVersions(t *testing.T) {
 		namespace := "test-ns-no-versions"
 		noVersionsClient := &noPipelineVersionsClient{}
 
-		discovered, err := repo.DiscoverAutoRAGPipeline(noVersionsClient, ctx, namespace, "autorag")
+		discovered, err := repo.DiscoverAutoRAGPipeline(noVersionsClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)

@@ -20,7 +20,7 @@ import (
 func withDiscoveredPipeline(req *http.Request) *http.Request {
 	discovered := &repositories.DiscoveredPipeline{
 		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 		PipelineName:      "autorag-pipeline",
 		Namespace:         "test-namespace",
 	}
@@ -56,14 +56,14 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, response.Data)
-		// With discovered pipeline filter, mock returns only runs from that pipeline version (2 runs)
-		assert.Len(t, response.Data.Runs, 2, "Should return filtered pipeline runs from discovered pipeline")
-		assert.Equal(t, int32(2), response.Data.TotalSize)
+		// With discovered pipeline filter, mock returns only runs from that pipeline version (all 3 base runs)
+		assert.Len(t, response.Data.Runs, 3, "Should return filtered pipeline runs from discovered pipeline")
+		assert.Equal(t, int32(3), response.Data.TotalSize)
 	})
 
 	t.Run("should filter by pipeline version ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
+		pipelineVersionID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 		req, err := http.NewRequest(
 			http.MethodGet,
 			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId="+pipelineVersionID,
@@ -356,7 +356,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -399,7 +399,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -439,7 +439,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -505,7 +505,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -581,7 +581,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -624,7 +624,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -668,7 +668,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -717,7 +717,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		// Discovered pipeline has specific IDs
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -792,7 +792,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		// Discovered pipeline
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}

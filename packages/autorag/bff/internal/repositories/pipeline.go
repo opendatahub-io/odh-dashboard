@@ -162,6 +162,8 @@ func NewPipelineRepository() *PipelineRepository {
 //   - client: Pipeline Server client interface
 //   - ctx: Request context
 //   - namespace: Kubernetes namespace to search in
+//   - pipelineServerBaseURL: Base URL of the pipeline server, used with namespace to form a
+//     unique cache key and prevent cross-tenant cache leakage
 //   - pipelineNamePrefix: Prefix to identify managed pipelines (e.g., "autorag")
 //
 // Returns:
@@ -174,6 +176,7 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	namespace string,
+	pipelineServerBaseURL string,
 	pipelineNamePrefix string,
 ) (*DiscoveredPipeline, error) {
 	if client == nil {
@@ -189,8 +192,12 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 		pipelineNamePrefix = defaultPipelineNamePrefix
 	}
 
+	// Build a composite cache key to prevent cross-tenant leakage when multiple pipeline
+	// servers or namespaces share the same BFF instance.
+	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
+
 	// Check cache first
-	if cached := globalPipelineCache.get(namespace); cached != nil {
+	if cached := globalPipelineCache.get(cacheKey); cached != nil {
 		return cached, nil
 	}
 
@@ -243,13 +250,14 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 	}
 
 	// Cache the result
-	globalPipelineCache.set(namespace, discovered)
+	globalPipelineCache.set(cacheKey, discovered)
 
 	return discovered, nil
 }
 
-// InvalidateCache removes cached pipeline info for a namespace
-// Useful for testing or when pipeline changes are detected
-func (r *PipelineRepository) InvalidateCache(namespace string) {
-	globalPipelineCache.invalidate(namespace)
+// InvalidateCache removes cached pipeline info for a given pipeline server and namespace.
+// Useful for testing or when pipeline changes are detected.
+func (r *PipelineRepository) InvalidateCache(pipelineServerBaseURL, namespace string) {
+	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
+	globalPipelineCache.invalidate(cacheKey)
 }

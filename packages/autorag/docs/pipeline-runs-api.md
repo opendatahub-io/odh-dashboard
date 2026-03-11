@@ -61,7 +61,7 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" 
 Get pipeline runs for a specific pipeline version:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -99,7 +99,7 @@ The endpoint returns a JSON response with the following structure:
         "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
         "pipeline_version_reference": {
           "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-          "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+          "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         },
         "state": "SUCCEEDED",
         "storage_state": "AVAILABLE",
@@ -287,7 +287,7 @@ Returns a single PipelineRun object with full details including task execution i
     "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "state": "SUCCEEDED",
     "storage_state": "AVAILABLE",
@@ -431,7 +431,7 @@ Returns `200 OK` with the created pipeline run:
     "experiment_id": "8c51d49e-9e6b-4d62-827c-63d58edb9374",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "runtime_config": {
       "parameters": {
