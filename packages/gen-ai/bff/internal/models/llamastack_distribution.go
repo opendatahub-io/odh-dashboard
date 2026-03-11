@@ -27,9 +27,10 @@ type LlamaStackDistributionInstallRequest struct {
 
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
 type installModelJSON struct {
-	ModelName   string      `json:"model_name"`
-	IsMaaSModel bool        `json:"is_maas_model"`
-	MaxTokens   interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
+	ModelName       string      `json:"model_name"`
+	IsMaaSModel     bool        `json:"is_maas_model"`
+	ModelSourceType string      `json:"model_source_type,omitempty"` // Source type as string for unmarshaling
+	MaxTokens       interface{} `json:"max_tokens,omitempty"`        // Can be int, float64, or nil
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for InstallModel to handle max_tokens
@@ -47,6 +48,7 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 	im.ModelName = raw.ModelName
 	im.IsMaaSModel = raw.IsMaaSModel
+	im.ModelSourceType = ModelSourceTypeEnum(raw.ModelSourceType)
 
 	// Handle max_tokens conversion from interface{} to *int
 	if raw.MaxTokens != nil {
@@ -79,9 +81,10 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 }
 
 type InstallModel struct {
-	ModelName   string `json:"model_name"`
-	IsMaaSModel bool   `json:"is_maas_model"`
-	MaxTokens   *int   `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
+	ModelName       string              `json:"model_name"`
+	IsMaaSModel     bool                `json:"is_maas_model"`               // Deprecated: Use ModelSourceType instead (will be removed in future PR)
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type,omitempty"` // Source type of the model (namespace, external_cluster, external_provider)
+	MaxTokens       *int                `json:"max_tokens,omitempty"`        // Optional per-model token limit (128-128000)
 }
 
 type LlamaStackDistributionInstallModel struct {
