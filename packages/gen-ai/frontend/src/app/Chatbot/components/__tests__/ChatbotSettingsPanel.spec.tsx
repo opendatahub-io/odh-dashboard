@@ -478,4 +478,162 @@ describe('ChatbotSettingsPanel', () => {
       position: 'absolute',
     });
   });
+
+  describe('Overlay wrapper positioning and styling', () => {
+    it('should create wrapper with position absolute and inset 0 to fill rounded corners', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).toHaveStyle({
+        position: 'absolute',
+        inset: '0',
+      });
+    });
+
+    it('should apply flexbox layout to wrapper for proper content flow', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).toHaveStyle({
+        display: 'flex',
+        flexDirection: 'column',
+      });
+    });
+
+    it('should render content inside wrapper when overlay is enabled', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      const drawerHead = wrapperDiv?.querySelector('[data-testid="mock-drawer-head"]');
+      const drawerBody = wrapperDiv?.querySelector('[data-testid="mock-drawer-body"]');
+
+      expect(drawerHead).toBeInTheDocument();
+      expect(drawerBody).toBeInTheDocument();
+    });
+
+    it('should render content directly without wrapper when overlay is disabled', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+
+      const panel = container.querySelector('[data-testid="mock-drawer-panel"]');
+      const drawerHead = panel?.querySelector('[data-testid="mock-drawer-head"]');
+      const drawerBody = panel?.querySelector('[data-testid="mock-drawer-body"]');
+
+      // Content should be direct children, not inside a positioned wrapper
+      expect(drawerHead?.parentElement).toBe(panel);
+      expect(drawerBody?.parentElement).toBe(panel);
+    });
+  });
+
+  describe('Width preservation with overlay mode', () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+      mockDrawerPanelDefaultSize = undefined;
+      mockDrawerPanelStyle = undefined;
+    });
+
+    it('should never apply style to DrawerPanelContent to preserve width behavior', () => {
+      const { rerender } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+      expect(mockDrawerPanelStyle).toBeUndefined();
+
+      rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+      expect(mockDrawerPanelStyle).toBeUndefined();
+    });
+
+    it('should use default width of 500px when no stored width exists', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+      expect(mockDrawerPanelDefaultSize).toBe('500px');
+
+      sessionStorage.clear();
+      mockDrawerPanelDefaultSize = undefined;
+
+      render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+      expect(mockDrawerPanelDefaultSize).toBe('500px');
+    });
+
+    it('should preserve stored width regardless of overlay mode', () => {
+      const customWidth = '650px';
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, customWidth);
+
+      render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+      expect(mockDrawerPanelDefaultSize).toBe(customWidth);
+
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, customWidth);
+      mockDrawerPanelDefaultSize = undefined;
+
+      render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+      expect(mockDrawerPanelDefaultSize).toBe(customWidth);
+    });
+
+    it('should maintain width after toggling overlay mode', () => {
+      const { rerender } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+      const initialWidth = mockDrawerPanelDefaultSize;
+
+      rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+      expect(mockDrawerPanelDefaultSize).toBe(initialWidth);
+
+      rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+      expect(mockDrawerPanelDefaultSize).toBe(initialWidth);
+    });
+  });
+
+  describe('Dark mode background color application', () => {
+    it('should apply correct PatternFly background color token in overlay mode', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).toHaveStyle({
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      });
+    });
+
+    it('should not apply background to child components in overlay mode', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      // Background is only on wrapper, not on children
+      expect(mockDrawerHeadStyle).toBeUndefined();
+      expect(mockDrawerBodyStyle).toBeUndefined();
+      expect(mockDrawerPanelStyle).toBeUndefined();
+    });
+
+    it('should fill entire panel including rounded corners without creating nested borders', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+
+      // Wrapper fills entire panel with inset: 0 (no border-radius to avoid nested corners)
+      expect(wrapperDiv).toHaveStyle({
+        position: 'absolute',
+        inset: '0',
+      });
+      expect(wrapperDiv).not.toHaveStyle({
+        borderRadius: expect.anything(),
+      });
+    });
+  });
+
+  describe('Conditional rendering based on overlay mode', () => {
+    it('should conditionally render wrapper only when isOverlay is true', () => {
+      const { container, rerender } = render(
+        <ChatbotSettingsPanel {...defaultProps} isOverlay={false} />,
+      );
+
+      let wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).not.toHaveStyle({ position: 'absolute' });
+
+      rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+
+      wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).toHaveStyle({ position: 'absolute' });
+    });
+
+    it('should default to non-overlay mode when isOverlay prop is not provided', () => {
+      const { container } = render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+      expect(wrapperDiv).not.toHaveStyle({
+        position: 'absolute',
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      });
+    });
+  });
 });
