@@ -263,17 +263,18 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [sourceManagement, alertManagement],
   );
 
+  const openSettingsToTab = location.state?.openSettingsToTab;
+
   // Effects
   React.useEffect(() => {
+    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: mcpServersFromRoute,
+      selectedMcpServerIds: preSelectMcp,
     });
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [mcpServersFromRoute, selectedAAModel]);
-
-  const openSettingsToTab = location.state?.openSettingsToTab;
+  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
