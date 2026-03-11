@@ -44,19 +44,78 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   describe('LSD Models Endpoint', () => {
-    it('should successfully retrieve LSD models list', async () => {
-      const result = await apiClient.get('/api/v1/lsd/models?namespace=default');
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/LSDModelsResponse/content/application/json/schema',
-        status: 200,
+    describe('Success Cases', () => {
+      it('should successfully retrieve LSD models list', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/LSDModelsResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return models with expected data structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: { models?: Array<{ id: string; type: string; provider: string }> };
+          };
+          expect(responseData.data).toBeDefined();
+          expect(responseData.data?.models).toBeDefined();
+          expect(Array.isArray(responseData.data?.models)).toBe(true);
+          if (responseData.data?.models && responseData.data.models.length > 0) {
+            const model = responseData.data.models[0];
+            expect(model).toHaveProperty('id');
+            expect(model).toHaveProperty('type');
+            expect(model).toHaveProperty('provider');
+          }
+        }
       });
     });
 
-    it('should return 400 when namespace query parameter is missing', async () => {
-      const result = await apiClient.get('/api/v1/lsd/models');
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-      expect(result.error?.data).toHaveProperty('error');
+    describe('Error Cases', () => {
+      it('should return 400 when namespace query parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/models?secretName=test-lls-secret');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when secretName query parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/models?namespace=default');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/models?namespace=default&secretName=INVALID_NAME',
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/models?namespace=INVALID_NS&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when both query parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/models');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
     });
   });
 

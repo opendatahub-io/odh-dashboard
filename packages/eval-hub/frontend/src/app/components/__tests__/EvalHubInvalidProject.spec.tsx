@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import EvalHubInvalidProject from '../EvalHubInvalidProject';
+import EvalHubInvalidProject from '~/app/components/EvalHubInvalidProject';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({

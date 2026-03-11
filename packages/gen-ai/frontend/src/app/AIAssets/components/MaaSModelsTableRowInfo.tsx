@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { MaaSModel } from '~/app/types';
 import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type MaaSModelsTableRowInfoProps = {

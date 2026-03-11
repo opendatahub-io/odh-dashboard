@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,9 +25,6 @@ func newMockedInternalKubernetesClientFromClientset(clientset kubernetes.Interfa
 	}
 }
 
-// GetServiceDetails overrides to simulate ClusterIP for localhost access
-// Client service discovery removed in minimal starter.
-
 // BearerToken always returns a fake token for tests
 func (m *InternalKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE-BEARER-TOKEN", nil
@@ -38,9 +36,20 @@ func (m *InternalKubernetesClientMock) CanListEvalHubInstances(_ context.Context
 }
 
 // GetEvalHubServiceURL returns a deterministic fake URL for test environments.
-// The real implementation calls helper.GetKubeconfig() which is unavailable in unit-test contexts.
 func (m *InternalKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil
 }
 
-// GetGroups removed in minimal starter.
+// GetEvalHubCRStatus returns a deterministic mock CR status for test environments.
+func (m *InternalKubernetesClientMock) GetEvalHubCRStatus(_ context.Context, _ *k8s.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	return &models.EvalHubCRStatus{
+		Name:            "evalhub",
+		Namespace:       namespace,
+		Phase:           "Ready",
+		Ready:           "True",
+		URL:             "http://mock-evalhub.test.svc.cluster.local",
+		ActiveProviders: []string{"lm-evaluation-harness", "garak"},
+		ReadyReplicas:   1,
+		Replicas:        1,
+	}, nil
+}

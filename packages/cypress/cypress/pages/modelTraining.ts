@@ -102,6 +102,10 @@ class TrainingJobTable {
     return this.findTable().find('tbody tr');
   }
 
+  findTypeColumn() {
+    return this.findRows().find('[data-label="Type"]');
+  }
+
   findEmptyResults() {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
@@ -118,6 +122,33 @@ class TrainingJobTable {
 
   findEmptyState() {
     return cy.findByTestId('empty-state-body');
+  }
+
+  findToolbar() {
+    return cy.findByTestId('training-job-table-toolbar');
+  }
+
+  findFilterTypeDropdownToggle() {
+    return cy.findByTestId('training-job-table-toolbar-dropdown');
+  }
+
+  selectFilterType(filterType: string) {
+    this.findFilterTypeDropdownToggle().click();
+    cy.findByRole('menuitem', { name: filterType }).click();
+  }
+
+  findTypeFilterSelectToggle() {
+    return cy.findByTestId('training-job-type-filter-select');
+  }
+
+  selectJobTypeFilter(jobType: string) {
+    this.selectFilterType('Type');
+    this.findTypeFilterSelectToggle().should('be.visible').click();
+    cy.findByRole('option', { name: jobType }).click();
+  }
+
+  findTypeFilterChip() {
+    return cy.findByTestId('Type-filter-chip');
   }
 }
 
@@ -652,9 +683,59 @@ class TrainingJobDetailsTab {
   }
 }
 
+class RayJobDetailsDrawer {
+  find() {
+    return cy.findByTestId('ray-job-details-drawer');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('ray-job-details-drawer').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByTestId('ray-job-drawer-title');
+  }
+
+  findCloseButton() {
+    return this.find().findByLabelText('Close drawer panel');
+  }
+
+  findKebabMenu() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTab(tabName: string) {
+    return this.find().findByRole('tab', { name: tabName });
+  }
+
+  selectTab(tabName: string) {
+    this.findTab(tabName).click();
+    return this;
+  }
+
+  close() {
+    this.findCloseButton().click();
+  }
+
+  clickKebabMenu() {
+    this.findKebabMenu().click();
+  }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
+export const rayJobDetailsDrawer = new RayJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();

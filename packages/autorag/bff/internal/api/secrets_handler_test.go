@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -63,14 +62,6 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
-}
-
-func (m *mockKubernetesClientForSecrets) CanListLlamaStackDistributions(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
-	return false, nil
-}
-
-func (m *mockKubernetesClientForSecrets) GetLlamaStackDistributions(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	return nil, nil
 }
 
 // mockKubernetesClientFactoryForSecrets implements KubernetesClientFactory for testing

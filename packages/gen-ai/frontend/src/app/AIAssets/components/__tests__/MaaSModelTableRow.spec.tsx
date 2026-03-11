@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { MaaSModel } from '~/app/types';
 import MaaSModelTableRow from '~/app/AIAssets/components/MaaSModelTableRow';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 

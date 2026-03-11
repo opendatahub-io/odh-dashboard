@@ -12,7 +12,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { MaaSModel } from '~/app/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 

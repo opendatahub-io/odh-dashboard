@@ -9,6 +9,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
+  EvalHubCRStatus,
   EvaluationJob,
   EvaluationJobsResponse,
   ListEvaluationJobsParams,
@@ -36,6 +37,18 @@ export const getNamespaces =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<NamespaceKind[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getEvalHubCRStatus =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<EvalHubCRStatus | null> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/status`, { namespace }, opts),
+    ).then((response) => {
+      if (isModArchResponse<EvalHubCRStatus | null>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
