@@ -27,7 +27,7 @@ import {
 } from '../../../../utils/oc_commands/imageStreams';
 import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
-describe('Create, Delete and Edit - Workbench Tests', () => {
+describe('[Product Bug: RHOAIENG-52179] Create, Delete and Edit - Workbench Tests', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -82,7 +82,15 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   it(
     'Create Workbench from the launcher page and verify that it is created successfully.',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@ODS-2218', '@Dashboard', '@Workbenches'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1931',
+        '@ODS-2218',
+        '@Dashboard',
+        '@Workbenches',
+        '@Bug',
+      ],
     },
     () => {
       const workbenchName = deriveWorkbenchName(editTestNamespace);
@@ -153,7 +161,15 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   it(
     'Verify user can delete PV storage, data connection and workbench in a shared DS project',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@ODS-2218', '@Dashboard', '@Workbenches'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1931',
+        '@ODS-2218',
+        '@Dashboard',
+        '@Workbenches',
+        '@Bug',
+      ],
     },
     () => {
       // Authentication and navigation
