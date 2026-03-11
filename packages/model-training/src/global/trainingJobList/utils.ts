@@ -12,6 +12,8 @@ import {
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
@@ -951,4 +953,40 @@ export const getUnifiedJobStatusSync = (job: UnifiedJobKind): TrainingJobState =
     return getRayJobStatusSync(job);
   }
   return getTrainingJobStatusSync(job);
+};
+
+export const filterJob = (
+  job: UnifiedJobKind,
+  filterData: Partial<JobsFilterDataType>,
+  jobStatuses: Map<string, TrainingJobState>,
+): boolean => {
+  const nameFilter = filterData.Name?.toLowerCase();
+  const statusFilter = filterData.Status?.toLowerCase();
+  const clusterQueueFilter = filterData['Cluster queue']?.toLowerCase();
+  const typeFilter = filterData.Type;
+
+  if (nameFilter && !getDisplayNameFromK8sResource(job).toLowerCase().includes(nameFilter)) {
+    return false;
+  }
+
+  if (statusFilter) {
+    const jobId = job.metadata.uid || job.metadata.name;
+    const jobStatus = jobStatuses.get(jobId) || getUnifiedJobStatusSync(job);
+    if (!getStatusInfo(jobStatus).label.toLowerCase().includes(statusFilter)) {
+      return false;
+    }
+  }
+
+  if (
+    clusterQueueFilter &&
+    !(job.metadata.labels?.[KUEUE_QUEUE_LABEL] || '').toLowerCase().includes(clusterQueueFilter)
+  ) {
+    return false;
+  }
+
+  if (typeFilter && job.kind !== typeFilter) {
+    return false;
+  }
+
+  return true;
 };

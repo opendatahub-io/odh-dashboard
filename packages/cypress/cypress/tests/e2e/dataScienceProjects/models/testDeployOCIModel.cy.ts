@@ -12,8 +12,13 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '../../../../pages/modelServing';
-import { checkInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  checkInferenceServiceState,
+  modelExternalTester,
+  verifyModelExternalToken,
+} from '../../../../utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -82,7 +87,7 @@ describe(
     });
 
     it(
-      'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
+      'Verify User Can Create an OCI Connection, Deploy Model with Token Auth, and Verify Token Access',
       {
         tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
@@ -135,6 +140,12 @@ describe(
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 3: Advanced settings');
+        // Enable Model access through an external route with token authentication
+        modelServingWizard.findExternalRouteCheckbox().click();
+        modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+        modelServingWizard.findServiceAccountByIndex(0).clear().type('oci-token-1');
+        modelServingWizard.findAddServiceAccountButton().click();
+        modelServingWizard.findServiceAccountByIndex(1).clear().type('oci-token-2');
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 4: Review');
@@ -146,6 +157,71 @@ describe(
           checkInferenceServiceState(resourceName, projectName, { checkReady: true });
         });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
+
+        // Token Authentication Verification
+        cy.step('Verify the model is not accessible without a token');
+        modelExternalTester(modelDeploymentName, projectName).then(({ response }) => {
+          expect(response.status).to.equal(401);
+        });
+
+        cy.step('Get the tokens from the UI');
+        const kserveRow = modelServingSection.getKServeRow(modelDeploymentName);
+        kserveRow.findToggleButton().click();
+
+        cy.window().then((win) => {
+          const copied: string[] = [];
+          cy.wrap(copied).as('copiedTokens');
+
+          cy.stub(win.navigator.clipboard, 'writeText').callsFake((text: string) => {
+            copied.push(text);
+            return Promise.resolve();
+          });
+        });
+
+        // Click the two copy buttons
+        modelServingGlobal.findTokenCopyButton(0).click();
+        modelServingGlobal.findTokenCopyButton(1).click();
+
+        // Use the copied tokens
+        cy.step('Verify the model is accessible with valid tokens');
+        cy.get<string[]>('@copiedTokens')
+          .should('have.length.at.least', 2)
+          .then((tokens) => {
+            const [token1, token2] = tokens;
+            verifyModelExternalToken(modelDeploymentName, projectName, token1).then(
+              ({ response }) => expect(response.status).to.equal(200),
+            );
+            verifyModelExternalToken(modelDeploymentName, projectName, token2).then(
+              ({ response }) => expect(response.status).to.equal(200),
+            );
+          });
+
+        // Remove the token authentication
+        cy.step('Disable token authentication');
+        modelServingSection
+          .getKServeRow(modelDeploymentName)
+          .find()
+          .findKebabAction('Edit')
+          .click();
+        // Navigate through wizard steps
+        modelServingWizardEdit.findNextButton().click(); // Step 1: Model details
+        modelServingWizardEdit.findNextButton().click(); // Step 2: Model deployment
+
+        // Step 3: Advanced Options - verify service accounts and disable token auth
+        modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'oci-token-1');
+        modelServingWizardEdit.findServiceAccountByIndex(1).should('have.value', 'oci-token-2');
+        modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+        modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
+        modelServingWizardEdit.findNextButton().click();
+
+        // Submit the changes
+        modelServingWizardEdit.findSubmitButton().click();
+
+        // Verify the model is accessible without a token after disabling auth
+        cy.step('Verify the model is accessible without a token after disabling auth');
+        verifyModelExternalToken(modelDeploymentName, projectName).then(({ response }) => {
+          expect(response.status).to.equal(200);
+        });
       },
     );
   },

@@ -102,6 +102,10 @@ class TrainingJobTable {
     return this.findTable().find('tbody tr');
   }
 
+  findTypeColumn() {
+    return this.findRows().find('[data-label="Type"]');
+  }
+
   findEmptyResults() {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
@@ -118,6 +122,33 @@ class TrainingJobTable {
 
   findEmptyState() {
     return cy.findByTestId('empty-state-body');
+  }
+
+  findToolbar() {
+    return cy.findByTestId('training-job-table-toolbar');
+  }
+
+  findFilterTypeDropdownToggle() {
+    return cy.findByTestId('training-job-table-toolbar-dropdown');
+  }
+
+  selectFilterType(filterType: string) {
+    this.findFilterTypeDropdownToggle().click();
+    cy.findByRole('menuitem', { name: filterType }).click();
+  }
+
+  findTypeFilterSelectToggle() {
+    return cy.findByTestId('training-job-type-filter-select');
+  }
+
+  selectJobTypeFilter(jobType: string) {
+    this.selectFilterType('Type');
+    this.findTypeFilterSelectToggle().should('be.visible').click();
+    cy.findByRole('option', { name: jobType }).click();
+  }
+
+  findTypeFilterChip() {
+    return cy.findByTestId('Type-filter-chip');
   }
 }
 
