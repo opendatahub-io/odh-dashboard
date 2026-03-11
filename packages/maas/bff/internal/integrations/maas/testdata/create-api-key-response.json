@@ -1,8 +1,8 @@
 {
-  "token":       "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature",
-  "expiration":  "4h",
-  "expiresAt":   4920242400,
-  "jti":         "mock-jti-abc123def456",
-  "name":        "new-api-key",
-  "description": "Newly created API key"
+  "key": "sk-oai-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
+  "keyPrefix": "sk-oai-abc",
+  "id": "key_new_api_key_001",
+  "name": "new-api-key",
+  "createdAt": "2026-03-10T12:00:00Z",
+  "expiresAt": "2026-06-10T12:00:00Z"
 }

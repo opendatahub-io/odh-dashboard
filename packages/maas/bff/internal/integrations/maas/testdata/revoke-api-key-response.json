@@ -5,7 +5,5 @@
   "username": "admin-user",
   "groups": ["system:authenticated", "premium-users"],
   "creationDate": "2025-12-01T00:00:00Z",
-  "expirationDate": "2125-12-01T00:00:00Z",
-  "status": "active",
-  "lastUsedAt": "2026-03-10T14:30:00Z"
+  "status": "revoked"
 }
