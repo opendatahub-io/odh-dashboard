@@ -1,5 +1,4 @@
 import React, { act } from 'react';
-import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
@@ -88,15 +87,13 @@ describe('EmptyProjects', () => {
   });
   it('should dry run all the API calls', async () => {
     const result = render(
-      <MemoryRouter>
-        <SpawnerFooter
-          startNotebookData={startNotebookDataMock}
-          storageData={mockStorageData}
-          canEnablePipelines
-          envVariables={mockEnvVariables}
-          connections={[mockConnection({})]}
-        />
-      </MemoryRouter>,
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+      />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
     await act(() => fireEvent.click(result.getByTestId('submit-button')));
@@ -127,24 +124,20 @@ describe('EmptyProjects', () => {
     );
   });
 
-  it('should render cancel as a link to the workbench section', () => {
+  it('should navigate to the workbench section on cancel', () => {
     const result = render(
-      <MemoryRouter>
-        <SpawnerFooter
-          startNotebookData={startNotebookDataMock}
-          storageData={mockStorageData}
-          canEnablePipelines
-          envVariables={mockEnvVariables}
-          connections={[mockConnection({})]}
-        />
-      </MemoryRouter>,
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+      />,
     );
 
-    const cancelButton = result.getByTestId('cancel-button');
-    expect(cancelButton).toHaveAttribute(
-      'href',
+    fireEvent.click(result.getByTestId('cancel-button'));
+    expect(mockNavigate).toHaveBeenCalledWith(
       `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
     );
-    expect(result.getByTestId('submit-button')).not.toHaveAttribute('href');
   });
 });
