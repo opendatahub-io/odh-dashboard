@@ -240,8 +240,11 @@ describe('Archiving version', () => {
 
     modelVersionArchive.visitModelVersionList();
 
-    const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
-    modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
+    // Re-query the row before finding kebab action to avoid stale element references
+    modelRegistry
+      .getModelVersionRow('model version 3')
+      .findKebabAction('Archive model version')
+      .should('have.attr', 'aria-disabled');
   });
 
   it('Cannot archive model that has versions with a deployment', () => {
