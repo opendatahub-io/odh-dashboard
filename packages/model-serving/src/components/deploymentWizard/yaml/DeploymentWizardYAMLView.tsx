@@ -108,6 +108,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           isReadOnly={viewMode === 'yaml-preview'}
           isCopyEnabled
           isDownloadEnabled
+          isUploadEnabled={viewMode === 'yaml-edit'}
           onEditorDidMount={(editor) => {
             editor.focus();
           }}
