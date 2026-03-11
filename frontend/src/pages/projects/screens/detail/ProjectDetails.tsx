@@ -178,26 +178,19 @@ const ProjectDetails: React.FC = () => {
               component: <ConnectionsList />,
             },
             ...(projectSharingEnabled && allowCreate
-              ? projectRBACEnabled
-                ? [
-                    {
-                      id: ProjectSectionID.PERMISSIONS,
-                      title: 'Permissions',
-                      component: (
-                        <PermissionsContextProvider namespace={currentProject.metadata.name}>
-                          <ProjectPermissions />
-                        </PermissionsContextProvider>
-                      ),
-                      label: 'Tech preview',
-                    },
-                  ]
-                : [
-                    {
-                      id: ProjectSectionID.PERMISSIONS,
-                      title: 'Permissions',
-                      component: <ProjectSharing />,
-                    },
-                  ]
+              ? [
+                  {
+                    id: ProjectSectionID.PERMISSIONS,
+                    title: 'Permissions',
+                    component: projectRBACEnabled ? (
+                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                        <ProjectPermissions />
+                      </PermissionsContextProvider>
+                    ) : (
+                      <ProjectSharing />
+                    ),
+                  },
+                ]
               : []),
             ...(biasMetricsAreaAvailable && allowCreate
               ? [
@@ -210,12 +203,14 @@ const ProjectDetails: React.FC = () => {
               : []),
           ],
           [
-            allowCreate,
-            biasMetricsAreaAvailable,
-            pipelinesEnabled,
-            projectSharingEnabled,
             workbenchEnabled,
+            pipelinesEnabled,
             deploymentsTab,
+            projectSharingEnabled,
+            allowCreate,
+            projectRBACEnabled,
+            currentProject.metadata.name,
+            biasMetricsAreaAvailable,
           ],
         )}
       />

@@ -120,15 +120,28 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   describe('Secrets Endpoint', () => {
-    // Helper to verify availableKeys field in secrets response
+    // Helper type for secret response data
+    type SecretItem = {
+      uuid: string;
+      name: string;
+      type?: string;
+      data: Record<string, string>;
+      displayName?: string;
+      description?: string;
+    };
+
+    type SecretsResponseData = {
+      data?: SecretItem[];
+    };
+
+    // Helper to verify data field in secrets response
     const verifyAvailableKeysField = (result: Awaited<ReturnType<typeof apiClient.get>>): void => {
       if (result.success) {
-        const responseData = result.response.data as {
-          data?: Array<{ availableKeys?: unknown }>;
-        };
+        const responseData = result.response.data as SecretsResponseData;
         if (responseData.data && responseData.data.length > 0) {
-          expect(responseData.data[0].availableKeys).toBeDefined();
-          expect(Array.isArray(responseData.data[0].availableKeys)).toBe(true);
+          expect(responseData.data[0].data).toBeDefined();
+          expect(typeof responseData.data[0].data).toBe('object');
+          expect(Array.isArray(responseData.data[0].data)).toBe(false);
         }
       }
     };
@@ -162,6 +175,235 @@ describe('AutoRAG API Contract Tests', () => {
         });
 
         verifyAvailableKeysField(result);
+      });
+    });
+
+    describe('Optional Fields - displayName and description', () => {
+      it('should include displayName when openshift.io/display-name annotation is present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify displayName field is properly typed as optional string when present
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          const annotatedSecret = responseData.data?.find(
+            (s) => s.name === 'annotated-display-name-secret',
+          );
+          expect(annotatedSecret).toBeDefined();
+          expect(typeof annotatedSecret?.displayName).toBe('string');
+          expect(annotatedSecret?.displayName).toBe('Production S3 Credentials');
+        }
+      });
+
+      it('should include description when openshift.io/description annotation is present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify description field is properly typed as optional string when present
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          const annotatedSecret = responseData.data?.find(
+            (s) => s.name === 'annotated-description-secret',
+          );
+          expect(annotatedSecret).toBeDefined();
+          expect(typeof annotatedSecret?.description).toBe('string');
+          expect(annotatedSecret?.description).toBe('AWS credentials for production S3 storage');
+        }
+      });
+
+      it('should omit displayName and description when annotations are not present', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify that secrets without annotations don't have these fields
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          const unannotatedSecret = responseData.data?.find((s) => s.name === 'test-secret');
+          expect(unannotatedSecret).toBeDefined();
+          expect(unannotatedSecret?.displayName).toBeUndefined();
+          expect(unannotatedSecret?.description).toBeUndefined();
+        }
+      });
+    });
+
+    describe('Optional Type Field', () => {
+      it('should include type field when secret matches a recognized type or has connection-type annotation', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // Verify type field is present and valid for storage secrets
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          if (responseData.data && responseData.data.length > 0) {
+            responseData.data.forEach((secret) => {
+              if (secret.type !== undefined) {
+                expect(typeof secret.type).toBe('string');
+                expect(secret.type.length).toBeGreaterThan(0);
+              }
+            });
+          }
+        }
+      });
+
+      it('should omit type field when secret does not match any recognized type and has no connection-type annotation', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        // The contract should allow secrets without a type field
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            // Type field is optional - if present, must be a non-empty string
+            if (secret.type !== undefined) {
+              expect(typeof secret.type).toBe('string');
+              expect(secret.type.length).toBeGreaterThan(0);
+            }
+            // All secrets must have required fields regardless of type
+            expect(secret.uuid).toBeDefined();
+            expect(secret.name).toBeDefined();
+            expect(secret.data).toBeDefined();
+          });
+        }
+      });
+    });
+
+    describe('Field Type Validation', () => {
+      it('should return secrets with all fields matching schema types', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            // Required fields
+            expect(typeof secret.uuid).toBe('string');
+            expect(typeof secret.name).toBe('string');
+            expect(typeof secret.data).toBe('object');
+            expect(Array.isArray(secret.data)).toBe(false);
+
+            // Optional fields - if present, must be correct type
+            if (secret.type !== undefined) {
+              expect(typeof secret.type).toBe('string');
+            }
+            if (secret.displayName !== undefined) {
+              expect(typeof secret.displayName).toBe('string');
+            }
+            if (secret.description !== undefined) {
+              expect(typeof secret.description).toBe('string');
+            }
+          });
+        }
+      });
+    });
+
+    describe('Secret Value Sanitization', () => {
+      it('should return actual values only for aws_s3_bucket keys', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+          responseData.data?.forEach((secret) => {
+            const keys = Object.keys(secret.data);
+
+            // Check each key-value pair
+            keys.forEach((key) => {
+              const value = secret.data[key];
+
+              // aws_s3_bucket (case-insensitive) should have actual value
+              if (key.toLowerCase() === 'aws_s3_bucket') {
+                expect(value).not.toBe('[REDACTED]');
+                expect(typeof value).toBe('string');
+                expect(value.length).toBeGreaterThan(0);
+              } else {
+                // All other keys should be sanitized
+                expect(value).toBe('[REDACTED]');
+              }
+            });
+          });
+        }
+      });
+
+      it('should sanitize all secret values except aws_s3_bucket', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          // Count how many secrets have at least one key
+          const secretsWithKeys = responseData.data?.filter(
+            (secret) => Object.keys(secret.data).length > 0,
+          );
+
+          if (secretsWithKeys && secretsWithKeys.length > 0) {
+            secretsWithKeys.forEach((secret) => {
+              Object.entries(secret.data).forEach(([key, value]) => {
+                // Only aws_s3_bucket (case-insensitive) should have actual values
+                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+
+                if (!isAllowedKey) {
+                  expect(value).toBe('[REDACTED]');
+                }
+              });
+            });
+          }
+        }
+      });
+
+      it('should handle aws_s3_bucket key with different casing', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          responseData.data?.forEach((secret) => {
+            Object.entries(secret.data).forEach(([key, value]) => {
+              // Check various casings of aws_s3_bucket
+              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
+                // Should return actual value, not [REDACTED]
+                expect(value).not.toBe('[REDACTED]');
+              }
+            });
+          });
+        }
+      });
+
+      it('should return data as object, not array', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          responseData.data?.forEach((secret) => {
+            expect(typeof secret.data).toBe('object');
+            expect(Array.isArray(secret.data)).toBe(false);
+            expect(secret.data).not.toBeNull();
+          });
+        }
       });
     });
 
