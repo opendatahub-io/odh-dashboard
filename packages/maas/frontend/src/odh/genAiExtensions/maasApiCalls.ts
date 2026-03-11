@@ -16,5 +16,14 @@ export const getMaaSModelsWrapper: (
 export const generateMaaSTokenWrapper: (
   data: MaaSTokenRequest,
   opts?: APIOptions,
-) => Promise<MaaSTokenResponse> = (data: MaaSTokenRequest, opts?: APIOptions) =>
-  createApiKey()(opts ?? {}, data);
+) => Promise<MaaSTokenResponse> = async (data: MaaSTokenRequest, opts?: APIOptions) => {
+  const response = await createApiKey()(opts ?? {}, {
+    name: data.name,
+    description: data.description,
+    expiresIn: data.expiresIn,
+  });
+  return {
+    token: response.key,
+    expiresAt: response.expiresAt ? new Date(response.expiresAt).getTime() / 1000 : 0,
+  };
+};

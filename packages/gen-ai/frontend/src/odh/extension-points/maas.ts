@@ -21,9 +21,9 @@ export interface MaaSModel {
 }
 
 export type MaaSTokenRequest = {
-  name?: string;
+  name: string;
   description?: string;
-  expiration?: string; // Optional - only present when expiration is provided
+  expiresIn?: string; // Optional - only present when expiration is provided
 };
 export interface MaaSTokenResponse {
   token: string;
