@@ -733,9 +733,8 @@ func TestModelSourceTypeRouting(t *testing.T) {
 				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
 			}
 
-			// Verify routing logic
-			isExternal := tt.modelSourceType == models.ModelSourceTypeExternalProvider ||
-				tt.modelSourceType == models.ModelSourceTypeExternalCluster
+			// Verify routing logic using the actual production helper
+			isExternal := models.IsExternalModelSource(tt.modelSourceType)
 			assert.Equal(t, tt.shouldCallExternal, isExternal,
 				"ModelSourceType %s should route to external handling: %v", tt.modelSourceType, tt.shouldCallExternal)
 

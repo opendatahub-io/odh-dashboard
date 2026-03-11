@@ -1489,7 +1489,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				providerID  string
 				tokenEnvVar string
 			}{providerID: providerID, tokenEnvVar: tokenEnvVar}
-		} else if model.ModelSourceType == models.ModelSourceTypeExternalProvider || model.ModelSourceType == models.ModelSourceTypeExternalCluster {
+		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
 			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
 			modelDetails, err := kc.getExternalModelDetails(ctx, namespace, model.ModelName)
