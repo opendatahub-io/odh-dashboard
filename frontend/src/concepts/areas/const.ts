@@ -19,6 +19,7 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  registryOciStorage: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -64,7 +65,6 @@ export const advancedAIMLFlags = {
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
   disableModelRegistrySecureDB: false,
-  registryOciStorage: false,
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
