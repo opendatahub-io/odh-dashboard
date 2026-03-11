@@ -1,0 +1,21 @@
+enabledFilterId: enabled-filter-checkbox
+notEnabledFilterId: not-enabled-filter-checkbox
+resourceTypeFilters:
+  - documentation
+  - how-to
+  - quickstart
+  - tutorial
+providerTypeFilter: Red Hat managed
+multiFilterIds:
+  - how-to
+  - documentation
+multiFilterCountId: documentation
+rhoaiProviderFilters:
+  - Elastic
+  - IBM
+  - "Intel®"
+  - NVIDIA
+  - Pachyderm
+  - Red Hat
+  - Starburst
+  - Self-managed

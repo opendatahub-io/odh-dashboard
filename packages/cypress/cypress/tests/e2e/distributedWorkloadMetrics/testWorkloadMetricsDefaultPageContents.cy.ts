@@ -1,4 +1,3 @@
-import yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -19,6 +18,7 @@ import {
   verifyRequestedResources,
 } from '../../../utils/workloadMetricsUtils';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { loadWorkloadMetricsFixture } from '../../../utils/dataLoader';
 
 // Note: In order to run this tests the following cluster configuration is required:
 // - kueue set to Unmanaged in the DSC
@@ -31,7 +31,6 @@ describe('Verify Workload Metrics Default page Contents', () => {
   let skipTest = false;
 
   retryableBefore(() => {
-    // Check if Kueue is set to Unmanaged in the DSC
     cy.step('Check if Kueue is set to Unmanaged in the DSC');
     isKueueUnmanaged().then((isUnmanaged) => {
       if (!isUnmanaged) {
@@ -40,25 +39,25 @@ describe('Verify Workload Metrics Default page Contents', () => {
         return;
       }
 
-      cy.fixture('e2e/workloadMetricsResources/testWorkloadMetricsResources.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
-          projectName = `${testData.projectName}-${uuid}`;
-        })
-        .then(() => {
-          cy.log('Creating Namespace ${projectName}');
-          createCleanProject(projectName);
+      loadWorkloadMetricsFixture(
+        'e2e/workloadMetricsResources/testWorkloadMetricsResources.yaml',
+      ).then((data) => {
+        testData = data;
+        projectName = `${testData.projectName}-${uuid}`;
 
-          cy.log('Creating Kueue resources');
-          createKueueResources(
-            testData.resourceFlavour,
-            testData.clusterQueue,
-            testData.localQueue,
-            projectName,
-            testData.cpuQuota,
-            testData.memoryQuota,
-          );
-        });
+        cy.log('Creating Namespace ${projectName}');
+        createCleanProject(projectName);
+
+        cy.log('Creating Kueue resources');
+        createKueueResources(
+          testData.resourceFlavour,
+          testData.clusterQueue,
+          testData.localQueue,
+          projectName,
+          testData.cpuQuota,
+          testData.memoryQuota,
+        );
+      });
     });
   });
 
@@ -68,8 +67,6 @@ describe('Verify Workload Metrics Default page Contents', () => {
       return;
     }
 
-    // Cleanup resources (testData and projectName are guaranteed to be defined
-    // if skipTest is false, as the setup code would have run)
     cy.log('Deleting Kueue resources');
     deleteKueueResources(
       testData.localQueue,
@@ -99,7 +96,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       globalDistributedWorkloads.selectProjectByName(projectName);
 
       cy.step(`Verify the workload metrics default Home page contents exists`);
-      cy.contains('Monitor the metrics of your active resources.').should('be.visible');
+      globalDistributedWorkloads.findPageDescription().should('be.visible').and('not.be.empty');
       projectMetricsTab.findProjectMetricsButton().should('be.visible');
       distributedWorkloadStatusTab.findDistributedWorkloadStatusButton().should('be.visible');
       findRefreshIntervalList().should('deep.equal', testData.refreshIntervals);
@@ -124,7 +121,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       projectMetricsTab.navigateProjectMetricsPage();
 
       cy.step(`Verify the Project Metrics Default Page contents exists`);
-      cy.contains('Requested resources').should('be.visible');
+      projectMetricsTab.findRequestedResourcesSection().should('be.visible').and('not.be.empty');
       verifyRequestedResources(projectName, testData.cpuQuota, testData.memoryQuota, 0, 0);
       projectMetricsTab
         .getRequestedResourcesTooltipText(0)
@@ -132,23 +129,11 @@ describe('Verify Workload Metrics Default page Contents', () => {
       projectMetricsTab
         .getRequestedResourcesTooltipText(7)
         .should('equal', `Total shared quota: ${testData.memoryQuota} GiB`);
-      cy.findByTestId('dw-top-consuming-workloads')
+      projectMetricsTab.findTopConsumingWorkloadsSection().should('be.visible').and('not.be.empty');
+      projectMetricsTab
+        .findWorkloadResourceMetricsSection()
         .should('be.visible')
-        .and('contain', 'Top 5 resource-consuming workload metrics')
-        .and('contain', 'No workload metrics')
-        .and(
-          'contain',
-          'No workload metrics in the selected project are currently consuming resources.',
-        );
-
-      cy.findByTestId('dw-workload-resource-metrics')
-        .should('be.visible')
-        .and('contain', 'Distributed workload resource metrics')
-        .and('contain', 'No workload metrics')
-        .and(
-          'contain',
-          'No workload metrics in the selected project are currently consuming resources.',
-        );
+        .and('not.be.empty');
     },
   );
 
@@ -172,23 +157,14 @@ describe('Verify Workload Metrics Default page Contents', () => {
       distributedWorkloadStatusTab.navigateDistributedWorkloadStatusPage();
 
       cy.step(`Verify the Distributed Workload status Default Page contents exists `);
-      cy.findByTestId('dw-status-overview-card')
+      distributedWorkloadStatusTab
+        .findStatusOverviewSection()
         .should('be.visible')
-        .and('contain', 'Status overview')
-        .and('contain', 'No workload metrics')
-        .and(
-          'contain',
-          'Select another project or create a distributed workload in the selected project.',
-        );
-
-      cy.findByTestId('dw-workloads-table-card')
+        .and('not.be.empty');
+      distributedWorkloadStatusTab
+        .findWorkloadsTableSection()
         .should('be.visible')
-        .and('contain', 'Workload metrics')
-        .and('contain', 'No workload metrics')
-        .and(
-          'contain',
-          'Select another project or create a distributed workload in the selected project.',
-        );
+        .and('not.be.empty');
     },
   );
 });

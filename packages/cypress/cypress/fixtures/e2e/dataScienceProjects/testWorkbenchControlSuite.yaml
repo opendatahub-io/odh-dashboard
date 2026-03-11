@@ -1,3 +1,4 @@
 # testWorkbenchControlSuite.cy.ts Test Data #
 controlSuiteTestNamespace: 'dsp-wb-controls-test'
 controlSuiteTestDescription: 'This is a test description.'
+notebookImage: 'code-server-notebook'
