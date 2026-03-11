@@ -1,6 +1,6 @@
 import { handleRestFailures, restGET, isModArchResponse } from 'mod-arch-core';
-import { getCollections, getProviders } from '~/app/api/k8s';
-import type { Collection, Provider } from '~/app/types';
+import { getCollections, getEvalHubCRStatus, getProviders } from '~/app/api/k8s';
+import type { Collection, EvalHubCRStatus, Provider } from '~/app/types';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/eval-hub',
@@ -16,6 +16,75 @@ jest.mock('mod-arch-core', () => ({
 const mockRestGET = jest.mocked(restGET);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 // handleRestFailures is mocked to pass through the promise — no need to assert on it directly
+
+describe('getEvalHubCRStatus', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the status object when response is valid', async () => {
+    const status: EvalHubCRStatus = {
+      name: 'evalhub-instance',
+      namespace: 'test-ns',
+      phase: 'Ready',
+      ready: 'True',
+      readyReplicas: 1,
+      replicas: 1,
+    };
+    mockRestGET.mockResolvedValue({ data: status });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvalHubCRStatus('', 'test-ns')({});
+
+    expect(result).toEqual(status);
+  });
+
+  it('should return null when the BFF returns null data', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvalHubCRStatus('', 'test-ns')({});
+
+    expect(result).toBeNull();
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getEvalHubCRStatus('', 'test-ns')({})).rejects.toThrow('Invalid response format');
+  });
+
+  it('should call restGET with the correct URL and namespace query param', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    await getEvalHubCRStatus('', 'my-ns')(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evalhub/status',
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should pass the hostPath to restGET', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getEvalHubCRStatus('http://my-host', 'ns')({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      'http://my-host',
+      expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+});
 
 describe('getCollections', () => {
   beforeEach(() => {

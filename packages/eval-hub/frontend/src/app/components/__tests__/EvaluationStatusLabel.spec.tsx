@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { EvaluationJobState } from '~/app/types';
-import EvaluationStatusLabel from '../EvaluationStatusLabel';
+import EvaluationStatusLabel from '~/app/components/EvaluationStatusLabel';
 
 const EXPECTED_LABELS: Record<EvaluationJobState, string> = {
   pending: 'Pending',

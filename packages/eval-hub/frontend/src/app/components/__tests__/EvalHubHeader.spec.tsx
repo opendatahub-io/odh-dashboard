@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import EvalHubHeader from '../EvalHubHeader';
+import EvalHubHeader from '~/app/components/EvalHubHeader';
 
 describe('EvalHubHeader', () => {
   it('should render the provided title', () => {

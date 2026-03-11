@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -122,6 +123,19 @@ func (c *testK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes
 
 func (c *testK8sClient) GetEvalHubServiceURL(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub:8080", nil
+}
+
+func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	return &models.EvalHubCRStatus{
+		Name:            "evalhub",
+		Namespace:       namespace,
+		Phase:           "Ready",
+		Ready:           "True",
+		URL:             "http://mock-evalhub:8080",
+		ActiveProviders: []string{"lm-evaluation-harness", "garak"},
+		ReadyReplicas:   1,
+		Replicas:        1,
+	}, nil
 }
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
