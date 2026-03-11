@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import EvalHubNoProjects from '../EvalHubNoProjects';
+import EvalHubNoProjects from '~/app/components/EvalHubNoProjects';
 
 describe('EvalHubNoProjects', () => {
   it('should render the no projects empty state', () => {

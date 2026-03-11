@@ -62,7 +62,9 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
-  const { data: allModelsData } = useLlamaStackModelsQuery();
+  // TODO: secretName should come from a react-hook-form field. Once it's implemented,
+  // add secretName as a parameter into useLlamaStackModelsQuery
+  const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
 
   const form = useForm({
     mode: 'onChange',
