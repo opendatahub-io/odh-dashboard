@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -17,12 +19,14 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -41,6 +45,69 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+// isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
+// using the Kubernetes apimachinery validation package.
+func isValidDNS1123Subdomain(name string) bool {
+	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
+}
+
+// validateIP checks an IP address against the SSRF blocklist.
+// Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
+// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.
+func validateIP(ip net.IP) error {
+	if ip.IsLoopback() {
+		return fmt.Errorf("loopback addresses are not allowed")
+	}
+	if ip.IsLinkLocalUnicast() {
+		return fmt.Errorf("link-local addresses are not allowed")
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("unspecified addresses are not allowed")
+	}
+	return nil
+}
+
+// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
+// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// services typically run as cluster-internal services with private IPs.
+func isValidLlamaStackURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme %q: only http and https are allowed", parsedURL.Scheme)
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must contain a host")
+	}
+
+	// Check IP literals directly
+	if ip := net.ParseIP(host); ip != nil {
+		return validateIP(ip)
+	}
+
+	// Resolve DNS hostnames and validate all resulting IPs.
+	// If DNS resolution fails, allow it through — the hostname may only be resolvable
+	// inside the cluster (e.g., svc.cluster.local). The HTTP client will fail with a
+	// connection error later, which is handled as a 502 Bad Gateway.
+	ips, err := net.LookupIP(host)
+	if err == nil {
+		for _, ip := range ips {
+			if err := validateIP(ip); err != nil {
+				return fmt.Errorf("hostname %q resolves to blocked address: %w", host, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -65,10 +132,20 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		identity, error := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-		if error != nil {
-			app.badRequestResponse(w, r, error)
-			return
+		var identity *k8s.RequestIdentity
+		// If authentication is disabled, use a default identity for testing/development
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			identity = &k8s.RequestIdentity{
+				UserID: "user@example.com",
+				Groups: []string{"system:masters"},
+			}
+		} else {
+			var err error
+			identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
+			if err != nil {
+				app.badRequestResponse(w, r, err)
+				return
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
@@ -132,29 +209,18 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// RequireAccessToPipelineServers enforces RBAC-based authorization for Pipeline Server access in the namespace.
-// This middleware performs a proactive SubjectAccessReview to check if the user can list DSPipelineApplications
-// in the requested namespace before attempting service discovery.
-func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+// This middleware enforces RBAC-based authorization for service access in the namespace.
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled skip RBAC checks.
+		// If authentication is disabled skip these steps.
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)
 			return
 		}
 
 		ctx := r.Context()
-		logger := helper.GetContextLoggerFromReq(r)
-
-		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Get request identity
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
 		if !ok || identity == nil {
 			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 			return
@@ -165,26 +231,161 @@ func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *h
 			return
 		}
 
-		// Get Kubernetes client to perform RBAC check
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		// Apply DSPA authorization check to all endpoints that require namespace access
+		// This ensures consistent security across all services
+		// Namespace must be present in context (set by AttachNamespace middleware).
+		if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && namespace != "" {
+			// Get Kubernetes client to perform SAR
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// Perform SubjectAccessReview to check if user can list DSPipelineApplications
+			// This ensures users have proper permissions to access any service in the namespace
+			allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+				return
+			}
+
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("Request authorized")
+
+		next(w, r, ps)
+	}
+}
+
+// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
+// This middleware must be used after AttachNamespace middleware.
+//
+// Precedence for determining the LlamaStack connection:
+//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
+//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+//  4. Secret-based: reads URL and API key from the named Kubernetes secret.
+func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Read and validate secretName query parameter
+		secretName := r.URL.Query().Get("secretName")
+		if secretName == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+			return
+		}
+		if !isValidDNS1123Subdomain(secretName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 			return
 		}
 
-		// Perform SubjectAccessReview to check if user can list DSPipelineApplications
-		allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 			return
 		}
 
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to access pipeline servers in this namespace")
-			return
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var llamaStackClient ls.LlamaStackClientInterface
+
+		if app.config.MockLSClient {
+			// Mock mode: skip secret lookup entirely
+			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+		} else if app.config.AuthMethod == config.AuthMethodDisabled {
+			// When auth is disabled, no RequestIdentity is injected into the context.
+			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
+			if app.config.LlamaStackURL == "" {
+				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
+				return
+			}
+			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else if app.config.LlamaStackURL != "" {
+			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
+			// Use identity token if available; empty token is acceptable for local dev.
+			var authToken string
+			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+				authToken = identity.Token
+			}
+			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else {
+			// Production: read credentials from Kubernetes secret
+			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !identityOk || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// Get the specific secret by name
+			foundSecret, err := k8sClient.GetSecret(ctx, namespace, secretName, identity)
+			if err != nil {
+				// Check if the underlying error is a Kubernetes "not found" error
+				if k8serrors.IsNotFound(err) {
+					app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				} else {
+					app.handleK8sClientError(w, r, err)
+				}
+				return
+			}
+
+			if foundSecret == nil {
+				app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				return
+			}
+
+			// Extract LlamaStack credentials from secret data using direct key lookups.
+			baseURL := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_base_url"]))
+			apiKey := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_api_key"]))
+
+			if baseURL == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
+				return
+			}
+			if apiKey == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
+				return
+			}
+			if err := isValidLlamaStackURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
+				return
+			}
+
+			logger.Debug("Creating LlamaStack client from secret",
+				"namespace", namespace,
+				"secretName", secretName,
+				"serviceURL", baseURL)
+
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
-		logger.Debug("User authorized to access pipeline servers in namespace", "namespace", namespace)
+		// Attach ready-to-use client to context
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		r = r.WithContext(ctx)
 
 		next(w, r, ps)
 	}
@@ -210,7 +411,8 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		// Create pipeline server client (mock or real based on configuration)
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
+			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("mock://"+namespace, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
@@ -621,6 +823,50 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 	for _, dspa := range allMockDSPAs {
 		if dspa.Metadata.Namespace == namespace {
 			result = append(result, dspa)
+		}
+	}
+
+	// If no namespace-specific DSPA exists, return a synthetic ready DSPA for the requested namespace.
+	// This allows development with any namespace (e.g. "aistor") when using mock mode.
+	// Exclude "no-dspas-namespace" to allow testing the case where no DSPAs exist.
+	if len(result) == 0 && namespace != "" && namespace != "no-dspas-namespace" {
+		result = []models.DSPipelineApplication{
+			{
+				APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+				Kind:       "DSPipelineApplication",
+				Metadata: models.DSPipelineApplicationMetadata{
+					Name:      "dspa",
+					Namespace: namespace,
+				},
+				Spec: &models.DSPipelineApplicationSpec{
+					APIServer: &models.APIServer{
+						Deploy: true,
+					},
+				},
+				Status: &models.DSPipelineApplicationStatus{
+					Ready: true,
+					Conditions: []models.DSPipelineApplicationCondition{
+						{
+							Type:    "Ready",
+							Status:  "True",
+							Reason:  "MinimumReplicasAvailable",
+							Message: "Deployment has minimum availability",
+						},
+						{
+							Type:    "APIServerReady",
+							Status:  "True",
+							Reason:  "Deployed",
+							Message: "API Server is ready",
+						},
+					},
+					Components: &models.DSPipelineApplicationComponents{
+						APIServer: &models.DSPipelineApplicationAPIServerStatus{
+							URL:         fmt.Sprintf("https://ds-pipeline-dspa.%s.svc.cluster.local:8443", namespace),
+							ExternalURL: fmt.Sprintf("https://ds-pipeline-ui-dspa-%s.apps.cluster.local", namespace),
+						},
+					},
+				},
+			},
 		}
 	}
 

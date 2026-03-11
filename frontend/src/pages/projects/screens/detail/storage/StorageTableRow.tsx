@@ -51,7 +51,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   const modelStorage = isModelStorage(obj.pvc);
   const actions: IAction[] = [
     {
-      title: 'Edit storage',
+      title: <span data-testid="edit-storage-action">Edit storage</span>,
       onClick: () => {
         onEditPVC(obj.pvc);
       },
@@ -61,7 +61,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   if (!isRootVolume) {
     actions.push({ isSeparator: true });
     actions.push({
-      title: 'Delete storage',
+      title: <span data-testid="delete-storage-action">Delete storage</span>,
       onClick: () => {
         onDeletePVC(obj.pvc);
       },

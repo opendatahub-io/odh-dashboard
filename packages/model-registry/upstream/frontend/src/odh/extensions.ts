@@ -19,7 +19,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_MODEL_REGISTRY,
       reliantAreas,
-      devFlags: ['Model Registry Plugin (unreleased pages)'],
+      devFlags: [
+        'Model Registry Plugin (unreleased pages)',
+        'KF MR Upstream: Catalog HuggingFace API Key',
+        'KF MR Upstream: Registry OCI Storage',
+      ],
     },
   },
   {
@@ -106,6 +110,30 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/model-registry-settings/*',
       component: () => import('./ModelRegistrySettingsRoutesWrapper'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'mcpCatalog',
+      title: 'MCP Catalog',
+      href: '/ai-hub/mcp-catalog',
+      section: 'ai-hub',
+      path: '/ai-hub/mcp-catalog/*',
+      group: '1_aihub',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/ai-hub/mcp-catalog/*',
+      component: () => import('./McpCatalogWrapper'),
     },
   },
   {

@@ -73,6 +73,9 @@ export enum SupportedArea {
   /* Model catalog areas */
   MODEL_CATALOG = 'model-catalog',
 
+  /* MCP catalog areas */
+  MCP_CATALOG = 'mcp-catalog',
+
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
 
@@ -87,6 +90,7 @@ export enum SupportedArea {
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
+  RAY_JOBS = 'ray-jobs',
 
   /* MLflow */
   MLFLOW = 'mlflow',

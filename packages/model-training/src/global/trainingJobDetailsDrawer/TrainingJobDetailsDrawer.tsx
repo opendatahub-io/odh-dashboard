@@ -154,6 +154,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                   {canScaleNodes && (
                     <DropdownItem
                       key="scale-nodes"
+                      data-testid="edit-node-count-action"
                       onClick={() => {
                         setIsKebabOpen(false);
                         setScaleNodesModalOpen(true);
@@ -193,14 +194,10 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_event, tabIndex) => setActiveTabKey(tabIndex)}
-          aria-label="Training job details tabs"
+          aria-label="Job details tabs"
           role="region"
         >
-          <Tab
-            eventKey={0}
-            title={<TabTitleText>Training job details</TabTitleText>}
-            aria-label="Training job details"
-          >
+          <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
             <TrainingJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">

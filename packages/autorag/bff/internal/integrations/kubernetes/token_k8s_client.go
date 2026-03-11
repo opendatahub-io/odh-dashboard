@@ -12,8 +12,11 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type TokenKubernetesClient struct {
@@ -79,12 +82,23 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Create controller-runtime client for CRD access
+	runtimeScheme := runtime.NewScheme()
+	_ = scheme.AddToScheme(runtimeScheme)
+
+	runtimeClient, err := client.New(cfg, client.Options{Scheme: runtimeScheme})
+	if err != nil {
+		logger.Error("failed to create controller-runtime client", "error", err)
+		return nil, fmt.Errorf("failed to create runtime client: %w", err)
+	}
+
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client:     clientset,
-			Logger:     logger,
-			Token:      NewBearerToken(token),
-			RestConfig: cfg,
+			Client:        clientset,
+			RuntimeClient: runtimeClient,
+			Logger:        logger,
+			Token:         NewBearerToken(token),
+			RestConfig:    cfg,
 		},
 	}, nil
 }
@@ -200,6 +214,37 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	}
 
 	return nsList.Items, nil
+}
+
+// GetSecrets lists secrets in a namespace. RequestIdentity is unused because the token already represents the user identity.
+// Note: Unlike InternalKubernetesClient, this does not pre-check namespace existence.
+// The user's token is used directly, so errors from List will already indicate whether
+// the namespace doesn't exist or the user lacks permissions.
+func (kc *TokenKubernetesClient) GetSecrets(ctx context.Context, namespace string, _ *RequestIdentity) ([]corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	return secretList.Items, nil
+}
+
+// GetSecret retrieves a specific secret by name from a namespace. RequestIdentity is unused because the token already represents the user identity.
+func (kc *TokenKubernetesClient) GetSecret(ctx context.Context, namespace, secretName string, _ *RequestIdentity) (*corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secret, err := kc.Client.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get secret", "namespace", namespace, "secretName", secretName, "error", err)
+		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	return secret, nil
 }
 
 func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {

@@ -8,10 +8,13 @@ import (
 	"time"
 
 	helper "github.com/opendatahub-io/eval-hub/bff/internal/helpers"
+	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -159,19 +162,66 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	return true, nil
 }
 
-// RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
+// GetNamespaces returns namespaces accessible to the user.
+// For cluster admins, returns all namespaces via the core Namespaces API.
+// For regular users, falls back to the OpenShift Projects API which returns
+// only projects the user has access to.
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
+	if err == nil {
+		kc.Logger.Debug("user can list namespaces cluster-wide", "count", len(nsList.Items))
+		return nsList.Items, nil
 	}
 
-	return nsList.Items, nil
+	if !k8serrors.IsForbidden(err) {
+		kc.Logger.Error("failed to list namespaces", "error", err)
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	kc.Logger.Debug("cluster-wide namespace list forbidden, falling back to OpenShift Projects API", "error", err)
+
+	dynClient, err := dynamic.NewForConfig(kc.restConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create dynamic client for Projects API", "error", err)
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	projectGVR := schema.GroupVersionResource{
+		Group:    "project.openshift.io",
+		Version:  "v1",
+		Resource: "projects",
+	}
+
+	projectList, err := dynClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list OpenShift projects", "error", err)
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
+	for _, project := range projectList.Items {
+		projectName := project.GetName()
+
+		ns, err := kc.Client.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		if err != nil {
+			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
+			namespaces = append(namespaces, corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        projectName,
+					Annotations: project.GetAnnotations(),
+					Labels:      project.GetLabels(),
+				},
+			})
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
+	}
+
+	kc.Logger.Debug("listed namespaces via OpenShift Projects API", "count", len(namespaces))
+	return namespaces, nil
 }
 
 func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
@@ -237,8 +287,8 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 	return resp.Status.Allowed, nil
 }
 
-// GetEvalHubServiceURL lists EvalHub CRs in the given namespace (filtered by the ODH dashboard
-// label) and returns the service URL from status.serviceURL of the first found instance.
+// GetEvalHubServiceURL lists EvalHub CRs in the given namespace and returns the service URL
+// from status.url of the first found instance.
 // The RequestIdentity parameter is unused because the token already represents the user.
 func (kc *TokenKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -250,10 +300,7 @@ func (kc *TokenKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *Re
 		return "", fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	labelSelector := fmt.Sprintf("%s=true", OpenDataHubDashboardLabel)
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
+	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return "", fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
@@ -274,9 +321,9 @@ func (kc *TokenKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *Re
 		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status field", item.GetName(), namespace)
 	}
 
-	serviceURL, ok := status["serviceURL"].(string)
+	serviceURL, ok := status["url"].(string)
 	if !ok || serviceURL == "" {
-		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.serviceURL", item.GetName(), namespace)
+		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.url", item.GetName(), namespace)
 	}
 
 	kc.Logger.Debug("discovered EvalHub service URL from CR",
@@ -285,4 +332,35 @@ func (kc *TokenKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *Re
 		"serviceURL", serviceURL)
 
 	return serviceURL, nil
+}
+
+// GetEvalHubCRStatus lists EvalHub CRs in the given namespace and returns the full
+// status of the first found instance.
+// The RequestIdentity parameter is unused because the token already represents the user.
+func (kc *TokenKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	dynClient, err := dynamic.NewForConfig(kc.restConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create dynamic client for EvalHub CR status lookup", "error", err)
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
+	}
+
+	if len(list.Items) == 0 {
+		return nil, nil
+	}
+
+	if len(list.Items) > 1 {
+		kc.Logger.Warn("multiple EvalHub instances found in namespace, using first",
+			"namespace", namespace, "count", len(list.Items))
+	}
+
+	return parseEvalHubCRStatus(&list.Items[0])
 }

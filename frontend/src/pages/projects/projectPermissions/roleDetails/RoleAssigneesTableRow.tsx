@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
-import { relativeTime } from '#~/utilities/time';
+import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
 import { RoleAssignment } from '#~/concepts/permissions/types';
 
 type RoleAssigneesTableRowProps = {
@@ -10,6 +10,7 @@ type RoleAssigneesTableRowProps = {
 
 const RoleAssigneesTableRow: React.FC<RoleAssigneesTableRowProps> = ({ roleAssignment }) => {
   const { creationTimestamp } = roleAssignment.roleBinding.metadata;
+  const createdDate = creationTimestamp ? new Date(creationTimestamp) : undefined;
 
   return (
     <Tr>
@@ -17,12 +18,15 @@ const RoleAssigneesTableRow: React.FC<RoleAssigneesTableRowProps> = ({ roleAssig
       <Td dataLabel="Subject kind">{roleAssignment.subject.kind}</Td>
       <Td dataLabel="Role binding">{roleAssignment.roleBinding.metadata.name}</Td>
       <Td dataLabel="Date created">
-        {creationTimestamp ? (
+        {createdDate ? (
           <Timestamp
-            date={new Date(creationTimestamp)}
-            tooltip={{ variant: TimestampTooltipVariant.default }}
+            date={createdDate}
+            tooltip={{
+              variant: TimestampTooltipVariant.custom,
+              content: formatDateForLocalTooltip(createdDate),
+            }}
           >
-            {relativeTime(Date.now(), new Date(creationTimestamp).getTime())}
+            {relativeTime(Date.now(), createdDate.getTime())}
           </Timestamp>
         ) : (
           '-'

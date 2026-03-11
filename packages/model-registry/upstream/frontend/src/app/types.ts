@@ -213,6 +213,8 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
+export type GetListModelTransferJobs = (opts: APIOptions) => Promise<ModelTransferJobList>;
+
 export type CreateModelTransferJob = (
   opts: APIOptions,
   data: CreateModelTransferJobData,
@@ -220,11 +222,16 @@ export type CreateModelTransferJob = (
 
 export type UpdateModelTransferJob = (
   opts: APIOptions,
-  jobId: string,
+  jobName: string,
   data: Partial<ModelTransferJob>,
+  additionalQueryParams?: Record<string, unknown>,
 ) => Promise<ModelTransferJob>;
 
-export type DeleteModelTransferJob = (opts: APIOptions, jobId: string) => Promise<void>;
+export type DeleteModelTransferJob = (
+  opts: APIOptions,
+  jobName: string,
+  jobNamespace: string,
+) => Promise<void>;
 
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
@@ -243,10 +250,10 @@ export type ModelRegistryAPIs = {
   createModelTransferJob: CreateModelTransferJob;
   updateModelTransferJob: UpdateModelTransferJob;
   deleteModelTransferJob: DeleteModelTransferJob;
+  getModelTransferJobEvents: GetModelTransferJobEvents;
 };
 
 // Model Transfer Job Types
-
 export enum ModelTransferJobSourceType {
   S3 = 's3',
   OCI = 'oci',
@@ -287,7 +294,6 @@ export type ModelTransferJobOCISource = {
   uri: string;
   username: string;
   password: string;
-  email?: string;
   registry?: string;
 };
 
@@ -314,7 +320,6 @@ export type ModelTransferJobOCIDestination = {
   uri: string;
   username: string;
   password: string;
-  email?: string;
   registry?: string;
 };
 
@@ -322,9 +327,17 @@ export type ModelTransferJobDestination =
   | ModelTransferJobS3Destination
   | ModelTransferJobOCIDestination;
 
+export type ModelTransferJobEvent = {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
+};
+
 export type ModelTransferJob = {
   id: string;
   name: string;
+  jobDisplayName: string;
   description?: string;
   source: ModelTransferJobSource;
   destination: ModelTransferJobDestination;
@@ -339,7 +352,7 @@ export type ModelTransferJob = {
   modelArtifactName?: string;
   sourceModelFormat?: string;
   sourceModelFormatVersion?: string;
-  namespace?: string;
+  namespace: string;
   author?: string;
   status: ModelTransferJobStatus;
   createTimeSinceEpoch: string;
@@ -349,6 +362,7 @@ export type ModelTransferJob = {
   versionCustomProperties?: ModelRegistryCustomProperties;
   sourceSecretName?: string;
   destSecretName?: string;
+  events?: ModelTransferJobEvent[];
 };
 
 export type CreateModelTransferJobData = Omit<
@@ -358,4 +372,8 @@ export type CreateModelTransferJobData = Omit<
 
 export type ModelTransferJobList = ModelRegistryListParams & { items: ModelTransferJob[] };
 
-export type GetListModelTransferJobs = (opts: APIOptions) => Promise<ModelTransferJobList>;
+export type GetModelTransferJobEvents = (
+  opts: APIOptions,
+  jobName: string,
+  jobNamespace: string,
+) => Promise<ModelTransferJobEvent[]>;

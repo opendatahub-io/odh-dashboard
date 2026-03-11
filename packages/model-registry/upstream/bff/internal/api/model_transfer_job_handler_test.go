@@ -44,13 +44,96 @@ var _ = Describe("TestModelTransferJob", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
+
+		It("GET single job returns 200 when job exists", func() {
+			envelope, rs, err := setupApiTest[ModelTransferJobEnvelope](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(envelope.Data).NotTo(BeNil())
+			Expect(envelope.Data.Name).To(Equal("transfer-job-001"))
+			Expect(envelope.Data.RegisteredModelName).To(Equal("Model One"))
+		})
+
+		It("GET single job returns 404 for non-existent job", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/does-not-exist?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
+		It("GET single job returns 400 when namespace is missing", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"", // empty namespace
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("GET single job returns 400 when jobNamespace is missing", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("GET single job returns 404 when job exists but belongs to different registry", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/other-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
+		It("GET single job returns 404 when namespace has no jobs", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=no-namespace&jobNamespace=no-namespace",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"no-namespace",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
 	})
 
 	Context("creating model transfer job", func() {
 		It("POST returns 201 on success", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job-create",
+					Name:           "test-job-create",
+					JobDisplayName: "Test job create",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -101,7 +184,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 404 when model registry not found in namespace", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job-404",
+					Name:           "test-job-404",
+					JobDisplayName: "Test job 404",
+					Namespace:      "no-namespace",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -136,6 +221,7 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for missing job name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
+					Namespace: "kubeflow",
 					// Name is missing
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
@@ -170,7 +256,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for invalid job name (too long)", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "this-job-name-is-way-too-long-and-exceeds-the-fifty-character-limit-for-dns",
+					Name:           "this-job-name-is-way-too-long-and-exceeds-the-63-char-label-limit",
+					JobDisplayName: "Long name job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -204,7 +292,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for invalid job name (invalid characters)", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "INVALID_NAME!!!",
+					Name:           "INVALID_NAME!!!",
+					JobDisplayName: "Invalid name job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -238,7 +328,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for missing source type", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						// Type is missing
 						Bucket:             "test-bucket",
@@ -272,7 +364,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for S3 source missing bucket", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeS3,
 						// Bucket is missing
@@ -306,7 +400,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for S3 source missing AWS credentials", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:   models.ModelTransferJobSourceTypeS3,
 						Bucket: "test-bucket",
@@ -339,7 +435,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for URI source missing URI", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						// URI is missing
@@ -370,7 +468,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for missing destination credentials", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -403,7 +503,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for missing upload intent", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -437,7 +539,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for create_model intent missing model name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -471,7 +575,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for create_version intent missing model ID", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -505,7 +611,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for update_artifact intent missing artifact ID", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:               models.ModelTransferJobSourceTypeS3,
 						Bucket:             "test-bucket",
@@ -538,7 +646,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 201 for URI source type", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "uri-source-job",
+					Name:           "uri-source-job",
+					JobDisplayName: "URI source job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://huggingface.co/test/model.safetensors",
@@ -570,7 +680,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 201 for create_version intent with model ID", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "version-job",
+					Name:           "version-job",
+					JobDisplayName: "Version job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model.bin",
@@ -601,7 +713,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 201 for update_artifact intent with artifact ID", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "artifact-job",
+					Name:           "artifact-job",
+					JobDisplayName: "Artifact job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model.bin",
@@ -631,7 +745,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for invalid source type", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: "invalid_type",
 					},
@@ -661,7 +777,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for invalid destination type", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -692,7 +810,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for invalid upload intent", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -723,7 +843,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for S3 source missing key", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type:   models.ModelTransferJobSourceTypeS3,
 						Bucket: "test-bucket",
@@ -757,7 +879,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for OCI destination missing URI", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -788,7 +912,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for OCI destination missing password", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -819,7 +945,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for create_model intent missing version name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -850,7 +978,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST returns 400 for create_version intent missing version name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "test-job",
+					Name:           "test-job",
+					JobDisplayName: "Test job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -881,7 +1011,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("POST extracts registry from destination URI when not provided", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "registry-extract-job",
+					Name:           "registry-extract-job",
+					JobDisplayName: "Registry extract job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model",
@@ -916,7 +1048,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 200 on success", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "new-job-name",
+					Name:           "new-job-name",
+					JobDisplayName: "New job name",
+					Namespace:      "kubeflow",
 				},
 			}
 			_, rs, err := setupApiTest[ModelTransferJobEnvelope](
@@ -934,7 +1068,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 404 for non-existent job", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "new-job-name",
+					Name:           "new-job-name",
+					JobDisplayName: "New job name",
+					Namespace:      "kubeflow",
 				},
 			}
 			_, rs, err := setupApiTest[Envelope[any, any]](
@@ -952,7 +1088,28 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 400 for missing new job name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
+					Namespace: "kubeflow",
 					// Name is missing
+				},
+			}
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodPatch,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				payload,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("PATCH returns 400 when namespace is missing in request body (retry requires job namespace)", func() {
+			// URL has namespace in query, but retry must receive job namespace in body
+			payload := ModelTransferJobEnvelope{
+				Data: &models.ModelTransferJob{
+					Name: "new-job-name",
+					// Namespace intentionally omitted - required for retry
 				},
 			}
 			_, rs, err := setupApiTest[Envelope[any, any]](
@@ -970,7 +1127,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 400 for invalid new job name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "INVALID_NAME!!!",
+					Name:           "INVALID_NAME!!!",
+					JobDisplayName: "Invalid name job",
+					Namespace:      "kubeflow",
 				},
 			}
 			_, rs, err := setupApiTest[Envelope[any, any]](
@@ -985,10 +1144,54 @@ var _ = Describe("TestModelTransferJob", func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
+		It("PATCH returns 400 for new job name too long (exceeds 63-char label limit)", func() {
+			payload := ModelTransferJobEnvelope{
+				Data: &models.ModelTransferJob{
+					// 65 chars: exceeds Kubernetes label value limit (63)
+					Name:           "this-job-name-is-way-too-long-and-exceeds-the-63-char-label-limit",
+					JobDisplayName: "Long name job",
+					Namespace:      "kubeflow",
+				},
+			}
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodPatch,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				payload,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("PATCH returns 400 when job has not failed (retry only for failed jobs)", func() {
+			// transfer-job-004 is Running in test env; retry is only allowed for failed jobs.
+			payload := ModelTransferJobEnvelope{
+				Data: &models.ModelTransferJob{
+					Name:           "retry-attempt-job",
+					JobDisplayName: "Retry attempt job",
+					Namespace:      "kubeflow",
+				},
+			}
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodPatch,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-004?namespace=kubeflow",
+				payload,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
 		It("PATCH with deleteOldJob=true returns 200 on success", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "new-job-after-delete",
+					Name:           "new-job-after-delete",
+					JobDisplayName: "New job after delete",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model.bin",
@@ -1019,7 +1222,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 400 when namespace is missing", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "new-job",
+					Name:           "new-job",
+					JobDisplayName: "New job",
+					Namespace:      "kubeflow",
 					Source: models.ModelTransferJobSource{
 						Type: models.ModelTransferJobSourceTypeURI,
 						URI:  "https://test.com/model.bin",
@@ -1066,7 +1271,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 400 when new job name equals old job name", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "transfer-job-001",
+					Name:           "transfer-job-001",
+					JobDisplayName: "Transfer job 001",
+					Namespace:      "kubeflow",
 				},
 			}
 			_, rs, err := setupApiTest[Envelope[any, any]](
@@ -1084,7 +1291,9 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("PATCH returns 404 when job exists but belongs to different registry", func() {
 			payload := ModelTransferJobEnvelope{
 				Data: &models.ModelTransferJob{
-					Name: "new-job-name",
+					Name:           "new-job-name",
+					JobDisplayName: "New job name",
+					Namespace:      "kubeflow",
 				},
 			}
 			_, rs, err := setupApiTest[Envelope[any, any]](
@@ -1104,7 +1313,7 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("DELETE returns 200 on success", func() {
 			_, rs, err := setupApiTest[Envelope[any, any]](
 				http.MethodDelete,
-				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow&jobNamespace=kubeflow",
 				nil,
 				kubernetesMockedStaticClientFactory,
 				requestIdentity,
@@ -1117,7 +1326,7 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("DELETE returns 404 for non-existent job", func() {
 			_, rs, err := setupApiTest[Envelope[any, any]](
 				http.MethodDelete,
-				"/api/v1/model_registry/model-registry/model_transfer_jobs/does-not-exist?namespace=kubeflow",
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/does-not-exist?namespace=kubeflow&jobNamespace=kubeflow",
 				nil,
 				kubernetesMockedStaticClientFactory,
 				requestIdentity,
@@ -1130,7 +1339,7 @@ var _ = Describe("TestModelTransferJob", func() {
 		It("DELETE returns 404 when job exists but belongs to different registry", func() {
 			_, rs, err := setupApiTest[Envelope[any, any]](
 				http.MethodDelete,
-				"/api/v1/model_registry/other-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				"/api/v1/model_registry/other-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow&jobNamespace=kubeflow",
 				nil,
 				kubernetesMockedStaticClientFactory,
 				requestIdentity,
@@ -1138,6 +1347,87 @@ var _ = Describe("TestModelTransferJob", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
+		It("DELETE returns 400 when jobNamespace is missing", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodDelete,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+	})
+
+	Context("fetching model transfer job events", func() {
+		It("GET events returns 200 for existing job", func() {
+			envelope, rs, err := setupApiTest[ModelTransferJobEventsEnvelope](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001/events?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(envelope.Data.Events).NotTo(BeNil())
+		})
+
+		It("GET events returns 404 for non-existent job", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/does-not-exist/events?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
+		It("GET events returns 404 when job belongs to different registry", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/other-registry/model_transfer_jobs/transfer-job-001/events?namespace=kubeflow&jobNamespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
+		It("GET events returns 400 when namespace is missing", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001/events",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("GET events returns 400 when jobNamespace is missing", func() {
+			_, rs, err := setupApiTest[Envelope[any, any]](
+				http.MethodGet,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001/events?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 	})
 })
@@ -1165,6 +1455,101 @@ var _ = Describe("TestModelTransferJob registry filtering", func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(envelope.Data).NotTo(BeNil())
 			Expect(envelope.Data.Items).To(BeEmpty())
+		})
+	})
+})
+
+var _ = Describe("TestModelTransferJob retry metadata preservation", func() {
+	var requestIdentity kubernetes.RequestIdentity
+
+	BeforeEach(func() {
+		requestIdentity = kubernetes.RequestIdentity{
+			UserID: "user@example.com",
+		}
+	})
+
+	Context("retrying a job preserves metadata", func() {
+		It("PATCH with only new name preserves source, destination, and metadata from old job", func() {
+			// transfer-job-001 in mock has:
+			// - Source: s3, bucket=source-bucket, key=models/my-model
+			// - Destination: oci, uri=quay.io/test/model:v1
+			// - UploadIntent: create_model
+			// - Author: Sherlock Holmes
+			// - Description: Transfer job for Model One
+			// - RegisteredModelName: Model One
+			// - ModelVersionName: Version One
+			payload := ModelTransferJobEnvelope{
+				Data: &models.ModelTransferJob{
+					Name:      "retry-job-001",
+					Namespace: "kubeflow",
+				},
+			}
+			envelope, rs, err := setupApiTest[ModelTransferJobEnvelope](
+				http.MethodPatch,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				payload,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(envelope.Data).NotTo(BeNil())
+
+			// Verify the new job has the expected name
+			Expect(envelope.Data.Name).To(Equal("retry-job-001"))
+
+			// Verify source metadata was preserved
+			Expect(envelope.Data.Source.Type).To(Equal(models.ModelTransferJobSourceTypeS3))
+			Expect(envelope.Data.Source.Bucket).To(Equal("source-bucket"))
+			Expect(envelope.Data.Source.Key).To(Equal("models/my-model"))
+
+			// Verify destination metadata was preserved
+			Expect(envelope.Data.Destination.Type).To(Equal(models.ModelTransferJobDestinationTypeOCI))
+			Expect(envelope.Data.Destination.URI).To(Equal("quay.io/test/model:v1"))
+
+			// Verify upload intent was preserved
+			Expect(envelope.Data.UploadIntent).To(Equal(models.ModelTransferJobUploadIntentCreateModel))
+
+			// Verify model metadata was preserved
+			Expect(envelope.Data.RegisteredModelName).To(Equal("Model One"))
+			Expect(envelope.Data.ModelVersionName).To(Equal("Version One"))
+
+			// Verify author and description were preserved (this is what we fixed)
+			Expect(envelope.Data.Author).To(Equal("Sherlock Holmes"))
+			Expect(envelope.Data.Description).To(Equal("Transfer job for Model One"))
+		})
+
+		It("PATCH clones credentials from old job into new secrets", func() {
+			// This test verifies that the retry creates a new job even though
+			// we're not providing credentials in the payload - credentials are
+			// cloned from the old job's secrets into NEW secret objects.
+			// IMPORTANT: We create new Secret objects (not reuse existing ones)
+			// so that deleting the old job doesn't affect the new job's secrets.
+			payload := ModelTransferJobEnvelope{
+				Data: &models.ModelTransferJob{
+					Name:      "retry-job-with-creds",
+					Namespace: "kubeflow",
+				},
+			}
+			envelope, rs, err := setupApiTest[ModelTransferJobEnvelope](
+				http.MethodPatch,
+				"/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow",
+				payload,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(envelope.Data).NotTo(BeNil())
+
+			// The job was created successfully, which means credentials were properly cloned
+			Expect(envelope.Data.Name).To(Equal("retry-job-with-creds"))
+
+			// Verify secret names are set with expected prefix (GenerateName adds random suffix)
+			Expect(envelope.Data.SourceSecretName).To(HavePrefix("retry-job-with-creds-source-creds-"))
+			Expect(envelope.Data.DestSecretName).To(HavePrefix("retry-job-with-creds-dest-creds-"))
 		})
 	})
 })

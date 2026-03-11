@@ -61,8 +61,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       cy.step('Assign admin user Project Permissions');
       assignRoleViaProjectRbac(projectRbacPermissions, {
         subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
-        subjectKind: 'user',
-        roleName: 'Admin',
+        subjectKind: testData.userSubjectKind as 'user' | 'group',
+        roleName: testData.adminRoleName,
       });
 
       cy.step(
@@ -99,8 +99,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       cy.step('Assign admin group Project Permissions');
       assignRoleViaProjectRbac(projectRbacPermissions, {
         subjectName: LDAP_CONTRIBUTOR_GROUP.USERNAME,
-        subjectKind: 'group',
-        roleName: 'Admin',
+        subjectKind: testData.groupSubjectKind as 'user' | 'group',
+        roleName: testData.adminRoleName,
       });
 
       cy.step(

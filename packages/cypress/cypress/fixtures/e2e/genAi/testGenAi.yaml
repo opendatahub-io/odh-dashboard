@@ -15,3 +15,4 @@ hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: 
 # Playground resources
 configMapName: 'llama-stack-config'
 playgroundServiceName: 'lsd-genai-playground-service'
+servingRuntimesPath: '/settings/model-resources-operations/serving-runtimes'

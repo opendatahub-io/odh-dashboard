@@ -1,0 +1,36 @@
+import * as React from 'react';
+import { Route } from 'react-router-dom';
+import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
+import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { mlflowPromptManagementBaseRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import MlflowPromptManagementPage from './MlflowPromptManagementPage';
+import {
+  PROMPT_MANAGEMENT_PAGE_TITLE,
+  PROMPT_MANAGEMENT_NO_PROJECTS_MESSAGE,
+} from '../shared/const';
+import WorkspaceRouteLoader from '../shared/WorkspaceRouteLoader';
+
+const GlobalMLflowPromptManagementRoutes: React.FC = () => (
+  <ProjectsRoutes>
+    <Route
+      path="/*"
+      element={
+        <WorkspaceRouteLoader
+          title={
+            <TitleWithIcon
+              title={PROMPT_MANAGEMENT_PAGE_TITLE}
+              objectType={ProjectObjectType.pipelineExperiment}
+            />
+          }
+          getRedirectPath={mlflowPromptManagementBaseRoute}
+          noProjectsMessage={PROMPT_MANAGEMENT_NO_PROJECTS_MESSAGE}
+          noProjectsTestId="prompt-management-no-projects-empty-state"
+          PageComponent={MlflowPromptManagementPage}
+        />
+      }
+    />
+  </ProjectsRoutes>
+);
+
+export default GlobalMLflowPromptManagementRoutes;

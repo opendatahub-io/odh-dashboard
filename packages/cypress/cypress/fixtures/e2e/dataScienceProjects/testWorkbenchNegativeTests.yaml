@@ -2,6 +2,7 @@
 wbNegativeTestNamespace: 'dsp-wb-negative-test'
 hardwareProfileName: 'cypress-hwp-negative-test-large'
 resourceYamlPath: 'resources/hardwareProfile/workbench_negative_test.yaml'
+notebookImage: 'code-server-notebook'
 invalidResourceNames:
   - Test-workbench
   - test workbench

@@ -5,11 +5,16 @@ import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconBu
 
 type FieldGroupHelpLabelIconProps = {
   content: React.ComponentProps<typeof Popover>['bodyContent'];
+  onClick?: () => void;
 };
 
-const FieldGroupHelpLabelIcon: React.FC<FieldGroupHelpLabelIconProps> = ({ content }) => (
+const FieldGroupHelpLabelIcon: React.FC<FieldGroupHelpLabelIconProps> = ({ content, onClick }) => (
   <Popover bodyContent={content}>
-    <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
+    <DashboardPopupIconButton
+      icon={<OutlinedQuestionCircleIcon />}
+      aria-label="More info"
+      onClick={onClick}
+    />
   </Popover>
 );
 

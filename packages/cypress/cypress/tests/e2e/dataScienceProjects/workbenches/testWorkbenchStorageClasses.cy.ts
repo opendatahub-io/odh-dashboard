@@ -8,6 +8,7 @@ import {
 } from '../../../../utils/storageClass';
 import {
   workbenchPage,
+  workbenchActions,
   createSpawnerPage,
   attachExistingStorageModal,
   storageModal,
@@ -24,6 +25,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 describe('Workbench Storage Classes Tests', () => {
   const createdStorageClasses: string[] = [];
   let projectName: string;
+  let notebookImage: string;
   const uuid = generateTestUUID();
 
   // Storage class names
@@ -78,6 +80,7 @@ describe('Workbench Storage Classes Tests', () => {
         mountPathA = fixtureData.mountPathA;
         mountPathB = fixtureData.mountPathB;
         mountPathC = fixtureData.mountPathC;
+        notebookImage = fixtureData.notebookImage;
       })
       .then(() => {
         cy.step('Provisioning storage class');
@@ -139,7 +142,7 @@ describe('Workbench Storage Classes Tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchNameRWO);
 
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName: string) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
@@ -154,7 +157,7 @@ describe('Workbench Storage Classes Tests', () => {
 
           cy.step('Verify RWO storage details in workbench edit view');
           notebookRow.findKebab().click();
-          notebookRow.findKebabAction('Edit workbench').click();
+          workbenchActions.findEditWorkbenchAction().click();
 
           cy.step('Verify storage access mode in table');
           const storageTable = createSpawnerPage.getStorageTable();
@@ -210,7 +213,7 @@ describe('Workbench Storage Classes Tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchNameMultiA);
 
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(() => {
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(() => {
         cy.step('Open attach storage modal');
         createSpawnerPage.findAttachExistingStorageButton().click();
 
@@ -260,7 +263,7 @@ describe('Workbench Storage Classes Tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchNameMultiB);
 
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(() => {
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(() => {
         cy.step('Create new storage with RWO access mode');
         createSpawnerPage.findCreateStorageButton().click();
         storageModal.findNameInput().type(storageCreateRWO);

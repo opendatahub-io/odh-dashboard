@@ -24,6 +24,7 @@ export const useModelDeploymentSubmit = (
   initialWizardData?: InitialWizardFormData,
   existingDeployment?: Deployment,
   connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
+  yamlError?: Error,
 ): {
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
@@ -32,7 +33,10 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(formState);
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+    formState,
+    initialWizardData?.navSourceMetadata,
+  );
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -47,6 +51,9 @@ export const useModelDeploymentSubmit = (
       try {
         if (viewMode === 'form' && !validation.isAllValid) {
           throw new Error('Invalid form data');
+        }
+        if (viewMode === 'yaml-edit' && yamlError) {
+          throw yamlError;
         }
         if (viewMode === 'yaml-edit' && resources.model?.kind !== 'LLMInferenceService') {
           throw new Error('Invalid YAML: Kind must be LLMInferenceService');
@@ -103,6 +110,7 @@ export const useModelDeploymentSubmit = (
       initialWizardData,
       applyFieldData,
       exitWizardOnSubmit,
+      yamlError,
     ],
   );
 

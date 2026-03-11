@@ -1,3 +1,4 @@
+import { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
 import { servingRuntimes } from '../../../../pages/servingRuntimes';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { getSingleModelPath } from '../../../../utils/fileImportUtils';
@@ -55,7 +56,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol('REST');
+      servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
 
       cy.step('Select Model Types');
       servingRuntimes.findSelectModelTypes().click();

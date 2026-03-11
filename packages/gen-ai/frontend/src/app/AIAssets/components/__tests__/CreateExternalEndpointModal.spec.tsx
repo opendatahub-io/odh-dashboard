@@ -1,0 +1,201 @@
+/* eslint-disable camelcase */
+import * as React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
+import { ExternalModelRequest, ExternalModelResponse } from '~/app/types';
+
+describe('CreateExternalEndpointModal', () => {
+  let mockOnClose: jest.Mock;
+  let mockOnSuccess: jest.Mock;
+  let mockOnSubmit: jest.Mock<Promise<ExternalModelResponse>, [ExternalModelRequest]>;
+  let defaultProps: ReturnType<typeof getDefaultProps>;
+
+  const getDefaultProps = () => ({
+    isOpen: true,
+    onClose: mockOnClose,
+    onSuccess: mockOnSuccess,
+    onSubmit: mockOnSubmit,
+  });
+
+  beforeEach(() => {
+    mockOnClose = jest.fn();
+    mockOnSuccess = jest.fn();
+    mockOnSubmit = jest.fn<Promise<ExternalModelResponse>, [ExternalModelRequest]>();
+    defaultProps = getDefaultProps();
+
+    mockOnSubmit.mockResolvedValue({
+      model_id: 'test-model',
+      model_name: 'test-model',
+      display_name: 'Test Model',
+      description: 'Test model description',
+      endpoints: [],
+      serving_runtime: 'external',
+      api_protocol: 'openai',
+      version: 'v1',
+      usecase: 'llm',
+      status: 'Running',
+      sa_token: {
+        name: '',
+        token_name: '',
+        token: '',
+      },
+    });
+  });
+
+  describe('Rendering', () => {
+    it('should render modal with title and form fields', () => {
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      expect(screen.getByText('Create external endpoint')).toBeInTheDocument();
+      expect(screen.getByText('Model type')).toBeInTheDocument();
+      expect(screen.getByText('Provider')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i)).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Your API key or token/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/e\.g\. General chat/i)).toBeInTheDocument();
+    });
+
+    it('should render warning and info alerts', () => {
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      expect(
+        screen.getByText('Keys and tokens you add are shared at the project level.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('This model must expose an OpenAI-compatible chat/completions API.'),
+      ).toBeInTheDocument();
+    });
+
+    it('should have default values', () => {
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      // Model type dropdown should show "Inferencing model" (llm is default)
+      expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
+
+      // Provider dropdown should show "Internal" (remote::vllm is default)
+      expect(screen.getByRole('button', { name: /Internal/i })).toBeInTheDocument();
+    });
+
+    it('should not render when isOpen is false', () => {
+      render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
+
+      expect(screen.queryByText('Create external endpoint')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Form Validation', () => {
+    it('should disable submit button when required fields are empty', () => {
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      const submitButton = screen.getByRole('button', { name: /^Create$/i });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it('should enable submit button when all required fields are filled', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      // Fill required fields
+      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(
+        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        'https://api.openai.com/v1',
+      );
+      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+
+      const submitButton = screen.getByRole('button', { name: /^Create$/i });
+      expect(submitButton).toBeEnabled();
+    });
+  });
+
+  describe('Form Submission', () => {
+    it('should submit with all fields filled', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      // Fill all fields
+      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
+      await user.type(
+        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        'https://api.openai.com/v1',
+      );
+      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
+      await user.type(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
+
+      await user.click(screen.getByRole('button', { name: /^Create$/i }));
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith({
+          model_id: 'gpt-4o',
+          model_display_name: 'My Custom GPT-4o',
+          base_url: 'https://api.openai.com/v1',
+          secret_value: 'sk-test-token-123',
+          provider_type: 'remote::vllm',
+          model_type: 'llm',
+          use_cases: 'Chat and completion',
+        });
+      });
+    });
+
+    it('should call onSuccess and onClose after successful submission', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(
+        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        'https://api.openai.com/v1',
+      );
+      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+
+      await user.click(screen.getByRole('button', { name: /^Create$/i }));
+
+      await waitFor(() => {
+        expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should display error message on submission failure', async () => {
+      const user = userEvent.setup();
+      mockOnSubmit.mockRejectedValue(new Error('API Error: Invalid token'));
+
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(
+        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        'https://api.openai.com/v1',
+      );
+      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
+
+      await user.click(screen.getByRole('button', { name: /^Create$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to create external endpoint')).toBeInTheDocument();
+        expect(screen.getByText('API Error: Invalid token')).toBeInTheDocument();
+        expect(mockOnSuccess).not.toHaveBeenCalled();
+        expect(mockOnClose).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Modal Close Behavior', () => {
+    it('should call onClose when cancel button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
+      await user.click(cancelButton);
+
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+    });
+  });
+});
