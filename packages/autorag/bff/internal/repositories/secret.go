@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
@@ -202,16 +203,9 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 	return true
 }
 
-// allowedSecretKeys defines the keys whose actual values can be returned to the client.
-// All other keys will be sanitized with "[REDACTED]".
-// Key matching is case-insensitive.
-var allowedSecretKeys = []string{
-	"aws_s3_bucket",
-}
-
 // buildAvailableKeysMap extracts all keys from a secret's Data and StringData fields
 // and builds a map where:
-// - Keys in the allowedSecretKeys list have their actual values
+// - Keys in the constants.AllowedSecretKeys list have their actual values
 // - All other keys have the value "[REDACTED]"
 // Key matching for allowed keys is case-insensitive.
 func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
@@ -219,7 +213,7 @@ func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 
 	// Create a map of lowercase allowed keys for case-insensitive lookup
 	allowedKeysLower := make(map[string]bool)
-	for _, key := range allowedSecretKeys {
+	for _, key := range constants.AllowedSecretKeys {
 		allowedKeysLower[strings.ToLower(key)] = true
 	}
 
