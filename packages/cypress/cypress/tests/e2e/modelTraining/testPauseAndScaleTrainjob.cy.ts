@@ -29,7 +29,7 @@ import type { TrainJobTestData } from '../../../types';
 const INITIAL_NODE_COUNT = 1;
 const UPDATED_NODE_COUNT = 2;
 
-describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
+describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and Resume Training Job', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -122,7 +122,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
   it(
     'Should pause running job, update node count, resume, and complete training',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain'],
     },
     () => {
       if (skipTest) {
