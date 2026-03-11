@@ -28,7 +28,7 @@ The UI implementation will follow our upstream/midstream strategy in RHOAI.
 The FileExplorer widget is available as a React component built with PatternFly.
 The intention is for the widget to be available as a federated module that can be leveraged in any area of RHOAI.
 
-The FileExplorer is a pure-UI controlled component that will manage/help-manage the interactions with all underlying PF components.
+The FileExplorer is implemented as a highly controlled UI component (some internal state is tracked) that will manage/help-manage the interactions with all underlying PF components.
 It will provide a straightforward contract of state and behaviour based props that consumers can integrate with simply.
 TypeScript definitions of the nouns used throughout (Source/File/Directory) will be provided.
 
@@ -74,7 +74,7 @@ In the initial phase, the S3FileExplorer widget uses the common S3 BFF API prima
 - [ ] _Usability_: The component API for providing sources, those sources providing files, and files being clickable/renderable should be easy to consume and robust
 
 **For MVP: AutoRAG & AutoML**:
-- [ ] _Portability_: Move implementation of UI component (FileExplorer and into [mod-arch-library/mod-arch-shared](https://github.com/opendatahub-io/mod-arch-library/tree/main/mod-arch-shared/components).
+- [ ] _Portability_: Move implementation of UI component. FileExplorer into [mod-arch-library/mod-arch-shared](https://github.com/opendatahub-io/mod-arch-library/tree/main/mod-arch-shared/components).
 - [ ] _Instrumentation_: Instrument all major interactions to observe how it may evolve based on use
 
 **Post MVP**:
