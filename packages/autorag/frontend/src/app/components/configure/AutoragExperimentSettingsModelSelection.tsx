@@ -108,7 +108,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                       isCompact
                       data-testid={`${modelType}-selected-count`}
                     >
-                      {String(selectedModels.length).padStart(2, '0')}
+                      {selectedModels.length}
                     </Label>
                   </TabTitleText>
                 }

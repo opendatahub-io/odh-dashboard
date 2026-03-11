@@ -101,8 +101,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     it('should display selected model counts in tab badges', () => {
       renderComponent();
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('02');
-      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('01');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
+      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1');
     });
   });
 
@@ -142,13 +142,13 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       const user = userEvent.setup();
       renderComponent();
 
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('02');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
 
       const row = screen.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
       await user.click(checkbox!);
 
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('01');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1');
     });
 
     it('should reselect a model when its checkbox is clicked again', async () => {
