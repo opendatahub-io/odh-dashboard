@@ -7,7 +7,7 @@
 # Open Data Hub Dashboard
 
 [![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
-[![AgentReady](https://img.shields.io/badge/AgentReady-63.3%25-orange)](https://github.com/opendatahub-io/odh-dashboard/blob/main/AGENTS.md)
+[![AgentReady](https://img.shields.io/badge/AgentReady-75.4%25-brightgreen)](https://github.com/opendatahub-io/odh-dashboard/blob/main/AGENTS.md)
 
 A dashboard for Open Data Hub components, featuring user flows to navigate and interact with the various component parts of the stack.
 
