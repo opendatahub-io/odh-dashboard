@@ -1,4 +1,4 @@
-import getErrorTitle from '../getErrorTitle';
+import getErrorTitle from '~/app/utils/getErrorTitle';
 
 describe('getErrorTitle', () => {
   const fallback = 'Something went wrong';

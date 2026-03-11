@@ -1,7 +1,18 @@
 /* eslint-disable camelcase */
 import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
-import { getCollections, getEvalHubCRStatus, getProviders, createEvaluationJob } from '~/app/api/k8s';
-import type { Collection, CreateEvaluationJobRequest, EvalHubCRStatus, EvaluationJob, Provider } from '~/app/types';
+import {
+  getCollections,
+  getEvalHubCRStatus,
+  getProviders,
+  createEvaluationJob,
+} from '~/app/api/k8s';
+import type {
+  Collection,
+  CreateEvaluationJobRequest,
+  EvalHubCRStatus,
+  EvaluationJob,
+  Provider,
+} from '~/app/types';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/eval-hub',

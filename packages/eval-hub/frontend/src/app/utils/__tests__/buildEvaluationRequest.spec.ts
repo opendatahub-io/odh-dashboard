@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import type { FlatBenchmark, Collection } from '~/app/types';
-import buildEvaluationRequest from '../buildEvaluationRequest';
+import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 
 const baseParams = {
   evaluationName: ' My Eval ',
