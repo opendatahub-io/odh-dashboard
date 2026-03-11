@@ -15,6 +15,12 @@ export const apiKeyColumns: SortableData<APIKey>[] = [
     sortable: (a: APIKey, b: APIKey): number => a.status.localeCompare(b.status),
   },
   {
+    field: 'owner',
+    label: 'Owner',
+    width: 15,
+    sortable: (a: APIKey, b: APIKey): number => a.username.localeCompare(b.username),
+  },
+  {
     field: 'creationDate',
     label: 'Creation date',
     width: 20,

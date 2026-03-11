@@ -53,6 +53,7 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-07T11:54:34.521671447-05:00',
     expirationDate: '2026-02-06T11:54:34.521671447-05:00',
     status: 'active',
+    username: 'alice',
   },
   {
     id: 'key-dev-testing-002',
@@ -61,6 +62,7 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-14T09:54:34.521671447-05:00',
     expirationDate: '2026-01-15T09:54:34.521671447-05:00',
     status: 'active',
+    username: 'bob',
   },
   {
     id: 'key-ci-pipeline-003',
@@ -68,7 +70,8 @@ export const mockAPIKeys = (): APIKey[] => [
     description: 'API key for CI/CD pipeline automation',
     creationDate: '2026-01-11T11:54:34.521671447-05:00',
     expirationDate: '2026-01-18T11:54:34.521671447-05:00',
-    status: 'active',
+    status: 'revoked',
+    username: 'carol',
   },
   {
     id: 'key-expired-old-004',
@@ -77,6 +80,7 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2025-12-15T11:54:34.521671447-05:00',
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
+    username: 'dave',
   },
 ];
 

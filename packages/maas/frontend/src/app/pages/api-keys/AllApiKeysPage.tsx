@@ -1,15 +1,31 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Button, PageSection } from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
+import { PageSection } from '@patternfly/react-core';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
-import { APIKey } from '~/app/types/api-key';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
+import { APIKey, APIKeyStatus } from '~/app/types/api-key';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
-import ApiKeysActions from './ApiKeysActions';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
+import ApiKeysToolbar, {
+  ApiKeyFilterDataType,
+  initialApiKeyFilterData,
+} from './allKeys/ApiKeysToolbar';
+
+const applyFilters = (apiKeys: APIKey[], filterData: ApiKeyFilterDataType): APIKey[] =>
+  apiKeys.filter((key) => {
+    if (
+      filterData.username &&
+      !key.username?.toLowerCase().includes(filterData.username.toLowerCase())
+    ) {
+      return false;
+    }
+    if (filterData.statuses.length > 0 && !filterData.statuses.includes(key.status)) {
+      return false;
+    }
+    return true;
+  });
 
 const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
@@ -21,6 +37,29 @@ const AllApiKeysPage: React.FC = () => {
   const [isMaasAdmin] = useIsMaasAdmin();
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
+  const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
+
+  const onUsernameChange = React.useCallback((value: string) => {
+    setFilterData((prev) => ({ ...prev, username: value }));
+  }, []);
+
+  const onStatusToggle = React.useCallback((status: APIKeyStatus) => {
+    setFilterData((prev) => ({
+      ...prev,
+      statuses: prev.statuses.includes(status)
+        ? prev.statuses.filter((s) => s !== status)
+        : [...prev.statuses, status],
+    }));
+  }, []);
+
+  const onStatusClear = React.useCallback((status: APIKeyStatus) => {
+    setFilterData((prev) => ({
+      ...prev,
+      statuses: prev.statuses.filter((s) => s !== status),
+    }));
+  }, []);
+
+  const filteredApiKeys = applyFilters(apiKeys, filterData);
 
   return (
     <ApplicationsPage
@@ -43,20 +82,18 @@ const AllApiKeysPage: React.FC = () => {
       {loaded && (
         <PageSection isFilled>
           <ApiKeysTable
-            apiKeys={apiKeys}
             onRevokeApiKey={setRevokeApiKey}
+            apiKeys={filteredApiKeys}
             toolbarContent={
-              <>
-                <Button
-                  variant="primary"
-                  icon={<PlusIcon />}
-                  onClick={() => setIsModalOpen(true)}
-                  data-testid="create-api-key-button"
-                >
-                  Create API key
-                </Button>
-                <ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />
-              </>
+              <ApiKeysToolbar
+                setIsModalOpen={setIsModalOpen}
+                filterData={filterData}
+                onUsernameChange={onUsernameChange}
+                onStatusToggle={onStatusToggle}
+                onStatusClear={onStatusClear}
+                activeApiKeys={activeApiKeys}
+                refresh={refresh}
+              />
             }
           />
         </PageSection>

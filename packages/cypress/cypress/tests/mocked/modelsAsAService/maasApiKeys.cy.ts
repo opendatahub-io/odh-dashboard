@@ -63,8 +63,22 @@ describe('API Keys Page', () => {
     ciPipelineRow.findStatus().should('contain.text', 'Active');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
-    apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 4);
+  });
+
+  it('should filter api keys by username', () => {
+    apiKeysPage.findFilterInput().type('alice');
+    apiKeysPage.findFilterSearchButton().click();
+    apiKeysPage.findTable().should('have.length', 1);
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage.findRows().should('contain.text', 'alice');
+  });
+
+  it('should filter api keys by status', () => {
+    apiKeysPage.findStatusFilterToggle().click();
+    apiKeysPage.findStatusFilterOption('revoked').click();
+    apiKeysPage.findTable().should('have.length', 1);
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage.findRows().should('contain.text', 'revoked');
   });
 
   it('should revoke all my API keys', () => {

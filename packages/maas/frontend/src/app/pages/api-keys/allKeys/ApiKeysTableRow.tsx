@@ -29,7 +29,11 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onRevokeApiKe
       />
     </Td>
     <Td dataLabel={apiKeyColumns[1].label}>
-      <Label color={apiKey.status === 'active' ? 'green' : 'red'}>
+      <Label
+        color={
+          apiKey.status === 'active' ? 'green' : apiKey.status === 'expired' ? 'red' : 'purple'
+        }
+      >
         {capitalize(apiKey.status)}
       </Label>
     </Td>
