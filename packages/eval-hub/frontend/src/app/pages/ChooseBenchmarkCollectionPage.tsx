@@ -38,7 +38,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         type: 'collection',
         collectionId: c.resource.id,
       });
-      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`);
+      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
+        state: { collection: c },
+      });
     },
     [navigate, namespace],
   );

@@ -49,7 +49,9 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         providerId: b.providerId,
         benchmarkId: b.id,
       });
-      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`);
+      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
+        state: { benchmark: b },
+      });
     },
     [navigate, namespace],
   );
