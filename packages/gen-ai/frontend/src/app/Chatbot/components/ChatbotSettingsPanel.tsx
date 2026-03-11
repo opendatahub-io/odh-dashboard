@@ -199,22 +199,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     setActiveTabKey(tabIndex);
   };
 
-  // Overlay drawer (compare mode) needs explicit background color
-  const overlayBackgroundStyle: React.CSSProperties | undefined = isOverlay
-    ? {
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-      }
-    : undefined;
-
-  return (
-    <DrawerPanelContent
-      key={panelSizeKey}
-      isResizable
-      defaultSize={panelWidth}
-      minSize="300px"
-      onResize={handlePanelResize}
-    >
-      <DrawerHead style={overlayBackgroundStyle}>
+  const content = (
+    <>
+      <DrawerHead>
         <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
           {headerLabel}
         </Title>
@@ -222,7 +209,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody style={overlayBackgroundStyle}>
+      <DrawerPanelBody>
         <Tabs
           key={tabsKey}
           activeKey={activeTabKey}
@@ -337,6 +324,32 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           ) : null}
         </Tabs>
       </DrawerPanelBody>
+    </>
+  );
+
+  return (
+    <DrawerPanelContent
+      key={panelSizeKey}
+      isResizable
+      defaultSize={panelWidth}
+      minSize="300px"
+      onResize={handlePanelResize}
+    >
+      {isOverlay ? (
+        <div
+          style={{
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {content}
+        </div>
+      ) : (
+        content
+      )}
     </DrawerPanelContent>
   );
 };

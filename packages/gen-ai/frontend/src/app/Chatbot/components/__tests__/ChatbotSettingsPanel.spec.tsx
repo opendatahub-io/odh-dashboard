@@ -13,6 +13,7 @@ const mockResizeEvent = new Event('click');
 
 // Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
 let mockDrawerPanelDefaultSize: string | undefined;
+let mockDrawerPanelStyle: React.CSSProperties | undefined;
 let mockDrawerHeadStyle: React.CSSProperties | undefined;
 let mockDrawerBodyStyle: React.CSSProperties | undefined;
 let mockTabsMountCount = 0;
@@ -49,14 +50,17 @@ jest.mock('@patternfly/react-core', () => {
       children,
       onResize,
       defaultSize,
+      style,
     }: {
       children: React.ReactNode;
       onResize?: (event: Event, width: number, id: string) => void;
       defaultSize?: string;
+      style?: React.CSSProperties;
     }) => {
       mockDrawerPanelDefaultSize = defaultSize;
+      mockDrawerPanelStyle = style;
       return (
-        <div data-testid="mock-drawer-panel" data-default-size={defaultSize}>
+        <div data-testid="mock-drawer-panel" data-default-size={defaultSize} style={style}>
           <button
             data-testid="trigger-resize-50"
             onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 50, '')}
@@ -379,56 +383,99 @@ describe('ChatbotSettingsPanel', () => {
     expect(mockDrawerPanelDefaultSize).toBe(customWidth);
   });
 
-  it('should apply background color to DrawerHead and DrawerPanelBody when isOverlay is true', () => {
-    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+  it('should apply background color via absolutely positioned wrapper when isOverlay is true', () => {
+    const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
 
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
 
-    // Both DrawerHead and DrawerPanelBody should have the background color
-    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
-    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    // Find the absolutely positioned wrapper div
+    const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+    expect(wrapperDiv).toHaveStyle({
+      backgroundColor: expectedBackgroundColor,
+      position: 'absolute',
+      inset: '0',
+      display: 'flex',
+      flexDirection: 'column',
+    });
+
+    // DrawerPanelContent should not have style (to preserve width)
+    expect(mockDrawerPanelStyle).toBeUndefined();
+
+    // DrawerHead and DrawerPanelBody should not have styles
+    expect(mockDrawerHeadStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toBeUndefined();
   });
 
   it('should not apply background color when isOverlay is false', () => {
-    render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
+    const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
 
-    // Style should be undefined when not in overlay mode
+    // No absolutely positioned wrapper when not in overlay mode
+    const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+    expect(wrapperDiv).not.toHaveStyle({
+      position: 'absolute',
+    });
+
+    // DrawerPanelContent should not have style
+    expect(mockDrawerPanelStyle).toBeUndefined();
+
+    // DrawerHead and DrawerPanelBody should not have styles
     expect(mockDrawerHeadStyle).toBeUndefined();
     expect(mockDrawerBodyStyle).toBeUndefined();
   });
 
   it('should not apply background color when isOverlay is not provided', () => {
-    render(<ChatbotSettingsPanel {...defaultProps} />);
+    const { container } = render(<ChatbotSettingsPanel {...defaultProps} />);
 
-    // Style should be undefined when isOverlay defaults to false
+    // No absolutely positioned wrapper when isOverlay defaults to false
+    const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+    expect(wrapperDiv).not.toHaveStyle({
+      position: 'absolute',
+    });
+
+    // DrawerPanelContent should not have style
+    expect(mockDrawerPanelStyle).toBeUndefined();
+
+    // DrawerHead and DrawerPanelBody should not have styles
     expect(mockDrawerHeadStyle).toBeUndefined();
     expect(mockDrawerBodyStyle).toBeUndefined();
   });
 
   it('should use default width of 500px even when isOverlay is true', () => {
-    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+    const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
 
     // Should still use the default width, overlay only affects background color
     expect(mockDrawerPanelDefaultSize).toBe(DEFAULT_WIDTH);
 
-    // And should have the overlay background color
+    // DrawerPanelContent should not have style (to preserve width)
+    expect(mockDrawerPanelStyle).toBeUndefined();
+
+    // And should have the overlay background color via absolutely positioned wrapper
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
-    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
-    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+    expect(wrapperDiv).toHaveStyle({
+      backgroundColor: expectedBackgroundColor,
+      position: 'absolute',
+    });
   });
 
   it('should preserve stored width and apply overlay background when both are active', () => {
     const customWidth = '700px';
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, customWidth);
 
-    render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
+    const { container } = render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
 
     // Should use stored width
     expect(mockDrawerPanelDefaultSize).toBe(customWidth);
 
-    // And should have overlay background
+    // DrawerPanelContent should not have style (to preserve width)
+    expect(mockDrawerPanelStyle).toBeUndefined();
+
+    // And should have overlay background via absolutely positioned wrapper
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
-    expect(mockDrawerHeadStyle).toEqual({ backgroundColor: expectedBackgroundColor });
-    expect(mockDrawerBodyStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    const wrapperDiv = container.querySelector('[data-testid="mock-drawer-panel"] > div');
+    expect(wrapperDiv).toHaveStyle({
+      backgroundColor: expectedBackgroundColor,
+      position: 'absolute',
+    });
   });
 });
