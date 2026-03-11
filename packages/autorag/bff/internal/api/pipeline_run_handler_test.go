@@ -58,14 +58,16 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 }
 
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
+	// Use "test-namespace" consistently — it matches the mock client created with "mock://test-namespace"
+	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-ns")
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 	// Add discovered pipeline to context (normally set by middleware)
 	discovered := &repositories.DiscoveredPipeline{
-		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-		PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		PipelineID:        ids.PipelineID,
+		PipelineVersionID: ids.LatestVersionID,
 		PipelineName:      "autorag-pipeline",
-		Namespace:         "test-ns",
+		Namespace:         "test-namespace",
 	}
 	ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 	return req.WithContext(ctx)
@@ -335,8 +337,8 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
-		// Mock discovery returns this pipeline ID
-		assert.Equal(t, "9e3940d5-b275-4b64-be10-b914cd06c58e", response.Data.PipelineVersionReference.PipelineID)
+		// Pipeline ID comes from the discovered pipeline, which uses namespace-derived IDs
+		assert.Equal(t, psmocks.DeriveMockIDs("test-namespace").PipelineID, response.Data.PipelineVersionReference.PipelineID)
 	})
 }
 

@@ -16,11 +16,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// withDiscoveredPipeline adds a mock discovered pipeline to the request context
+// withDiscoveredPipeline adds a mock discovered pipeline to the request context.
+// IDs are derived from "test-namespace" to match the mock client created with "mock://test-namespace".
 func withDiscoveredPipeline(req *http.Request) *http.Request {
+	ids := psmocks.DeriveMockIDs("test-namespace")
 	discovered := &repositories.DiscoveredPipeline{
-		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-		PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		PipelineID:        ids.PipelineID,
+		PipelineVersionID: ids.LatestVersionID,
 		PipelineName:      "autorag-pipeline",
 		Namespace:         "test-namespace",
 	}
@@ -63,7 +65,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 
 	t.Run("should filter by pipeline version ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		pipelineVersionID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+		pipelineVersionID := psmocks.DeriveMockIDs("test-namespace").LatestVersionID
 		req, err := http.NewRequest(
 			http.MethodGet,
 			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId="+pipelineVersionID,
@@ -355,8 +357,8 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -398,8 +400,8 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -438,8 +440,8 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -504,8 +506,8 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -580,8 +582,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -623,8 +625,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -667,8 +669,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -716,8 +718,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		// Discovered pipeline has specific IDs
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}
@@ -791,8 +793,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		// Discovered pipeline
 		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
 			PipelineName:      "autorag-pipeline",
 			Namespace:         "test-namespace",
 		}

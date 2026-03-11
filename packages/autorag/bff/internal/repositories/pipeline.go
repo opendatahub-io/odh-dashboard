@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -201,8 +203,12 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 		return cached, nil
 	}
 
+	// Build a server-side filter to reduce the result set. The Go-side HasPrefix check
+	// below remains the authoritative gate for correctness.
+	nameFilter := buildPipelineNameFilter(pipelineNamePrefix)
+
 	// Call pipeline server to list pipelines
-	pipelinesResp, err := client.ListPipelines(ctx)
+	pipelinesResp, err := client.ListPipelines(ctx, nameFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pipelines: %w", err)
 	}
@@ -253,6 +259,35 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 	globalPipelineCache.set(cacheKey, discovered)
 
 	return discovered, nil
+}
+
+// buildPipelineNameFilter builds a KFP predicate JSON filter that restricts ListPipelines
+// results to pipelines whose display_name contains the given prefix (IS_SUBSTRING).
+// Returns an empty string if namePrefix is empty, which signals the client to omit the filter.
+// The Go-side HasPrefix check in DiscoverAutoRAGPipeline is the authoritative gate.
+func buildPipelineNameFilter(namePrefix string) string {
+	if namePrefix == "" {
+		return ""
+	}
+
+	filter := map[string]interface{}{
+		"predicates": []map[string]interface{}{
+			{
+				"key":          "display_name",
+				"operation":    "IS_SUBSTRING",
+				"string_value": namePrefix,
+			},
+		},
+	}
+
+	filterJSON, err := json.Marshal(filter)
+	if err != nil {
+		// Fall back to no filter rather than blocking discovery
+		slog.Error("Failed to marshal pipeline name filter", "error", err, "namePrefix", namePrefix)
+		return ""
+	}
+
+	return string(filterJSON)
 }
 
 // InvalidateCache removes cached pipeline info for a given pipeline server and namespace.

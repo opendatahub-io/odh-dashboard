@@ -17,13 +17,14 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 	t.Run("should discover pipeline with default prefix", func(t *testing.T) {
 		namespace := "test-ns-1"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace) // namespace is "" for non-mock:// URLs
 
 		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		assert.Equal(t, "9e3940d5-b275-4b64-be10-b914cd06c58e", discovered.PipelineID)
-		assert.Equal(t, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", discovered.PipelineVersionID)
+		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
+		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
 		assert.Equal(t, "autorag-pipeline", discovered.PipelineName)
 		assert.Equal(t, namespace, discovered.Namespace)
 	})
@@ -89,13 +90,14 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 	t.Run("should use latest version when multiple versions exist", func(t *testing.T) {
 		namespace := "test-ns-6"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
 		discovered, err := repo.DiscoverAutoRAGPipeline(mockClient, ctx, namespace, "http://mock-ps", "autorag")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
 		// Mock returns versions sorted by created_at desc; v2.0.0 is the most recently created
-		assert.Equal(t, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", discovered.PipelineVersionID)
+		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
 	})
 
 	t.Run("should cache discovery results", func(t *testing.T) {
@@ -271,7 +273,7 @@ type failingListPipelinesClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (f *failingListPipelinesClient) ListPipelines(_ context.Context) (*models.KFPipelinesResponse, error) {
+func (f *failingListPipelinesClient) ListPipelines(_ context.Context, _ string) (*models.KFPipelinesResponse, error) {
 	return nil, assert.AnError
 }
 
@@ -296,7 +298,7 @@ type emptyPipelinesClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (e *emptyPipelinesClient) ListPipelines(_ context.Context) (*models.KFPipelinesResponse, error) {
+func (e *emptyPipelinesClient) ListPipelines(_ context.Context, _ string) (*models.KFPipelinesResponse, error) {
 	return &models.KFPipelinesResponse{
 		Pipelines:     []models.KFPipeline{},
 		TotalSize:     0,
@@ -346,5 +348,24 @@ func TestDiscoverAutoRAGPipeline_NoVersions(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
 		assert.Contains(t, err.Error(), "no versions found")
+	})
+}
+
+func TestBuildPipelineNameFilter(t *testing.T) {
+	t.Run("should return empty string when prefix is empty", func(t *testing.T) {
+		result := buildPipelineNameFilter("")
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("should build IS_SUBSTRING filter for given prefix", func(t *testing.T) {
+		result := buildPipelineNameFilter("autorag")
+		assert.Contains(t, result, "IS_SUBSTRING")
+		assert.Contains(t, result, "display_name")
+		assert.Contains(t, result, "autorag")
+	})
+
+	t.Run("should produce valid JSON", func(t *testing.T) {
+		result := buildPipelineNameFilter("autorag")
+		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"autorag"}]}`, result)
 	})
 }
