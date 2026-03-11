@@ -16,3 +16,11 @@ hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: 
 configMapName: 'llama-stack-config'
 playgroundServiceName: 'lsd-genai-playground-service'
 servingRuntimesPath: '/settings/model-resources-operations/serving-runtimes'
+# Filter test values (not used by this test, but required by GenAiTestData type)
+filterByNameValue: 'llama'
+filterByKeywordValue: 'instruct'
+filterByUseCaseValue: 'chat'
+# Expected values for verification (not used by this test, but required by GenAiTestData type)
+expectedModelDisplayName: 'llama-3.2-1b-instruct'
+expectedUseCase: 'chat'
+expectedStatus: 'Active'
