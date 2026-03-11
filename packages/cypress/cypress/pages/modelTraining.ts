@@ -699,7 +699,7 @@ class RayJobDetailsDrawer {
   }
 
   findTitle() {
-    return this.find().find('h2');
+    return this.find().findByTestId('ray-job-drawer-title');
   }
 
   findCloseButton() {

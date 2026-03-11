@@ -79,7 +79,10 @@ const ModelTraining = (): React.ReactElement => {
   const { jobStatuses, updateJobStatus } = useJobStatuses(allJobs);
 
   const handleSelectJob = React.useCallback((job: UnifiedJobKind) => {
-    setSelectedJob((prev) => (prev?.metadata.uid === job.metadata.uid ? undefined : job));
+    const jobId = job.metadata.uid || job.metadata.name;
+    setSelectedJob((prev) =>
+      (prev?.metadata.uid || prev?.metadata.name) === jobId ? undefined : job,
+    );
   }, []);
 
   const handleStatusUpdate = React.useCallback(
@@ -100,7 +103,10 @@ const ModelTraining = (): React.ReactElement => {
   React.useEffect(() => {
     if (selectedJob) {
       const dataSource = isTrainJob(selectedJob) ? trainJobData : rayJobData;
-      const updatedJob = dataSource.find((job) => job.metadata.uid === selectedJob.metadata.uid);
+      const selectedId = selectedJob.metadata.uid || selectedJob.metadata.name;
+      const updatedJob = dataSource.find(
+        (job) => (job.metadata.uid || job.metadata.name) === selectedId,
+      );
       if (!updatedJob) {
         setSelectedJob(undefined);
       } else if (updatedJob !== selectedJob) {

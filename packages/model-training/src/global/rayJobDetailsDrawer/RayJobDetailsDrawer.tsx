@@ -51,7 +51,7 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
       <DrawerHead>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem flex={{ default: 'flex_1' }}>
-            <Title headingLevel="h2" size="xl">
+            <Title headingLevel="h2" size="xl" data-testid="ray-job-drawer-title">
               {displayName}
             </Title>
           </FlexItem>
