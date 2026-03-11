@@ -1,5 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ActionGroup, Breadcrumb, BreadcrumbItem, Button, Form } from '@patternfly/react-core';
+import {
+  ActionList,
+  ActionListGroup,
+  ActionListItem,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  PageSection,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React, { useState } from 'react';
@@ -35,58 +45,66 @@ function AutoragConfigurePage(): React.JSX.Element {
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
   const createActions = (
-    <ActionGroup>
-      <Watch
-        control={form.control}
-        name={createFields}
-        render={() => (
-          <Button
-            variant="primary"
-            isDisabled={
-              !form.formState.isDirty ||
-              createFields.some((field) => form.getFieldState(field).invalid)
-            }
-            onClick={() => {
-              setStep('configure');
-            }}
-          >
-            Next
-          </Button>
-        )}
-      />
-      <Button
-        variant="link"
-        onClick={() => {
-          navigate(autoragExperimentsPathname);
-        }}
-      >
-        Cancel
-      </Button>
-    </ActionGroup>
+    <>
+      <ActionListItem>
+        <Watch
+          control={form.control}
+          name={createFields}
+          render={() => (
+            <Button
+              variant="primary"
+              isDisabled={
+                !form.formState.isDirty ||
+                createFields.some((field) => form.getFieldState(field).invalid)
+              }
+              onClick={() => {
+                setStep('configure');
+              }}
+            >
+              Next
+            </Button>
+          )}
+        />
+      </ActionListItem>
+      <ActionListItem>
+        <Button
+          variant="link"
+          onClick={() => {
+            navigate(autoragExperimentsPathname);
+          }}
+        >
+          Cancel
+        </Button>
+      </ActionListItem>
+    </>
   );
 
   const configureActions = (
-    <ActionGroup>
-      <Button
-        variant="primary"
-        isDisabled={!form.formState.isValid}
-        onClick={() => {
-          form.handleSubmit(() => {
-            navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
-          })();
-        }}
-      >
-        Create
-      </Button>
-      <Button
-        variant="link"
-        onClick={() => {
-          setStep('create');
-        }}
-      >
-        Back
-      </Button>
-    </ActionGroup>
+    <>
+      <ActionListItem>
+        <Button
+          variant="primary"
+          isDisabled={!form.formState.isValid}
+          onClick={() => {
+            form.handleSubmit(() => {
+              navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
+            })();
+          }}
+        >
+          Create
+        </Button>
+      </ActionListItem>
+      <ActionListItem>
+        <Button
+          variant="link"
+          onClick={() => {
+            setStep('create');
+          }}
+        >
+          Back
+        </Button>
+      </ActionListItem>
+    </>
   );
 
   return (
@@ -113,13 +131,24 @@ function AutoragConfigurePage(): React.JSX.Element {
       emptyStatePage={<InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />}
       loadError={namespacesLoadError}
       loaded={namespacesLoaded}
-      provideChildrenPadding
     >
       <FormProvider {...form}>
-        <Form>
-          {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
-          {step === 'create' ? createActions : configureActions}
-        </Form>
+        <Stack className="pf-v6-u-h-100" hasGutter component="form" noValidate>
+          <StackItem isFilled>
+            <PageSection className="pf-v6-c-form" hasBodyWrapper={false}>
+              {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
+            </PageSection>
+          </StackItem>
+          <StackItem>
+            <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
+              <ActionList>
+                <ActionListGroup>
+                  {step === 'create' ? createActions : configureActions}
+                </ActionListGroup>
+              </ActionList>
+            </PageSection>
+          </StackItem>
+        </Stack>
       </FormProvider>
     </ApplicationsPage>
   );
