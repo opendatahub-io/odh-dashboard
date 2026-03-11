@@ -56,7 +56,14 @@ entire existing codebase:
   coverage on all changed code by adding or modifying unit
   tests and Cypress tests.
 - After the final coverage sweep, `npm run test-unit` MUST be
-  executed at the repository root to confirm all tests pass.
+  executed at the repository root to confirm all unit tests
+  pass. If any Cypress tests were added or modified, the
+  Cypress suite MUST also be executed: start the dev server
+  with `npm run cypress:server:dev` from the repository root,
+  then `cd frontend` and run the relevant specs with
+  `npm run cypress:run:mock -- --spec "**/testfile.cy.ts"`.
+  Adding Cypress tests without running them does not satisfy
+  this policy.
 
 **Rationale**: 100% coverage on changes is the quality gate.
 Unit tests run fast and catch regressions early. Cypress tests
@@ -90,8 +97,14 @@ after the agent completes the implementation step:
    integration).
 
 2. **Test Execution Gate**: Run `npm run test-unit` at the
-   repository root. All tests MUST pass. If any test fails,
-   fix the issue and re-run until green.
+   repository root. All unit tests MUST pass. If any Cypress
+   tests were added or modified, also run them: start the
+   dev server with `npm run cypress:server:dev` from the
+   repository root, then `cd frontend` and execute the
+   relevant specs with
+   `npm run cypress:run:mock -- --spec "**/testfile.cy.ts"`.
+   All tests MUST pass. If any test fails, fix the issue and
+   re-run until green.
 
 3. **Coverage Verification**: Confirm that code coverage
    on new and modified code meets the 100% target. If gaps
