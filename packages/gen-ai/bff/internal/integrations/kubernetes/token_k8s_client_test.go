@@ -778,11 +778,12 @@ func TestModelSourceTypeRouting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify the enum values are correct
-			if tt.modelSourceType == models.ModelSourceTypeExternalProvider {
+			switch tt.modelSourceType {
+			case models.ModelSourceTypeExternalProvider:
 				assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), tt.modelSourceType)
-			} else if tt.modelSourceType == models.ModelSourceTypeExternalCluster {
+			case models.ModelSourceTypeExternalCluster:
 				assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), tt.modelSourceType)
-			} else if tt.modelSourceType == models.ModelSourceTypeNamespace {
+			case models.ModelSourceTypeNamespace:
 				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
 			}
 
