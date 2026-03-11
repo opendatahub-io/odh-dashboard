@@ -6,3 +6,7 @@ stats.json
 coverage
 .idea
 public-cypress
+
+# Claude
+CLAUDE.md
+.claude/settings.local.json

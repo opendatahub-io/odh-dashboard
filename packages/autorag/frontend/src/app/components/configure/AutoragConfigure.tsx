@@ -362,7 +362,15 @@ function AutoragConfigure(): React.JSX.Element {
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onPrimary={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelectSource={
+          (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
+        }
+        files={[]}
+        source={{
+          name: 'Foo connection',
+          count: 999999999,
+        }}
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
