@@ -44,6 +44,7 @@ export type MockDashboardConfigType = {
   autorag?: boolean;
   modelAsService?: boolean;
   aiAssetExternalModels?: boolean;
+  externalVectorStores?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -107,6 +108,7 @@ export const mockDashboardConfig = ({
   observabilityDashboard = false,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
+  externalVectorStores = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetExternalModels: {
@@ -283,6 +285,7 @@ export const mockDashboardConfig = ({
       observabilityDashboard,
       disableLLMd,
       deploymentWizardYAMLViewer,
+      externalVectorStores,
     },
     notebookController: {
       enabled: !disableNotebookController,
