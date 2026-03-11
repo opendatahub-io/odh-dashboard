@@ -273,9 +273,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     };
   }, [mcpServersFromRoute, selectedAAModel]);
 
+  const openSettingsToTab = location.state?.openSettingsToTab;
+
   React.useEffect(() => {
     const shouldClear = Boolean(
-      location.state?.mcpServers || location.state?.model || location.state?.mcpServerStatuses,
+      location.state?.mcpServers ||
+        location.state?.model ||
+        location.state?.mcpServerStatuses ||
+        location.state?.openSettingsToTab,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -475,6 +480,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
               isOverlay={isCompareMode}
+              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
           }
         >
