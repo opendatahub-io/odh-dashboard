@@ -112,7 +112,14 @@ const AIAssetsModelsTab: React.FC = () => {
         </Alert>
       )}
       {models.length === 0 ? (
-        emptyState
+        warnings.length > 0 ? (
+          <ModelsEmptyState
+            title="Some model sources could not be loaded"
+            description="Refresh the page or try again later."
+          />
+        ) : (
+          emptyState
+        )
       ) : (
         <>
           <AIModelsTable

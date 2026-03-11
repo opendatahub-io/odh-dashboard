@@ -101,7 +101,9 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
     const filters: { filterType: string; value: string }[] = [];
     Object.entries(filterData).forEach(([filterType, value]) => {
       if (Array.isArray(value)) {
-        value.forEach((v) => filters.push({ filterType, value: v }));
+        value.forEach((v) => {
+          filters.push({ filterType, value: v });
+        });
       } else if (value && value !== '') {
         filters.push({ filterType, value });
       }

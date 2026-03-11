@@ -19,7 +19,7 @@ describe('AI Assets - Models Tab', () => {
           status: 'Running',
           model_source_type: 'namespace',
           model_type: 'llm',
-          endpoints: ['internal:http://llama-3b.test-namespace.svc.cluster.local:8080'],
+          endpoints: ['internal: http://llama-3b.test-namespace.svc.cluster.local:8080'],
         },
         {
           model_name: 'GPT-4-External',
@@ -30,7 +30,7 @@ describe('AI Assets - Models Tab', () => {
           status: 'Running',
           model_source_type: 'external_provider',
           model_type: 'llm',
-          endpoints: ['external:https://api.openai.com/v1/models/gpt-4'],
+          endpoints: ['external: https://api.openai.com/v1/models/gpt-4'],
         },
         {
           model_name: 'Embedding-Model',
@@ -41,7 +41,7 @@ describe('AI Assets - Models Tab', () => {
           status: 'Stop',
           model_source_type: 'external_cluster',
           model_type: 'embedding',
-          endpoints: ['internal:http://embedding.cluster.local:8080'],
+          endpoints: ['internal: http://embedding.cluster.local:8080'],
         },
       ],
       maasModels: [

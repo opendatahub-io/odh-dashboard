@@ -169,7 +169,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   version: '',
   usecase: maasModel.usecase || 'LLM',
   description: maasModel.description || '',
-  endpoints: [`external: ${maasModel.url}`],
+  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
   status: maasModel.ready ? 'Running' : 'Stop',
   display_name: maasModel.display_name || maasModel.id,
   sa_token: {
@@ -177,7 +177,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token_name: '',
     token: '',
   },
-  externalEndpoint: maasModel.url,
+  externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
   isMaaSModel: true,
   maasModelId: maasModel.id,

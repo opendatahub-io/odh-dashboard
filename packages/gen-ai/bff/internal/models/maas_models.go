@@ -11,7 +11,7 @@ type MaaSModel struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Usecase     string `json:"usecase,omitempty"`
-	ModelType   string `json:"model_type,omitempty"`
+	ModelType   string `json:"model_type"`
 }
 
 // DeriveModelType sets ModelType based on the Usecase field.

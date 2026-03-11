@@ -34,11 +34,11 @@ const dontSeeModelPopoverContent: React.ReactNode = (
   <Stack hasGutter>
     <StackItem>
       <Content component="p">
-        This page displays only model deployments that are available as AI assets.
+        This page displays model deployments available as AI assets and MaaS models.
       </Content>
       <Content component="p">
         To make a deployment available as an AI asset, edit it from the{' '}
-        <strong>Model deployments</strong> page.
+        <strong>Model deployments</strong> page. MaaS models are managed by your administrator.
       </Content>
     </StackItem>
   </Stack>

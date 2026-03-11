@@ -235,6 +235,19 @@ describe('convertMaaSModelToAIModel', () => {
     const result = convertMaaSModelToAIModel(maasModel);
     expect(result.endpoints).toEqual(['external: https://maas.example.com/model']);
   });
+
+  it('should handle missing url gracefully', () => {
+    const maasModel: MaaSModel = {
+      id: 'no-url-model',
+      object: 'model',
+      created: 0,
+      owned_by: 'org',
+      ready: true,
+    };
+    const result = convertMaaSModelToAIModel(maasModel);
+    expect(result.endpoints).toEqual([]);
+    expect(result.externalEndpoint).toBeUndefined();
+  });
 });
 
 describe('splitLlamaModelId', () => {

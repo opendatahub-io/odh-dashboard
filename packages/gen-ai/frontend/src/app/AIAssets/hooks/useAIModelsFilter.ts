@@ -48,11 +48,8 @@ const useAIModelsFilter = (
     () =>
       models.filter((model) => {
         const nameValue = filterData[AssetsFilterOptions.NAME];
-        if (
-          typeof nameValue === 'string' &&
-          nameValue.trim() !== '' &&
-          !model.model_name.toLowerCase().includes(nameValue.toLowerCase())
-        ) {
+        const normalizedName = typeof nameValue === 'string' ? nameValue.trim().toLowerCase() : '';
+        if (normalizedName && !model.model_name.toLowerCase().includes(normalizedName)) {
           return false;
         }
 
@@ -64,11 +61,9 @@ const useAIModelsFilter = (
         }
 
         const useCaseValue = filterData[AssetsFilterOptions.USE_CASE];
-        if (
-          typeof useCaseValue === 'string' &&
-          useCaseValue.trim() !== '' &&
-          !model.usecase.toLowerCase().includes(useCaseValue.toLowerCase())
-        ) {
+        const normalizedUseCase =
+          typeof useCaseValue === 'string' ? useCaseValue.trim().toLowerCase() : '';
+        if (normalizedUseCase && !model.usecase.toLowerCase().includes(normalizedUseCase)) {
           return false;
         }
 

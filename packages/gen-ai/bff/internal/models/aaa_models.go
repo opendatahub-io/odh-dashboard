@@ -36,7 +36,7 @@ type AAModel struct {
 	DisplayName     string              `json:"display_name"`
 	SAToken         SAToken             `json:"sa_token"`
 	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`
-	ModelType       ModelTypeEnum       `json:"model_type,omitempty"`
+	ModelType       ModelTypeEnum       `json:"model_type"`
 }
 
 type SAToken struct {

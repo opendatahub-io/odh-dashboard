@@ -141,7 +141,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                   </Content>
                 </FlexItem>
 
-                {!tokenData && !error && (
+                {!tokenData && (
                   <FlexItem>
                     <Button
                       data-testid="endpoint-modal-generate-api-key"

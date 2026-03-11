@@ -30,7 +30,7 @@ const sourceTypePopover = (
           </Label>
         </Content>
         <Content component={ContentVariants.dd}>
-          Registered via Model Registry and accessible across namespaces within the cluster.
+          Accessible across namespaces within the cluster via a public route.
         </Content>
         <Content component={ContentVariants.dt}>
           <Label color="grey" isCompact>

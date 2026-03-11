@@ -34,10 +34,9 @@ const useMergedModels = (): UseMergedModelsResult => {
     [aiModels, maasModels],
   );
 
-  const refresh = React.useCallback(
-    () => Promise.all([refreshAI(), refreshMaaS()]).then(() => undefined),
-    [refreshAI, refreshMaaS],
-  );
+  const refresh = React.useCallback(async () => {
+    await Promise.allSettled([refreshAI(), refreshMaaS()]);
+  }, [refreshAI, refreshMaaS]);
 
   return {
     models,

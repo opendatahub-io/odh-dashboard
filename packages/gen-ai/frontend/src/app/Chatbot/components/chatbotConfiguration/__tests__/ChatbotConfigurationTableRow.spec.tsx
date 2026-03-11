@@ -70,7 +70,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 describe('ChatbotConfigurationTableRow', () => {
   const defaultProps = {
-    model: createMockAIModel({}),
+    model: createMockAIModel({ modelSource: 'namespace' }),
     isChecked: false,
     onToggleCheck: jest.fn(),
     onMaxTokensChange: jest.fn(),

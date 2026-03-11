@@ -38,6 +38,7 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
+  // mockAAModels() returns a default model when called without args
   cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels)).as('aaModels');
 
   cy.interceptGenAi(

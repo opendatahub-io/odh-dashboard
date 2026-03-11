@@ -359,5 +359,29 @@ describe('useMergedModels', () => {
       expect(refreshAI).toHaveBeenCalledTimes(1);
       expect(refreshMaaS).toHaveBeenCalledTimes(1);
     });
+
+    it('should complete refresh even when one source fails (allSettled)', async () => {
+      const refreshAI = jest.fn().mockResolvedValue(undefined);
+      const refreshMaaS = jest.fn().mockRejectedValue(new Error('MaaS refresh failed'));
+
+      mockUseFetchAIModels.mockReturnValue({
+        data: [],
+        loaded: true,
+        error: undefined,
+        refresh: refreshAI,
+      });
+      mockUseFetchMaaSModels.mockReturnValue({
+        data: [],
+        loaded: true,
+        error: undefined,
+        refresh: refreshMaaS,
+      });
+
+      const { result } = testHook(useMergedModels)();
+
+      await expect(result.current.refresh()).resolves.toBeUndefined();
+      expect(refreshAI).toHaveBeenCalledTimes(1);
+      expect(refreshMaaS).toHaveBeenCalledTimes(1);
+    });
   });
 });
