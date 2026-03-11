@@ -1,17 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 -> 1.0.1
-Modified principles:
-  - II. Testing Standards: Clarified that 100% coverage applies
-    to new and modified code (the changes made), not the entire
-    existing codebase.
-Added sections: None
-Removed sections: None
-Templates requiring updates:
-  - .specify/templates/plan-template.md: No update needed
-  - .specify/templates/spec-template.md: No update needed
-  - .specify/templates/tasks-template.md: No update needed
+Version: 1.0.0 (initial ratification)
+Principles:
+  - I. Code Quality
+  - II. Testing Standards
+  - III. User Experience Consistency
+  - IV. Performance Requirements
 Follow-up TODOs: None
 -->
 
@@ -166,4 +161,4 @@ found in other documents or conventions.
 **See Also**: For additional documentation and rules, refer to
 [AGENTS.md](AGENTS.md).
 
-**Version**: 1.0.1 | **Ratified**: 2026-03-11 | **Last Amended**: 2026-03-11
+**Version**: 1.0.0 | **Ratified**: 2026-03-11 | **Last Amended**: 2026-03-11
