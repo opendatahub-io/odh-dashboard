@@ -245,7 +245,7 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 }
 
 // GetEvalHubServiceURL lists EvalHub CRs in the namespace using the service-account credentials
-// (internal client) and returns status.serviceURL from the first found instance labelled for ODH.
+// (internal client) and returns status.url from the first found instance labelled for ODH.
 func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -284,9 +284,9 @@ func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ 
 		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status field", item.GetName(), namespace)
 	}
 
-	serviceURL, ok := status["serviceURL"].(string)
+	serviceURL, ok := status["url"].(string)
 	if !ok || serviceURL == "" {
-		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.serviceURL", item.GetName(), namespace)
+		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.url", item.GetName(), namespace)
 	}
 
 	kc.Logger.Debug("discovered EvalHub service URL from CR",

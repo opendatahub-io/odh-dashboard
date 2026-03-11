@@ -25,7 +25,7 @@ func parseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRSta
 		return &models.EvalHubCRStatus{
 			Name:      item.GetName(),
 			Namespace: item.GetNamespace(),
-			Phase:     "Unknown",
+			Phase:     "Progressing",
 		}, nil
 	}
 
@@ -36,6 +36,9 @@ func parseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRSta
 
 	if phase, ok := status["phase"].(string); ok {
 		result.Phase = phase
+	}
+	if result.Phase == "" {
+		result.Phase = "Progressing"
 	}
 	if ready, ok := status["ready"].(string); ok {
 		result.Ready = ready
@@ -90,4 +93,3 @@ func getStringField(m map[string]interface{}, key string) string {
 	}
 	return ""
 }
-
