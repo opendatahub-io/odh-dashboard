@@ -129,7 +129,7 @@ class TrainingJobTable {
   }
 
   findFilterTypeDropdownToggle() {
-    return this.findToolbar().findByTestId('filter-toolbar-dropdown');
+    return cy.findByTestId('training-job-table-toolbar-dropdown');
   }
 
   selectFilterType(filterType: string) {

@@ -18,7 +18,7 @@ type JobsToolbarProps = {
 
 const JobsToolbar: React.FC<JobsToolbarProps> = ({ filterData, onFilterUpdate }) => (
   <FilterToolbar<keyof typeof JobsFilterOptions>
-    data-testid="training-job-table-toolbar"
+    testId="training-job-table-toolbar"
     filterOptions={JobsFilterOptions}
     filterOptionRenders={{
       [JobsToolbarFilterOptions.name]: ({ onChange, ...props }) => (
