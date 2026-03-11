@@ -111,6 +111,27 @@ data:
         }
       },
       {
+          "name": "automl",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/automl/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "odh-dashboard",
+            "namespace": "opendatahub",
+            "port": 8643
+        }
+      },
+      {
         "name": "perses",
         "proxyService": [
           {
