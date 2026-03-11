@@ -270,7 +270,7 @@ spec:
                   type: object
                   properties:
                     aiAssetCustomEndpoints:
-                      description: 'Configuration for AI Asset external model providers feature'
+                      description: 'Configuration for AI Asset custom endpoints feature'
                       type: object
                       properties:
                         externalProviders:
