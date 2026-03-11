@@ -872,7 +872,8 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "llama-3-8b", model.ModelName)
 		assert.False(t, model.IsMaaSModel)
-		assert.Equal(t, models.ModelSourceTypeEnum(""), model.ModelSourceType)
+		// Missing field is treated as empty string, which defaults to namespace
+		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
 	})
 
 	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
@@ -956,5 +957,51 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		assert.Equal(t, "llama-2-7b-chat", model.ModelName)
 		assert.True(t, model.IsMaaSModel)
 		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+	})
+
+	t.Run("should reject invalid model_source_type", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",
+			"is_maas_model": false,
+			"model_source_type": "invalid_value"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_source_type")
+		assert.Contains(t, err.Error(), "invalid_value")
+	})
+
+	t.Run("should reject random garbage in model_source_type", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",
+			"is_maas_model": false,
+			"model_source_type": "foobar123"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_source_type")
+		assert.Contains(t, err.Error(), "foobar123")
+	})
+
+	t.Run("should treat empty model_source_type as namespace (legacy default)", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",
+			"is_maas_model": false,
+			"model_source_type": ""
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test-model", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
 	})
 }

@@ -48,7 +48,21 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 	im.ModelName = raw.ModelName
 	im.IsMaaSModel = raw.IsMaaSModel
-	im.ModelSourceType = ModelSourceTypeEnum(raw.ModelSourceType)
+
+	// Validate and set ModelSourceType
+	switch raw.ModelSourceType {
+	case "":
+		// Empty string is the legacy default (omitted field) - treat as namespace
+		im.ModelSourceType = ModelSourceTypeNamespace
+	case string(ModelSourceTypeNamespace):
+		im.ModelSourceType = ModelSourceTypeNamespace
+	case string(ModelSourceTypeExternalCluster):
+		im.ModelSourceType = ModelSourceTypeExternalCluster
+	case string(ModelSourceTypeExternalProvider):
+		im.ModelSourceType = ModelSourceTypeExternalProvider
+	default:
+		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, external_cluster, external_provider", raw.ModelSourceType)
+	}
 
 	// Handle max_tokens conversion from interface{} to *int
 	if raw.MaxTokens != nil {
