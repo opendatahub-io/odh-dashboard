@@ -131,6 +131,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token_name: '',
     token: '',
   },
+  model_source_type: 'external_provider',
   internalEndpoint: maasModel.url,
   isMaaSModel: true,
   maasModelId: maasModel.id,

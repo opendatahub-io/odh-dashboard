@@ -86,6 +86,7 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token_name: '',
     token: '',
   },
+  model_source_type: 'namespace',
   isMaaSModel: false,
   maasModelId: undefined,
   ...overrides,
@@ -303,6 +304,7 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
           {
             model_name: 'test-model',
             is_maas_model: false,
+            model_source_type: 'namespace',
           },
         ],
         enable_guardrails: false,
@@ -325,6 +327,7 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
           {
             model_name: 'test-model',
             is_maas_model: false,
+            model_source_type: 'namespace',
           },
         ],
         enable_guardrails: true,

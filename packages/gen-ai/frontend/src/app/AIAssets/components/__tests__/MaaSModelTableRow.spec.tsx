@@ -79,6 +79,7 @@ const createMockAIModel = (): AIModel => ({
     token_name: '',
     token: '',
   },
+  model_source_type: 'namespace',
 });
 
 describe('MaaSModelTableRow', () => {
