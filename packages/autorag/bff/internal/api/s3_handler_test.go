@@ -528,3 +528,5 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
 	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
 }
+
+// TODO [ Gustavo ] Add tests for GetS3FilesHandler

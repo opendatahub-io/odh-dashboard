@@ -394,6 +394,8 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  // TODO [ Gustavo ] Add an S3 Files endpoint test suite
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {

@@ -2,11 +2,11 @@ package repositories
 
 import (
   "context"
+  "errors"
   "fmt"
   "io"
-  "strings"
-  "errors"
   "log"
+  "strings"
 
   "github.com/aws/aws-sdk-go-v2/aws"
   "github.com/aws/aws-sdk-go-v2/credentials"
@@ -160,6 +160,7 @@ func (basics BucketBasics) ListObjects(ctx context.Context, bucketName string) (
     Bucket: aws.String(bucketName),
   }
   // TODO [Gustavo] This snippet from AWS S3 SDK docs works well to get them all, but our func needs to just show 1 page at a time with 1,000 default max page size
+  //  Need to add search/pagination/path parameters
   var objects []types.Object
   objectPaginator := s3.NewListObjectsV2Paginator(basics.S3Client, input)
   for objectPaginator.HasMorePages() {

@@ -224,7 +224,7 @@ paths:
     description: >-
       Retrieves a list of files from an S3-compatible connection.
       Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
-      Returns the file with transfer-encoding: chunked for efficient streaming.
+      Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
     get:
       tags:
         - S3Operation
@@ -257,6 +257,7 @@ paths:
           schema:
             type: string
           example: /
+        # TODO: Define additional parameters for working with search/paginated result set from ListObjectsV2
       responses:
         "200":
           $ref: "#/components/responses/S3GetFilesResponse"
@@ -842,6 +843,11 @@ components:
           description: Token for retrieving the next page
           example: "eyJwYWdlIjoyfQ=="
 
+    S3ListObjectsResult:
+      type: object
+      description: The result from calling S3's ListObjects method (specifically ListObjectsV2)
+      additionalProperties: true
+
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -1227,10 +1233,11 @@ components:
           schema:
             type: object
             properties:
-              data:
-                # TODO [Gustavo]: Make a model for this
+              metadata:
                 type: object
-                additionalProperties: true
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
 
   parameters:
     kubeflowUserId:
