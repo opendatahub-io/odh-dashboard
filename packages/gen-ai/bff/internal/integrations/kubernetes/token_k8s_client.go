@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -1631,7 +1632,89 @@ func (kc *TokenKubernetesClient) getExternalModelsConfig(ctx context.Context, na
 		return nil, fmt.Errorf("failed to parse external models ConfigMap YAML: %w", err)
 	}
 
+	// Validate the config before returning
+	if err := kc.validateExternalModelsConfig(&config); err != nil {
+		return nil, fmt.Errorf("invalid external models ConfigMap: %w", err)
+	}
+
 	return &config, nil
+}
+
+// validateExternalModelsConfig validates the external models configuration
+func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.ExternalModelsConfig) error {
+	// Validate inference providers
+	for i, provider := range config.Providers.Inference {
+		// Validate ProviderID is non-empty
+		if provider.ProviderID == "" {
+			return fmt.Errorf("provider at index %d has empty provider_id", i)
+		}
+
+		// Validate ProviderType is one of the allowed values
+		validProviderTypes := map[models.ProviderTypeEnum]bool{
+			models.ProviderTypeGemini:      true,
+			models.ProviderTypeOpenAI:      true,
+			models.ProviderTypeAnthropic:   true,
+			models.ProviderTypeVLLM:        true,
+			models.ProviderTypePassthrough: true,
+		}
+		if !validProviderTypes[provider.ProviderType] {
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be one of: remote::vllm, remote::openai, remote::anthropic, remote::gemini, remote::passthrough", provider.ProviderID, provider.ProviderType)
+		}
+
+		// Validate BaseURL is a well-formed URL with scheme and host
+		if provider.Config.BaseURL == "" {
+			return fmt.Errorf("provider '%s' has empty base_url", provider.ProviderID)
+		}
+
+		// TODO: Add feature flag check for externalModel and respect it here
+		parsedURL, err := url.Parse(provider.Config.BaseURL)
+		if err != nil {
+			return fmt.Errorf("provider '%s' has malformed base_url '%s': %w", provider.ProviderID, provider.Config.BaseURL, err)
+		}
+
+		if parsedURL.Scheme == "" {
+			return fmt.Errorf("provider '%s' base_url '%s' is missing scheme (http/https)", provider.ProviderID, provider.Config.BaseURL)
+		}
+
+		if parsedURL.Host == "" {
+			return fmt.Errorf("provider '%s' base_url '%s' is missing host", provider.ProviderID, provider.Config.BaseURL)
+		}
+	}
+
+	// Validate registered models
+	for i, model := range config.RegisteredResources.Models {
+		// Validate ModelID is non-empty
+		if model.ModelID == "" {
+			return fmt.Errorf("model at index %d has empty model_id", i)
+		}
+
+		// Validate ProviderID is non-empty
+		if model.ProviderID == "" {
+			return fmt.Errorf("model '%s' has empty provider_id", model.ModelID)
+		}
+
+		// Validate ModelType matches the allowlist
+		validModelTypes := map[models.ModelTypeEnum]bool{
+			models.ModelTypeLLM:       true,
+			models.ModelTypeEmbedding: true,
+		}
+		if !validModelTypes[model.ModelType] {
+			return fmt.Errorf("model '%s' has invalid model_type '%s', must be 'llm' or 'embedding'", model.ModelID, model.ModelType)
+		}
+
+		// Validate EmbeddingDimension if present
+		if model.Metadata.EmbeddingDimension != nil {
+			dim := *model.Metadata.EmbeddingDimension
+			if dim <= 0 {
+				return fmt.Errorf("model '%s' has invalid embedding_dimension %d, must be > 0", model.ModelID, dim)
+			}
+			if dim > 100000 {
+				return fmt.Errorf("model '%s' has unreasonably large embedding_dimension %d, must be <= 100000", model.ModelID, dim)
+			}
+		}
+	}
+
+	return nil
 }
 
 // getExternalModelDetails retrieves external model details from the gen-ai-aa-external-models ConfigMap

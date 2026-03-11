@@ -951,3 +951,244 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
 	})
 }
+
+func TestValidateExternalModelsConfig(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
+	}
+
+	t.Run("should reject provider with empty provider_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty provider_id")
+	})
+
+	t.Run("should reject provider with invalid provider_type", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: "invalid::type",
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.example.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid provider_type")
+	})
+
+	t.Run("should reject provider with empty base_url", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty base_url")
+	})
+
+	t.Run("should reject provider with malformed base_url", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "://invalid-url",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "malformed base_url")
+	})
+
+	t.Run("should reject provider with base_url missing scheme", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "api.openai.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing scheme")
+	})
+
+	t.Run("should reject model with empty model_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeLLM,
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty model_id")
+	})
+
+	t.Run("should reject model with empty provider_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "",
+						ModelType:  models.ModelTypeLLM,
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty provider_id")
+	})
+
+	t.Run("should reject model with invalid model_type", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "test-provider",
+						ModelType:  "invalid-type",
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_type")
+	})
+
+	t.Run("should reject model with negative embedding_dimension", func(t *testing.T) {
+		negativeDim := -1
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &negativeDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid embedding_dimension")
+	})
+
+	t.Run("should reject model with unreasonably large embedding_dimension", func(t *testing.T) {
+		hugeDim := 200000
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &hugeDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unreasonably large embedding_dimension")
+	})
+
+	t.Run("should accept valid configuration", func(t *testing.T) {
+		validDim := 1536
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "openai-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "openai-provider",
+						ModelType:  models.ModelTypeLLM,
+					},
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "openai-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &validDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.NoError(t, err)
+	})
+}
