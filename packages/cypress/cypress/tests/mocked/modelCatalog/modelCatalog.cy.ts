@@ -165,9 +165,7 @@ describe('Model Catalog core', () => {
     appChrome
       .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
       .should('exist');
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .click();
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' }).click();
     modelCatalog.findModelCatalogCards().should('exist');
   });
 
