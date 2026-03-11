@@ -1,16 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/07/schema",
   "compilerOptions": {
-    // Baseline strict mode setting for the monorepo
-    // Note: Actual enforcement happens in workspace-level tsconfig files
-    // See packages/tsconfig for shared TypeScript configuration
     "strict": true
   },
   "files": [],
-  // TypeScript project references enable:
-  // - `tsc --build` to build all workspaces in dependency order
-  // - Better IDE support for cross-workspace navigation
-  // - Faster incremental builds
   "references": [
     { "path": "./backend" },
     { "path": "./frontend" },
