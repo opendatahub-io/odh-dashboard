@@ -29,29 +29,36 @@ func NewAPIKeysRepository(logger *slog.Logger, maasApiUrl string) (*APIKeysRepos
 }
 
 // CreateAPIKey creates a new API key
-func (r *APIKeysRepository) CreateAPIKey(ctx context.Context, request models.APIKeyRequest) (*models.APIKeyResponse, error) {
+func (r *APIKeysRepository) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
 	r.logger.Debug("Creating API key", slog.String("name", request.Name))
 
 	return r.maasClient.CreateAPIKey(ctx, request)
 }
 
+// SearchAPIKeys searches API keys with filters, sorting, and pagination
+func (r *APIKeysRepository) SearchAPIKeys(ctx context.Context, request models.APIKeySearchRequest) (*models.APIKeyListResponse, error) {
+	r.logger.Debug("Searching API keys")
+
+	return r.maasClient.SearchAPIKeys(ctx, request)
+}
+
 // GetAPIKey retrieves an API key by ID
-func (r *APIKeysRepository) GetAPIKey(ctx context.Context, id string) (*models.APIKeyMetadata, error) {
+func (r *APIKeysRepository) GetAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
 	r.logger.Debug("Getting API key", slog.String("id", id))
 
 	return r.maasClient.GetAPIKey(ctx, id)
 }
 
-// ListAPIKeys retrieves all API keys
-func (r *APIKeysRepository) ListAPIKeys(ctx context.Context) ([]models.APIKeyMetadata, error) {
-	r.logger.Debug("Listing API keys")
+// RevokeAPIKey revokes a specific API key by ID
+func (r *APIKeysRepository) RevokeAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
+	r.logger.Debug("Revoking API key", slog.String("id", id))
 
-	return r.maasClient.ListAPIKeys(ctx)
+	return r.maasClient.RevokeAPIKey(ctx, id)
 }
 
-// DeleteAllAPIKeys revokes all tokens for the authenticated user
-func (r *APIKeysRepository) DeleteAllAPIKeys(ctx context.Context) error {
-	r.logger.Debug("Revoking all tokens (deleting all API keys)")
+// BulkRevokeAPIKeys revokes all active API keys for a specific user
+func (r *APIKeysRepository) BulkRevokeAPIKeys(ctx context.Context, request models.APIKeyBulkRevokeRequest) (*models.APIKeyBulkRevokeResponse, error) {
+	r.logger.Debug("Bulk revoking API keys", slog.String("username", request.Username))
 
-	return r.maasClient.RevokeAllTokens(ctx)
+	return r.maasClient.BulkRevokeAPIKeys(ctx, request)
 }

@@ -14,15 +14,15 @@ import (
 // attachAPIKeyHandlers registers the API key routes
 func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyCreatePath, handlerWithApp(app, CreateAPIKeyHandler))
-	apiRouter.GET(constants.APIKeysListPath, handlerWithApp(app, ListAPIKeysHandler))
+	apiRouter.POST(constants.APIKeySearchPath, handlerWithApp(app, SearchAPIKeysHandler))
+	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithApp(app, BulkRevokeAPIKeysHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithApp(app, GetAPIKeyHandler))
-	apiRouter.DELETE(constants.APIKeysDeletePath, handlerWithApp(app, DeleteAllAPIKeysHandler))
+	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithApp(app, RevokeAPIKeyHandler))
 }
 
-// CreateAPIKeyHandler handles POST /api/v1/api-key
-// Creates a new API key with optional name, description, and expiration
+// CreateAPIKeyHandler handles POST /api/v1/api-keys
 func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var request Envelope[models.APIKeyRequest, None]
+	var request Envelope[models.APIKeyCreateRequest, None]
 
 	// Parse request body if present
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -30,9 +30,9 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	// Set default expiration if not provided
-	if request.Data.Expiration == "" {
-		request.Data.Expiration = "4h"
+	if request.Data.Name == "" {
+		app.badRequestResponse(w, r, errors.New("name is required"))
+		return
 	}
 
 	response, err := app.repositories.APIKeys.CreateAPIKey(r.Context(), request.Data)
@@ -41,7 +41,7 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	responseEnvelope := Envelope[*models.APIKeyResponse, None]{
+	responseEnvelope := Envelope[*models.APIKeyCreateResponse, None]{
 		Data: response,
 	}
 
@@ -50,17 +50,23 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 	}
 }
 
-// ListAPIKeysHandler handles GET /api/v1/api-keys
-// Returns all API keys for the authenticated user
-func ListAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	keys, err := app.repositories.APIKeys.ListAPIKeys(r.Context())
+// SearchAPIKeysHandler handles POST /api/v1/api-keys/search
+func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var request Envelope[models.APIKeySearchRequest, None]
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	response, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), request.Data)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	responseEnvelope := Envelope[[]models.APIKeyMetadata, None]{
-		Data: keys,
+	responseEnvelope := Envelope[*models.APIKeyListResponse, None]{
+		Data: response,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, responseEnvelope, nil); err != nil {
@@ -83,7 +89,7 @@ func GetAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
-	responseEnvelope := Envelope[*models.APIKeyMetadata, None]{
+	responseEnvelope := Envelope[*models.APIKey, None]{
 		Data: key,
 	}
 
@@ -92,19 +98,54 @@ func GetAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, params h
 	}
 }
 
-// DeleteAllAPIKeysHandler handles DELETE /api/v1/api-keys
-// Deletes all API keys for the authenticated user
-func DeleteAllAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.repositories.APIKeys.DeleteAllAPIKeys(r.Context()); err != nil {
+// RevokeAPIKeyHandler handles DELETE /api/v1/api-keys/:id
+func RevokeAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	keyID := params.ByName("id")
+	if keyID == "" {
+		app.badRequestResponse(w, r, errors.New("API key ID is required"))
+		return
+	}
+
+	key, err := app.repositories.APIKeys.RevokeAPIKey(r.Context(), keyID)
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	response := Envelope[None, None]{
-		Data: nil,
+	responseEnvelope := Envelope[*models.APIKey, None]{
+		Data: key,
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, responseEnvelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// BulkRevokeAPIKeysHandler handles POST /api/v1/api-keys/bulk-revoke
+func BulkRevokeAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var request Envelope[models.APIKeyBulkRevokeRequest, None]
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if request.Data.Username == "" {
+		app.badRequestResponse(w, r, errors.New("username is required"))
+		return
+	}
+
+	response, err := app.repositories.APIKeys.BulkRevokeAPIKeys(r.Context(), request.Data)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	responseEnvelope := Envelope[*models.APIKeyBulkRevokeResponse, None]{
+		Data: response,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, responseEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
