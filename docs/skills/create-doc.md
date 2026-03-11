@@ -93,11 +93,9 @@ $ARGUMENTS — a natural language description of what to document. Examples:
    - For READMEs: include purpose, setup/install, usage, and links to detailed docs
 
 8. **Remind** the user to:
-   - Add an entry to `docs/BOOKMARKS.md` if the doc should be indexed there
    - Update the parent directory's README if one exists
    - Verify all relative links resolve correctly
 
 ## Output
 
 - A new doc file at the determined path.
-- A suggested BOOKMARKS.md entry (for doc types that belong in the index).

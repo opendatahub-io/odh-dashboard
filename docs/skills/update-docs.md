@@ -8,7 +8,7 @@ It identifies which docs are affected and updates them to conform to `docs/guide
 ## Prerequisites
 
 - `docs/guidelines.md` — authoritative style and structure guide
-- `docs/BOOKMARKS.md` — to verify links after updates
+- `docs/BOOKMARKS.md` — indexes frontend area docs, backend docs, and package docs (not all docs in the repo)
 
 ## Inputs
 
@@ -51,7 +51,7 @@ Use this path when `--no-cache` is present in `$ARGUMENTS`.
 1. **Determine target docs**
    - If a scope filter follows `--no-cache` (path or keyword), resolve it to the matching
      doc(s) using the mapping table in step B-2.
-   - If no scope filter is given, collect **every doc** listed in `docs/BOOKMARKS.md`.
+   - If no scope filter is given, collect every doc listed in `docs/BOOKMARKS.md` (frontend areas, backend, and packages).
 
 2. **Read `docs/guidelines.md`** for style rules.
 
@@ -102,7 +102,7 @@ Use this path when `--no-cache` is **not** present.
 2. **Map changed files to affected docs**
    A code change can affect multiple doc types. Check each category:
 
-   **Template-based overview docs** (check `docs/BOOKMARKS.md` for the full index):
+   **Template-based overview docs** (check `docs/BOOKMARKS.md` for the index of frontend area, backend, and package docs):
    - `frontend/src/pages/pipelines/**` → `frontend/docs/pipelines.md`
    - `frontend/src/pages/notebookController/**` → `frontend/docs/workbenches.md`
    - `frontend/src/pages/projects/**` → `frontend/docs/projects.md`
@@ -123,8 +123,7 @@ Use this path when `--no-cache` is **not** present.
    - Changes to auth or middleware → check `docs/architecture.md`
    - Changes to a package's README-documented behavior → check `packages/<name>/README.md`
 
-   If no mapping is obvious, search `docs/BOOKMARKS.md` and nearby READMEs for references
-   to the changed files.
+   If no mapping is obvious, search `docs/BOOKMARKS.md` (for indexed docs) and nearby READMEs for references to the changed files.
 
 3. **Read each affected doc**.
    If the doc was created from a template, also read the applicable template

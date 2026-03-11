@@ -13,4 +13,4 @@ When asked to update documentation after code changes, read and follow the full 
 - **Diff mode** (default): update only affected sections — do not rewrite unaffected content.
 - Show a summary of proposed changes and ask for confirmation before writing any file.
 - Update `Last Updated` date in any doc that uses one.
-- Verify `docs/BOOKMARKS.md` links still resolve after writing.
+- Verify any `docs/BOOKMARKS.md` links to updated files still resolve correctly.
