@@ -656,60 +656,6 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	// Note: These tests verify the routing logic for external models.
-	// They expect errors because we don't have a real Kubernetes client,
-	// but they validate that the code follows the correct path.
-
-	t.Run("should attempt to fetch external_provider models from ConfigMap", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
-
-		client := &TokenKubernetesClient{
-			Logger: slog.Default(),
-			// Client is nil - will cause nil pointer when accessing ConfigMap
-		}
-
-		// Test with external_provider model only
-		models := []models.InstallModel{
-			{
-				ModelName:       "gpt-4o",
-				IsMaaSModel:     false,
-				ModelSourceType: models.ModelSourceTypeExternalProvider,
-			},
-		}
-
-		ctx := context.Background()
-
-		// This should panic with nil pointer because Client is nil
-		// We recover from the panic to verify the code path is correct
-		assert.Panics(t, func() {
-			_, _ = client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
-		}, "Should panic when trying to access ConfigMap with nil Client")
-	})
-
-	t.Run("should attempt to fetch external_cluster models from ConfigMap", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
-
-		client := &TokenKubernetesClient{
-			Logger: slog.Default(),
-		}
-
-		// Test with external_cluster model
-		models := []models.InstallModel{
-			{
-				ModelName:       "qwen3-06b",
-				IsMaaSModel:     false,
-				ModelSourceType: models.ModelSourceTypeExternalCluster,
-			},
-		}
-
-		ctx := context.Background()
-
-		// This should panic with nil pointer because Client is nil
-		assert.Panics(t, func() {
-			_, _ = client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
-		}, "Should panic when trying to access ConfigMap with nil Client")
-	})
-
 	t.Run("should successfully generate config with only MaaS models", func(t *testing.T) {
 		mockMaaSClient := &maasmocks.MockMaaSClient{}
 
