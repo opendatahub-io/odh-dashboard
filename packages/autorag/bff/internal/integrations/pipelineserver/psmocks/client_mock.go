@@ -220,7 +220,7 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			ExperimentID: "exp-456",
 			PipelineVersionReference: &models.PipelineVersionReference{
 				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "version-v2",
+				PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			},
 			State:          "RUNNING",
 			StorageState:   "AVAILABLE",
@@ -522,7 +522,8 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context) (*models.K
 	}, nil
 }
 
-// ListPipelineVersions returns mock pipeline version data
+// ListPipelineVersions returns mock pipeline version data sorted by created_at desc (newest first),
+// matching the sort order requested by the real pipeline server client.
 // Returns versions for the AutoRAG pipeline when queried
 func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
 	// Return AutoRAG pipeline versions
@@ -531,17 +532,17 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 			PipelineVersions: []models.KFPipelineVersion{
 				{
 					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+					PipelineVersionID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+					DisplayName:       "v2.0.0",
+					Description:       "Updated AutoRAG pipeline with improved metrics",
+					CreatedAt:         "2026-02-23T10:00:00Z",
+				},
+				{
+					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
 					PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
 					DisplayName:       "v1.0.0",
 					Description:       "Initial AutoRAG pipeline version",
 					CreatedAt:         "2026-02-20T10:00:00Z",
-				},
-				{
-					PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-					PipelineVersionID: "version-v2",
-					DisplayName:       "v2.0.0",
-					Description:       "Updated AutoRAG pipeline with improved metrics",
-					CreatedAt:         "2026-02-23T10:00:00Z",
 				},
 			},
 			TotalSize:     2,

@@ -23,7 +23,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
 		assert.Equal(t, "9e3940d5-b275-4b64-be10-b914cd06c58e", discovered.PipelineID)
-		assert.Equal(t, "22e57c06-030f-4c63-900d-0a808d577899", discovered.PipelineVersionID)
+		assert.Equal(t, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", discovered.PipelineVersionID)
 		assert.Equal(t, "autorag-pipeline", discovered.PipelineName)
 		assert.Equal(t, namespace, discovered.Namespace)
 	})
@@ -86,7 +86,7 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 		}
 	})
 
-	t.Run("should use first version when multiple versions exist", func(t *testing.T) {
+	t.Run("should use latest version when multiple versions exist", func(t *testing.T) {
 		namespace := "test-ns-6"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
@@ -94,8 +94,8 @@ func TestDiscoverAutoRAGPipeline(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		// Mock returns version v1.0.0 as first version
-		assert.Equal(t, "22e57c06-030f-4c63-900d-0a808d577899", discovered.PipelineVersionID)
+		// Mock returns versions sorted by created_at desc; v2.0.0 is the most recently created
+		assert.Equal(t, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", discovered.PipelineVersionID)
 	})
 
 	t.Run("should cache discovery results", func(t *testing.T) {

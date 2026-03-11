@@ -230,8 +230,8 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 		return nil, fmt.Errorf("no versions found for AutoRAG pipeline %s", autoragPipeline.PipelineID)
 	}
 
-	// Use the first version (typically the latest or default)
-	// TODO: Consider version selection strategy (latest, default, specific tag, etc.)
+	// Use the first version, which is the most recently created because the pipeline server
+	// client requests versions sorted by created_at desc.
 	version := versionsResp.PipelineVersions[0]
 
 	discovered := &DiscoveredPipeline{

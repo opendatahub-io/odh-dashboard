@@ -280,7 +280,8 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context) (*models.K
 	return &response, nil
 }
 
-// ListPipelineVersions retrieves all versions for a specific pipeline from the KFP v2beta1 API.
+// ListPipelineVersions retrieves all versions for a specific pipeline from the KFP v2beta1 API,
+// sorted by creation time descending so the most recently created version is first.
 //
 // This method queries the /apis/v2beta1/pipelines/{pipelineID}/versions endpoint to get
 // all available versions of a pipeline. Used by pipeline discovery to get the version ID
@@ -297,7 +298,9 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 		return nil, fmt.Errorf("pipelineID is required")
 	}
 
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions", c.baseURL, url.PathEscape(pipelineID))
+	queryParams := url.Values{}
+	queryParams.Set("sort_by", "created_at desc")
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", c.baseURL, url.PathEscape(pipelineID), queryParams.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
