@@ -224,7 +224,8 @@ paths:
     description: >-
       Lists all available models from LlamaStack Distribution (LSD).
       Returns a flat list of models with their identifiers, types, provider information, and resource paths.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
+      containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
     get:
       tags:
         - Models
@@ -233,11 +234,18 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace where LSD is deployed
+          description: Kubernetes namespace containing the LlamaStack credentials secret
           required: true
           schema:
             type: string
             example: 'default'
+        - name: secretName
+          in: query
+          description: Name of the Kubernetes secret containing LlamaStack credentials (llama_stack_client_base_url and llama_stack_client_api_key)
+          required: true
+          schema:
+            type: string
+            example: 'my-lls-secret'
       responses:
         "200":
           $ref: "#/components/responses/LSDModelsResponse"
@@ -247,11 +255,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
       operationId: getLSDModels
       summary: Get LSD Models
-      description: Returns available models from LlamaStack Distribution
+      description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -834,6 +846,14 @@ components:
         message:
           description: Error message
           type: string
+    ErrorEnvelope:
+      description: Envelope wrapping an Error response.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -853,38 +873,44 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
     Forbidden:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Forbidden - insufficient permissions
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unexpected internal server error
     ServiceUnavailable:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Service temporarily unavailable
+    BadGateway:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Bad Gateway - upstream service is unreachable
     ConfigResponse:
       content:
         application/json:
@@ -904,25 +930,33 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/LSDModelsData'
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: '#/components/schemas/LSDModelsData'
           example:
-            models:
-              - id: "llama3.2:3b"
-                type: "llm"
-                provider: "ollama"
-                resource_path: "ollama://models/llama3.2:3b"
-              - id: "mistral-7b-instruct"
-                type: "llm"
-                provider: "ollama"
-                resource_path: "ollama://models/mistral-7b-instruct"
-              - id: "all-minilm:l6-v2"
-                type: "embedding"
-                provider: "ollama"
-                resource_path: "ollama://models/all-minilm:l6-v2"
-              - id: "nomic-embed-text"
-                type: "embedding"
-                provider: "ollama"
-                resource_path: "ollama://models/nomic-embed-text"
+            metadata: {}
+            data:
+              models:
+                - id: "llama3.2:3b"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/llama3.2:3b"
+                - id: "mistral-7b-instruct"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/mistral-7b-instruct"
+                - id: "all-minilm:l6-v2"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/all-minilm:l6-v2"
+                - id: "nomic-embed-text"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/nomic-embed-text"
 
     SecretsResponse:
       content:
@@ -1123,7 +1157,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Conflict - Role Binding with the same name already exists
 
   parameters:

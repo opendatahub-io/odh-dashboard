@@ -37,6 +37,7 @@ const (
 	EvaluationJobByIDPath = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath       = ApiPathPrefix + "/evaluations/collections"
 	ProvidersPath         = ApiPathPrefix + "/evaluations/providers"
+	EvalHubCRStatusPath   = ApiPathPrefix + "/evalhub/status"
 )
 
 type App struct {
@@ -173,6 +174,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+
+	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
+	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

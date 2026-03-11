@@ -116,12 +116,14 @@ export enum JobsToolbarFilterOptions {
   name = 'Name',
   clusterQueue = 'Cluster queue',
   status = 'Status',
+  type = 'Type',
 }
 
 export const JobsFilterOptions = {
   [JobsToolbarFilterOptions.name]: 'Name',
   [JobsToolbarFilterOptions.clusterQueue]: 'Cluster queue',
   [JobsToolbarFilterOptions.status]: 'Status',
+  [JobsToolbarFilterOptions.type]: 'Type',
 };
 
 export type JobsFilterDataType = Record<JobsToolbarFilterOptions, string | undefined>;
@@ -130,4 +132,5 @@ export const initialJobsFilterData: JobsFilterDataType = {
   [JobsToolbarFilterOptions.name]: '',
   [JobsToolbarFilterOptions.clusterQueue]: '',
   [JobsToolbarFilterOptions.status]: '',
+  [JobsToolbarFilterOptions.type]: '',
 };
