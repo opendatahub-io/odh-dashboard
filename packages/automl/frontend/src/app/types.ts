@@ -27,3 +27,27 @@ export type NamespaceKind = {
   name: string;
   displayName?: string;
 };
+
+/** Pipeline reference embedded in a run (API schema). */
+export type PipelineVersionReference = {
+  pipeline_id: string;
+  pipeline_version_id: string;
+};
+
+export type PipelineSpec = Record<string, unknown>;
+
+export type PipelineRun = {
+  run_id: string;
+  display_name: string;
+  created_at: string;
+  state: string;
+  experiment_id?: string;
+  storage_state?: string;
+  description?: string;
+  pipeline_version_id?: string;
+  pipeline_spec?: PipelineSpec;
+  pipeline_version_reference?: PipelineVersionReference;
+  service_account?: string;
+  scheduled_at?: string;
+  finished_at?: string;
+};
