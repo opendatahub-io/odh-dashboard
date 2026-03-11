@@ -1,18 +1,10 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import createConfigureSchema from '~/app/schemas/configure.schema';
 import AutomlExperimentSettings from '~/app/components/configure/AutomlExperimentSettings';
-import { useFilesQuery } from '~/app/hooks/queries';
-
-jest.mock('~/app/hooks/queries');
-
-const mockUseFilesQuery = jest.mocked(useFilesQuery);
-
-const MOCK_COLUMNS = ['approval_status', 'credit_score', 'income', 'loan_amount', 'risk_category'];
 
 const configureSchema = createConfigureSchema();
 
@@ -42,10 +34,6 @@ const renderComponent = (props = {}) =>
 describe('AutomlExperimentSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseFilesQuery.mockReturnValue({
-      data: MOCK_COLUMNS,
-      isLoading: false,
-    } as unknown as ReturnType<typeof useFilesQuery>);
   });
 
   describe('Rendering', () => {
@@ -57,53 +45,6 @@ describe('AutomlExperimentSettings', () => {
     it('should render the modal header with correct title', () => {
       renderComponent();
       expect(screen.getByText('Experiment settings')).toBeInTheDocument();
-    });
-
-    it('should render all three prediction type radio options', () => {
-      renderComponent();
-      expect(screen.getByTestId('task-type-radio-binary')).toBeInTheDocument();
-      expect(screen.getByTestId('task-type-radio-multiclass')).toBeInTheDocument();
-      expect(screen.getByTestId('task-type-radio-regression')).toBeInTheDocument();
-    });
-
-    it('should render binary classification as the default selected prediction type', () => {
-      renderComponent();
-      const binaryRadio = screen.getByTestId('task-type-radio-binary');
-      expect(binaryRadio).toBeChecked();
-    });
-
-    it('should render prediction type descriptions', () => {
-      renderComponent();
-      expect(
-        screen.getByText(
-          'Classify data into categories. Choose this if your prediction column contains two distinct categories',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it('should render the label column dropdown', () => {
-      renderComponent();
-      expect(screen.getByTestId('label-column-select')).toBeInTheDocument();
-    });
-
-    it('should render mock column options in the label column dropdown', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('label-column-select'));
-      MOCK_COLUMNS.forEach((column) => {
-        expect(screen.getByText(column)).toBeInTheDocument();
-      });
     });
 
     it('should render the top N input with default value 3', () => {
@@ -119,29 +60,6 @@ describe('AutomlExperimentSettings', () => {
     });
   });
 
-  describe('Prediction type selection', () => {
-    it('should select a different prediction type when clicked', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      expect(screen.getByTestId('task-type-radio-multiclass')).toBeChecked();
-      expect(screen.getByTestId('task-type-radio-binary')).not.toBeChecked();
-    });
-  });
-
-  describe('Label column selection', () => {
-    it('should allow selecting a column from the dropdown', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('label-column-select'));
-      await user.click(screen.getByText('income'));
-
-      expect(screen.getByTestId('label-column-select')).toHaveTextContent('income');
-    });
-  });
-
   describe('Form validation', () => {
     const changeTopN = (value: string) => {
       const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -151,30 +69,6 @@ describe('AutomlExperimentSettings', () => {
     it('should disable the Save button when no changes have been made', () => {
       renderComponent();
       expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
-    });
-
-    it('should disable the Save button when form is dirty but label column is not selected', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('task-type-radio-multiclass'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
-      });
-    });
-
-    it('should enable the Save button when a field is changed and label column is selected', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      await user.click(screen.getByTestId('label-column-select'));
-      await user.click(screen.getByText('income'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
-      });
     });
 
     it('should disable the Save button when there are field errors', async () => {
@@ -204,11 +98,17 @@ describe('AutomlExperimentSettings', () => {
       });
     });
 
-    it('should re-enable the Save button when a field error is corrected and label column is selected', async () => {
-      const user = userEvent.setup();
+    it('should enable the Save button when top N is changed to a valid value', async () => {
       renderComponent();
-      await user.click(screen.getByTestId('label-column-select'));
-      await user.click(screen.getByText('income'));
+      changeTopN('4');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+    });
+
+    it('should re-enable the Save button when a field error is corrected', async () => {
+      renderComponent();
       changeTopN('6');
 
       await waitFor(() => {
@@ -223,40 +123,28 @@ describe('AutomlExperimentSettings', () => {
     });
   });
 
-  describe('Dirty state detection', () => {
-    it('should keep Save disabled when prediction type is changed but then reverted without selecting a label column', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      await waitFor(() => {
-        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
-      });
-
-      await user.click(screen.getByTestId('task-type-radio-binary'));
-      await waitFor(() => {
-        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
-      });
-    });
-  });
-
   describe('Save and Cancel actions', () => {
-    it('should call saveChanges when Save is clicked', async () => {
-      const user = userEvent.setup();
-      renderComponent();
+    const changeTopN = (value: string) => {
+      const input = screen.getByTestId('top-n-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value } });
+    };
 
-      await user.click(screen.getByTestId('task-type-radio-multiclass'));
-      await user.click(screen.getByTestId('label-column-select'));
-      await user.click(screen.getByText('income'));
-      await user.click(screen.getByTestId('experiment-settings-save'));
+    it('should call saveChanges when Save is clicked after a valid change', async () => {
+      renderComponent();
+      changeTopN('4');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+
+      fireEvent.click(screen.getByTestId('experiment-settings-save'));
       expect(defaultProps.saveChanges).toHaveBeenCalledTimes(1);
     });
 
     it('should call revertChanges and onClose when Cancel is clicked', async () => {
-      const user = userEvent.setup();
       renderComponent();
 
-      await user.click(screen.getByTestId('experiment-settings-cancel'));
+      fireEvent.click(screen.getByTestId('experiment-settings-cancel'));
       expect(defaultProps.revertChanges).toHaveBeenCalledTimes(1);
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
