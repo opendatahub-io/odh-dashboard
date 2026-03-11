@@ -95,7 +95,9 @@ describe('AutoragRunsTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByText('RUNNING')).toBeInTheDocument();
+    const label = screen.getByText('RUNNING');
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveClass('pf-m-info');
   });
 
   it('should render success status for SUCCEEDED state', () => {
@@ -108,7 +110,9 @@ describe('AutoragRunsTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
+    const label = screen.getByText('SUCCEEDED');
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveClass('pf-m-success');
   });
 
   it('should render danger status for FAILED state', () => {
@@ -121,6 +125,8 @@ describe('AutoragRunsTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByText('FAILED')).toBeInTheDocument();
+    const label = screen.getByText('FAILED');
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveClass('pf-m-danger');
   });
 });
