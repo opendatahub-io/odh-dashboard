@@ -4,7 +4,7 @@ import * as z from 'zod';
 export const MIN_TOP_N = 1;
 export const MAX_TOP_N = 5;
 
-export const EXPERIMENT_SETTINGS_FIELDS = ['task_type', 'label_column', 'top_n'] as const;
+export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
 
 export const TASK_TYPE_BINARY = 'binary';
 export const TASK_TYPE_MULTICLASS = 'multiclass';

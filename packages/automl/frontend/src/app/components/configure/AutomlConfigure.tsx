@@ -81,6 +81,14 @@ function AutomlConfigure(): React.JSX.Element {
     defaultValues: configureSchema.parse({}),
   });
 
+  const {
+    formState: { isValid: formIsValid },
+  } = form;
+  const formDisabled = !formIsValid;
+
+  const trainDataFileKey = form.watch('train_data_file_key');
+  const isFileSelected = Boolean(trainDataFileKey);
+
   const { data: columns = [] } = useFilesQuery();
 
   return (
@@ -212,6 +220,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   ref={toggleRef}
                                   onClick={() => setIsLabelColumnOpen((prev) => !prev)}
                                   isExpanded={isLabelColumnOpen}
+                                  isDisabled={!isFileSelected || columns.length === 0}
                                   isFullWidth
                                   data-testid="label-column-select"
                                 >
@@ -269,51 +278,6 @@ function AutomlConfigure(): React.JSX.Element {
                           )}
                         />
                       </StackItem>
-
-                      <Grid hasGutter className="pf-v6-u-mt-md">
-                        <GridItem span={6}>
-                          <Card>
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-optimization-metric"
-                                    variant="secondary"
-                                    onClick={() => null}
-                                  >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Optimization metric</CardTitle>
-                            </CardHeader>
-                            <CardBody />
-                          </Card>
-                        </GridItem>
-                        <GridItem span={6}>
-                          <Card>
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-considered-models"
-                                    variant="secondary"
-                                    onClick={() => null}
-                                  >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Models to consider</CardTitle>
-                            </CardHeader>
-                            <CardBody />
-                          </Card>
-                        </GridItem>
-                      </Grid>
                     </Stack>
                   </CardBody>
                 </Card>
@@ -324,6 +288,7 @@ function AutomlConfigure(): React.JSX.Element {
         <PanelFooter>
           <Button
             variant="primary"
+            isDisabled={formDisabled}
             onClick={() => {
               navigate(`${automlResultsPathname}/FAKE_RUN_ID`);
             }}
