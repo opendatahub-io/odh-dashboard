@@ -19,21 +19,19 @@ export const listWorkloads = async (
   });
 };
 
+const isStatefulSetPodName = (ownerName: string, notebookName: string): boolean => {
+  if (ownerName === notebookName) return true;
+  const suffix = ownerName.slice(notebookName.length);
+  return suffix.length > 1 && suffix[0] === '-' && /^\d+$/.test(suffix.slice(1));
+};
+
 const workloadMatchesNotebook = (wl: WorkloadKind, notebookName: string): boolean => {
   const owners = wl.metadata?.ownerReferences ?? [];
   for (const ref of owners) {
     const ownerKind = ref.kind.toLowerCase();
     if ((ownerKind === 'job' || ownerKind === 'notebook') && ref.name === notebookName) return true;
-    if (
-      ownerKind === 'statefulset' &&
-      (ref.name === notebookName || ref.name.startsWith(`${notebookName}-`))
-    )
-      return true;
-    if (
-      ownerKind === 'pod' &&
-      (ref.name === `${notebookName}-0` || ref.name.startsWith(`${notebookName}-`))
-    )
-      return true;
+    if (ownerKind === 'statefulset' && isStatefulSetPodName(ref.name, notebookName)) return true;
+    if (ownerKind === 'pod' && isStatefulSetPodName(ref.name, notebookName)) return true;
   }
   return false;
 };
