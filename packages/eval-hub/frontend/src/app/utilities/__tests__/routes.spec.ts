@@ -1,4 +1,4 @@
-import { evalHubRootPath, evalHubEvaluationsRoute } from '../routes';
+import { evalHubRootPath, evalHubEvaluationsRoute } from '~/app/utilities/routes';
 
 describe('evalHubRootPath', () => {
   it('should be the full host path', () => {

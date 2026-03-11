@@ -5,4 +5,6 @@ singleModelName: 'test-model'
 modelOpenVinoExamplePath: 'kserve-openvino-test/openvino-example-model/'
 modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'OpenVINO Model Server'
+serviceAccountName1: 'secret'
+serviceAccountName2: 'secret2'
 

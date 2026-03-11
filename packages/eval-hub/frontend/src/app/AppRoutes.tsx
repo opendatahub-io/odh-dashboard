@@ -1,12 +1,21 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import { NavDataItem } from '~/app/standalone/types';
+import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
 import EvalHubCoreLoader from './components/EvalHubCoreLoader';
 import EvaluationsPage from './pages/EvaluationsPage';
 import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
 import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
-import { evalHubEvaluationsRoute } from './utilities/routes';
+
+export const useNavData = (): NavDataItem[] => [
+  {
+    label: 'Evaluations',
+    path: `${evalHubRootPath}/*`,
+    href: evalHubRootPath,
+  },
+];
 
 const AppRoutes: React.FC = () => (
   <Routes>

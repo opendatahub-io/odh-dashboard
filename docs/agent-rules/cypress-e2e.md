@@ -575,3 +575,66 @@ After implementation:
 - All actions (e.g., `.click()`, `.type()`) must be performed in the test itself, not inside the page object method.
 - When updating cluster settings or any backend-driven config, always verify the backend value is updated (e.g., using `cy.getDashboardConfig`) before proceeding to UI validation or further steps.
 - Always add `data-testid` attributes to the UI and corresponding `find...` methods in page objects whenever a test needs to interact with or validate an element.
+
+## No Hardcoded Validations
+
+**MANDATORY: Never use hardcoded string literals, IDs, or UI labels directly in E2E test assertions or element selectors.**
+
+All dynamic values must come from one of these sources:
+
+1. **YAML fixtures** - Store test data, filter IDs, UI labels, and database defaults in fixture files under `packages/cypress/cypress/fixtures/e2e/`.
+2. **Page objects with `data-testid`** - Use `data-testid` attributes on source components and corresponding `find*Action()` methods in page objects.
+3. **Environment variables** - Use `Cypress.env(...)` for configuration values (namespaces, URLs, etc.).
+
+### Rules
+
+- **No hardcoded action labels** in `findKebabAction('...')` calls. Instead, add `data-testid` attributes to the source component's action titles and use page object methods:
+
+```typescript
+// BAD - hardcoded string
+row.findKebabAction('Delete workbench').click();
+
+// GOOD - data-testid + page object
+row.findKebab().click();
+workbenchActions.findDeleteWorkbenchAction().click();
+```
+
+- **No hardcoded filter IDs or UI labels** in test assertions. Move them to YAML fixtures and load with typed data loaders:
+
+```typescript
+// BAD - hardcoded strings
+verifyResourcesForFilter('enabled-filter-checkbox');
+cy.contains('Monitor the metrics of your active resources.');
+
+// GOOD - fixture-driven
+verifyResourcesForFilter(filterData.enabledFilterId);
+cy.contains(testData.uiLabels.homePageDescription);
+```
+
+- **No hardcoded test credentials or database values**. Store in fixtures:
+
+```typescript
+// BAD
+formField.type('mlmduser');
+
+// GOOD
+formField.type(testData.mysqlUsername);
+```
+
+### Adding `data-testid` to Source Components
+
+When a kebab action (or any interactive element) needs to be targeted in E2E tests:
+
+1. **Wrap the action title** with a `<span>` containing a `data-testid`:
+   `{ title: <span data-testid="edit-workbench-action">Edit workbench</span>, onClick: () => { ... } }`
+2. **For `DropdownItem` components**, add `data-testid` directly:
+   `<DropdownItem data-testid="edit-node-count-action" onClick={...}>Edit node count</DropdownItem>`
+3. **Create page object methods** that return `cy.findByTestId(...)`:
+   `findEditWorkbenchAction() { return cy.findByTestId('edit-workbench-action'); }`
+
+### Creating Fixtures
+
+- Place fixture YAML files in `packages/cypress/cypress/fixtures/e2e/<feature>/`.
+- Define corresponding TypeScript types in `packages/cypress/cypress/types.ts`.
+- Create loader functions in `packages/cypress/cypress/utils/dataLoader.ts`.
+- Load fixtures in `before()` or `retryableBefore()` hooks.

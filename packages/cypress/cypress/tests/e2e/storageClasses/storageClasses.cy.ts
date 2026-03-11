@@ -14,6 +14,7 @@ import {
   storageClassesPage,
   storageClassesTable,
   storageClassEditModal,
+  storageClassActions,
 } from '../../../pages/storageClasses';
 import { ensureOpenshiftDefaultStorageClass } from '../../../utils/oc_commands/storageClass';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
@@ -185,7 +186,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       scAccessModeRow.shouldContainAccessModeLabels(['RWO']);
 
       cy.step('Navigate to edit SC');
-      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebabAction('Edit').click();
+      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebab().click();
+      storageClassActions.findEditStorageClassAction().click();
 
       cy.step('Check initial access mode checkboxes state');
       storageClassEditModal
@@ -219,7 +221,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       });
 
       cy.step('Check that an alert shows up when unchecking RWX');
-      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebabAction('Edit').click();
+      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebab().click();
+      storageClassActions.findEditStorageClassAction().click();
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click(); // uncheck
       storageClassEditModal.findAccessModeAlert().should('be.visible');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click(); // re-check

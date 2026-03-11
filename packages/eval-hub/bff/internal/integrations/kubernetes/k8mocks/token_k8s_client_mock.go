@@ -6,15 +6,14 @@ import (
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-// ⚠️ WHY THIS FILE EXISTS:
 // envtest does NOT support real authentication or token evaluation.
-// It allows you to simulate Kubernetes behavior, but all requests use the test client's identity (usually cluster-admin).
-// So, we simulate token-based behavior by mapping FAKE tokens to preconfigured test users.
+// We simulate token-based behavior by mapping FAKE tokens to preconfigured test users.
 
 type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
@@ -26,15 +25,13 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 			SharedClientLogic: k8s.SharedClientLogic{
 				Client: clientset,
 				Logger: logger,
-				Token:  k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+				Token:  k8s.NewBearerToken(""),
 			},
 		},
 	}
 }
 
-// GetNamespaces overrides the real implementation because envtest does not
-// support the OpenShift Projects API fallback used for non-admin users.
-// Returns all namespaces from envtest directly.
+// GetNamespaces returns all namespaces from envtest directly (no OpenShift Projects API fallback).
 func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, _ *k8s.RequestIdentity) ([]corev1.Namespace, error) {
 	nsList, err := m.SharedClientLogic.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -43,21 +40,28 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, _ *k8s.Re
 	return nsList.Items, nil
 }
 
-// BearerToken always returns a fake token for tests
 func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE-BEARER-TOKEN", nil
 }
 
-// CanListEvalHubInstances always returns true in tests — envtest SAR responses are unreliable.
 func (m *TokenKubernetesClientMock) CanListEvalHubInstances(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
 
-// GetEvalHubServiceURL returns a deterministic fake URL for test environments.
-// The real implementation uses a dynamic client that requires a live rest.Config,
-// which is not available in envtest / unit-test contexts.
 func (m *TokenKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil
 }
 
-// GetGroups removed in minimal starter.
+// GetEvalHubCRStatus returns a deterministic mock CR status for test environments.
+func (m *TokenKubernetesClientMock) GetEvalHubCRStatus(_ context.Context, _ *k8s.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	return &models.EvalHubCRStatus{
+		Name:            "evalhub",
+		Namespace:       namespace,
+		Phase:           "Ready",
+		Ready:           "True",
+		URL:             "http://mock-evalhub.test.svc.cluster.local",
+		ActiveProviders: []string{"lm-evaluation-harness", "garak"},
+		ReadyReplicas:   1,
+		Replicas:        1,
+	}, nil
+}
