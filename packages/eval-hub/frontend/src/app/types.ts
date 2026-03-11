@@ -29,6 +29,33 @@ export type NamespaceKind = {
 };
 
 // ---------------------------------------------------------------------------
+// EvalHub CR status types matching the BFF response shape
+// ---------------------------------------------------------------------------
+
+export type EvalHubCRPhase = 'Initializing' | 'Ready' | 'Failed' | 'Pending' | 'Unknown';
+
+export type EvalHubCondition = {
+  type: string;
+  status: string;
+  lastTransitionTime?: string;
+  reason?: string;
+  message?: string;
+};
+
+export type EvalHubCRStatus = {
+  name: string;
+  namespace: string;
+  phase: EvalHubCRPhase;
+  ready: string;
+  url?: string;
+  activeProviders?: string[];
+  conditions?: EvalHubCondition[];
+  lastUpdateTime?: string;
+  readyReplicas: number;
+  replicas: number;
+};
+
+// ---------------------------------------------------------------------------
 // EvalHub evaluation job types matching the BFF response shape
 // ---------------------------------------------------------------------------
 
