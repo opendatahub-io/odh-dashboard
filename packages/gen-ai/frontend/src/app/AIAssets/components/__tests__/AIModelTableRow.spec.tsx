@@ -74,6 +74,7 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   display_name: 'Test Model',
   internalEndpoint: 'http://internal',
   externalEndpoint: 'http://external',
+  model_source_type: 'namespace',
   sa_token: {
     name: 'token-name',
     token_name: 'token',
@@ -279,6 +280,119 @@ describe('AIModelTableRow', () => {
 
       // The modal should be open with the model pre-selected
       expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+    });
+  });
+
+  describe('External models', () => {
+    it('should show "Add to playground" button for external_provider models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
+    });
+
+    it('should show "Add to playground" button for external_cluster models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_cluster',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
+    });
+
+    it('should open configuration modal when clicking "Add to playground" for external models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      const addButton = screen.getByText('Add to playground');
+      fireEvent.click(addButton);
+
+      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+    });
+
+    it('should handle external models already in playground', () => {
+      const model = createMockAIModel({
+        model_id: 'external-model-id',
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      const playgroundModel = createMockPlaygroundModel('external-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+          />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
+    });
+
+    it('should navigate to playground when clicking "Try in playground" for external models', () => {
+      const model = createMockAIModel({
+        model_id: 'external-model-id',
+        model_source_type: 'external_cluster',
+        status: 'Running',
+      });
+      const playgroundModel = createMockPlaygroundModel('external-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+          />
+        </TestWrapper>,
+      );
+
+      const tryButton = screen.getByText('Try in playground');
+      fireEvent.click(tryButton);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/gen-ai-studio/playground/test-namespace', {
+        state: {
+          model: 'provider/external-model-id',
+        },
+      });
+    });
+
+    it('should disable "Add to playground" button for external models that are not Running', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Stop',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      const button = screen.getByText('Add to playground');
+      expect(button.closest('button')).toBeDisabled();
     });
   });
 });

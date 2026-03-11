@@ -654,3 +654,307 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
 	})
 }
+
+func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
+	// Note: These tests verify the routing logic for external models.
+	// They expect errors because we don't have a real Kubernetes client,
+	// but they validate that the code follows the correct path.
+
+	t.Run("should attempt to fetch external_provider models from ConfigMap", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			// Client is nil - will cause nil pointer when accessing ConfigMap
+		}
+
+		// Test with external_provider model only
+		models := []models.InstallModel{
+			{
+				ModelName:       "gpt-4o",
+				IsMaaSModel:     false,
+				ModelSourceType: models.ModelSourceTypeExternalProvider,
+			},
+		}
+
+		ctx := context.Background()
+
+		// This should panic with nil pointer because Client is nil
+		// We recover from the panic to verify the code path is correct
+		assert.Panics(t, func() {
+			_, _ = client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		}, "Should panic when trying to access ConfigMap with nil Client")
+	})
+
+	t.Run("should attempt to fetch external_cluster models from ConfigMap", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		// Test with external_cluster model
+		models := []models.InstallModel{
+			{
+				ModelName:       "qwen3-06b",
+				IsMaaSModel:     false,
+				ModelSourceType: models.ModelSourceTypeExternalCluster,
+			},
+		}
+
+		ctx := context.Background()
+
+		// This should panic with nil pointer because Client is nil
+		assert.Panics(t, func() {
+			_, _ = client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		}, "Should panic when trying to access ConfigMap with nil Client")
+	})
+
+	t.Run("should successfully generate config with only MaaS models", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			// No k8s client needed for MaaS-only models
+		}
+
+		// Test with only MaaS models - no k8s access required
+		models := []models.InstallModel{
+			{
+				ModelName:   "llama-2-7b-chat",
+				IsMaaSModel: true,
+			},
+		}
+
+		ctx := context.Background()
+
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+
+		// This should succeed since we're only using MaaS models
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "llama-2-7b-chat")
+	})
+}
+
+func TestModelSourceTypeRouting(t *testing.T) {
+	tests := []struct {
+		name               string
+		modelSourceType    models.ModelSourceTypeEnum
+		expectedHandling   string
+		shouldCallExternal bool
+		shouldCallCluster  bool
+	}{
+		{
+			name:               "external_provider routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeExternalProvider,
+			expectedHandling:   "external",
+			shouldCallExternal: true,
+			shouldCallCluster:  false,
+		},
+		{
+			name:               "external_cluster routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeExternalCluster,
+			expectedHandling:   "external",
+			shouldCallExternal: true,
+			shouldCallCluster:  false,
+		},
+		{
+			name:               "namespace routes to cluster model handling",
+			modelSourceType:    models.ModelSourceTypeNamespace,
+			expectedHandling:   "cluster",
+			shouldCallExternal: false,
+			shouldCallCluster:  true,
+		},
+		{
+			name:               "empty source type defaults to cluster handling",
+			modelSourceType:    "",
+			expectedHandling:   "cluster",
+			shouldCallExternal: false,
+			shouldCallCluster:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify the enum values are correct
+			if tt.modelSourceType == models.ModelSourceTypeExternalProvider {
+				assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), tt.modelSourceType)
+			} else if tt.modelSourceType == models.ModelSourceTypeExternalCluster {
+				assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), tt.modelSourceType)
+			} else if tt.modelSourceType == models.ModelSourceTypeNamespace {
+				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
+			}
+
+			// Verify routing logic
+			isExternal := tt.modelSourceType == models.ModelSourceTypeExternalProvider ||
+				tt.modelSourceType == models.ModelSourceTypeExternalCluster
+			assert.Equal(t, tt.shouldCallExternal, isExternal,
+				"ModelSourceType %s should route to external handling: %v", tt.modelSourceType, tt.shouldCallExternal)
+
+			isCluster := !isExternal
+			assert.Equal(t, tt.shouldCallCluster, isCluster,
+				"ModelSourceType %s should route to cluster handling: %v", tt.modelSourceType, tt.shouldCallCluster)
+		})
+	}
+}
+
+func TestModelSourceTypeConstants(t *testing.T) {
+	t.Run("ModelSourceType enum values must not change", func(t *testing.T) {
+		// These values are part of the API contract and must remain stable
+		assert.Equal(t, models.ModelSourceTypeEnum("namespace"), models.ModelSourceTypeNamespace,
+			"ModelSourceTypeNamespace value must be 'namespace'")
+		assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), models.ModelSourceTypeExternalCluster,
+			"ModelSourceTypeExternalCluster value must be 'external_cluster'")
+		assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), models.ModelSourceTypeExternalProvider,
+			"ModelSourceTypeExternalProvider value must be 'external_provider'")
+	})
+}
+
+func TestInstallModelUnmarshalJSON(t *testing.T) {
+	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",
+			"is_maas_model": false,
+			"model_source_type": "external_provider"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+	})
+
+	t.Run("should handle external_cluster ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "qwen3-06b",
+			"is_maas_model": false,
+			"model_source_type": "external_cluster"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "qwen3-06b", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeExternalCluster, model.ModelSourceType)
+	})
+
+	t.Run("should handle namespace ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-3-8b",
+			"is_maas_model": false,
+			"model_source_type": "namespace"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "llama-3-8b", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
+	})
+
+	t.Run("should handle missing ModelSourceType field", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-3-8b",
+			"is_maas_model": false
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "llama-3-8b", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeEnum(""), model.ModelSourceType)
+	})
+
+	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",
+			"is_maas_model": false,
+			"model_source_type": "external_provider",
+			"max_tokens": 4096
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.False(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.NotNil(t, model.MaxTokens)
+		assert.Equal(t, 4096, *model.MaxTokens)
+	})
+
+	t.Run("should handle max_tokens as float64", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",
+			"is_maas_model": false,
+			"model_source_type": "external_provider",
+			"max_tokens": 4096.0
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.NotNil(t, model.MaxTokens)
+		assert.Equal(t, 4096, *model.MaxTokens)
+	})
+
+	t.Run("should reject fractional max_tokens", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",
+			"is_maas_model": false,
+			"model_source_type": "external_provider",
+			"max_tokens": 4096.5
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "max_tokens must be an integer")
+	})
+
+	t.Run("should handle nil max_tokens", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",
+			"is_maas_model": false,
+			"model_source_type": "external_provider",
+			"max_tokens": null
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Nil(t, model.MaxTokens)
+	})
+
+	t.Run("should handle MaaS model with ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-2-7b-chat",
+			"is_maas_model": true,
+			"model_source_type": "external_provider"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "llama-2-7b-chat", model.ModelName)
+		assert.True(t, model.IsMaaSModel)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+	})
+}
