@@ -51,4 +51,16 @@ describe('useCheckForAllowedUsers', () => {
     expect(renderResult).hookToStrictEqual([[], false, new Error('error1')]);
     expect(renderResult).hookToHaveUpdateCount(2);
   });
+
+  it('should handle error without response (network error)', async () => {
+    getAllowedUsersMock.mockRejectedValue(new Error('Network Error'));
+    const renderResult = testHook(useCheckForAllowedUsers)();
+
+    expect(renderResult).hookToStrictEqual([[], false, undefined]);
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    await renderResult.waitForNextUpdate();
+    expect(renderResult).hookToStrictEqual([[], false, new Error('Network Error')]);
+    expect(renderResult).hookToHaveUpdateCount(2);
+  });
 });
