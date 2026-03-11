@@ -119,9 +119,9 @@ function AutoragConfigure(): React.JSX.Element {
 
   return (
     <FormProvider {...form}>
-      <Grid hasGutter>
+      <Grid className="pf-v6-u-h-100" hasGutter>
         <GridItem span={4}>
-          <Card className="pf-v6-u-h-100">
+          <Card isFullHeight>
             <CardTitle>Documents</CardTitle>
             <CardBody>
               <Stack>
@@ -129,13 +129,8 @@ function AutoragConfigure(): React.JSX.Element {
                   Select or add an S3 connection to upload files or browse existing files.
                 </StackItem>
                 <StackItem>
-                  <Split
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                    }}
-                  >
-                    <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
+                  <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
+                    <SplitItem style={{ width: '12rem' }} isFilled>
                       {Boolean(namespace) && (
                         <Controller
                           control={control}
@@ -210,7 +205,7 @@ function AutoragConfigure(): React.JSX.Element {
           </Card>
         </GridItem>
         <GridItem span={8}>
-          <Card className="pf-v6-u-h-100">
+          <Card isFullHeight>
             <CardTitle>Configure details</CardTitle>
             <CardBody>
               <Stack>
@@ -227,7 +222,7 @@ function AutoragConfigure(): React.JSX.Element {
 
                 <Grid hasGutter className="pf-v6-u-mt-md">
                   <GridItem span={6}>
-                    <Card className="pf-v6-u-h-100">
+                    <Card>
                       <CardHeader
                         hasWrap
                         actions={{
@@ -249,7 +244,7 @@ function AutoragConfigure(): React.JSX.Element {
                     </Card>
                   </GridItem>
                   <GridItem span={6}>
-                    <Card className="pf-v6-u-h-100">
+                    <Card>
                       <CardHeader
                         hasWrap
                         actions={{

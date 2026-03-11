@@ -10,6 +10,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React, { useState } from 'react';
@@ -134,7 +135,14 @@ function AutoragConfigurePage(): React.JSX.Element {
       <FormProvider {...form}>
         <Stack className="pf-v6-u-h-100" hasGutter component="form" noValidate>
           <StackItem isFilled>
-            <PageSection className="pf-v6-c-form pf-v6-u-pt-0" hasBodyWrapper={false}>
+            <PageSection
+              className={classNames(
+                'pf-v6-c-form',
+                'pf-v6-u-py-0',
+                step === 'configure' && 'pf-v6-u-h-100',
+              )}
+              hasBodyWrapper={false}
+            >
               {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
             </PageSection>
           </StackItem>
