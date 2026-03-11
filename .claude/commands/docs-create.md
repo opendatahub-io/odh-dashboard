@@ -14,4 +14,3 @@ When asked to create new documentation, read and follow the full workflow in
   `packages/<name>/docs/overview.md`, `docs/agent-rules/<rule>.md`).
 - No placeholder text (`TODO`, `TBD`, `[Description]`) may remain in the final doc.
 - Set `Last Updated` to today's date for doc types that use it.
-- Remind the user to add an entry to `docs/BOOKMARKS.md` if the doc should be indexed.
