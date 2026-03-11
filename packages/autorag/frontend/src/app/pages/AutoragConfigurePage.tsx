@@ -13,7 +13,7 @@ import {
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React, { useState } from 'react';
-import { FormProvider, useForm, Watch } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -42,29 +42,25 @@ function AutoragConfigurePage(): React.JSX.Element {
     defaultValues: experimentSchema.defaults,
   });
 
+  const [name] = useWatch({ control: form.control, name: createFields });
+
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
   const createActions = (
     <>
       <ActionListItem>
-        <Watch
-          control={form.control}
-          name={createFields}
-          render={() => (
-            <Button
-              variant="primary"
-              isDisabled={
-                !form.formState.isDirty ||
-                createFields.some((field) => form.getFieldState(field).invalid)
-              }
-              onClick={() => {
-                setStep('configure');
-              }}
-            >
-              Next
-            </Button>
-          )}
-        />
+        <Button
+          variant="primary"
+          isDisabled={
+            !form.formState.isDirty ||
+            createFields.some((field) => form.getFieldState(field).invalid)
+          }
+          onClick={() => {
+            setStep('configure');
+          }}
+        >
+          Next
+        </Button>
       </ActionListItem>
       <ActionListItem>
         <Button
@@ -91,7 +87,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             })();
           }}
         >
-          Create
+          Run experiment
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -110,6 +106,11 @@ function AutoragConfigurePage(): React.JSX.Element {
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      subtext={
+        <h2 className="pf-v6-u-mt-sm">
+          {step === 'create' ? 'Create AutoRAG experiment' : `${name} configurations`}
+        </h2>
+      }
       description={
         step === 'create' && (
           <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
@@ -121,9 +122,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>
-              <Watch control={form.control} name="name" render={(name) => name} />
-            </BreadcrumbItem>
+            <BreadcrumbItem isActive>{name}</BreadcrumbItem>
           </Breadcrumb>
         )
       }
@@ -135,12 +134,12 @@ function AutoragConfigurePage(): React.JSX.Element {
       <FormProvider {...form}>
         <Stack className="pf-v6-u-h-100" hasGutter component="form" noValidate>
           <StackItem isFilled>
-            <PageSection className="pf-v6-c-form" hasBodyWrapper={false}>
+            <PageSection className="pf-v6-c-form pf-v6-u-pt-0" hasBodyWrapper={false}>
               {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
             </PageSection>
           </StackItem>
           <StackItem>
-            <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
+            <PageSection hasBodyWrapper={false} hasShadowTop>
               <ActionList>
                 <ActionListGroup>
                   {step === 'create' ? createActions : configureActions}
