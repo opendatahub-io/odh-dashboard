@@ -290,11 +290,14 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           <LabelGroup aria-label="Current selections">
             {selected.map((selection, index) => (
               <Label
-                variant="outline"
+                variant={isDisabled ? 'filled' : 'outline'}
                 key={index}
+                closeBtnProps={{ isDisabled }}
                 onClose={(ev) => {
                   ev.stopPropagation();
-                  onSelect(selection);
+                  if (!isDisabled) {
+                    onSelect(selection);
+                  }
                 }}
               >
                 {selection.name}
