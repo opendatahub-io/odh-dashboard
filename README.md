@@ -4,9 +4,35 @@
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
 [definition of ready]: docs/definition-of-ready.md
 
-# Open Data Hub Dashboard [![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
+# Open Data Hub Dashboard
+
+[![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
+[![AgentReady](https://img.shields.io/badge/AgentReady-58.1%25-orange)](https://github.com/opendatahub-io/odh-dashboard/blob/main/AGENTS.md)
 
 A dashboard for Open Data Hub components, featuring user flows to navigate and interact with the various component parts of the stack.
+
+## Installation
+
+See [Dev setup & Requirements] for prerequisites and setup instructions.
+
+## Usage
+
+```bash
+npm install  # Install dependencies
+npm run dev  # Start development server
+```
+
+For detailed commands and workflows, see [Dashboard documentation].
+
+## Testing
+
+```bash
+npm run test              # Run all tests
+npm run test:frontend     # Frontend tests
+npm run test:backend      # Backend tests
+```
+
+See [docs/testing.md](docs/testing.md) for comprehensive testing guide.
 
 ## Contributing
 
