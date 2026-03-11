@@ -5,32 +5,44 @@ import {
   isModArchResponse,
   restCREATE,
   restDELETE,
-  restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import type { CreateAPIKeyRequest, CreateAPIKeyResponse, APIKey } from '~/app/types/api-key';
+import type {
+  APIKeyListResponse,
+  APIKeySearchRequest,
+  BulkRevokeResponse,
+  CreateAPIKeyRequest,
+  CreateAPIKeyResponse,
+  APIKey,
+} from '~/app/types/api-key';
 
-/** GET /api/v1/api-keys - Fetch the list of api keys (metadata only, not the actual token values) */
-export const getApiKeys =
+/** POST /api/v1/api-keys/search - Search API keys with optional filters, sorting, and pagination */
+export const searchApiKeys =
   (hostPath = '') =>
-  (opts: APIOptions): Promise<APIKey[]> =>
+  (opts: APIOptions, request: APIKeySearchRequest = {}): Promise<APIKeyListResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`, {}, opts),
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/search`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
     ).then((response) => {
-      if (isModArchResponse<APIKey[]>(response)) {
+      if (isModArchResponse<APIKeyListResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
     });
 
-/** POST /api/v1/api-key - Create a new API key */
+/** POST /api/v1/api-keys - Create a new API key */
 export const createApiKey =
   (hostPath = '') =>
   (opts: APIOptions, request: CreateAPIKeyRequest): Promise<CreateAPIKeyResponse> =>
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-key`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`,
         assembleModArchBody(request),
         {},
         opts,
@@ -42,14 +54,33 @@ export const createApiKey =
       throw new Error('Invalid response format');
     });
 
-/** DELETE /api/v1/api-keys - Delete all API keys */
-export const deleteAllApiKeys =
+/** POST /api/v1/api-keys/bulk-revoke - Revoke all API keys for a user */
+export const bulkRevokeApiKeys =
   (hostPath = '') =>
-  (opts: APIOptions): Promise<void> =>
+  (opts: APIOptions, username: string): Promise<BulkRevokeResponse> =>
     handleRestFailures(
-      restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`, {}, {}, opts),
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/bulk-revoke`,
+        assembleModArchBody({ username }),
+        {},
+        opts,
+      ),
     ).then((response) => {
-      if (isModArchResponse<void>(response)) {
+      if (isModArchResponse<BulkRevokeResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** DELETE /api/v1/api-keys/:id - Revoke a specific API key */
+export const revokeApiKey =
+  (hostPath = '') =>
+  (opts: APIOptions, keyId: string): Promise<APIKey> =>
+    handleRestFailures(
+      restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${keyId}`, {}, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<APIKey>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
