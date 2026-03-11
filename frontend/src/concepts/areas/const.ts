@@ -7,7 +7,7 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
-  aiAssetExternalModels: false,
+  aiAssetCustomModels: false,
   maasApiKeys: false,
   mlflow: false,
   mcpCatalog: false,

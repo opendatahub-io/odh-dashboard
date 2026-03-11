@@ -1304,7 +1304,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  aiAssetExternalModels?: boolean;
+  aiAssetCustomModels?: boolean;
   maasApiKeys?: boolean;
   mlflow?: boolean;
   mcpCatalog?: boolean;
@@ -1340,7 +1340,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       isLLMdDefault?: boolean;
     };
     genAiStudioConfig?: {
-      aiAssetExternalModels?: {
+      aiAssetCustomModels?: {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };
