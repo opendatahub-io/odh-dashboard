@@ -6,7 +6,6 @@ Principles:
   - I. Code Quality
   - II. Testing Standards
   - III. User Experience Consistency
-  - IV. Performance Requirements
 Follow-up TODOs: None
 -->
 
@@ -69,41 +68,13 @@ no coverage gaps slip through in the code you touched.
 All user-facing features MUST deliver a consistent, predictable
 experience:
 
-- UI components MUST follow established design system patterns.
+- UI components MUST follow established design system patterns
+  (PatternFly or Material UI, depending on the package).
   No one-off styling or ad hoc component variants.
-- Interaction patterns (navigation, forms, feedback, errors)
-  MUST be uniform across the application.
-- Loading states, empty states, and error states MUST be
-  handled explicitly for every user-facing operation.
-- Accessibility standards (WCAG 2.1 AA minimum) MUST be met.
-  Semantic HTML, keyboard navigation, and screen reader
-  compatibility are required.
-- User-facing text MUST be clear, concise, and free of jargon.
 
 **Rationale**: Consistency builds user trust and reduces
 support burden. Predictable interfaces lower the learning
 curve and improve task completion rates.
-
-### IV. Performance Requirements
-
-All features MUST meet baseline performance standards before
-release:
-
-- Page loads and route transitions MUST complete in under 2
-  seconds on standard broadband connections.
-- API responses MUST return within 500ms at p95 under expected
-  load.
-- Client-side bundles MUST not introduce unnecessary bloat.
-  Lazy loading and code splitting MUST be used where applicable.
-- Database queries MUST be optimized. No N+1 queries, no
-  full table scans on large datasets.
-- Performance regressions MUST be caught during code review.
-  Benchmark comparisons SHOULD be included for performance-
-  sensitive changes.
-
-**Rationale**: Performance directly impacts user satisfaction
-and retention. Setting explicit thresholds prevents gradual
-degradation over time.
 
 ## Post-Implementation Compliance
 
@@ -134,8 +105,8 @@ after the agent completes the implementation step:
 - Constitution compliance MUST be verified at the plan
   stage (Constitution Check) and again after implementation
   (Post-Implementation Compliance).
-- Code review MUST verify adherence to all four core
-  principles before approval.
+- Code review MUST verify adherence to all core principles
+  before approval.
 - Any deviation from these principles MUST be documented
   with justification in the Complexity Tracking table of
   the implementation plan.
