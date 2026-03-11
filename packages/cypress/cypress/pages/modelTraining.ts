@@ -683,9 +683,59 @@ class TrainingJobDetailsTab {
   }
 }
 
+class RayJobDetailsDrawer {
+  find() {
+    return cy.findByTestId('ray-job-details-drawer');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('ray-job-details-drawer').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByTestId('ray-job-drawer-title');
+  }
+
+  findCloseButton() {
+    return this.find().findByLabelText('Close drawer panel');
+  }
+
+  findKebabMenu() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTab(tabName: string) {
+    return this.find().findByRole('tab', { name: tabName });
+  }
+
+  selectTab(tabName: string) {
+    this.findTab(tabName).click();
+    return this;
+  }
+
+  close() {
+    this.findCloseButton().click();
+  }
+
+  clickKebabMenu() {
+    this.findKebabMenu().click();
+  }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
+export const rayJobDetailsDrawer = new RayJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
