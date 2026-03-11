@@ -8,10 +8,15 @@ import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(namespace, runId);
+  // Early guard: treat missing route params as invalid immediately
+  const missingParams = !namespace || !runId;
 
-  // Treat missing route params as invalid immediately
-  const invalidPipelineRunId = !namespace || !runId || pipelineRunQuery.isError;
+  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(
+    !missingParams ? namespace : undefined,
+    !missingParams ? runId : undefined,
+  );
+
+  const invalidPipelineRunId = missingParams || pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
@@ -19,7 +24,7 @@ function AutoragResultsPage(): React.JSX.Element {
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
       loadError={pipelineRunQuery.error ?? undefined}
-      loaded={pipelineRunQuery.isFetched}
+      loaded={missingParams || pipelineRunQuery.isFetched}
       provideChildrenPadding
       removeChildrenTopPadding
     >
