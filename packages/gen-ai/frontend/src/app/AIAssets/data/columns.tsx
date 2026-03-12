@@ -17,22 +17,6 @@ const sourceTypePopover = (
           gateway.
         </Content>
         <Content component={ContentVariants.dt}>
-          <Label color="green" isCompact>
-            External
-          </Label>
-        </Content>
-        <Content component={ContentVariants.dd}>
-          Hosted outside your cluster by a third-party provider.
-        </Content>
-        <Content component={ContentVariants.dt}>
-          <Label color="orange" isCompact>
-            Public route
-          </Label>
-        </Content>
-        <Content component={ContentVariants.dd}>
-          Accessible across namespaces within the cluster via a public route.
-        </Content>
-        <Content component={ContentVariants.dt}>
           <Label color="grey" isCompact>
             Internal
           </Label>

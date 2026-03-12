@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Td, Tr } from '@patternfly/react-table';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -35,7 +35,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const { namespace } = React.useContext(GenAiContext);
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
-  const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const sourceLabel = getSourceLabel(model);
   const assetType = model.isMaaSModel ? 'maas_model' : 'model';
@@ -129,24 +128,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Button>
           )}
         </Td>
-        <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'Remove asset',
-                isDanger: true,
-                isDisabled: !enabledModel,
-                onClick: () => {
-                  fireMiscTrackingEvent('Remove Asset Clicked', {
-                    assetType,
-                    assetId: model.model_id,
-                  });
-                  setIsRemoveModalOpen(true);
-                },
-              },
-            ]}
-          />
-        </Td>
       </Tr>
       {isEndpointModalOpen && (
         <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
@@ -159,14 +140,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           existingModels={playgroundModels}
           extraSelectedModels={[model]}
           redirectToPlayground
-        />
-      )}
-      {isRemoveModalOpen && (
-        <ChatbotConfigurationModal
-          onClose={() => setIsRemoveModalOpen(false)}
-          lsdStatus={lsdStatus}
-          aiModels={allModels}
-          existingModels={playgroundModels.filter((m) => m.modelId !== model.model_id)}
         />
       )}
     </>

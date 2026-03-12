@@ -353,48 +353,6 @@ describe('AIModelTableRow', () => {
     });
   });
 
-  describe('Remove asset action', () => {
-    it('should not open modal when "Remove asset" is clicked and model is not in playground', () => {
-      const model = createMockAIModel();
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      const kebabButton = screen.getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(kebabButton);
-
-      const removeItem = screen.getByRole('menuitem', { name: /remove asset/i });
-      fireEvent.click(removeItem);
-
-      expect(screen.queryByTestId('configuration-modal')).not.toBeInTheDocument();
-    });
-
-    it('should open configuration modal when "Remove asset" is clicked for playground model', () => {
-      const model = createMockAIModel({ model_id: 'test-model-id' });
-      const playgroundModel = createMockPlaygroundModel('test-model-id');
-
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
-        </TestWrapper>,
-      );
-
-      const kebabButton = screen.getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(kebabButton);
-
-      const removeItem = screen.getByRole('menuitem', { name: /remove asset/i });
-      fireEvent.click(removeItem);
-
-      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Remove Asset Clicked', {
-        assetType: 'model',
-        assetId: 'test-model-id',
-      });
-    });
-  });
-
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
       const model = createMockAIModel({ model_id: 'maas-model-id', isMaaSModel: true });
