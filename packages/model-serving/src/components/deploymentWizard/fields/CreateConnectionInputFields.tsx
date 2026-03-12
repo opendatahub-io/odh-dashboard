@@ -132,7 +132,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
       setKserveNameDesc('description', '');
       setKserveNameDesc('k8sName', '');
     },
-    [setCreateConnectionData, setKserveNameDesc],
+    [createConnectionData, setCreateConnectionData, setKserveNameDesc],
   );
   return (
     <>
