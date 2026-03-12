@@ -148,7 +148,7 @@ describe('AI Assets - Models Tab', () => {
 
         cy.step('Select API Protocol');
         servingRuntimes.findSelectAPIProtocolButton().click();
-        servingRuntimes.selectAPIProtocol('REST');
+        servingRuntimes.selectAPIProtocol(testData.apiProtocol);
 
         cy.step('Select Generative AI Model Type');
         servingRuntimes.findSelectModelTypes().click();
@@ -164,6 +164,7 @@ describe('AI Assets - Models Tab', () => {
           .should('be.enabled')
           .click()
           .then(() => {
+            // Extended timeout for redirect after serving runtime creation completes
             cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
               timeout: 30000,
             });
@@ -348,7 +349,10 @@ describe('AI Assets - Models Tab', () => {
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
-        aiAssetsPage.verifyModelStatus(testData.modelDeploymentName, 'Active');
+        aiAssetsPage.verifyModelStatus(
+          testData.modelDeploymentName,
+          testData.expectedStatus as 'Active' | 'Inactive',
+        );
       },
     );
 
@@ -537,7 +541,7 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName('nonexistent-model-name-xyz-123');
+        aiAssetsPage.filterByName(testData.nonExistentFilterValue);
         aiAssetsPage.verifyModelDoesNotExist(testData.modelDeploymentName);
       },
     );
