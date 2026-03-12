@@ -85,6 +85,9 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
           {MODEL_TABS.map(({ modelType, label, testId }) => {
             const { field, models } = tabData[modelType];
             const selectedModels = field.value;
+            const selectedCount = selectedModels.filter((id) =>
+              models.some((model) => model.id === id),
+            ).length;
             const allSelected =
               models.length > 0 &&
               models.every((model) =>
@@ -119,7 +122,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                       isCompact
                       data-testid={`${modelType}-selected-count`}
                     >
-                      {selectedModels.length}
+                      {selectedCount}
                     </Label>
                   </TabTitleText>
                 }
