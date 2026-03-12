@@ -71,7 +71,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 describe('ChatbotConfigurationTableRow', () => {
   const defaultProps = {
-    model: createMockAIModel({ modelSource: 'namespace' }),
+    model: createMockAIModel({ model_source_type: 'namespace' }),
     isChecked: false,
     onToggleCheck: jest.fn(),
     onMaxTokensChange: jest.fn(),
@@ -95,8 +95,8 @@ describe('ChatbotConfigurationTableRow', () => {
 
   it('renders MaaS badge for MaaS models', () => {
     const maasModel = createMockAIModel({
-      modelSource: 'maas',
-      modelSource: 'maas',
+      model_source_type: 'maas',
+      model_source_type: 'maas',
       display_name: 'MaaS Test Model',
     });
 
@@ -112,7 +112,7 @@ describe('ChatbotConfigurationTableRow', () => {
 
   it('renders External badge for external provider models', () => {
     const externalModel = createMockAIModel({
-      modelSource: 'external_provider',
+      model_source_type: 'external_provider',
       display_name: 'External Test Model',
     });
 
@@ -128,7 +128,7 @@ describe('ChatbotConfigurationTableRow', () => {
 
   it('renders Public route badge for external cluster models', () => {
     const externalClusterModel = createMockAIModel({
-      modelSource: 'external_cluster',
+      model_source_type: 'external_cluster',
       display_name: 'Cross-NS Model',
     });
 

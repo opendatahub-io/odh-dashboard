@@ -162,7 +162,7 @@ describe('AIModelTableRow', () => {
   });
 
   it('should render View button for MaaS models', () => {
-    const model = createMockAIModel({ modelSource: 'maas' });
+    const model = createMockAIModel({ model_source_type: 'maas' });
     render(
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
@@ -356,7 +356,7 @@ describe('AIModelTableRow', () => {
 
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
-      const model = createMockAIModel({ model_id: 'maas-model-id', modelSource: 'maas' });
+      const model = createMockAIModel({ model_id: 'maas-model-id', model_source_type: 'maas' });
       const playgroundModel = createMockPlaygroundModel('maas-model-id');
 
       render(
@@ -374,7 +374,7 @@ describe('AIModelTableRow', () => {
     });
 
     it('should track assetType as model for non-MaaS models on playground launch', () => {
-      const model = createMockAIModel({ model_id: 'ns-model-id', modelSource: 'namespace' });
+      const model = createMockAIModel({ model_id: 'ns-model-id', model_source_type: 'namespace' });
       const playgroundModel = createMockPlaygroundModel('ns-model-id');
 
       render(

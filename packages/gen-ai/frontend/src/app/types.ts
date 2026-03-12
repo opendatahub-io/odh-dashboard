@@ -372,8 +372,6 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  // Source of the model - derives from model_source_type in API response
-  modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
 export type ExternalModelRequest = {

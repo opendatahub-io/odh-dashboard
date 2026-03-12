@@ -88,7 +88,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token: '',
   },
   model_source_type: 'namespace',
-  modelSource: 'namespace',
   ...overrides,
 });
 const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
@@ -199,7 +198,7 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 describe('ChatbotConfigurationModal MaaS model support', () => {
   test('createAIModel helper creates regular model by default', () => {
     const model = createAIModel({ model_name: 'test-model' });
-    expect(model.modelSource).toBe('namespace');
+    expect(model.model_source_type).toBe('namespace');
     expect(model.model_id).toBe('test-model');
   });
 
@@ -207,9 +206,9 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
     const model = createAIModel({
       model_name: 'Granite 7B Lab',
       model_id: 'granite-7b-lab',
-      modelSource: 'maas',
+      model_source_type: 'maas',
     });
-    expect(model.modelSource).toBe('maas');
+    expect(model.model_source_type).toBe('maas');
     expect(model.model_id).toBe('granite-7b-lab');
   });
 
@@ -219,7 +218,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
       model_name: 'Granite MaaS',
       model_id: 'granite-7b-lab',
       display_name: 'Granite MaaS',
-      modelSource: 'maas',
+      model_source_type: 'maas',
     });
     const allModels = [regularModel, maasModel];
 
@@ -233,7 +232,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
       model_name: 'Llama 2 Chat',
       model_id: 'llama-2-7b-chat',
       display_name: 'Llama 2 Chat',
-      modelSource: 'maas',
+      model_source_type: 'maas',
     });
 
     renderModal({ allModels: [maasModel] });
@@ -245,7 +244,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
     };
 
     // Verify the MaaS model is in the selected models list
-    expect(parsed.models).toContain('llama-2-7b-chat');
+    expect(parsed.models).toContain('Llama 2 Chat');
     expect(parsed.models).toHaveLength(1);
   });
 });
