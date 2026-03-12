@@ -15,8 +15,15 @@ import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
-import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
-import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
+import {
+  TrainingJobState,
+  RayJobDisplayState,
+  JobDisplayState,
+  UnifiedJobKind,
+  isRayJob,
+  isTrainJob,
+} from '../../types';
+import { getWorkloadForJob, setTrainJobPauseState } from '../../api';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 
 export enum TrainJobConditionType {
@@ -50,7 +57,7 @@ export enum JobSectionName {
 }
 
 export const getStatusInfo = (
-  status: TrainingJobState,
+  status: JobDisplayState,
 ): {
   label: string;
   status?: LabelProps['status'];
@@ -336,7 +343,7 @@ export const getTrainingJobStatus = async (
     // ==================
     // KUEUE-ENABLED JOBS
     // ==================
-    const workload = await getWorkloadForTrainJob(job);
+    const workload = await getWorkloadForJob(job);
 
     if (workload) {
       const conditions = workload.status?.conditions || [];
@@ -448,7 +455,7 @@ export const getTrainingJobStatusSync = (job: TrainJobKind): TrainingJobState =>
 };
 
 export const getStatusFlags = (
-  status: TrainingJobState,
+  status: JobDisplayState,
 ): {
   isRunning: boolean;
   isFailed: boolean;
@@ -540,7 +547,7 @@ const updateTitleAndDescription = (
  * Falls back to hardcoded title from getStatusInfo if no backend data found.
  */
 export const getStatusAlert = (
-  status: TrainingJobState,
+  status: JobDisplayState,
   workloadConditions?: WorkloadCondition[],
   trainJobConditions?: Array<{
     type: string;
@@ -726,7 +733,7 @@ export const getSectionStatusesFromJobsStatus = (
     ready?: number;
     suspended?: number;
   }>,
-  overallJobStatus?: TrainingJobState,
+  overallJobStatus?: JobDisplayState,
 ): {
   initialization: TrainingJobState;
   dataInitializer: TrainingJobState;
@@ -899,12 +906,12 @@ export const getUnifiedJobNodeCount = (
 
 /**
  * Basic RayJob status mapping from jobDeploymentStatus to TrainingJobState.
- * This is a simplified synchronous version for table display.
- * Full status logic will be implemented in RHOAIENG-49273.
+ * This is a simplified synchronous version used for sorting and filtering.
+ * For the full composite status (CR + Workload/Kueue), use getRayJobStatus.
  */
-export const getRayJobStatusSync = (job: RayJobKind): TrainingJobState => {
+export const getRayJobStatusSync = (job: RayJobKind): RayJobDisplayState => {
   if (job.metadata.deletionTimestamp) {
-    return TrainingJobState.DELETING;
+    return RayJobDisplayState.DELETING;
   }
 
   const { jobStatus, jobDeploymentStatus } = job.status ?? {};
@@ -913,42 +920,195 @@ export const getRayJobStatusSync = (job: RayJobKind): TrainingJobState => {
     jobDeploymentStatus === 'Complete' &&
     (jobStatus === 'SUCCEEDED' || jobStatus === 'STOPPED')
   ) {
-    return TrainingJobState.SUCCEEDED;
+    return RayJobDisplayState.SUCCEEDED;
   }
   if (
     jobDeploymentStatus === 'Failed' ||
     jobDeploymentStatus === 'ValidationFailed' ||
     jobStatus === 'FAILED'
   ) {
-    return TrainingJobState.FAILED;
+    return RayJobDisplayState.FAILED;
   }
   if (
     jobDeploymentStatus === 'Suspended' ||
     jobDeploymentStatus === 'Suspending' ||
     job.spec.suspend === true
   ) {
-    return TrainingJobState.PAUSED;
+    return RayJobDisplayState.PAUSED;
   }
   if (jobStatus === 'RUNNING' || jobDeploymentStatus === 'Running') {
-    return TrainingJobState.RUNNING;
+    return RayJobDisplayState.RUNNING;
   }
   if (jobStatus === 'PENDING') {
-    return TrainingJobState.PENDING;
+    return RayJobDisplayState.PENDING;
   }
   if (jobDeploymentStatus === 'Initializing') {
-    return TrainingJobState.CREATED;
+    return RayJobDisplayState.PENDING;
   }
   if (jobDeploymentStatus === 'Waiting' || jobDeploymentStatus === 'Retrying') {
-    return TrainingJobState.QUEUED;
+    return RayJobDisplayState.QUEUED;
   }
 
-  return TrainingJobState.UNKNOWN;
+  return RayJobDisplayState.UNKNOWN;
+};
+
+/**
+ * Get RayJob status with composite CR + Workload/Kueue support (async).
+ *
+ * Status determination follows this priority order (higher priority checked first):
+ *
+ * 1. Terminal: deletionTimestamp set → DELETING
+ * 2. CR: jobStatus SUCCEEDED && jobDeploymentStatus Complete/STOPPED → SUCCEEDED
+ * 3. Kueue (workload present): QuotaReserved=False + Inadmissible → INADMISSIBLE
+ * 4. CR: jobStatus Failed || jobDeploymentStatus Failed/ValidationFailed → FAILED
+ * 5. Kueue (workload present): Workload Finished + error/failed/rejected → FAILED
+ * 6. Kueue (workload present): Workload Finished + success/succeeded → SUCCEEDED
+ * 7. CR + Kueue: workload.spec.active=false || jobDeploymentStatus Suspended/Suspending || spec.suspend=true → PAUSED
+ * 8. Kueue (workload present): Workload Evicted/Preempted → PREEMPTED
+ * 9. CR + Kueue: PodsReady=True || jobStatus RUNNING || jobDeploymentStatus Running → RUNNING
+ * 10. CR + Kueue: QuotaReserved=True || jobDeploymentStatus Initializing || jobStatus PENDING → PENDING
+ * 11. Fallback → QUEUED
+ *
+ * @param job - RayJob to check status for
+ * @returns Promise resolving to the job's current status
+ */
+export const getRayJobStatus = async (
+  job: RayJobKind,
+): Promise<{ status: RayJobDisplayState; isLoading: boolean; error?: string }> => {
+  try {
+    // P1: Terminal — being deleted
+    if (job.metadata.deletionTimestamp) {
+      return { status: RayJobDisplayState.DELETING, isLoading: false };
+    }
+
+    const { jobStatus, jobDeploymentStatus } = job.status ?? {};
+
+    // P2: CR terminal success (checked before async workload call)
+    if (
+      (jobStatus === 'SUCCEEDED' || jobStatus === 'STOPPED') &&
+      jobDeploymentStatus === 'Complete'
+    ) {
+      return { status: RayJobDisplayState.SUCCEEDED, isLoading: false };
+    }
+
+    // Check if job is Kueue-managed
+    const hasQueueLabel = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
+
+    // P4 (non-Kueue path — no need to fetch workload first): CR terminal failure
+    if (
+      jobStatus === 'FAILED' ||
+      jobDeploymentStatus === 'Failed' ||
+      jobDeploymentStatus === 'ValidationFailed'
+    ) {
+      return { status: RayJobDisplayState.FAILED, isLoading: false };
+    }
+
+    if (!hasQueueLabel) {
+      // Non-Kueue: fall back to sync logic for remaining states
+      return { status: getRayJobStatusSync(job), isLoading: false };
+    }
+
+    // ==================
+    // KUEUE-ENABLED JOBS
+    // ==================
+    const workload = await getWorkloadForJob(job);
+
+    if (workload) {
+      const conditions = workload.status?.conditions || [];
+      const workloadConditionsMap = extractWorkloadConditions(conditions);
+
+      // P3: System rejection
+      if (workloadConditionsMap.Inadmissible) {
+        return { status: RayJobDisplayState.INADMISSIBLE, isLoading: false };
+      }
+
+      // P5: Workload-reported failure
+      if (workloadConditionsMap.Failed) {
+        return { status: RayJobDisplayState.FAILED, isLoading: false };
+      }
+
+      // P6: Workload-reported success
+      if (workloadConditionsMap.Succeeded) {
+        return { status: RayJobDisplayState.SUCCEEDED, isLoading: false };
+      }
+
+      // P7: Paused (user action)
+      if (
+        workload.spec.active === false ||
+        jobDeploymentStatus === 'Suspended' ||
+        jobDeploymentStatus === 'Suspending' ||
+        job.spec.suspend === true
+      ) {
+        return { status: RayJobDisplayState.PAUSED, isLoading: false };
+      }
+
+      // P8: Preempted
+      if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
+        return { status: RayJobDisplayState.PREEMPTED, isLoading: false };
+      }
+
+      // P9: Running
+      if (
+        workloadConditionsMap.Running ||
+        jobStatus === 'RUNNING' ||
+        jobDeploymentStatus === 'Running'
+      ) {
+        return { status: RayJobDisplayState.RUNNING, isLoading: false };
+      }
+
+      // P10: Pending
+      const quotaReservedCondition = conditions.find(
+        (c) => c.type === WorkloadConditionType.QuotaReserved && c.status === ConditionStatus.True,
+      );
+      if (
+        quotaReservedCondition ||
+        jobDeploymentStatus === 'Initializing' ||
+        jobStatus === 'PENDING'
+      ) {
+        return { status: RayJobDisplayState.PENDING, isLoading: false };
+      }
+
+      // P11: Queued fallback
+      return { status: RayJobDisplayState.QUEUED, isLoading: false };
+    }
+
+    // Kueue-enabled but workload not yet created — use CR fields only
+    // P7: Paused
+    if (
+      jobDeploymentStatus === 'Suspended' ||
+      jobDeploymentStatus === 'Suspending' ||
+      job.spec.suspend === true
+    ) {
+      return { status: RayJobDisplayState.PAUSED, isLoading: false };
+    }
+
+    // P9: Running
+    if (jobStatus === 'RUNNING' || jobDeploymentStatus === 'Running') {
+      return { status: RayJobDisplayState.RUNNING, isLoading: false };
+    }
+
+    // P10: Pending
+    if (jobDeploymentStatus === 'Initializing' || jobStatus === 'PENDING') {
+      return { status: RayJobDisplayState.PENDING, isLoading: false };
+    }
+
+    // P11: Queued — waiting for workload to be created
+    return { status: RayJobDisplayState.QUEUED, isLoading: false };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`Failed to get status for RayJob ${job.metadata.name}:`, errorMessage);
+    return {
+      status: getRayJobStatusSync(job),
+      isLoading: false,
+      error: errorMessage,
+    };
+  }
 };
 
 /**
  * Get status for any job type using type guards (synchronous).
  */
-export const getUnifiedJobStatusSync = (job: UnifiedJobKind): TrainingJobState => {
+export const getUnifiedJobStatusSync = (job: UnifiedJobKind): JobDisplayState => {
   if (isRayJob(job)) {
     return getRayJobStatusSync(job);
   }
@@ -958,7 +1118,7 @@ export const getUnifiedJobStatusSync = (job: UnifiedJobKind): TrainingJobState =
 export const filterJob = (
   job: UnifiedJobKind,
   filterData: Partial<JobsFilterDataType>,
-  jobStatuses: Map<string, TrainingJobState>,
+  jobStatuses: Map<string, JobDisplayState>,
 ): boolean => {
   const nameFilter = filterData.Name?.toLowerCase();
   const statusFilter = filterData.Status?.toLowerCase();

@@ -25,6 +25,21 @@ export enum RayJobStatusValue {
   FAILED = 'FAILED',
 }
 
+export enum RayJobDisplayState {
+  RUNNING = 'Running',
+  FAILED = 'Failed',
+  SUCCEEDED = 'Succeeded',
+  PAUSED = 'Paused',
+  PENDING = 'Pending',
+  QUEUED = 'Queued',
+  INADMISSIBLE = 'Inadmissible',
+  PREEMPTED = 'Preempted',
+  DELETING = 'Deleting',
+  UNKNOWN = 'Unknown',
+}
+
+export type JobDisplayState = TrainingJobState | RayJobDisplayState;
+
 export enum RayJobDeploymentStatus {
   INITIALIZING = 'Initializing',
   RUNNING = 'Running',
