@@ -41,9 +41,7 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    // Defensive: use cy.get directly and pass to findAppNavItem
-    // This ensures we get a proper Cypress chainable with all methods
-    return cy.get('#page-sidebar').findAppNavItem(args);
+    return this.findSideBar().findAppNavItem(args);
   }
 }
 
