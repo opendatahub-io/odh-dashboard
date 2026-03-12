@@ -11,6 +11,8 @@ type Repositories struct {
 	Namespace    *NamespaceRepository
 	LSDModels    *LSDModelsRepository
 	Secret       *SecretRepository
+	S3           *S3Repository
+	Pipeline     *PipelineRepository
 	PipelineRuns *PipelineRunsRepository
 }
 
@@ -23,6 +25,8 @@ func NewRepositories(logger *slog.Logger) *Repositories {
 		Namespace:    NewNamespaceRepository(),
 		LSDModels:    NewLSDModelsRepository(),
 		Secret:       NewSecretRepository(),
+		S3:           NewS3Repository(),
+		Pipeline:     NewPipelineRepository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

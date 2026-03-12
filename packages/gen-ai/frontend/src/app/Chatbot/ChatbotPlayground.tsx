@@ -263,19 +263,25 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [sourceManagement, alertManagement],
   );
 
+  const openSettingsToTab = location.state?.openSettingsToTab;
+
   // Effects
   React.useEffect(() => {
+    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: mcpServersFromRoute,
+      selectedMcpServerIds: preSelectMcp,
     });
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [mcpServersFromRoute, selectedAAModel]);
+  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
-      location.state?.mcpServers || location.state?.model || location.state?.mcpServerStatuses,
+      location.state?.mcpServers ||
+        location.state?.model ||
+        location.state?.mcpServerStatuses ||
+        location.state?.openSettingsToTab,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -475,6 +481,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
               isOverlay={isCompareMode}
+              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
           }
         >

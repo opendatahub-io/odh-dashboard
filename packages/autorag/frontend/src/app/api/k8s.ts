@@ -6,7 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind, SecretListItem } from '~/app/types';
+import { LlamaStackModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -36,7 +36,7 @@ export const getSecrets =
   (hostPath: string) =>
   (namespace: string, type?: 'storage' | 'lls') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
-    const queryParams: Record<string, string> = { resource: namespace };
+    const queryParams: Record<string, string> = { namespace };
     if (type) {
       queryParams.type = type;
     }
@@ -49,3 +49,21 @@ export const getSecrets =
       throw new Error('Invalid response format');
     });
   };
+
+export const getLlamaStackModels =
+  (hostPath: string) =>
+  (namespace: string, secretName: string) =>
+  (opts: APIOptions): Promise<LlamaStackModelsResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/lsd/models`,
+        { namespace, secretName },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<LlamaStackModelsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });

@@ -232,14 +232,14 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               <ActionsColumn
                 items={[
                   {
-                    title: 'Edit',
+                    title: <span data-testid="edit-permission-action">Edit</span>,
                     onClick: () => {
                       onEdit?.();
                     },
                   },
                   { isSeparator: true },
                   {
-                    title: 'Delete',
+                    title: <span data-testid="delete-permission-action">Delete</span>,
                     onClick: () => {
                       if (isCurrentUserBeingChanged) {
                         setIsDeleting(true);

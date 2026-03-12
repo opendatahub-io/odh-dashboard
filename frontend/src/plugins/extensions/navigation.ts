@@ -44,6 +44,24 @@ const extensions: NavExtension[] = [
       iconRef: () => import('#~/images/icons/AiHubNavIcon'),
     },
   },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'models',
+      title: 'Models',
+      group: '1_models',
+      section: 'ai-hub',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'mcp-servers',
+      title: 'MCP servers',
+      group: '2_mcp_servers',
+      section: 'ai-hub',
+    },
+  },
   // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
   // {
   //   type: 'app.navigation/href',

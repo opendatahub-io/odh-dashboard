@@ -60,7 +60,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 			input.Cancel()
 			os.Exit(1)
 		}
-		platformDir := fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)
+		platformDir := fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH)
 		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", platformDir)
 		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
@@ -112,6 +112,69 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	}
 
 	err = createNamespace(mockK8sClient, ctx, "bento-namespace")
+	if err != nil {
+		return err
+	}
+
+	// Secret without bucket - for testing bucket parameter validation
+	err = createSecret(mockK8sClient, ctx, "test-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	// Secret with bucket - for testing successful S3 operations
+	err = createSecret(mockK8sClient, ctx, "test-secret-with-bucket", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_BUCKET":         "test-bucket",
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	// Secret with display name annotation
+	err = createSecret(mockK8sClient, ctx, "annotated-display-name-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+	}, map[string]string{
+		"openshift.io/display-name": "Production S3 Credentials",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Secret with description annotation
+	err = createSecret(mockK8sClient, ctx, "annotated-description-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+	}, map[string]string{
+		"openshift.io/description": "AWS credentials for production S3 storage",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Secret with both display name and description annotations
+	err = createSecret(mockK8sClient, ctx, "fully-annotated-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+	}, map[string]string{
+		"openshift.io/display-name": "Development S3",
+		"openshift.io/description":  "S3 credentials for development environment",
+	})
 	if err != nil {
 		return err
 	}
@@ -175,6 +238,30 @@ func createNamespace(k8sClient kubernetes.Interface, ctx context.Context, namesp
 	_, err := k8sClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+	}
+
+	return nil
+}
+
+func createSecret(k8sClient kubernetes.Interface, ctx context.Context, name, namespace string, data map[string]string, annotations map[string]string) error {
+	secretData := make(map[string][]byte)
+	for key, value := range data {
+		secretData[key] = []byte(value)
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: annotations,
+		},
+		Data: secretData,
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	_, err := k8sClient.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create secret %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return nil

@@ -34,7 +34,7 @@ let servingRuntime: string;
 let resourceType: string;
 let Image: string;
 
-describe('A user can deploy an LLMD model', () => {
+describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
@@ -73,7 +73,7 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Maintain'],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -95,7 +95,10 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionInput().clear().type(`${modelName}-connection`);
+      modelServingWizard
+        .findSaveConnectionInput()
+        .clear()
+        .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 

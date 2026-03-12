@@ -20,7 +20,7 @@ const useCheckForAllowedUsers = (): [
         setLoaded(true);
       })
       .catch((e) => {
-        setError(new Error(e.response.data.message));
+        setError(new Error(e.response?.data?.message || e.message));
         setLoaded(false);
       });
   }, [workbenchNamespace]);

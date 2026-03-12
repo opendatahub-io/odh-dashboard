@@ -18,6 +18,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import {
   modelServingGlobal,
+  inferenceServiceActions,
   modelServingWizard,
   modelServingSection,
   deleteModelServingModal,
@@ -268,7 +269,8 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
         });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
-      kServeRow.find().findKebabAction('Delete').click();
+      kServeRow.findKebab().click();
+      inferenceServiceActions.findDeleteInferenceServiceAction().click();
       deleteModelServingModal.findInput().clear().type(modelName);
       deleteModelServingModal.findSubmitButton().should('be.enabled').click();
 

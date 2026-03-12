@@ -29,6 +29,33 @@ export type NamespaceKind = {
 };
 
 // ---------------------------------------------------------------------------
+// EvalHub CR status types matching the BFF response shape
+// ---------------------------------------------------------------------------
+
+export type EvalHubCRPhase = 'Initializing' | 'Ready' | 'Failed' | 'Pending' | 'Unknown';
+
+export type EvalHubCondition = {
+  type: string;
+  status: string;
+  lastTransitionTime?: string;
+  reason?: string;
+  message?: string;
+};
+
+export type EvalHubCRStatus = {
+  name: string;
+  namespace: string;
+  phase: EvalHubCRPhase;
+  ready: string;
+  url?: string;
+  activeProviders?: string[];
+  conditions?: EvalHubCondition[];
+  lastUpdateTime?: string;
+  readyReplicas: number;
+  replicas: number;
+};
+
+// ---------------------------------------------------------------------------
 // EvalHub evaluation job types matching the BFF response shape
 // ---------------------------------------------------------------------------
 
@@ -289,6 +316,8 @@ export type ProviderBenchmark = {
   pass_criteria?: ProviderBenchmarkPassCriteria;
 };
 
+export type FlatBenchmark = ProviderBenchmark & { providerId: string };
+
 export type ProviderEnvVar = {
   name: string;
   value: string;
@@ -328,3 +357,29 @@ export type ProvidersResponse = {
   items: Provider[];
   total_count?: number;
 };
+
+// ---------------------------------------------------------------------------
+// Create Evaluation Job request / response
+// ---------------------------------------------------------------------------
+
+export type CreateEvaluationJobRequest = {
+  name: string;
+  description?: string;
+  tags?: string[];
+  model: {
+    url: string;
+    name: string;
+    parameters?: Record<string, unknown>;
+    auth?: {
+      secret_ref?: string;
+    };
+  };
+  pass_criteria?: JobPassCriteria;
+  benchmarks: JobBenchmark[];
+  collection?: JobCollection;
+  experiment?: JobExperiment;
+  custom?: Record<string, unknown>;
+  exports?: JobExports;
+};
+
+export type CreateEvaluationJobResponse = EvaluationJob;

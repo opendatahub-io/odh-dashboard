@@ -68,10 +68,11 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 
 	// Validate provider type
 	validProviderTypes := map[models.ProviderTypeEnum]bool{
-		models.ProviderTypeGemini:    true,
-		models.ProviderTypeOpenAI:    true,
-		models.ProviderTypeAnthropic: true,
-		models.ProviderTypeVLLM:      true,
+		models.ProviderTypeGemini:      true,
+		models.ProviderTypeOpenAI:      true,
+		models.ProviderTypeAnthropic:   true,
+		models.ProviderTypeVLLM:        true,
+		models.ProviderTypePassthrough: true,
 	}
 	if !validProviderTypes[req.ProviderType] {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid provider_type: %s", req.ProviderType))
@@ -86,6 +87,18 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 	if !validModelTypes[req.ModelType] {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid model_type: %s", req.ModelType))
 		return
+	}
+
+	// Validate embedding_dimension for embedding models
+	if req.ModelType == models.ModelTypeEmbedding {
+		if req.EmbeddingDimension == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension is required for embedding models"))
+			return
+		}
+		if *req.EmbeddingDimension <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
+			return
+		}
 	}
 
 	// Get Kubernetes client

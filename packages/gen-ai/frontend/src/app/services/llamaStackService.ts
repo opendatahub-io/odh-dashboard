@@ -22,6 +22,10 @@ import {
   MCPConnectionStatus,
   MCPServersResponse,
   MCPToolsStatus,
+  MLflowPromptsResponse,
+  MLflowPromptVersion,
+  MLflowPromptVersionsResponse,
+  MLflowRegisterPromptRequest,
   OutputItem,
   ResponseMetrics,
   SafetyConfigResponse,
@@ -37,9 +41,13 @@ import {
   ModArchRestDELETE,
   ModArchRestCREATE,
   ModArchRestGET,
+  ExternalModelRequest,
+  ExternalModelResponse,
+  MaaSModel,
+  MaaSTokenRequest,
+  MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
-import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -528,6 +536,9 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
+export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
+  '/models/external',
+);
 
 export const getMCPServers = (
   hostPath: string,
@@ -603,3 +614,57 @@ export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenR
 
 export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
 export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
+
+/** MLflow Prompt Registry Endpoints */
+export const listMLflowPrompts = modArchRestGET<MLflowPromptsResponse>('/mlflow/prompts');
+export const registerMLflowPrompt = modArchRestCREATE<
+  MLflowPromptVersion,
+  MLflowRegisterPromptRequest
+>('/mlflow/prompts');
+
+export const getMLflowPrompt =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<MLflowPromptVersion> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { name, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}`;
+    return handleRestFailures(
+      restGET<MLflowPromptVersion>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<MLflowPromptVersion>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listMLflowPromptVersions =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<MLflowPromptVersionsResponse> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { name, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}/versions`;
+    return handleRestFailures(
+      restGET<MLflowPromptVersionsResponse>(
+        hostPath,
+        path,
+        { ...baseQueryParams, ...restParams },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };

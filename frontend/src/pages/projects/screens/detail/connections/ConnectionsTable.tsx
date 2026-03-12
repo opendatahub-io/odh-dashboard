@@ -37,14 +37,14 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
             connectionTypes={connectionTypes}
             kebabActions={[
               {
-                title: 'Edit',
+                title: <span data-testid="edit-connection-action">Edit</span>,
                 onClick: () => {
                   setManageConnectionModal(connection);
                 },
               },
               { isSeparator: true },
               {
-                title: 'Delete',
+                title: <span data-testid="delete-connection-action">Delete</span>,
                 onClick: () => {
                   setDeleteConnection(connection);
                 },

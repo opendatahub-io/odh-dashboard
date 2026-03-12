@@ -73,24 +73,3 @@ func IsK8sUnauthorized(err error) bool {
 func IsK8sForbidden(err error) bool {
 	return k8serrors.IsForbidden(err)
 }
-
-// wrapK8sSubjectAccessReviewError wraps Kubernetes SubjectAccessReview errors in K8sError for consistent error handling
-func wrapK8sSubjectAccessReviewError(err error, namespace string) *K8sError {
-	// Check if unauthorized (401) error from K8s API
-	if IsK8sUnauthorized(err) {
-		// 401 means the user's authentication token is invalid/expired
-		return NewUnauthorizedError("authentication failed: invalid or expired token")
-	}
-
-	// Check if forbidden (403) error from K8s API
-	if IsK8sForbidden(err) {
-		// 403 during authorization check - treat as insufficient permissions
-		return NewPermissionDeniedError(namespace, "insufficient permissions to access services in this namespace")
-	}
-
-	// For other errors, wrap as generic internal error.
-	return NewK8sErrorWithNamespace(ErrCodeInternalError,
-		"failed to verify user permissions",
-		namespace,
-		500)
-}

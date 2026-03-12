@@ -1,3 +1,5 @@
+import yaml from 'js-yaml';
+import type { StandaloneNotebookTestData } from '../../../types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { projectListPage } from '../../../pages/projects';
 import { notebookServer } from '../../../pages/notebookServer';
@@ -5,9 +7,16 @@ import { waitForPodReady, deleteNotebook } from '../../../utils/oc_commands/base
 import { retryableBefore } from '../../../utils/retryableHooks';
 
 describe('Verify a Jupyter Notebook can be launched directly from the Project List View', () => {
-  retryableBefore(() => {
-    deleteNotebook('jupyter-nb');
-  });
+  let testData: StandaloneNotebookTestData;
+
+  retryableBefore(() =>
+    cy
+      .fixture('e2e/dataScienceProjects/testLaunchStandaloneNotebook.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as StandaloneNotebookTestData;
+        deleteNotebook(testData.notebookPodPrefix);
+      }),
+  );
 
   it(
     'Verify User Can Access Jupyter Launcher From Project Page',
@@ -24,7 +33,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
 
       // Select a notebook image
       cy.step('Choose Code Server Image');
-      notebookServer.findNotebookImage('code-server-notebook').click();
+      notebookServer.findNotebookImage(testData.notebookImage).click();
 
       // Verify that 'Start Server button' is enabled
       cy.step('Check Start server button is enabled');
@@ -36,7 +45,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
 
       // Verify that the server is running
       cy.step('Verify the Jupyter Notebook pod is ready');
-      waitForPodReady('jupyter-nb', '300s');
+      waitForPodReady(testData.notebookPodPrefix, '300s');
 
       // Expand  the log
       cy.step('Expand the Event log');

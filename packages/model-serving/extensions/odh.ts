@@ -58,7 +58,7 @@ const extensions: (
     properties: {
       id: 'modelServing',
       title: 'Deployments',
-      section: 'ai-hub',
+      section: 'models',
       href: '/ai-hub/deployments',
       path: '/ai-hub/deployments/:namespace?/*',
     },

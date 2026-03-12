@@ -111,7 +111,7 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
-                    aiAssetExternalModels:
+                    aiAssetCustomEndpoints:
                       type: boolean
                     mlflow:
                       type: boolean
@@ -269,8 +269,8 @@ spec:
                   description: 'Configuration options for Gen AI Studio features'
                   type: object
                   properties:
-                    aiAssetExternalModels:
-                      description: 'Configuration for AI Asset external model providers feature'
+                    aiAssetCustomEndpoints:
+                      description: 'Configuration for AI Asset custom endpoints feature'
                       type: object
                       properties:
                         externalProviders:

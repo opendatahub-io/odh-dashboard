@@ -110,6 +110,9 @@ export const mockRayJobK8sResource = ({
         submissionMode,
         shutdownAfterJobFinishes: true,
         ttlSecondsAfterFinished: 300,
+        rayClusterSpec: {
+          headGroupSpec: { template: {} },
+        },
       },
       status: {
         jobStatus: resolvedJobStatus,
