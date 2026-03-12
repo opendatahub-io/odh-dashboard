@@ -647,13 +647,23 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should support filtering by pipeline version ID', async () => {
+        // This UUID is the deterministic LatestVersionID derived for "test-namespace" by
+        // psmocks.DeriveMockIDs("test-namespace") — computed as SHA-256("version-latest:test-namespace").
+        // Update here if the derivation logic in client_mock.go changes.
+        const latestVersionId = '12ca9d3a-b625-533c-1987-52e3dd8f409e';
         const result = await apiClient.get(
-          '/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899',
+          `/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=${latestVersionId}`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/PipelineRunsResponse/content/application/json/schema',
           status: 200,
         });
+        // Verify every returned run belongs to the requested pipeline version
+        const runs = result.response.data?.data?.runs ?? [];
+        expect(runs.length).toBeGreaterThan(0);
+        for (const run of runs) {
+          expect(run.pipeline_version_reference?.pipeline_version_id).toBe(latestVersionId);
+        }
       });
 
       it('should support pagination parameters', async () => {
