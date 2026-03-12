@@ -54,7 +54,9 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run }) => (
     <Td dataLabel={automlRunsColumns[0].label}>
       <span data-testid={`run-name-${run.run_id}`}>{run.display_name}</span>
     </Td>
-    <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
+    <Td dataLabel={automlRunsColumns[1].label}>
+      {run.description?.trim() ? run.description : '—'}
+    </Td>
     <Td dataLabel={automlRunsColumns[2].label}>
       {run.created_at ? (
         <Timestamp
