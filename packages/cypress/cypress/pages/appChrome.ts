@@ -41,7 +41,15 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    return this.findSideBar().findAppNavItem(args);
+    // Use cy.get('body').then() to avoid timeout when sidebar doesn't exist
+    // This is needed for tests that check .should('not.exist')
+    return cy.get('body').then(($body) => {
+      const $sidebar = $body.find('#page-sidebar');
+      if ($sidebar.length === 0) {
+        return cy.wrap(Cypress.$());
+      }
+      return cy.wrap($sidebar).findAppNavItem(args);
+    });
   }
 }
 
