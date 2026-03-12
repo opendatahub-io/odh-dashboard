@@ -174,7 +174,7 @@ function AutoragConfigure(): React.JSX.Element {
                                       setSelectedSecret(secret);
                                       onChange(secret?.invalid ? undefined : secret?.name);
                                       const bucketKey = Object.keys(secret?.data ?? {}).find(
-                                        (key) => key.toLocaleLowerCase() === 'aws_s3_bucket',
+                                        (key) => key.toLowerCase() === 'aws_s3_bucket',
                                       );
                                       setValue(
                                         'input_data_bucket_name',

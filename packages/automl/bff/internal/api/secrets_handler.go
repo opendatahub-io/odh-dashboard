@@ -85,7 +85,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 					StatusCode: http.StatusBadRequest,
 					ErrorResponse: integrations.ErrorResponse{
 						Code:    strconv.Itoa(http.StatusBadRequest),
-						Message: fmt.Sprintf("invalid request for namespace '%s': %s", namespace, statusErr.Error()),
+						Message: fmt.Sprintf("invalid request for namespace '%s'", namespace),
 					},
 				}
 				app.errorResponse(w, r, httpError)
