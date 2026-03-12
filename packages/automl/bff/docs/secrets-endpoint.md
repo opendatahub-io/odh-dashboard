@@ -12,31 +12,42 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `resource` | string | **Yes** | The namespace name to query secrets from |
+| `namespace` | string | **Yes** | The namespace name to query secrets from |
 | `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), or omit for all secrets |
 
 ## Functionality
 
 The endpoint:
-1. Lists secrets in the specified namespace (resource)
+1. Lists secrets in the specified namespace
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-3. Returns the Kubernetes UID, name, and type of each matching secret
-   - The `type` field indicates which secret type matches (e.g., "s3")
-   - If a secret doesn't match any known type, the `type` field is an empty string
-   - If a secret matches multiple types, the first matching type is returned
+3. Returns detailed information for each matching secret:
+   - **UID and name**: Kubernetes unique identifier and secret name
+   - **Type detection**: Determined by either:
+     1. The `opendatahub.io/connection-type` annotation (if present)
+     2. Key-based detection matching required keys (e.g., "s3" for S3 secrets)
+     3. Empty string if no type matches
+   - **Data with redaction**: Map of all secret keys with values
+     - Allowed keys (currently: `aws_s3_bucket`) return actual values
+     - All other keys return `"[REDACTED]"` for security
+   - **Metadata**: Display name and description from OpenShift annotations (if present)
 4. Requires authentication via the InjectRequestIdentity middleware
 5. Validates the `type` parameter and returns 400 Bad Request for invalid values
 
-### Secret Type Filtering
+### Secret Type Detection and Filtering
 
-Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Key matching is **case-insensitive**.
+Secret type is determined using a two-step process:
+
+1. **Annotation-based detection** (primary): If the secret has an `opendatahub.io/connection-type` annotation, its value is used as the type
+2. **Key-based detection** (fallback): If no annotation exists, the secret is classified based on required keys
+
+For key-based detection, a secret must contain **ALL** required keys for a type to be classified. Key matching is **case-insensitive**.
 
 **Currently Supported Storage Types:**
 
-| Storage Type | Required Keys |
-|--------------|---------------|
+| Storage Type | Required Keys (for key-based detection) |
+|--------------|------------------------------------------|
 | **S3** | `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
@@ -52,13 +63,26 @@ The response follows the envelope pattern:
       "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "aws-secret-1",
       "type": "s3",
-      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+      "data": {
+        "aws_access_key_id": "[REDACTED]",
+        "aws_default_region": "[REDACTED]",
+        "aws_s3_endpoint": "[REDACTED]",
+        "aws_secret_access_key": "[REDACTED]",
+        "aws_s3_bucket": "my-training-data"
+      },
+      "displayName": "Production S3 Storage",
+      "description": "S3 bucket for production training datasets"
     },
     {
       "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
       "name": "aws-secret-2",
       "type": "s3",
-      "availableKeys": ["aws_access_key_id", "aws_default_region", "aws_s3_endpoint", "aws_secret_access_key"]
+      "data": {
+        "aws_access_key_id": "[REDACTED]",
+        "aws_default_region": "[REDACTED]",
+        "aws_s3_endpoint": "[REDACTED]",
+        "aws_secret_access_key": "[REDACTED]"
+      }
     }
   ]
 }
@@ -70,8 +94,10 @@ The response follows the envelope pattern:
 |-------|------|-------------|
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
-| `type` | string | The storage type that the secret matches (e.g., "s3"), or empty string if it doesn't match any storage type |
-| `availableKeys` | string[] | Sorted list of all keys available in the secret (without values) |
+| `type` | string | The detected type (from annotation or key-based detection, e.g., "s3"), or empty string if it doesn't match any type |
+| `data` | object | Map of all secret keys with values. Allowed keys (currently: `aws_s3_bucket`) show actual values; all others show `"[REDACTED]"` |
+| `displayName` | string (optional) | Display name from `openshift.io/display-name` annotation |
+| `description` | string (optional) | Description from `openshift.io/description` annotation |
 
 ## Error Responses
 
@@ -88,13 +114,13 @@ The response follows the envelope pattern:
 ### List all secrets in a namespace
 
 ```bash
-GET /api/v1/secrets?resource=my-namespace
+GET /api/v1/secrets?namespace=my-namespace
 ```
 
 ### List storage (AWS) secrets only
 
 ```bash
-GET /api/v1/secrets?resource=my-namespace&type=storage
+GET /api/v1/secrets?namespace=my-namespace&type=storage
 ```
 
 
@@ -102,15 +128,16 @@ GET /api/v1/secrets?resource=my-namespace&type=storage
 
 ### Files Created/Modified
 
-1. **internal/models/secret.go** - Secret model definition
-2. **internal/repositories/secret.go** - Secret repository with storage type dictionary and filtering logic
-3. **internal/repositories/repositories.go** - Added Secret repository to container
-4. **internal/integrations/kubernetes/client.go** - Added GetSecrets method to interface
-5. **internal/integrations/kubernetes/token_k8s_client.go** - Implemented GetSecrets for token-based client
-6. **internal/integrations/kubernetes/internal_k8s_client.go** - Implemented GetSecrets for internal client
-7. **internal/api/secrets_handler.go** - HTTP handler implementation
-8. **internal/api/app.go** - Registered the route
-9. **internal/api/secrets_handler_test.go** - Comprehensive test suite
+1. **internal/models/secret.go** - Secret model definition with data, displayName, and description fields
+2. **internal/repositories/secret.go** - Secret repository with storage type dictionary, filtering logic, annotation detection, and data redaction
+3. **internal/constants/secrets.go** - Allowed secret keys configuration for data redaction
+4. **internal/repositories/repositories.go** - Added Secret repository to container
+5. **internal/integrations/kubernetes/client.go** - Added GetSecrets method to interface
+6. **internal/integrations/kubernetes/token_k8s_client.go** - Implemented GetSecrets for token-based client
+7. **internal/integrations/kubernetes/internal_k8s_client.go** - Implemented GetSecrets for internal client
+8. **internal/api/secrets_handler.go** - HTTP handler implementation
+9. **internal/api/app.go** - Registered the route
+10. **internal/api/secrets_handler_test.go** - Comprehensive test suite
 
 ### Storage Type Configuration
 
@@ -130,22 +157,45 @@ var storageTypeRequiredKeys = map[string][]string{
 
 To add a new storage type, simply add an entry to this map with the required keys. No changes to the API or handler code are needed.
 
+### Allowed Keys Configuration
+
+The allowed keys configuration (keys whose values are not redacted) is defined in `internal/constants/secrets.go`:
+
+```go
+var AllowedSecretKeys = []string{
+    AllowedSecretKey_AWS_S3_Bucket, // "aws_s3_bucket"
+}
+```
+
+To allow a new key to be exposed to clients:
+1. Add a constant in `internal/constants/secrets.go` (e.g., `AllowedSecretKey_MyNewKey`)
+2. Add it to the `AllowedSecretKeys` slice
+3. The key will automatically return its actual value instead of `"[REDACTED]"`
+
+Key matching is case-insensitive, so `aws_s3_bucket`, `AWS_S3_BUCKET`, and `Aws_S3_Bucket` will all match.
+
 ### Security
 
 - The endpoint requires authentication via the InjectRequestIdentity middleware
 - Permission checks are performed by the Kubernetes client based on the user's token
 - Namespace verification ensures the namespace exists before listing secrets
 - Only secrets the authenticated user has permission to access are returned
+- **Data redaction**: Sensitive secret values are redacted with `"[REDACTED]"` by default
+  - Only keys in the allowed list (defined in `internal/constants/secrets.go`) return actual values
+  - Currently allowed: `aws_s3_bucket` (non-sensitive configuration)
+  - All credential keys (access keys, passwords, tokens) are always redacted
 
 ### Filtering Logic
 
 The endpoint supports two filtering modes based on the `type` parameter:
 
-1. **No type (all secrets)**: Returns all secrets in the namespace without filtering
+1. **No type (all secrets)**: Returns all secrets in the namespace
+   - Each secret's type is determined by annotation or key-based detection
 
-2. **`type=storage`**: Uses a configurable storage type dictionary to filter secrets
+2. **`type=storage`**: Filters for storage secrets using either:
+   - **Annotation-based**: Secrets with `opendatahub.io/connection-type` annotation matching a storage type
+   - **Key-based**: Secrets containing ALL required keys for at least ONE storage type
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
-   - A secret matches if it contains ALL required keys for at least ONE storage type
    - Currently configured storage types:
      - **S3**: Requires `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint`
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
@@ -165,19 +215,24 @@ Invalid type values result in a 400 Bad Request error.
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results.
 
-### Available Keys
+### Data and Security Redaction
 
-The `availableKeys` field exposes the names of all keys present in the secret (but not their values). This allows clients to:
-- Determine if a secret has optional parameters
+The `data` field exposes all keys present in the secret along with their values, but applies security redaction to protect sensitive information. This allows clients to:
+- Determine if a secret has optional parameters by checking for specific keys
+- Access non-sensitive configuration values (like bucket names)
 - Validate that required keys are present before using the secret
-- Display configuration options to users
+- Display safe configuration options to users
 
-**Key characteristics:**
-- **Case-preserved**: Keys are returned exactly as they appear in Kubernetes (e.g., `AWS_ACCESS_KEY_ID`, `aws_access_key_id`, `Aws_Access_Key_Id` are all preserved)
-- **Sorted alphabetically**: Keys are always returned in alphabetical order for consistency
-- **Includes both Data and StringData**: Keys from both `Data` and `StringData` fields are included
-- **No duplicates**: If a key appears in both `Data` and `StringData`, it only appears once in the list
-- **Empty secrets**: Secrets with no keys return an empty array `[]`
+**Security Behavior:**
+- **Allowed keys** return their actual values
+  - Currently allowed: `aws_s3_bucket`
+  - Defined in `internal/constants/secrets.go`
+- **All other keys** return `"[REDACTED]"` to protect sensitive credentials
+- **Key matching** for allowed keys is case-insensitive
+- **Key names** are case-preserved as they appear in Kubernetes
+- **Both Data and StringData** fields are included
+- **No duplicates**: If a key appears in both fields, it appears once with preference to Data
+- **Empty secrets**: Secrets with no keys return an empty object `{}`
 
 **Example:**
 ```json
@@ -185,17 +240,47 @@ The `availableKeys` field exposes the names of all keys present in the secret (b
   "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "my-s3-secret",
   "type": "s3",
-  "availableKeys": [
-    "aws_access_key_id",
-    "aws_default_region",
-    "aws_s3_bucket",
-    "aws_s3_endpoint",
-    "aws_secret_access_key"
-  ]
+  "data": {
+    "aws_access_key_id": "[REDACTED]",
+    "aws_default_region": "[REDACTED]",
+    "aws_s3_bucket": "my-training-data",
+    "aws_s3_endpoint": "[REDACTED]",
+    "aws_secret_access_key": "[REDACTED]"
+  }
 }
 ```
 
-In this example, the secret has an optional `aws_s3_bucket` key in addition to the required S3 keys. Clients can detect this and offer additional configuration options.
+In this example, the secret has an optional `aws_s3_bucket` key in addition to the required S3 keys. The bucket name is returned (allowed key) while credentials are redacted. Clients can detect the bucket presence and use its value for configuration.
+
+### Metadata Annotations
+
+Secrets can include metadata from OpenShift annotations:
+
+- **`displayName`**: Extracted from `openshift.io/display-name` annotation
+  - Provides a human-friendly name for UI display
+  - Optional field, only present if annotation exists
+
+- **`description`**: Extracted from `openshift.io/description` annotation
+  - Provides additional context about the secret's purpose
+  - Optional field, only present if annotation exists
+
+**Example with metadata:**
+```json
+{
+  "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "prod-s3-storage",
+  "type": "s3",
+  "data": {
+    "aws_access_key_id": "[REDACTED]",
+    "aws_secret_access_key": "[REDACTED]",
+    "aws_default_region": "[REDACTED]",
+    "aws_s3_endpoint": "[REDACTED]",
+    "aws_s3_bucket": "production-datasets"
+  },
+  "displayName": "Production S3 Storage",
+  "description": "S3 bucket for production ML training datasets"
+}
+```
 
 ## Testing
 
@@ -204,11 +289,21 @@ The implementation includes comprehensive tests covering:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-insensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
-- **Available keys**:
-  - Keys are sorted alphabetically
-  - Keys are case-preserved
-  - Empty secrets return empty array
+- **Type detection**:
+  - Annotation-based detection using `opendatahub.io/connection-type`
+  - Key-based fallback detection
+  - Annotation takes precedence over key-based detection
+- **Data redaction**:
+  - Allowed keys (e.g., `aws_s3_bucket`) return actual values
+  - All other keys return `"[REDACTED]"`
+  - Case-insensitive matching for allowed keys
+  - Keys are case-preserved in output
   - Keys from both Data and StringData are included
+  - Empty secrets return empty object `{}`
+- **Metadata extraction**:
+  - `displayName` extracted from `openshift.io/display-name` annotation
+  - `description` extracted from `openshift.io/description` annotation
+  - Optional fields only present when annotations exist
 - **Empty result sets**: No matching secrets for storage filter type
 - **Error cases**: Missing parameters, invalid parameters
 

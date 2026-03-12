@@ -12,7 +12,7 @@ jest.mock('react-router', () => ({
 }));
 
 // Mock SecretSelector component
-jest.mock('~/app/shared/SecretSelector', () => ({
+jest.mock('~/app/components/common/SecretSelector', () => ({
   __esModule: true,
   default: ({
     onChange,

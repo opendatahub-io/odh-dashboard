@@ -20,7 +20,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector from '~/app/shared/SecretSelector';
+import SecretSelector from '~/app/components/common/SecretSelector';
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
