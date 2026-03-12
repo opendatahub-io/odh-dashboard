@@ -97,20 +97,28 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return allRuns[i].CreatedAt > allRuns[j].CreatedAt
 	})
 
-	// Apply page/pageSize pagination to the merged list using int to avoid overflow
+	// Apply page/pageSize pagination using int64 arithmetic throughout to avoid overflow,
+	// then clamp before casting to int for slice indices.
 	total := len(allRuns)
 	totalSize := int32(total)
-	start := int((page - 1) * int64(pageSize))
-	end := start + int(pageSize)
+	total64 := int64(total)
+	start64 := (page - 1) * int64(pageSize)
+	end64 := start64 + int64(pageSize)
 
-	if start > total {
-		start = total
+	if start64 < 0 {
+		start64 = 0
 	}
-	if end > total {
-		end = total
+	if start64 > total64 {
+		start64 = total64
+	}
+	if end64 < start64 {
+		end64 = start64
+	}
+	if end64 > total64 {
+		end64 = total64
 	}
 
-	pagedRuns := allRuns[start:end]
+	pagedRuns := allRuns[int(start64):int(end64)]
 	if pagedRuns == nil {
 		pagedRuns = []models.PipelineRun{}
 	}

@@ -204,8 +204,12 @@ func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
 
 // getBaseMockRuns returns the base run templates with IDs derived from the namespace
 // so that runs from different tenants carry distinct pipeline references.
+// Includes both timeseries and tabular pipeline runs to enable ownership validation tests.
 func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 	ids := DeriveMockIDs(namespace)
+	// Tabular pipeline IDs mirror the derivation in ListPipelines/ListPipelineVersions
+	clsID := hashUUID("cls-pipeline:" + namespace)
+	clsVersionID := hashUUID("cls-version-latest:" + namespace)
 	return []models.KFPipelineRun{
 		{
 			RunID:        "run-abc123-def456",
@@ -383,6 +387,41 @@ func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 						ChildTasks: []models.ChildTask{
 							{PodName: "data-fetch-pod-def654"},
 						},
+					},
+				},
+			},
+		},
+		// Tabular pipeline run — exercises ownership validation for the second pipeline type
+		{
+			RunID:        "run-tabular-001",
+			DisplayName:  "AutoML Tabular Run 1",
+			Description:  "Tabular classification run",
+			ExperimentID: "exp-tabular-1",
+			PipelineVersionReference: &models.PipelineVersionReference{
+				PipelineID:        clsID,
+				PipelineVersionID: clsVersionID,
+			},
+			State:          "SUCCEEDED",
+			StorageState:   "AVAILABLE",
+			ServiceAccount: "pipeline-runner-dspa",
+			CreatedAt:      "2026-02-25T09:00:00Z",
+			ScheduledAt:    "2026-02-25T09:00:00Z",
+			FinishedAt:     "2026-02-25T09:45:00Z",
+			StateHistory: []models.RuntimeStatus{
+				{UpdateTime: "2026-02-25T09:00:00Z", State: "RUNNING"},
+				{UpdateTime: "2026-02-25T09:45:00Z", State: "SUCCEEDED"},
+			},
+			RunDetails: &models.RunDetails{
+				TaskDetails: []models.TaskDetail{
+					{
+						RunID:       "run-tabular-001",
+						TaskID:      "task-tabular-preprocessing",
+						DisplayName: "Data Preprocessing",
+						CreateTime:  "2026-02-25T09:00:00Z",
+						StartTime:   "2026-02-25T09:00:05Z",
+						EndTime:     "2026-02-25T09:45:00Z",
+						State:       "SUCCEEDED",
+						ChildTasks:  []models.ChildTask{{PodName: "tabular-preprocessing-pod"}},
 					},
 				},
 			},

@@ -27,7 +27,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		assert.Equal(t, int32(5), runsData.TotalSize)
 	})
 
-	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
+	t.Run("should pass pipeline version ID filter to the client", func(t *testing.T) {
 		// Use the derived version ID for the empty namespace (matching how mock generates IDs)
 		ids := psmocks.DeriveMockIDs(mockNamespace)
 		pipelineVersionID := ids.LatestVersionID
@@ -36,15 +36,12 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// All base mock runs use the LatestVersionID, so all 5 expanded runs match
-		assert.Greater(t, len(runsData.Runs), 0)
-		// Verify every returned run matches the requested pipeline version ID
-		for _, run := range runsData.Runs {
-			if run.PipelineVersionReference != nil {
-				assert.Equal(t, pipelineVersionID, run.PipelineVersionReference.PipelineVersionID,
-					"every run should belong to the requested pipeline version")
-			}
-		}
+		// Verify the filter was forwarded to the client with the requested version ID
+		assert.NotNil(t, mockClient.LastListRunsParams, "GetPipelineRuns should have called ListRuns")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
+			"filter should include the requested pipeline version ID")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
+			"filter should include the pipeline_version_id key")
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {

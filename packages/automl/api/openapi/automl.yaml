@@ -32,9 +32,13 @@ paths:
     get:
       tags:
         - K8SOperation
+      security:
+        - Bearer: []
       responses:
         "200":
           $ref: "#/components/responses/ConfigResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getUser
@@ -351,12 +355,8 @@ components:
             $ref: "#/components/schemas/PipelineRun"
         total_size:
           type: integer
-          description: Total number of runs available
+          description: Total number of runs across all discovered pipelines
           example: 10
-        next_page_token:
-          type: string
-          description: Token for retrieving the next page of results
-          example: "next-page-token-123"
 
     PipelineRunData:
       type: object

@@ -97,8 +97,14 @@ func main() {
 		logger.Error("automl-tabular-pipeline-name-prefix must not be empty")
 		os.Exit(1)
 	}
-	if cfg.AutoMLTimeSeriesPipelineNamePrefix == cfg.AutoMLTabularPipelineNamePrefix {
-		logger.Error("automl-timeseries-pipeline-name-prefix and automl-tabular-pipeline-name-prefix must be different",
+	// Prefixes are matched case-insensitively; reject identical or overlapping values
+	// (e.g. "automl" vs "automl-ts" would cause "automl-ts-pipeline" to match both)
+	tsLower := strings.ToLower(cfg.AutoMLTimeSeriesPipelineNamePrefix)
+	tabLower := strings.ToLower(cfg.AutoMLTabularPipelineNamePrefix)
+	if tsLower == tabLower ||
+		strings.HasPrefix(tsLower, tabLower) ||
+		strings.HasPrefix(tabLower, tsLower) {
+		logger.Error("automl-timeseries-pipeline-name-prefix and automl-tabular-pipeline-name-prefix must not be equal or overlap (case-insensitive)",
 			"timeseries", cfg.AutoMLTimeSeriesPipelineNamePrefix,
 			"tabular", cfg.AutoMLTabularPipelineNamePrefix)
 		os.Exit(1)
