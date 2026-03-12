@@ -12,16 +12,17 @@ import { CubesIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
-import { getRayJobStatusSync, getStatusInfo, getStatusFlags } from './utils';
+import { getStatusFlags, getRayJobStatusSync } from './utils';
+import RayJobStatus from './components/RayJobStatus';
 import StateActionToggle from './StateActionToggle';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 import { RayJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { JobDisplayState } from '../../types';
 import { useRayClusterDashboardURL } from '../../hooks/useRayClusterDashboardURL';
 
 type RayJobTableRowProps = {
   job: RayJobKind;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   nodeCount: number;
   onDelete: (job: RayJobKind) => void;
   onSelectJob: (job: RayJobKind) => void;
@@ -38,9 +39,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
 }) => {
   const displayName = job.metadata.name;
   const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
-  const status = jobStatus || getRayJobStatusSync(job);
-  const statusInfo = getStatusInfo(status);
-  const { isPaused, canPauseResume } = getStatusFlags(status);
+  const { isPaused, canPauseResume } = getStatusFlags(jobStatus ?? getRayJobStatusSync(job));
 
   const rayClusterName = job.status?.rayClusterName || job.spec.clusterSelector?.['ray.io/cluster'];
   const { url: dashboardURL, loaded: urlLoaded } = useRayClusterDashboardURL(
@@ -133,7 +132,8 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
         )}
       </Td>
       <Td dataLabel="Status">
-        <statusInfo.IconComponent /> {statusInfo.label}
+        {/* TODO RHOAIENG-52542: add onClick={() => setStatusModalOpen(true)} when modal is built */}
+        <RayJobStatus job={job} jobStatus={jobStatus} />
       </Td>
       <Td>
         {canPauseResume && (
