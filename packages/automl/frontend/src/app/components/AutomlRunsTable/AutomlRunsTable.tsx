@@ -28,7 +28,7 @@ const AutomlRunsTable: React.FC<AutomlRunsTableProps> = ({
   <TableBase
     data-testid="automl-runs-table"
     id="automl-runs-table"
-    enablePagination={totalSize > 0}
+    enablePagination={totalSize > pageSize}
     data={runs}
     columns={automlRunsColumns}
     defaultSortColumn={0}
