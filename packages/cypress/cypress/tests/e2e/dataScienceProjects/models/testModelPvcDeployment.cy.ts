@@ -13,9 +13,9 @@ import {
   provisionProjectForModelServing,
   verifyS3CopyCompleted,
 } from '../../../../utils/oc_commands/modelServing';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -24,6 +24,7 @@ import { clusterStorage, addClusterStorageModal } from '../../../../pages/cluste
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
 import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
 import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
+import { attemptToClickTooltip } from '../../../../utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -32,6 +33,7 @@ let modelFilePath: string;
 let pvStorageName: string;
 let modelFormat: string;
 let servingRuntime: string;
+let contributor: string;
 const awsBucket = 'BUCKET_1' as const;
 const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
 const awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
@@ -41,7 +43,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('Verify a model can be deployed from a PVC', () => {
+describe('Verify a contributor can deploy a model from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
@@ -60,12 +62,14 @@ describe('Verify a model can be deployed from a PVC', () => {
         pvStorageName = testData.pvStorageName;
         modelFormat = testData.modelFormat;
         servingRuntime = testData.servingRuntime;
+        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
-        // Create a Project for pipelines
+        // Create a Project for model serving and add contributor
         provisionProjectForModelServing(projectName, awsBucket);
+        addUserToProject(projectName, contributor, 'edit');
       },
     );
   });
@@ -78,14 +82,14 @@ describe('Verify a model can be deployed from a PVC', () => {
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
   it(
-    'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    'Admin creates PVC with model, Contributor deploys from PVC and verifies deployment',
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@ODS-2552'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
-      cy.step('Navigate to the project');
+      cy.step('Navigate to the project as admin');
       projectListPage.visit();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -134,8 +138,18 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.step('Verify S3 copy completed');
       verifyS3CopyCompleted(podName, projectName);
 
-      // Deploy the model
-      cy.step('Deploy the model');
+      // Now switch to contributor user to deploy the model
+      cy.step('Log out admin and log in as contributor');
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+
+      // Navigate to the project as contributor
+      cy.step('Navigate to the project as contributor');
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      // Deploy the model as contributor
+      cy.step('Deploy the model from PVC as contributor');
       projectDetails.findSectionTab('model-server').click();
       // If we have only one serving model platform, then it is selected by default.
       // So we don't need to click the button.
@@ -167,13 +181,16 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
-      //Verify the model created and is running
+
+      // Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
       cy.get<string>('@resourceName').then((resourceName) => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       modelServingSection.findModelMetricsLink(modelName);
+      // Note reload is required as status tooltip was not found due to a stale element
+      attemptToClickTooltip();
     },
   );
 });

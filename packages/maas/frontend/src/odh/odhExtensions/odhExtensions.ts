@@ -8,7 +8,8 @@ export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_API_KEYS_ID = 'maasApiKeys';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
-const ADMIN_USER = 'ADMIN_USER';
+// Tiers UI disabled - API being removed in next release
+// const ADMIN_USER = 'ADMIN_USER';
 
 const ODH_EXTENSIONS: ODHExtensions[] = [
   {
@@ -26,20 +27,21 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       featureFlags: ['maasApiKeys'],
     },
   },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-    },
-    properties: {
-      id: 'maas-tiers-view',
-      title: 'Tiers',
-      href: '/maas/tiers',
-      section: 'settings',
-      path: '/maas/tiers/*',
-      label: 'Tech Preview',
-    },
-  },
+  // Tiers UI disabled - API being removed in next release
+  // {
+  //   type: 'app.navigation/href',
+  //   flags: {
+  //     required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+  //   },
+  //   properties: {
+  //     id: 'maas-tiers-view',
+  //     title: 'Tiers',
+  //     href: '/maas/tiers',
+  //     section: 'settings',
+  //     path: '/maas/tiers/*',
+  //     label: 'Tech Preview',
+  //   },
+  // },
   {
     type: 'app.navigation/href',
     flags: {
@@ -54,16 +56,17 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       label: 'Tech Preview',
     },
   },
-  {
-    type: 'app.route',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-    },
-    properties: {
-      path: '/maas/tiers/*',
-      component: () => import('./MaaSWrapper'),
-    },
-  },
+  // Tiers UI disabled - API being removed in next release
+  // {
+  //   type: 'app.route',
+  //   flags: {
+  //     required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+  //   },
+  //   properties: {
+  //     path: '/maas/tiers/*',
+  //     component: () => import('./MaaSWrapper'),
+  //   },
+  // },
   {
     type: 'app.route',
     flags: {

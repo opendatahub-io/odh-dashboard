@@ -1,5 +1,4 @@
 import { APIOptions } from 'mod-arch-core';
-import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -366,7 +365,8 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
-  model_source_type: 'namespace' | 'external_cluster' | 'external_provider';
+  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider';
+  model_type?: 'llm' | 'embedding';
 }
 
 export interface AIModel extends AAModelResponse {
@@ -377,6 +377,7 @@ export interface AIModel extends AAModelResponse {
   isMaaSModel?: boolean;
   // The MaaS model ID if this is a MaaS model (needed for LSD installation)
   maasModelId?: string;
+  modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
 export type ExternalModelRequest = {
@@ -418,6 +419,59 @@ export type {
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
+/** MLflow Prompt Registry Types */
+export type MLflowPrompt = {
+  name: string;
+  description: string;
+  latest_version: number;
+  tags?: Record<string, string>;
+  creation_timestamp: string;
+};
+
+export type MLflowPromptsResponse = {
+  prompts: MLflowPrompt[];
+  next_page_token?: string;
+};
+
+export type MLflowMessage = {
+  role: string;
+  content: string;
+};
+
+export type MLflowRegisterPromptRequest = {
+  name: string;
+  messages?: MLflowMessage[];
+  template?: string;
+  commit_message?: string;
+  tags?: Record<string, string>;
+};
+
+export type MLflowPromptVersion = {
+  name: string;
+  version: number;
+  template?: string;
+  messages?: MLflowMessage[];
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionMeta = {
+  version: number;
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionsResponse = {
+  versions: MLflowPromptVersionMeta[];
+  next_page_token?: string;
+};
+
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
@@ -453,8 +507,37 @@ export type GenAiAPIs = {
   getBFFConfig: GetBFFConfig;
   getGuardrailsStatus: GetGuardrailsStatus;
   getSafetyConfig: GetSafetyConfig;
+  listMLflowPrompts: ListMLflowPrompts;
+  registerMLflowPrompt: RegisterMLflowPrompt;
+  getMLflowPrompt: GetMLflowPrompt;
+  listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
 };
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url?: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
+  model_type?: 'llm' | 'embedding';
+}
+
+export type MaaSTokenRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string; // Optional - only present when expiration is provided
+};
+export interface MaaSTokenResponse {
+  token: string;
+  expiresAt: number;
+}
 
 export type ModArchRestGET<T> = (
   queryParams?: Record<string, unknown>,
@@ -496,4 +579,8 @@ type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
 type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
 type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
+type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
+type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
+type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
+type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
 type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;

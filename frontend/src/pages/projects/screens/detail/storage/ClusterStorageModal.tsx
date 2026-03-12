@@ -37,7 +37,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
   } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const allNotebooks = React.useMemo(() => data.map((currentData) => currentData.notebook), [data]);
-  const { notebooks: connectedNotebooks } = useRelatedNotebooks(
+  const { notebooks: connectedNotebooks, loaded: connectedNotebooksLoaded } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,
     existingPvc?.metadata.name,
   );
@@ -46,6 +46,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
   const [storageName, setStorageName] = React.useState<string>(name);
   const { notebookData, setNotebookData } = useClusterStorageFormState(
     connectedNotebooks,
+    connectedNotebooksLoaded,
     existingPvc,
   );
   const [newRowId, setNewRowId] = React.useState<number>(1);

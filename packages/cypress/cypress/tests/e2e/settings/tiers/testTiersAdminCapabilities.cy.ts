@@ -35,7 +35,8 @@ import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_c
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
-describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () => {
+// Tiers UI disabled - API being removed in next release
+describe.skip('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () => {
   let testData: TiersTestData;
   let skipTest = false;
   let projectName: string;

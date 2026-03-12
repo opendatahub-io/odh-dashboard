@@ -1,5 +1,6 @@
 # Build arguments
 ARG SOURCE_CODE=.
+ARG BUILD_MODE=ODH
 
 # Use ubi9/nodejs-22 as default base image
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
@@ -8,6 +9,7 @@ FROM ${BASE_IMAGE} as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
+ARG BUILD_MODE
 
 WORKDIR /usr/src/app
 
@@ -22,7 +24,21 @@ RUN npm cache clean --force
 RUN npm ci --ignore-scripts
 
 ENV TURBO_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
+      echo "Setting up RHOAI vars.."; \
+      echo '#!/bin/sh' > /tmp/env.sh; \
+      echo 'export ODH_LOGO=../images/rhoai-logo.svg' >> /tmp/env.sh; \
+      echo 'export ODH_LOGO_DARK=../images/rhoai-logo-dark-theme.svg' >> /tmp/env.sh; \
+      echo 'export ODH_PRODUCT_NAME="Red Hat OpenShift AI"' >> /tmp/env.sh; \
+      echo 'export ODH_FAVICON="rhoai-favicon.svg"' >> /tmp/env.sh; \
+      echo 'export DOC_LINK="https://docs.redhat.com/en/documentation/red_hat_openshift_ai/"' >> /tmp/env.sh; \
+      echo 'export SUPPORT_LINK="https://access.redhat.com/support/cases/#/case/new/open-case?caseCreate=true"' >> /tmp/env.sh; \
+      echo 'export COMMUNITY_LINK=""' >> /tmp/env.sh; \
+    else \
+      echo "Sticking to ODH vars.."; \
+      echo '#!/bin/sh' > /tmp/env.sh; \
+    fi
+RUN . /tmp/env.sh && npm run build
 
 # Install only production dependencies
 # This is needed to remove the dev dependencies that were installed in the previous step

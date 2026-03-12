@@ -61,6 +61,7 @@ export enum SupportedArea {
   MODEL_AS_SERVICE = 'model-as-service',
   LLMD_SERVING = 'llmd-serving',
   YAML_VIEWER = 'yaml-viewer',
+  VLLM_ON_MAAS = 'vllm-on-maas',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

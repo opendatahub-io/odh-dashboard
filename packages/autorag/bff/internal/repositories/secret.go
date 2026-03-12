@@ -3,9 +3,9 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
@@ -80,26 +80,41 @@ func (r *SecretRepository) GetFilteredSecrets(
 	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
 	for _, secret := range filteredSecrets {
 		// Determine the type for this secret
+		// First, check if the secret has the opendatahub.io/connection-type annotation
 		var responseType string
-		switch secretType {
-		case "lls":
-			responseType = "lls"
-		case "storage":
-			// For storage type, determine which storage type it matches
-			responseType = getStorageType(secret)
-		default:
-			// For all secrets (no type filter), check if it matches a storage or LLS type
-			responseType = getSecretType(secret)
+		if annotationType, hasAnnotation := secret.Annotations["opendatahub.io/connection-type"]; hasAnnotation && annotationType != "" {
+			// Use the annotation value as the type
+			responseType = annotationType
+		} else {
+			// Fallback to key-based type detection
+			switch secretType {
+			case "lls":
+				responseType = "lls"
+			case "storage":
+				// For storage type, determine which storage type it matches
+				responseType = getStorageType(secret)
+			default:
+				// For all secrets (no type filter), check if it matches a storage or LLS type
+				responseType = getSecretType(secret)
+			}
 		}
 
-		// Extract and sort available keys from the secret
-		availableKeys := extractAndSortKeys(secret)
+		// Extract available keys from the secret and build map with actual/sanitized values
+		availableKeys := buildAvailableKeysMap(secret)
+
+		// Extract display name from annotation if it exists
+		displayName := secret.Annotations["openshift.io/display-name"]
+
+		// Extract description from annotation if it exists
+		description := secret.Annotations["openshift.io/description"]
 
 		secretListItems = append(secretListItems, models.NewSecretListItem(
 			string(secret.UID),
 			secret.Name,
 			responseType,
 			availableKeys,
+			displayName,
+			description,
 		))
 	}
 
@@ -188,31 +203,43 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 	return true
 }
 
-// extractAndSortKeys extracts all keys from a secret's Data and StringData fields,
-// removes duplicates, and returns them sorted alphabetically.
-// Keys are case-preserved (returned exactly as they appear in the secret).
-func extractAndSortKeys(secret corev1.Secret) []string {
-	// Use a map to track unique keys (case-preserved)
-	keySet := make(map[string]bool)
+// buildAvailableKeysMap extracts all keys from a secret's Data and StringData fields
+// and builds a map where:
+// - Keys in the constants.AllowedSecretKeys list have their actual values
+// - All other keys have the value "[REDACTED]"
+// Key matching for allowed keys is case-insensitive.
+func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
+	result := make(map[string]string)
 
-	// Extract keys from Data
-	for key := range secret.Data {
-		keySet[key] = true
+	// Create a map of lowercase allowed keys for case-insensitive lookup
+	allowedKeysLower := make(map[string]bool)
+	for _, key := range constants.AllowedSecretKeys {
+		allowedKeysLower[strings.ToLower(key)] = true
 	}
 
-	// Extract keys from StringData (avoiding duplicates)
-	for key := range secret.StringData {
-		keySet[key] = true
+	// Process Data field
+	for key, value := range secret.Data {
+		if allowedKeysLower[strings.ToLower(key)] {
+			// Return actual value for allowed keys
+			result[key] = string(value)
+		} else {
+			// Sanitize other keys
+			result[key] = "[REDACTED]"
+		}
 	}
 
-	// Convert map to slice
-	keys := make([]string, 0, len(keySet))
-	for key := range keySet {
-		keys = append(keys, key)
+	// Process StringData field (avoiding duplicates)
+	for key, value := range secret.StringData {
+		if _, exists := result[key]; !exists {
+			if allowedKeysLower[strings.ToLower(key)] {
+				// Return actual value for allowed keys
+				result[key] = value
+			} else {
+				// Sanitize other keys
+				result[key] = "[REDACTED]"
+			}
+		}
 	}
 
-	// Sort alphabetically
-	sort.Strings(keys)
-
-	return keys
+	return result
 }

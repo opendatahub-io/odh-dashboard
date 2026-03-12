@@ -62,7 +62,9 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
-  const { data: allModelsData } = useLlamaStackModelsQuery();
+  // TODO: secretName should come from a react-hook-form field. Once it's implemented,
+  // add secretName as a parameter into useLlamaStackModelsQuery
+  const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
 
   const form = useForm({
     mode: 'onChange',
@@ -80,6 +82,8 @@ function AutoragConfigure(): React.JSX.Element {
   const optimizationMetric = watch('optimization_metric');
   const generationModels = watch('generation_models') ?? [];
   const embeddingModels = watch('embeddings_models') ?? [];
+  const inputDataBucketName = watch('input_data_bucket_name');
+  const testDataBucketName = watch('test_data_bucket_name');
 
   const canSelectDocs = Boolean(inputDataSecretName);
   // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
@@ -105,6 +109,19 @@ function AutoragConfigure(): React.JSX.Element {
       });
     }
   }, [allModelsData, form]);
+
+  // Ensure test bucket and input bucket are always the same
+  useEffect(() => {
+    if (inputDataBucketName !== testDataBucketName) {
+      setValue('test_data_bucket_name', inputDataBucketName);
+      setValue('test_data_key', undefined);
+    }
+  }, [inputDataBucketName, testDataBucketName, setValue]);
+
+  // reset selected file values if bucket changes
+  useEffect(() => {
+    setValue('input_data_key', undefined);
+  }, [inputDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -156,6 +173,13 @@ function AutoragConfigure(): React.JSX.Element {
                                     onChange={(secret) => {
                                       setSelectedSecret(secret);
                                       onChange(secret?.invalid ? undefined : secret?.name);
+                                      const bucketKey = Object.keys(secret?.data ?? {}).find(
+                                        (key) => key.toLocaleLowerCase() === 'aws_s3_bucket',
+                                      );
+                                      setValue(
+                                        'input_data_bucket_name',
+                                        bucketKey ? secret?.data[bucketKey] : undefined,
+                                      );
                                     }}
                                     onRefreshReady={(refresh) => {
                                       secretsRefreshRef.current = refresh;
@@ -190,6 +214,7 @@ function AutoragConfigure(): React.JSX.Element {
                               onClose={() => {
                                 setSelectedSecret(undefined);
                                 setValue('input_data_secret_name', undefined);
+                                setValue('input_data_bucket_name', undefined);
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
@@ -321,7 +346,7 @@ function AutoragConfigure(): React.JSX.Element {
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
               const availableKeys = Object.keys(connection.stringData ?? {});
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
@@ -337,7 +362,15 @@ function AutoragConfigure(): React.JSX.Element {
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onPrimary={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelectSource={
+          (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
+        }
+        files={[]}
+        source={{
+          name: 'Foo connection',
+          count: 999999999,
+        }}
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}

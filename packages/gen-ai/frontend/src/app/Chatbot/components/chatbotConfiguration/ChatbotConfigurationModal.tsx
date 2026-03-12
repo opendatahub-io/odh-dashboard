@@ -13,8 +13,7 @@ import { DashboardModalFooter } from 'mod-arch-shared';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
@@ -53,14 +52,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
 
-  // Convert pure MaaS models to AIModel format so they can be used in the table
-  const maasAsAIModels: AIModel[] = React.useMemo(() => {
-    const aiModelIds = new Set(aiModels.map((model) => model.model_id));
-    // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
-    return maasModels
-      .filter((maasModel) => !aiModelIds.has(maasModel.id))
-      .map(convertMaaSModelToAIModel);
-  }, [aiModels, maasModels]);
+  const maasAsAIModels: AIModel[] = React.useMemo(
+    () => maasModels.map(convertMaaSModelToAIModel),
+    [maasModels],
+  );
 
   // Merge all models and MaaS models for display
   const allModels = React.useMemo(
