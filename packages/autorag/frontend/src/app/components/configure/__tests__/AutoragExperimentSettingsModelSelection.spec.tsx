@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import createConfigureSchema from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 import { LlamaStackModelType } from '~/app/types';
@@ -51,9 +51,9 @@ const configureSchema = createConfigureSchema();
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema),
+    resolver: zodResolver(configureSchema.full),
     defaultValues: {
-      ...configureSchema.parse({}),
+      ...configureSchema.defaults,
       generation_models: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => m.id),
       embeddings_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
     },

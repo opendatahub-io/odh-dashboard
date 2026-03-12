@@ -1,4 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
@@ -12,30 +11,36 @@ import {
   CardBody,
   CardHeader,
   CardTitle,
+  Content,
+  Flex,
   Grid,
   GridItem,
   Label,
+  List,
+  ListItem,
+  Popover,
   Split,
   SplitItem,
   Stack,
   StackItem,
+  Title,
 } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { Controller, useFormContext, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import createConfigureSchema from '~/app/schemas/configure.schema';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
-
-const configureSchema = createConfigureSchema();
 
 function AutoragConfigure(): React.JSX.Element {
   const { namespace } = useParams();
@@ -61,29 +66,10 @@ function AutoragConfigure(): React.JSX.Element {
   // add secretName as a parameter into useLlamaStackModelsQuery
   const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
 
-  const form = useForm({
-    mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
-  });
-  const {
-    control,
-    setValue,
-    watch,
-    formState: { isSubmitting: formIsSubmitting },
-  } = form;
-
-  const inputDataSecretName = watch('input_data_secret_name');
-  const optimizationMetric = watch('optimization_metric');
-  const generationModels = watch('generation_models') ?? [];
-  const embeddingModels = watch('embeddings_models') ?? [];
-
-  const canSelectDocs = Boolean(inputDataSecretName);
-  // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
-  const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
+  const form = useFormContext<ConfigureSchema>();
 
   useEffect(() => {
-    //Initialize available generation and embedding models into the form data
+    // Initialize available generation and embedding models into the form data
     if (allModelsData?.models && !modelsInitialized.current) {
       modelsInitialized.current = true;
       form.reset({
@@ -118,22 +104,24 @@ function AutoragConfigure(): React.JSX.Element {
   }
 
   return (
-    <FormProvider {...form}>
+    <>
       <Grid className="pf-v6-u-h-100" hasGutter>
         <GridItem span={4}>
           <Card isFullHeight>
-            <CardTitle>Documents</CardTitle>
+            <CardHeader>
+              <Title headingLevel="h3">Documents</Title>
+              <Content className="pf-v6-u-mt-sm">
+                Select or add an S3 connection to upload files or browse existing files.
+              </Content>
+            </CardHeader>
             <CardBody>
               <Stack>
-                <StackItem className="pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                  Select or add an S3 connection to upload files or browse existing files.
-                </StackItem>
                 <StackItem>
                   <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
-                    <SplitItem style={{ width: '12rem' }} isFilled>
+                    <SplitItem style={{ width: '10rem' }} isFilled>
                       {Boolean(namespace) && (
                         <Controller
-                          control={control}
+                          control={form.control}
                           name="input_data_secret_name"
                           render={({ field: { onChange } }) => (
                             <SecretSelector
@@ -143,7 +131,7 @@ function AutoragConfigure(): React.JSX.Element {
                               value={selectedSecret?.uuid}
                               onChange={(secret) => {
                                 setSelectedSecret(secret);
-                                onChange(secret?.invalid ? undefined : secret?.name);
+                                onChange(secret?.invalid ? '' : secret?.name);
                               }}
                               onRefreshReady={(refresh) => {
                                 secretsRefreshRef.current = refresh;
@@ -160,7 +148,6 @@ function AutoragConfigure(): React.JSX.Element {
                     <SplitItem>
                       <Button
                         key="add-new-connection"
-                        variant="secondary"
                         onClick={() => setIsConnectionModalOpen(true)}
                       >
                         Add new connection
@@ -177,7 +164,7 @@ function AutoragConfigure(): React.JSX.Element {
                       <Label
                         onClose={() => {
                           setSelectedSecret(undefined);
-                          setValue('input_data_secret_name', undefined);
+                          form.setValue('input_data_secret_name', '');
                         }}
                         closeBtnAriaLabel="Clear selected connection"
                       >
@@ -189,14 +176,20 @@ function AutoragConfigure(): React.JSX.Element {
                       Selected files
                     </StackItem>
                     <StackItem>
-                      <Button
-                        key="select-files"
-                        variant="secondary"
-                        onClick={() => setIsFileExplorerOpen(true)}
-                        isDisabled={!canSelectDocs || formIsSubmitting}
-                      >
-                        Select files
-                      </Button>
+                      <Watch
+                        control={form.control}
+                        name="input_data_secret_name"
+                        render={(inputDataSecretName) => (
+                          <Button
+                            key="select-files"
+                            variant="secondary"
+                            onClick={() => setIsFileExplorerOpen(true)}
+                            isDisabled={!inputDataSecretName || form.formState.isSubmitting}
+                          >
+                            Select files
+                          </Button>
+                        )}
+                      />
                     </StackItem>
                   </>
                 )}
@@ -206,72 +199,127 @@ function AutoragConfigure(): React.JSX.Element {
         </GridItem>
         <GridItem span={8}>
           <Card isFullHeight>
-            <CardTitle>Configure details</CardTitle>
+            <CardHeader>
+              <Title headingLevel="h3">Configure Details</Title>
+            </CardHeader>
             <CardBody>
-              <Stack>
-                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+              <Stack hasGutter>
+                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
                   Where would you like to index your documents?
                 </StackItem>
                 <StackItem data-temp-placeholder>Vector index dropdown</StackItem>
 
-                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm pf-v6-u-mt-md">
+                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
                   Add the data source you would like to use for evaluation.{' '}
                   <span className="pf-v6-u-text-color-required">*</span>
                 </StackItem>
                 <StackItem data-temp-placeholder>Evaluation data source upload component</StackItem>
 
-                <Grid hasGutter className="pf-v6-u-mt-md">
-                  <GridItem span={6}>
-                    <Card>
-                      <CardHeader
-                        hasWrap
-                        actions={{
-                          actions: [
-                            <Button
-                              key="edit-optimization-metric"
-                              variant="secondary"
-                              onClick={openExperimentSettings}
-                              isDisabled={!hasFiles || formIsSubmitting}
-                            >
-                              Edit
-                            </Button>,
-                          ],
-                        }}
-                      >
-                        <CardTitle>Optimization metric</CardTitle>
-                      </CardHeader>
-                      <CardBody className="pf-v6-u-mb-sm">{optimizationMetric}</CardBody>
-                    </Card>
-                  </GridItem>
-                  <GridItem span={6}>
-                    <Card>
-                      <CardHeader
-                        hasWrap
-                        actions={{
-                          actions: [
-                            <Button
-                              key="edit-considered-models"
-                              variant="secondary"
-                              onClick={openExperimentSettings}
-                              isDisabled={!hasFiles || formIsSubmitting}
-                            >
-                              Edit
-                            </Button>,
-                          ],
-                        }}
-                      >
-                        <CardTitle>Models to consider</CardTitle>
-                      </CardHeader>
-                      <CardBody>
-                        <strong>Foundation models:</strong>&nbsp;
-                        {generationModels.length || 'None'}
-                        <br />
-                        <strong>Embedding models:</strong>&nbsp;
-                        {embeddingModels.length || 'None'}
-                      </CardBody>
-                    </Card>
-                  </GridItem>
-                </Grid>
+                <StackItem>
+                  <Card>
+                    <CardHeader
+                      hasWrap
+                      actions={{
+                        actions: [
+                          <Watch
+                            key="edit-experiment-settings"
+                            control={form.control}
+                            name={['input_data_bucket_name', 'input_data_key']}
+                            render={([inputDataBucketName, inputDataKey]) => (
+                              <Button
+                                variant="secondary"
+                                onClick={openExperimentSettings}
+                                isDisabled={
+                                  !inputDataBucketName ||
+                                  !inputDataKey ||
+                                  form.formState.isSubmitting
+                                }
+                              >
+                                Edit
+                              </Button>
+                            )}
+                          />,
+                        ],
+                      }}
+                    >
+                      <CardTitle>Models to consider</CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <Watch
+                            control={form.control}
+                            name="generation_models"
+                            render={(generationModels) => (
+                              <Flex
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                spacer={{ default: 'spacerNone' }}
+                                gap={{ default: 'gapSm' }}
+                              >
+                                <Content>{`${generationModels.length || 'No'} generation models`}</Content>
+                                {!!generationModels.length && (
+                                  <Popover
+                                    bodyContent={
+                                      <List>
+                                        {generationModels.map((model) => (
+                                          <ListItem key={`generation-${model}`}>{model}</ListItem>
+                                        ))}
+                                      </List>
+                                    }
+                                  >
+                                    <DashboardPopupIconButton
+                                      icon={<InfoCircleIcon />}
+                                      hasNoPadding
+                                    />
+                                  </Popover>
+                                )}
+                              </Flex>
+                            )}
+                          />
+                        </StackItem>
+                        <StackItem>
+                          <Watch
+                            control={form.control}
+                            name="embeddings_models"
+                            render={(embeddingModels) => (
+                              <Flex
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                spacer={{ default: 'spacerNone' }}
+                                gap={{ default: 'gapSm' }}
+                              >
+                                <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                {!!embeddingModels.length && (
+                                  <Popover
+                                    bodyContent={
+                                      <List>
+                                        {embeddingModels.map((model) => (
+                                          <ListItem key={`embedding-${model}`}>{model}</ListItem>
+                                        ))}
+                                      </List>
+                                    }
+                                  >
+                                    <DashboardPopupIconButton
+                                      icon={<InfoCircleIcon />}
+                                      hasNoPadding
+                                    />
+                                  </Popover>
+                                )}
+                              </Flex>
+                            )}
+                          />
+                        </StackItem>
+                      </Stack>
+                    </CardBody>
+                    <CardTitle>Optimization metric</CardTitle>
+                    <CardBody className="pf-v6-u-mb-sm">
+                      <Watch
+                        control={form.control}
+                        name="optimization_metric"
+                        render={(optimizationMetric) => optimizationMetric}
+                      />
+                    </CardBody>
+                  </Card>
+                </StackItem>
               </Stack>
             </CardBody>
           </Card>
@@ -300,7 +348,7 @@ function AutoragConfigure(): React.JSX.Element {
                 ...secret,
                 invalid,
               });
-              setValue('input_data_secret_name', invalid ? undefined : secret.name);
+              form.setValue('input_data_secret_name', invalid ? '' : secret.name);
             }
           }}
         />
@@ -323,7 +371,7 @@ function AutoragConfigure(): React.JSX.Element {
         }}
         saveChanges={saveExperimentSettingsChanges}
       />
-    </FormProvider>
+    </>
   );
 }
 

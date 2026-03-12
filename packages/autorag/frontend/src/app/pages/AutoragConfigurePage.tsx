@@ -6,6 +6,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Content,
   PageSection,
   Stack,
   StackItem,
@@ -20,10 +21,10 @@ import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
 import AutoragConfigure from '../components/configure/AutoragConfigure';
-import { createExperimentSchema } from '../schemas/experiment.schema';
+import { createConfigureSchema } from '../schemas/configure.schema';
 
-const experimentSchema = createExperimentSchema();
-const createFields = ['name', 'description'] as const;
+const configureSchema = createConfigureSchema();
+const createFields = ['display_name', 'description'] as const;
 
 function AutoragConfigurePage(): React.JSX.Element {
   const navigate = useNavigate();
@@ -39,11 +40,11 @@ function AutoragConfigurePage(): React.JSX.Element {
 
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(experimentSchema.complete),
-    defaultValues: experimentSchema.defaults,
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
   });
 
-  const [name] = useWatch({ control: form.control, name: createFields });
+  const [displayName] = useWatch({ control: form.control, name: createFields });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
@@ -52,10 +53,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="primary"
-          isDisabled={
-            !form.formState.isDirty ||
-            createFields.some((field) => form.getFieldState(field).invalid)
-          }
+          isDisabled={!displayName}
           onClick={() => {
             setStep('configure');
           }}
@@ -109,12 +107,14 @@ function AutoragConfigurePage(): React.JSX.Element {
       title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create AutoRAG experiment' : `${name} configurations`}
+          {step === 'create' ? 'Create AutoRAG experiment' : `"${displayName}" configurations`}
         </h2>
       }
       description={
         step === 'create' && (
-          <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
+          <Content>
+            Automatically configure and optimize your Retrieval-Augmented Generation workflows.
+          </Content>
         )
       }
       breadcrumb={
@@ -123,7 +123,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>{name}</BreadcrumbItem>
+            <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
           </Breadcrumb>
         )
       }
@@ -133,7 +133,15 @@ function AutoragConfigurePage(): React.JSX.Element {
       loaded={namespacesLoaded}
     >
       <FormProvider {...form}>
-        <Stack className="pf-v6-u-h-100" hasGutter component="form" noValidate>
+        <Stack
+          className="pf-v6-u-h-100"
+          hasGutter
+          component="form"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+          }}
+        >
           <StackItem isFilled>
             <PageSection
               className={classNames(

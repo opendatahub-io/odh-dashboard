@@ -10,7 +10,7 @@ export function createSchema<Schema extends z.ZodObject>(options: {
   const { schema, validators = [], transformers = [] } = options;
 
   const base = schema;
-  const complete = schema
+  const full = schema
     .superRefine((data, { addIssue }) => {
       for (const validate of validators) {
         for (const issue of validate(data)) {
@@ -21,5 +21,5 @@ export function createSchema<Schema extends z.ZodObject>(options: {
     .transform((data) => flow(...transformers)(data));
   const defaults = base.parse({}); // Clever way to pull default values out of zod schema
 
-  return { base, complete, defaults };
+  return { base, full, defaults };
 }

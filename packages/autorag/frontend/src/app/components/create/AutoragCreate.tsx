@@ -1,15 +1,16 @@
 import { FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 
 function AutoragCreate(): React.JSX.Element {
-  const form = useFormContext();
+  const form = useFormContext<ConfigureSchema>();
 
   return (
     <>
       <Controller
         control={form.control}
-        name="name"
+        name="display_name"
         render={({ field }) => (
           <FormGroup fieldId={field.name} label="Name" isRequired>
             <TextInput {...field} id={field.name} type="text" />
