@@ -328,7 +328,7 @@ class MaaSWizardField {
     return cy.findByTestId('maas/save-as-maas-checkbox-tier-dropdown');
   }
 
-  selectMaaSTierOption(option: 'All tiers' | 'No tiers' | 'Specific tiers') {
+  selectMaaSTierOption(option: string) {
     this.findMaaSTierDropdown().click();
     return cy.findByRole('option', { name: option }).click();
   }

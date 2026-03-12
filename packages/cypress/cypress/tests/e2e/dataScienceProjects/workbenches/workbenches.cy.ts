@@ -19,6 +19,7 @@ import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -26,6 +27,7 @@ describe('Workbench and PVSs tests', () => {
   let PVCDisplayName: string;
   let PVCSize: string;
   let defaultStorageClass: string;
+  let notebookImage: string;
   let skipTests = false;
   const uuid = generateTestUUID();
 
@@ -49,6 +51,7 @@ describe('Workbench and PVSs tests', () => {
           PVCName = fixtureData.PVC_NAME;
           PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
           PVCSize = fixtureData.PVC_SIZE;
+          notebookImage = fixtureData.notebookImage ?? '';
 
           if (!projectName) {
             throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -101,7 +104,7 @@ describe('Workbench and PVSs tests', () => {
       ],
     },
     () => {
-      const workbenchName = projectName.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(projectName);
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -119,7 +122,7 @@ describe('Workbench and PVSs tests', () => {
       createSpawnerPage.getNameInput().fill(workbenchName);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);

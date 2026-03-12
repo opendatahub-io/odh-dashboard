@@ -1,4 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { getLlamaStackModels } from '~/app/api/k8s';
+import { LlamaStackModelType, LlamaStackModelsResponse } from '~/app/types';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -21,6 +23,22 @@ export function useExperimentQuery(
       return experiment;
     },
     enabled: !!experimentId,
+  });
+}
+
+export function useLlamaStackModelsQuery(
+  namespace: string,
+  //secretName is optional for now until the secretName form field is created
+  secretName?: string,
+  modelType?: LlamaStackModelType,
+): UseQueryResult<LlamaStackModelsResponse, Error> {
+  return useQuery({
+    queryKey: ['models', namespace, secretName, modelType],
+    queryFn: () => getLlamaStackModels('')(namespace, secretName!)({}),
+    enabled: !!secretName,
+    select: modelType
+      ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
+      : undefined,
   });
 }
 

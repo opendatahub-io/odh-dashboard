@@ -317,7 +317,7 @@ class ChatbotPage {
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="new-chat-button"]:not(:disabled)').length > 0) {
         this.findNewChatButton().click();
-        cy.findByRole('button', { name: /Start new chat/i }).click();
+        cy.findByTestId('confirm-button').click();
         // Wait for page to stabilize after new chat
         this.findChatbotPlayground().should('be.visible');
         this.findMessageInput().should('not.be.disabled');

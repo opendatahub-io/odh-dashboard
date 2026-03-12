@@ -84,11 +84,13 @@ export const blankDashboardCR: DashboardConfig = {
       automl: false,
       autorag: false,
       modelAsService: false,
+      aiAssetCustomEndpoints: false,
       maasApiKeys: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
       mlflow: false,
+      mcpCatalog: false,
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
@@ -98,6 +100,12 @@ export const blankDashboardCR: DashboardConfig = {
       enabled: true,
     },
     templateOrder: [],
+    genAiStudioConfig: {
+      aiAssetCustomEndpoints: {
+        externalProviders: false,
+        clusterDomains: [],
+      },
+    },
     // templateDisablement: [], Don't create this field, will be used in migration
   },
 };

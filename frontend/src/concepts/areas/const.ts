@@ -7,8 +7,10 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
+  aiAssetCustomEndpoints: false,
   maasApiKeys: false,
   mlflow: false,
+  mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
@@ -164,6 +166,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
+  [SupportedArea.MCP_CATALOG]: {
+    featureFlags: ['mcpCatalog'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
@@ -202,6 +208,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
+  },
+  [SupportedArea.RAY_JOBS]: {
+    featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.RAY],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],

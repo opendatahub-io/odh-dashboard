@@ -37,7 +37,11 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
 
   const debouncedSetFilterName = useMemo(
-    () => debounce((value: string) => setDebouncedFilterName(value), 300),
+    () =>
+      debounce((value: string) => {
+        setDebouncedFilterName(value);
+        setSelectedRow(null);
+      }, 300),
     [],
   );
 
@@ -211,6 +215,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   return (
     <>
       <PromptDrawer
+        isLoadingDetails={isLoadingDetails}
         selectedPromptVersions={selectedPromptVersions}
         selectedVersion={selectedVersion}
         onVersionChange={handleVersionChange}
@@ -235,7 +240,14 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
                     isRowSelected={selectedRow?.name === row.name}
                     onClick={() => handleRowClick(row)}
                   >
-                    <Td dataLabel={columns[0]}>{row.name}</Td>
+                    <Td dataLabel={columns[0]}>
+                      <div
+                        className="pf-u-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
+                        {row.name}
+                      </div>
+                    </Td>
                     <Td dataLabel={columns[1]}>{row.latest_version}</Td>
                     {!selectedVersion && (
                       <>

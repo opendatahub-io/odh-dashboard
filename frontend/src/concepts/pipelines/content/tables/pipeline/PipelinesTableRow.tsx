@@ -165,7 +165,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   isSeparator: true,
                 },
                 {
-                  title: 'Delete pipeline',
+                  title: <span data-testid="delete-pipeline-action">Delete pipeline</span>,
                   isAriaDisabled: disableDelete,
                   tooltipProps: disableDelete
                     ? {

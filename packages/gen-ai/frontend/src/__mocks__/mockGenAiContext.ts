@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React from 'react';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
@@ -31,6 +32,23 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       registerMLflowPrompt: jest.fn().mockResolvedValue({ data: null }),
       getMLflowPrompt: jest.fn().mockResolvedValue({ data: null }),
       listMLflowPromptVersions: jest.fn().mockResolvedValue([]),
+      createExternalModel: jest.fn().mockResolvedValue({
+        model_id: 'mock-model',
+        model_name: 'mock-model',
+        display_name: 'Mock Model',
+        description: 'Mock external model',
+        endpoints: [],
+        serving_runtime: 'remote::vllm',
+        api_protocol: 'REST',
+        version: 'v1',
+        usecase: 'llm',
+        status: 'Running',
+        sa_token: {
+          name: '',
+          token_name: '',
+          token: '',
+        },
+      }),
     },
   },
   refreshAPIState: jest.fn(),

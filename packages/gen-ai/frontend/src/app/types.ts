@@ -1,5 +1,4 @@
 import { APIOptions } from 'mod-arch-core';
-import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -377,6 +376,24 @@ export interface AIModel extends AAModelResponse {
   maasModelId?: string;
 }
 
+export type ExternalModelRequest = {
+  model_id: string;
+  model_display_name: string;
+  base_url: string;
+  secret_value: string;
+  provider_type:
+    | 'remote::vllm'
+    | 'remote::openai'
+    | 'remote::anthropic'
+    | 'remote::gemini'
+    | 'remote::passthrough';
+  model_type: 'llm' | 'embedding';
+  use_cases?: string;
+  embedding_dimension?: number;
+};
+
+export type ExternalModelResponse = AAModelResponse;
+
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,
@@ -490,7 +507,32 @@ export type GenAiAPIs = {
   registerMLflowPrompt: RegisterMLflowPrompt;
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
+  createExternalModel: CreateExternalModel;
 };
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url?: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
+}
+
+export type MaaSTokenRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string; // Optional - only present when expiration is provided
+};
+export interface MaaSTokenResponse {
+  token: string;
+  expiresAt: number;
+}
 
 export type ModArchRestGET<T> = (
   queryParams?: Record<string, unknown>,
@@ -536,3 +578,4 @@ type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
+type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;

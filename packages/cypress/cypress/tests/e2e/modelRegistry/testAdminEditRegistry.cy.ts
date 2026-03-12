@@ -67,10 +67,8 @@ describe('Verify that admin users can edit a model registry', () => {
       modelRegistrySettings.navigate();
 
       cy.step('Find and edit the model registry');
-      modelRegistrySettings
-        .findModelRegistryRow(registryName)
-        .findKebabAction('Edit model registry')
-        .click();
+      modelRegistrySettings.findModelRegistryRow(registryName).findKebab().click();
+      modelRegistrySettings.findEditRegistryAction().click();
 
       cy.step('Verify the current values are loaded');
       modelRegistrySettings

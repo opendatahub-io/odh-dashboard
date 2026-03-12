@@ -3,10 +3,23 @@ import {
   handleRestFailures,
   UserSettings,
   isModArchResponse,
+  restCREATE,
+  restDELETE,
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind } from '~/app/types';
+import {
+  Collection,
+  EvalHubCRStatus,
+  CreateEvaluationJobRequest,
+  CreateEvaluationJobResponse,
+  EvaluationJob,
+  EvaluationJobsResponse,
+  ListEvaluationJobsParams,
+  NamespaceKind,
+  Provider,
+  ProvidersResponse,
+} from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -27,6 +40,134 @@ export const getNamespaces =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<NamespaceKind[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getEvalHubCRStatus =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<EvalHubCRStatus | null> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/status`, { namespace }, opts),
+    ).then((response) => {
+      if (isModArchResponse<EvalHubCRStatus | null>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getEvaluationJobs =
+  (hostPath: string, params?: ListEvaluationJobsParams) =>
+  (opts: APIOptions): Promise<EvaluationJob[]> => {
+    const queryParams: Record<string, string> = {};
+    if (params?.namespace) {
+      queryParams.namespace = params.namespace;
+    }
+    if (params?.limit != null) {
+      queryParams.limit = String(params.limit);
+    }
+    if (params?.offset != null) {
+      queryParams.offset = String(params.offset);
+    }
+    if (params?.status) {
+      queryParams.status = params.status;
+    }
+    if (params?.name) {
+      queryParams.name = params.name;
+    }
+    if (params?.tags) {
+      queryParams.tags = params.tags;
+    }
+
+    return handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+    ).then((response) => {
+      if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const cancelEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
+        {},
+        { namespace },
+        opts,
+      ),
+    ).then(() => undefined);
+
+export const deleteEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
+        {},
+        // eslint-disable-next-line camelcase
+        { namespace, hard_delete: 'true' },
+        opts,
+      ),
+    ).then(() => undefined);
+
+export const getCollections =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<Collection[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<{ items?: Collection[] | null } | Collection[]>(response)) {
+        const { data } = response;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return Array.isArray(data) ? data : (data.items ?? []);
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getProviders =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<Provider[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/providers`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const createEvaluationJob =
+  (hostPath: string, namespace: string, request: CreateEvaluationJobRequest) =>
+  (opts: APIOptions): Promise<CreateEvaluationJobResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CreateEvaluationJobResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

@@ -1,4 +1,3 @@
-import { ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -13,7 +12,8 @@ export const deployKServeDeployment = async (
   wizardData: WizardFormData['state'],
   projectName: string,
   existingDeployment?: KServeDeployment,
-  serverResource?: ServingRuntimeKind,
+  modelResource?: KServeDeployment['model'],
+  serverResource?: KServeDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
   secretName?: string,
@@ -67,15 +67,18 @@ export const deployKServeDeployment = async (
 
   const createTokenAuth =
     (inferenceServiceData.tokenAuth && inferenceServiceData.tokenAuth.length > 0) ?? false;
-  await setUpTokenAuth(
-    inferenceServiceData,
-    inferenceServiceData.k8sName,
-    projectName,
-    createTokenAuth,
-    inferenceService,
-    initialWizardData?.existingAuthTokens,
-    { dryRun: dryRun ?? false },
-  );
+
+  if (wizardData.canCreateRoleBindings) {
+    await setUpTokenAuth(
+      inferenceServiceData,
+      inferenceServiceData.k8sName,
+      projectName,
+      createTokenAuth,
+      inferenceService,
+      initialWizardData?.existingAuthTokens,
+      { dryRun: dryRun ?? false },
+    );
+  }
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',

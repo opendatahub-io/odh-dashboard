@@ -1,2 +1,3 @@
 # testDataConnectionCreation.cy.ts Test Data #
-projectDCResourceName: "cypress-dc-test-project" 
+projectDCResourceName: "cypress-dc-test-project"
+connectionDescription: "S3 Bucket Connection"

@@ -43,15 +43,23 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  aiAssetCustomEndpoints?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  genAiStudioConfig?: {
+    aiAssetCustomEndpoints?: {
+      externalProviders?: boolean;
+      clusterDomains?: string[];
+    };
+  };
 };
 
 export const mockDashboardConfig = ({
@@ -67,6 +75,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  aiAssetCustomEndpoints = true,
   maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -84,6 +93,7 @@ export const mockDashboardConfig = ({
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
+  mcpCatalog = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
@@ -98,6 +108,12 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  genAiStudioConfig = {
+    aiAssetCustomEndpoints: {
+      externalProviders: false,
+      clusterDomains: [],
+    },
+  },
   modelServerSizes = [
     {
       name: 'Small',
@@ -245,12 +261,14 @@ export const mockDashboardConfig = ({
       automl,
       autorag,
       modelAsService,
+      aiAssetCustomEndpoints,
       maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
       disableDistributedWorkloads,
       disableModelCatalog,
+      mcpCatalog,
       disableModelRegistry,
       disableModelRegistrySecureDB,
       disableServingRuntimeParams,
@@ -279,5 +297,6 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    genAiStudioConfig,
   },
 });

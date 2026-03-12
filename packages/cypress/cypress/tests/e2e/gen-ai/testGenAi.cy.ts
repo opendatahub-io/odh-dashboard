@@ -1,4 +1,7 @@
 import * as yaml from 'js-yaml';
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
@@ -30,7 +33,7 @@ import {
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('Verify Gen AI Namespace - Creation and Connection', () => {
+describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
@@ -145,7 +148,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol('REST');
+      servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
 
       cy.step('Select Generative AI Model Type');
       servingRuntimes.findSelectModelTypes().click();
@@ -161,7 +164,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         .should('be.enabled')
         .click()
         .then(() => {
-          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+          cy.url().should('include', testData.servingRuntimesPath, {
             timeout: 30000,
           });
         });
@@ -175,7 +178,15 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@GenAI',
+        '@ModelServing',
+        '@Deployment',
+        '@NonConcurrent',
+        '@Maintain',
+      ],
     },
     () => {
       if (skipTest) {
@@ -198,7 +209,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Model details - Configure model location');
       // Select URI as model location and enter the model URI
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
       // Uncheck "Create a connection to this location" since connection was already created in previous test
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
@@ -253,7 +264,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent', '@Maintain'],
     },
     () => {
       if (skipTest) {

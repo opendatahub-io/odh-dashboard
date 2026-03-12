@@ -12,6 +12,7 @@ import {
 import ModelRegistrySelectorNavigator from '~/app/pages/modelRegistry/screens/ModelRegistrySelectorNavigator';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import ModelTransferJobsListView from './ModelTransferJobsListView';
+import RetryJobModal from './RetryJobModal';
 
 type ModelTransferJobsProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -25,6 +26,35 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
   const [jobToDelete, setJobToDelete] = React.useState<ModelTransferJob | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
+  const [jobToRetry, setJobToRetry] = React.useState<ModelTransferJob | null>(null);
+
+  const onRetryTransferJob = React.useCallback(
+    async (newJobName: string, newJobDisplayName: string, deleteOldJob: boolean) => {
+      if (!jobToRetry?.name || !apiAvailable) {
+        return;
+      }
+      await api.updateModelTransferJob(
+        {},
+        jobToRetry.name,
+        {
+          name: newJobName,
+          namespace: jobToRetry.namespace,
+          jobDisplayName: newJobDisplayName,
+        },
+        { deleteOldJob: deleteOldJob.toString() },
+      );
+      await refetchJobs();
+    },
+    [api, apiAvailable, jobToRetry, refetchJobs],
+  );
+
+  const onRequestRetry = React.useCallback((job: ModelTransferJob) => {
+    setJobToRetry(job);
+  }, []);
+
+  const onCloseRetryModal = React.useCallback(() => {
+    setJobToRetry(null);
+  }, []);
 
   const onDeleteTransferJob = React.useCallback(async () => {
     if (!jobToDelete?.name || !apiAvailable) {
@@ -33,7 +63,7 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
     setIsDeleting(true);
     setDeleteError(undefined);
     try {
-      await api.deleteModelTransferJob({}, jobToDelete.name);
+      await api.deleteModelTransferJob({}, jobToDelete.name, jobToDelete.namespace);
       setJobToDelete(null);
       await refetchJobs();
     } catch (e) {
@@ -77,7 +107,11 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
         />
       }
     >
-      <ModelTransferJobsListView jobs={jobs.items} onRequestDelete={onRequestDelete} />
+      <ModelTransferJobsListView
+        jobs={jobs.items}
+        onRequestDelete={onRequestDelete}
+        onRequestRetry={onRequestRetry}
+      />
       {jobToDelete && (
         <DeleteModal
           title="Delete model transfer job?"
@@ -91,6 +125,9 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
           The <strong>{jobToDelete.name}</strong> model transfer job will be deleted, but the
           storage location of the model will not be affected.
         </DeleteModal>
+      )}
+      {jobToRetry && (
+        <RetryJobModal job={jobToRetry} onClose={onCloseRetryModal} onRetry={onRetryTransferJob} />
       )}
     </ApplicationsPage>
   );

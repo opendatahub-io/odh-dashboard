@@ -5,6 +5,7 @@ import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescr
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -27,7 +28,9 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).click();
+    appChrome
+      .findNavItem({ name: 'Deployments', rootSection: 'AI hub', subSection: 'Models' })
+      .click();
     this.wait();
   }
 
@@ -1347,15 +1350,36 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    return cy.findByTestId('yaml-editor');
+    const editor = new DashboardCodeEditor(() =>
+      cy.findByTestId('yaml-editor').find('.monaco-editor'),
+    );
+    editor.waitForReady();
+    return editor;
   }
 
   findYAMLEditorEmptyState() {
     return cy.findByTestId('yaml-editor-empty-state');
   }
+
+  findManualEditModeButton() {
+    return cy.findByTestId('manual-edit-mode-button');
+  }
+
+  findSwitchToYAMLEditorConfirmButton() {
+    return cy.findByTestId('switch-to-manual-yaml-editor');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
+
+export const inferenceServiceActions = {
+  findEditInferenceServiceAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-inference-service-action');
+  },
+  findDeleteInferenceServiceAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-inference-service-action');
+  },
+};
 export const inferenceServiceModal = new InferenceServiceModal();
 export const inferenceServiceModalEdit = new InferenceServiceModal(true);
 export const modelServingSection = new ModelServingSection();

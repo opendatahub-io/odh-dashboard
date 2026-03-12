@@ -232,8 +232,32 @@ class ProjectDetails {
     return cy.findByTestId('delete-project-action');
   }
 
-  findImportPipelineButton(timeout?: number) {
+  findImportPipelineButton(timeout = 60000) {
     return cy.findByTestId('import-pipeline-button', { timeout });
+  }
+
+  /**
+   * Checks if the Import Pipeline button exists in the DOM.
+   * Useful after DSPA is ready to determine if page reload is needed.
+   */
+  private importPipelineButtonExists(): Cypress.Chainable<boolean> {
+    return cy.get('body').then(($body) => {
+      const button = $body.find('[data-testid="import-pipeline-button"]');
+      return button.length > 0;
+    });
+  }
+
+  /**
+   * Ensures the Import Pipeline button is loaded, reloading the page once if needed.
+   * Should be called after DSPA is confirmed ready.
+   */
+  ensureImportPipelineButtonLoaded() {
+    return this.importPipelineButtonExists().then((exists) => {
+      if (!exists) {
+        cy.log('Import Pipeline button not found, reloading page once');
+        cy.reload();
+      }
+    });
   }
 
   findSelectPlatformButton(platform: string) {

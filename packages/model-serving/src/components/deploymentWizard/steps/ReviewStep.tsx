@@ -6,6 +6,7 @@ import {
   DescriptionListTerm,
   Form,
   FormSection,
+  Spinner,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -171,7 +172,9 @@ const getStatusSections = (
                   );
                 })}
                 {additionalFields.modelPath && <>Model path: {additionalFields.modelPath}</>}
-                {additionalFields.modelUri && <>Model URI: {additionalFields.modelUri}</>}
+                {additionalFields.modelUri && !fields.URI && (
+                  <>Model URI: {additionalFields.modelUri}</>
+                )}
               </>
             );
           },
@@ -388,6 +391,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     () => [...getStatusSections(projectName, extensionStatusSections)],
     [projectName, extensionStatusSections],
   );
+
+  if (!wizardState.loaded.summaryLoaded) {
+    return <Spinner data-testid="spinner" />;
+  }
 
   return (
     <Form>
