@@ -2,7 +2,12 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for filtering by pipeline version ID. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with automatic pipeline discovery. Both the Pipeline Server (DSPipelineApplication) and the AutoRAG managed pipeline are automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+
+**Key Features:**
+- **Auto-Discovery**: Automatically discovers both the Pipeline Server and the AutoRAG managed pipeline
+- **Intelligent Filtering**: GET requests automatically filter to AutoRAG runs when no explicit filter is provided
+- **Automatic Injection**: POST requests automatically inject discovered pipeline IDs, eliminating manual configuration
 
 **API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
 
@@ -56,7 +61,7 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" 
 Get pipeline runs for a specific pipeline version:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -94,7 +99,7 @@ The endpoint returns a JSON response with the following structure:
         "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
         "pipeline_version_reference": {
           "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-          "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+          "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         },
         "state": "SUCCEEDED",
         "storage_state": "AVAILABLE",
@@ -246,6 +251,22 @@ GET /api/v1/pipeline-runs/{runId}
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `runId` | path parameter | Yes | Unique identifier of the pipeline run to retrieve |
 
+### Security & Filtering
+
+This endpoint automatically discovers the AutoRAG managed pipeline in the namespace and validates that the requested run belongs to it. This ensures:
+
+- **Namespace isolation**: Users can only access runs from the AutoRAG pipeline in their namespace
+- **Pipeline filtering**: Runs from other pipelines in the same namespace are not accessible
+- **Automatic discovery**: No need to manually specify pipeline IDs
+
+**Behavior:**
+- Returns the run if it exists and belongs to the discovered AutoRAG pipeline
+- Returns `404 Not Found` if:
+  - The run does not exist, OR
+  - The run belongs to a different pipeline (not the AutoRAG pipeline)
+- Returns `500 Internal Server Error` if:
+  - No AutoRAG managed pipeline is found in the namespace
+
 ### Request Example
 
 ```bash
@@ -266,7 +287,7 @@ Returns a single PipelineRun object with full details including task execution i
     "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "state": "SUCCEEDED",
     "storage_state": "AVAILABLE",
@@ -371,7 +392,10 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
-- `pipeline_id` and `pipeline_version_id` are currently hardcoded constants; a future pipeline discovery endpoint will provide dynamic values
+- `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
+- The BFF discovers the AutoRAG managed pipeline by searching for pipelines with names starting with "autorag" (case-insensitive)
+- Discovery results are cached for 5 minutes per namespace to reduce API calls
+- If no AutoRAG pipeline is found, the request returns a 500 error
 - `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
 
 ### Request Example
@@ -407,7 +431,7 @@ Returns `200 OK` with the created pipeline run:
     "experiment_id": "8c51d49e-9e6b-4d62-827c-63d58edb9374",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "runtime_config": {
       "parameters": {
@@ -440,11 +464,27 @@ Returns `200 OK` with the created pipeline run:
 
 ## Pipeline Filtering
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+The API provides intelligent filtering with automatic pipeline discovery:
 
-### Filtering by Pipeline Version ID
+### Automatic Filtering (Default Behavior)
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filter is provided, all runs from the auto-discovered Pipeline Server are returned.
+When **no** `pipelineVersionId` parameter is provided, the BFF automatically:
+1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
+2. Filters runs to show only those from the discovered AutoRAG pipeline version
+3. Returns a 500 error if no AutoRAG pipeline is found
+
+This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
+
+### Explicit Filtering
+
+When you **provide** a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version, overriding automatic discovery.
+
+**Pipeline Discovery Details:**
+- The BFF searches for pipelines with display names starting with a configurable prefix (default: "autorag", case-insensitive)
+- The prefix can be customized via the `AUTORAG_PIPELINE_NAME_PREFIX` environment variable or `--autorag-pipeline-name-prefix` flag
+- Uses the first matching pipeline's first version
+- Discovery results are cached for 5 minutes per namespace
+- Future versions will use pipeline metadata/attributes for more robust identification
 
 **Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
 
@@ -497,9 +537,20 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
+- No AutoRAG pipeline found in namespace (when making requests without explicit `pipelineVersionId` parameter)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
+
+**Example response (no AutoRAG pipeline):**
+```json
+{
+  "error": {
+    "code": "500",
+    "message": "no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"
+  }
+}
+```
 
 ### 503 Service Unavailable
 
