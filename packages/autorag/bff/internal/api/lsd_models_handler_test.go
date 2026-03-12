@@ -209,6 +209,10 @@ func (m *mockErrorClient) ListModels(ctx context.Context) ([]openai.Model, error
 	return nil, assert.AnError
 }
 
+func (m *mockErrorClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+	return nil, assert.AnError
+}
+
 // mockEmptyClient is a mock client that returns an empty models list
 type mockEmptyClient struct{}
 
@@ -218,11 +222,19 @@ func (m *mockEmptyClient) ListModels(ctx context.Context) ([]openai.Model, error
 	return []openai.Model{}, nil
 }
 
+func (m *mockEmptyClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+	return []openai.VectorStore{}, nil
+}
+
 // mockLlamaStackErrClient is a mock client that returns a typed LlamaStackError (connection failure)
 type mockLlamaStackErrClient struct{}
 
 var _ ls.LlamaStackClientInterface = (*mockLlamaStackErrClient)(nil)
 
 func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
+}
+
+func (m *mockLlamaStackErrClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
 	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
 }

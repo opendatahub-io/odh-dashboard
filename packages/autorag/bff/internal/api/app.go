@@ -22,22 +22,23 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/autorag"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version             = "1.0.0"
+	PathPrefix          = "/autorag"
+	ApiPathPrefix       = "/api/v1"
+	HealthCheckPath     = "/healthcheck"
+	UserPath            = ApiPathPrefix + "/user"
+	NamespacePath       = ApiPathPrefix + "/namespaces"
+	SecretsPath         = ApiPathPrefix + "/secrets"
+	S3FilePath          = ApiPathPrefix + "/s3/file"
+	LSDModelsPath       = ApiPathPrefix + "/lsd/models"
+	LSDVectorStoresPath = ApiPathPrefix + "/lsd/vector-stores"
+	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
 )
 
 type App struct {
@@ -179,8 +180,9 @@ func (app *App) Routes() http.Handler {
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
 
-	// LSD Models
-	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
+	// LLamaStack
+	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
+	apiRouter.GET(LSDVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
