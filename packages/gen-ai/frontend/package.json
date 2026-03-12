@@ -39,7 +39,7 @@
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:bff-mock\" \"cross-env PROXY_HOST=localhost PROXY_PORT=9001 npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 http://localhost:9001 && npm run cypress:run:mock\" -- "
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.13.1",
+    "@module-federation/enhanced": "^0.24.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.9.1",
     "@types/jest": "^29.5.14",
