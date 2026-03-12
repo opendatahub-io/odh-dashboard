@@ -37,6 +37,42 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	}, nil
 }
 
+// ListVectorStores returns mock vector store data
+func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+	return []openai.VectorStore{
+		{
+			ID:           "ls_milvus",
+			Name:         "Milvus Vector Store",
+			Status:       "completed",
+			CreatedAt:    1700000000,
+			LastActiveAt: 1700000000,
+			UsageBytes:   0,
+			FileCounts: openai.VectorStoreFileCounts{
+				Cancelled:  0,
+				Completed:  0,
+				Failed:     0,
+				InProgress: 0,
+				Total:      0,
+			},
+		},
+		{
+			ID:           "ls_faiss",
+			Name:         "FAISS In-Memory Store",
+			Status:       "completed",
+			CreatedAt:    1700000000,
+			LastActiveAt: 1700000000,
+			UsageBytes:   0,
+			FileCounts: openai.VectorStoreFileCounts{
+				Cancelled:  0,
+				Completed:  0,
+				Failed:     0,
+				InProgress: 0,
+				Total:      0,
+			},
+		},
+	}, nil
+}
+
 // createMockModel creates an openai.Model with LlamaStack native format in RawJSON
 func createMockModel(identifier, modelType, providerID, providerResourceID string) openai.Model {
 	// Create LlamaStack native format as JSON string

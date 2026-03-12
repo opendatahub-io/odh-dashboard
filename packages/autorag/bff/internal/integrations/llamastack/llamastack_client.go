@@ -56,3 +56,12 @@ func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, erro
 	}
 	return modelsPage.Data, nil
 }
+
+// ListVectorStores retrieves all available vector stores from Llama Stack.
+func (c *LlamaStackClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+	page, err := c.client.VectorStores.List(ctx, openai.VectorStoreListParams{})
+	if err != nil {
+		return nil, wrapClientError(err, "ListVectorStores")
+	}
+	return page.Data, nil
+}
