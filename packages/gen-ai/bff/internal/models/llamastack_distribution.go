@@ -28,7 +28,7 @@ type LlamaStackDistributionInstallRequest struct {
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
 type installModelJSON struct {
 	ModelName       string      `json:"model_name"`
-	ModelSourceType string      `json:"model_source_type"` // Source type as string for unmarshaling (required)
+	ModelSourceType string      `json:"model_source_type"`    // Source type as string for unmarshaling (required)
 	MaxTokens       interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
 }
 
@@ -95,7 +95,7 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 type InstallModel struct {
 	ModelName       string              `json:"model_name"`
-	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"` // Source type of the model (required: namespace, external_cluster, external_provider, maas)
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`    // Source type of the model (required: namespace, external_cluster, external_provider, maas)
 	MaxTokens       *int                `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
 }
 
