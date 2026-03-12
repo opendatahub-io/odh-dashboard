@@ -20,15 +20,13 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector from '~/app/components/common/SecretSelector';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [selectedSecret, setSelectedSecret] = useState<
-    { uuid: string; name: string; invalid?: boolean } | undefined
-  >();
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
 
   const formInvalid = !selectedSecret || selectedSecret.invalid === true;
 
