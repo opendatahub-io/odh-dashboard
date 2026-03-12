@@ -28,7 +28,6 @@ describe('useSearchState', () => {
       expect(result.current.isSearching).toBe(false);
       expect(result.current.searchInputRef.current).toBeNull();
       expect(result.current.searchMenuRef.current).toBeNull();
-      expect(result.current.timeoutRef.current).toBeUndefined();
     });
 
     it('should detect small screen on initial load', () => {
@@ -206,10 +205,8 @@ describe('useSearchState', () => {
       const { result } = renderHook(() => useSearchState());
       expect(result.current.searchInputRef).toBeDefined();
       expect(result.current.searchMenuRef).toBeDefined();
-      expect(result.current.timeoutRef).toBeDefined();
       expect(result.current.searchInputRef.current).toBeNull();
       expect(result.current.searchMenuRef.current).toBeNull();
-      expect(result.current.timeoutRef.current).toBeUndefined();
     });
   });
 
