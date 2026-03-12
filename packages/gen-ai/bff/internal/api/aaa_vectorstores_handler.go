@@ -39,13 +39,8 @@ func (app *App) VectorStoresAAHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	stores := make([]models.ExternalVectorStoreSummary, 0, len(result.VectorStores))
-	for _, entry := range result.VectorStores {
-		stores = append(stores, entry.ToSummary())
-	}
-
 	response := VectorStoresAAEnvelope{
-		Data: stores,
+		Data: result.VectorStores,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
