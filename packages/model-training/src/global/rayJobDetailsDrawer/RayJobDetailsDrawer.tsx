@@ -20,11 +20,13 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import RayJobDetailsTab from './RayJobDetailsTab';
+import RayJobResourcesTab from './RayJobResourcesTab';
 import { RayJobKind } from '../../k8sTypes';
 
 type RayJobDetailsDrawerProps = {
   job: RayJobKind | undefined;
   displayName: string;
+  nodeCount: number;
   onClose: () => void;
   onDelete: (job: RayJobKind) => void;
 };
@@ -32,6 +34,7 @@ type RayJobDetailsDrawerProps = {
 const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
   job,
   displayName,
+  nodeCount,
   onClose,
   onDelete,
 }) => {
@@ -104,9 +107,7 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
             <RayJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-            <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-              Resources content will be available in a future update.
-            </Content>
+            <RayJobResourcesTab job={job} nodeCount={nodeCount} />
           </Tab>
           <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
             <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
