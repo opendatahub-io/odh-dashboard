@@ -570,7 +570,7 @@ export interface MaaSModel {
 }
 
 export type MaaSTokenRequest = {
-  name?: string;
+  name: string;
   description?: string;
   expiresIn?: string;
 };
