@@ -5,18 +5,15 @@ import type {
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
-import type {
-  MaaSEndpointsExternalData,
-  MaaSTierValue,
-} from './modelDeploymentWizard/MaaSEndpointCheckbox';
+import type { MaaSFieldValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
 import { MODEL_AS_SERVICE_ID } from '../odhExtensions/odhExtensions';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 
 export type ModelServingExtensions =
-  | WizardField2Extension<MaaSTierValue, MaaSEndpointsExternalData, LLMdDeployment>
-  | WizardFieldApplyExtension<MaaSTierValue, LLMdDeployment>
-  | WizardFieldExtractorExtension<MaaSTierValue, LLMdDeployment>;
+  | WizardField2Extension<MaaSFieldValue, undefined, LLMdDeployment>
+  | WizardFieldApplyExtension<MaaSFieldValue, LLMdDeployment>
+  | WizardFieldExtractorExtension<MaaSFieldValue, LLMdDeployment>;
 
 const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {

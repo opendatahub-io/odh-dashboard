@@ -60,7 +60,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 			input.Cancel()
 			os.Exit(1)
 		}
-		platformDir := fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)
+		platformDir := fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH)
 		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", platformDir)
 		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
