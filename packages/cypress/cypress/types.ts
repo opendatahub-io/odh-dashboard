@@ -140,6 +140,9 @@ export type WBTolerationsTestData = {
   hardwareProfileName: string;
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
+  hardwareProfileDisplayName?: string;
+  hardwareProfileDescription?: string;
+  deleteModalMessage?: string;
 };
 
 export type WBStatusTestData = {
