@@ -14,7 +14,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { RayJobKind } from '../../k8sTypes';
-import { useRayVersion } from '../../hooks/useRayVersion';
+import { useRayClusterSpec } from '../../hooks/useRayClusterSpec';
 
 type RayJobDetailsTabProps = {
   job: RayJobKind;
@@ -30,7 +30,8 @@ const getShutdownPolicyLabel = (shutdownAfterJobFinishes?: boolean): string => {
 const RayJobDetailsTab: React.FC<RayJobDetailsTabProps> = ({ job }) => {
   const [copied, setCopied] = React.useState(false);
   const rayClusterName = job.status?.rayClusterName || job.spec.clusterSelector?.['ray.io/cluster'];
-  const { rayVersion, loaded: rayVersionLoaded } = useRayVersion(job);
+  const { clusterSpec, loaded: clusterSpecLoaded } = useRayClusterSpec(job);
+  const rayVersion = clusterSpec?.rayVersion;
 
   const handleCopy = React.useCallback(() => {
     if (job.spec.entrypoint) {
@@ -48,7 +49,7 @@ const RayJobDetailsTab: React.FC<RayJobDetailsTabProps> = ({ job }) => {
           </Title>
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Ray version</DescriptionListTerm>
-            {rayVersionLoaded ? (
+            {clusterSpecLoaded ? (
               <DescriptionListDescription data-testid="ray-version-value">
                 {rayVersion ?? '-'}
               </DescriptionListDescription>

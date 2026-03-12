@@ -42,7 +42,8 @@ export const mockRayJobK8sResource = ({
   shutdownAfterJobFinishes = true,
   jobStatus,
   jobDeploymentStatus,
-  rayClusterName = `${name}-raycluster`,
+  clusterSelector,
+  rayClusterName = clusterSelector?.['ray.io/cluster'] ?? `${name}-raycluster`,
   dashboardURL = `http://${name}-head-svc.${namespace}:8265`,
   startTime,
   endTime,
@@ -50,7 +51,6 @@ export const mockRayJobK8sResource = ({
   reason,
   succeeded = 0,
   failed = 0,
-  clusterSelector,
   additionalLabels = {},
   isDeleting = false,
 }: MockRayJobConfigType = {}): RayJobKind => {
