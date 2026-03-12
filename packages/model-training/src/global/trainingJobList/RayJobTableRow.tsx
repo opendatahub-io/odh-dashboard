@@ -12,9 +12,9 @@ import { CubesIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
-import { getStatusFlags, getRayJobStatusSync } from './utils';
 import RayJobStatus from './components/RayJobStatus';
 import StateActionToggle from './StateActionToggle';
+import { getStatusFlags, getRayJobStatusSync } from './utils';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 import { RayJobKind } from '../../k8sTypes';
 import { JobDisplayState } from '../../types';
@@ -136,6 +136,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
         <RayJobStatus job={job} jobStatus={jobStatus} />
       </Td>
       <Td>
+        {/* TODO RHOAIENG-49279: replace no-op handlers with real pause/resume logic */}
         {canPauseResume && (
           <StateActionToggle
             isPaused={isPaused}

@@ -216,7 +216,10 @@ describe('getRayJobStatus', () => {
         },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.PENDING);
+    expect(
+      (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.WAITING })))
+        .status,
+    ).toBe(RayJobDisplayState.PENDING);
   });
 
   it('Kueue — P10 PENDING when jobDeploymentStatus Initializing (no workload conditions)', async () => {
@@ -232,7 +235,10 @@ describe('getRayJobStatus', () => {
 
   it('Kueue — P11 QUEUED when no matching conditions', async () => {
     mockGetWorkloadForJob.mockResolvedValue(makeWorkload());
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.QUEUED);
+    expect(
+      (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.WAITING })))
+        .status,
+    ).toBe(RayJobDisplayState.QUEUED);
   });
 
   // ──────────────────────────────────────────────────────────────────

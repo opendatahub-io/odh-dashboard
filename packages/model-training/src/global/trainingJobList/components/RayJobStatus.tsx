@@ -7,12 +7,18 @@ import { JobDisplayState } from '../../../types';
 type RayJobStatusProps = {
   job: RayJobKind;
   jobStatus?: JobDisplayState;
+  isLoading?: boolean;
   onClick?: () => void;
 };
 
-const RayJobStatus = ({ job, jobStatus, onClick }: RayJobStatusProps): React.ReactElement => {
-  const status = jobStatus || getRayJobStatusSync(job);
-  const isLoadingStatus = jobStatus === undefined;
+const RayJobStatus = ({
+  job,
+  jobStatus,
+  isLoading = false,
+  onClick,
+}: RayJobStatusProps): React.ReactElement => {
+  const status = jobStatus ?? getRayJobStatusSync(job);
+  const isLoadingStatus = isLoading && jobStatus === undefined;
 
   if (isLoadingStatus) {
     return <Skeleton height="24px" width="80px" />;

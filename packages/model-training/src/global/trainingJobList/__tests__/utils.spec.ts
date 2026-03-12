@@ -67,7 +67,7 @@ describe('getStatusInfo', () => {
     expect(result.label).toBe('Complete');
     expect(result.status).toBe('success');
     expect(result.color).toBe('green');
-    expect(result.alertTitle).toBe('Training Job Complete');
+    expect(result.alertTitle).toBe('Job Complete');
     expect(result.alertVariant).toBeDefined();
   });
 
@@ -76,7 +76,7 @@ describe('getStatusInfo', () => {
     expect(result.label).toBe('Failed');
     expect(result.status).toBe('danger');
     expect(result.color).toBe('red');
-    expect(result.alertTitle).toBe('Training Job Failed');
+    expect(result.alertTitle).toBe('Job Failed');
     expect(result.alertVariant).toBeDefined();
   });
 
@@ -368,14 +368,14 @@ describe('getStatusAlert', () => {
   it('should return alert with default title for SUCCEEDED status', () => {
     const result = getStatusAlert(TrainingJobState.SUCCEEDED);
     expect(result).not.toBeNull();
-    expect(result?.title).toBe('Training Job Complete');
+    expect(result?.title).toBe('Job Complete');
     expect(result?.variant).toBeDefined();
   });
 
   it('should return alert with default title for FAILED status', () => {
     const result = getStatusAlert(TrainingJobState.FAILED);
     expect(result).not.toBeNull();
-    expect(result?.title).toBe('Training Job Failed');
+    expect(result?.title).toBe('Job Failed');
     expect(result?.variant).toBeDefined();
   });
 

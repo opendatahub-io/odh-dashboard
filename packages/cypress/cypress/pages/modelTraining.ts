@@ -111,13 +111,12 @@ class TrainingJobTable {
   }
 
   filterByName(name: string) {
-    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
-    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').type(name);
+    this.findToolbar().findByLabelText('Filter by name').clear().type(name);
     return this;
   }
 
   clearNameFilter() {
-    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
+    this.findToolbar().findByLabelText('Filter by name').clear();
     return this;
   }
 

@@ -73,7 +73,7 @@ export const getStatusInfo = (
         label: 'Complete',
         color: 'green',
         IconComponent: CheckCircleIcon,
-        alertTitle: 'Training Job Complete',
+        alertTitle: 'Job Complete',
         alertVariant: AlertVariant.success,
       };
     case TrainingJobState.FAILED:
@@ -82,7 +82,7 @@ export const getStatusInfo = (
         label: 'Failed',
         color: 'red',
         IconComponent: ExclamationCircleIcon,
-        alertTitle: 'Training Job Failed',
+        alertTitle: 'Job Failed',
         alertVariant: AlertVariant.danger,
       };
     case TrainingJobState.RUNNING:
