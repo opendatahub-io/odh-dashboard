@@ -100,12 +100,19 @@ export const deployModel = async (
   if (!projectName) {
     throw new Error('Project is required');
   }
+  let modelResourceWithNamespace = modelResource;
+  if (modelResource && !modelResource.metadata.namespace) {
+    // Use the project user came from if they didn't specify one in yaml edit
+    modelResourceWithNamespace = structuredClone(modelResource);
+    modelResourceWithNamespace.metadata.namespace = projectName;
+  }
+
   if (!deployMethod) {
     throw new Error('Deploy method is required. Model serving platform could be missing.');
   }
 
   // If connection name doesn't exist yet, it will fail the dry run
-  const dryRunModelResource = structuredClone(modelResource);
+  const dryRunModelResource = structuredClone(modelResourceWithNamespace);
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
 
   // Dry runs
@@ -151,7 +158,7 @@ export const deployModel = async (
   const createdSecretName = newSecret?.metadata.name ?? secretName ?? getGeneratedSecretName();
 
   // Create deployment
-  const modelResourceWithConnection = structuredClone(modelResource);
+  const modelResourceWithConnection = structuredClone(modelResourceWithNamespace);
   if (modelResourceWithConnection?.metadata.annotations) {
     modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
       createdSecretName;
@@ -160,7 +167,7 @@ export const deployModel = async (
     wizardState,
     projectName,
     existingDeployment,
-    modelResourceWithConnection,
+    modelResourceWithNamespace,
     serverResource,
     serverResourceTemplateName,
     false,
