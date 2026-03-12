@@ -137,10 +137,13 @@ const ModelTraining = (): React.ReactElement => {
   const selectedTrainJob = selectedJob && isTrainJob(selectedJob) ? selectedJob : undefined;
   const selectedRayJob = selectedJob && isRayJob(selectedJob) ? selectedJob : undefined;
 
+  const selectedJobNodeCount = selectedJobId ? nodeCountMap.get(selectedJobId) ?? 0 : 0;
+
   const panelContent = selectedRayJob ? (
     <RayJobDetailsDrawer
       job={selectedRayJob}
       displayName={selectedJobDisplayName}
+      nodeCount={selectedJobNodeCount}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
     />
