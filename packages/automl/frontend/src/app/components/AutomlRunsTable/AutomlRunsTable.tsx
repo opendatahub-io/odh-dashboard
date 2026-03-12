@@ -39,10 +39,7 @@ const AutomlRunsTable: React.FC<AutomlRunsTableProps> = ({
     page={page}
     perPage={pageSize}
     onSetPage={(_e, newPage) => onPageChange(newPage)}
-    onPerPageSelect={(_e, newSize, newPage) => {
-      onPerPageChange(newSize);
-      onPageChange(newPage);
-    }}
+    onPerPageSelect={(_e, newSize) => onPerPageChange(newSize)}
   />
 );
 
