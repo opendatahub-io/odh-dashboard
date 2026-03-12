@@ -120,7 +120,7 @@ export const useModelServerSelectField = (
     let filteredTemplates = modelServerTemplates;
     if (modelType) {
       filteredTemplates = filteredTemplates?.filter((template) =>
-        getModelTypesFromTemplate(template).includes(modelType),
+        getModelTypesFromTemplate(template).includes(modelType.type),
       );
     }
     if (modelFormat) {
