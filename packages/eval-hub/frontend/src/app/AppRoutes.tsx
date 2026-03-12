@@ -4,10 +4,12 @@ import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
 import EvalHubCoreLoader from './components/EvalHubCoreLoader';
+import ToastNotifications from './components/ToastNotifications';
 import EvaluationsPage from './pages/EvaluationsPage';
 import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
 import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
+import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -18,18 +20,22 @@ export const useNavData = (): NavDataItem[] => [
 ];
 
 const AppRoutes: React.FC = () => (
-  <Routes>
-    <Route
-      path="/"
-      element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
-    >
-      <Route path=":namespace" element={<EvaluationsPage />} />
-      <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
-      <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
-      <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
-    </Route>
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+  <>
+    <ToastNotifications />
+    <Routes>
+      <Route
+        path="/"
+        element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
+      >
+        <Route path=":namespace" element={<EvaluationsPage />} />
+        <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
+        <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
+        <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
+        <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
 );
 
 export default AppRoutes;
