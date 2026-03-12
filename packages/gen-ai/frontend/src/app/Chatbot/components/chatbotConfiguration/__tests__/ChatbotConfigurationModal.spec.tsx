@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
+import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -90,8 +91,19 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   maasModelId: undefined,
   ...overrides,
 });
+const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
+  id: 'maas-model',
+  object: 'model',
+  created: Date.now(),
+  owned_by: 'maas',
+  ready: true,
+  url: 'https://maas.example.com/v1',
+  ...overrides,
+});
+
 const renderModal = (props: {
   allModels: AIModel[];
+  maasModels?: MaaSModel[];
   existingModels?: LlamaModel[];
   extraSelectedModels?: AIModel[];
 }) =>
@@ -101,6 +113,7 @@ const renderModal = (props: {
         onClose={() => undefined}
         lsdStatus={null}
         aiModels={props.allModels}
+        maasModels={props.maasModels}
         existingModels={props.existingModels}
         extraSelectedModels={props.extraSelectedModels}
       />
@@ -330,5 +343,57 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
         enable_guardrails: true,
       });
     });
+  });
+});
+
+describe('ChatbotConfigurationModal duplicate model (namespace + MaaS)', () => {
+  test('should include both namespace and MaaS versions of the same model', () => {
+    const namespaceModel = createAIModel({
+      model_name: 'granite-7b-lab',
+      display_name: 'Granite 7B Lab',
+    });
+    const maasModel = createMaaSModel({
+      id: 'granite-7b-lab',
+      display_name: 'Granite 7B Lab MaaS',
+    });
+
+    renderModal({ allModels: [namespaceModel], maasModels: [maasModel] });
+
+    const names = getSelectedModelNames();
+    expect(names).toHaveLength(2);
+    expect(names).toContain('granite-7b-lab');
+  });
+
+  test('should include MaaS models alongside different namespace models', () => {
+    const namespaceModel = createAIModel({
+      model_name: 'mistral-7b',
+      display_name: 'Mistral 7B',
+    });
+    const maasModel = createMaaSModel({
+      id: 'llama-2-7b-chat',
+      display_name: 'Llama 2 Chat',
+    });
+
+    renderModal({ allModels: [namespaceModel], maasModels: [maasModel] });
+
+    const names = getSelectedModelNames();
+    expect(names).toEqual(['mistral-7b', 'Llama 2 Chat']);
+  });
+
+  test('should show all models when multiple overlap between namespace and MaaS', () => {
+    const aiModels = [
+      createAIModel({ model_name: 'model-a', display_name: 'Model A' }),
+      createAIModel({ model_name: 'model-b', display_name: 'Model B' }),
+    ];
+    const maasModels = [
+      createMaaSModel({ id: 'model-a', display_name: 'Model A MaaS' }),
+      createMaaSModel({ id: 'model-c', display_name: 'Model C MaaS' }),
+    ];
+
+    renderModal({ allModels: aiModels, maasModels });
+
+    const names = getSelectedModelNames();
+    expect(names).toHaveLength(4);
+    expect(names).toEqual(['model-a', 'model-b', 'Model A MaaS', 'Model C MaaS']);
   });
 });
