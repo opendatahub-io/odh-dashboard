@@ -1,11 +1,11 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import type { MaaSTierValue } from '../MaaSEndpointCheckbox';
-import {
-  applyMaaSEndpointData,
-  extractMaaSEndpointData,
-  MAAS_TIERS_ANNOTATION,
-} from '../maasDeploymentTransformer';
-import { TierDropdownOption } from '../MaaSEndpointCheckbox';
+import type { MaaSFieldValue } from '../MaaSEndpointCheckbox';
+import { applyMaaSEndpointData, extractMaaSEndpointData } from '../maasDeploymentTransformer';
+
+const MAAS_DEFAULT_GATEWAY = {
+  name: 'maas-default-gateway',
+  namespace: 'openshift-ingress',
+};
 
 const createMockDeployment = (
   overrides: Partial<LLMdDeployment['model']> = {},
@@ -30,106 +30,98 @@ const createMockDeployment = (
 
 describe('maasDeploymentTransformer', () => {
   describe('applyMaaSEndpointData', () => {
-    it('should not add annotation when MaaS is not enabled', () => {
+    it('should not add gateway when MaaS is not enabled', () => {
       const deployment = createMockDeployment();
-      const fieldData: MaaSTierValue = { isChecked: false };
+      const fieldData: MaaSFieldValue = { isChecked: false };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
 
-      expect(result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION]).toBeUndefined();
       expect(result.model.spec.router?.gateway?.refs).toBeUndefined();
     });
 
-    it('should add "[]" annotation for all-tiers selection', () => {
+    it('should add maas-default-gateway when MaaS is enabled', () => {
       const deployment = createMockDeployment();
-      const fieldData: MaaSTierValue = {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.AllTiers,
-        selectedTierNames: [],
-      };
+      const fieldData: MaaSFieldValue = { isChecked: true };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
 
-      expect(result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION]).toBe('[]');
-      expect(result.model.spec.router?.gateway?.refs).toEqual([
-        { name: 'maas-default-gateway', namespace: 'openshift-ingress' },
-      ]);
+      expect(result.model.spec.router?.gateway?.refs).toEqual([MAAS_DEFAULT_GATEWAY]);
     });
 
-    it('should add "null" annotation for no-tiers selection', () => {
-      const deployment = createMockDeployment();
-      const fieldData: MaaSTierValue = {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.NoTiers,
-      };
-
-      const result = applyMaaSEndpointData(deployment, fieldData);
-
-      expect(result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION]).toBe('null');
-      expect(result.model.spec.router?.gateway?.refs).toBeDefined();
-    });
-
-    it('should add JSON array annotation for specify-tiers selection', () => {
-      const deployment = createMockDeployment();
-      const fieldData: MaaSTierValue = {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.SpecifyTiers,
-        selectedTierNames: ['tier-1', 'tier-2'],
-      };
-
-      const result = applyMaaSEndpointData(deployment, fieldData);
-
-      expect(result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION]).toBe(
-        '["tier-1","tier-2"]',
-      );
-    });
-
-    it('should preserve existing gateway refs when MaaS is enabled', () => {
-      const existingGatewayRefs = [{ name: 'custom-gateway', namespace: 'custom-ns' }];
+    it('should preserve existing non-MaaS gateways when MaaS is enabled', () => {
+      const existingGateway = { name: 'custom-gateway', namespace: 'custom-ns' };
       const deployment = createMockDeployment();
       deployment.model.spec.router = {
         gateway: {
-          refs: existingGatewayRefs,
+          refs: [existingGateway],
         },
       };
-      const fieldData: MaaSTierValue = {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.AllTiers,
-      };
+      const fieldData: MaaSFieldValue = { isChecked: true };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
 
-      expect(result.model.spec.router?.gateway?.refs).toEqual(existingGatewayRefs);
+      expect(result.model.spec.router?.gateway?.refs).toEqual([
+        existingGateway,
+        MAAS_DEFAULT_GATEWAY,
+      ]);
     });
 
-    it('should remove existing MaaS annotation when disabled', () => {
+    it('should remove maas-default-gateway when MaaS is disabled', () => {
       const deployment = createMockDeployment();
-      deployment.model.metadata.annotations = {
-        [MAAS_TIERS_ANNOTATION]: '["old-tier"]',
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [MAAS_DEFAULT_GATEWAY],
+        },
       };
-      const fieldData: MaaSTierValue = { isChecked: false };
+      const fieldData: MaaSFieldValue = { isChecked: false };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
 
-      expect(result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION]).toBeUndefined();
+      expect(result.model.spec.router?.gateway?.refs).toBeUndefined();
+    });
+
+    it('should keep other gateways when MaaS is disabled', () => {
+      const existingGateway = { name: 'custom-gateway', namespace: 'custom-ns' };
+      const deployment = createMockDeployment();
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [existingGateway, MAAS_DEFAULT_GATEWAY],
+        },
+      };
+      const fieldData: MaaSFieldValue = { isChecked: false };
+
+      const result = applyMaaSEndpointData(deployment, fieldData);
+
+      expect(result.model.spec.router?.gateway?.refs).toEqual([existingGateway]);
     });
 
     it('should not mutate the original deployment', () => {
       const deployment = createMockDeployment();
-      const originalAnnotations = { ...deployment.model.metadata.annotations };
-      const fieldData: MaaSTierValue = {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.AllTiers,
-      };
+      const originalRefs = deployment.model.spec.router?.gateway?.refs;
+      const fieldData: MaaSFieldValue = { isChecked: true };
 
       applyMaaSEndpointData(deployment, fieldData);
 
-      expect(deployment.model.metadata.annotations).toEqual(originalAnnotations);
+      expect(deployment.model.spec.router?.gateway?.refs).toEqual(originalRefs);
+    });
+
+    it('should not duplicate maas-default-gateway if already present', () => {
+      const deployment = createMockDeployment();
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [MAAS_DEFAULT_GATEWAY],
+        },
+      };
+      const fieldData: MaaSFieldValue = { isChecked: true };
+
+      const result = applyMaaSEndpointData(deployment, fieldData);
+
+      expect(result.model.spec.router?.gateway?.refs).toEqual([MAAS_DEFAULT_GATEWAY]);
     });
   });
 
   describe('extractMaaSEndpointData', () => {
-    it('should return undefined when no MaaS annotation exists', () => {
+    it('should return undefined when no gateway refs exist', () => {
       const deployment = createMockDeployment();
 
       const result = extractMaaSEndpointData(deployment);
@@ -137,60 +129,43 @@ describe('maasDeploymentTransformer', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should extract no-tiers value from "null" annotation', () => {
+    it('should return undefined when maas-default-gateway is not present', () => {
       const deployment = createMockDeployment();
-      deployment.model.metadata.annotations = {
-        [MAAS_TIERS_ANNOTATION]: 'null',
-      };
-
-      const result = extractMaaSEndpointData(deployment);
-
-      expect(result).toEqual({
-        isChecked: true,
-        tiersDropdownSelection: 'no-tiers',
-        selectedTierNames: undefined,
-      });
-    });
-
-    it('should extract all-tiers value from "[]" annotation', () => {
-      const deployment = createMockDeployment();
-      deployment.model.metadata.annotations = {
-        [MAAS_TIERS_ANNOTATION]: '[]',
-      };
-
-      const result = extractMaaSEndpointData(deployment);
-
-      expect(result).toEqual({
-        isChecked: true,
-        tiersDropdownSelection: 'all-tiers',
-        selectedTierNames: [],
-      });
-    });
-
-    it('should extract specific tiers from JSON array annotation', () => {
-      const deployment = createMockDeployment();
-      deployment.model.metadata.annotations = {
-        [MAAS_TIERS_ANNOTATION]: '["tier-a","tier-b"]',
-      };
-
-      const result = extractMaaSEndpointData(deployment);
-
-      expect(result).toEqual({
-        isChecked: true,
-        tiersDropdownSelection: 'specify-tiers',
-        selectedTierNames: ['tier-a', 'tier-b'],
-      });
-    });
-
-    it('should return undefined for invalid JSON annotation', () => {
-      const deployment = createMockDeployment();
-      deployment.model.metadata.annotations = {
-        [MAAS_TIERS_ANNOTATION]: 'invalid-json',
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [{ name: 'other-gateway', namespace: 'other-ns' }],
+        },
       };
 
       const result = extractMaaSEndpointData(deployment);
 
       expect(result).toBeUndefined();
+    });
+
+    it('should return isChecked: true when maas-default-gateway is present', () => {
+      const deployment = createMockDeployment();
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [MAAS_DEFAULT_GATEWAY],
+        },
+      };
+
+      const result = extractMaaSEndpointData(deployment);
+
+      expect(result).toEqual({ isChecked: true });
+    });
+
+    it('should return isChecked: true when maas-default-gateway is among other gateways', () => {
+      const deployment = createMockDeployment();
+      deployment.model.spec.router = {
+        gateway: {
+          refs: [{ name: 'other-gateway', namespace: 'other-ns' }, MAAS_DEFAULT_GATEWAY],
+        },
+      };
+
+      const result = extractMaaSEndpointData(deployment);
+
+      expect(result).toEqual({ isChecked: true });
     });
   });
 });
