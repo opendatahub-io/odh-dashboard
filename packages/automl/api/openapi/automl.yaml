@@ -312,6 +312,14 @@ components:
         message:
           description: Error message
           type: string
+    ErrorEnvelope:
+      description: Error response envelope wrapping the error object.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -331,31 +339,31 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
     Forbidden:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Forbidden - insufficient permissions
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unexpected internal server error
     ConfigResponse:
       content:
@@ -437,7 +445,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Conflict - Role Binding with the same name already exists
 
   parameters:
