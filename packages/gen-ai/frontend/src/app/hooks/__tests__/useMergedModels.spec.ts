@@ -4,7 +4,7 @@ import useMergedModels from '~/app/hooks/useMergedModels';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import { AIModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import type { MaaSModel } from '~/app/types';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',

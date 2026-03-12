@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import type { MaaSModel } from '~/app/types';
 
 export interface MaaSModelsResponse {
   data: MaaSModel[];

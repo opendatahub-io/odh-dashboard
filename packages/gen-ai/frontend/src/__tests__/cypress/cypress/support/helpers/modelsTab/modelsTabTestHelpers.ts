@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
-import type { AAModelResponse } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import type { AAModelResponse, MaaSModel } from '~/app/types';
 import {
   mockNamespace,
   mockNamespaces,

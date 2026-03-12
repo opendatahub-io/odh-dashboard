@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
-import type { AIModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import type { AIModel, MaaSModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
   getSourceLabel,
