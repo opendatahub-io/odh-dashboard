@@ -54,10 +54,12 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 		assert.Contains(t, first, "id")
 		assert.Contains(t, first, "name")
 		assert.Contains(t, first, "status")
+		assert.Contains(t, first, "provider")
 
 		assert.Equal(t, "ls_milvus", first["id"])
 		assert.Equal(t, "Milvus Vector Store", first["name"])
 		assert.Equal(t, "completed", first["status"])
+		assert.Equal(t, "milvus", first["provider"])
 	})
 
 	t.Run("should return empty array when LlamaStack has no vector stores", func(t *testing.T) {

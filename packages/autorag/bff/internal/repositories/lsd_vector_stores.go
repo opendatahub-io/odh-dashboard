@@ -14,7 +14,7 @@ func NewLSDVectorStoresRepository() *LSDVectorStoresRepository {
 }
 
 // GetLSDVectorStores retrieves all vector stores from LlamaStack.
-// Translates LlamaStack's OpenAI-compatible format into our stable public API format.
+// LlamaStack stores provider_id in the metadata field of the OpenAI-compatible response.
 func (r *LSDVectorStoresRepository) GetLSDVectorStores(ctx context.Context) (*models.LSDVectorStoresData, error) {
 	client, err := helper.GetContextLlamaStackClient(ctx)
 	if err != nil {
@@ -29,9 +29,10 @@ func (r *LSDVectorStoresRepository) GetLSDVectorStores(ctx context.Context) (*mo
 	vectorStores := make([]models.LSDVectorStore, 0, len(rawStores))
 	for _, raw := range rawStores {
 		vectorStores = append(vectorStores, models.LSDVectorStore{
-			ID:     raw.ID,
-			Name:   raw.Name,
-			Status: string(raw.Status),
+			ID:       raw.ID,
+			Name:     raw.Name,
+			Status:   string(raw.Status),
+			Provider: raw.Metadata["provider_id"],
 		})
 	}
 
