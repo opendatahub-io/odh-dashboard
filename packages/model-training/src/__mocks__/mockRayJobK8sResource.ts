@@ -51,7 +51,6 @@ export const mockRayJobK8sResource = ({
   reason,
   succeeded = 0,
   failed = 0,
-  clusterSelector,
   additionalLabels = {},
   isDeleting = false,
 }: MockRayJobConfigType = {}): RayJobKind => {
