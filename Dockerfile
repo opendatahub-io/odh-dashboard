@@ -24,10 +24,14 @@ RUN npm ci --ignore-scripts
 ENV TURBO_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Install only production dependencies
-# This is needed to remove the dev dependencies that were installed in the previous step
-RUN npm prune --omit=dev
+# npm prune --omit=dev does not correctly handle npm workspaces -- it only
+# removes root-level devDependencies while leaving all workspace devDependencies
+# hoisted in node_modules/. Replace the root package.json with a production-only
+# workspace manifest so prune sees only the runtime-relevant packages.
+RUN printf '{"name":"odh-dashboard","private":true,"workspaces":["backend","packages/app-config"]}\n' > package.json \
+    && npm install --omit=dev --omit=optional --ignore-scripts
 
+# This rm -rf is a safety net. It is currently not needed, but it is a good idea to keep it in case future changes accidentally introduce esbuild binaries.
 # Remove esbuild binaries to ensure FIPS compliance
 # esbuild is a build-time dependency transitively included through @perses-dev/plugin-system
 # -> @module-federation/enhanced -> @module-federation/cli -> @modern-js/node-bundle-require
