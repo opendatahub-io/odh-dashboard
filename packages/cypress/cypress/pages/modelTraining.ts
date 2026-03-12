@@ -110,6 +110,17 @@ class TrainingJobTable {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
 
+  filterByName(name: string) {
+    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
+    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').type(name);
+    return this;
+  }
+
+  clearNameFilter() {
+    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
+    return this;
+  }
+
   shouldHaveTrainingJobs(count: number) {
     this.findRows().should('have.length', count);
     return this;
