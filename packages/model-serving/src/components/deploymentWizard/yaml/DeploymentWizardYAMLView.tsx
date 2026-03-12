@@ -100,7 +100,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
             ) : undefined
           }
           code={code}
-          onChange={setCode}
+          onCodeChange={setCode}
           language={Language.yaml}
           isDarkTheme={theme === 'dark'}
           isLanguageLabelVisible
