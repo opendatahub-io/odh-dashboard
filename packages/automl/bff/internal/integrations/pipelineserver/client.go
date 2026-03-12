@@ -36,9 +36,13 @@ type PipelineServerClientInterface interface {
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 }
 
-// maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion
-// Error messages from upstream pipeline servers are capped at 64KB
+// maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
+// Error messages from upstream pipeline servers are capped at 64KB.
 const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
+
+// maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
+// Pipeline server responses are capped at 10 MB.
+const maxSuccessBodySize = 10 << 20 // 10 MB
 
 // ListRunsParams contains parameters for listing pipeline runs
 type ListRunsParams struct {
@@ -127,7 +131,7 @@ func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRun
 	}
 
 	var response models.KFPipelineRunResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -178,7 +182,7 @@ func (c *RealPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	}
 
 	var run models.KFPipelineRun
-	if err := json.NewDecoder(resp.Body).Decode(&run); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&run); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -226,7 +230,7 @@ func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models
 	}
 
 	var runResponse models.KFPipelineRun
-	if err := json.NewDecoder(resp.Body).Decode(&runResponse); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&runResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
