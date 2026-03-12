@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  ConfigMapKind,
   InferenceServiceKind,
   PersistentVolumeClaimKind,
   ProjectKind,
@@ -26,7 +25,6 @@ import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/u
 import {
   addSupportServingPlatformProject,
   createInferenceService,
-  createPvc,
   createSecret,
   createServingRuntime,
   getInferenceServiceContext,
@@ -34,7 +32,6 @@ import {
   updateServingRuntime,
 } from '#~/api';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
-import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   isModelServingCompatible,
@@ -512,128 +509,6 @@ export const getUrlFromKserveInferenceService = (
 
 export const isUrlInternalService = (url: string | undefined): boolean =>
   url !== undefined && url.endsWith('.svc.cluster.local');
-
-export interface ModelInfo {
-  name: string;
-  displayName: string;
-  shortDescription: string;
-  namespace: string;
-  tags: string[];
-  latestTag: string;
-  updatedDate: string;
-  registry?: string; // Optional custom registry for air-gapped deployments
-}
-
-export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
-  const configMap = await getNIMResource<ConfigMapKind>('nimConfig');
-  if (configMap.data && Object.keys(configMap.data).length > 0) {
-    const modelInfos: ModelInfo[] = [];
-    for (const [key, value] of Object.entries(configMap.data)) {
-      // Skip non-model entries (air-gapped configuration fields)
-      if (key === 'registry' || key === 'imagePullSecret') {
-        continue;
-      }
-
-      try {
-        const modelData = JSON.parse(value);
-        modelInfos.push({
-          name: key,
-          displayName: modelData.displayName,
-          shortDescription: modelData.shortDescription,
-          namespace: modelData.namespace,
-          tags: modelData.tags,
-          latestTag: modelData.latestTag,
-          updatedDate: modelData.updatedDate,
-          registry: modelData.registry, // Optional custom registry
-        });
-      } catch (error) {
-        throw new Error(`Failed to parse model data for key "${key}".`);
-      }
-    }
-
-    return modelInfos.length > 0 ? modelInfos : undefined;
-  }
-  return undefined;
-};
-
-export const createNIMSecret = async (
-  projectName: string,
-  secretKey: string,
-  isNGC: boolean,
-  dryRun: boolean,
-  isAirGapped = false,
-): Promise<SecretKind> => {
-  try {
-    let data;
-
-    if (isAirGapped) {
-      // Air-gapped mode: Use dummy values to satisfy controller expectations
-      // The actual image pulling uses the custom imagePullSecret from ConfigMap
-      if (isNGC) {
-        // Dummy dockerconfigjson for ngc-secret
-        data = {
-          '.dockerconfigjson': btoa(
-            JSON.stringify({
-              auths: {
-                'nvcr.io': {
-                  username: '$oauthtoken',
-                  password: 'air-gapped-placeholder',
-                  auth: btoa('$oauthtoken:air-gapped-placeholder'),
-                },
-              },
-            }),
-          ),
-        };
-      } else {
-        // Dummy API key for nvidia-nim-secrets
-        data = {
-          NGC_API_KEY: btoa('air-gapped-placeholder-key'),
-        };
-      }
-    } else {
-      // Normal mode: Fetch real NGC credentials from ConfigMap
-      data = await getNIMData(secretKey, isNGC);
-    }
-
-    const newSecret = {
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: {
-        name: isNGC ? 'ngc-secret' : 'nvidia-nim-secrets',
-        namespace: projectName,
-      },
-      data,
-      type: isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
-    };
-
-    return await createSecret(newSecret, { dryRun });
-  } catch (e) {
-    return Promise.reject(new Error(`Error creating ${isNGC ? 'NGC' : 'NIM'} secret`));
-  }
-};
-
-export const createNIMPVC = (
-  projectName: string,
-  pvcName: string,
-  pvcSize: string,
-  dryRun: boolean,
-  storageClassName: string,
-): Promise<PersistentVolumeClaimKind> =>
-  createPvc(
-    {
-      name: pvcName,
-      description: '',
-      size: pvcSize,
-      storageClassName,
-    },
-    projectName,
-    { dryRun },
-    true,
-    undefined,
-    {
-      'opendatahub.io/managed': 'true',
-    },
-  );
 
 export const getCreateInferenceServiceLabels = (
   data: Pick<ModelDeployPrefillInfo, 'modelRegistryInfo'> | undefined,

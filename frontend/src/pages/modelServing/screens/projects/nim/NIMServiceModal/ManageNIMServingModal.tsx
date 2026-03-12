@@ -11,14 +11,16 @@ import {
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  createNIMPVC,
-  createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
+import {
+  createNIMPVC,
+  createNIMSecret,
+} from '#~/pages/modelServing/screens/projects/nim/nimServingUtils';
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,

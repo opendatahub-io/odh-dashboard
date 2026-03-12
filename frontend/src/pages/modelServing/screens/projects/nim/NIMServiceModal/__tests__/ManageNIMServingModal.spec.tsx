@@ -13,9 +13,12 @@ import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner
 import * as useAssignHardwareProfileModule from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 
 // Mock dependencies
-jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/nim/nimServingUtils', () => ({
   createNIMPVC: jest.fn(),
   createNIMSecret: jest.fn(),
+}));
+
+jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   getSubmitInferenceServiceResourceFn: jest.fn(() => jest.fn()),
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
   useCreateInferenceServiceObject: jest.fn(),

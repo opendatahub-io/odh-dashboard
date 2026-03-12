@@ -1,7 +1,10 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
+import {
+  fetchNIMModelNames,
+  ModelInfo,
+} from '#~/pages/modelServing/screens/projects/nim/nimServingUtils';
 import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 import {
   CreatingInferenceServiceObject,
@@ -9,7 +12,7 @@ import {
 } from '#~/pages/modelServing/screens/types';
 import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelListSection';
 
-jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/nim/nimServingUtils', () => ({
   fetchNIMModelNames: jest.fn(),
 }));
 

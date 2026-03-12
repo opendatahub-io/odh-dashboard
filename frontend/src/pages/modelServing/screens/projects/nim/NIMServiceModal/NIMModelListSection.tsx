@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, FormGroup } from '@patternfly/react-core';
-import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
+import {
+  fetchNIMModelNames,
+  ModelInfo,
+} from '#~/pages/modelServing/screens/projects/nim/nimServingUtils';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
