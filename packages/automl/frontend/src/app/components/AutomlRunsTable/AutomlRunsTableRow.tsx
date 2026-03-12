@@ -19,7 +19,7 @@ type AutomlRunsTableRowProps = {
   run: PipelineRun;
 };
 
-const getStatusLabelProps = (
+export const getStatusLabelProps = (
   state: string | undefined,
 ): { status?: LabelProps['status']; color?: LabelProps['color'] } => {
   const s = (state ?? '').toLowerCase();
