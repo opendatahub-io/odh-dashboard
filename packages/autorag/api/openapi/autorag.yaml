@@ -290,13 +290,6 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
-        - name: pipelineVersionId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: ID of the pipeline version to filter runs by
-          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/nextPageToken"
       responses:
@@ -315,12 +308,9 @@ paths:
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: >-
-        Returns pipeline runs with automatic filtering to the discovered AutoRAG managed pipeline.
-        If pipelineVersionId query parameter is not specified, the BFF automatically discovers
-        the AutoRAG pipeline in the namespace and filters runs to that pipeline version.
-        If no AutoRAG pipeline is found and no explicit pipelineVersionId is provided, returns 500 error
-        with a user-visible message indicating that a managed AutoRAG pipeline needs to be deployed.
-        Explicit pipelineVersionId parameter overrides automatic discovery.
+        Returns pipeline runs filtered to the auto-discovered AutoRAG managed pipeline version.
+        The AutoRAG pipeline is automatically discovered in the namespace by name prefix.
+        Returns 500 if no managed AutoRAG pipeline is found in the namespace.
     post:
       tags:
         - PipelineOperation

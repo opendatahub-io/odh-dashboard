@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
@@ -17,7 +18,19 @@ type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
-// Returns pipeline runs from a specific Pipeline Server filtered by pipeline version ID
+//
+// Returns combined pipeline runs from all discovered AutoML pipelines (time-series and
+// tabular). Runs are fetched from all discovered pipelines, merged, sorted by
+// created_at descending, and paginated by page/pageSize.
+//
+// Query Parameters:
+//   - namespace: Kubernetes namespace (required, validated by middleware)
+//   - page: Page number, 1-indexed (optional, default: 1)
+//   - pageSize: Number of results per page (optional, default: 20, max: 100)
+//
+// Error Responses:
+//   - 400: Invalid query parameters
+//   - 500: No AutoML pipelines discovered or Pipeline Server error
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -28,13 +41,18 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
-	// Parse query parameters
-	query := r.URL.Query()
-
-	// Get pipeline version ID from query params (optional)
-	pipelineVersionID := query.Get("pipelineVersionId")
+	// Get all discovered pipelines from context
+	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if len(discoveredPipelines) == 0 {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("no AutoML pipelines found in namespace"),
+			"no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed")
+		return
+	}
 
 	// Parse pagination parameters
+	query := r.URL.Query()
+
 	pageSize := int32(20) // default
 	if pageSizeStr := query.Get("pageSize"); pageSizeStr != "" {
 		parsed, err := strconv.ParseInt(pageSizeStr, 10, 32)
@@ -53,27 +71,59 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		pageSize = int32(parsed)
 	}
 
-	pageToken := query.Get("nextPageToken")
-
-	// Call repository to get filtered pipeline runs
-	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
-		client,
-		ctx,
-		pipelineVersionID,
-		pageSize,
-		pageToken,
-	)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
-		return
+	page := int32(1) // default, 1-indexed
+	if pageStr := query.Get("page"); pageStr != "" {
+		parsed, err := strconv.ParseInt(pageStr, 10, 32)
+		if err != nil || parsed <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
+			return
+		}
+		page = int32(parsed)
 	}
 
-	// Wrap in envelope response
+	// Fetch all runs for each discovered pipeline and merge
+	var allRuns []models.PipelineRun
+	for _, discovered := range discoveredPipelines {
+		runs, err := app.repositories.PipelineRuns.GetAllPipelineRuns(client, ctx, discovered.PipelineVersionID)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
+			return
+		}
+		allRuns = append(allRuns, runs...)
+	}
+
+	// Sort merged runs by created_at descending
+	sort.Slice(allRuns, func(i, j int) bool {
+		return allRuns[i].CreatedAt > allRuns[j].CreatedAt
+	})
+
+	// Apply page/pageSize pagination to the merged list
+	totalSize := int32(len(allRuns))
+	start := (page - 1) * pageSize
+	end := start + pageSize
+
+	if start > totalSize {
+		start = totalSize
+	}
+	if end > totalSize {
+		end = totalSize
+	}
+
+	pagedRuns := allRuns[start:end]
+	if pagedRuns == nil {
+		pagedRuns = []models.PipelineRun{}
+	}
+
+	runsData := &models.PipelineRunsData{
+		Runs:      pagedRuns,
+		TotalSize: totalSize,
+	}
+
 	response := PipelineRunsEnvelope{
 		Data: runsData,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	err := app.WriteJSON(w, http.StatusOK, response, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

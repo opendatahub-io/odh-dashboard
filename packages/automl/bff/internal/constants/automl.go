@@ -16,10 +16,21 @@ const (
 	TaskTypeBinary     = "binary"
 	TaskTypeMulticlass = "multiclass"
 	TaskTypeRegression = "regression"
+
+	// PipelineTypeTimeSeries identifies the AutoML time-series pipeline during discovery.
+	PipelineTypeTimeSeries = "timeseries"
+	// PipelineTypeTabular identifies the AutoML tabular pipeline (classification + regression) during discovery.
+	PipelineTypeTabular = "tabular"
 )
 
 var ValidTaskTypes = map[string]bool{
 	TaskTypeBinary:     true,
 	TaskTypeMulticlass: true,
 	TaskTypeRegression: true,
+}
+
+// ValidPipelineTypes lists the valid pipeline type keys for AutoML discovery.
+var ValidPipelineTypes = map[string]bool{
+	PipelineTypeTimeSeries: true,
+	PipelineTypeTabular:    true,
 }

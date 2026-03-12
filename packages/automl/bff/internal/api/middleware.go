@@ -681,26 +681,23 @@ func (app *App) discoverReadyDSPA(
 	return nil, nil
 }
 
-// AttachDiscoveredPipeline middleware discovers the AutoML managed pipeline and attaches it to context.
+// AttachDiscoveredPipeline middleware discovers managed pipelines and attaches them to context.
 //
 // Middleware Chain Requirements:
 //   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
 //   - Returns 400 if prerequisites are missing
 //
 // Behavior:
-//   - Automatically discovers the AutoML pipeline in the namespace using name-based matching
-//   - Caches discovery results for 5 minutes to reduce API calls
-//   - Stores discovered pipeline (or nil if not found) in context at constants.DiscoveredPipelineKey
-//   - Returns 500 if discovery fails with an error
-//   - Logs discovery success/failure for debugging
+//   - Builds a definitions map from config (pipeline type → name prefix)
+//   - Calls DiscoverNamedPipelines to find all configured pipelines
+//   - Stores the result map in context at constants.DiscoveredPipelinesKey
+//   - Partial maps are allowed — handlers decide if their specific type is required
+//   - Returns 500 only if discovery fails with a hard API error
+//   - Logs discovery results for debugging
 //
-// Handlers using this middleware can retrieve the discovered pipeline from context:
+// Handlers using this middleware can retrieve discovered pipelines from context:
 //
-//	discovered := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
-//
-// Usage Pattern:
-//   - GET /pipeline-runs: Requires discovered pipeline when no explicit pipelineVersionId filter provided (returns 500 if nil)
-//   - POST /pipeline-runs: Requires discovered pipeline (returns 500 if nil)
+//	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, psParams httprouter.Params) {
 		ctx := r.Context()
@@ -721,37 +718,40 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		logger := helper.GetContextLoggerFromReq(r)
 
-		// Get pipeline server base URL from context (set by AttachPipelineServerClient middleware)
-		// Used as part of the cache key to prevent cross-tenant cache leakage
+		// Get pipeline server base URL from context (used as part of cache key)
 		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
 
-		// Get configured pipeline name prefix (defaults to "automl" if not set)
-		pipelineNamePrefix := app.config.AutoMLPipelineNamePrefix
+		// Build definitions map: pipeline type key → name prefix
+		definitions := map[string]string{
+			constants.PipelineTypeTimeSeries: app.config.AutoMLTimeSeriesPipelineNamePrefix,
+			constants.PipelineTypeTabular:    app.config.AutoMLTabularPipelineNamePrefix,
+		}
 
-		// Discover AutoML pipeline in the namespace
-		discovered, err := app.repositories.Pipeline.DiscoverAutoMLPipeline(pipelineClient, ctx, namespace, pipelineServerBaseURL, pipelineNamePrefix)
+		// Discover named pipelines in the namespace
+		pipelines, err := app.repositories.Pipeline.DiscoverNamedPipelines(pipelineClient, ctx, namespace, pipelineServerBaseURL, definitions)
 		if err != nil {
-			logger.Error("Failed to discover AutoML pipeline",
+			logger.Error("Failed to discover AutoML pipelines",
 				"namespace", namespace,
 				"error", err)
 			app.serverErrorResponseWithMessage(w, r,
-				fmt.Errorf("failed to discover AutoML pipeline: %w", err),
-				fmt.Sprintf("no AutoML pipeline found in namespace %s - ensure a managed AutoML pipeline is deployed", namespace))
+				fmt.Errorf("failed to discover AutoML pipelines: %w", err),
+				fmt.Sprintf("no AutoML pipelines found in namespace %s - ensure managed AutoML pipelines are deployed", namespace))
 			return
 		}
 
-		if discovered == nil {
-			// No AutoML pipeline found - handlers will return 500 unless explicit filter provided
-			logger.Debug("No AutoML pipeline discovered in namespace", "namespace", namespace)
-		} else {
+		for pipelineType, discovered := range pipelines {
 			logger.Debug("Discovered AutoML pipeline",
 				"namespace", namespace,
+				"pipelineType", pipelineType,
 				"pipelineId", discovered.PipelineID,
 				"pipelineVersionId", discovered.PipelineVersionID)
 		}
+		if len(pipelines) == 0 {
+			logger.Debug("No AutoML pipelines discovered in namespace", "namespace", namespace)
+		}
 
-		// Attach discovered pipeline to context (may be nil)
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+		// Attach discovered pipelines map to context (may be empty)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
 		r = r.WithContext(ctx)
 
 		next(w, r, psParams)

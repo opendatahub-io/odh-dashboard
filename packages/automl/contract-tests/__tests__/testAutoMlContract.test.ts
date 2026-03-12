@@ -53,10 +53,8 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
-      it('should support filtering by pipeline version ID', async () => {
-        const result = await apiClient.get(
-          '/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899',
-        );
+      it('should support page parameter', async () => {
+        const result = await apiClient.get('/api/v1/pipeline-runs?namespace=test-namespace&page=1');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/PipelineRunsResponse/content/application/json/schema',
           status: 200,

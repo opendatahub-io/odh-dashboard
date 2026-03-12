@@ -134,6 +134,52 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 	}
 }
 
+// GetAllPipelineRuns fetches all pages of runs for a single pipeline version ID.
+// It auto-paginates through the pipeline server's pages and returns the complete list.
+// This is used by the multi-pipeline runs handler to merge runs from multiple pipelines.
+func (r *PipelineRunsRepository) GetAllPipelineRuns(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	pipelineVersionID string,
+) ([]models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	var allRuns []models.PipelineRun
+	pageToken := ""
+
+	for {
+		filter := buildFilter(pipelineVersionID)
+		params := &ps.ListRunsParams{
+			PageSize:  100, // max page size to minimize round trips
+			PageToken: pageToken,
+			SortBy:    "created_at desc",
+			Filter:    filter,
+		}
+
+		kfResponse, err := client.ListRuns(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching pipeline runs: %w", err)
+		}
+
+		if kfResponse == nil || len(kfResponse.Runs) == 0 {
+			break
+		}
+
+		for _, kfRun := range kfResponse.Runs {
+			allRuns = append(allRuns, toPipelineRun(&kfRun))
+		}
+
+		if kfResponse.NextPageToken == "" {
+			break
+		}
+		pageToken = kfResponse.NextPageToken
+	}
+
+	return allRuns, nil
+}
+
 // GetPipelineRun retrieves a single pipeline run by ID
 func (r *PipelineRunsRepository) GetPipelineRun(
 	client ps.PipelineServerClientInterface,

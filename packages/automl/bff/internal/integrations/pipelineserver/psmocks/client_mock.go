@@ -32,6 +32,16 @@ func DeriveMockIDs(namespace string) MockPipelineIDs {
 	}
 }
 
+// DeriveMockIDsFromName returns a consistent MockPipelineIDs set for the given pipeline name
+// and namespace.  Used when multiple named pipelines exist in the same namespace.
+func DeriveMockIDsFromName(namespace, name string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("pipeline:" + name + ":" + namespace),
+		LatestVersionID: hashUUID("version-latest:" + name + ":" + namespace),
+		OldVersionID:    hashUUID("version-old:" + name + ":" + namespace),
+	}
+}
+
 // hashUUID converts the SHA-256 digest of input into a UUID-formatted string.
 func hashUUID(input string) string {
 	h := sha256.Sum256([]byte(input))
@@ -48,9 +58,14 @@ type MockPipelineServerClient struct {
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoML pipeline's DisplayName in
 	// ListPipelines (e.g. "automl" → "automl-pipeline").  Defaults to "automl" when empty,
-	// matching the default discovery prefix in DiscoverAutoMLPipeline.  Tests that exercise
+	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
 	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// Ignored when PipelineNames is set.
 	PipelineNamePrefix string
+	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
+	// pipeline entry per name in this slice (with IDs derived from name+namespace).
+	// ListPipelineVersions returns versions for any of these pipelines' derived IDs.
+	PipelineNames []string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
@@ -498,8 +513,59 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 
 // ListPipelines returns mock pipeline data with namespace-derived IDs.
 // The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
+// When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.
+// In namespace mode (Namespace != "") with no PipelineNames override, returns both AutoML pipeline
+// types so the discovery middleware can find them using the default prefixes.
 func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		pipelines := make([]models.KFPipeline, 0, len(m.PipelineNames))
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			pipelines = append(pipelines, models.KFPipeline{
+				PipelineID:  ids.PipelineID,
+				DisplayName: name,
+				Description: "Managed AutoML pipeline",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			})
+		}
+		return &models.KFPipelinesResponse{
+			Pipelines:     pipelines,
+			TotalSize:     int32(len(pipelines)),
+			NextPageToken: "",
+		}, nil
+	}
+
 	ids := DeriveMockIDs(m.Namespace)
+
+	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
+	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
+	if m.Namespace != "" {
+		clsID := hashUUID("cls-pipeline:" + m.Namespace)
+		return &models.KFPipelinesResponse{
+			Pipelines: []models.KFPipeline{
+				{
+					PipelineID:  ids.PipelineID,
+					DisplayName: "automl-timeseries-pipeline",
+					Description: "Managed AutoML time-series pipeline",
+					CreatedAt:   "2026-02-20T10:00:00Z",
+					Namespace:   m.Namespace,
+				},
+				{
+					PipelineID:  clsID,
+					DisplayName: "automl-tabular-pipeline",
+					Description: "Managed AutoML tabular pipeline",
+					CreatedAt:   "2026-02-20T10:00:00Z",
+					Namespace:   m.Namespace,
+				},
+			},
+			TotalSize:     2,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Non-namespace mode (e.g. "http://mock-ps"): return single pipeline with default prefix
+	// for backward compatibility with repository unit tests.
 	return &models.KFPipelinesResponse{
 		Pipelines: []models.KFPipeline{
 			{
@@ -524,12 +590,44 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 
 // ListPipelineVersions returns mock pipeline version data sorted by created_at desc (newest first),
 // matching the sort order requested by the real pipeline server client.
-// Returns versions only when the pipelineID matches the namespace-derived AutoML pipeline ID.
+// When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
 func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			if pipelineID == ids.PipelineID {
+				return &models.KFPipelineVersionsResponse{
+					PipelineVersions: []models.KFPipelineVersion{
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.LatestVersionID,
+							DisplayName:       "v1.0.0",
+							Description:       "Pipeline version",
+							CreatedAt:         "2026-02-23T10:00:00Z",
+						},
+					},
+					TotalSize:     1,
+					NextPageToken: "",
+				}, nil
+			}
+		}
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{},
+			TotalSize:        0,
+			NextPageToken:    "",
+		}, nil
+	}
+
 	ids := DeriveMockIDs(m.Namespace)
 
-	// Only return versions for this namespace's AutoML pipeline
-	if pipelineID == ids.PipelineID {
+	// In namespace mode, also accept the tabular pipeline ID
+	clsID := ""
+	if m.Namespace != "" {
+		clsID = hashUUID("cls-pipeline:" + m.Namespace)
+	}
+
+	// Only return versions for this namespace's AutoML pipeline(s)
+	if pipelineID == ids.PipelineID || (clsID != "" && pipelineID == clsID) {
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{
