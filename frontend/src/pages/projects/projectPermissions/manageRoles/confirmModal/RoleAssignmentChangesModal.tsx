@@ -1,16 +1,8 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { isAiRole } from '#~/pages/projects/projectPermissions/utils';
+import ContentModal from '#~/components/modals/ContentModal';
 import type { RoleAssignmentChanges } from '#~/pages/projects/projectPermissions/manageRoles/types';
 import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 import RoleChangesSection from './RoleChangesSection';
@@ -51,16 +43,13 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
   const unassigningCount = changes.unassigning.length;
 
   return (
-    <Modal
-      isOpen
+    <ContentModal
       variant="small"
-      onClose={isSaving ? undefined : onClose}
-      onEscapePress={isSaving ? undefined : onClose}
-      aria-label="Confirm role assignment changes modal"
-      data-testid="assign-roles-confirm-modal"
-    >
-      <ModalHeader title="Save role assignment changes?" titleIconVariant="warning" />
-      <ModalBody>
+      onClose={isSaving ? () => undefined : onClose}
+      title="Save role assignment changes?"
+      titleIconVariant="warning"
+      dataTestId="assign-roles-confirm-modal"
+      contents={
         <Stack hasGutter>
           <StackItem>
             The following role assignment changes will be applied to the {subjectKind}{' '}
@@ -116,27 +105,25 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
             </StackItem>
           )}
         </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={handleConfirm}
-          isLoading={isSaving}
-          isDisabled={isSaving}
-          data-testid="assign-roles-confirm-save"
-        >
-          Confirm
-        </Button>
-        <Button
-          variant="link"
-          onClick={onClose}
-          isDisabled={isSaving}
-          data-testid="assign-roles-confirm-cancel"
-        >
-          Cancel
-        </Button>
-      </ModalFooter>
-    </Modal>
+      }
+      buttonActions={[
+        {
+          label: 'Confirm',
+          onClick: handleConfirm,
+          variant: 'primary',
+          dataTestId: 'assign-roles-confirm-save',
+          isLoading: isSaving,
+          isDisabled: isSaving,
+        },
+        {
+          label: 'Cancel',
+          onClick: onClose,
+          variant: 'link',
+          dataTestId: 'assign-roles-confirm-cancel',
+          isDisabled: isSaving,
+        },
+      ]}
+    />
   );
 };
 
