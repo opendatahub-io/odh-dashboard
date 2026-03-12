@@ -381,12 +381,16 @@ describe('Playground - MCP Servers', () => {
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify tools button is enabled after closing modal');
+
       // Re-query the server row after modal close to avoid stale element reference
       playgroundPage.mcpTab
         .getServerRow(serverName, serverUrl)
         .findToolsButton()
         .should('exist')
         .and('not.have.attr', 'aria-disabled');
+      // Wait for MCP table to be visible after potential tab remount
+      playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
+      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
 
       cy.step('Click tools button to open tools modal');
       playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
@@ -472,6 +476,9 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab.closeSuccessModal();
       // Re-query the server row after modal close to avoid stale element reference
       playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
+      // Wait for MCP table to be visible after potential tab remount
+      playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
+      serverRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
@@ -614,6 +621,8 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab.closeSuccessModal();
 
       cy.step('Verify warning alert is shown in MCP tab');
+      // Wait for MCP table to be visible after potential tab remount
+      playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
       cy.get('[data-testid="mcp-tools-warning-alert"]')
         .should('be.visible')
         .and('contain.text', 'Performance may be degraded with more than 40 active tools');
@@ -660,6 +669,8 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab.closeSuccessModal();
 
       cy.step('Verify warning alert is NOT shown (40 tools is the threshold, not exceeding)');
+      // Wait for MCP table to be visible after potential tab remount
+      playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
       cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
 
       cy.step('Verify tools count shows 40 active');
