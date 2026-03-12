@@ -20,7 +20,9 @@ import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
@@ -28,6 +30,7 @@ const createFields = ['display_name', 'description'] as const;
 
 function AutoragConfigurePage(): React.JSX.Element {
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
@@ -35,6 +38,8 @@ function AutoragConfigurePage(): React.JSX.Element {
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
+
+  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
@@ -79,14 +84,50 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="primary"
-          isDisabled={!form.formState.isValid}
+          isDisabled={!form.formState.isValid || form.formState.isSubmitting}
           onClick={() => {
-            form.handleSubmit(() => {
-              navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
-            })();
+            form.handleSubmit(
+              async (data: ConfigureSchema) => {
+                try {
+                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                  navigate(`${autoragConfigurePathname}/${pipelineRun.run_id}`);
+                } catch (error) {
+                  notification.error(
+                    'Failed to create pipeline run',
+                    error instanceof Error ? error.message : '',
+                  );
+                }
+              },
+              // this `onInvalid` case should be impossible to hit
+              // since we disable the button when the form is invalid
+              () => notification.error('Form is invalid'),
+            )();
           }}
         >
           Run experiment
+        </Button>
+      </ActionListItem>
+      <ActionListItem>
+        <Button
+          variant="warning"
+          onClick={() => {
+            form.reset({
+              /* eslint-disable camelcase */
+              display_name: 'a',
+              input_data_secret_name: 'a',
+              input_data_bucket_name: 'a',
+              input_data_key: 'a',
+              test_data_secret_name: 'a',
+              test_data_bucket_name: 'a',
+              test_data_key: 'a',
+              llama_stack_secret_name: 'a',
+              generation_models: ['a'],
+              embeddings_models: ['a'],
+              /* eslint-enable camelcase */
+            });
+          }}
+        >
+          Set dummy payload
         </Button>
       </ActionListItem>
       <ActionListItem>
