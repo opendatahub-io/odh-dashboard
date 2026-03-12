@@ -3,9 +3,7 @@ import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
 import { getPipelineRunsFromBFF } from '~/app/api/pipelines';
 import type { PipelineRun } from '~/app/types';
-import { POLL_INTERVAL } from '~/app/utilities/const';
-
-const DEFAULT_PAGE_SIZE = 20;
+import { DEFAULT_PAGE_SIZE, POLL_INTERVAL } from '~/app/utilities/const';
 
 export type PipelineRunsResult = {
   runs: PipelineRun[];

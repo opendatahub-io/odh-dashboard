@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case for total_size, next_page_token */
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import type { PipelineRun } from '~/app/types';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, DEFAULT_PAGE_SIZE, URL_PREFIX } from '~/app/utilities/const';
 
 /** Response shape from BFF pipeline-runs API. Exported for hooks/tables that need pagination. */
 export type PipelineRunsData = {
@@ -9,9 +9,6 @@ export type PipelineRunsData = {
   total_size: number;
   next_page_token: string;
 };
-
-/** Default page size per pipeline-runs-api.md */
-const DEFAULT_PAGE_SIZE = 20;
 
 export type GetPipelineRunsFromBFFParams = {
   namespace: string;
