@@ -14,8 +14,6 @@ export type ManageRolesRow = {
   statusLabel?: AssignmentStatus;
 };
 
-export const ASSIGNMENT_STATUS_COLUMN_INDEX = 4;
-
 export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
   { label: '', field: 'checkbox', width: 10, sortable: false },
   {
@@ -92,3 +90,7 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     },
   },
 ];
+
+export const ASSIGNMENT_STATUS_COLUMN_INDEX = manageRolesColumns.findIndex(
+  ({ field }) => field === 'status',
+);
