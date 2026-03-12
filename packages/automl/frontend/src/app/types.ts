@@ -1,3 +1,5 @@
+import type { ComponentType, CSSProperties } from 'react';
+
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
   'openshift.io/display-name': string;
@@ -28,7 +30,7 @@ export type NamespaceKind = {
   displayName?: string;
 };
 
-export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+export type IconType = ComponentType<{ style?: CSSProperties }>;
 
 export type PipelineDefinition = {
   pipeline_id: string;

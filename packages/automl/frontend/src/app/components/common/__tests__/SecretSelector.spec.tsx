@@ -21,7 +21,7 @@ describe('SecretSelector', () => {
   const defaultNamespace = 'test-namespace';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('loading state', () => {
@@ -528,6 +528,8 @@ describe('SecretSelector', () => {
 
   describe('namespace and type changes', () => {
     it('should refetch when namespace changes', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
       const { rerender } = render(
         <SecretSelector
           namespace="namespace-1"
@@ -537,7 +539,8 @@ describe('SecretSelector', () => {
         />,
       );
 
-      const firstCallCount = mockUseFetchState.mock.calls.length;
+      // Get the callback from the first render
+      const firstCallback = mockUseFetchState.mock.calls[0][0];
 
       rerender(
         <SecretSelector
@@ -548,11 +551,17 @@ describe('SecretSelector', () => {
         />,
       );
 
-      // useFetchState should be called again with new namespace
-      expect(mockUseFetchState.mock.calls.length).toBeGreaterThan(firstCallCount);
+      // Get the callback from the rerender
+      const secondCallback =
+        mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
+
+      // The callbacks should be different because namespace changed
+      expect(secondCallback).not.toBe(firstCallback);
     });
 
     it('should refetch when type changes', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
       const { rerender } = render(
         <SecretSelector
           namespace={defaultNamespace}
@@ -563,20 +572,25 @@ describe('SecretSelector', () => {
         />,
       );
 
-      const firstCallCount = mockUseFetchState.mock.calls.length;
+      // Get the callback from the first render
+      const firstCallback = mockUseFetchState.mock.calls[0][0];
 
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="storage"
+          type={undefined}
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
         />,
       );
 
-      // useFetchState should be called again with new type
-      expect(mockUseFetchState.mock.calls.length).toBeGreaterThan(firstCallCount);
+      // Get the callback from the rerender
+      const secondCallback =
+        mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
+
+      // The callbacks should be different because type changed
+      expect(secondCallback).not.toBe(firstCallback);
     });
   });
 

@@ -600,7 +600,7 @@ func TestGetSecretsHandler_Data_EmptySecret(t *testing.T) {
 }
 
 func TestGetSecretsHandler_Data_DataAndStringData(t *testing.T) {
-	// Create a secret with keys in both Data and StringData
+	// Create a secret with keys in Data field only (StringData is write-only and not returned by Kubernetes GET/LIST)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -611,10 +611,6 @@ func TestGetSecretsHandler_Data_DataAndStringData(t *testing.T) {
 			Data: map[string][]byte{
 				"data_key_1": []byte("value1"),
 				"data_key_2": []byte("value2"),
-			},
-			StringData: map[string]string{
-				"string_key_1": "string_value1",
-				"string_key_2": "string_value2",
 			},
 		},
 	}
@@ -635,14 +631,12 @@ func TestGetSecretsHandler_Data_DataAndStringData(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Len(t, envelope.Data, 1)
 
-	// Verify all keys from both Data and StringData are included
+	// Verify all keys from Data are included (StringData is not returned by Kubernetes GET/LIST operations)
 	expectedKeys := map[string]string{
-		"data_key_1":   "[REDACTED]",
-		"data_key_2":   "[REDACTED]",
-		"string_key_1": "[REDACTED]",
-		"string_key_2": "[REDACTED]",
+		"data_key_1": "[REDACTED]",
+		"data_key_2": "[REDACTED]",
 	}
-	assert.Equal(t, expectedKeys, envelope.Data[0].Data, "Should include keys from both Data and StringData")
+	assert.Equal(t, expectedKeys, envelope.Data[0].Data, "Should include keys from Data field")
 }
 
 func TestGetSecretsHandler_DisplayName_WithAnnotation(t *testing.T) {
