@@ -129,7 +129,7 @@ describe('EndpointDetailModal', () => {
   describe('MaaS models', () => {
     it('should show both endpoints and API key section for MaaS models', () => {
       const model = createMockModel({
-        isMaaSModel: true,
+        modelSource: 'maas',
         externalEndpoint: 'https://api.example.com/models/test/v1',
         internalEndpoint: 'http://test-model.ns.svc.cluster.local:8080/v1',
       });
@@ -153,7 +153,7 @@ describe('EndpointDetailModal', () => {
 
     it('should call generateToken when Generate API Key button is clicked', () => {
       const model = createMockModel({
-        isMaaSModel: true,
+        modelSource: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -172,7 +172,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        modelSource: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -192,7 +192,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        modelSource: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -211,7 +211,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        modelSource: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);

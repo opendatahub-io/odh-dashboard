@@ -150,12 +150,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         .installLSD({
           models: selectedModels.map((model) => {
             const maxTokens = maxTokensMap.get(model.model_name);
+            const isMaaS = model.modelSource === 'maas';
             return {
-              model_name:
-                model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
-              model_source_type: model.isMaaSModel
-                ? 'maas'
-                : model.model_source_type || 'namespace',
+              model_name: isMaaS && model.maasModelId ? model.maasModelId : model.model_name,
+              model_source_type: model.model_source_type || model.modelSource || 'namespace',
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),

@@ -37,7 +37,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const sourceLabel = getSourceLabel(model);
-  const assetType = model.isMaaSModel ? 'maas_model' : 'model';
+  const assetType = model.modelSource === 'maas' ? 'maas_model' : 'model';
 
   return (
     <>

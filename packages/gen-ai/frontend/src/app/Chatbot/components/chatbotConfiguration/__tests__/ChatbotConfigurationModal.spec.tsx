@@ -88,7 +88,7 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token: '',
   },
   model_source_type: 'namespace',
-  isMaaSModel: false,
+  modelSource: 'namespace',
   maasModelId: undefined,
   ...overrides,
 });
@@ -200,17 +200,17 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 describe('ChatbotConfigurationModal MaaS model support', () => {
   test('createAIModel helper creates regular model by default', () => {
     const model = createAIModel({ model_name: 'test-model' });
-    expect(model.isMaaSModel).toBe(false);
+    expect(model.modelSource).toBe('namespace');
     expect(model.maasModelId).toBeUndefined();
   });
 
   test('createAIModel helper can create MaaS model', () => {
     const model = createAIModel({
       model_name: 'granite-7b-lab',
-      isMaaSModel: true,
+      modelSource: 'maas',
       maasModelId: 'granite-7b-lab',
     });
-    expect(model.isMaaSModel).toBe(true);
+    expect(model.modelSource).toBe('maas');
     expect(model.maasModelId).toBe('granite-7b-lab');
   });
 
@@ -219,7 +219,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
     const maasModel = createAIModel({
       model_name: 'granite-7b-lab',
       display_name: 'Granite MaaS',
-      isMaaSModel: true,
+      modelSource: 'maas',
       maasModelId: 'granite-7b-lab',
     });
     const allModels = [regularModel, maasModel];
@@ -233,7 +233,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
     const maasModel = createAIModel({
       model_name: 'llama-2-7b-chat',
       display_name: 'Llama 2 Chat',
-      isMaaSModel: true,
+      modelSource: 'maas',
       maasModelId: 'llama-2-7b-chat',
     });
 

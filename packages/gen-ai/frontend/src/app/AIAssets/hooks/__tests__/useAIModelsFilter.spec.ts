@@ -105,7 +105,7 @@ describe('useAIModelsFilter', () => {
     it('should filter models by source (select filter)', () => {
       const models = [
         createMockAIModel({ model_id: 'model-1', modelSource: 'namespace' }),
-        createMockAIModel({ model_id: 'model-2', modelSource: 'maas', isMaaSModel: true }),
+        createMockAIModel({ model_id: 'model-2', modelSource: 'maas', modelSource: 'maas' }),
       ];
 
       const { result } = testHook(useAIModelsFilter)(models);

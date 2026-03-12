@@ -372,10 +372,9 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  // Flag to identify if this is a MaaS model
-  isMaaSModel?: boolean;
   // The MaaS model ID if this is a MaaS model (needed for LSD installation)
   maasModelId?: string;
+  // Source of the model - derives from model_source_type in API response
   modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
