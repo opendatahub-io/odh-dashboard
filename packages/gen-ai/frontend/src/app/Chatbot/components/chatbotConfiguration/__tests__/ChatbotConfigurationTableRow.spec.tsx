@@ -96,7 +96,6 @@ describe('ChatbotConfigurationTableRow', () => {
   it('renders MaaS badge for MaaS models', () => {
     const maasModel = createMockAIModel({
       model_source_type: 'maas',
-      model_source_type: 'maas',
       display_name: 'MaaS Test Model',
     });
 

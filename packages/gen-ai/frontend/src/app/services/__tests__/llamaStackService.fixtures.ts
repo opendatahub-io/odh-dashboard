@@ -10,6 +10,7 @@ import {
   MCPConnectionStatus,
   MCPToolsStatus,
   MCPServerInfo,
+  LSDInstallModel,
 } from '~/app/types';
 
 // Test namespace constant
@@ -102,13 +103,13 @@ export const mockCodeExportResponseData: CodeExportData = {
 };
 
 // Install LSD fixtures
-export const mockInstallModels = [
+export const mockInstallModels: LSDInstallModel[] = [
   { model_name: 'model-1', model_source_type: 'namespace' },
   { model_name: 'model-2', model_source_type: 'namespace' },
   { model_name: 'model-3', model_source_type: 'maas' },
 ];
 
-export const mockMaaSModelsForInstall = [
+export const mockMaaSModelsForInstall: LSDInstallModel[] = [
   { model_name: 'maas-model-1', model_source_type: 'maas' },
   { model_name: 'regular-model', model_source_type: 'namespace' },
 ];
