@@ -7,6 +7,7 @@ type contextKey string
 const (
 	NamespaceHeaderParameterKey contextKey = "namespace"
 	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
+	PipelineServerBaseURLKey    contextKey = "PipelineServerBaseURLKey"
 	DiscoveredPipelineKey       contextKey = "DiscoveredPipelineKey"
 
 	// The following keys are used to store the user access token in the context

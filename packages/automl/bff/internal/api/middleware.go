@@ -221,11 +221,15 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		// Create pipeline server client (mock or real based on configuration)
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
+			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
+			mockBaseURL := "mock://" + namespace
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
 			baseURL := app.config.PipelineServerURL
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
 				"namespace", namespace)
 
@@ -358,6 +362,7 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 		}
 
 		r = r.WithContext(ctx)
@@ -716,11 +721,15 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		logger := helper.GetContextLoggerFromReq(r)
 
+		// Get pipeline server base URL from context (set by AttachPipelineServerClient middleware)
+		// Used as part of the cache key to prevent cross-tenant cache leakage
+		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
+
 		// Get configured pipeline name prefix (defaults to "automl" if not set)
 		pipelineNamePrefix := app.config.AutoMLPipelineNamePrefix
 
 		// Discover AutoML pipeline in the namespace
-		discovered, err := app.repositories.Pipeline.DiscoverAutoMLPipeline(pipelineClient, ctx, namespace, pipelineNamePrefix)
+		discovered, err := app.repositories.Pipeline.DiscoverAutoMLPipeline(pipelineClient, ctx, namespace, pipelineServerBaseURL, pipelineNamePrefix)
 		if err != nil {
 			logger.Error("Failed to discover AutoML pipeline",
 				"namespace", namespace,

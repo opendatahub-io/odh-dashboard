@@ -16,46 +16,47 @@ func TestDiscoverAutoMLPipeline(t *testing.T) {
 
 	t.Run("should discover pipeline with default prefix", func(t *testing.T) {
 		namespace := "test-ns-1"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace) // namespace is "" for non-mock:// URLs
 
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		assert.Equal(t, "9e3940d5-b275-4b64-be10-b914cd06c58e", discovered.PipelineID)
-		assert.Equal(t, "22e57c06-030f-4c63-900d-0a808d577899", discovered.PipelineVersionID)
-		assert.Equal(t, "automl-optimization-pipeline", discovered.PipelineName)
+		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
+		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
+		assert.Equal(t, "automl-pipeline", discovered.PipelineName)
 		assert.Equal(t, namespace, discovered.Namespace)
 	})
 
 	t.Run("should discover pipeline with custom prefix", func(t *testing.T) {
 		namespace := "test-ns-2"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "automl-pipeline", so "automl" prefix should match
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		assert.Equal(t, "automl-optimization-pipeline", discovered.PipelineName)
+		assert.Equal(t, "automl-pipeline", discovered.PipelineName)
 	})
 
 	t.Run("should be case-insensitive when matching prefix", func(t *testing.T) {
 		namespace := "test-ns-3"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "automl-pipeline", "AUTOML" prefix should match (case-insensitive)
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "AUTOML")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "AUTOML")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		assert.Equal(t, "automl-optimization-pipeline", discovered.PipelineName)
+		assert.Equal(t, "automl-pipeline", discovered.PipelineName)
 	})
 
 	t.Run("should return error when namespace is empty", func(t *testing.T) {
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, "", "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, "", "http://mock-ps", "automl")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -64,7 +65,7 @@ func TestDiscoverAutoMLPipeline(t *testing.T) {
 
 	t.Run("should return error when client is nil", func(t *testing.T) {
 		namespace := "test-ns-4"
-		discovered, err := repo.DiscoverAutoMLPipeline(nil, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(nil, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -73,10 +74,10 @@ func TestDiscoverAutoMLPipeline(t *testing.T) {
 
 	t.Run("should return error when no pipeline matches prefix", func(t *testing.T) {
 		namespace := "test-ns-5"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Mock returns "automl-pipeline", "nonexistent" prefix should not match
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "nonexistent")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "nonexistent")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -86,29 +87,30 @@ func TestDiscoverAutoMLPipeline(t *testing.T) {
 		}
 	})
 
-	t.Run("should use first version when multiple versions exist", func(t *testing.T) {
+	t.Run("should use latest version when multiple versions exist", func(t *testing.T) {
 		namespace := "test-ns-6"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
-		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		// Mock returns version v1.0.0 as first version
-		assert.Equal(t, "22e57c06-030f-4c63-900d-0a808d577899", discovered.PipelineVersionID)
+		// Mock returns versions sorted by created_at desc; v2.0.0 is the most recently created
+		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
 	})
 
 	t.Run("should cache discovery results", func(t *testing.T) {
 		namespace := "test-ns-7"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// First call should discover and cache
-		discovered1, err1 := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered1, err1 := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 		assert.NoError(t, err1)
 		assert.NotNil(t, discovered1)
 
 		// Second call should return cached result
-		discovered2, err2 := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered2, err2 := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 		assert.NoError(t, err2)
 		assert.NotNil(t, discovered2)
 
@@ -119,18 +121,18 @@ func TestDiscoverAutoMLPipeline(t *testing.T) {
 
 	t.Run("should invalidate cache when requested", func(t *testing.T) {
 		namespace := "test-ns-8"
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 		// Discover and cache
-		discovered1, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered1, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered1)
 
 		// Invalidate cache
-		repo.InvalidateCache(namespace)
+		repo.InvalidateCache("http://mock-ps", namespace)
 
 		// Next discovery should fetch fresh (not from cache)
-		discovered2, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "automl")
+		discovered2, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace, "http://mock-ps", "automl")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered2)
 	})
@@ -141,7 +143,7 @@ func TestInvalidateCache(t *testing.T) {
 
 	t.Run("should not panic when invalidating non-existent namespace", func(t *testing.T) {
 		assert.NotPanics(t, func() {
-			repo.InvalidateCache("non-existent-namespace")
+			repo.InvalidateCache("http://mock-ps", "non-existent-namespace")
 		})
 	})
 }
@@ -149,7 +151,7 @@ func TestInvalidateCache(t *testing.T) {
 func TestCacheSizeLimit(t *testing.T) {
 	repo := NewPipelineRepository()
 	ctx := context.Background()
-	mockClient := psmocks.NewMockPipelineServerClient()
+	mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
 	t.Run("should evict oldest entry when cache reaches size limit", func(t *testing.T) {
 		// Clear cache before test
@@ -159,25 +161,29 @@ func TestCacheSizeLimit(t *testing.T) {
 
 		// Add first entry
 		namespace1 := "test-ns-evict-1"
-		discovered1, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace1, "automl")
+		discovered1, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace1, "http://mock-ps", "automl")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered1)
 
 		// Add second entry (accessed later)
 		namespace2 := "test-ns-evict-2"
-		discovered2, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace2, "automl")
+		discovered2, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace2, "http://mock-ps", "automl")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered2)
 
+		const baseURL = "http://mock-ps"
+		cacheKey1 := fmt.Sprintf("%s:%s", baseURL, namespace1)
+		cacheKey2 := fmt.Sprintf("%s:%s", baseURL, namespace2)
+
 		// Access first entry again to make it more recently used
-		cached1 := globalPipelineCache.get(namespace1)
+		cached1 := globalPipelineCache.get(cacheKey1)
 		assert.NotNil(t, cached1)
 
 		// Manually set cache to be at capacity for testing
 		globalPipelineCache.mu.Lock()
 		// Save the two real entries
-		entry1 := globalPipelineCache.entries[namespace1]
-		entry2 := globalPipelineCache.entries[namespace2]
+		entry1 := globalPipelineCache.entries[cacheKey1]
+		entry2 := globalPipelineCache.entries[cacheKey2]
 		// Clear and fill cache to exact limit with filler entries
 		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
 		// Add (maxCacheEntries - 2) filler entries, leaving room for our 2 real entries
@@ -189,8 +195,8 @@ func TestCacheSizeLimit(t *testing.T) {
 			}
 		}
 		// Add back the real entries (entry1 has more recent access time)
-		globalPipelineCache.entries[namespace1] = entry1
-		globalPipelineCache.entries[namespace2] = entry2
+		globalPipelineCache.entries[cacheKey1] = entry1
+		globalPipelineCache.entries[cacheKey2] = entry2
 		globalPipelineCache.mu.Unlock()
 
 		// Verify cache is at capacity
@@ -201,7 +207,7 @@ func TestCacheSizeLimit(t *testing.T) {
 
 		// Add a new entry - should trigger eviction
 		namespace3 := "test-ns-evict-3"
-		discovered3, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace3, "automl")
+		discovered3, err := repo.DiscoverAutoMLPipeline(mockClient, ctx, namespace3, baseURL, "automl")
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered3)
 
@@ -212,11 +218,12 @@ func TestCacheSizeLimit(t *testing.T) {
 		assert.Equal(t, maxCacheEntries, finalSize)
 
 		// The new entry should be in the cache
-		cached3 := globalPipelineCache.get(namespace3)
+		cacheKey3 := fmt.Sprintf("%s:%s", baseURL, namespace3)
+		cached3 := globalPipelineCache.get(cacheKey3)
 		assert.NotNil(t, cached3)
 
 		// namespace1 should still be there (was accessed more recently)
-		cachedStill := globalPipelineCache.get(namespace1)
+		cachedStill := globalPipelineCache.get(cacheKey1)
 		assert.NotNil(t, cachedStill)
 	})
 }
@@ -228,19 +235,19 @@ func TestCacheLRUEviction(t *testing.T) {
 		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
 		globalPipelineCache.mu.Unlock()
 
-		namespace := "test-lru-access"
+		cacheKey := "http://mock-ps:test-lru-access"
 		pipeline := &DiscoveredPipeline{
 			PipelineID:        "test-id",
 			PipelineVersionID: "test-version",
-			Namespace:         namespace,
+			Namespace:         "test-lru-access",
 		}
 
 		// Add entry
-		globalPipelineCache.set(namespace, pipeline)
+		globalPipelineCache.set(cacheKey, pipeline)
 
 		// Get initial access time
 		globalPipelineCache.mu.RLock()
-		initialAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		initialAccessTime := globalPipelineCache.entries[cacheKey].lastAccessed
 		globalPipelineCache.mu.RUnlock()
 
 		// Wait a small amount of time
@@ -248,12 +255,12 @@ func TestCacheLRUEviction(t *testing.T) {
 		// but we can verify the field is being set
 
 		// Access the entry
-		retrieved := globalPipelineCache.get(namespace)
+		retrieved := globalPipelineCache.get(cacheKey)
 		assert.NotNil(t, retrieved)
 
 		// Verify last accessed time was updated (should be same or later)
 		globalPipelineCache.mu.RLock()
-		updatedAccessTime := globalPipelineCache.entries[namespace].lastAccessed
+		updatedAccessTime := globalPipelineCache.entries[cacheKey].lastAccessed
 		globalPipelineCache.mu.RUnlock()
 
 		assert.True(t, updatedAccessTime.Equal(initialAccessTime) || updatedAccessTime.After(initialAccessTime),
@@ -266,7 +273,7 @@ type failingListPipelinesClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (f *failingListPipelinesClient) ListPipelines(_ context.Context) (*models.KFPipelinesResponse, error) {
+func (f *failingListPipelinesClient) ListPipelines(_ context.Context, _ string) (*models.KFPipelinesResponse, error) {
 	return nil, assert.AnError
 }
 
@@ -278,7 +285,7 @@ func TestDiscoverAutoMLPipeline_ErrorHandling(t *testing.T) {
 		namespace := "test-ns-error-1"
 		failClient := &failingListPipelinesClient{}
 
-		discovered, err := repo.DiscoverAutoMLPipeline(failClient, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(failClient, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -291,7 +298,7 @@ type emptyPipelinesClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (e *emptyPipelinesClient) ListPipelines(_ context.Context) (*models.KFPipelinesResponse, error) {
+func (e *emptyPipelinesClient) ListPipelines(_ context.Context, _ string) (*models.KFPipelinesResponse, error) {
 	return &models.KFPipelinesResponse{
 		Pipelines:     []models.KFPipeline{},
 		TotalSize:     0,
@@ -307,7 +314,7 @@ func TestDiscoverAutoMLPipeline_EmptyPipelines(t *testing.T) {
 		namespace := "test-ns-empty"
 		emptyClient := &emptyPipelinesClient{}
 
-		discovered, err := repo.DiscoverAutoMLPipeline(emptyClient, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(emptyClient, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
@@ -336,10 +343,29 @@ func TestDiscoverAutoMLPipeline_NoVersions(t *testing.T) {
 		namespace := "test-ns-no-versions"
 		noVersionsClient := &noPipelineVersionsClient{}
 
-		discovered, err := repo.DiscoverAutoMLPipeline(noVersionsClient, ctx, namespace, "automl")
+		discovered, err := repo.DiscoverAutoMLPipeline(noVersionsClient, ctx, namespace, "http://mock-ps", "automl")
 
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
 		assert.Contains(t, err.Error(), "no versions found")
+	})
+}
+
+func TestBuildPipelineNameFilter(t *testing.T) {
+	t.Run("should return empty string when prefix is empty", func(t *testing.T) {
+		result := buildPipelineNameFilter("")
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("should build IS_SUBSTRING filter for given prefix", func(t *testing.T) {
+		result := buildPipelineNameFilter("automl")
+		assert.Contains(t, result, "IS_SUBSTRING")
+		assert.Contains(t, result, "display_name")
+		assert.Contains(t, result, "automl")
+	})
+
+	t.Run("should produce valid JSON", func(t *testing.T) {
+		result := buildPipelineNameFilter("automl")
+		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"automl"}]}`, result)
 	})
 }

@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -56,7 +58,7 @@ type pipelineCacheEntry struct {
 }
 
 // pipelineCache is a simple in-memory cache for discovered pipelines
-// Key: namespace, Value: discovered pipeline info
+// Key: composite "pipelineServerBaseURL:namespace", Value: discovered pipeline info
 type pipelineCache struct {
 	mu      sync.RWMutex
 	entries map[string]*pipelineCacheEntry
@@ -162,6 +164,8 @@ func NewPipelineRepository() *PipelineRepository {
 //   - client: Pipeline Server client interface
 //   - ctx: Request context
 //   - namespace: Kubernetes namespace to search in
+//   - pipelineServerBaseURL: Base URL of the pipeline server, used with namespace to form a
+//     unique cache key and prevent cross-tenant cache leakage
 //   - pipelineNamePrefix: Prefix to identify managed pipelines (e.g., "automl")
 //
 // Returns:
@@ -174,6 +178,7 @@ func (r *PipelineRepository) DiscoverAutoMLPipeline(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	namespace string,
+	pipelineServerBaseURL string,
 	pipelineNamePrefix string,
 ) (*DiscoveredPipeline, error) {
 	if client == nil {
@@ -189,13 +194,21 @@ func (r *PipelineRepository) DiscoverAutoMLPipeline(
 		pipelineNamePrefix = defaultPipelineNamePrefix
 	}
 
+	// Build a composite cache key to prevent cross-tenant leakage when multiple pipeline
+	// servers or namespaces share the same BFF instance.
+	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
+
 	// Check cache first
-	if cached := globalPipelineCache.get(namespace); cached != nil {
+	if cached := globalPipelineCache.get(cacheKey); cached != nil {
 		return cached, nil
 	}
 
+	// Build a server-side filter to reduce the result set. The Go-side HasPrefix check
+	// below remains the authoritative gate for correctness.
+	nameFilter := buildPipelineNameFilter(pipelineNamePrefix)
+
 	// Call pipeline server to list pipelines
-	pipelinesResp, err := client.ListPipelines(ctx)
+	pipelinesResp, err := client.ListPipelines(ctx, nameFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pipelines: %w", err)
 	}
@@ -230,8 +243,8 @@ func (r *PipelineRepository) DiscoverAutoMLPipeline(
 		return nil, fmt.Errorf("no versions found for AutoML pipeline %s", automlPipeline.PipelineID)
 	}
 
-	// Use the first version (typically the latest or default)
-	// TODO: Consider version selection strategy (latest, default, specific tag, etc.)
+	// Use the first version, which is the most recently created because the pipeline server
+	// client requests versions sorted by created_at desc.
 	version := versionsResp.PipelineVersions[0]
 
 	discovered := &DiscoveredPipeline{
@@ -243,13 +256,43 @@ func (r *PipelineRepository) DiscoverAutoMLPipeline(
 	}
 
 	// Cache the result
-	globalPipelineCache.set(namespace, discovered)
+	globalPipelineCache.set(cacheKey, discovered)
 
 	return discovered, nil
 }
 
-// InvalidateCache removes cached pipeline info for a namespace
-// Useful for testing or when pipeline changes are detected
-func (r *PipelineRepository) InvalidateCache(namespace string) {
-	globalPipelineCache.invalidate(namespace)
+// buildPipelineNameFilter builds a KFP predicate JSON filter that restricts ListPipelines
+// results to pipelines whose display_name contains the given prefix (IS_SUBSTRING).
+// Returns an empty string if namePrefix is empty, which signals the client to omit the filter.
+// The Go-side HasPrefix check in DiscoverAutoMLPipeline is the authoritative gate.
+func buildPipelineNameFilter(namePrefix string) string {
+	if namePrefix == "" {
+		return ""
+	}
+
+	filter := map[string]interface{}{
+		"predicates": []map[string]interface{}{
+			{
+				"key":          "display_name",
+				"operation":    "IS_SUBSTRING",
+				"string_value": namePrefix,
+			},
+		},
+	}
+
+	filterJSON, err := json.Marshal(filter)
+	if err != nil {
+		// Fall back to no filter rather than blocking discovery
+		slog.Error("Failed to marshal pipeline name filter", "error", err, "namePrefix", namePrefix)
+		return ""
+	}
+
+	return string(filterJSON)
+}
+
+// InvalidateCache removes cached pipeline info for a given pipeline server and namespace.
+// Useful for testing or when pipeline changes are detected.
+func (r *PipelineRepository) InvalidateCache(pipelineServerBaseURL, namespace string) {
+	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
+	globalPipelineCache.invalidate(cacheKey)
 }
