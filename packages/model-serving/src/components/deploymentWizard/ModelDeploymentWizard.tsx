@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  PageSection,
-  ToggleGroup,
-  ToggleGroupItem,
-  Wizard,
-  WizardStep,
-} from '@patternfly/react-core';
+import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
@@ -21,6 +15,7 @@ import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
 import { DeploymentWizardYAMLView } from './yaml/DeploymentWizardYAMLView';
+import { DeploymentWizardViewModeToggle } from './yaml/DeploymentWizardViewModeToggle';
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
 import { useModelDeploymentSubmit } from './deploying/useModelDeploymentSubmit';
@@ -139,23 +134,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         empty={false}
         headerAction={
           isYAMLViewerEnabled ? (
-            <ToggleGroup aria-label="Deployment view mode">
-              <ToggleGroupItem
-                data-testid="form-view"
-                text="Form"
-                buttonId="form-view"
-                isSelected={viewMode === 'form'}
-                onChange={() => setViewMode('form')}
-                isDisabled={viewMode === 'yaml-edit'}
-              />
-              <ToggleGroupItem
-                data-testid="yaml-view"
-                text="YAML"
-                buttonId="yaml-view"
-                isSelected={viewMode !== 'form'}
-                onChange={() => (viewMode === 'form' ? setViewMode('yaml-preview') : undefined)}
-              />
-            </ToggleGroup>
+            <DeploymentWizardViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
           ) : undefined
         }
       >
