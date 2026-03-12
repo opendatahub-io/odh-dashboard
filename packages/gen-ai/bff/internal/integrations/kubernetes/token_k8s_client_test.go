@@ -1064,6 +1064,17 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 
 	t.Run("should reject model with invalid model_type", func(t *testing.T) {
 		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeVLLM,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.example.com/v1",
+						},
+					},
+				},
+			},
 			RegisteredResources: models.RegisteredResourcesConfig{
 				Models: []models.RegisteredModel{
 					{
@@ -1083,6 +1094,17 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 	t.Run("should reject model with negative embedding_dimension", func(t *testing.T) {
 		negativeDim := -1
 		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
 			RegisteredResources: models.RegisteredResourcesConfig{
 				Models: []models.RegisteredModel{
 					{
@@ -1105,6 +1127,17 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 	t.Run("should reject model with unreasonably large embedding_dimension", func(t *testing.T) {
 		hugeDim := 200000
 		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
 			RegisteredResources: models.RegisteredResourcesConfig{
 				Models: []models.RegisteredModel{
 					{

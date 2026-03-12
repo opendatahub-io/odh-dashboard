@@ -1692,6 +1692,12 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 		}
 	}
 
+	// Build provider lookup map for model validation
+	providerIDMap := make(map[string]bool)
+	for _, provider := range config.Providers.Inference {
+		providerIDMap[provider.ProviderID] = true
+	}
+
 	// Validate registered models
 	for i, model := range config.RegisteredResources.Models {
 		// Validate ModelID is non-empty
@@ -1702,6 +1708,11 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 		// Validate ProviderID is non-empty
 		if model.ProviderID == "" {
 			return fmt.Errorf("model '%s' has empty provider_id", model.ModelID)
+		}
+
+		// Validate ProviderID exists in config.Providers.Inference
+		if !providerIDMap[model.ProviderID] {
+			return fmt.Errorf("model '%s' references non-existent provider_id '%s'", model.ModelID, model.ProviderID)
 		}
 
 		// Validate ModelType matches the allowlist
