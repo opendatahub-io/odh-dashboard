@@ -32,7 +32,9 @@
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=standalone npm run build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
-    "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
+    "start:default": "STYLE_THEME=patternfly-theme npm run start:dev",
+    "playground": "run-s playground:*",
+    "playground:fileexplorer": "webpack serve --config ./src/app/components/common/FileExplorer/webpack.playground.ts"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.21.4",

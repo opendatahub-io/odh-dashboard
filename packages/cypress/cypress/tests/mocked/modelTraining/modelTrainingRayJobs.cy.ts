@@ -18,7 +18,12 @@ import {
   TrainJobModel,
 } from '@odh-dashboard/internal/api/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
-import { modelTrainingGlobal, trainingJobTable } from '../../../pages/modelTraining';
+import {
+  modelTrainingGlobal,
+  trainingJobTable,
+  trainingJobDetailsDrawer,
+  rayJobDetailsDrawer,
+} from '../../../pages/modelTraining';
 import { ProjectModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
@@ -234,5 +239,74 @@ describe('Type filter in Jobs Table', () => {
     trainRow.findTrainingJobName().should('contain', 'train-job-one');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
     trainingJobTable.findRows().should('have.length', 5);
+  });
+});
+
+describe('RayJob Details Drawer', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should open RayJob drawer when clicking on a RayJob name', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    rayJobDetailsDrawer.shouldBeClosed();
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.findTitle().should('contain', 'ray-data-processing');
+  });
+
+  it('should have all four tabs', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.findTab('Details').should('exist');
+    rayJobDetailsDrawer.findTab('Resources').should('exist');
+    rayJobDetailsDrawer.findTab('Pods').should('exist');
+    rayJobDetailsDrawer.findTab('Logs').should('exist');
+  });
+
+  it('should have delete action in kebab menu', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Delete job').should('exist');
+  });
+
+  it('should close drawer when clicking close button', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.close();
+    rayJobDetailsDrawer.shouldBeClosed();
+  });
+
+  it('should open TrainJob drawer when clicking a TrainJob after closing RayJob drawer', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findNameLink().click();
+    rayJobDetailsDrawer.shouldBeOpen();
+
+    rayJobDetailsDrawer.close();
+    rayJobDetailsDrawer.shouldBeClosed();
+
+    const trainRow = trainingJobTable.getTableRow('train-job-one');
+    trainRow.findNameLink().click();
+    trainingJobDetailsDrawer.shouldBeOpen();
   });
 });

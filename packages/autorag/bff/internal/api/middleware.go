@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -24,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -42,6 +45,69 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+// isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
+// using the Kubernetes apimachinery validation package.
+func isValidDNS1123Subdomain(name string) bool {
+	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
+}
+
+// validateIP checks an IP address against the SSRF blocklist.
+// Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
+// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.
+func validateIP(ip net.IP) error {
+	if ip.IsLoopback() {
+		return fmt.Errorf("loopback addresses are not allowed")
+	}
+	if ip.IsLinkLocalUnicast() {
+		return fmt.Errorf("link-local addresses are not allowed")
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("unspecified addresses are not allowed")
+	}
+	return nil
+}
+
+// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
+// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// services typically run as cluster-internal services with private IPs.
+func isValidLlamaStackURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme %q: only http and https are allowed", parsedURL.Scheme)
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must contain a host")
+	}
+
+	// Check IP literals directly
+	if ip := net.ParseIP(host); ip != nil {
+		return validateIP(ip)
+	}
+
+	// Resolve DNS hostnames and validate all resulting IPs.
+	// If DNS resolution fails, allow it through — the hostname may only be resolvable
+	// inside the cluster (e.g., svc.cluster.local). The HTTP client will fail with a
+	// connection error later, which is handled as a 502 Bad Gateway.
+	ips, err := net.LookupIP(host)
+	if err == nil {
+		for _, ip := range ips {
+			if err := validateIP(ip); err != nil {
+				return fmt.Errorf("hostname %q resolves to blocked address: %w", host, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -200,13 +266,29 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
+// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
-func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+// Precedence for determining the LlamaStack connection:
+//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
+//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+//  4. Secret-based: reads URL and API key from the named Kubernetes secret.
+func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
+
+		// Read and validate secretName query parameter
+		secretName := r.URL.Query().Get("secretName")
+		if secretName == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+			return
+		}
+		if !isValidDNS1123Subdomain(secretName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+			return
+		}
 
 		// Get namespace from context (set by AttachNamespace middleware)
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
@@ -215,20 +297,16 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			return
 		}
 
-		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
 		logger := helper.GetContextLoggerFromReq(r)
 
 		var llamaStackClient ls.LlamaStackClientInterface
 
-		// Check if running in mock mode
 		if app.config.MockLSClient {
-			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
-			// In mock mode, use empty URL since mock factory ignores it
+			// Mock mode: skip secret lookup entirely
+			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
 		} else if app.config.AuthMethod == config.AuthMethodDisabled {
 			// When auth is disabled, no RequestIdentity is injected into the context.
-			// Service discovery (GetLlamaStackDistributions) requires a k8s client which in turn
-			// requires identity, so it is not available in this mode.
 			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
 			if app.config.LlamaStackURL == "" {
 				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
@@ -238,62 +316,71 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"namespace", namespace,
 				"serviceURL", app.config.LlamaStackURL)
 			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else if app.config.LlamaStackURL != "" {
+			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
+			// Use identity token if available; empty token is acceptable for local dev.
+			var authToken string
+			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+				authToken = identity.Token
+			}
+			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else {
-			// Read identity once here — needed by both the env-var and service-discovery paths
-			// for passing the user token to the LlamaStack client.
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-			if !ok || identity == nil {
+			// Production: read credentials from Kubernetes secret
+			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !identityOk || identity == nil {
 				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 				return
 			}
 
-			var serviceURL string
-			// Use environment variable if explicitly set (developer override)
-			if app.config.LlamaStackURL != "" {
-				serviceURL = app.config.LlamaStackURL
-				logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
-					"namespace", namespace,
-					"serviceURL", serviceURL)
-			} else {
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-					return
-				}
-
-				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
-				if err != nil {
-					app.handleK8sClientError(w, r, err)
-					return
-				}
-
-				if len(lsdList.Items) == 0 {
-					app.notFoundResponse(w, r)
-					return
-				}
-				if len(lsdList.Items) > 1 {
-					logger.Warn(fmt.Sprintf("warning: %d LlamaStackDistributions found in namespace %q, using the first", len(lsdList.Items), namespace))
-				}
-
-				lsd := lsdList.Items[0]
-				serviceURL = lsd.Status.ServiceURL
-
-				if serviceURL == "" {
-					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
-					return
-				}
-
-				logger.Debug("Using ServiceURL from LlamaStackDistribution",
-					"namespace", namespace,
-					"lsdName", lsd.Name,
-					"serviceURL", serviceURL)
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
 			}
 
-			logger.Debug("Creating LlamaStack client for namespace",
-				"namespace", namespace,
-				"serviceURL", serviceURL)
+			// Get the specific secret by name
+			foundSecret, err := k8sClient.GetSecret(ctx, namespace, secretName, identity)
+			if err != nil {
+				// Check if the underlying error is a Kubernetes "not found" error
+				if k8serrors.IsNotFound(err) {
+					app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				} else {
+					app.handleK8sClientError(w, r, err)
+				}
+				return
+			}
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			if foundSecret == nil {
+				app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret %q not found in namespace %q", secretName, namespace))
+				return
+			}
+
+			// Extract LlamaStack credentials from secret data using direct key lookups.
+			baseURL := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_base_url"]))
+			apiKey := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_api_key"]))
+
+			if baseURL == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
+				return
+			}
+			if apiKey == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
+				return
+			}
+			if err := isValidLlamaStackURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
+				return
+			}
+
+			logger.Debug("Creating LlamaStack client from secret",
+				"namespace", namespace,
+				"secretName", secretName,
+				"serviceURL", baseURL)
+
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
 		// Attach ready-to-use client to context
