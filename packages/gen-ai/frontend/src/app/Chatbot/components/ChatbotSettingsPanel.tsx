@@ -199,8 +199,22 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     setActiveTabKey(tabIndex);
   };
 
-  const content = (
-    <>
+  // Overlay drawer (compare mode) needs explicit background color
+  const panelStyle: React.CSSProperties | undefined = isOverlay
+    ? {
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }
+    : undefined;
+
+  return (
+    <DrawerPanelContent
+      key={panelSizeKey}
+      isResizable
+      defaultSize={panelWidth}
+      minSize="300px"
+      onResize={handlePanelResize}
+      style={panelStyle}
+    >
       <DrawerHead>
         <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
           {headerLabel}
@@ -324,25 +338,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           ) : null}
         </Tabs>
       </DrawerPanelBody>
-    </>
-  );
-
-  const panelStyle = isOverlay
-    ? {
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-      }
-    : undefined;
-
-  return (
-    <DrawerPanelContent
-      key={panelSizeKey}
-      isResizable
-      defaultSize={panelWidth}
-      minSize="300px"
-      onResize={handlePanelResize}
-      style={panelStyle}
-    >
-      {content}
     </DrawerPanelContent>
   );
 };
