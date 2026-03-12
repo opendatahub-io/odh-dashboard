@@ -104,7 +104,10 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 
 	cmd := exec.CommandContext(ctx, uvBin,
 		"run",
+		"--refresh-package", "llama-stack",
+		"--refresh-package", "llama-stack-api",
 		"--with", "llama-stack=="+version,
+		"--with", "llama-stack-api=="+version,
 		"--with", "milvus-lite",
 		"--with", "pymilvus",
 		"--with", "chardet",
