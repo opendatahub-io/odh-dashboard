@@ -523,6 +523,7 @@ export type GenAiTestData = {
   inferenceServiceName: string;
   modelType: string;
   servingRuntime: string;
+  apiProtocol: string;
   testMessage: string;
   cpuRequested: number;
   cpuLimit: number;
@@ -538,6 +539,7 @@ export type GenAiTestData = {
   filterByNameValue: string;
   filterByKeywordValue: string;
   filterByUseCaseValue: string;
+  nonExistentFilterValue: string;
   // Expected values for verification
   expectedModelDisplayName: string;
   expectedUseCase: string;

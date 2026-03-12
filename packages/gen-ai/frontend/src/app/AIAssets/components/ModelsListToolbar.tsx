@@ -150,6 +150,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                   return (
                     <FlexItem key={filterType}>
                       <Label
+                        data-testid={`filter-chip-${filterType}`}
                         color={getLabelColor(filterType)}
                         onClose={() => handleRemoveFilter(filterType)}
                         closeBtnProps={{

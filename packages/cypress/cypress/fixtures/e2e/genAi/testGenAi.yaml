@@ -7,6 +7,7 @@ modelDeploymentName: 'llama-3.2-1b-instruct'
 inferenceServiceName: 'llama-32-1b-instruct'
 modelType: 'Generative AI model (Example, LLM)'
 servingRuntime: 'vLLM CPU (amd64 - EXPERIMENTAL)'
+apiProtocol: 'REST'
 testMessage: 'Hello, this is a test message.'
 # Hardware Profile configuration
 hardwareProfileResourceYamlPath: 'resources/hardwareProfile/gen_ai_hardware_profile.yaml'
@@ -16,11 +17,12 @@ hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: 
 configMapName: 'llama-stack-config'
 playgroundServiceName: 'lsd-genai-playground-service'
 servingRuntimesPath: '/settings/model-resources-operations/serving-runtimes'
-# Filter test values (not used by this test, but required by GenAiTestData type)
+# Filter test values
 filterByNameValue: 'llama'
 filterByKeywordValue: 'instruct'
 filterByUseCaseValue: 'chat'
-# Expected values for verification (not used by this test, but required by GenAiTestData type)
+nonExistentFilterValue: 'nonexistent-model-name-xyz-123'
+# Expected values for verification
 expectedModelDisplayName: 'llama-3.2-1b-instruct'
 expectedUseCase: 'chat'
 expectedStatus: 'Active'
