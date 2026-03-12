@@ -67,7 +67,7 @@ interface ChatbotSettingsPanelProps {
   defaultActiveTabKey?: string | number;
 }
 
-const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width-v2';
+const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 
