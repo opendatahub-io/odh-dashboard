@@ -1,128 +1,67 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import { MaaSTierValue, TierDropdownOption } from './MaaSEndpointCheckbox';
+import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
-export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
-
-const DEFAULT_MAAS_GATEWAY_REF = {
+const MAAS_DEFAULT_GATEWAY = {
   name: 'maas-default-gateway',
   namespace: 'openshift-ingress',
 };
 
-/**
- * Converts the MaaSTierValue UI state to the annotation value stored in the deployment.
- *
- * - `undefined` (isChecked: false) = MaaS not enabled, no annotation
- * - `null` (isChecked: true, tiersDropdownSelection: 'no-tiers') = MaaS enabled but no tiers
- * - `[]` (isChecked: true, tiersDropdownSelection: 'all-tiers') = MaaS enabled, all tiers
- * - `[string, ...]` (isChecked: true, tiersDropdownSelection: 'specify-tiers') = specific tiers
- */
-const convertTierValueToAnnotation = (tierValue: MaaSTierValue): string | undefined => {
-  if (!tierValue.isChecked) {
-    return undefined;
-  }
-
-  switch (tierValue.tiersDropdownSelection) {
-    case 'no-tiers':
-      return 'null';
-    case 'specify-tiers': {
-      return JSON.stringify(tierValue.selectedTierNames ?? []);
-    }
-    case 'all-tiers':
-    default:
-      return '[]';
-  }
-};
+const isMaaSGateway = (ref: { name?: string; namespace?: string }): boolean =>
+  ref.name === MAAS_DEFAULT_GATEWAY.name && ref.namespace === MAAS_DEFAULT_GATEWAY.namespace;
 
 /**
- * Converts the annotation value from the deployment to the MaaSTierValue UI state.
- */
-const convertAnnotationToTierValue = (
-  annotationValue: string | undefined,
-): MaaSTierValue | undefined => {
-  if (annotationValue === undefined) {
-    return undefined;
-  }
-
-  if (annotationValue === 'null') {
-    return {
-      isChecked: true,
-      tiersDropdownSelection: TierDropdownOption.NoTiers,
-      selectedTierNames: undefined,
-    };
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(annotationValue);
-    if (Array.isArray(parsed)) {
-      if (parsed.length === 0) {
-        return {
-          isChecked: true,
-          tiersDropdownSelection: TierDropdownOption.AllTiers,
-          selectedTierNames: [],
-        };
-      }
-      // Specific tiers
-      return {
-        isChecked: true,
-        tiersDropdownSelection: TierDropdownOption.SpecifyTiers,
-        selectedTierNames: parsed,
-      };
-    }
-  } catch {
-    // Invalid JSON, treat as not enabled
-  }
-
-  return undefined;
-};
-
-/**
- * Transforms an LLMInferenceServiceKind deployment by applying MaaS endpoint configuration.
- * This is called during the deploy action when the MaaS endpoint checkbox field is active.
+ * Applies MaaS endpoint configuration to an LLMInferenceService deployment.
+ * When enabled, adds the maas-default-gateway to the router gateway refs.
+ * When disabled, removes the maas-default-gateway from the router gateway refs.
  */
 export const applyMaaSEndpointData = (
   deployment: LLMdDeployment,
-  fieldData: MaaSTierValue,
+  fieldData: MaaSFieldValue,
 ): LLMdDeployment => {
   const result = structuredClone(deployment);
+  const existingRefs = result.model.spec.router?.gateway?.refs ?? [];
 
-  // Get existing gateway refs or use default
-  const gatewayRefs = result.model.spec.router?.gateway?.refs ?? [DEFAULT_MAAS_GATEWAY_REF];
+  // Remove any existing MaaS gateway
+  const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
-  // Remove existing MaaS annotation
-  if (result.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION] !== undefined) {
-    delete result.model.metadata.annotations[MAAS_TIERS_ANNOTATION];
-  }
-
-  // Remove existing gateway refs
-  if (result.model.spec.router?.gateway?.refs !== undefined) {
-    delete result.model.spec.router.gateway.refs;
-  }
-
-  // Apply new MaaS configuration if enabled
-  const annotationValue = convertTierValueToAnnotation(fieldData);
-  if (annotationValue !== undefined) {
-    result.model.metadata.annotations = {
-      ...result.model.metadata.annotations,
-      [MAAS_TIERS_ANNOTATION]: annotationValue,
-    };
-
+  if (fieldData.isChecked) {
+    // Add the MaaS gateway
+    const newRefs = [...filteredRefs, MAAS_DEFAULT_GATEWAY];
     result.model.spec.router = {
       ...result.model.spec.router,
       gateway: {
         ...result.model.spec.router?.gateway,
-        refs: gatewayRefs,
+        refs: newRefs,
       },
     };
+  } else if (filteredRefs.length > 0) {
+    // Keep other gateways if they exist
+    result.model.spec.router = {
+      ...result.model.spec.router,
+      gateway: {
+        ...result.model.spec.router?.gateway,
+        refs: filteredRefs,
+      },
+    };
+  } else if (result.model.spec.router?.gateway?.refs !== undefined) {
+    // Remove empty refs array
+    delete result.model.spec.router.gateway.refs;
   }
 
   return result;
 };
 
 /**
- * Extracts MaaS endpoint configuration from an LLMInferenceServiceKind deployment.
- * This is called when editing an existing deployment to populate the MaaS checkbox field.
+ * Extracts MaaS endpoint configuration from an LLMInferenceService deployment.
+ * Returns isChecked: true if the maas-default-gateway is present in the router gateway refs.
  */
-export const extractMaaSEndpointData = (deployment: LLMdDeployment): MaaSTierValue | undefined => {
-  const annotationValue = deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION];
-  return convertAnnotationToTierValue(annotationValue);
+export const extractMaaSEndpointData = (deployment: LLMdDeployment): MaaSFieldValue | undefined => {
+  const refs = deployment.model.spec.router?.gateway?.refs ?? [];
+  const hasMaaSGateway = refs.some(isMaaSGateway);
+
+  if (!hasMaaSGateway) {
+    return undefined;
+  }
+
+  return { isChecked: true };
 };
