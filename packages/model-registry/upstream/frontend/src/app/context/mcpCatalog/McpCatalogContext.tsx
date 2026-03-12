@@ -8,6 +8,7 @@ import { useMcpServerFilterOptionListWithAPI } from '~/app/hooks/mcpServerCatalo
 import {
   filterEnabledCatalogSources,
   getUniqueSourceLabels,
+  hasSourcesWithoutLabels,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import type {
   McpCatalogContextType,
@@ -18,7 +19,7 @@ import {
   filterMcpServersByFilters,
   filterMcpServersBySearchQuery,
 } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
-import { mockMcpServers } from '~/app/pages/mcpCatalog/mocks/mockMcpServers';
+import { useMcpUrlSync } from '~/app/pages/mcpCatalog/hooks/useMcpUrlSync';
 
 export type {
   McpCatalogContextType,
@@ -51,83 +52,92 @@ export const McpCatalogContext = React.createContext<McpCatalogContextType>({
   setSelectedSourceLabel: () => undefined,
   clearAllFilters: () => undefined,
   sourceLabels: [],
+  sourceLabelNames: {},
+  hasNoLabelSources: false,
+  catalogSources: null,
   catalogSourcesLoaded: false,
   catalogSourcesLoadError: undefined,
   mcpServers: { items: [] },
   mcpServersLoaded: false,
   mcpServersLoadError: undefined,
+  refreshMcpServers: () => undefined,
   filterOptions: null,
   filterOptionsLoaded: false,
   filterOptionsLoadError: undefined,
 });
 
+const MODEL_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
+const MCP_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/mcp_catalog`;
+
 export const McpCatalogContextProvider: React.FC<McpCatalogContextProviderProps> = ({
   children,
 }) => {
-  const hostPath = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
   const queryParams = useQueryParamNamespaces();
-  const [apiState] = useModelCatalogAPIState(hostPath, queryParams);
+  const [apiStateModelCatalog] = useModelCatalogAPIState(MODEL_CATALOG_PATH, queryParams);
+  const [apiStateMcpCatalog] = useModelCatalogAPIState(MCP_CATALOG_PATH, queryParams);
 
   const mcpListParams = React.useMemo(() => ({ assetType: 'mcp_servers' as const }), []);
   const [catalogSources, catalogSourcesLoaded, catalogSourcesLoadError] = useCatalogSources(
-    apiState,
+    apiStateModelCatalog,
     mcpListParams,
   );
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
-    useMcpServerFilterOptionListWithAPI(apiState);
+    useMcpServerFilterOptionListWithAPI(apiStateMcpCatalog);
 
-  const [filters, setFilters] = React.useState<McpCatalogFiltersState>({});
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const { initialState, syncToUrl } = useMcpUrlSync();
+
+  const [filters, setFilters] = React.useState<McpCatalogFiltersState>(initialState.filters);
+  const [searchQuery, setSearchQuery] = React.useState(initialState.searchQuery);
   const [namedQuery, setNamedQuery] = React.useState<string | null>(null);
   const [pagination, setPaginationState] =
     React.useState<McpCatalogPaginationState>(defaultPagination);
   const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<string | undefined>(
-    undefined,
+    initialState.selectedSourceLabel,
   );
 
-  const sourceLabelsFromApi = React.useMemo(() => {
+  React.useEffect(() => {
+    syncToUrl({ searchQuery, filters, selectedSourceLabel });
+  }, [searchQuery, filters, selectedSourceLabel, syncToUrl]);
+
+  const { sourceLabels, sourceLabelNames, hasNoLabelSources } = React.useMemo(() => {
     const enabled = filterEnabledCatalogSources(catalogSources);
-    return getUniqueSourceLabels(enabled);
+    const labels = getUniqueSourceLabels(enabled);
+    const nameMap: Record<string, string> = {};
+    if (enabled?.items) {
+      for (const source of enabled.items) {
+        for (const label of source.labels) {
+          const trimmed = label.trim();
+          if (trimmed && !nameMap[trimmed]) {
+            nameMap[trimmed] = source.name;
+          }
+        }
+      }
+    }
+    return {
+      sourceLabels: labels,
+      sourceLabelNames: nameMap,
+      hasNoLabelSources: hasSourcesWithoutLabels(enabled),
+    };
   }, [catalogSources]);
 
-  const mockSourceLabels = React.useMemo(
-    () =>
-      Array.from(
-        new Set(mockMcpServers.map((s) => s.source_id).filter((id): id is string => Boolean(id))),
-      ),
-    [],
-  );
-
-  const mcpServersResult = useMcpServersBySourceLabelWithAPI(apiState, {
+  const mcpServersResult = useMcpServersBySourceLabelWithAPI(apiStateMcpCatalog, {
     sourceLabel: selectedSourceLabel,
     pageSize: pagination.pageSize,
     searchQuery,
   });
 
-  const apiReady =
-    catalogSourcesLoaded &&
-    !catalogSourcesLoadError &&
-    mcpServersResult.mcpServersLoaded &&
-    !mcpServersResult.mcpServersLoadError;
-  const useMockData = !apiReady;
-  const sourceLabels = useMockData ? mockSourceLabels : sourceLabelsFromApi;
-
   const mcpServers = React.useMemo(() => {
-    if (useMockData) {
-      let items = mockMcpServers.filter(
-        (s) =>
-          selectedSourceLabel === undefined || (s.source_id && s.source_id === selectedSourceLabel),
-      );
-      if (searchQuery.trim().length > 0) {
-        items = filterMcpServersBySearchQuery(items, searchQuery);
-      }
-      return { items: filterMcpServersByFilters(items, filters) };
+    const { items } = mcpServersResult.mcpServers;
+    let filtered = items;
+    if (searchQuery.trim().length > 0) {
+      filtered = filterMcpServersBySearchQuery(filtered, searchQuery);
     }
-    return { items: filterMcpServersByFilters(mcpServersResult.mcpServers.items, filters) };
-  }, [useMockData, selectedSourceLabel, searchQuery, filters, mcpServersResult.mcpServers.items]);
+    return { items: filterMcpServersByFilters(filtered, filters) };
+    // mcpServersResult.mcpServers is new each render; .items gives stable deps to avoid cascading re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSourceLabel, searchQuery, filters, mcpServersResult.mcpServers.items]);
 
-  const mcpServersLoaded = useMockData ? true : mcpServersResult.mcpServersLoaded;
-  const mcpServersLoadError = useMockData ? undefined : mcpServersResult.mcpServersLoadError;
+  const { mcpServersLoaded, mcpServersLoadError, refresh: refreshMcpServers } = mcpServersResult;
 
   const setPage = React.useCallback((page: number) => {
     setPaginationState((prev) => ({ ...prev, page }));
@@ -164,11 +174,15 @@ export const McpCatalogContextProvider: React.FC<McpCatalogContextProviderProps>
       setSelectedSourceLabel,
       clearAllFilters,
       sourceLabels,
+      sourceLabelNames,
+      hasNoLabelSources,
+      catalogSources,
       catalogSourcesLoaded,
       catalogSourcesLoadError,
       mcpServers,
       mcpServersLoaded,
       mcpServersLoadError,
+      refreshMcpServers,
       filterOptions,
       filterOptionsLoaded,
       filterOptionsLoadError,
@@ -180,11 +194,15 @@ export const McpCatalogContextProvider: React.FC<McpCatalogContextProviderProps>
       pagination,
       selectedSourceLabel,
       sourceLabels,
+      sourceLabelNames,
+      hasNoLabelSources,
+      catalogSources,
       catalogSourcesLoaded,
       catalogSourcesLoadError,
       mcpServers,
       mcpServersLoaded,
       mcpServersLoadError,
+      refreshMcpServers,
       filterOptions,
       filterOptionsLoaded,
       filterOptionsLoadError,

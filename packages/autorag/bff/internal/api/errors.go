@@ -82,6 +82,19 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusInternalServerError,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusInternalServerError),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{

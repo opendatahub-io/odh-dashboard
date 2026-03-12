@@ -3,6 +3,7 @@ import {
   handleRestFailures,
   UserSettings,
   isModArchResponse,
+  restCREATE,
   restDELETE,
   restGET,
 } from 'mod-arch-core';
@@ -10,6 +11,8 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   EvalHubCRStatus,
+  CreateEvaluationJobRequest,
+  CreateEvaluationJobResponse,
   EvaluationJob,
   EvaluationJobsResponse,
   ListEvaluationJobsParams,
@@ -126,9 +129,10 @@ export const getCollections =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<{ items: Collection[] } | Collection[]>(response)) {
+      if (isModArchResponse<{ items?: Collection[] | null } | Collection[]>(response)) {
         const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return Array.isArray(data) ? data : (data.items ?? []);
       }
       throw new Error('Invalid response format');
     });
@@ -147,6 +151,24 @@ export const getProviders =
       if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
         const { data } = response;
         return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const createEvaluationJob =
+  (hostPath: string, namespace: string, request: CreateEvaluationJobRequest) =>
+  (opts: APIOptions): Promise<CreateEvaluationJobResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CreateEvaluationJobResponse>(response)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

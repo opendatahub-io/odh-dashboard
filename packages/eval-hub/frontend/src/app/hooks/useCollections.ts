@@ -1,4 +1,4 @@
-import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
+import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import React from 'react';
 import { getCollections } from '~/app/api/k8s';
 import { Collection } from '~/app/types';
@@ -11,7 +11,12 @@ type UseCollectionsResult = {
 
 export const useCollections = (namespace: string): UseCollectionsResult => {
   const fetchCollections = React.useCallback<FetchStateCallbackPromise<Collection[]>>(
-    (opts) => getCollections('', namespace)(opts),
+    (opts) => {
+      if (!namespace) {
+        return Promise.reject(new NotReadyError('Namespace is required to fetch collections'));
+      }
+      return getCollections('', namespace)(opts);
+    },
     [namespace],
   );
 
