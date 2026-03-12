@@ -42,7 +42,7 @@
           "choices": [
             {
               "delta": {
-                "content": "AI, or **Artificial Intelligence**, is a broad field of computer science dedicated to creating systems that can perform tasks that typically require human intelligence.\n\n",
+                "content": "AI, or **Artificial Intelligence**, is a broad field of computer science that aims to create machines that can perform tasks that typically require human intelligence.\n\nIn essence, AI is about **simulating human intelligence in machines.** This means enabling computers",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -59,9 +59,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 28,
+            "completion_tokens": 48,
             "prompt_tokens": 28,
-            "total_tokens": 341,
+            "total_tokens": 242,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -74,7 +74,7 @@
           "choices": [
             {
               "delta": {
-                "content": "In essence, AI aims to make computers \"think\" and \"learn\" like humans, enabling them to:\n\n1.  **Reason:** Solve problems, make decisions, and draw conclusions based on available information.\n2.  **Learn",
+                "content": " to \"think,\" \"learn,\" \"reason,\" \"understand,\" and \"perceive\" in ways that were once thought to be exclusive to humans.\n\nHere's a breakdown of what that entails:\n\n1.  **The",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -91,7 +91,71 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 77,
+            "completion_tokens": 96,
+            "prompt_tokens": 28,
+            "total_tokens": 290,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-b350fe29590c",
+          "choices": [
+            {
+              "delta": {
+                "content": " Core Goal:** To develop systems that can solve problems, make decisions, understand language, recognize patterns, and adapt to new situations without being explicitly programmed for every single scenario.\n\n2.  **Key Characteristics & Abilities:**\n    *   **Learning",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 146,
+            "prompt_tokens": 28,
+            "total_tokens": 340,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-b350fe29590c",
+          "choices": [
+            {
+              "delta": {
+                "content": ":** AI systems can learn from data, identify patterns, and make predictions or decisions based on that learning.\n    *   **Reasoning:** They can apply logical rules to data to draw conclusions or infer new information.\n    *   **Problem",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 196,
             "prompt_tokens": 28,
             "total_tokens": 390,
             "completion_tokens_details": null,
@@ -106,7 +170,7 @@
           "choices": [
             {
               "delta": {
-                "content": ":** Acquire knowledge and improve performance from experience and data, without being explicitly programmed for every scenario. (This is where Machine Learning comes in as a subset of AI).\n3.  **Perceive:** Interpret information from the real world, such",
+                "content": "-solving:** AI can analyze a problem and work towards a solution, often exploring multiple possibilities.\n    *   **Perception:** Through computer vision, AI can \"see\" and interpret images and videos. Through natural language processing, it",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -123,9 +187,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 127,
+            "completion_tokens": 244,
             "prompt_tokens": 28,
-            "total_tokens": 440,
+            "total_tokens": 438,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -138,7 +202,7 @@
           "choices": [
             {
               "delta": {
-                "content": " as images, sounds, and text.\n4.  **Understand Language:** Process, understand, and generate human language (Natural Language Processing - NLP).\n5.  **Manipulate and Move:** Interact with the physical world (Rob",
+                "content": " can \"hear\" and understand spoken language.\n    *   **Language Understanding:** AI can process, understand, and generate human language (Natural Language Processing - NLP).\n    *   **Decision-making:** Based on learned patterns and",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -155,9 +219,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 175,
+            "completion_tokens": 292,
             "prompt_tokens": 28,
-            "total_tokens": 488,
+            "total_tokens": 486,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -170,7 +234,7 @@
           "choices": [
             {
               "delta": {
-                "content": "otics).\n\n**Key Characteristics and Goals of AI:**\n\n*   **Problem Solving:** Finding solutions to complex problems.\n*   **Decision Making:** Choosing the best course of action from various options.\n*   **Pattern Recognition:**",
+                "content": " reasoning, AI can choose the best course of action.\n\n3.  **How it Works (Simplified):**\n    *   AI systems are built using complex algorithms and mathematical models.\n    *   They are \"trained\" on vast",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -187,7 +251,7 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 223,
+            "completion_tokens": 342,
             "prompt_tokens": 28,
             "total_tokens": 536,
             "completion_tokens_details": null,
@@ -202,7 +266,7 @@
           "choices": [
             {
               "delta": {
-                "content": " Identifying trends and structures in data.\n*   **Adaptability:** Adjusting behavior based on new information or changing environments.\n*   **Automation of Cognitive Tasks:** Taking over tasks that traditionally required human thought.\n\n**How AI Works (at",
+                "content": " amounts of data. This training allows them to identify relationships, patterns, and rules within the data.\n    *   Once trained, they can apply these learned patterns to new, unseen data to perform specific tasks.\n\n4.  **Major",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -219,9 +283,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 273,
+            "completion_tokens": 391,
             "prompt_tokens": 28,
-            "total_tokens": 586,
+            "total_tokens": 585,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -234,7 +298,7 @@
           "choices": [
             {
               "delta": {
-                "content": " a very high level):**\n\nAI systems are typically built using algorithms that are trained on vast amounts of data. These algorithms learn patterns, rules, and relationships within the data, allowing the AI to then apply this learned knowledge to new,",
+                "content": " Subfields of AI:**\n    *   **Machine Learning (ML):** This is the most common approach to AI today. It focuses on building systems that can learn from data without explicit programming. (As we discussed, this is a subset of",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -251,9 +315,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 321,
+            "completion_tokens": 441,
             "prompt_tokens": 28,
-            "total_tokens": 634,
+            "total_tokens": 635,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -266,7 +330,7 @@
           "choices": [
             {
               "delta": {
-                "content": " unseen data or situations.\n\n**Major Subfields of AI:**\n\n*   **Machine Learning (ML):** The most prevalent form of AI today. It focuses on developing algorithms that allow computers to learn from data without being explicitly programmed.\n",
+                "content": " AI).\n    *   **Deep Learning (DL):** A subfield of Machine Learning that uses artificial neural networks with multiple layers (hence \"deep\") to learn complex patterns, especially useful for images, speech, and text.\n    *   ",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -283,9 +347,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 370,
+            "completion_tokens": 491,
             "prompt_tokens": 28,
-            "total_tokens": 683,
+            "total_tokens": 685,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -298,7 +362,7 @@
           "choices": [
             {
               "delta": {
-                "content": "    *   **Deep Learning (DL):** A subset of ML that uses neural networks with many layers (hence \"deep\") to learn complex patterns, especially effective for image recognition, speech recognition, and natural language processing.\n*   **Natural",
+                "content": "**Natural Language Processing (NLP):** Enables computers to understand, interpret, and generate human language. (e.g., chatbots, translation tools, spam filters).\n    *   **Computer Vision:** Allows computers to \"see\" and interpret",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -315,9 +379,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 419,
+            "completion_tokens": 540,
             "prompt_tokens": 28,
-            "total_tokens": 732,
+            "total_tokens": 734,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -330,7 +394,7 @@
           "choices": [
             {
               "delta": {
-                "content": " Language Processing (NLP):** Enables computers to understand, interpret, and generate human language. (e.g., chatbots, language translation, sentiment analysis).\n*   **Computer Vision:** Allows computers to \"see\" and interpret visual information from",
+                "content": " visual information from the world (e.g., facial recognition, object detection in self-driving cars).\n    *   **Robotics:** Involves designing and building robots that can interact with the physical world, often incorporating AI for navigation",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -347,9 +411,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 468,
+            "completion_tokens": 589,
             "prompt_tokens": 28,
-            "total_tokens": 781,
+            "total_tokens": 783,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -362,7 +426,7 @@
           "choices": [
             {
               "delta": {
-                "content": " images and videos. (e.g., facial recognition, self-driving cars, medical image analysis).\n*   **Robotics:** Integrates AI with hardware to create robots that can perceive, reason, and act in the physical world.",
+                "content": ", manipulation, and decision-making.\n    *   **Expert Systems:** Early AI systems designed to mimic the decision-making ability of a human expert.\n    *   **Planning & Scheduling:** AI that can devise a sequence of actions to achieve",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -379,9 +443,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 517,
+            "completion_tokens": 640,
             "prompt_tokens": 28,
-            "total_tokens": 830,
+            "total_tokens": 834,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -394,7 +458,7 @@
           "choices": [
             {
               "delta": {
-                "content": "\n*   **Expert Systems:** Early AI systems designed to mimic the decision-making ability of a human expert in a specific domain.\n*   **Planning and Scheduling:** AI systems that can devise sequences of actions to achieve specific goals.\n\n**",
+                "content": " a goal.\n\n5.  **Common Applications of AI:**\n    *   **Virtual Personal Assistants:** Siri, Alexa, Google Assistant\n    *   **Recommendation Systems:** Netflix, Amazon product suggestions\n    *   **Self-driving",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -411,9 +475,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 566,
+            "completion_tokens": 689,
             "prompt_tokens": 28,
-            "total_tokens": 879,
+            "total_tokens": 883,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -426,7 +490,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Examples of AI in Everyday Life:**\n\n*   **Recommendation Systems:** (Netflix, Amazon, Spotify)\n*   **Voice Assistants:** (Siri, Alexa, Google Assistant)\n*   **Self-Driving Cars:** (Tesla Aut",
+                "content": " Cars:** Autonomous vehicles\n    *   **Medical Diagnosis:** Assisting doctors in identifying diseases\n    *   **Fraud Detection:** Identifying unusual patterns in financial transactions\n    *   **Spam Filters:** Recognizing and filtering unwanted emails\n    *   **",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -443,9 +507,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 615,
+            "completion_tokens": 740,
             "prompt_tokens": 28,
-            "total_tokens": 928,
+            "total_tokens": 934,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -458,7 +522,7 @@
           "choices": [
             {
               "delta": {
-                "content": "opilot, Waymo)\n*   **Medical Diagnosis:** Assisting doctors in identifying diseases.\n*   **Fraud Detection:** Identifying unusual patterns in financial transactions.\n*   **Spam Filters:** Recognizing and filtering unwanted emails.\n",
+                "content": "Facial Recognition:** Unlocking phones, security systems\n    *   **Chatbots & Customer Service:** Automated responses and assistance\n    *   **Language Translation:** Google Translate, DeepL\n\nAI is a rapidly evolving field with the potential to transform",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -475,9 +539,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 662,
+            "completion_tokens": 790,
             "prompt_tokens": 28,
-            "total_tokens": 975,
+            "total_tokens": 984,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -490,103 +554,7 @@
           "choices": [
             {
               "delta": {
-                "content": "*   **Facial Recognition:** Unlocking phones, security systems.\n\n**Challenges and Ethical Considerations:**\n\nAI also brings significant challenges, including:\n*   **Bias in Data:** If training data is biased, the AI will perpetuate and amplify",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 712,
-            "prompt_tokens": 28,
-            "total_tokens": 1025,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " that bias.\n*   **Job Displacement:** Concerns about AI automating jobs.\n*   **Transparency/Explainability:** Understanding how complex AI models arrive at their decisions (\"black box\" problem).\n*   **Security and Privacy:** Protecting",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 761,
-            "prompt_tokens": 28,
-            "total_tokens": 1074,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " sensitive data used by AI.\n*   **Ethical Use:** Ensuring AI is developed and used responsibly and for the benefit of humanity.\n\nIn summary, AI is a transformative technology aiming to replicate and augment human intelligence, with the potential to revolutionize",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 811,
-            "prompt_tokens": 28,
-            "total_tokens": 1124,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " almost every aspect of our lives.",
+                "content": " nearly every aspect of our lives, from healthcare and education to transportation and entertainment.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -603,9 +571,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 818,
+            "completion_tokens": 806,
             "prompt_tokens": 28,
-            "total_tokens": 1131,
+            "total_tokens": 1000,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

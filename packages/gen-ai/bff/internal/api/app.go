@@ -106,16 +106,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockLSClient {
 		lsState, err := lsmocks.SetupLlamaStack(logger)
 		if err != nil {
-			logger.Warn("Llama Stack mock server not available, LlamaStack endpoints will fail on request", "error", err)
-		} else {
-			cleanupFuncs = append(cleanupFuncs, func() {
-				logger.Info("stopping Llama Stack server...")
-				lsmocks.CleanupLlamaStackState(lsState,
-					func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
-					func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
-				)
-			})
+			return nil, fmt.Errorf("failed to setup Llama Stack mock server: %w", err)
 		}
+		cleanupFuncs = append(cleanupFuncs, func() {
+			logger.Info("stopping Llama Stack server...")
+			lsmocks.CleanupLlamaStackState(lsState,
+				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+			)
+		})
 		llamaStackClientFactory = lsmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
@@ -204,16 +203,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockMLflowClient {
 		mlflowState, err := mlflowmocks.SetupMLflow(logger)
 		if err != nil {
-			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
-		} else {
-			cleanupFuncs = append(cleanupFuncs, func() {
-				logger.Info("stopping MLflow server...")
-				mlflowmocks.CleanupMLflowState(mlflowState,
-					func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
-					func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
-				)
-			})
+			return nil, fmt.Errorf("failed to setup MLflow mock server: %w", err)
 		}
+		cleanupFuncs = append(cleanupFuncs, func() {
+			logger.Info("stopping MLflow server...")
+			mlflowmocks.CleanupMLflowState(mlflowState,
+				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+			)
+		})
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else if cfg.MLflowURL != "" {
 		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
@@ -264,8 +262,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
-	for _, cleanup := range app.cleanupFuncs {
-		cleanup()
+	for i := len(app.cleanupFuncs) - 1; i >= 0; i-- {
+		app.cleanupFuncs[i]()
 	}
 	return nil
 }

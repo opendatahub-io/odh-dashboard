@@ -35,7 +35,7 @@ TEST_LLAMA_STACK_TEST_ID ?= bff/$(TEST_LLAMA_STACK_DIR)/test.py::record
 TEST_LLAMA_STACK_PROVIDER ?= gemini
 TEST_LLAMA_STACK_MODEL_ID ?= models/gemini-2.5-flash
 TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
-TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 3072
+TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
 TEST_LLAMA_STACK_SHIELD_MODEL_ID ?= models/gemini-2.5-flash
 
 # Prefixed model refs (derived from above, used by Go tests and shield)

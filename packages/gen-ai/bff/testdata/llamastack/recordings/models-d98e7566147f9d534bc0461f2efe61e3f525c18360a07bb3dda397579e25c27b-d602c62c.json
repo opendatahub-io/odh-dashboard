@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack/test.py::record",
+  "test_id": null,
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -48,16 +48,6 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 2.0 Flash 001"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-2.0-flash-exp-image-generation",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 2.0 Flash (Image Generation) Experimental"
         }
       },
       {
@@ -263,6 +253,16 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3.1-flash-lite-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash Lite Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-3-pro-image-preview",
           "created": null,
           "object": "model",
@@ -328,6 +328,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini Embedding 001"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-embedding-2-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Embedding 2 Preview"
         }
       },
       {
