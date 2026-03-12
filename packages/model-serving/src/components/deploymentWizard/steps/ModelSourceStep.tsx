@@ -56,6 +56,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         setCreateConnectionData={wizardState.state.createConnectionData.setData}
         projectName={wizardState.state.project.projectName}
         modelLocationData={wizardState.state.modelLocationData.data}
+        setModelLocationData={wizardState.state.modelLocationData.setData}
       />
       <ModelTypeSelectField
         modelType={wizardState.state.modelType.data}
