@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import * as ModArchCore from 'mod-arch-core';
-import EvalHubProjectSelector from '../EvalHubProjectSelector';
+import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 
 const mockNavigate = jest.fn();
 

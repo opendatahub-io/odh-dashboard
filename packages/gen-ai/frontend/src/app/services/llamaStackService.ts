@@ -37,9 +37,13 @@ import {
   ModArchRestDELETE,
   ModArchRestCREATE,
   ModArchRestGET,
+  ExternalModelRequest,
+  ExternalModelResponse,
+  MaaSModel,
+  MaaSTokenRequest,
+  MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
-import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -528,6 +532,9 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
+export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
+  '/models/external',
+);
 
 export const getMCPServers = (
   hostPath: string,

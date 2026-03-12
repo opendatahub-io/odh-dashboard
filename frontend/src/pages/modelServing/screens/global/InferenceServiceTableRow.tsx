@@ -181,7 +181,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             resource={inferenceService}
             items={[
               {
-                title: 'Edit',
+                title: <span data-testid="edit-inference-service-action">Edit</span>,
                 onClick: () => {
                   onEditInferenceService(inferenceService);
                 },
@@ -189,7 +189,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
               },
               { isSeparator: true },
               {
-                title: 'Delete',
+                title: <span data-testid="delete-inference-service-action">Delete</span>,
                 onClick: () => {
                   onDeleteInferenceService(inferenceService);
                 },

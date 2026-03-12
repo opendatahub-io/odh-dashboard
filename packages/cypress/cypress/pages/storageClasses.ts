@@ -230,3 +230,9 @@ class StorageClassEditModal extends Modal {
 export const storageClassesPage = new StorageClassesPage();
 export const storageClassesTable = new StorageClassesTable();
 export const storageClassEditModal = new StorageClassEditModal();
+
+export const storageClassActions = {
+  findEditStorageClassAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-storage-class-action');
+  },
+};

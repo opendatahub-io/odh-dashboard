@@ -306,5 +306,14 @@ class ClusterStorage {
 }
 
 export const clusterStorage = new ClusterStorage();
+
+export const clusterStorageActions = {
+  findEditStorageAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-storage-action');
+  },
+  findDeleteStorageAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-storage-action');
+  },
+};
 export const addClusterStorageModal = new ClusterStorageModal();
 export const updateClusterStorageModal = new ClusterStorageModal(true);
