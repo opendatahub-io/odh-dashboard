@@ -13,14 +13,14 @@ type UseGenerateMaaSTokenReturn = {
   resetToken: () => void;
 };
 
-const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
+const useGenerateMaaSToken = (name: string): UseGenerateMaaSTokenReturn => {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [tokenData, setTokenData] = React.useState<MaaSTokenResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
 
   const generateToken = React.useCallback(
-    async (expiration?: string) => {
+    async (expiresIn?: string) => {
       setIsGenerating(true);
       setError(null);
       setTokenData(null);
@@ -30,7 +30,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
       }
 
       try {
-        const response = await api.generateMaaSToken(expiration ? { expiration } : {});
+        const response = await api.generateMaaSToken(expiresIn ? { name, expiresIn } : { name });
         setTokenData(response);
         try {
           fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {
@@ -60,7 +60,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         setIsGenerating(false);
       }
     },
-    [api, apiAvailable],
+    [api, apiAvailable, name],
   );
 
   const resetToken = React.useCallback(() => {
