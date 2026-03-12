@@ -21,9 +21,7 @@ class AppChrome {
   }
 
   findSideBar() {
-    // Use get('body').find() instead of cy.get() to avoid timeout errors
-    // when sidebar doesn't exist (e.g., on 404 pages for unauthorized users)
-    return cy.get('body').find('#page-sidebar');
+    return cy.get('#page-sidebar');
   }
 
   findMainContent() {
