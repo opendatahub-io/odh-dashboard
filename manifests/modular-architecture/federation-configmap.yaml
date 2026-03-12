@@ -132,6 +132,27 @@ data:
         }
       },
       {
+          "name": "autorag",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/autorag/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "odh-dashboard",
+            "namespace": "opendatahub",
+            "port": 8743
+        }
+      },
+      {
         "name": "perses",
         "proxyService": [
           {

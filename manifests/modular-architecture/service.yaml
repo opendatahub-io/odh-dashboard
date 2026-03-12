@@ -40,3 +40,10 @@
     protocol: TCP
     port: 8643
     targetPort: 8643
+- op: add
+  path: /spec/ports/-
+  value:
+    name: autorag-ui
+    protocol: TCP
+    port: 8743
+    targetPort: 8743

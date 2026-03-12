@@ -536,7 +536,7 @@ paths:
                           example: true
                         url:
                           type: string
-                          example: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local'
+                          example: 'https://llama-2-7b-chat.apps.example.openshift.com/v1'
                         display_name:
                           type: string
                           description: Human-readable display name for the model
@@ -549,6 +549,13 @@ paths:
                           type: string
                           description: Primary use cases for the model
                           example: 'Chat, Question answering'
+                        model_type:
+                          type: string
+                          description: Type of the model
+                          enum:
+                            - llm
+                            - embedding
+                          example: 'llm'
                       required:
                         - id
                         - object
@@ -2075,6 +2082,16 @@ components:
             'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
             'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
             'external_provider' for external models pointing to providers (outside cluster)
+        model_type:
+          type: string
+          enum:
+            - llm
+            - embedding
+          example: 'llm'
+          description: >-
+            Type of the model:
+            'llm' for large language models,
+            'embedding' for embedding models
         description:
           type: string
           nullable: true
@@ -3961,6 +3978,7 @@ components:
               api_protocol: 'REST'
               version: ''
               model_source_type: 'external_provider'
+              model_type: 'llm'
               usecase: 'Classification, Image Generation'
               description: ''
               endpoints:
