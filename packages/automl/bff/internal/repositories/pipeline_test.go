@@ -384,16 +384,17 @@ func TestDiscoverNamedPipelines_NoVersions(t *testing.T) {
 	repo := NewPipelineRepository()
 	ctx := context.Background()
 
-	t.Run("should return error when pipeline has no versions", func(t *testing.T) {
+	t.Run("should return empty map (soft miss) when pipeline has no versions", func(t *testing.T) {
 		namespace := "test-ns-no-versions"
 		noVersionsClient := &noPipelineVersionsClient{}
 
 		definitions := map[string]string{"automl": "automl"}
 		pipelines, err := repo.DiscoverNamedPipelines(noVersionsClient, ctx, namespace, "http://mock-ps", definitions)
 
-		assert.Error(t, err)
-		assert.Nil(t, pipelines)
-		assert.Contains(t, err.Error(), "no versions found")
+		// No versions is a soft miss — not an error, just omit from results
+		assert.NoError(t, err)
+		assert.NotNil(t, pipelines)
+		assert.Empty(t, pipelines)
 	})
 }
 

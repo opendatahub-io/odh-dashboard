@@ -376,11 +376,12 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Attach mock client to context (PipelineRunHandler doesn't need discovered pipelines)
+		// Attach mock client and discovered pipelines to context
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		// Create params with runId
 		params := httprouter.Params{
@@ -417,6 +418,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -450,6 +452,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -509,6 +512,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -614,6 +618,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -651,6 +656,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},

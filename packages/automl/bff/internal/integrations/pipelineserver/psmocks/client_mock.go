@@ -390,7 +390,8 @@ func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 	}
 }
 
-// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index
+// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index.
+// TaskDetails are deep-copied to prevent mutations from affecting the original template.
 func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPipelineRun {
 	run := *template
 	suffix := fmt.Sprintf("-%d", index)
@@ -398,9 +399,13 @@ func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPip
 	run.DisplayName = template.DisplayName + " " + suffix
 	if run.RunDetails != nil {
 		details := *run.RunDetails
-		for i := range details.TaskDetails {
-			details.TaskDetails[i].RunID = run.RunID
+		// Deep copy the TaskDetails slice so mutations don't affect the original template
+		tasks := make([]models.TaskDetail, len(details.TaskDetails))
+		copy(tasks, details.TaskDetails)
+		for i := range tasks {
+			tasks[i].RunID = run.RunID
 		}
+		details.TaskDetails = tasks
 		run.RunDetails = &details
 	}
 	return run
@@ -620,14 +625,29 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 
 	ids := DeriveMockIDs(m.Namespace)
 
-	// In namespace mode, also accept the tabular pipeline ID
-	clsID := ""
+	// In namespace mode, also accept the tabular pipeline ID (distinct from timeseries)
 	if m.Namespace != "" {
-		clsID = hashUUID("cls-pipeline:" + m.Namespace)
+		clsID := hashUUID("cls-pipeline:" + m.Namespace)
+		clsVersionID := hashUUID("cls-version-latest:" + m.Namespace)
+		if pipelineID == clsID {
+			return &models.KFPipelineVersionsResponse{
+				PipelineVersions: []models.KFPipelineVersion{
+					{
+						PipelineID:        clsID,
+						PipelineVersionID: clsVersionID,
+						DisplayName:       "v1.0.0",
+						Description:       "Managed AutoML tabular pipeline version",
+						CreatedAt:         "2026-02-23T10:00:00Z",
+					},
+				},
+				TotalSize:     1,
+				NextPageToken: "",
+			}, nil
+		}
 	}
 
-	// Only return versions for this namespace's AutoML pipeline(s)
-	if pipelineID == ids.PipelineID || (clsID != "" && pipelineID == clsID) {
+	// Only return versions for this namespace's AutoML timeseries pipeline
+	if pipelineID == ids.PipelineID {
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{

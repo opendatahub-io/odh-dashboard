@@ -318,6 +318,18 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
+        - name: pipelineType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - autorag
+            default: autorag
+          description: >-
+            Selects which discovered AutoRAG pipeline to use for this run.
+            Currently only "autorag" is supported. Defaults to "autorag" when omitted.
+          example: "autorag"
       requestBody:
         required: true
         content:
@@ -342,10 +354,11 @@ paths:
       description: >-
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
-        If no AutoRAG pipeline is found, returns a 500 error with a user-visible message
-        indicating that a managed AutoRAG pipeline needs to be deployed. The Pipeline Server
-        (DSPipelineApplication) is also auto-discovered. The BFF maps AutoRAG-specific
-        parameters to KFP v2beta1 runtime config and submits the run.
+        The optional pipelineType parameter selects which discovered pipeline to use
+        (currently only "autorag" is supported). If no matching AutoRAG pipeline is found,
+        returns a 500 error. The Pipeline Server (DSPipelineApplication) is also
+        auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
+        config and submits the run.
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID

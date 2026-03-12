@@ -235,12 +235,16 @@ func (r *PipelineRepository) discoverOnePipeline(
 		return nil, nil
 	}
 
-	// Find matching pipeline by name (case-insensitive prefix match)
+	// Find matching pipeline by namespace and name (case-insensitive prefix match).
+	// Namespace guard is a defence-in-depth measure: the KFP API is already scoped to
+	// the DSPA in this namespace, but an empty or cross-namespace response could otherwise
+	// leak pipelines from other tenants.
 	// TODO: Replace with attribute-based lookup once managed pipeline metadata is available
 	var matchedPipeline *models.KFPipeline
 	for i := range pipelinesResp.Pipelines {
 		pipeline := &pipelinesResp.Pipelines[i]
-		if strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(namePrefix)) {
+		if (pipeline.Namespace == "" || pipeline.Namespace == namespace) &&
+			strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(namePrefix)) {
 			matchedPipeline = pipeline
 			break
 		}
@@ -258,7 +262,8 @@ func (r *PipelineRepository) discoverOnePipeline(
 	}
 
 	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
-		return nil, fmt.Errorf("no versions found for pipeline %s", matchedPipeline.PipelineID)
+		// No versions yet — treat as soft miss so other pipelines can still be discovered
+		return nil, nil
 	}
 
 	// Use the first version (most recently created, as client requests sorted by created_at desc)

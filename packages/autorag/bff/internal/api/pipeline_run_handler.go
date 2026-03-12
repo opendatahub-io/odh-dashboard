@@ -52,11 +52,17 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		pipelineType = "autorag"
 	}
 
+	// Validate pipelineType — only "autorag" is supported
+	if pipelineType != "autorag" {
+		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: only \"autorag\" is supported", pipelineType))
+		return
+	}
+
 	// Get discovered pipeline from context
 	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	discovered := pipelines[pipelineType]
 	if discovered == nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace for type %q - ensure a managed AutoRAG pipeline is deployed", pipelineType))
+		app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"))
 		return
 	}
 

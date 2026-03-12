@@ -164,6 +164,7 @@ components:
         - run_id
         - display_name
         - state
+        - created_at
       properties:
         run_id:
           type: string
@@ -283,6 +284,8 @@ components:
     TaskDetail:
       type: object
       description: Details of a single task within a pipeline run
+      required:
+        - task_id
       properties:
         run_id:
           type: string
@@ -317,6 +320,11 @@ components:
           example: "SUCCEEDED"
         error:
           $ref: "#/components/schemas/ErrorInfo"
+        state_history:
+          type: array
+          description: History of state transitions for this task
+          items:
+            $ref: "#/components/schemas/RuntimeStatus"
         child_tasks:
           type: array
           description: Child tasks or pods
@@ -426,7 +434,7 @@ components:
                 type: object
                 description: Response metadata
               data:
-                $ref: "#/components/schemas/PipelineRunData"
+                $ref: "#/components/schemas/PipelineRun"
 
     BadRequest:
       description: Bad Request

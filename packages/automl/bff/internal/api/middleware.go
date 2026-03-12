@@ -735,7 +735,7 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 				"error", err)
 			app.serverErrorResponseWithMessage(w, r,
 				fmt.Errorf("failed to discover AutoML pipelines: %w", err),
-				fmt.Sprintf("no AutoML pipelines found in namespace %s - ensure managed AutoML pipelines are deployed", namespace))
+				fmt.Sprintf("failed to discover AutoML pipelines in namespace %s - check that the pipeline server is accessible", namespace))
 			return
 		}
 

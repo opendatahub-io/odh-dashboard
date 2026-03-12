@@ -38,6 +38,13 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		assert.NotNil(t, runsData)
 		// All base mock runs use the LatestVersionID, so all 5 expanded runs match
 		assert.Greater(t, len(runsData.Runs), 0)
+		// Verify every returned run matches the requested pipeline version ID
+		for _, run := range runsData.Runs {
+			if run.PipelineVersionReference != nil {
+				assert.Equal(t, pipelineVersionID, run.PipelineVersionReference.PipelineVersionID,
+					"every run should belong to the requested pipeline version")
+			}
+		}
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {

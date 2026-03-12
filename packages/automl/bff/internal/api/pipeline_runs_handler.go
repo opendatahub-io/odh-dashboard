@@ -71,14 +71,14 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		pageSize = int32(parsed)
 	}
 
-	page := int32(1) // default, 1-indexed
+	page := int64(1) // default, 1-indexed; use int64 to avoid overflow in start/end arithmetic
 	if pageStr := query.Get("page"); pageStr != "" {
-		parsed, err := strconv.ParseInt(pageStr, 10, 32)
+		parsed, err := strconv.ParseInt(pageStr, 10, 64)
 		if err != nil || parsed <= 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
 			return
 		}
-		page = int32(parsed)
+		page = parsed
 	}
 
 	// Fetch all runs for each discovered pipeline and merge
@@ -97,16 +97,17 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return allRuns[i].CreatedAt > allRuns[j].CreatedAt
 	})
 
-	// Apply page/pageSize pagination to the merged list
-	totalSize := int32(len(allRuns))
-	start := (page - 1) * pageSize
-	end := start + pageSize
+	// Apply page/pageSize pagination to the merged list using int to avoid overflow
+	total := len(allRuns)
+	totalSize := int32(total)
+	start := int((page - 1) * int64(pageSize))
+	end := start + int(pageSize)
 
-	if start > totalSize {
-		start = totalSize
+	if start > total {
+		start = total
 	}
-	if end > totalSize {
-		end = totalSize
+	if end > total {
+		end = total
 	}
 
 	pagedRuns := allRuns[start:end]
@@ -158,6 +159,26 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		}
 		// For all other errors, return 500
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return
+	}
+
+	// Validate the run belongs to one of the discovered AutoML pipelines.
+	// This prevents returning runs from unrelated pipelines in the namespace.
+	if run.PipelineVersionReference == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	belongs := false
+	for _, discovered := range discoveredPipelines {
+		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
+			run.PipelineVersionReference.PipelineVersionID == discovered.PipelineVersionID {
+			belongs = true
+			break
+		}
+	}
+	if !belongs {
+		app.notFoundResponse(w, r)
 		return
 	}
 
