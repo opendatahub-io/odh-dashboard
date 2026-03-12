@@ -35,6 +35,38 @@
                 "role": "assistant",
                 "tool_calls": null
               },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 2,
+            "total_tokens": 163,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-72e3386ff620",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
               "finish_reason": "stop",
               "index": 0,
               "logprobs": null
@@ -48,7 +80,7 @@
           "usage": {
             "completion_tokens": 9,
             "prompt_tokens": 2,
-            "total_tokens": 297,
+            "total_tokens": 163,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

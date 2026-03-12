@@ -58,7 +58,7 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-1180873089467781555",
+                    "id": "function-call-14199370147783428566",
                     "function": {
                       "arguments": "{\"query\":\"machine learning\"}",
                       "name": "knowledge_search"
@@ -80,7 +80,7 @@
           "usage": {
             "completion_tokens": 16,
             "prompt_tokens": 59,
-            "total_tokens": 126,
+            "total_tokens": 127,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
