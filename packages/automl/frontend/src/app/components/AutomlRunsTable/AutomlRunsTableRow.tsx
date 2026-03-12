@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { relativeTime } from 'mod-arch-shared';
-import type { PipelineRun } from '~/app/types';
+import type { PipelineRun, PipelineRunState } from '~/app/types';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -13,6 +13,9 @@ export const RUN_STATE = {
   PENDING: 'pending',
   INCOMPLETE: 'incomplete',
   COMPLETE: 'complete',
+  SKIPPED: 'skipped',
+  PAUSED: 'paused',
+  CANCELLED: 'cancelled',
 } as const;
 
 type AutomlRunsTableRowProps = {
@@ -20,7 +23,7 @@ type AutomlRunsTableRowProps = {
 };
 
 export const getStatusLabelProps = (
-  state: string | undefined,
+  state: PipelineRunState | string | undefined,
 ): { status?: LabelProps['status']; color?: LabelProps['color'] } => {
   const s = (state ?? '').toLowerCase();
   if (s === RUN_STATE.SUCCEEDED || s === RUN_STATE.COMPLETE || s.includes(RUN_STATE.SUCCEEDED)) {
@@ -32,8 +35,16 @@ export const getStatusLabelProps = (
   if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
     return { status: 'info' };
   }
-  if (s === RUN_STATE.INCOMPLETE || s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+  if (
+    s === RUN_STATE.INCOMPLETE ||
+    s === RUN_STATE.PENDING ||
+    s === RUN_STATE.PAUSED ||
+    s.includes(RUN_STATE.PENDING)
+  ) {
     return { status: 'warning' };
+  }
+  if (s === RUN_STATE.SKIPPED || s === RUN_STATE.CANCELLED) {
+    return { color: 'grey' };
   }
   return { color: 'grey' };
 };

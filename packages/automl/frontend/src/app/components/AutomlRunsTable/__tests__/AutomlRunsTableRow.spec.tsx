@@ -56,6 +56,18 @@ describe('getStatusLabelProps', () => {
     expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ status: 'warning' });
   });
 
+  it('should return warning status for PAUSED', () => {
+    expect(getStatusLabelProps('PAUSED')).toEqual({ status: 'warning' });
+  });
+
+  it('should return grey color for SKIPPED', () => {
+    expect(getStatusLabelProps('SKIPPED')).toEqual({ color: 'grey' });
+  });
+
+  it('should return grey color for CANCELLED', () => {
+    expect(getStatusLabelProps('CANCELLED')).toEqual({ color: 'grey' });
+  });
+
   it('should return grey color for unknown state', () => {
     expect(getStatusLabelProps('UNKNOWN')).toEqual({ color: 'grey' });
   });
