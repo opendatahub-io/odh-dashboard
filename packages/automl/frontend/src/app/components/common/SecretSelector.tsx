@@ -143,7 +143,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     const missingKeys = validateSecretKeys(secret);
     if (missingKeys.length > 0) {
       setValidationError(formatMissingKeysMessage(missingKeys));
-      onChange(undefined);
+      // Don't auto-clear invalid selections - let the parent handle invalid state
+      // The onSelect handler already sets invalid: true on the secret
     } else {
       setValidationError('');
     }

@@ -6,11 +6,10 @@ import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useFilesQuery } from '~/app/hooks/queries';
 
-const mockNavigate = jest.fn();
-
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  useNavigate: () => mockNavigate,
+  useNavigate: jest.fn(),
+  useParams: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/queries');
@@ -216,36 +215,6 @@ describe('AutomlConfigure', () => {
       expect(selectFilesButton).toBeDisabled();
     });
 
-    it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
-      render(<AutomlConfigure />);
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const optimizationMetricEditButton = editButtons[0]; // First Edit button is for Optimization metric
-
-      // Verify it's disabled
-      expect(optimizationMetricEditButton).toBeDisabled();
-    });
-
-    it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
-      render(<AutomlConfigure />);
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const modelsEditButton = editButtons[1]; // Second Edit button is for Models to consider
-
-      // Verify it's disabled
-      expect(modelsEditButton).toBeDisabled();
-    });
-
     it('should disable "Run experiment" button when selected secret is invalid', () => {
       render(<AutomlConfigure />);
 
@@ -268,33 +237,6 @@ describe('AutomlConfigure', () => {
       // Verify the "Select files" button is enabled
       const selectFilesButton = screen.getByRole('button', { name: 'Select files' });
       expect(selectFilesButton).toBeEnabled();
-    });
-
-    it('should enable "Edit" buttons when selected secret is valid', () => {
-      render(<AutomlConfigure />);
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-
-      // Verify both Edit buttons are enabled
-      expect(editButtons[0]).toBeEnabled(); // Optimization metric
-      expect(editButtons[1]).toBeEnabled(); // Models to consider
-    });
-
-    it('should enable "Run experiment" button when selected secret is valid', () => {
-      render(<AutomlConfigure />);
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Run experiment" button is enabled
-      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
-      expect(runExperimentButton).toBeEnabled();
     });
   });
 

@@ -97,13 +97,14 @@ function AutomlConfigure(): React.JSX.Element {
 
   const trainDataSecretName = watch('train_data_secret_name');
   const trainDataBucketName = watch('train_data_bucket_name');
+  const trainDataFileKey = watch('train_data_file_key');
 
-  const canSelectLearningType = !selectedSecret?.invalid && Boolean(trainDataSecretName);
+  const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
+  const isFileSelected = Boolean(trainDataFileKey);
+
+  const canSelectLearningType = isFileSelected;
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
   const formDisabled = !formIsValid || formIsSubmitting;
-
-  const trainDataFileKey = form.watch('train_data_file_key');
-  const isFileSelected = Boolean(trainDataFileKey);
 
   const { data: columns = [] } = useFilesQuery();
 
@@ -185,10 +186,14 @@ function AutomlConfigure(): React.JSX.Element {
                           </StackItem>
                           <StackItem>
                             <Label
-                              onClose={() => setSelectedSecret(undefined)}
+                              onClose={() => {
+                                setSelectedSecret(undefined);
+                                setValue('train_data_secret_name', undefined);
+                                setValue('train_data_bucket_name', undefined);
+                              }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
-                              {selectedSecret?.name}
+                              {selectedSecret?.displayName ?? selectedSecret?.name}
                             </Label>
                           </StackItem>
 
@@ -200,7 +205,7 @@ function AutomlConfigure(): React.JSX.Element {
                               key="select-files"
                               variant="secondary"
                               onClick={() => setIsFileExplorerOpen(true)}
-                              isDisabled={formDisabled}
+                              isDisabled={!canSelectFiles}
                             >
                               Select files
                             </Button>

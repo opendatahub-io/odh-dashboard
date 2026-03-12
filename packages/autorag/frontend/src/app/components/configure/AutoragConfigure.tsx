@@ -218,7 +218,7 @@ function AutoragConfigure(): React.JSX.Element {
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
-                              {selectedSecret?.name}
+                              {selectedSecret?.displayName ?? selectedSecret?.name}
                             </Label>
                           </StackItem>
 
