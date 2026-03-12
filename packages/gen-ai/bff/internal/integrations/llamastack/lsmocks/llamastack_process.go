@@ -112,6 +112,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 		"--with", "pymilvus",
 		"--with", "chardet",
 		"--with", "ollama",
+		"--with", "pypdf",
 		"llama", "stack", "run", configPath,
 		"--port", fmt.Sprintf("%d", port),
 	)
