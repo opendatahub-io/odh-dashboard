@@ -13,7 +13,7 @@ function AutoragCreate(): React.JSX.Element {
         name="display_name"
         render={({ field }) => (
           <FormGroup fieldId={field.name} label="Name" isRequired>
-            <TextInput {...field} id={field.name} type="text" />
+            <TextInput {...field} id={field.name} type="text" isRequired />
           </FormGroup>
         )}
       />
