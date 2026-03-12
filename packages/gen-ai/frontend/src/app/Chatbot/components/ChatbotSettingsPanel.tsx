@@ -327,6 +327,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     </>
   );
 
+  const panelStyle = isOverlay
+    ? {
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }
+    : undefined;
+
   return (
     <DrawerPanelContent
       key={panelSizeKey}
@@ -334,22 +340,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       defaultSize={panelWidth}
       minSize="300px"
       onResize={handlePanelResize}
+      style={panelStyle}
     >
-      {isOverlay ? (
-        <div
-          style={{
-            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {content}
-        </div>
-      ) : (
-        content
-      )}
+      {content}
     </DrawerPanelContent>
   );
 };
