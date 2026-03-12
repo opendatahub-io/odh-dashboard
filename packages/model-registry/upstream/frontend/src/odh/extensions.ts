@@ -12,6 +12,7 @@ import {
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
+export const REGISTRY_OCI_STORAGE = 'registry-oci-storage';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
@@ -23,6 +24,15 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
         'Model Registry Plugin (unreleased pages)',
         'KF MR Upstream: Catalog HuggingFace API Key',
       ],
+    },
+  },
+  {
+    type: 'app.area',
+    flags: {
+      required: [SupportedArea.REGISTRY_OCI_STORAGE],
+    },
+    properties: {
+      id: REGISTRY_OCI_STORAGE,
     },
   },
   {

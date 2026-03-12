@@ -14,15 +14,19 @@ import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistr
 import { AppContext } from '~/app/context/AppContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { REGISTRY_OCI_STORAGE } from '~/odh/extensions';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
-  const isRegistryOciStorageEnabled = useIsAreaAvailable(SupportedArea.REGISTRY_OCI_STORAGE).status;
+  const areaExtensions = useExtensions(isAreaExtension);
+  const isRegistryOciStorageEnabled = areaExtensions.some(
+    (ext) => ext.properties.id === REGISTRY_OCI_STORAGE,
+  );
 
   const crdOverrides = React.useMemo(
     () => ({
