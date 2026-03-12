@@ -44,8 +44,8 @@ function AutomlExperiments(): React.JSX.Element {
   const loadError = runsError;
 
   const handleCreateClick = React.useCallback(() => {
-    navigate(`${automlCreatePathname}/${namespace ?? effectiveNamespace}`);
-  }, [navigate, namespace, effectiveNamespace]);
+    navigate(`${automlCreatePathname}/${effectiveNamespace}`);
+  }, [navigate, effectiveNamespace]);
 
   const createButton = (
     <Button variant="primary" onClick={handleCreateClick}>
@@ -85,7 +85,7 @@ function AutomlExperiments(): React.JSX.Element {
   if (!hasExperiments) {
     return (
       <EmptyExperimentsState
-        createExperimentRoute={`${automlCreatePathname}/${namespace ?? effectiveNamespace}`}
+        createExperimentRoute={`${automlCreatePathname}/${effectiveNamespace}`}
         dataTestId="empty-experiments-state"
       />
     );
