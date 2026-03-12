@@ -30,7 +30,7 @@ spec:
     value: .
   - name: build-args
     value:
-    - BUILD_MODE=RHOAI
+    - "BUILD_MODE=RHOAI"
   pipelineRef:
     resolver: git
     params:
