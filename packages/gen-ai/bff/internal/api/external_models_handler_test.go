@@ -100,7 +100,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		endpoints, ok := dataMap["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 1)
-		assert.Equal(t, "https://generativelanguage.googleapis.com/v1beta/openai/", endpoints[0])
+		assert.Equal(t, "external: https://generativelanguage.googleapis.com/v1beta/openai/", endpoints[0])
 	})
 
 	It("should support all provider types", func() {

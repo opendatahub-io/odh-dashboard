@@ -85,7 +85,7 @@ function AutoragConfigure(): React.JSX.Element {
   const inputDataBucketName = watch('input_data_bucket_name');
   const testDataBucketName = watch('test_data_bucket_name');
 
-  const canSelectDocs = Boolean(inputDataSecretName);
+  const canSelectDocs = !selectedSecret?.invalid && Boolean(inputDataSecretName);
   // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
   const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
   const formDisabled = !formIsValid || formIsSubmitting;
