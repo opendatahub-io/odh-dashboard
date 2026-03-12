@@ -4,3 +4,4 @@ resources:
   - ./crd
   - ./connection-types
   - ./apps
+  - ./model-registry

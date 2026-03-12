@@ -1,6 +1,6 @@
 import React from 'react';
 import { parse, stringify } from 'yaml';
-import { DeploymentAssemblyResources } from '../../../../extension-points';
+import { DeploymentAssemblyResources, type Deployment } from '../../../../extension-points';
 
 type UseFormYamlResourcesResult = {
   yaml?: string;
@@ -17,6 +17,7 @@ type UseFormYamlResourcesResult = {
  */
 export const useFormYamlResources = (
   formResources: DeploymentAssemblyResources,
+  initialModelResource?: Deployment['model'],
 ): UseFormYamlResourcesResult => {
   const { formAsYaml, formAsYamlError } = React.useMemo(() => {
     try {
@@ -30,9 +31,20 @@ export const useFormYamlResources = (
     }
   }, [formResources]);
 
-  const [editorYaml, setEditorYaml] = React.useState<string | undefined>(formAsYaml);
+  const [editorYaml, setEditorYaml] = React.useState<string | undefined>(() => {
+    if (initialModelResource) {
+      try {
+        return stringify(initialModelResource);
+      } catch {
+        return formAsYaml;
+      }
+    }
+    return formAsYaml;
+  });
 
-  const lastUpdatedSource = React.useRef<'form' | 'editor'>('form');
+  const lastUpdatedSource = React.useRef<'form' | 'editor'>(
+    initialModelResource ? 'editor' : 'form',
+  );
   const { yamlResources, yamlResourcesError } = React.useMemo(() => {
     try {
       return { yamlResources: editorYaml ? { model: parse(editorYaml) } : {} };

@@ -11,6 +11,7 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
@@ -45,7 +46,7 @@ describe('Workbenches - image/version tests', () => {
       tags: ['@Sanity', '@SanitySet3', '@ODS-2131', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
     },
     () => {
-      const workbenchName = projectName.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(projectName);
 
       // Authentication and navigation
       cy.step('Log into the application');

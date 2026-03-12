@@ -2,8 +2,7 @@ import * as React from 'react';
 import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import {
@@ -19,6 +18,7 @@ type AIModelsTableProps = {
   maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
+  toolbarActions?: React.ReactNode;
 };
 
 export const AIModelStatusPopoverContent: React.ReactNode = (
@@ -64,6 +64,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   maasModels,
   playgroundModels,
   lsdStatus,
+  toolbarActions,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
     useAIModelsFilter(aiModels);
@@ -91,6 +92,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
+          toolbarActions={toolbarActions}
         />
       }
       onClearFilters={onClearFilters}

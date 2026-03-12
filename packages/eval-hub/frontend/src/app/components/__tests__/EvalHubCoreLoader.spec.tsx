@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import * as ModArchCore from 'mod-arch-core';
-import EvalHubCoreLoader from '../EvalHubCoreLoader';
+import EvalHubCoreLoader from '~/app/components/EvalHubCoreLoader';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),

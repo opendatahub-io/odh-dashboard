@@ -62,7 +62,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
 
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
-  const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>('form');
+  const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>(
+    existingData?.viewMode ?? 'form',
+  );
 
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
@@ -112,12 +114,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     existingDeployment,
     secretName, // todo remove
   );
+  const isAutoFallback = existingData?.viewMode === 'yaml-edit';
   const {
     yaml,
     setYaml,
     resources: finalResources, // will be from yaml or wizard depending view mode
     error: yamlError,
-  } = useFormYamlResources(formResources);
+  } = useFormYamlResources(formResources, isAutoFallback ? existingDeployment?.model : undefined);
 
   const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
@@ -202,6 +205,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 canEnterYAMLEditMode={existingDeployment?.model.kind !== 'InferenceService'}
+                isAutoFallback={isAutoFallback}
               />
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>

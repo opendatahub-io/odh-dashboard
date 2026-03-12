@@ -138,12 +138,28 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
       .click();
   }
 
+  selectEnvDataTypeByTestId(testId: string) {
+    this.find()
+      .findByTestId('env-data-type-field')
+      .findByRole('button', { name: 'Options menu' })
+      .click();
+    cy.findByTestId(testId).click();
+  }
+
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
       .findByRole('button', { name: 'Options menu' })
       .findSelectOption(name)
       .click();
+  }
+
+  selectEnvironmentVariableTypeByTestId(testId: string) {
+    this.find()
+      .findByTestId('environment-variable-type-select')
+      .findByRole('button', { name: 'Options menu' })
+      .click();
+    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -904,6 +920,15 @@ class WorkbenchStatusModal extends Modal {
 }
 
 export const workbenchPage = new WorkbenchPage();
+
+export const workbenchActions = {
+  findEditWorkbenchAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-workbench-action');
+  },
+  findDeleteWorkbenchAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-workbench-action');
+  },
+};
 export const createSpawnerPage = new CreateSpawnerPage();
 export const notebookConfirmModal = new NotebookConfirmModal();
 export const notebookDeleteModal = new NotebookDeleteModal();
