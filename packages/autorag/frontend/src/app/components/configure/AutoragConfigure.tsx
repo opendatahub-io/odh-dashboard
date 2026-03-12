@@ -357,7 +357,12 @@ function AutoragConfigure(): React.JSX.Element {
         id="AutoRagConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onSelect={(files) => {
+          // TODO: replace with actual logic once implemented
+          form.setValue('input_data_bucket_name', 'bucket');
+          form.setValue('input_data_key', 'key');
+        }}
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}

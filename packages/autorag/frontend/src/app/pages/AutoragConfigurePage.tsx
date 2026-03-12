@@ -17,11 +17,11 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React, { useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
+import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
-import AutoragConfigure from '../components/configure/AutoragConfigure';
-import { createConfigureSchema } from '../schemas/configure.schema';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description'] as const;

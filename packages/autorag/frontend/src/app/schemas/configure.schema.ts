@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { createSchema } from '../utilities/schema';
+import { createSchema } from '~/app/utilities/schema';
 
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
