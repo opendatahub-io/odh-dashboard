@@ -80,6 +80,17 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 				app.unauthorizedResponse(w, r, err.Error())
 				return
 			}
+			if apierrors.IsBadRequest(statusErr) || apierrors.IsInvalid(statusErr) {
+				httpError := &integrations.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusBadRequest),
+						Message: fmt.Sprintf("invalid request for namespace '%s': %s", namespace, statusErr.Error()),
+					},
+				}
+				app.errorResponse(w, r, httpError)
+				return
+			}
 		}
 		app.serverErrorResponse(w, r, err)
 		return
