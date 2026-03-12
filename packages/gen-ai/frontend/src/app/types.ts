@@ -17,8 +17,7 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  is_maas_model: boolean; // Deprecated: Use model_source_type instead (will be removed in future PR)
-  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider'; // Source type of the model
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
   max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
@@ -365,7 +364,7 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
-  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider';
+  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
   model_type?: 'llm' | 'embedding';
 }
 

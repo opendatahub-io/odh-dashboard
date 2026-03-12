@@ -26,6 +26,11 @@ func TestIsExternalModelSource(t *testing.T) {
 			expected:   false,
 		},
 		{
+			name:       "maas is not external",
+			sourceType: ModelSourceTypeMaaS,
+			expected:   false,
+		},
+		{
 			name:       "empty string is not external",
 			sourceType: "",
 			expected:   false,

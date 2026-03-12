@@ -316,7 +316,6 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
         models: [
           {
             model_name: 'test-model',
-            is_maas_model: false,
             model_source_type: 'namespace',
           },
         ],
@@ -339,7 +338,6 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
         models: [
           {
             model_name: 'test-model',
-            is_maas_model: false,
             model_source_type: 'namespace',
           },
         ],

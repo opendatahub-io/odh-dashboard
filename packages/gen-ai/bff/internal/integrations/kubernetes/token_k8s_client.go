@@ -1177,12 +1177,12 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				hasToken:   secretName != "",
 			}
 			if secretName != "" {
-				kc.Logger.Debug("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", true)
+				kc.Logger.Debug("found existing "+foundType+" service account token secret", "model", model.ModelName, "secretName", secretName, "hasToken", true)
 			} else {
-				kc.Logger.Debug("found "+foundType+" but no service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "hasToken", false)
+				kc.Logger.Debug("found "+foundType+" but no service account token secret", "model", model.ModelName, "hasToken", false)
 			}
 		} else {
-			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel)
+			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName)
 		}
 	}
 
@@ -1433,7 +1433,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		// Check if we have any MaaS models first
 		hasMaaSModels := false
 		for _, model := range installModels {
-			if model.IsMaaSModel {
+			if model.ModelSourceType == models.ModelSourceTypeMaaS {
 				hasMaaSModels = true
 				break
 			}
@@ -1474,8 +1474,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	}, len(installModels))
 
 	for i, model := range installModels {
-		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "modelSourceType", model.ModelSourceType)
-		if model.IsMaaSModel {
+		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
 			// Handle MaaS models using the pre-loaded map
 			maasModel, exists := maasModelsMap[model.ModelName]
 			if !exists {

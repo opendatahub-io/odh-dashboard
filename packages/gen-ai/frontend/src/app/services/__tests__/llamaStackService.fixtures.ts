@@ -103,14 +103,14 @@ export const mockCodeExportResponseData: CodeExportData = {
 
 // Install LSD fixtures
 export const mockInstallModels = [
-  { model_name: 'model-1', is_maas_model: false },
-  { model_name: 'model-2', is_maas_model: false },
-  { model_name: 'model-3', is_maas_model: true },
+  { model_name: 'model-1', model_source_type: 'namespace' },
+  { model_name: 'model-2', model_source_type: 'namespace' },
+  { model_name: 'model-3', model_source_type: 'maas' },
 ];
 
 export const mockMaaSModelsForInstall = [
-  { model_name: 'maas-model-1', is_maas_model: true },
-  { model_name: 'regular-model', is_maas_model: false },
+  { model_name: 'maas-model-1', model_source_type: 'maas' },
+  { model_name: 'regular-model', model_source_type: 'namespace' },
 ];
 
 // MaaS Models fixtures

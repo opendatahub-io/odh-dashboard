@@ -153,8 +153,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             return {
               model_name:
                 model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
-              is_maas_model: model.isMaaSModel || false,
-              model_source_type: model.model_source_type,
+              model_source_type: model.isMaaSModel
+                ? 'maas'
+                : model.model_source_type || 'namespace',
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),

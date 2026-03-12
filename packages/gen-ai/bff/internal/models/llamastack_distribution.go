@@ -28,9 +28,8 @@ type LlamaStackDistributionInstallRequest struct {
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
 type installModelJSON struct {
 	ModelName       string      `json:"model_name"`
-	IsMaaSModel     bool        `json:"is_maas_model"`
-	ModelSourceType string      `json:"model_source_type,omitempty"` // Source type as string for unmarshaling
-	MaxTokens       interface{} `json:"max_tokens,omitempty"`        // Can be int, float64, or nil
+	ModelSourceType string      `json:"model_source_type"` // Source type as string for unmarshaling (required)
+	MaxTokens       interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for InstallModel to handle max_tokens
@@ -47,21 +46,21 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 	}
 
 	im.ModelName = raw.ModelName
-	im.IsMaaSModel = raw.IsMaaSModel
 
-	// Validate and set ModelSourceType
+	// Validate and set ModelSourceType (now required)
 	switch raw.ModelSourceType {
-	case "":
-		// Empty string is the legacy default (omitted field) - treat as namespace
-		im.ModelSourceType = ModelSourceTypeNamespace
 	case string(ModelSourceTypeNamespace):
 		im.ModelSourceType = ModelSourceTypeNamespace
 	case string(ModelSourceTypeExternalCluster):
 		im.ModelSourceType = ModelSourceTypeExternalCluster
 	case string(ModelSourceTypeExternalProvider):
 		im.ModelSourceType = ModelSourceTypeExternalProvider
+	case string(ModelSourceTypeMaaS):
+		im.ModelSourceType = ModelSourceTypeMaaS
+	case "":
+		return fmt.Errorf("model_source_type is required")
 	default:
-		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, external_cluster, external_provider", raw.ModelSourceType)
+		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, external_cluster, external_provider, maas", raw.ModelSourceType)
 	}
 
 	// Handle max_tokens conversion from interface{} to *int
@@ -96,9 +95,8 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 type InstallModel struct {
 	ModelName       string              `json:"model_name"`
-	IsMaaSModel     bool                `json:"is_maas_model"`               // Deprecated: Use ModelSourceType instead (will be removed in future PR)
-	ModelSourceType ModelSourceTypeEnum `json:"model_source_type,omitempty"` // Source type of the model (namespace, external_cluster, external_provider)
-	MaxTokens       *int                `json:"max_tokens,omitempty"`        // Optional per-model token limit (128-128000)
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"` // Source type of the model (required: namespace, external_cluster, external_provider, maas)
+	MaxTokens       *int                `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
 }
 
 type LlamaStackDistributionInstallModel struct {

@@ -158,8 +158,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test models with only MaaS models (no regular models to avoid Kubernetes client issues)
 		models := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
-			{ModelName: "granite-7b-lab", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+			{ModelName: "granite-7b-lab", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -200,7 +200,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test with a model that is not ready (mistral-7b-instruct has Ready: false in mock)
 		models := []models.InstallModel{
-			{ModelName: "mistral-7b-instruct", IsMaaSModel: true},
+			{ModelName: "mistral-7b-instruct", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -225,7 +225,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test with a model that doesn't exist in the mock
 		models := []models.InstallModel{
-			{ModelName: "non-existent-model", IsMaaSModel: true},
+			{ModelName: "non-existent-model", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -251,7 +251,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		testModels := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -280,7 +280,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		testModels := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -667,8 +667,8 @@ func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
 		// Test with only MaaS models - no k8s access required
 		models := []models.InstallModel{
 			{
-				ModelName:   "llama-2-7b-chat",
-				IsMaaSModel: true,
+				ModelName:       "llama-2-7b-chat",
+				ModelSourceType: models.ModelSourceTypeMaaS,
 			},
 		}
 
@@ -760,9 +760,7 @@ func TestModelSourceTypeConstants(t *testing.T) {
 func TestInstallModelUnmarshalJSON(t *testing.T) {
 	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",
-			"is_maas_model": false,
-			"model_source_type": "external_provider"
+			"model_name": "gpt-4o",			"model_source_type": "external_provider"
 		}`)
 
 		var model models.InstallModel
@@ -770,15 +768,12 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
 		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
 	})
 
 	t.Run("should handle external_cluster ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "qwen3-06b",
-			"is_maas_model": false,
-			"model_source_type": "external_cluster"
+			"model_name": "qwen3-06b",			"model_source_type": "external_cluster"
 		}`)
 
 		var model models.InstallModel
@@ -786,15 +781,12 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "qwen3-06b", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
 		assert.Equal(t, models.ModelSourceTypeExternalCluster, model.ModelSourceType)
 	})
 
 	t.Run("should handle namespace ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "llama-3-8b",
-			"is_maas_model": false,
-			"model_source_type": "namespace"
+			"model_name": "llama-3-8b",			"model_source_type": "namespace"
 		}`)
 
 		var model models.InstallModel
@@ -802,31 +794,24 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "llama-3-8b", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
 		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
 	})
 
-	t.Run("should handle missing ModelSourceType field", func(t *testing.T) {
+	t.Run("should reject missing ModelSourceType field", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "llama-3-8b",
-			"is_maas_model": false
+			"model_name": "llama-3-8b"
 		}`)
 
 		var model models.InstallModel
 		err := model.UnmarshalJSON(jsonData)
 
-		assert.NoError(t, err)
-		assert.Equal(t, "llama-3-8b", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
-		// Missing field is treated as empty string, which defaults to namespace
-		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "model_source_type is required")
 	})
 
 	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",
-			"is_maas_model": false,
-			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
 			"max_tokens": 4096
 		}`)
 
@@ -835,7 +820,6 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
 		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
 		assert.NotNil(t, model.MaxTokens)
 		assert.Equal(t, 4096, *model.MaxTokens)
@@ -843,9 +827,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle max_tokens as float64", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",
-			"is_maas_model": false,
-			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
 			"max_tokens": 4096.0
 		}`)
 
@@ -860,9 +842,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should reject fractional max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",
-			"is_maas_model": false,
-			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
 			"max_tokens": 4096.5
 		}`)
 
@@ -875,9 +855,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle nil max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",
-			"is_maas_model": false,
-			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
 			"max_tokens": null
 		}`)
 
@@ -889,11 +867,10 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		assert.Nil(t, model.MaxTokens)
 	})
 
-	t.Run("should handle MaaS model with ModelSourceType", func(t *testing.T) {
+	t.Run("should handle maas ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
 			"model_name": "llama-2-7b-chat",
-			"is_maas_model": true,
-			"model_source_type": "external_provider"
+			"model_source_type": "maas"
 		}`)
 
 		var model models.InstallModel
@@ -901,15 +878,12 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "llama-2-7b-chat", model.ModelName)
-		assert.True(t, model.IsMaaSModel)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeMaaS, model.ModelSourceType)
 	})
 
 	t.Run("should reject invalid model_source_type", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "test-model",
-			"is_maas_model": false,
-			"model_source_type": "invalid_value"
+			"model_name": "test-model",			"model_source_type": "invalid_value"
 		}`)
 
 		var model models.InstallModel
@@ -922,9 +896,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should reject random garbage in model_source_type", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "test-model",
-			"is_maas_model": false,
-			"model_source_type": "foobar123"
+			"model_name": "test-model",			"model_source_type": "foobar123"
 		}`)
 
 		var model models.InstallModel
@@ -935,20 +907,17 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		assert.Contains(t, err.Error(), "foobar123")
 	})
 
-	t.Run("should treat empty model_source_type as namespace (legacy default)", func(t *testing.T) {
+	t.Run("should reject empty model_source_type", func(t *testing.T) {
 		jsonData := []byte(`{
 			"model_name": "test-model",
-			"is_maas_model": false,
 			"model_source_type": ""
 		}`)
 
 		var model models.InstallModel
 		err := model.UnmarshalJSON(jsonData)
 
-		assert.NoError(t, err)
-		assert.Equal(t, "test-model", model.ModelName)
-		assert.False(t, model.IsMaaSModel)
-		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "model_source_type is required")
 	})
 }
 
