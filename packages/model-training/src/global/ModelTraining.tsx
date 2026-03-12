@@ -24,7 +24,7 @@ import { useJobStatuses } from './trainingJobList/hooks/useJobStatuses';
 import { getUnifiedJobNodeCount } from './trainingJobList/utils';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { RayClusterKind } from '../k8sTypes';
-import { TrainingJobState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
+import { JobDisplayState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
 import { useRayClusters } from '../api';
 
 const title = 'Jobs';
@@ -86,7 +86,7 @@ const ModelTraining = (): React.ReactElement => {
   }, []);
 
   const handleStatusUpdate = React.useCallback(
-    (jobId: string, newStatus: TrainingJobState) => {
+    (jobId: string, newStatus: JobDisplayState) => {
       updateJobStatus(jobId, newStatus);
     },
     [updateJobStatus],

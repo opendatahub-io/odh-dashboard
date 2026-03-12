@@ -4,13 +4,13 @@ import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/
 import { getColumns } from './const';
 import TrainJobTableRow from './TrainJobTableRow';
 import RayJobTableRow from './RayJobTableRow';
-import { TrainingJobState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
+import { JobDisplayState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 
 type JobsTableProps = {
   jobs: UnifiedJobKind[];
-  jobStatuses?: Map<string, TrainingJobState>;
+  jobStatuses?: Map<string, JobDisplayState>;
   nodeCountMap: Map<string, number>;
-  onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
+  onStatusUpdate?: (jobId: string, newStatus: JobDisplayState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
   onDelete: (job: UnifiedJobKind) => void;
   clearFilters?: () => void;
