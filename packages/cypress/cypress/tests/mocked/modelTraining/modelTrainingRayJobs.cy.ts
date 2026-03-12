@@ -31,6 +31,7 @@ import {
   rayJobDetailsTab,
   rayJobResourcesTab,
 } from '../../../pages/modelTraining';
+import { tablePagination } from '../../../pages/components/Pagination';
 import { ProjectModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
@@ -178,14 +179,14 @@ const mockRayJobs = mockRayJobK8sResourceList([
     name: 'ray-queued-kueue',
     namespace: projectName,
     additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
-    jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
     jobStatus: undefined,
   },
   {
     name: 'ray-pending-kueue',
     namespace: projectName,
     additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
-    jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
     jobStatus: undefined,
   },
 ]);
@@ -385,16 +386,14 @@ describe('RayJobs in Jobs Table', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
 
-    cy.findByTestId('training-job-table-toolbar')
-      .findByLabelText('Filter by name')
-      .type('ray-data');
-
+    trainingJobTable.filterByName('ray-data');
     trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
     trainingJobTable.findTable().find('tbody tr').should('have.length', 1);
 
-    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
-
+    trainingJobTable.filterByName('train-job-one');
     trainingJobTable.getTableRow('train-job-one').find().should('exist');
+
+    trainingJobTable.filterByName('ray-data-processing');
     trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
   });
 });
@@ -422,6 +421,7 @@ describe('Type filter in Jobs Table', () => {
   it('should filter to show only RayJobs when RayJob type is selected', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
+    tablePagination.top.selectToggleOption('20 per page');
 
     trainingJobTable.selectJobTypeFilter('RayJob');
 
@@ -436,6 +436,7 @@ describe('Type filter in Jobs Table', () => {
   it('should show all jobs after selecting All in type filter', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
+    tablePagination.top.selectToggleOption('20 per page');
 
     trainingJobTable.selectJobTypeFilter('TrainJob');
     trainingJobTable.findRows().should('have.length', 1);
@@ -510,6 +511,7 @@ describe('RayJob status column', () => {
   });
 
   it('should show Queued status when Kueue workload is waiting for quota', () => {
+    trainingJobTable.filterByName('ray-queued-kueue');
     trainingJobTable.getTableRow('ray-queued-kueue').findStatus().should('contain', 'Queued');
   });
 
@@ -581,6 +583,7 @@ describe('RayJob Details Drawer', () => {
     rayJobDetailsDrawer.close();
     rayJobDetailsDrawer.shouldBeClosed();
 
+    trainingJobTable.filterByName('train-job-one');
     const trainRow = trainingJobTable.getTableRow('train-job-one');
     trainRow.findNameLink().click();
     trainingJobDetailsDrawer.shouldBeOpen();
