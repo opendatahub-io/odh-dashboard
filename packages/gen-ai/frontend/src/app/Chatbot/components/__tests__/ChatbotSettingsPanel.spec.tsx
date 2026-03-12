@@ -6,8 +6,8 @@ import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManageme
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
-const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width-v2';
-const DEFAULT_WIDTH = '500px';
+const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
+const DEFAULT_WIDTH = '550px';
 
 const mockResizeEvent = new Event('click');
 
@@ -376,7 +376,7 @@ describe('ChatbotSettingsPanel', () => {
     expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
   });
 
-  it('should initialize with 500px default width when no stored width exists', () => {
+  it('should initialize with 550px default width when no stored width exists', () => {
     render(<ChatbotSettingsPanel {...defaultProps} />);
 
     // Should use default width
@@ -428,7 +428,7 @@ describe('ChatbotSettingsPanel', () => {
     expect(mockDrawerBodyStyle).toBeUndefined();
   });
 
-  it('should use default width of 500px even when isOverlay is true', () => {
+  it('should use default width of 550px even when isOverlay is true', () => {
     render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
 
     // Should still use the default width, overlay only affects background color
@@ -561,15 +561,15 @@ describe('ChatbotSettingsPanel', () => {
       });
     });
 
-    it('should use default width of 500px when no stored width exists', () => {
+    it('should use default width of 550px when no stored width exists', () => {
       render(<ChatbotSettingsPanel {...defaultProps} isOverlay={false} />);
-      expect(mockDrawerPanelDefaultSize).toBe('500px');
+      expect(mockDrawerPanelDefaultSize).toBe('550px');
 
       sessionStorage.clear();
       mockDrawerPanelDefaultSize = undefined;
 
       render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
-      expect(mockDrawerPanelDefaultSize).toBe('500px');
+      expect(mockDrawerPanelDefaultSize).toBe('550px');
     });
 
     it('should preserve stored width regardless of overlay mode', () => {
