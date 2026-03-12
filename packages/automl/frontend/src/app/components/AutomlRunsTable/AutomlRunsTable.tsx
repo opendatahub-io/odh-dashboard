@@ -31,7 +31,6 @@ const AutomlRunsTable: React.FC<AutomlRunsTableProps> = ({
     enablePagination={totalSize > pageSize}
     data={runs}
     columns={automlRunsColumns}
-    defaultSortColumn={0}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent}
     rowRenderer={(run) => <AutomlRunsTableRow key={run.run_id} run={run} />}
