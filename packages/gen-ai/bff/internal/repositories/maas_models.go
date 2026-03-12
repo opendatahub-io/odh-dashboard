@@ -26,19 +26,7 @@ func (r *MaaSModelsRepository) ListModels(ctx context.Context) ([]models.MaaSMod
 		return nil, err
 	}
 
-	maasModels, err := client.ListModels(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Derive model_type from usecase for each model
-	for i := range maasModels {
-		if maasModels[i].ModelType == "" {
-			maasModels[i].DeriveModelType()
-		}
-	}
-
-	return maasModels, nil
+	return client.ListModels(ctx)
 }
 
 // IssueToken creates a new ephemeral token with specified TTL.

@@ -1,16 +1,5 @@
 package models
 
-import "strings"
-
-// DeriveModelTypeFromUsecase determines model type from the usecase string.
-// Returns ModelTypeEmbedding if usecase contains "embedding" (case-insensitive), otherwise ModelTypeLLM.
-func DeriveModelTypeFromUsecase(usecase string) ModelTypeEnum {
-	if strings.Contains(strings.ToLower(usecase), "embedding") {
-		return ModelTypeEmbedding
-	}
-	return ModelTypeLLM
-}
-
 // ModelSourceTypeEnum represents the source type of a model
 type ModelSourceTypeEnum string
 
@@ -36,7 +25,7 @@ type AAModel struct {
 	DisplayName     string              `json:"display_name"`
 	SAToken         SAToken             `json:"sa_token"`
 	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`
-	ModelType       ModelTypeEnum       `json:"model_type"`
+	ModelType       ModelTypeEnum       `json:"model_type,omitempty"`
 }
 
 type SAToken struct {

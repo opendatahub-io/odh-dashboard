@@ -468,6 +468,7 @@ export interface MaaSModel {
   display_name?: string;
   description?: string;
   usecase?: string;
+  model_type?: 'llm' | 'embedding';
 }
 
 export type MaaSTokenRequest = {

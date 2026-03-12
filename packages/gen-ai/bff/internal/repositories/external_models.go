@@ -68,7 +68,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		DisplayName:     req.ModelDisplayName,
 		SAToken:         models.SAToken{},
 		ModelSourceType: sourceType,
-		ModelType:       models.DeriveModelTypeFromUsecase(req.UseCases),
+		ModelType:       req.ModelType,
 	}, nil
 }
 

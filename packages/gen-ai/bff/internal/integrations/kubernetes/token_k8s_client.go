@@ -631,20 +631,17 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
-		usecase := kc.extractUseCaseFromLLMInferenceService(&llmSvc)
-
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         *llmSvc.Spec.Model.Name,
 			Description:     kc.extractDescriptionFromLLMInferenceService(&llmSvc),
 			ServingRuntime:  "Distributed inference with llm-d",
 			APIProtocol:     "REST",
-			Usecase:         usecase,
+			Usecase:         kc.extractUseCaseFromLLMInferenceService(&llmSvc),
 			Endpoints:       kc.extractEndpointsFromLLMInferenceService(&llmSvc),
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			ModelType:       models.DeriveModelTypeFromUsecase(usecase),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -680,8 +677,6 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
-		usecase := kc.extractUseCaseFromInferenceService(&isvc)
-
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -689,12 +684,11 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			APIProtocol:     kc.extractAPIProtocolFromAnnotations(servingRuntime),
 			Version:         kc.extractVersionFromAnnotations(servingRuntime),
 			Description:     kc.extractDescriptionFromInferenceService(&isvc),
-			Usecase:         usecase,
+			Usecase:         kc.extractUseCaseFromInferenceService(&isvc),
 			Endpoints:       kc.extractEndpoints(&isvc),
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			ModelType:       models.DeriveModelTypeFromUsecase(usecase),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1075,12 +1069,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			endpoint = fmt.Sprintf("internal: %s", provider.Config.BaseURL)
 		}
 
-		// Derive model type from usecase if not stored (backward compat for older ConfigMaps)
-		modelType := model.ModelType
-		if modelType == "" {
-			modelType = models.DeriveModelTypeFromUsecase(useCases)
-		}
-
 		aaModel := models.AAModel{
 			ModelName:       model.ModelID,
 			ModelID:         model.ModelID,
@@ -1094,7 +1082,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Status:          "Running",
 			SAToken:         models.SAToken{},
 			ModelSourceType: sourceType,
-			ModelType:       modelType,
+			ModelType:       model.ModelType,
 		}
 		aaModels = append(aaModels, aaModel)
 	}

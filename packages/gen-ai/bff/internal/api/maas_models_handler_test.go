@@ -61,7 +61,6 @@ func TestMaaSModelsHandler(t *testing.T) {
 		assert.True(t, firstModel.Ready)
 		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.URL)
 		assert.NotZero(t, firstModel.Created)
-		assert.Equal(t, "llm", firstModel.ModelType)
 	})
 
 	t.Run("should have correct response structure", func(t *testing.T) {
@@ -94,8 +93,6 @@ func TestMaaSModelsHandler(t *testing.T) {
 			assert.NotEmpty(t, model.OwnedBy)
 			assert.NotEmpty(t, model.URL)
 			assert.NotZero(t, model.Created)
-			// Ready can be true or false, but should be set
-			assert.NotEmpty(t, model.ModelType)
 		}
 	})
 

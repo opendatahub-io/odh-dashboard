@@ -109,9 +109,6 @@ export const generateMCPServerConfig = (
   };
 };
 
-export const deriveModelType = (usecase?: string): 'llm' | 'embedding' =>
-  usecase?.toLowerCase().includes('embedding') ? 'embedding' : 'llm';
-
 export const parseEndpointByPrefix = (
   endpoints: string[],
   prefix: 'internal' | 'external',
@@ -182,7 +179,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   isMaaSModel: true,
   maasModelId: maasModel.id,
   modelSource: 'maas',
-  model_type: maasModel.model_type || deriveModelType(maasModel.usecase),
+  model_type: maasModel.model_type,
 });
 
 /**

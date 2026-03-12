@@ -551,7 +551,7 @@ paths:
                           example: 'Chat, Question answering'
                         model_type:
                           type: string
-                          description: Type of the model, derived from usecase
+                          description: Type of the model
                           enum:
                             - llm
                             - embedding
@@ -563,7 +563,6 @@ paths:
                         - owned_by
                         - ready
                         - url
-                        - model_type
                 required:
                   - object
                   - data
@@ -2050,7 +2049,6 @@ components:
         - endpoints
         - status
         - model_source_type
-        - model_type
       properties:
         model_name:
           type: string

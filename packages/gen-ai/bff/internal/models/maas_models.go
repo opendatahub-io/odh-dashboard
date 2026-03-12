@@ -11,13 +11,7 @@ type MaaSModel struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Usecase     string `json:"usecase,omitempty"`
-	ModelType   string `json:"model_type"`
-}
-
-// DeriveModelType sets ModelType based on the Usecase field.
-// Sets ModelType to "embedding" if usecase contains "embedding" (case-insensitive), otherwise sets it to "llm".
-func (m *MaaSModel) DeriveModelType() {
-	m.ModelType = string(DeriveModelTypeFromUsecase(m.Usecase))
+	ModelType   string `json:"model_type,omitempty"`
 }
 
 // MaaSModelsResponse represents the response structure for listing MaaS models

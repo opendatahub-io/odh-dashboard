@@ -3,7 +3,6 @@ import type { AIModel } from '~/app/types';
 import type { MaaSModel } from '~/odh/extension-points/maas';
 import {
   convertMaaSModelToAIModel,
-  deriveModelType,
   getSourceLabel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
@@ -21,28 +20,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   display_name: 'Test',
   sa_token: { name: '', token_name: '', token: '' },
   ...overrides,
-});
-
-describe('deriveModelType', () => {
-  it('should return "embedding" for embedding usecase', () => {
-    expect(deriveModelType('embedding')).toBe('embedding');
-  });
-
-  it('should return "embedding" for Text Embedding usecase (case insensitive)', () => {
-    expect(deriveModelType('Text Embedding')).toBe('embedding');
-  });
-
-  it('should return "llm" for LLM usecase', () => {
-    expect(deriveModelType('LLM')).toBe('llm');
-  });
-
-  it('should return "llm" when usecase is undefined', () => {
-    expect(deriveModelType(undefined)).toBe('llm');
-  });
-
-  it('should return "llm" when usecase is empty string', () => {
-    expect(deriveModelType('')).toBe('llm');
-  });
 });
 
 describe('getSourceLabel', () => {
@@ -116,43 +93,6 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.modelSource).toBe('maas');
   });
 
-  it('should use deriveModelType heuristic for model_type', () => {
-    const llmModel: MaaSModel = {
-      id: 'llm-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/llm',
-      usecase: 'LLM',
-    };
-    const embeddingModel: MaaSModel = {
-      id: 'embedding-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/embedding',
-      usecase: 'Text Embedding',
-    };
-    expect(convertMaaSModelToAIModel(llmModel).model_type).toBe('llm');
-    expect(convertMaaSModelToAIModel(embeddingModel).model_type).toBe('embedding');
-  });
-
-  it('should set model_type to embedding for embedding usecase', () => {
-    const maasModel: MaaSModel = {
-      id: 'embedding-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/embedding',
-      usecase: 'embedding',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_type).toBe('embedding');
-  });
-
   it('should use model_type from BFF when available', () => {
     const maasModel: MaaSModel = {
       id: 'nomic-embed',
@@ -168,7 +108,7 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.model_type).toBe('embedding');
   });
 
-  it('should fall back to deriveModelType when model_type is not provided by BFF', () => {
+  it('should leave model_type undefined when not provided by BFF', () => {
     const maasModel: MaaSModel = {
       id: 'llama-2',
       object: 'model',
@@ -179,7 +119,7 @@ describe('convertMaaSModelToAIModel', () => {
       usecase: 'Chat, Question answering',
     };
     const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_type).toBe('llm');
+    expect(result.model_type).toBeUndefined();
   });
 
   it('should set isMaaSModel and maasModelId correctly', () => {
