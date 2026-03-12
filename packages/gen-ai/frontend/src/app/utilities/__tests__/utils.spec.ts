@@ -121,7 +121,7 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.model_type).toBeUndefined();
   });
 
-  it('should set modelSource and maasModelId correctly', () => {
+  it('should set modelSource and model_id correctly', () => {
     const maasModel: MaaSModel = {
       id: 'my-maas-model-id',
       object: 'model',
@@ -132,7 +132,7 @@ describe('convertMaaSModelToAIModel', () => {
     };
     const result = convertMaaSModelToAIModel(maasModel);
     expect(result.modelSource).toBe('maas');
-    expect(result.maasModelId).toBe('my-maas-model-id');
+    expect(result.model_id).toBe('my-maas-model-id');
   });
 
   it('should use display_name for model_name when available', () => {

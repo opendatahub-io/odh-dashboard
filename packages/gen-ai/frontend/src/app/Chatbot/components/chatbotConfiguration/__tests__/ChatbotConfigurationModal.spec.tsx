@@ -89,7 +89,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   },
   model_source_type: 'namespace',
   modelSource: 'namespace',
-  maasModelId: undefined,
   ...overrides,
 });
 const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
@@ -201,40 +200,40 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
   test('createAIModel helper creates regular model by default', () => {
     const model = createAIModel({ model_name: 'test-model' });
     expect(model.modelSource).toBe('namespace');
-    expect(model.maasModelId).toBeUndefined();
+    expect(model.model_id).toBe('test-model');
   });
 
   test('createAIModel helper can create MaaS model', () => {
     const model = createAIModel({
-      model_name: 'granite-7b-lab',
+      model_name: 'Granite 7B Lab',
+      model_id: 'granite-7b-lab',
       modelSource: 'maas',
-      maasModelId: 'granite-7b-lab',
     });
     expect(model.modelSource).toBe('maas');
-    expect(model.maasModelId).toBe('granite-7b-lab');
+    expect(model.model_id).toBe('granite-7b-lab');
   });
 
   test('includes MaaS models in selection', () => {
     const regularModel = createAIModel({ model_name: 'regular-model', display_name: 'Regular' });
     const maasModel = createAIModel({
-      model_name: 'granite-7b-lab',
+      model_name: 'Granite MaaS',
+      model_id: 'granite-7b-lab',
       display_name: 'Granite MaaS',
       modelSource: 'maas',
-      maasModelId: 'granite-7b-lab',
     });
     const allModels = [regularModel, maasModel];
 
     renderModal({ allModels });
 
-    expect(getSelectedModelNames()).toEqual(['regular-model', 'granite-7b-lab']);
+    expect(getSelectedModelNames()).toEqual(['regular-model', 'Granite MaaS']);
   });
 
   test('MaaS models are properly serialized in selected models', () => {
     const maasModel = createAIModel({
-      model_name: 'llama-2-7b-chat',
+      model_name: 'Llama 2 Chat',
+      model_id: 'llama-2-7b-chat',
       display_name: 'Llama 2 Chat',
       modelSource: 'maas',
-      maasModelId: 'llama-2-7b-chat',
     });
 
     renderModal({ allModels: [maasModel] });

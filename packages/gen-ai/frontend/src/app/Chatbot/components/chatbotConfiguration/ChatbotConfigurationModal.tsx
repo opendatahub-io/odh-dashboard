@@ -152,8 +152,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             const maxTokens = maxTokensMap.get(model.model_name);
             const isMaaS = model.modelSource === 'maas';
             return {
-              model_name: isMaaS && model.maasModelId ? model.maasModelId : model.model_name,
-              model_source_type: model.model_source_type || model.modelSource || 'namespace',
+              model_name: isMaaS ? model.model_id : model.model_name,
+              model_source_type: model.model_source_type,
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),

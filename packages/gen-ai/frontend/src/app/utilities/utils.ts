@@ -177,7 +177,6 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   model_source_type: 'maas',
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
-  maasModelId: maasModel.id,
   modelSource: 'maas',
   model_type: maasModel.model_type,
 });
