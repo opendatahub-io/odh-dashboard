@@ -33,3 +33,10 @@
     protocol: TCP
     port: 8543
     targetPort: 8543
+- op: add
+  path: /spec/ports/-
+  value:
+    name: automl-ui
+    protocol: TCP
+    port: 8643
+    targetPort: 8643

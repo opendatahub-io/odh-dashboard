@@ -11,6 +11,10 @@ import AutoragExperimentSettingsModelSelection from '~/app/components/configure/
 import { LlamaStackModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: () => ({ namespace: 'test-namespace' }),
+}));
 
 const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
 
@@ -30,7 +34,11 @@ const MOCK_MODELS = [
   },
 ];
 
-const mockModelsImplementation = (modelType?: LlamaStackModelType) =>
+const mockModelsImplementation = (
+  _namespace: string,
+  _secretName?: string,
+  modelType?: LlamaStackModelType,
+) =>
   ({
     data: {
       models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,

@@ -1,4 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { getLlamaStackModels } from '~/app/api/k8s';
 import { LlamaStackModelType, LlamaStackModelsResponse } from '~/app/types';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
@@ -26,44 +27,15 @@ export function useExperimentQuery(
 }
 
 export function useLlamaStackModelsQuery(
+  namespace: string,
+  //secretName is optional for now until the secretName form field is created
+  secretName?: string,
   modelType?: LlamaStackModelType,
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
-    queryKey: ['models', modelType],
-    // TODO: Replace with BFF call to "api/v1/lsd/models" once the endpoint is implemented.
-    // eslint-disable-next-line camelcase
-    queryFn: async (): Promise<LlamaStackModelsResponse> => ({
-      models: [
-        {
-          id: 'meta-llama/Llama-3.1-8B-Instruct',
-          type: 'llm',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/meta-llama/Llama-3.1-8B-Instruct',
-        },
-        {
-          id: 'meta-llama/Llama-3.1-70B-Instruct',
-          type: 'llm',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/meta-llama/Llama-3.1-70B-Instruct',
-        },
-        {
-          id: 'all-minilm:l6-v2',
-          type: 'embedding',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/all-minilm:l6-v2',
-        },
-        {
-          id: 'nomic-embed-text',
-          type: 'embedding',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/nomic-embed-text',
-        },
-      ],
-    }),
+    queryKey: ['models', namespace, secretName, modelType],
+    queryFn: () => getLlamaStackModels('')(namespace, secretName!)({}),
+    enabled: !!secretName,
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,
