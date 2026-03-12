@@ -9,10 +9,10 @@ import ApiKeysTableRow from './ApiKeysTableRow';
 type ApiKeysTableProps = {
   apiKeys: APIKey[];
   toolbarContent?: React.ReactNode;
-  onDeleteApiKey: (apiKey: APIKey) => void;
+  onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
-const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent, onDeleteApiKey }) => (
+const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent, onRevokeApiKey }) => (
   <Table
     data-testid="api-keys-table"
     id="api-keys-table"
@@ -23,7 +23,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({ apiKeys, toolbarContent, on
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent ? <ToolbarItem>{toolbarContent}</ToolbarItem> : undefined}
     rowRenderer={(apiKey) => (
-      <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onDeleteApiKey={onDeleteApiKey} />
+      <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onRevokeApiKey={onRevokeApiKey} />
     )}
   />
 );

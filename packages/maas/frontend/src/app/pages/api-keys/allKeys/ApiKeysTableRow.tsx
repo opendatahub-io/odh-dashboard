@@ -16,10 +16,10 @@ const formatDate = (dateString: string): string => {
 
 type ApiKeysTableRowProps = {
   apiKey: APIKey;
-  onDeleteApiKey: (apiKey: APIKey) => void;
+  onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
-const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onDeleteApiKey }) => (
+const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onRevokeApiKey }) => (
   <Tr>
     <Td dataLabel={apiKeyColumns[0].label}>
       <TableRowTitleDescription
@@ -39,10 +39,11 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onDeleteApiKe
     </Td>
     <Td isActionCell>
       <ActionsColumn
+        data-testid="api-key-actions"
         items={[
           {
             title: 'Revoke API key',
-            onClick: () => onDeleteApiKey(apiKey),
+            onClick: () => onRevokeApiKey(apiKey),
             isDisabled: apiKey.status !== 'active',
           },
         ]}

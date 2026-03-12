@@ -3,6 +3,7 @@ import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/area
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   apiKeysPage,
+  bulkRevokeAPIKeyModal,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -59,6 +60,35 @@ describe('API Keys Page', () => {
       ciPipelineRow.findStatus().should('contain.text', 'Active');
       ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
       ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
+      apiKeysPage.findTable().should('exist');
+      apiKeysPage.findRows().should('have.length', 4);
+    });
+
+    it('should bulk revoke all API keys', () => {
+      apiKeysPage.findTitle().should('contain.text', 'API Keys');
+      apiKeysPage.findActionsToggle().click();
+      apiKeysPage.findRevokeAllAPIKeysAction().click();
+
+      bulkRevokeAPIKeyModal.shouldBeOpen();
+      bulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
+      bulkRevokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
+      bulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
+      bulkRevokeAPIKeyModal.findRevokeConfirmationInput().clear().type('revoke');
+      bulkRevokeAPIKeyModal.findRevokeButton().should('be.enabled');
+
+      cy.interceptOdh('POST /maas/api/v1/api-keys/bulk-revoke', {
+        data: {
+          revokedCount: 4,
+          message: 'All API keys revoked',
+        },
+      }).as('deleteAllApiKeys');
+
+      revokeAPIKeyModal.findRevokeButton().click();
+      apiKeysPage.findEmptyState().should('exist');
+
+      cy.wait('@deleteAllApiKeys').then((interception) => {
+        expect(interception.response?.statusCode).to.eq(200);
+      });
     });
 
     it.skip('should revoke api keys', () => {
@@ -85,7 +115,38 @@ describe('API Keys Page', () => {
       cy.wait('@deleteAllApiKeys').then((interception) => {
         expect(interception.response?.statusCode).to.eq(200);
       });
-      cy.wait('@getApiKeysAfterDelete');
+    });
+
+    it('should revoke a specific API key', () => {
+      apiKeysPage.findTitle().should('contain.text', 'API Keys');
+      apiKeysPage.getRow('ci-pipeline').findKebabAction('Revoke API key').click();
+
+      revokeAPIKeyModal.shouldBeOpen();
+      revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+      revokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
+      revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('ci-pipeline');
+      revokeAPIKeyModal.findRevokeButton().should('be.enabled');
+
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/api-keys/:id',
+        { path: { id: 'key-ci-pipeline-003' } },
+        {
+          data: {
+            id: 'key-ci-pipeline-003',
+            name: 'ci-pipeline',
+            description: 'API key for CI/CD pipeline automation',
+            status: 'revoked',
+            creationDate: '2026-01-11T11:54:34.521671447-05:00',
+          },
+        },
+      ).as('deleteApiKey');
+
+      revokeAPIKeyModal.findRevokeButton().click();
+
+      cy.wait('@deleteApiKey').then((interception) => {
+        expect(interception.response?.statusCode).to.eq(200);
+      });
     });
 
     it('should create a new API key', () => {
