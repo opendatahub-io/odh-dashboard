@@ -5,6 +5,7 @@ import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ModelTypeLabel } from '../types';
 
 // Schema
@@ -60,42 +61,46 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   validationProps,
   validationIssues = [],
   isEditing,
-}) => (
-  <>
-    <FormGroup fieldId="model-type-select" label="Model type" isRequired>
-      <SimpleSelect
-        options={[
-          {
-            key: ServingRuntimeModelType.PREDICTIVE,
-            label: ModelTypeLabel.PREDICTIVE,
-          },
-          {
-            key: ServingRuntimeModelType.GENERATIVE,
-            label: ModelTypeLabel.GENERATIVE,
-          },
-        ]}
-        onChange={(key) => {
-          if (isValidModelType(key)) {
-            setModelType?.({ type: key, legacyVLLM: false });
-          }
-        }}
-        onBlur={validationProps?.onBlur}
-        placeholder="Select model type"
-        value={modelType?.type}
-        toggleProps={{ style: { minWidth: '300px' } }}
-        dataTestId="model-type-select"
-        isDisabled={isEditing || isDisabled}
-      />
-      <ZodErrorHelperText zodIssue={validationIssues} />
-    </FormGroup>
-    {modelType?.type === ServingRuntimeModelType.GENERATIVE && (
-      <Checkbox
-        id="legacy-mode-checkbox"
-        data-testid="legacy-mode-checkbox"
-        label="Deploy this model in legacy mode using a serving runtime and inference server"
-        isChecked={modelType.legacyVLLM}
-        onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
-      />
-    )}
-  </>
-);
+}) => {
+  const isVLLMOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  return (
+    <>
+      <FormGroup fieldId="model-type-select" label="Model type" isRequired>
+        <SimpleSelect
+          options={[
+            {
+              key: ServingRuntimeModelType.PREDICTIVE,
+              label: ModelTypeLabel.PREDICTIVE,
+            },
+            {
+              key: ServingRuntimeModelType.GENERATIVE,
+              label: ModelTypeLabel.GENERATIVE,
+            },
+          ]}
+          onChange={(key) => {
+            if (isValidModelType(key)) {
+              setModelType?.({ type: key, legacyVLLM: false });
+            }
+          }}
+          onBlur={validationProps?.onBlur}
+          placeholder="Select model type"
+          value={modelType?.type}
+          toggleProps={{ style: { minWidth: '300px' } }}
+          dataTestId="model-type-select"
+          isDisabled={isEditing || isDisabled}
+        />
+        <ZodErrorHelperText zodIssue={validationIssues} />
+      </FormGroup>
+      {isVLLMOnMaaSEnabled && modelType?.type === ServingRuntimeModelType.GENERATIVE && (
+        <Checkbox
+          id="legacy-mode-checkbox"
+          data-testid="legacy-mode-checkbox"
+          label="Deploy this model in legacy mode using a serving runtime and inference server"
+          isChecked={modelType.legacyVLLM}
+          onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
+        />
+      )}
+    </>
+  );
+};
