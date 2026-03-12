@@ -1,6 +1,18 @@
-import { handleRestFailures, restGET, isModArchResponse } from 'mod-arch-core';
-import { getCollections, getEvalHubCRStatus, getProviders } from '~/app/api/k8s';
-import type { Collection, EvalHubCRStatus, Provider } from '~/app/types';
+/* eslint-disable camelcase */
+import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
+import {
+  getCollections,
+  getEvalHubCRStatus,
+  getProviders,
+  createEvaluationJob,
+} from '~/app/api/k8s';
+import type {
+  Collection,
+  CreateEvaluationJobRequest,
+  EvalHubCRStatus,
+  EvaluationJob,
+  Provider,
+} from '~/app/types';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/eval-hub',
@@ -10,10 +22,12 @@ jest.mock('~/app/utilities/const', () => ({
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((promise: Promise<unknown>) => promise),
   restGET: jest.fn(),
+  restCREATE: jest.fn(),
   isModArchResponse: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(restGET);
+const mockRestCREATE = jest.mocked(restCREATE);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 // handleRestFailures is mocked to pass through the promise — no need to assert on it directly
 
@@ -112,6 +126,24 @@ describe('getCollections', () => {
     expect(result).toEqual(collections);
   });
 
+  it('should return empty array when response data items is null', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: null } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', 'test-ns')({});
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when response data items is undefined', async () => {
+    mockRestGET.mockResolvedValue({ data: {} });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', 'test-ns')({});
+
+    expect(result).toEqual([]);
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);
@@ -206,6 +238,76 @@ describe('getProviders', () => {
     expect(mockRestGET).toHaveBeenCalledWith(
       'http://my-host',
       expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+});
+
+describe('createEvaluationJob', () => {
+  const request: CreateEvaluationJobRequest = {
+    name: 'test-eval',
+    model: { url: 'http://localhost:8080/v1', name: 'llama-7b' },
+    benchmarks: [{ id: 'arc_easy', provider_id: 'lm_harness' }],
+  };
+
+  const jobResponse: EvaluationJob = {
+    resource: { id: 'job-1' },
+    status: { state: 'pending' },
+    results: {},
+    model: { url: 'http://localhost:8080/v1', name: 'llama-7b' },
+    benchmarks: [{ id: 'arc_easy', provider_id: 'lm_harness' }],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should call restCREATE with the request body directly (no data wrapper)', async () => {
+    mockRestCREATE.mockResolvedValue({ data: jobResponse });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    await createEvaluationJob('', 'my-ns', request)(opts);
+
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      request,
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should return the unwrapped job data from the response', async () => {
+    mockRestCREATE.mockResolvedValue({ data: jobResponse });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await createEvaluationJob('', 'my-ns', request)({});
+
+    expect(result).toEqual(jobResponse);
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestCREATE.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(createEvaluationJob('', 'my-ns', request)({})).rejects.toThrow(
+      'Invalid response format',
+    );
+  });
+
+  it('should pass the hostPath to restCREATE', async () => {
+    mockRestCREATE.mockResolvedValue({ data: jobResponse });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await createEvaluationJob('http://my-host', 'ns', request)({});
+
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      'http://my-host',
+      expect.any(String),
+      expect.any(Object),
       expect.any(Object),
       expect.any(Object),
     );
