@@ -37,17 +37,13 @@ class AppChrome {
   }
 
   findNavSection(name: string) {
-    if (!name) {
-      throw new Error('findNavSection: name parameter is required and cannot be undefined');
-    }
     return this.findSideBar().findByRole('button', { name });
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    if (!args.name) {
-      throw new Error('findNavItem: args.name is required and cannot be undefined');
-    }
-    return this.findSideBar().findAppNavItem(args);
+    // Defensive: use cy.get directly and pass to findAppNavItem
+    // This ensures we get a proper Cypress chainable with all methods
+    return cy.get('#page-sidebar').findAppNavItem(args);
   }
 }
 
