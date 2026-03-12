@@ -95,7 +95,7 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.Path)
+	app.logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,

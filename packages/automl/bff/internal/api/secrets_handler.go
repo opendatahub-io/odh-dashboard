@@ -73,11 +73,11 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
+				app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
 				return
 			}
 			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
+				app.unauthorizedResponse(w, r, "access unauthorized")
 				return
 			}
 			if apierrors.IsBadRequest(statusErr) || apierrors.IsInvalid(statusErr) {
