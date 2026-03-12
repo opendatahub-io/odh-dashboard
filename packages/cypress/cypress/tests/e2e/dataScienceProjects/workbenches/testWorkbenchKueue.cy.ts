@@ -60,7 +60,7 @@ describe('Workbench Kueue Integration Tests', () => {
     { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to workbenches tab of project ${projectName}`);
       projectListPage.navigate();
