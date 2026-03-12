@@ -81,13 +81,12 @@ export const mockAPIKeys = (): APIKey[] => [
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    token:
-      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
-    expiration: '4h',
-    expiresAt: 1769544565,
-    jti: 'mock-jti-abc123def456',
+    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    keyPrefix: 'sk-oai-abc',
+    id: 'key-prod-backend-001',
+    expiresAt: '2026-01-20T11:54:34.521671447-05:00',
     name: 'production-backend',
-    description: 'Production API key for backend service',
+    createdAt: '2026-01-14T11:54:34.521671447-05:00',
   };
 };
 
@@ -95,7 +94,7 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
   return {
     name: 'production-backend',
     description: 'Production API key for backend service',
-    expiration: '4h',
+    expiresIn: '168h', // 168 hours in seconds (7 days)
   };
 };
 

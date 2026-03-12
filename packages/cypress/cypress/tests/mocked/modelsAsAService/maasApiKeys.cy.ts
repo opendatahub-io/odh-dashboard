@@ -102,14 +102,13 @@ describe('API Keys Page', () => {
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         description: 'Production API key for backend service',
-        expiration: '4h',
-        expiresAt: 1769544565,
+        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
       });
     });
 
     copyApiKeyModal.shouldBeOpen();
     // Verify the token is displayed correctly in the ClipboardCopy input
-    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().token);
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '2026-01-20');
   });
