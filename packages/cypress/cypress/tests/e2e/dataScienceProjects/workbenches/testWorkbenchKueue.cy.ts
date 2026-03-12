@@ -9,6 +9,7 @@ import { loadKueueWorkbenchFixture } from '../../../../utils/dataLoader';
 import {
   setupKueueWorkbenchResources,
   cleanupKueueWorkbenchResources,
+  verifyWorkloadAdmitted,
   type KueueWorkbenchConfig,
 } from '../../../../utils/oc_commands/kueueWorkbench';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -56,7 +57,7 @@ describe('Workbench Kueue Integration Tests', () => {
 
   it(
     'Create workbench with Kueue hardware profile and verify status',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@FeatureFlagged'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -88,6 +89,9 @@ describe('Workbench Kueue Integration Tests', () => {
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
       notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 300000);
 
+      cy.step('Verify Kueue Workload CR exists and is admitted');
+      verifyWorkloadAdmitted(projectName);
+
       cy.step('Verify hardware profile column shows the Kueue profile name');
       notebookRow.shouldHaveHardwareProfile(testData.hardwareProfileDisplayName);
     },
@@ -95,7 +99,7 @@ describe('Workbench Kueue Integration Tests', () => {
 
   it(
     'Verify workbench status modal has Resources tab with Kueue info',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@FeatureFlagged'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);

@@ -144,6 +144,22 @@ export const setupKueueWorkbenchResources = (
 };
 
 /**
+ * Verifies that a Kueue Workload CR exists and is admitted in the given namespace.
+ *
+ * @param namespace - The namespace to check for Workload resources
+ * @returns A Cypress chainable that asserts the Workload is admitted
+ */
+export const verifyWorkloadAdmitted = (namespace: string): Cypress.Chainable<string> => {
+  cy.log(`Verifying Kueue Workload is admitted in namespace: ${namespace}`);
+  return cy
+    .exec(
+      `oc get workloads -n ${namespace} -o jsonpath='{.items[0].status.conditions[?(@.type=="Admitted")].status}'`,
+    )
+    .its('stdout')
+    .should('contain', 'True');
+};
+
+/**
  * Cleans up all Kueue resources created for workbench testing.
  *
  * @param config - Configuration containing resource names
