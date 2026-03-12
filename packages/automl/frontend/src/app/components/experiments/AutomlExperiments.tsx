@@ -28,7 +28,7 @@ function AutomlExperiments(): React.JSX.Element {
 
   const effectiveNamespace = namespace ?? '';
 
-  const { loaded: defsLoaded } = usePipelineDefinitions(effectiveNamespace);
+  const { loaded: defsLoaded, error: defsError } = usePipelineDefinitions(effectiveNamespace);
   const {
     runs,
     totalSize,
@@ -41,7 +41,7 @@ function AutomlExperiments(): React.JSX.Element {
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
-  const loadError = runsError;
+  const loadError = defsError || runsError;
 
   const handleCreateClick = React.useCallback(() => {
     navigate(`${automlCreatePathname}/${effectiveNamespace}`);

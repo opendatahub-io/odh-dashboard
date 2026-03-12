@@ -118,4 +118,14 @@ describe('AutomlRunsTableRow', () => {
     rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }} />);
     expect(screen.getByText('RUNNING')).toBeInTheDocument();
   });
+
+  it('should render em dash for invalid created_at', () => {
+    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: 'invalid-date' }} />);
+    expect(screen.getAllByText('—')).toHaveLength(1);
+  });
+
+  it('should render em dash for empty created_at', () => {
+    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} />);
+    expect(screen.getAllByText('—')).toHaveLength(1);
+  });
 });
