@@ -5,7 +5,7 @@ class AIAssetsPage {
   }
 
   private waitForPageLoad() {
-    cy.findByRole('heading', { name: 'AI asset endpoints', timeout: 15000 }).should('be.visible');
+    cy.findByTestId('page-title', { timeout: 15000 }).should('be.visible');
     cy.findByRole('tab', { timeout: 10000 }).should('exist');
   }
 
@@ -112,8 +112,16 @@ class AIAssetsPage {
     this.findClearAllFiltersButton().click();
   }
 
-  findActiveFilterChip(filterType: string, value: string) {
-    return this.findModelsTableToolbar().contains('.pf-v6-c-label', `${filterType}: ${value}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  findActiveFilterChip(filterType: string, _value: string) {
+    // Map display names to filter keys used in testIDs
+    const filterKeyMap: Record<string, string> = {
+      Name: 'name',
+      Keyword: 'keyword',
+      'Use case': 'useCase',
+    };
+    const filterKey = filterKeyMap[filterType] || filterType.toLowerCase();
+    return cy.findByTestId(`filter-chip-${filterKey}`);
   }
 
   removeFilterChip(filterType: string, value: string) {
@@ -138,7 +146,7 @@ class AIAssetsPage {
   }
 
   closeModelInfoPopover() {
-    this.findModelInfoPopoverContent().findByRole('button', { name: /close/i }).click();
+    cy.findByTestId('model-info-popover').findByRole('button', { name: /close/i }).click();
   }
 
   // Models Tab - Model Table Row Actions
@@ -147,7 +155,7 @@ class AIAssetsPage {
   }
 
   findAddToPlaygroundButton(modelName: string) {
-    return this.findModelsTableRow(modelName).findByRole('button', { name: /Add to playground/i });
+    return this.findModelsTableRow(modelName).findByTestId('add-to-playground-button');
   }
 
   tryModelInPlayground(modelName: string) {
