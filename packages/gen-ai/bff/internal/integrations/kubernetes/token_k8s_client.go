@@ -2169,11 +2169,12 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		ModelID:    req.ModelID,
 		ModelType:  req.ModelType,
 		Metadata: models.RegisteredModelMetadata{
-			DisplayName: req.ModelDisplayName,
+			DisplayName:        req.ModelDisplayName,
+			EmbeddingDimension: req.EmbeddingDimension,
 		},
 	}
 
-	// Add use_cases if provided
+	// Add custom_gen_ai metadata if use_cases is provided
 	if req.UseCases != "" {
 		newModel.Metadata.CustomGenAI = &models.RegisteredModelCustomGenAI{
 			UseCases: req.UseCases,

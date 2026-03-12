@@ -768,12 +768,12 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
-      trainingJobDetailsDrawer.findTab('Training job details').should('exist');
+      trainingJobDetailsDrawer.findTab('Details').should('exist');
       trainingJobDetailsDrawer.findTab('Resources').should('exist');
       trainingJobDetailsDrawer.findTab('Pods').should('exist');
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
 
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Job progress');
 
       trainingJobDetailsDrawer.selectTab('Resources');
@@ -843,7 +843,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Verify all sections are present
       trainingJobDetailsTab.findProgressSection().should('exist');
@@ -858,7 +858,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Check progress section
       trainingJobDetailsTab.findProgressSection().should('contain', 'Job progress');
@@ -875,7 +875,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Check metrics section
       trainingJobDetailsTab.findMetricsSection().should('contain', 'Metrics');
@@ -954,7 +954,7 @@ describe('Model Training', () => {
       const firstRow = trainingJobTable.getTableRow('early-job');
       firstRow.findNameLink().click();
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '1 hour');
       trainingJobDetailsTab.findStepsValue().should('contain', '100 / 1000');

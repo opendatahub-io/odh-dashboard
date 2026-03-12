@@ -20,7 +20,9 @@ const ValidateNotebookNamespace: React.FC<ValidateNotebookNamespaceProps> = ({ c
         })
         .catch((e) => {
           const error = new Error(
-            `Error validating the role binding of your notebookNamespace; ${e.response.data.message}`,
+            `Error validating the role binding of your notebookNamespace; ${
+              e.response?.data?.message || e.message
+            }`,
           );
           setLoadError(error);
         });

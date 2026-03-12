@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
 type HTTPError struct {
@@ -64,6 +67,23 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 
 	httpError := &HTTPError{StatusCode: http.StatusMethodNotAllowed, Error: ErrorPayload{Code: strconv.Itoa(http.StatusMethodNotAllowed), Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method)}}
 	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) evalHubErrorResponse(w http.ResponseWriter, r *http.Request, err error, fallbackMsg string) {
+	var ehErr *evalhub.EvalHubError
+	if errors.As(err, &ehErr) {
+		statusCode := ehErr.StatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusInternalServerError
+		}
+		httpError := &HTTPError{
+			StatusCode: statusCode,
+			Error:      ErrorPayload{Code: ehErr.Code, Message: ehErr.Message},
+		}
+		app.errorResponse(w, r, httpError)
+		return
+	}
+	app.serverErrorResponse(w, r, fmt.Errorf("%s: %w", fallbackMsg, err))
 }
 
 func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) { //nolint:unused

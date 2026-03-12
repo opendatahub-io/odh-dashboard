@@ -56,7 +56,7 @@ export type DashboardConfig = K8sResourceCommon & {
       modelAsService: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
-      aiAssetExternalModels: boolean;
+      aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
       maasApiKeys: boolean;
@@ -81,7 +81,7 @@ export type DashboardConfig = K8sResourceCommon & {
       isLLMdDefault?: boolean;
     };
     genAiStudioConfig?: {
-      aiAssetExternalModels?: {
+      aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };

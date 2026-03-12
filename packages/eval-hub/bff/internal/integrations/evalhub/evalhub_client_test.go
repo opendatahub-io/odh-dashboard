@@ -15,7 +15,7 @@ func TestEvalHubClient_HealthCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/health", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(HealthResponse{Status: "healthy"})
+		_ = json.NewEncoder(w).Encode(HealthResponse{Status: "healthy"})
 	}))
 	defer server.Close()
 
@@ -29,7 +29,7 @@ func TestEvalHubClient_HealthCheck(t *testing.T) {
 func TestEvalHubClient_HealthCheck_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer server.Close()
 
@@ -66,7 +66,7 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -102,7 +102,7 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 		assert.Equal(t, "test", r.URL.Query().Get("name"))
 		assert.Equal(t, "safety", r.URL.Query().Get("tags"))
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -124,7 +124,7 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("service unavailable"))
+		_, _ = w.Write([]byte("service unavailable"))
 	}))
 	defer server.Close()
 
@@ -135,6 +135,69 @@ func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 	var ehErr *EvalHubError
 	require.ErrorAs(t, err, &ehErr)
 	assert.Equal(t, ErrCodeServerUnavailable, ehErr.Code)
+}
+
+func TestEvalHubClient_ListCollections(t *testing.T) {
+	resp := CollectionsResponse{
+		Items: []Collection{
+			{
+				Resource:    CollectionResource{ID: "col-1"},
+				Name:        "Safety Suite",
+				Description: "Safety benchmarks",
+			},
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, "col-1", result.Items[0].Resource.ID)
+	assert.Equal(t, "Safety Suite", result.Items[0].Name)
+}
+
+func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write([]byte(`{}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.NoError(t, err)
+	assert.NotNil(t, result.Items, "Items should be an empty slice, not nil")
+	assert.Empty(t, result.Items)
+}
+
+func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		if _, err := w.Write([]byte("internal error")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.Error(t, err)
+	assert.NotNil(t, result.Items, "Items should be an empty slice even on error")
+	assert.Empty(t, result.Items)
 }
 
 func TestEvalHubClient_ConnectionError(t *testing.T) {
@@ -150,7 +213,7 @@ func TestEvalHubClient_ConnectionError(t *testing.T) {
 func TestEvalHubClient_NotFoundError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("not found"))
+		_, _ = w.Write([]byte("not found"))
 	}))
 	defer server.Close()
 
@@ -166,7 +229,7 @@ func TestEvalHubClient_NotFoundError(t *testing.T) {
 func TestEvalHubClient_UnauthorizedError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("unauthorized"))
+		_, _ = w.Write([]byte("unauthorized"))
 	}))
 	defer server.Close()
 

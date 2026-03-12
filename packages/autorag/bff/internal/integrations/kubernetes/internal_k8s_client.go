@@ -6,13 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -53,7 +51,6 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 	// Create controller-runtime client for CRD access
 	runtimeScheme := runtime.NewScheme()
 	_ = scheme.AddToScheme(runtimeScheme)
-	_ = lsdapi.AddToScheme(runtimeScheme)
 
 	runtimeClient, err := client.New(kubeconfig, client.Options{Scheme: runtimeScheme})
 	if err != nil {
@@ -344,64 +341,6 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
-}
-
-// CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources.
-func (kc *InternalKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// Check for nil identity
-	if identity == nil {
-		kc.Logger.Error("identity is nil")
-		return false, fmt.Errorf("identity cannot be nil")
-	}
-
-	// Create SubjectAccessReview to check if user can list LlamaStackDistribution resources
-	sar := &authv1.SubjectAccessReview{
-		Spec: authv1.SubjectAccessReviewSpec{
-			User:   identity.UserID,
-			Groups: identity.Groups,
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
-				Group:     "llamastack.io",
-				Resource:  "llamastackdistributions",
-				Namespace: namespace,
-			},
-		},
-	}
-
-	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-	if err != nil {
-		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
-		return false, wrapK8sSubjectAccessReviewError(err, namespace)
-	}
-
-	return resp.Status.Allowed, nil
-}
-
-// GetLlamaStackDistributions retrieves LlamaStackDistribution resources from the specified namespace.
-// It filters for resources with the opendatahub.io/dashboard=true label.
-func (kc *InternalKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	lsdList := &lsdapi.LlamaStackDistributionList{}
-
-	listOptions := &client.ListOptions{
-		Namespace: namespace,
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			OpenDataHubDashboardLabelKey: "true",
-		}),
-	}
-
-	err := kc.RuntimeClient.List(ctx, lsdList, listOptions)
-	if err != nil {
-		kc.Logger.Error("failed to list LlamaStackDistributions", "error", err, "namespace", namespace)
-		return nil, err
-	}
-
-	return lsdList, nil
 }
 
 // CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace

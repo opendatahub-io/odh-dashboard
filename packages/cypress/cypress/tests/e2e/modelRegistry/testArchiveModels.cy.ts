@@ -81,7 +81,9 @@ describe('Verify that models and versions can be archived and restored via model
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).click();
+      appChrome
+        .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+        .click();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);

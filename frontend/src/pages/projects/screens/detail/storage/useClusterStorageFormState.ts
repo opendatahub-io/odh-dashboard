@@ -5,15 +5,18 @@ import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 
 const useClusterStorageFormState = (
   connectedNotebooks: NotebookKind[],
+  loaded: boolean,
   existingPvc?: PersistentVolumeClaimKind,
 ): {
   notebookData: ClusterStorageNotebookSelection[];
   setNotebookData: React.Dispatch<React.SetStateAction<ClusterStorageNotebookSelection[]>>;
 } => {
   const [notebookData, setNotebookData] = React.useState<ClusterStorageNotebookSelection[]>([]);
+  const initializedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (connectedNotebooks.length > 0) {
+    if (!initializedRef.current && loaded) {
+      initializedRef.current = true;
       const addData = connectedNotebooks.map((connectedNotebook) => ({
         name: connectedNotebook.metadata.name,
         notebookDisplayName: connectedNotebook.metadata.annotations?.['openshift.io/display-name'],
@@ -28,7 +31,7 @@ const useClusterStorageFormState = (
       }));
       setNotebookData(addData);
     }
-  }, [connectedNotebooks, existingPvc]);
+  }, [connectedNotebooks, loaded, existingPvc]);
 
   return { notebookData, setNotebookData };
 };

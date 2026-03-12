@@ -1,23 +1,26 @@
 import * as React from 'react';
 import {
+  Button,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
-  Content,
   Flex,
   FlexItem,
   Label,
   Truncate,
 } from '@patternfly/react-core';
+import { TruncatedText } from 'mod-arch-shared';
 import { ApplicationsIcon } from '@patternfly/react-icons';
+import { Link, type LinkProps } from 'react-router-dom';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import { getSecurityIndicatorLabels } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 import {
   McpCardIconType,
   McpCardIconByLabel,
   getMcpCardIconConfig,
-} from '~/app/pages/mcpCatalog/constants/mcpCatalogCardIcons';
+} from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
+import { mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 type McpCatalogCardProps = {
   server: McpServer;
@@ -32,7 +35,7 @@ const SecurityTag: React.FC<{ label: string }> = ({ label }) => (
   </FlexItem>
 );
 
-const McpCatalogCard: React.FC<McpCatalogCardProps> = ({ server }) => {
+const McpCatalogCard: React.FC<McpCatalogCardProps> = React.memo(({ server }) => {
   const deploymentType =
     server.deploymentMode === 'local' ? McpCardIconType.LOCAL_TO_CLUSTER : McpCardIconType.REMOTE;
   const deploymentConfig = getMcpCardIconConfig(deploymentType);
@@ -56,31 +59,40 @@ const McpCatalogCard: React.FC<McpCatalogCardProps> = ({ server }) => {
               <ApplicationsIcon />
             </span>
           </FlexItem>
-          <FlexItem>
-            <Label variant="outline" data-testid={`mcp-catalog-card-deployment-${serverId}`}>
-              {deploymentConfig.label}
-            </Label>
-          </FlexItem>
+          {server.deploymentMode === 'remote' && (
+            <FlexItem>
+              <Label data-testid={`mcp-catalog-card-deployment-${serverId}`}>
+                {deploymentConfig.label}
+              </Label>
+            </FlexItem>
+          )}
         </Flex>
         <CardTitle>
-          <span className="pf-v6-u-display-block">
+          <Button
+            data-testid={`mcp-catalog-card-detail-link-${serverId}`}
+            variant="link"
+            isInline
+            component={(props: LinkProps) => <Link {...props} to={mcpServerDetailsUrl(serverId)} />}
+            style={{
+              fontSize: 'var(--pf-t--global--font--size--body--default)',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            }}
+          >
             <Truncate
               content={server.name}
               position="middle"
               tooltipPosition="top"
               data-testid={`mcp-catalog-card-name-${serverId}`}
             />
-          </span>
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardBody>
-        <Content
-          component="p"
-          className="pf-v6-u-mb-md"
+        <TruncatedText
+          content={server.description ?? ''}
+          maxLines={4}
           data-testid={`mcp-catalog-card-description-${serverId}`}
-        >
-          {server.description ?? ''}
-        </Content>
+        />
         {securityLabels.length > 0 && (
           <Flex
             direction={{ default: 'column' }}
@@ -95,6 +107,7 @@ const McpCatalogCard: React.FC<McpCatalogCardProps> = ({ server }) => {
       </CardBody>
     </Card>
   );
-};
+});
+McpCatalogCard.displayName = 'McpCatalogCard';
 
 export default McpCatalogCard;

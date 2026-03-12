@@ -167,6 +167,16 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   default: jest.fn(() => false),
 }));
 
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
+jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
+  usePlaygroundStore: jest.fn(() => ({
+    setIsPromptManagementModalOpen: jest.fn(),
+  })),
+}));
+
 const createMockSourceManagement = (
   overrides?: Partial<UseSourceManagementReturn>,
 ): UseSourceManagementReturn => ({

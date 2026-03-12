@@ -7,6 +7,7 @@ import (
 	"time"
 
 	helper "github.com/opendatahub-io/eval-hub/bff/internal/helpers"
+	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -244,7 +245,7 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 }
 
 // GetEvalHubServiceURL lists EvalHub CRs in the namespace using the service-account credentials
-// (internal client) and returns status.serviceURL from the first found instance labelled for ODH.
+// (internal client) and returns status.url from the first found instance labelled for ODH.
 func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -262,10 +263,7 @@ func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ 
 		return "", fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	labelSelector := fmt.Sprintf("%s=true", OpenDataHubDashboardLabel)
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
+	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return "", fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
@@ -286,9 +284,9 @@ func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ 
 		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status field", item.GetName(), namespace)
 	}
 
-	serviceURL, ok := status["serviceURL"].(string)
+	serviceURL, ok := status["url"].(string)
 	if !ok || serviceURL == "" {
-		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.serviceURL", item.GetName(), namespace)
+		return "", fmt.Errorf("EvalHub CR %q in namespace %q has no status.url", item.GetName(), namespace)
 	}
 
 	kc.Logger.Debug("discovered EvalHub service URL from CR",
@@ -297,4 +295,40 @@ func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ 
 		"serviceURL", serviceURL)
 
 	return serviceURL, nil
+}
+
+// GetEvalHubCRStatus lists EvalHub CRs in the namespace using service-account credentials
+// and returns the full status of the first found instance.
+func (kc *InternalKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	kubeconfig, err := helper.GetKubeconfig()
+	if err != nil {
+		kc.Logger.Error("failed to get kubeconfig for dynamic EvalHub CR status lookup", "error", err)
+		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	dynClient, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		kc.Logger.Error("failed to create dynamic client for EvalHub CR status lookup", "error", err)
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
+	}
+
+	if len(list.Items) == 0 {
+		return nil, nil
+	}
+
+	if len(list.Items) > 1 {
+		kc.Logger.Warn("multiple EvalHub instances found in namespace, using first",
+			"namespace", namespace, "count", len(list.Items))
+	}
+
+	return parseEvalHubCRStatus(&list.Items[0])
 }
