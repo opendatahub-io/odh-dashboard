@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Split, SplitItem, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
 import RoleDetailsLink from './components/RoleDetailsLink';
@@ -24,7 +25,17 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
     : undefined;
 
   const actionItems = [
-    { title: 'Manage permissions', onClick: onManageRoles },
+    {
+      title: 'Manage permissions',
+      onClick: () => {
+        /* eslint-disable camelcase */
+        fireMiscTrackingEvent('RBAC Role Management Opened', {
+          manage_permissions_button: 'table row',
+        });
+        /* eslint-enable camelcase */
+        onManageRoles();
+      },
+    },
     { title: 'Unassign', onClick: onRemove },
   ];
 

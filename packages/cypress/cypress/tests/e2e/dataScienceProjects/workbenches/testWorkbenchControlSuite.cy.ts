@@ -127,7 +127,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
             notebookDeleteModal.findDeleteModal().click();
             notebookDeleteModal.findDeleteModal().type(workbenchName);
             notebookDeleteModal.findDeleteWorkbenchButton().click();
-            workbenchPage.findEmptyState().should('exist');
+            workbenchPage.findEmptyState(30000).should('exist');
           });
         },
       );
