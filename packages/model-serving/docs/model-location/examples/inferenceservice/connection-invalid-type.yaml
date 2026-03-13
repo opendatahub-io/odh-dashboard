@@ -1,0 +1,15 @@
+# InferenceService with a Connection that has an invalid/missing type
+# Requires: connections/invalid-type-connection.yaml
+# Used for testing error handling when the connection type doesn't exist
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-invalid-type-conn
+  annotations:
+    opendatahub.io/connections: invalid-type-connection
+    opendatahub.io/connection-path: models/my-model
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch

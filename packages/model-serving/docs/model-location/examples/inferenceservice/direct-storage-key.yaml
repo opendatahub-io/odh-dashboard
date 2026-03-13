@@ -1,0 +1,16 @@
+# InferenceService with direct storage.key reference (no Connections API)
+# User manually created the secret with KServe annotations
+# Requires: connections/direct-storage-secret.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-direct-storage-key
+  # No opendatahub.io/connections annotation
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storage:
+        key: direct-storage-secret
+        path: models/my-model

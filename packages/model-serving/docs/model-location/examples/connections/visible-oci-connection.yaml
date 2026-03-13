@@ -1,0 +1,23 @@
+# Visible OCI Connection - shows in project's Connections list
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-oci-connection
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/connection-type: "true"
+  annotations:
+    opendatahub.io/connection-type: oci-v1
+    opendatahub.io/connection-type-protocol: oci
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "quay.io": {
+          "username": "testuser",
+          "password": "testpass",
+          "auth": "dGVzdHVzZXI6dGVzdHBhc3M="
+        }
+      }
+    }

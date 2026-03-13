@@ -1,0 +1,21 @@
+# LLMInferenceService with hidden URI Connection (via Connections API)
+# Hidden connections have generated names and are owned by the deployment
+# Requires: connections/hidden-uri-connection.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-hidden-uri-conn
+  annotations:
+    opendatahub.io/connections: secret-uri789
+spec:
+  model:
+    name: my-model
+    uri: "" # Webhook will populate based on connection
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

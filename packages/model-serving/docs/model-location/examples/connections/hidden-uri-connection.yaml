@@ -1,0 +1,15 @@
+# Hidden URI Connection - does NOT show in Connections list
+# Has generated name pattern: secret-[6chars]
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-uri789
+  labels:
+    opendatahub.io/dashboard: "false"
+    opendatahub.io/connection-type: "true"
+  annotations:
+    opendatahub.io/connection-type: uri-v1
+    opendatahub.io/connection-type-protocol: uri
+type: Opaque
+stringData:
+  URI: https://example.com/models/hidden-model.tar.gz

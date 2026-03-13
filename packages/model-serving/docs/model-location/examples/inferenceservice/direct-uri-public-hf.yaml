@@ -1,0 +1,11 @@
+# InferenceService with public HuggingFace storageUri
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-direct-uri-public-hf
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: hf://facebook/opt-125m

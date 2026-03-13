@@ -1,0 +1,17 @@
+# LLMInferenceService with public HTTP/HTTPS URI
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-direct-uri-public-http
+spec:
+  model:
+    name: my-model
+    uri: https://example.com/models/my-model.tar.gz
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main
