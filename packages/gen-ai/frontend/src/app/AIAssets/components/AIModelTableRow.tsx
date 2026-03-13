@@ -118,6 +118,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Button>
           ) : (
             <Button
+              data-testid="add-to-playground-button"
               variant={ButtonVariant.link}
               icon={<PlusCircleIcon />}
               onClick={() => setIsConfigurationModalOpen(true)}
