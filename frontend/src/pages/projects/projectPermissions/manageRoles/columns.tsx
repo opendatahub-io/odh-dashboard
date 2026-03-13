@@ -5,6 +5,7 @@ import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export type ManageRolesRow = {
   roleRef: RoleRef;
@@ -51,6 +52,11 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
         </Content>
       ),
       ariaLabel: 'Role type help',
+      popoverProps: {
+        onShown: (): void => {
+          fireSimpleTrackingEvent('RBAC Help Reviewed');
+        },
+      },
     },
   },
   {
@@ -76,6 +82,15 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
         </Content>
       ),
       ariaLabel: 'Assignment status help',
+      popoverProps: {
+        onShown: (): void => {
+          fireSimpleTrackingEvent('RBAC Help Reviewed');
+        },
+      },
     },
   },
 ];
+
+export const ASSIGNMENT_STATUS_COLUMN_INDEX = manageRolesColumns.findIndex(
+  ({ field }) => field === 'status',
+);
