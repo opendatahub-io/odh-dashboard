@@ -21,6 +21,7 @@ export type ButtonAction = {
   variant?: ButtonProps['variant'];
   dataTestId?: string;
   isDisabled?: boolean;
+  isLoading?: boolean;
 };
 
 type ContentModalProps = {
@@ -114,6 +115,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
                     variant={action.variant}
                     onClick={action.onClick}
                     data-testid={action.dataTestId}
+                    isLoading={action.isLoading}
                     isDisabled={action.isDisabled}
                   >
                     {action.label}
