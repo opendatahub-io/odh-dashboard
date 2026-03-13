@@ -80,7 +80,7 @@ export const useDeploymentAuthTokens = (
   } = useDeploymentSecrets(deployment?.model.metadata.namespace);
 
   const deploymentSecrets = React.useMemo(() => {
-    if (!deployment || !deployment.model.metadata.name || !deployment.model.metadata.namespace) {
+    if (!deployment?.model.metadata.name || !deployment.model.metadata.namespace) {
       return [];
     }
 
@@ -95,7 +95,7 @@ export const useDeploymentAuthTokens = (
       (secret) =>
         secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
     );
-  }, [projectSecrets, deployment]);
+  }, [projectSecrets, deployment?.model.metadata.name, deployment?.model.metadata.namespace]);
 
   return { data: deploymentSecrets, loaded, error, refresh };
 };

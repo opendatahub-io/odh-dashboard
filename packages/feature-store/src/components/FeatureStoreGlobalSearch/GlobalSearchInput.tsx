@@ -156,7 +156,8 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
       }
       handlers.handleSearchChange(event, value);
     },
-    [handlers],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handlers.handleSearchChange],
   );
 
   const renderSearchInput = (): React.ReactElement => {
