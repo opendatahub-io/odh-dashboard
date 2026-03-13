@@ -1,4 +1,4 @@
-export type APIKeyStatus = 'active' | 'expired';
+export type APIKeyStatus = 'active' | 'expired' | 'revoked';
 
 export type APIKey = {
   id: string;
@@ -7,6 +7,7 @@ export type APIKey = {
   creationDate: string; // ISO 8601 date string
   expirationDate: string; // ISO 8601 date string
   status: APIKeyStatus;
+  username: string;
 };
 
 export type CreateAPIKeyResponse = {

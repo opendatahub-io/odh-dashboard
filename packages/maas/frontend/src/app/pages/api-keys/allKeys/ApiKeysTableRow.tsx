@@ -28,12 +28,17 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey }) => (
       />
     </Td>
     <Td dataLabel={apiKeyColumns[1].label}>
-      <Label color={apiKey.status === 'active' ? 'green' : 'red'}>
+      <Label
+        color={
+          apiKey.status === 'active' ? 'green' : apiKey.status === 'expired' ? 'red' : 'purple'
+        }
+      >
         {capitalize(apiKey.status)}
       </Label>
     </Td>
-    <Td dataLabel={apiKeyColumns[2].label}>{formatDate(apiKey.creationDate)}</Td>
-    <Td dataLabel={apiKeyColumns[3].label}>{formatDate(apiKey.expirationDate)}</Td>
+    <Td dataLabel={apiKeyColumns[2].label}>{apiKey.username}</Td>
+    <Td dataLabel={apiKeyColumns[3].label}>{formatDate(apiKey.creationDate)}</Td>
+    <Td dataLabel={apiKeyColumns[4].label}>{formatDate(apiKey.expirationDate)}</Td>
   </Tr>
 );
 
