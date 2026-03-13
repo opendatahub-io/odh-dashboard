@@ -17,7 +17,17 @@ describe('ModelsListToolbar', () => {
     filterData: {},
     filterOptions: {
       [AssetsFilterOptions.NAME]: 'Name',
-      [AssetsFilterOptions.KEYWORD]: 'Keyword',
+      [AssetsFilterOptions.SOURCE]: 'Source',
+      [AssetsFilterOptions.USE_CASE]: 'Use Case',
+      [AssetsFilterOptions.STATUS]: 'Status',
+      [AssetsFilterOptions.MODEL_TYPE]: 'Model Type',
+    },
+    filterColors: {
+      [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
+      [AssetsFilterOptions.SOURCE]: AssetsFilterColors.SOURCE,
+      [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
+      [AssetsFilterOptions.STATUS]: AssetsFilterColors.STATUS,
+      [AssetsFilterOptions.MODEL_TYPE]: AssetsFilterColors.MODEL_TYPE,
     },
     onClearFilters: jest.fn(),
   };
@@ -53,7 +63,7 @@ describe('ModelsListToolbar', () => {
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
 
-      expect(screen.getByText('Keyword')).toBeInTheDocument();
+      expect(screen.getByText('Use Case')).toBeInTheDocument();
     });
 
     it('should change filter type when dropdown item is clicked', async () => {
@@ -63,17 +73,16 @@ describe('ModelsListToolbar', () => {
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
 
-      const keywordOption = screen.getByText('Keyword');
-      await user.click(keywordOption);
+      const useCaseOption = screen.getByText('Use Case');
+      await user.click(useCaseOption);
 
-      expect(screen.getByPlaceholderText('Filter by keyword...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Filter by use case...')).toBeInTheDocument();
     });
 
     it('should display all filter options in dropdown', async () => {
       const user = userEvent.setup();
       const filterOptions = {
         [AssetsFilterOptions.NAME]: 'Name',
-        [AssetsFilterOptions.KEYWORD]: 'Keyword',
         [AssetsFilterOptions.USE_CASE]: 'Use Case',
       };
 
@@ -84,7 +93,6 @@ describe('ModelsListToolbar', () => {
 
       // Check for dropdown items (not the toggle text)
       expect(screen.getByRole('menuitem', { name: 'Name' })).toBeInTheDocument();
-      expect(screen.getByRole('menuitem', { name: 'Keyword' })).toBeInTheDocument();
       expect(screen.getByRole('menuitem', { name: 'Use Case' })).toBeInTheDocument();
     });
   });
@@ -118,15 +126,15 @@ describe('ModelsListToolbar', () => {
       // Initially should show "Filter by name..."
       expect(screen.getByPlaceholderText('Filter by name...')).toBeInTheDocument();
 
-      // Change to Keyword filter
+      // Change to Use Case filter
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
 
-      const keywordOption = screen.getByText('Keyword');
-      await user.click(keywordOption);
+      const useCaseOption = screen.getByText('Use Case');
+      await user.click(useCaseOption);
 
-      // Should now show "Filter by keyword..."
-      expect(screen.getByPlaceholderText('Filter by keyword...')).toBeInTheDocument();
+      // Should now show "Filter by use case..."
+      expect(screen.getByPlaceholderText('Filter by use case...')).toBeInTheDocument();
     });
   });
 
@@ -151,13 +159,13 @@ describe('ModelsListToolbar', () => {
     it('should display multiple active filters', () => {
       const filterData = {
         [AssetsFilterOptions.NAME]: 'test model',
-        [AssetsFilterOptions.KEYWORD]: 'llm',
+        [AssetsFilterOptions.USE_CASE]: 'llm',
       };
 
       render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
 
       expect(screen.getByText('Name: test model')).toBeInTheDocument();
-      expect(screen.getByText('Keyword: llm')).toBeInTheDocument();
+      expect(screen.getByText('Use Case: llm')).toBeInTheDocument();
     });
 
     it('should call onClearFilters when "Clear all filters" is clicked', async () => {
@@ -184,12 +192,12 @@ describe('ModelsListToolbar', () => {
     it('should apply correct label colors based on filter type', () => {
       const filterData = {
         [AssetsFilterOptions.NAME]: 'test',
-        [AssetsFilterOptions.KEYWORD]: 'keyword',
+        [AssetsFilterOptions.USE_CASE]: 'generation',
       };
 
       const filterColors = {
         [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
-        [AssetsFilterOptions.KEYWORD]: AssetsFilterColors.KEYWORD,
+        [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
       };
 
       render(
@@ -197,7 +205,7 @@ describe('ModelsListToolbar', () => {
       );
 
       expect(screen.getByText('Name: test')).toBeInTheDocument();
-      expect(screen.getByText('Keyword: keyword')).toBeInTheDocument();
+      expect(screen.getByText('Use Case: generation')).toBeInTheDocument();
     });
   });
 
@@ -242,7 +250,6 @@ describe('ModelsListToolbar', () => {
         const user = userEvent.setup();
         const filterOptionsWithUseCase = {
           [AssetsFilterOptions.NAME]: 'Name',
-          [AssetsFilterOptions.KEYWORD]: 'Keyword',
           [AssetsFilterOptions.USE_CASE]: 'Use Case',
         };
 
@@ -290,18 +297,18 @@ describe('ModelsListToolbar', () => {
         const user = userEvent.setup();
         render(<ModelsListToolbar {...defaultProps} />);
 
-        // Change to Keyword filter
+        // Change to Use Case filter
         const filterToggle = screen.getByLabelText('Filter toggle');
         await user.click(filterToggle);
-        const keywordOption = screen.getByText('Keyword');
-        await user.click(keywordOption);
+        const useCaseOption = screen.getByText('Use Case');
+        await user.click(useCaseOption);
 
         // Submit search
-        const searchInput = screen.getByPlaceholderText('Filter by keyword...');
+        const searchInput = screen.getByPlaceholderText('Filter by use case...');
         await user.type(searchInput, 'ai{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
-          filterType: AssetsFilterOptions.KEYWORD,
+          filterType: AssetsFilterOptions.USE_CASE,
           resultsCount: 0,
         });
       });

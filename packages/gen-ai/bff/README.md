@@ -320,7 +320,8 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": true,
-      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
     },
     {
       "id": "mistral-7b-instruct",
@@ -328,7 +329,8 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": false,
-      "url": "http://mistral-7b-instruct.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+      "model_type": "llm"
     }
   ]
 }
@@ -1077,7 +1079,8 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": true,
-      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
     },
     {
       "id": "llama-2-13b-chat",
@@ -1085,7 +1088,8 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": true,
-      "url": "http://llama-2-13b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://llama-2-13b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
     },
     {
       "id": "mistral-7b-instruct",
@@ -1093,7 +1097,8 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": false,
-      "url": "http://mistral-7b-instruct.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+      "model_type": "llm"
     },
     {
       "id": "granite-7b-lab",
@@ -1101,7 +1106,8 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "created": 1672531200,
       "owned_by": "model-namespace",
       "ready": true,
-      "url": "http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local"
+      "url": "https://granite-7b-lab.apps.example.openshift.com/v1",
+      "model_type": "llm"
     }
   ]
 }

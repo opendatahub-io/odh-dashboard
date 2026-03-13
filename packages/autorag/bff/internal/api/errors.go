@@ -44,8 +44,8 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, message string) {
-	// Log the detailed error message as a warning
-	app.logger.Warn("Access unauthorized", "message", message, "method", r.Method, "uri", r.URL.Path)
+	// Log unauthorized access without sensitive details
+	app.logger.Warn("Unauthorized access attempt", "method", r.Method, "uri", r.URL.Path)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnauthorized,
@@ -82,6 +82,19 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusInternalServerError,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusInternalServerError),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{
@@ -95,7 +108,7 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Resource not found", "message", message, "method", r.Method, "uri", r.URL.Path)
+	app.logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,

@@ -2,6 +2,7 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { LlamaStackModelType, LlamaStackModelsResponse, PipelineRun } from '~/app/types';
 import { isTerminalState } from '~/app/utilities/pipelineRunStates';
+import { getLlamaStackModels } from '~/app/api/k8s';
 
 const PIPELINE_RUN_POLL_INTERVAL = 10000; // 10 seconds
 
@@ -29,45 +30,50 @@ export function useExperimentQuery(
   });
 }
 
+// TODO: Remove mock data once the secretName form field is implemented
+// and users can provide a real secret to query LlamaStack models.
+/* eslint-disable camelcase */
+const MOCK_LLAMA_STACK_MODELS: LlamaStackModelsResponse = {
+  models: [
+    {
+      id: 'granite3.2:8b',
+      type: 'llm',
+      provider: 'ollama',
+      resource_path: 'ollama://granite3.2:8b',
+    },
+    {
+      id: 'llama3.2:3b',
+      type: 'llm',
+      provider: 'ollama',
+      resource_path: 'ollama://llama3.2:3b',
+    },
+    {
+      id: 'all-minilm:l6-v2',
+      type: 'embedding',
+      provider: 'ollama',
+      resource_path: 'ollama://all-minilm:l6-v2',
+    },
+    {
+      id: 'nomic-embed-text:v1.5',
+      type: 'embedding',
+      provider: 'ollama',
+      resource_path: 'ollama://nomic-embed-text:v1.5',
+    },
+  ],
+};
+/* eslint-enable camelcase */
+
 export function useLlamaStackModelsQuery(
+  namespace: string,
+  // secretName is optional for now until the secretName form field is created
+  secretName?: string,
   modelType?: LlamaStackModelType,
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
-    queryKey: ['models', modelType],
-    // TODO: Replace with BFF call to "api/v1/lsd/models" once the endpoint is implemented.
-    // eslint-disable-next-line camelcase
-    queryFn: async (): Promise<LlamaStackModelsResponse> => ({
-      models: [
-        {
-          id: 'meta-llama/Llama-3.1-8B-Instruct',
-          type: 'llm',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/meta-llama/Llama-3.1-8B-Instruct',
-        },
-        {
-          id: 'meta-llama/Llama-3.1-70B-Instruct',
-          type: 'llm',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/meta-llama/Llama-3.1-70B-Instruct',
-        },
-        {
-          id: 'all-minilm:l6-v2',
-          type: 'embedding',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/all-minilm:l6-v2',
-        },
-        {
-          id: 'nomic-embed-text',
-          type: 'embedding',
-          provider: 'ollama',
-          // eslint-disable-next-line camelcase
-          resource_path: 'ollama://models/nomic-embed-text',
-        },
-      ],
-    }),
+    queryKey: ['models', namespace, secretName, modelType],
+    queryFn: secretName
+      ? () => getLlamaStackModels('')(namespace, secretName)({})
+      : () => Promise.resolve(MOCK_LLAMA_STACK_MODELS),
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,

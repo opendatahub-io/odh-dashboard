@@ -1,11 +1,13 @@
 import { WorkloadCondition, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import { mockTrainJobK8sResource } from '../../../__mocks__/mockTrainJobK8sResource';
-import { TrainingJobState } from '../../../types';
+import { mockRayJobK8sResource } from '../../../__mocks__/mockRayJobK8sResource';
+import { TrainingJobState, JobType } from '../../../types';
 import {
   getStatusInfo,
   getTrainingJobStatus,
   getTrainingJobStatusSync,
+  filterJob,
   getStatusFlags,
   getStatusAlert,
   getSectionExistence,
@@ -1217,5 +1219,143 @@ describe('handleRetry', () => {
 
     await handleRetry(retryJob);
     expect(retryJob).toHaveBeenCalled();
+  });
+});
+
+describe('filterJob', () => {
+  const noStatuses = new Map<string, TrainingJobState>();
+
+  const trainJob = mockTrainJobK8sResource({
+    name: 'my-train-job',
+    namespace: 'test-ns',
+    localQueueName: 'team-queue',
+    status: TrainingJobState.RUNNING,
+  });
+
+  const rayJob = mockRayJobK8sResource({
+    name: 'my-ray-job',
+    namespace: 'test-ns',
+  });
+
+  describe('no filters set', () => {
+    it('should return true for a TrainJob', () => {
+      expect(filterJob(trainJob, {}, noStatuses)).toBe(true);
+    });
+
+    it('should return true for a RayJob', () => {
+      expect(filterJob(rayJob, {}, noStatuses)).toBe(true);
+    });
+  });
+
+  describe('Name filter', () => {
+    it('should return true when name matches', () => {
+      expect(filterJob(trainJob, { Name: 'my-train' }, noStatuses)).toBe(true);
+    });
+
+    it('should return true for case-insensitive match', () => {
+      expect(filterJob(trainJob, { Name: 'MY-TRAIN' }, noStatuses)).toBe(true);
+    });
+
+    it('should return false when name does not match', () => {
+      expect(filterJob(trainJob, { Name: 'ray' }, noStatuses)).toBe(false);
+    });
+
+    it('should return true when Name is empty string', () => {
+      expect(filterJob(trainJob, { Name: '' }, noStatuses)).toBe(true);
+    });
+  });
+
+  describe('Status filter', () => {
+    it('should return true when status label matches', () => {
+      const statuses = new Map([
+        [trainJob.metadata.uid ?? trainJob.metadata.name, TrainingJobState.RUNNING],
+      ]);
+      expect(filterJob(trainJob, { Status: 'running' }, statuses)).toBe(true);
+    });
+
+    it('should return true for case-insensitive status match', () => {
+      const statuses = new Map([
+        [trainJob.metadata.uid ?? trainJob.metadata.name, TrainingJobState.RUNNING],
+      ]);
+      expect(filterJob(trainJob, { Status: 'RUNNING' }, statuses)).toBe(true);
+    });
+
+    it('should return false when status label does not match', () => {
+      const statuses = new Map([
+        [trainJob.metadata.uid ?? trainJob.metadata.name, TrainingJobState.RUNNING],
+      ]);
+      expect(filterJob(trainJob, { Status: 'failed' }, statuses)).toBe(false);
+    });
+
+    it('should fall back to sync status when jobStatuses map has no entry', () => {
+      expect(filterJob(trainJob, { Status: 'running' }, noStatuses)).toBe(true);
+    });
+
+    it('should return true when Status is empty string', () => {
+      expect(filterJob(trainJob, { Status: '' }, noStatuses)).toBe(true);
+    });
+  });
+
+  describe('Cluster queue filter', () => {
+    it('should return true when cluster queue label matches', () => {
+      expect(filterJob(trainJob, { 'Cluster queue': 'team-queue' }, noStatuses)).toBe(true);
+    });
+
+    it('should return true for partial match', () => {
+      expect(filterJob(trainJob, { 'Cluster queue': 'team' }, noStatuses)).toBe(true);
+    });
+
+    it('should return true for case-insensitive match', () => {
+      expect(filterJob(trainJob, { 'Cluster queue': 'TEAM-QUEUE' }, noStatuses)).toBe(true);
+    });
+
+    it('should return false when cluster queue label does not match', () => {
+      expect(filterJob(trainJob, { 'Cluster queue': 'other-queue' }, noStatuses)).toBe(false);
+    });
+
+    it('should return true when Cluster queue is empty string', () => {
+      expect(filterJob(trainJob, { 'Cluster queue': '' }, noStatuses)).toBe(true);
+    });
+  });
+
+  describe('Type filter', () => {
+    it('should return true when type matches TrainJob', () => {
+      expect(filterJob(trainJob, { Type: JobType.TRAIN_JOB }, noStatuses)).toBe(true);
+    });
+
+    it('should return true when type matches RayJob', () => {
+      expect(filterJob(rayJob, { Type: JobType.RAY_JOB }, noStatuses)).toBe(true);
+    });
+
+    it('should return false when type does not match', () => {
+      expect(filterJob(trainJob, { Type: JobType.RAY_JOB }, noStatuses)).toBe(false);
+      expect(filterJob(rayJob, { Type: JobType.TRAIN_JOB }, noStatuses)).toBe(false);
+    });
+
+    it('should return true when Type is empty string', () => {
+      expect(filterJob(trainJob, { Type: '' }, noStatuses)).toBe(true);
+      expect(filterJob(rayJob, { Type: '' }, noStatuses)).toBe(true);
+    });
+  });
+
+  describe('multiple filters combined', () => {
+    it('should return true when all filters match', () => {
+      const statuses = new Map([
+        [trainJob.metadata.uid ?? trainJob.metadata.name, TrainingJobState.RUNNING],
+      ]);
+      expect(
+        filterJob(
+          trainJob,
+          { Name: 'my-train', Status: 'running', Type: JobType.TRAIN_JOB },
+          statuses,
+        ),
+      ).toBe(true);
+    });
+
+    it('should return false when one filter does not match', () => {
+      expect(filterJob(trainJob, { Name: 'my-train', Type: JobType.RAY_JOB }, noStatuses)).toBe(
+        false,
+      );
+    });
   });
 });

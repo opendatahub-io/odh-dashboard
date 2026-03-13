@@ -14,6 +14,7 @@ import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import RoleDetailsLink from '#~/pages/projects/projectPermissions/components/RoleDetailsLink';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const.ts';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import type { ManageRolesRow } from './columns';
 
 export type ManageRolesTableRowProps = {
@@ -37,9 +38,11 @@ const getAssignmentLabelColor = (statusLabel: AssignmentStatus) => {
 const CustomUnassignPopover = ({
   children,
   position,
+  trigger,
 }: {
   children: React.ReactElement;
   position: PopoverPosition;
+  trigger: 'unassigning label' | 'warning help text';
 }) => {
   return (
     <Popover
@@ -50,6 +53,9 @@ const CustomUnassignPopover = ({
           reassign this role after removing it, you or an administrator must do so from OpenShift.
         </>
       }
+      onShown={() => {
+        fireMiscTrackingEvent('RBAC Help Reviewed', { trigger });
+      }}
     >
       {children}
     </Popover>
@@ -95,14 +101,17 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
             {isCustomUnassign ? (
               <Flex spaceItems={{ default: 'spaceItemsXs' }}>
                 <FlexItem>
-                  <CustomUnassignPopover position={PopoverPosition.top}>
+                  <CustomUnassignPopover position={PopoverPosition.top} trigger="unassigning label">
                     <Label variant="filled" color={assignmentLabelColor} isCompact isClickable>
                       {row.statusLabel}
                     </Label>
                   </CustomUnassignPopover>
                 </FlexItem>
                 <FlexItem>
-                  <CustomUnassignPopover position={PopoverPosition.bottom}>
+                  <CustomUnassignPopover
+                    position={PopoverPosition.bottom}
+                    trigger="warning help text"
+                  >
                     <Button
                       variant="link"
                       isInline

@@ -13,6 +13,7 @@ This trimmed service exposes ONLY:
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/secrets` – list and filter secrets from a namespace (supports filtering by storage type)
 
 All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
 
@@ -92,22 +93,27 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+The following JSON endpoints are available plus static asset serving (index.html fallback):
 
 ```text
 GET /healthcheck
 GET /api/v1/user
 GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/secrets      (filter secrets by type, e.g., ?resource=namespace&type=storage)
 ```
+
+For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
 
 ```shell
 curl -i localhost:4000/healthcheck
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/secrets?resource=default"
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/secrets?resource=default&type=storage"
 ```
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
