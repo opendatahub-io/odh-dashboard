@@ -6,10 +6,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -42,37 +45,146 @@ type ExternalModelsClientInterface interface {
 	VerifyModel(ctx context.Context, modelID string, embeddingDimension *int) (*models.VerifyExternalModelResponse, error)
 }
 
+const (
+	// maxResponseBodySize limits response body reads to 10MB to prevent memory exhaustion
+	maxResponseBodySize = 10 * 1024 * 1024 // 10MB
+)
+
 // ExternalModelsClient handles communication with external model endpoints
 type ExternalModelsClient struct {
-	logger     *slog.Logger
-	httpClient *http.Client
-	baseURL    string
-	apiKey     string
-	modelType  models.ModelTypeEnum
+	logger             *slog.Logger
+	httpClient         *http.Client
+	baseURL            string
+	apiKey             string
+	modelType          models.ModelTypeEnum
+	skipSSRFValidation bool // For testing only - allows localhost/private IPs
+}
+
+// isPrivateIP checks if an IP is a loopback, RFC1918, or unique-local address
+// This prevents SSRF attacks targeting internal resources
+func isPrivateIP(ip net.IP) bool {
+	// Loopback addresses (127.0.0.0/8, ::1)
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Link-local addresses (169.254.0.0/16, fe80::/10)
+	if ip.IsLinkLocalUnicast() {
+		return true
+	}
+
+	// Check for RFC1918 private IPv4 ranges
+	if ip4 := ip.To4(); ip4 != nil {
+		// 10.0.0.0/8
+		if ip4[0] == 10 {
+			return true
+		}
+		// 172.16.0.0/12
+		if ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31 {
+			return true
+		}
+		// 192.168.0.0/16
+		if ip4[0] == 192 && ip4[1] == 168 {
+			return true
+		}
+	}
+
+	// Check for unique-local IPv6 addresses (fc00::/7)
+	if len(ip) == net.IPv6len && ip[0] >= 0xfc && ip[0] <= 0xfd {
+		return true
+	}
+
+	return false
+}
+
+// validateBaseURL performs security checks on the base URL to prevent SSRF
+func validateBaseURL(baseURL string, skipSSRFCheck bool) error {
+	// Parse the URL
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	// Require HTTPS or HTTP (for testing with mock servers)
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return fmt.Errorf("base URL must use HTTP or HTTPS scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Always require HTTPS in production (only allow HTTP if SSRF check is skipped for testing)
+	if parsedURL.Scheme != "https" && !skipSSRFCheck {
+		return fmt.Errorf("base URL must use HTTPS scheme in production, got: %s", parsedURL.Scheme)
+	}
+
+	// Extract hostname (without port)
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("base URL must contain a valid hostname")
+	}
+
+	// Skip SSRF validation if requested (for testing only)
+	if skipSSRFCheck {
+		return nil
+	}
+
+	// Resolve hostname to IP addresses
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
+	}
+
+	if len(ips) == 0 {
+		return fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
+	}
+
+	// Check all resolved IPs - reject if ANY are private
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			return fmt.Errorf("base URL resolves to private IP address %s (SSRF protection)", ip.String())
+		}
+	}
+
+	return nil
 }
 
 // NewExternalModelsClient creates a new client for verifying external model endpoints
+// Uses system certificate pool for TLS verification
 func NewExternalModelsClient(
 	logger *slog.Logger,
 	baseURL string,
 	apiKey string,
 	modelType models.ModelTypeEnum,
 ) (*ExternalModelsClient, error) {
-	return NewExternalModelsClientWithTLS(logger, baseURL, apiKey, modelType, false, nil)
+	// Use system cert pool by default
+	rootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load system certificate pool: %w", err)
+	}
+	return NewExternalModelsClientWithTLS(logger, baseURL, apiKey, modelType, rootCAs)
 }
 
 // NewExternalModelsClientWithTLS creates a new client with custom TLS configuration
+// Requires rootCAs to be provided for secure TLS verification
 func NewExternalModelsClientWithTLS(
 	logger *slog.Logger,
 	baseURL string,
 	apiKey string,
 	modelType models.ModelTypeEnum,
-	insecureSkipVerify bool,
 	rootCAs *x509.CertPool,
 ) (*ExternalModelsClient, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
-	if rootCAs != nil {
-		tlsConfig.RootCAs = rootCAs
+	// Validate rootCAs is provided
+	if rootCAs == nil {
+		return nil, errors.New("rootCAs certificate pool is required for secure TLS verification")
+	}
+
+	// Validate base URL to prevent SSRF
+	if err := validateBaseURL(baseURL, false); err != nil {
+		return nil, fmt.Errorf("base URL validation failed: %w", err)
+	}
+
+	// Configure TLS with provided root CAs - never skip verification
+	tlsConfig := &tls.Config{
+		RootCAs:    rootCAs,
+		MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
 	}
 
 	httpClient := &http.Client{
@@ -80,14 +192,50 @@ func NewExternalModelsClientWithTLS(
 			TLSClientConfig: tlsConfig,
 		},
 		Timeout: 35 * time.Second, // Slightly longer than context timeout
+		// Prevent redirects to avoid SSRF via redirect chains
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Don't follow redirects
+		},
 	}
 
 	return &ExternalModelsClient{
-		logger:     logger,
-		httpClient: httpClient,
-		baseURL:    baseURL,
-		apiKey:     apiKey,
-		modelType:  modelType,
+		logger:             logger,
+		httpClient:         httpClient,
+		baseURL:            baseURL,
+		apiKey:             apiKey,
+		modelType:          modelType,
+		skipSSRFValidation: false,
+	}, nil
+}
+
+// NewExternalModelsClientForTesting creates a client for testing that allows localhost/HTTP
+// WARNING: Only use this in tests - it bypasses SSRF protection
+func NewExternalModelsClientForTesting(
+	logger *slog.Logger,
+	baseURL string,
+	apiKey string,
+	modelType models.ModelTypeEnum,
+) (*ExternalModelsClient, error) {
+	// Validate base URL (allows HTTP and localhost for testing)
+	if err := validateBaseURL(baseURL, true); err != nil {
+		return nil, fmt.Errorf("base URL validation failed: %w", err)
+	}
+
+	// Simple HTTP client for testing - no TLS requirements
+	httpClient := &http.Client{
+		Timeout: 35 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Still prevent redirects in tests
+		},
+	}
+
+	return &ExternalModelsClient{
+		logger:             logger,
+		httpClient:         httpClient,
+		baseURL:            baseURL,
+		apiKey:             apiKey,
+		modelType:          modelType,
+		skipSSRFValidation: true,
 	}, nil
 }
 
@@ -154,10 +302,21 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	}
 	defer resp.Body.Close()
 
-	// Read response body
-	responseBody, err := io.ReadAll(resp.Body)
+	// Read response body with size limit to prevent memory exhaustion
+	limitedReader := io.LimitReader(resp.Body, maxResponseBodySize)
+	responseBody, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to read response: %v", err))
+	}
+
+	// Check if response exceeded size limit
+	if int64(len(responseBody)) == maxResponseBodySize {
+		// Try to read one more byte to see if there's more data
+		extraByte := make([]byte, 1)
+		n, _ := resp.Body.Read(extraByte)
+		if n > 0 {
+			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Response body exceeded maximum size of %d bytes", maxResponseBodySize))
+		}
 	}
 
 	// Check HTTP status code

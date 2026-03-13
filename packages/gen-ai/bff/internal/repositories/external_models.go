@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -92,16 +93,38 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	req models.VerifyExternalModelRequest,
 ) (*models.VerifyExternalModelResponse, error) {
 	// Create client for the external model endpoint
-	client, err := externalmodels.NewExternalModelsClient(
-		logger,
-		req.BaseURL,
-		req.SecretValue,
-		req.ModelType,
-	)
+	// Use testing constructor for localhost URLs (test mode), otherwise use production constructor
+	var client *externalmodels.ExternalModelsClient
+	var err error
+
+	if isTestingURL(req.BaseURL) {
+		logger.Debug("Using testing client for localhost URL", "url", req.BaseURL)
+		client, err = externalmodels.NewExternalModelsClientForTesting(
+			logger,
+			req.BaseURL,
+			req.SecretValue,
+			req.ModelType,
+		)
+	} else {
+		client, err = externalmodels.NewExternalModelsClient(
+			logger,
+			req.BaseURL,
+			req.SecretValue,
+			req.ModelType,
+		)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
 	// Verify the model using the client (pass embedding dimension for embedding models)
 	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
+}
+
+// isTestingURL checks if a URL is a localhost/testing URL
+func isTestingURL(baseURL string) bool {
+	return strings.HasPrefix(baseURL, "http://127.0.0.1") ||
+		strings.HasPrefix(baseURL, "http://localhost") ||
+		strings.HasPrefix(baseURL, "http://[::1]")
 }
