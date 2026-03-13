@@ -166,8 +166,11 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            The name of the Kubernetes secret containing S3 credentials.
+            If omitted, the secret associated with the DSPA (DSPipelineApplication)
+            discovered in this namespace is used automatically.
           schema:
             type: string
           example: aws-secret-1
@@ -222,6 +225,10 @@ paths:
         The file is streamed with transfer-encoding: chunked to efficiently handle large files.
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+
+        If secretName is not supplied, the endpoint automatically uses the storage secret
+        associated with the Pipeline Server (DSPipelineApplication) discovered in the
+        namespace — the same secret that the pipeline server itself uses for artifact storage.
 
   # =============================================================================
   # LSD ENDPOINTS

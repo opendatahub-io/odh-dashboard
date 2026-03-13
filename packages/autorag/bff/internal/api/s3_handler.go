@@ -19,11 +19,11 @@ import (
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
-//   - secretName (required): The name of the Kubernetes secret containing S3 credentials
+//   - secretName (optional): Name of the Kubernetes secret holding S3 credentials.
+//     If omitted, the secret name is taken from the DSPA associated with the
+//     Pipeline Server in this namespace (set by AttachPipelineServerClient middleware).
 //   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
 //   - key (required): The S3 object key to retrieve
-//
-// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -42,10 +42,16 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// Resolve the secret name: prefer the explicit query parameter, then fall back to the
+	// storage secret associated with the DSPA discovered by AttachPipelineServerClient.
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
-		return
+		if dspaSecret, ok := ctx.Value(constants.DSPAStorageSecretKey).(string); ok && dspaSecret != "" {
+			secretName = dspaSecret
+		} else {
+			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required when no DSPA storage secret is configured"))
+			return
+		}
 	}
 
 	key := queryParams.Get("key")
