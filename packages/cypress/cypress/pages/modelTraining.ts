@@ -732,6 +732,94 @@ class RayJobDetailsDrawer {
   }
 }
 
+class RayJobDetailsTab {
+  findJobSummarySection() {
+    return cy.findByTestId('job-summary-section');
+  }
+
+  findRayVersionValue() {
+    return cy.findByTestId('ray-version-value');
+  }
+
+  findExecutionsSection() {
+    return cy.findByTestId('executions-section');
+  }
+
+  findEntrypointCommandValue() {
+    return cy.findByTestId('entrypoint-command-value');
+  }
+
+  findSubmissionModeValue() {
+    return cy.findByTestId('submission-mode-value');
+  }
+
+  findManagementSection() {
+    return cy.findByTestId('management-section');
+  }
+
+  findShutdownPolicyValue() {
+    return cy.findByTestId('shutdown-policy-value');
+  }
+
+  findClusterNameValue() {
+    return cy.findByTestId('cluster-name-value');
+  }
+}
+
+class RayJobResourcesTab {
+  findNodeConfigurationsSection() {
+    return cy.findByTestId('node-configurations-section');
+  }
+
+  findNodesValue() {
+    return cy.findByTestId('nodes-value');
+  }
+
+  findResourcesPerNodeSection() {
+    return cy.findByTestId('resources-per-node-section');
+  }
+
+  findWorkerGroupTitle(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-title`);
+  }
+
+  findWorkerGroupCpuRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-requests`);
+  }
+
+  findWorkerGroupCpuLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-limits`);
+  }
+
+  findWorkerGroupMemoryRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-requests`);
+  }
+
+  findWorkerGroupMemoryLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-limits`);
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -743,3 +831,5 @@ export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
+export const rayJobDetailsTab = new RayJobDetailsTab();
+export const rayJobResourcesTab = new RayJobResourcesTab();
