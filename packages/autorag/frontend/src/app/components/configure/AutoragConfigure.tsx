@@ -153,7 +153,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 onChange(!secret || secret.invalid ? '' : secret.name);
                                 const bucketKey = findKey(
                                   secret?.data ?? {},
-                                  (key) => key.toLocaleLowerCase() === 'aws_s3_bucket',
+                                  (key) => key.toLowerCase() === 'aws_s3_bucket',
                                 );
                                 form.setValue(
                                   'input_data_bucket_name',
@@ -196,7 +196,7 @@ function AutoragConfigure(): React.JSX.Element {
                         }}
                         closeBtnAriaLabel="Clear selected connection"
                       >
-                        {selectedSecret?.name}
+                        {selectedSecret?.displayName ?? selectedSecret?.name}
                       </Label>
                     </StackItem>
 
@@ -212,7 +212,11 @@ function AutoragConfigure(): React.JSX.Element {
                             key="select-files"
                             variant="secondary"
                             onClick={() => setIsFileExplorerOpen(true)}
-                            isDisabled={!inputDataSecretName || form.formState.isSubmitting}
+                            isDisabled={
+                              !inputDataSecretName ||
+                              selectedSecret?.invalid ||
+                              form.formState.isSubmitting
+                            }
                           >
                             Select files
                           </Button>

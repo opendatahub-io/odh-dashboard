@@ -36,6 +36,10 @@ jobs:
         working-directory: packages/autorag/bff
         run: make build
 
+      - name: Test (BFF)
+        working-directory: packages/autorag/bff
+        run: make test
+
       - name: Check if there are uncommitted file changes
         working-directory: packages/autorag
         run: |

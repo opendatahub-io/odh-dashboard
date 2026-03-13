@@ -127,6 +127,14 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       setValidationError('');
       return;
     }
+
+    // If secrets list becomes empty, clear the selection
+    if (secretsList.length === 0) {
+      onChange(undefined);
+      setValidationError('');
+      return;
+    }
+
     const secret = secretsList.find((s) => s.uuid === value);
     if (!secret) {
       setValidationError('');
@@ -135,14 +143,22 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     const missingKeys = validateSecretKeys(secret);
     if (missingKeys.length > 0) {
       setValidationError(formatMissingKeysMessage(missingKeys));
+      // Don't auto-clear invalid selections - let the parent handle invalid state
+      // The onSelect handler already sets invalid: true on the secret
     } else {
       setValidationError('');
     }
-  }, [value, secretsList, validateSecretKeys]);
+  }, [value, secretsList, validateSecretKeys, onChange]);
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
-    if (value && secretsList.length > 0) {
+    if (value) {
+      // Clear selection if secrets list is empty
+      if (secretsList.length === 0) {
+        onChange(undefined);
+        return;
+      }
+      // Clear selection if value is no longer in the list
       const isValueInList = secretsList.some((secret) => secret.uuid === value);
       if (!isValueInList) {
         onChange(undefined);

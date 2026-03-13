@@ -21,7 +21,7 @@ type MockedKubernetesClientFactory interface {
 
 func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
-	case config.AuthMethodInternal:
+	case config.AuthMethodDisabled, config.AuthMethodInternal:
 		k8sFactory, err := NewStaticClientFactory(clientset, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create static client factory: %w", err)
