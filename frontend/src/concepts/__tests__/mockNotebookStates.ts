@@ -98,14 +98,13 @@ const notebook: NotebookKind = {
                 },
               },
             ],
-            image:
-              'registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695',
+            image: 'quay.io/openshift/kube-rbac-proxy:latest',
             imagePullPolicy: 'Always',
             livenessProbe: {
               failureThreshold: 3,
               httpGet: {
-                path: '/oauth/healthz',
-                port: 'oauth-proxy',
+                path: '/healthz',
+                port: 'kube-rbac-proxy',
                 scheme: 'HTTPS',
               },
               initialDelaySeconds: 30,
@@ -113,19 +112,19 @@ const notebook: NotebookKind = {
               successThreshold: 1,
               timeoutSeconds: 1,
             },
-            name: 'oauth-proxy',
+            name: 'kube-rbac-proxy',
             ports: [
               {
                 containerPort: 8443,
-                name: 'oauth-proxy',
+                name: 'kube-rbac-proxy',
                 protocol: 'TCP',
               },
             ],
             readinessProbe: {
               failureThreshold: 3,
               httpGet: {
-                path: '/oauth/healthz',
-                port: 'oauth-proxy',
+                path: '/healthz',
+                port: 'kube-rbac-proxy',
                 scheme: 'HTTPS',
               },
               initialDelaySeconds: 5,
@@ -145,8 +144,8 @@ const notebook: NotebookKind = {
             },
             volumeMounts: [
               {
-                mountPath: '/etc/oauth/config',
-                name: 'oauth-config',
+                mountPath: '/etc/kube-rbac-proxy',
+                name: 'kube-rbac-proxy-config',
               },
               {
                 mountPath: '/etc/tls/private',
@@ -364,10 +363,9 @@ export const mockFailedStates = {
 };
 
 const inProgressNotebookStatus: NotebookStatus = {
-  currentEvent: 'Pulling oauth proxy',
+  currentEvent: 'Pulling auth proxy',
   currentEventReason: 'Pulling',
-  currentEventDescription:
-    'Pulling image "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695"',
+  currentEventDescription: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
   currentStatus: EventStatus.SUCCESS,
 };
 
@@ -502,8 +500,7 @@ const inProgressNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message:
-      'Pulling image "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695"',
+    message: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d3386caf5de',
@@ -576,7 +573,7 @@ const completedNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Created container oauth-proxy',
+    message: 'Created container kube-rbac-proxy',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d33a9a163cd',
@@ -592,7 +589,7 @@ const completedNotebookEvents: EventKind[] = [
       name: 'new-pipeline-0',
     },
     message:
-      'Successfully pulled image "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695" in 364.698388ms (364.711132ms including waiting)',
+      'Successfully pulled image "quay.io/openshift/kube-rbac-proxy:latest" in 364.698388ms (364.711132ms including waiting)',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d339c883533',
@@ -607,8 +604,7 @@ const completedNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message:
-      'Pulling image "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695"',
+    message: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d3386caf5de',
@@ -685,7 +681,7 @@ const completedNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Started container oauth-proxy',
+    message: 'Started container kube-rbac-proxy',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d33aa50e084',

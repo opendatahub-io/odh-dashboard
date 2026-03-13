@@ -43,10 +43,10 @@ describe('Start Notebook modal', () => {
     expect(steps[5]).toHaveTextContent('Workbench image pulled');
     expect(steps[6]).toHaveTextContent('Workbench container created');
     expect(steps[7]).toHaveTextContent('Workbench container started');
-    expect(steps[8]).toHaveTextContent('Pulling oauth proxy');
-    expect(steps[9]).toHaveTextContent('Oauth proxy pulled');
-    expect(steps[10]).toHaveTextContent('Oauth proxy container created');
-    expect(steps[11]).toHaveTextContent('Oauth proxy container started');
+    expect(steps[8]).toHaveTextContent('Pulling auth proxy');
+    expect(steps[9]).toHaveTextContent('Auth proxy pulled');
+    expect(steps[10]).toHaveTextContent('Auth proxy container created');
+    expect(steps[11]).toHaveTextContent('Auth proxy container started');
     expect(steps[12]).toHaveTextContent('Workbench started');
   });
 
@@ -97,7 +97,7 @@ describe('Start Notebook modal', () => {
     expect(header).toHaveTextContent('Workbench statusStarting');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
-    expect(statusLabel).toHaveTextContent('Pulling oauth proxy');
+    expect(statusLabel).toHaveTextContent('Pulling auth proxy');
 
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
