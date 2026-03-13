@@ -206,6 +206,49 @@ func (app *App) VerifyExternalModelHandler(
 		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
 		return
 	}
+	if req.ProviderType == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("provider_type is required"))
+		return
+	}
+	if req.ModelType == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
+		return
+	}
+
+	// Validate provider type
+	validProviderTypes := map[models.ProviderTypeEnum]bool{
+		models.ProviderTypeGemini:      true,
+		models.ProviderTypeOpenAI:      true,
+		models.ProviderTypeAnthropic:   true,
+		models.ProviderTypeVLLM:        true,
+		models.ProviderTypePassthrough: true,
+	}
+	if !validProviderTypes[req.ProviderType] {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid provider_type: %s", req.ProviderType))
+		return
+	}
+
+	// Validate model type
+	validModelTypes := map[models.ModelTypeEnum]bool{
+		models.ModelTypeEmbedding: true,
+		models.ModelTypeLLM:       true,
+	}
+	if !validModelTypes[req.ModelType] {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid model_type: %s", req.ModelType))
+		return
+	}
+
+	// Validate embedding_dimension for embedding models
+	if req.ModelType == models.ModelTypeEmbedding {
+		if req.EmbeddingDimension == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension is required for embedding models"))
+			return
+		}
+		if *req.EmbeddingDimension <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
+			return
+		}
+	}
 
 	// 3. Call repository
 	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req)
