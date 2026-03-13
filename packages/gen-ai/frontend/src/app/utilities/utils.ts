@@ -109,20 +109,64 @@ export const generateMCPServerConfig = (
   };
 };
 
+export const parseEndpointByPrefix = (
+  endpoints: string[],
+  prefix: 'internal' | 'external',
+): string | undefined =>
+  endpoints
+    .find((e) => e.startsWith(`${prefix}:`))
+    ?.replace(`${prefix}:`, '')
+    .trim();
+
+const SOURCE_LABELS: Record<string, string> = {
+  namespace: 'Internal',
+  external_cluster: 'Public route',
+  external_provider: 'External',
+  maas: 'MaaS',
+};
+
+const MODEL_TYPE_LABELS: Record<string, string> = {
+  llm: 'Inferencing',
+  embedding: 'Embedding',
+};
+
+export const getModelTypeLabel = (modelType?: string): string =>
+  MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
+
+export const getSourceLabel = (model: AIModel): string => {
+  const source = model.modelSource || 'namespace';
+  const label = SOURCE_LABELS[source];
+  if (!label) {
+    // eslint-disable-next-line no-console
+    console.warn(`Unknown model source type: "${source}" for model "${model.model_id}"`);
+  }
+  return label || 'Internal';
+};
+
+const SOURCE_LABEL_COLORS: Record<string, 'blue' | 'green' | 'orange' | 'grey'> = {
+  MaaS: 'blue',
+  External: 'green',
+  'Public route': 'orange',
+  Internal: 'grey',
+};
+
+export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'orange' | 'grey' =>
+  SOURCE_LABEL_COLORS[sourceLabel] ?? 'grey';
+
 /**
  * Converts a MaaS model to AIModel format
  * @param maasModel - The MaaS model to convert
  * @returns The converted AIModel
  */
 export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
-  model_name: maasModel.id,
+  model_name: maasModel.display_name || maasModel.id,
   model_id: maasModel.id,
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
   usecase: maasModel.usecase || 'LLM',
   description: maasModel.description || '',
-  endpoints: [`internal: ${maasModel.url}`],
+  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
   status: maasModel.ready ? 'Running' : 'Stop',
   display_name: maasModel.display_name || maasModel.id,
   sa_token: {
@@ -130,9 +174,12 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token_name: '',
     token: '',
   },
-  internalEndpoint: maasModel.url,
+  externalEndpoint: maasModel.url || undefined,
+  internalEndpoint: undefined,
   isMaaSModel: true,
   maasModelId: maasModel.id,
+  modelSource: 'maas',
+  model_type: maasModel.model_type,
 });
 
 /**

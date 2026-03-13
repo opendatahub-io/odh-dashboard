@@ -1,6 +1,7 @@
 package pipelineserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,6 +33,7 @@ func (e *HTTPError) Status() int {
 type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
+	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 }
@@ -323,4 +325,52 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 	}
 
 	return &response, nil
+}
+
+// CreateRun creates a new pipeline run via the KFP v2beta1 API.
+func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	var runResponse models.KFPipelineRun
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&runResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &runResponse, nil
 }

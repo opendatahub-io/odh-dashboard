@@ -1,5 +1,6 @@
 import {
   Checkbox,
+  Label,
   Spinner,
   Tab,
   TabContentBody,
@@ -84,6 +85,9 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
           {MODEL_TABS.map(({ modelType, label, testId }) => {
             const { field, models } = tabData[modelType];
             const selectedModels = field.value;
+            const selectedCount = selectedModels.filter((id) =>
+              models.some((model) => model.id === id),
+            ).length;
             const allSelected =
               models.length > 0 &&
               models.every((model) =>
@@ -109,7 +113,19 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
               <Tab
                 key={modelType}
                 eventKey={modelType}
-                title={<TabTitleText>{label}</TabTitleText>}
+                title={
+                  <TabTitleText>
+                    {label}{' '}
+                    <Label
+                      variant="outline"
+                      color="blue"
+                      isCompact
+                      data-testid={`${modelType}-selected-count`}
+                    >
+                      {selectedCount}
+                    </Label>
+                  </TabTitleText>
+                }
                 data-testid={testId}
               >
                 <TabContentBody className="pf-v6-u-pt-md">

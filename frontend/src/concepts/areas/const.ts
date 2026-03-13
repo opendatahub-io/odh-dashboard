@@ -14,11 +14,13 @@ export const techPreviewFlags = {
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
+  vLLMDeploymentOnMaaS: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  registryOciStorage: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -182,6 +184,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelRegistrySecureDB'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
+  [SupportedArea.REGISTRY_OCI_STORAGE]: {
+    featureFlags: ['registryOciStorage'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
     reliantAreas: [SupportedArea.K_SERVE],
@@ -222,6 +228,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.YAML_VIEWER]: {
     featureFlags: ['deploymentWizardYAMLViewer'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.VLLM_ON_MAAS]: {
+    featureFlags: ['vLLMDeploymentOnMaaS'],
   },
 };
 

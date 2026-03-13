@@ -159,7 +159,7 @@ func (app *App) Routes() http.Handler {
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
-	// TODO: Add POST endpoint once PR #6625 is merged (requires CreateAutoMLRunRequest and CreatePipelineRun method)
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 
 	// App Router
 	appMux := http.NewServeMux()

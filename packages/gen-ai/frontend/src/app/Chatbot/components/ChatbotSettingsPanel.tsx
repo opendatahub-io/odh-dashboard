@@ -147,6 +147,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
 
+  // Key to force Tabs remount when panel width changes so overflow arrows recalculate.
+  // This is safe because:
+  // 1. All tab content state is stored in useChatbotConfigStore (controlled components)
+  // 2. No async operations in tab content that would be canceled
+  // 3. Remount is debounced (300ms after resize ends) to avoid performance issues
+  // 4. PatternFly Tabs doesn't auto-recalculate overflow on container resize
+  const [tabsKey, setTabsKey] = React.useState(0);
+
+  // Debounce timeout for Tabs remount
+  const resizeEndTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
@@ -161,8 +172,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+
+    // Debounce Tabs remount: only remount after resize ends (300ms after last resize event)
+    if (resizeEndTimeoutRef.current) {
+      clearTimeout(resizeEndTimeoutRef.current);
+    }
+    resizeEndTimeoutRef.current = setTimeout(() => {
+      setTabsKey((k) => k + 1);
+    }, 300);
   };
 
+  // Cleanup resize debounce timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (resizeEndTimeoutRef.current) {
+        clearTimeout(resizeEndTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  // Tab state
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(defaultActiveTabKey ?? 0);
   const handleTabClick = (
     _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
@@ -197,6 +227,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       </DrawerHead>
       <DrawerPanelBody>
         <Tabs
+          key={tabsKey}
           activeKey={activeTabKey}
           onSelect={handleTabClick}
           aria-label="Chatbot settings page tabs"

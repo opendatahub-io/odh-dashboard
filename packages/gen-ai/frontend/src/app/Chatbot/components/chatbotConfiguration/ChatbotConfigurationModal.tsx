@@ -52,14 +52,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
 
-  // Convert pure MaaS models to AIModel format so they can be used in the table
-  const maasAsAIModels: AIModel[] = React.useMemo(() => {
-    const aiModelIds = new Set(aiModels.map((model) => model.model_id));
-    // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
-    return maasModels
-      .filter((maasModel) => !aiModelIds.has(maasModel.id))
-      .map(convertMaaSModelToAIModel);
-  }, [aiModels, maasModels]);
+  const maasAsAIModels: AIModel[] = React.useMemo(
+    () => maasModels.map(convertMaaSModelToAIModel),
+    [maasModels],
+  );
 
   // Merge all models and MaaS models for display
   const allModels = React.useMemo(

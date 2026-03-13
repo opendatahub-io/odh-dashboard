@@ -1350,11 +1350,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    const editor = new DashboardCodeEditor(() =>
-      cy.findByTestId('yaml-editor').find('.monaco-editor'),
-    );
-    editor.waitForReady();
-    return editor;
+    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor'));
   }
 
   findYAMLEditorEmptyState() {

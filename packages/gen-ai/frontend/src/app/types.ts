@@ -364,6 +364,8 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
+  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider';
+  model_type?: 'llm' | 'embedding';
 }
 
 export interface AIModel extends AAModelResponse {
@@ -374,6 +376,7 @@ export interface AIModel extends AAModelResponse {
   isMaaSModel?: boolean;
   // The MaaS model ID if this is a MaaS model (needed for LSD installation)
   maasModelId?: string;
+  modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
 export type ExternalModelRequest = {
@@ -522,6 +525,7 @@ export interface MaaSModel {
   display_name?: string;
   description?: string;
   usecase?: string;
+  model_type?: 'llm' | 'embedding';
 }
 
 export type MaaSTokenRequest = {
