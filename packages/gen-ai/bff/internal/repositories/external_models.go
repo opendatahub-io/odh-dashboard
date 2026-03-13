@@ -3,9 +3,11 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"github.com/opendatahub-io/gen-ai/internal/helpers"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -81,4 +83,25 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	modelID string,
 ) error {
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client
+func (r *ExternalModelsRepository) VerifyExternalModel(
+	logger *slog.Logger,
+	ctx context.Context,
+	req models.VerifyExternalModelRequest,
+) (*models.VerifyExternalModelResponse, error) {
+	// Create client for the external model endpoint
+	client, err := externalmodels.NewExternalModelsClient(
+		logger,
+		req.BaseURL,
+		req.SecretValue,
+		req.ModelType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the model using the client
+	return client.VerifyModel(ctx, req.ModelID)
 }

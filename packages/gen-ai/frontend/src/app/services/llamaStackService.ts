@@ -43,6 +43,8 @@ import {
   ModArchRestGET,
   ExternalModelRequest,
   ExternalModelResponse,
+  VerifyExternalModelRequest,
+  VerifyExternalModelResponse,
   MaaSModel,
   MaaSTokenRequest,
   MaaSTokenResponse,
@@ -539,6 +541,10 @@ export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
 export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
   '/models/external',
 );
+export const verifyExternalModel = modArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>('/models/external/verify');
 
 export const getMCPServers = (
   hostPath: string,
