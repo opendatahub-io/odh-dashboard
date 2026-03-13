@@ -37,6 +37,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ConfigResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
