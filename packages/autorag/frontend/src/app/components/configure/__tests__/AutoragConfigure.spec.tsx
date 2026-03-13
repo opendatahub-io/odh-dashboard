@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
+import { mockVectorStoresResponse } from '~/__mocks__/mockVectorStore';
 
 // Mock React Router hooks
 jest.mock('react-router', () => ({
@@ -11,6 +13,14 @@ jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
   useParams: jest.fn(),
 }));
+
+// Mock queries hook for vector stores
+jest.mock('~/app/hooks/queries', () => ({
+  ...jest.requireActual('~/app/hooks/queries'),
+  useLlamaStackVectorStoresQuery: jest.fn(),
+}));
+
+const mockUseLlamaStackVectorStoresQuery = jest.mocked(useLlamaStackVectorStoresQuery);
 
 // Mock useWatchConnectionTypes (used for connection types list)
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
@@ -119,6 +129,10 @@ describe('AutoragConfigure', () => {
     jest.clearAllMocks();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockUseLlamaStackVectorStoresQuery.mockReturnValue({
+      data: mockVectorStoresResponse(),
+      isLoading: false,
+    } as unknown as ReturnType<typeof useLlamaStackVectorStoresQuery>);
   });
 
   describe('initial state - no secret selected', () => {
@@ -271,6 +285,86 @@ describe('AutoragConfigure', () => {
       // Verify sections are hidden
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();
       expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('vector store selector', () => {
+    it('should display the vector store selector with placeholder text', () => {
+      renderWithQueryClient(<AutoragConfigure />);
+
+      const toggle = screen.getByTestId('vector-store-select-toggle');
+      expect(toggle).toBeInTheDocument();
+      expect(toggle).toHaveTextContent('Select vector index');
+    });
+
+    it('should show vector store options when clicking the toggle', () => {
+      renderWithQueryClient(<AutoragConfigure />);
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+
+      // Only milvus should appear (filtered by SUPPORTED_VECTOR_STORE_PROVIDERS)
+      expect(
+        screen.getByTestId('vector-store-option-vs_00000000-0000-0000-0000-000000000001'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('test-milvus-store')).toBeInTheDocument();
+    });
+
+    it('should update toggle text when a vector store is selected', () => {
+      renderWithQueryClient(<AutoragConfigure />);
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      // Click the option text directly to trigger PatternFly's onSelect
+      fireEvent.click(screen.getByText('test-milvus-store'));
+
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
+        'test-milvus-store',
+      );
+    });
+
+    it('should deselect vector store when clicking the same option again', () => {
+      renderWithQueryClient(<AutoragConfigure />);
+
+      // Select
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(screen.getByText('test-milvus-store'));
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
+        'test-milvus-store',
+      );
+
+      // Re-open and deselect by clicking the same option
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(
+        screen.getByTestId('vector-store-option-vs_00000000-0000-0000-0000-000000000001'),
+      );
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
+        'Select vector index',
+      );
+    });
+
+    it('should disable the toggle and show empty message when no vector stores are available', () => {
+      mockUseLlamaStackVectorStoresQuery.mockReturnValue({
+        data: mockVectorStoresResponse([]),
+        isLoading: false,
+      } as unknown as ReturnType<typeof useLlamaStackVectorStoresQuery>);
+
+      renderWithQueryClient(<AutoragConfigure />);
+
+      const toggle = screen.getByTestId('vector-store-select-toggle');
+      expect(toggle).toBeDisabled();
+      expect(toggle).toHaveTextContent('No vector stores available');
+    });
+
+    it('should disable the toggle when vector stores data is undefined', () => {
+      mockUseLlamaStackVectorStoresQuery.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+      } as unknown as ReturnType<typeof useLlamaStackVectorStoresQuery>);
+
+      renderWithQueryClient(<AutoragConfigure />);
+
+      const toggle = screen.getByTestId('vector-store-select-toggle');
+      expect(toggle).toBeDisabled();
+      expect(toggle).toHaveTextContent('No vector stores available');
     });
   });
 
