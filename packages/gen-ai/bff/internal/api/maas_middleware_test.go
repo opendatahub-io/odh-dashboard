@@ -36,7 +36,7 @@ func TestAttachMaaSClient(t *testing.T) {
 			mockClient := client.(*maasmocks.MockMaaSClient)
 			models, err := mockClient.ListModels(r.Context())
 			assert.NoError(t, err)
-			assert.Len(t, models, 4) // Our mock returns 4 models
+			assert.Len(t, models, 5) // Our mock returns 5 models
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 

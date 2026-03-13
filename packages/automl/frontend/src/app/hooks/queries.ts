@@ -24,6 +24,21 @@ export function useExperimentQuery(
   });
 }
 
+export function useFilesQuery(): UseQueryResult<string[], Error> {
+  return useQuery({
+    queryKey: ['files'],
+    // TODO: Replace with BFF call that retrieves a CSV file and parses
+    // the table columns from it. Returns mock column names for now.
+    queryFn: async () => [
+      'approval_status',
+      'credit_score',
+      'income',
+      'loan_amount',
+      'risk_category',
+    ],
+  });
+}
+
 export function usePipelineRunQuery(
   runId?: string,
 ): UseQueryResult<{ experiment_id: string }, Error> {

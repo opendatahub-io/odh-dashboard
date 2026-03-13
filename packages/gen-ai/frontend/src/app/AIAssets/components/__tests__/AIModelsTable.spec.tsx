@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel } from '~/app/types';
-import { MaaSModel } from '~/app/types';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
@@ -41,8 +40,7 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
 
 describe('AIModelsTable', () => {
   const defaultProps = {
-    aiModels: [],
-    maasModels: [] as MaaSModel[],
+    models: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
     lsdStatus: null,
   };
@@ -83,7 +81,7 @@ describe('AIModelsTable', () => {
 
     render(
       <TestWrapper>
-        <AIModelsTable {...defaultProps} aiModels={models} />
+        <AIModelsTable {...defaultProps} models={models} />
       </TestWrapper>,
     );
 
@@ -107,7 +105,7 @@ describe('AIModelsTable', () => {
 
     render(
       <TestWrapper>
-        <AIModelsTable {...defaultProps} aiModels={models} />
+        <AIModelsTable {...defaultProps} models={models} />
       </TestWrapper>,
     );
 
