@@ -2,7 +2,7 @@ import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardFormData } from './types';
+import type { WizardField, WizardFormData } from './types';
 import {
   isWizardFieldApplyExtension,
   isWizardField2Extension,
@@ -47,13 +47,25 @@ export const useWizardFieldApply = (
     return applyExtensions.filter((ext) => activeFieldIds.has(ext.properties.fieldId));
   }, [applyExtensions, activeFieldIds]);
 
+  const fieldMap = React.useMemo((): Map<string, WizardField> => {
+    const map = new Map<string, WizardField>();
+    for (const ext of fieldExtensions) {
+      map.set(ext.properties.field.id, ext.properties.field);
+    }
+    return map;
+  }, [fieldExtensions]);
+
   const applyFieldData = React.useCallback(
     (deployment: Deployment): Deployment => {
       let result = deployment;
 
       for (const applyExt of activeApplyExtensions) {
         const { fieldId } = applyExt.properties;
-        const fieldData: unknown = wizardState[fieldId];
+        const rawFieldData: unknown = wizardState[fieldId];
+        const field = fieldMap.get(fieldId);
+        const fieldData: unknown = field?.reducerFunctions.getFieldData
+          ? field.reducerFunctions.getFieldData(rawFieldData, wizardState)
+          : rawFieldData;
 
         if (fieldData !== undefined) {
           result = applyExt.properties.apply(result, fieldData, wizardState);
@@ -76,7 +88,7 @@ export const useWizardFieldApply = (
 
       return result;
     },
-    [activeApplyExtensions, wizardState, navSourceMetadata],
+    [activeApplyExtensions, fieldMap, wizardState, navSourceMetadata],
   );
 
   return React.useMemo(

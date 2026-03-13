@@ -189,13 +189,35 @@ type TokenAuthenticationFieldProps = {
   tokens?: TokenAuthenticationFieldData;
   onChange?: TokenAuthenticationFieldHook['setData'];
   allowCreate?: boolean;
+  forceDisabled?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
   tokens = [],
   onChange,
   allowCreate = false,
+  forceDisabled = false,
 }) => {
+  const savedTokensRef = React.useRef<TokenAuthenticationFieldData | null>(null);
+  const wasForceDisabledRef = React.useRef(forceDisabled);
+
+  React.useEffect(() => {
+    if (forceDisabled && tokens.length > 0) {
+      savedTokensRef.current = tokens;
+      onChange?.([]);
+    }
+    if (!forceDisabled && wasForceDisabledRef.current) {
+      if (savedTokensRef.current) {
+        onChange?.(savedTokensRef.current);
+      } else {
+        onChange?.([{ uuid: getUniqueId('ml'), displayName: 'default-name', error: '' }]);
+      }
+      savedTokensRef.current = null;
+    }
+    wasForceDisabledRef.current = forceDisabled;
+  }, [forceDisabled, tokens, onChange]);
+
+  const isDisabled = forceDisabled || !allowCreate;
   const createNewToken = React.useCallback(() => {
     const displayName = 'default-name';
     const duplicated = tokens.filter((token) => token.displayName === displayName);
@@ -227,7 +249,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"
-          isDisabled={!allowCreate}
+          isDisabled={isDisabled}
           isChecked={tokens.length > 0}
           onChange={(e, check) => {
             if (check && tokens.length === 0) {
@@ -242,7 +264,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
         <StackItem>
           <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
             <Stack hasGutter>
-              {allowCreate && (
+              {!isDisabled && (
                 <StackItem>
                   <Alert
                     variant="info"
@@ -257,7 +279,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                     newToken={token}
                     existingTokens={tokens}
                     setTokens={onChange}
-                    disabled={!allowCreate}
+                    disabled={isDisabled}
                   />
                 </StackItem>
               ))}
@@ -268,7 +290,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                   iconPosition="left"
                   variant="link"
                   icon={<PlusCircleIcon />}
-                  isDisabled={!allowCreate}
+                  isDisabled={isDisabled}
                   data-testid="add-service-account-button"
                 >
                   Add a service account
