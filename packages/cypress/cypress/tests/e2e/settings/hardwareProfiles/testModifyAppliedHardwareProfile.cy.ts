@@ -84,7 +84,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
 
   it(
     'Changes Hardware Profiles applied to a resource',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@Tier1', '@HardwareProfilesCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

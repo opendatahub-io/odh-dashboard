@@ -55,7 +55,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
 
   it(
     'Verify Hardware Profile can be deleted while applied to a workbench without affecting the workbench',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@HardwareProfilesCI'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@Tier1', '@HardwareProfilesCI'] },
     () => {
       // Get hardware profile display name for use throughout test
       const hardwareProfileDisplayName =
