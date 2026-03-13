@@ -215,6 +215,7 @@ export type WizardField<
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
     setFieldData: (fieldData: FieldData) => FieldData;
+    getFieldData?: (storedValue: FieldData, wizardState: WizardFormData['state']) => FieldData;
     getInitialFieldData: (
       existingFieldData?: FieldData,
       externalData?: ExternalData,
@@ -243,6 +244,13 @@ export type WizardField<
     wizardState: WizardFormData['state'],
     externalData?: ExternalData,
   ) => WizardReviewSection[];
+};
+
+export const resolveFieldValue = (field: WizardField, state: WizardFormData['state']): unknown => {
+  const storedValue: unknown = state[field.id];
+  return field.reducerFunctions.getFieldData
+    ? field.reducerFunctions.getFieldData(storedValue, state)
+    : storedValue;
 };
 
 // actual fields

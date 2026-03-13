@@ -24,6 +24,7 @@ import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 import type { ExternalDataMap } from '../ExternalDataLoader';
+import { resolveFieldValue } from '../types';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -47,9 +48,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
   const isMaaSChecked = (() => {
-    const field = wizardState.state['maas/save-as-maas-checkbox'];
-    if (typeof field === 'object' && field !== null && 'isChecked' in field) {
-      return !!field.isChecked;
+    const fieldDef = wizardState.fields.find((f) => f.id === 'maas/save-as-maas-checkbox');
+    if (!fieldDef) {
+      return false;
+    }
+    const resolved = resolveFieldValue(fieldDef, wizardState.state);
+    if (typeof resolved === 'object' && resolved !== null && 'isChecked' in resolved) {
+      return !!resolved.isChecked;
     }
     return false;
   })();
