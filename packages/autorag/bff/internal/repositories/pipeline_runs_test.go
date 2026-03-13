@@ -224,14 +224,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		req := newValidCreateRequest()
 		maxPatterns := 12
 		req.OptimizationMaxRagPatterns = &maxPatterns
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, 12, result.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
 	})
 
 	t.Run("should omit optimization_max_rag_patterns when nil", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["optimization_max_rag_patterns"]
 		assert.False(t, exists)
