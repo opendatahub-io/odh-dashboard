@@ -129,6 +129,7 @@ function AutomlConfigure(): React.JSX.Element {
   const {
     data: columns = [],
     isLoading: isLoadingColumns,
+    isFetching: isFetchingColumns,
     error: columnsError,
   } = useFilesQuery(namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey);
 
@@ -318,7 +319,7 @@ function AutomlConfigure(): React.JSX.Element {
                             {' *'}
                           </span>
                         </div>
-                        {isLoadingColumns ? (
+                        {isLoadingColumns || isFetchingColumns ? (
                           <Skeleton shape="square" width="100%" height="36px" />
                         ) : (
                           <>
