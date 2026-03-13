@@ -188,11 +188,88 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
+	queryParams := r.URL.Query()
+
+	// Get Kubernetes client
+	client, clientError := app.kubernetesClientFactory.GetClient(ctx)
+	if clientError != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", clientError))
+		return
+	}
+
+	// Get S3 credentials from the secret
+	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	if err != nil {
+		// Check if it's a Kubernetes API error and handle accordingly
+		var statusErr *apierrors.StatusError
+		if errors.As(err, &statusErr) {
+			if apierrors.IsNotFound(statusErr) {
+				httpError := &integrations.HTTPError{
+					StatusCode: http.StatusNotFound,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusNotFound),
+						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
+					},
+				}
+				app.errorResponse(w, r, httpError)
+				return
+			}
+			if apierrors.IsForbidden(statusErr) {
+				app.forbiddenResponse(w, r, err.Error())
+				return
+			}
+			if apierrors.IsUnauthorized(statusErr) {
+				app.unauthorizedResponse(w, r, err.Error())
+				return
+			}
+		}
+
+		// Check if it's a secret not found or validation error
+		if strings.Contains(err.Error(), "not found") {
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: err.Error(),
+				},
+			}
+			app.errorResponse(w, r, httpError)
+			return
+		}
+
+		if strings.Contains(err.Error(), "missing required field") {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Determine bucket: use query param if provided, otherwise use bucket from secret
+	bucket = queryParams.Get("bucket")
+	if bucket == "" {
+		if creds.Bucket == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+			return
+		}
+		bucket = creds.Bucket
+	}
+
 	// Main
-	app.logger.Info(fmt.Sprintf("GetS3FilesHandler got value for namespace: %s", namespace))
-	app.logger.Info(fmt.Sprintf("GetS3FilesHandler got value for secretName: %s", secretName))
-	app.logger.Info(fmt.Sprintf("GetS3FilesHandler got value for bucket: %s", bucket))
-	app.logger.Info(fmt.Sprintf("GetS3FilesHandler got value for path: %s", path))
+
+	app.logger.Info(fmt.Sprintf("GetS3FilesHandler calling list with path: %s", path))
+
+	// TODO [ Gustavo ] Add more parameters
+	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket)
+	if listError != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf(listError.Error()))
+		return
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func validateParameters(r *http.Request) (namespace string, secretName string, bucket string, path string, err error) {
