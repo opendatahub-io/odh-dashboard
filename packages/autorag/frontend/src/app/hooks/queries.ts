@@ -93,6 +93,12 @@ const MOCK_LLAMA_STACK_VECTOR_STORES: LlamaStackVectorStoresResponse = {
     },
     {
       id: 'vs_00000000-0000-0000-0000-000000000002',
+      name: 'test-milvus-store2',
+      status: 'in_progress',
+      provider: 'milvus',
+    },
+    {
+      id: 'vs_00000000-0000-0000-0000-000000000003',
       name: 'test-faiss-store',
       status: 'completed',
       provider: 'faiss',
@@ -112,12 +118,15 @@ export function useLlamaStackVectorStoresQuery(
     queryFn: secretName
       ? () => getLlamaStackVectorStores('')(namespace, secretName)({})
       : () => Promise.resolve(MOCK_LLAMA_STACK_VECTOR_STORES),
-    select: providers?.length
-      ? (data) => ({
-          // eslint-disable-next-line camelcase
-          vector_stores: data.vector_stores.filter((vs) => providers.includes(vs.provider)),
-        })
-      : undefined,
+    // Only show completed vector stores. Additionally filter by provider
+    // when a non-empty providers array is given (undefined or [] skips provider filtering).
+    select: (data) => ({
+      // eslint-disable-next-line camelcase
+      vector_stores: data.vector_stores.filter(
+        (vs) =>
+          vs.status === 'completed' && (!providers?.length || providers.includes(vs.provider)),
+      ),
+    }),
   });
 }
 

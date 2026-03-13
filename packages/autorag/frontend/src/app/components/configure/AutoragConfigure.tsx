@@ -15,6 +15,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Split,
   SplitItem,
   Stack,
@@ -75,11 +76,8 @@ function AutoragConfigure(): React.JSX.Element {
   // TODO: secretName should come from a react-hook-form field. Once it's implemented,
   // add secretName as a parameter into useLlamaStackModelsQuery and useLlamaStackVectorStoresQuery
   const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
-  const { data: vectorStoresData } = useLlamaStackVectorStoresQuery(
-    String(namespace),
-    undefined,
-    SUPPORTED_VECTOR_STORE_PROVIDERS,
-  );
+  const { data: vectorStoresData, isLoading: isVectorStoresLoading } =
+    useLlamaStackVectorStoresQuery(String(namespace), undefined, SUPPORTED_VECTOR_STORE_PROVIDERS);
 
   const form = useForm({
     mode: 'onChange',
@@ -266,51 +264,56 @@ function AutoragConfigure(): React.JSX.Element {
                         documents.
                       </StackItem>
                       <StackItem>
-                        <Controller
-                          control={control}
-                          name="llama_stack_vector_database_id"
-                          render={({ field: { value, onChange } }) => {
-                            const vectorStores = vectorStoresData?.vector_stores ?? [];
-                            const selectedStore = vectorStores.find((vs) => vs.id === value);
-                            return (
-                              <Select
-                                isOpen={isVectorStoreSelectOpen}
-                                onOpenChange={setIsVectorStoreSelectOpen}
-                                onSelect={(_e, selectedValue) => {
-                                  onChange(selectedValue === value ? undefined : selectedValue);
-                                  setIsVectorStoreSelectOpen(false);
-                                }}
-                                selected={value}
-                                toggle={(toggleRef) => (
-                                  <MenuToggle
-                                    ref={toggleRef}
-                                    onClick={() => setIsVectorStoreSelectOpen((prev) => !prev)}
-                                    isExpanded={isVectorStoreSelectOpen}
-                                    isDisabled={formIsSubmitting || vectorStores.length === 0}
-                                    data-testid="vector-store-select-toggle"
-                                  >
-                                    {selectedStore?.name ??
-                                      (vectorStores.length === 0
-                                        ? 'No vector stores available'
-                                        : 'Select vector index')}
-                                  </MenuToggle>
-                                )}
-                              >
-                                <SelectList data-testid="vector-store-select-list">
-                                  {vectorStores.map((vs) => (
-                                    <SelectOption
-                                      key={vs.id}
-                                      value={vs.id}
-                                      data-testid={`vector-store-option-${vs.id}`}
+                        {isVectorStoresLoading ? (
+                          <Skeleton width="200px" height="36px" />
+                        ) : (
+                          <Controller
+                            control={control}
+                            name="llama_stack_vector_database_id"
+                            render={({ field: { value, onChange } }) => {
+                              const vectorStores = vectorStoresData?.vector_stores ?? [];
+                              const selectedStore = vectorStores.find((vs) => vs.id === value);
+                              return (
+                                <Select
+                                  aria-label="Vector store selector"
+                                  isOpen={isVectorStoreSelectOpen}
+                                  onOpenChange={setIsVectorStoreSelectOpen}
+                                  onSelect={(_e, selectedValue) => {
+                                    onChange(selectedValue === value ? undefined : selectedValue);
+                                    setIsVectorStoreSelectOpen(false);
+                                  }}
+                                  selected={value}
+                                  toggle={(toggleRef) => (
+                                    <MenuToggle
+                                      ref={toggleRef}
+                                      onClick={() => setIsVectorStoreSelectOpen((prev) => !prev)}
+                                      isExpanded={isVectorStoreSelectOpen}
+                                      isDisabled={formIsSubmitting || vectorStores.length === 0}
+                                      data-testid="vector-store-select-toggle"
                                     >
-                                      {vs.name}
-                                    </SelectOption>
-                                  ))}
-                                </SelectList>
-                              </Select>
-                            );
-                          }}
-                        />
+                                      {selectedStore?.name ??
+                                        (vectorStores.length === 0
+                                          ? 'No vector stores available'
+                                          : 'Select vector index')}
+                                    </MenuToggle>
+                                  )}
+                                >
+                                  <SelectList data-testid="vector-store-select-list">
+                                    {vectorStores.map((vs) => (
+                                      <SelectOption
+                                        key={vs.id}
+                                        value={vs.id}
+                                        data-testid={`vector-store-option-${vs.id}`}
+                                      >
+                                        {vs.name}
+                                      </SelectOption>
+                                    ))}
+                                  </SelectList>
+                                </Select>
+                              );
+                            }}
+                          />
+                        )}
                       </StackItem>
 
                       <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm pf-v6-u-mt-md">
