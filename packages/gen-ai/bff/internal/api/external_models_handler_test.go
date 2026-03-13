@@ -646,6 +646,13 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -682,6 +689,13 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -717,6 +731,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -742,6 +762,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader([]byte("invalid json")))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -803,6 +829,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -885,6 +917,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -929,6 +967,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -973,6 +1017,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
@@ -1010,6 +1060,12 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
 		assert.NoError(t, err)
 
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
 		app.VerifyExternalModelHandler(rr, req, nil)
