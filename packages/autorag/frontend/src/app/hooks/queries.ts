@@ -80,15 +80,37 @@ export function useLlamaStackModelsQuery(
   });
 }
 
+// TODO: Remove mock data once the secretName form field is implemented
+// and users can provide a real secret to query LlamaStack vector stores.
+/* eslint-disable camelcase */
+const MOCK_LLAMA_STACK_VECTOR_STORES: LlamaStackVectorStoresResponse = {
+  vector_stores: [
+    {
+      id: 'ls_milvus',
+      name: 'Milvus',
+      status: 'completed',
+      provider: 'milvus',
+    },
+    {
+      id: 'ls_faiss',
+      name: 'FAISS',
+      status: 'completed',
+      provider: 'faiss',
+    },
+  ],
+};
+/* eslint-enable camelcase */
+
 export function useLlamaStackVectorStoresQuery(
   namespace: string,
-  //secretName is optional for now until the secretName form field is created
+  // secretName is optional for now until the secretName form field is created
   secretName?: string,
 ): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
   return useQuery({
     queryKey: ['vectorStores', namespace, secretName],
-    queryFn: () => getLlamaStackVectorStores('')(namespace, secretName!)({}),
-    enabled: !!secretName,
+    queryFn: secretName
+      ? () => getLlamaStackVectorStores('')(namespace, secretName)({})
+      : () => Promise.resolve(MOCK_LLAMA_STACK_VECTOR_STORES),
   });
 }
 
