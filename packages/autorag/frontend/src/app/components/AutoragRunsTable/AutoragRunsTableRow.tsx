@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import { relativeTime } from 'mod-arch-shared';
 import type { PipelineRun } from '~/app/types';
+import { autoragResultsPathname } from '~/app/utilities/routes';
 import { autoragRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -17,6 +19,7 @@ export const RUN_STATE = {
 
 type AutoragRunsTableRowProps = {
   run: PipelineRun;
+  namespace: string;
 };
 
 const getStatusLabelProps = (
@@ -38,10 +41,15 @@ const getStatusLabelProps = (
   return { color: 'grey' };
 };
 
-const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run }) => (
+const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, namespace }) => (
   <Tr>
     <Td dataLabel={autoragRunsColumns[0].label}>
-      <span data-testid={`run-name-${run.run_id}`}>{run.display_name}</span>
+      <Link
+        to={`${autoragResultsPathname}/${namespace}/${run.run_id}`}
+        data-testid={`run-name-${run.run_id}`}
+      >
+        {run.display_name}
+      </Link>
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
