@@ -1,0 +1,30 @@
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: test-hp-for-deletion
+  annotations:
+    opendatahub.io/description: "Hardware profile for delete test"
+    opendatahub.io/disabled: 'false'
+    opendatahub.io/display-name: Delete Applied HP Test
+spec:
+  identifiers:
+    - defaultCount: 2
+      displayName: CPU
+      identifier: cpu
+      maxCount: 4
+      minCount: 1
+      resourceType: CPU
+    - defaultCount: 4Gi
+      displayName: Memory
+      identifier: memory
+      maxCount: 8Gi
+      minCount: 2Gi
+      resourceType: Memory
+  scheduling:
+    type: Node
+    node:
+      tolerations:
+        - effect: PreferNoSchedule
+          key: test-deletion-taint
+          operator: Equal
+          value: test-toleration-value
