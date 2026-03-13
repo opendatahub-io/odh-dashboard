@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 import MetricsContents from '#~/pages/projects/screens/detail/overview/trainModels/MetricsContents';
 
 describe('MetricsContents', () => {
@@ -11,7 +12,6 @@ describe('MetricsContents', () => {
       { count: 2, text: 'Stopped' },
     ],
     createText: 'Create item',
-    onCreate: jest.fn(),
   };
 
   beforeEach(() => {
@@ -19,49 +19,64 @@ describe('MetricsContents', () => {
   });
 
   it('should render create button enabled by default', () => {
-    render(<MetricsContents {...defaultProps} />);
+    render(
+      <MemoryRouter>
+        <MetricsContents {...defaultProps} />
+      </MemoryRouter>,
+    );
 
-    const createButton = screen.getByRole('button', { name: /create item/i });
+    const createButton = screen.getByRole('link', { name: /create item/i });
     expect(createButton).not.toHaveAttribute('aria-disabled');
   });
 
   it('should render create button disabled when createDisabled is true', () => {
     render(
-      <MetricsContents
-        {...defaultProps}
-        createDisabled
-        createDisabledTooltip="No permission to create"
-      />,
+      <MemoryRouter>
+        <MetricsContents
+          {...defaultProps}
+          createDisabled
+          createDisabledTooltip="No permission to create"
+        />
+      </MemoryRouter>,
     );
 
-    const createButton = screen.getByRole('button', { name: /create item/i });
+    const createButton = screen.getByRole('link', { name: /create item/i });
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('should render create button disabled when isKueueDisabled is true', () => {
-    render(<MetricsContents {...defaultProps} isKueueDisabled />);
+    render(
+      <MemoryRouter>
+        <MetricsContents {...defaultProps} isKueueDisabled />
+      </MemoryRouter>,
+    );
 
-    const createButton = screen.getByRole('button', { name: /create item/i });
+    const createButton = screen.getByRole('link', { name: /create item/i });
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('should prioritize Kueue disabled message over permission message', () => {
     render(
-      <MetricsContents
-        {...defaultProps}
-        isKueueDisabled
-        createDisabled
-        createDisabledTooltip="No permission to create"
-      />,
+      <MemoryRouter>
+        <MetricsContents
+          {...defaultProps}
+          isKueueDisabled
+          createDisabled
+          createDisabledTooltip="No permission to create"
+        />
+      </MemoryRouter>,
     );
 
-    const createButton = screen.getByRole('button', { name: /create item/i });
+    const createButton = screen.getByRole('link', { name: /create item/i });
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
-    // The Kueue message should take precedence (tested via tooltip content)
   });
 
   it('should render statistics correctly', () => {
-    render(<MetricsContents {...defaultProps} />);
+    render(
+      <MemoryRouter>
+        <MetricsContents {...defaultProps} />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('Running')).toBeInTheDocument();
@@ -72,9 +87,13 @@ describe('MetricsContents', () => {
   it('should render custom create button when provided', () => {
     const customButton = <button data-testid="custom-button">Custom Create</button>;
 
-    render(<MetricsContents {...defaultProps} createButton={customButton} />);
+    render(
+      <MemoryRouter>
+        <MetricsContents {...defaultProps} createButton={customButton} />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByTestId('custom-button')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /create item/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /create item/i })).not.toBeInTheDocument();
   });
 });

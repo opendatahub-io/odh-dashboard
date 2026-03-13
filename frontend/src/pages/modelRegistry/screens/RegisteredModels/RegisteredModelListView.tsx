@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup } from '@patternfly/react-core';
-import { useNavigate } from 'react-router';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -30,7 +29,6 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   modelVersions,
   refresh,
 }) => {
-  const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [filterData, setFilterData] = React.useState<ModelRegistryFilterDataType>(
     initialModelRegistryFilterData,
@@ -67,12 +65,8 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         secondaryActionText={
           archiveRegisteredModels.length !== 0 ? 'View archived models' : undefined
         }
-        primaryActionOnClick={() => {
-          navigate(registerModelRoute(preferredModelRegistry?.metadata.name));
-        }}
-        secondaryActionOnClick={() => {
-          navigate(registeredModelArchiveRoute(preferredModelRegistry?.metadata.name));
-        }}
+        primaryActionHref={registerModelRoute(preferredModelRegistry?.metadata.name)}
+        secondaryActionHref={registeredModelArchiveRoute(preferredModelRegistry?.metadata.name)}
       />
     );
   }
