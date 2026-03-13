@@ -43,6 +43,7 @@ import {
   ModArchRestGET,
   ExternalModelRequest,
   ExternalModelResponse,
+  ExternalVectorStoreSummary,
   MaaSModel,
   MaaSTokenRequest,
   MaaSTokenResponse,
@@ -536,6 +537,7 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
+export const getAAVectorStores = modArchRestGET<ExternalVectorStoreSummary[]>('/aaa/vectorstores');
 export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
   '/models/external',
 );

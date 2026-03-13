@@ -3772,6 +3772,7 @@ components:
       required:
         - vector_store_id
         - vector_store_name
+        - provider_id
         - provider_type
         - embedding_model
         - embedding_dimension
@@ -3784,6 +3785,10 @@ components:
           type: string
           example: 'Product Docs RAG Store'
           description: Human-readable name of the vector store
+        provider_id:
+          type: string
+          example: 'pgvector-provider-1'
+          description: Provider ID from the providers section of the ConfigMap
         provider_type:
           type: string
           example: 'remote::pgvector'
@@ -3804,14 +3809,15 @@ components:
           type: string
           example: 'Vector store for product documentation'
           description: Description of the vector store purpose
-        owner:
-          type: string
-          example: 'platform-team'
-          description: Team or user that owns this vector store
-        domain:
-          type: string
-          example: 'rag'
-          description: Business domain this vector store serves
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            owner: platform-team
+            domain: rag
+            env: production
+          description: Generic key-value tags from custom_gen_ai metadata
 
     ExternalVectorStoresListData:
       type: object

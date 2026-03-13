@@ -37,14 +37,13 @@ type RegisteredVectorStore struct {
 
 // VectorStoreMetadata holds descriptive metadata for a registered vector store.
 type VectorStoreMetadata struct {
-	Description string                `yaml:"description"`
+	Description string                 `yaml:"description"`
 	CustomGenAI VectorStoreCustomGenAI `yaml:"custom_gen_ai"`
 }
 
 // VectorStoreCustomGenAI holds gen-ai-specific metadata fields.
 type VectorStoreCustomGenAI struct {
-	Owner  string `yaml:"owner"`
-	Domain string `yaml:"domain"`
+	Tags map[string]string `yaml:"tags"`
 }
 
 // ExternalVectorStoreSummary is the frontend-safe summary of a single vector store.
@@ -52,15 +51,15 @@ type VectorStoreCustomGenAI struct {
 // Embedding model status (not_available / available / registered) is computed client-side by the
 // frontend using the already-loaded merged models data, mirroring the Add/Try in Playground pattern.
 type ExternalVectorStoreSummary struct {
-	VectorStoreID      string `json:"vector_store_id"`
-	VectorStoreName    string `json:"vector_store_name"`
-	ProviderType       string `json:"provider_type"`
-	EmbeddingModel     string `json:"embedding_model"`
-	EmbeddingDimension int    `json:"embedding_dimension"`
-	DistanceMetric     string `json:"distance_metric,omitempty"`
-	Description        string `json:"description,omitempty"`
-	Owner              string `json:"owner,omitempty"`
-	Domain             string `json:"domain,omitempty"`
+	VectorStoreID      string            `json:"vector_store_id"`
+	VectorStoreName    string            `json:"vector_store_name"`
+	ProviderID         string            `json:"provider_id"`
+	ProviderType       string            `json:"provider_type"`
+	EmbeddingModel     string            `json:"embedding_model"`
+	EmbeddingDimension int               `json:"embedding_dimension"`
+	DistanceMetric     string            `json:"distance_metric,omitempty"`
+	Description        string            `json:"description,omitempty"`
+	Tags               map[string]string `json:"tags,omitempty"`
 }
 
 // ExternalVectorStoresListData is the data payload for the list response.

@@ -70,13 +70,13 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 		summaries = append(summaries, models.ExternalVectorStoreSummary{
 			VectorStoreID:      store.VectorStoreID,
 			VectorStoreName:    store.VectorStoreName,
+			ProviderID:         store.ProviderID,
 			ProviderType:       provider.ProviderType,
 			EmbeddingModel:     store.EmbeddingModel,
 			EmbeddingDimension: store.EmbeddingDimension,
 			DistanceMetric:     resolveDistanceMetric(provider.Config),
 			Description:        store.Metadata.Description,
-			Owner:              store.Metadata.CustomGenAI.Owner,
-			Domain:             store.Metadata.CustomGenAI.Domain,
+			Tags:               store.Metadata.CustomGenAI.Tags,
 		})
 	}
 
