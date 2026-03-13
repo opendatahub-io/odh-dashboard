@@ -321,8 +321,8 @@ Returned when the specified run ID does not exist:
 
 The API automatically discovers all managed AutoML pipelines (time-series and tabular) in the namespace and returns a merged view of their runs:
 
-1. Discovers managed pipelines by name prefix (cached for 5 minutes)
-2. Fetches all runs for each discovered pipeline
+1. Discovers managed pipelines by name prefix (cached for 5 minutes), resolving a single `PipelineVersionID` per pipeline (the most recently created version)
+2. Fetches all runs filtered to those resolved `PipelineVersionID` values — runs from older pipeline versions are excluded
 3. Merges and sorts results by creation time descending
 4. Applies `page`/`pageSize` pagination to the merged list
 
