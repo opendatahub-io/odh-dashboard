@@ -25,7 +25,7 @@ describe('SecretSelector', () => {
   const defaultNamespace = 'test-namespace';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('loading state', () => {
@@ -535,6 +535,8 @@ describe('SecretSelector', () => {
 
   describe('namespace and type changes', () => {
     it('should refetch when namespace changes', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
       const { rerender } = render(
         <SecretSelector
           namespace="namespace-1"
@@ -544,7 +546,8 @@ describe('SecretSelector', () => {
         />,
       );
 
-      const firstCallCount = mockUseFetchState.mock.calls.length;
+      // Get the callback from the first render
+      const firstCallback = mockUseFetchState.mock.calls[0][0];
 
       rerender(
         <SecretSelector
@@ -555,11 +558,17 @@ describe('SecretSelector', () => {
         />,
       );
 
-      // useFetchState should be called again with new namespace
-      expect(mockUseFetchState.mock.calls.length).toBeGreaterThan(firstCallCount);
+      // Get the callback from the rerender
+      const secondCallback =
+        mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
+
+      // The callbacks should be different because namespace changed
+      expect(secondCallback).not.toBe(firstCallback);
     });
 
     it('should refetch when type changes', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
       const { rerender } = render(
         <SecretSelector
           namespace={defaultNamespace}
@@ -570,7 +579,8 @@ describe('SecretSelector', () => {
         />,
       );
 
-      const firstCallCount = mockUseFetchState.mock.calls.length;
+      // Get the callback from the first render
+      const firstCallback = mockUseFetchState.mock.calls[0][0];
 
       rerender(
         <SecretSelector
@@ -582,8 +592,12 @@ describe('SecretSelector', () => {
         />,
       );
 
-      // useFetchState should be called again with new type
-      expect(mockUseFetchState.mock.calls.length).toBeGreaterThan(firstCallCount);
+      // Get the callback from the rerender
+      const secondCallback =
+        mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
+
+      // The callbacks should be different because type changed
+      expect(secondCallback).not.toBe(firstCallback);
     });
   });
 
@@ -751,6 +765,75 @@ describe('SecretSelector', () => {
         },
         invalid: true,
       });
+    });
+
+    it('should persist invalid selection and show error instead of clearing', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'incomplete-secret',
+          data: {
+            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          },
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      const { rerender } = render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Select invalid secret
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('incomplete-secret'));
+
+      // onChange should be called once with invalid: true
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uuid: '1',
+          name: 'incomplete-secret',
+          invalid: true,
+        }),
+      );
+
+      // Error message should be visible
+      expect(
+        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // Reset the mock to verify no additional onChange calls
+      mockOnChange.mockClear();
+
+      // Simulate parent component updating the value prop (as it would in real usage)
+      rerender(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value="1"
+          onChange={mockOnChange}
+          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // CRITICAL: onChange should NOT be called again with undefined
+      // The selection should persist even though it's invalid
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      // Error message should still be visible
+      expect(
+        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // The selected value should still be displayed
+      expect(screen.getByTestId('test-selector')).toHaveTextContent('incomplete-secret');
     });
 
     it('should allow selection when secret has all required keys', () => {
