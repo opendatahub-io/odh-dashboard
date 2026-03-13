@@ -14,7 +14,6 @@ import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
-import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
 import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';
 import {
   useProjectServingPlatform,
@@ -125,10 +124,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
           </Stack>
         </CardBody>
         <CardFooter>
-          <Flex gap={{ default: 'gapMd' }}>
-            <DeployButton project={currentProject} variant="link" />
-            <NavigateBackToRegistryButton isInline />
-          </Flex>
+          <DeployButton project={currentProject} variant="link" />
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>
