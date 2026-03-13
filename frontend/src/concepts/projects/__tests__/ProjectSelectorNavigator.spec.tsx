@@ -4,7 +4,6 @@ import '@testing-library/jest-dom';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 
-const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockUseSearchParams = jest.fn();
 
@@ -12,7 +11,6 @@ const updatePreferredProjectMock = jest.fn();
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
   useSearchParams: () => mockUseSearchParams(),
 }));
@@ -96,14 +94,13 @@ describe('ProjectSelectorNavigator', () => {
     expect(screen.getByTestId('namespace-value')).toHaveTextContent('gamma');
   });
 
-  it('should update preferred project and navigate on selection', () => {
+  it('should update preferred project on selection', () => {
     renderComponent();
     fireEvent.click(screen.getByTestId('select-project'));
 
     expect(updatePreferredProjectMock).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: { name: 'beta' } }),
     );
-    expect(mockNavigate).toHaveBeenCalledWith('/projects/beta');
   });
 
   it('should provide href-capable selection links', () => {
