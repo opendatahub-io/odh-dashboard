@@ -1157,7 +1157,8 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		// Create a mock server that returns 401
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"error": {"message": "Invalid API key"}}`))
+			_, err := w.Write([]byte(`{"error": {"message": "Invalid API key"}}`))
+			require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
@@ -1206,7 +1207,8 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		// Create a mock server that returns 404
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(`{"error": "Not found"}`))
+			_, err := w.Write([]byte(`{"error": "Not found"}`))
+			require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
