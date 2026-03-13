@@ -27,9 +27,25 @@ RUN npm run build
 # npm prune --omit=dev does not correctly handle npm workspaces -- it only
 # removes root-level devDependencies while leaving all workspace devDependencies
 # hoisted in node_modules/. Replace the root package.json with a production-only
-# workspace manifest so prune sees only the runtime-relevant packages.
-RUN printf '{"name":"odh-dashboard","private":true,"workspaces":["backend","packages/app-config"]}\n' > package.json \
-    && npm install --omit=dev --omit=optional --ignore-scripts
+# workspace manifest so npm re-installs only runtime-relevant packages.
+# IMPORTANT: We must preserve "overrides" — npm ignores overrides declared in
+# workspace packages, so these root overrides are the sole mechanism that pins
+# transitive deps (ws, tough-cookie, jsonpath-plus, form-data) to their
+# CVE-remediated versions.
+RUN node -e " \
+  var fs = require('fs'); \
+  var root = JSON.parse(fs.readFileSync('package.json', 'utf8')); \
+  var reduced = { \
+    name: root.name, \
+    private: true, \
+    workspaces: ['backend', 'packages/app-config'], \
+    overrides: root.overrides, \
+    engines: root.engines, \
+    packageManager: root.packageManager \
+  }; \
+  for (var k of Object.keys(reduced)) if (reduced[k] == null) delete reduced[k]; \
+  fs.writeFileSync('package.json', JSON.stringify(reduced, null, 2) + '\n'); \
+  " && npm install --omit=dev --omit=optional --ignore-scripts
 
 # This rm -rf is a safety net. It is currently not needed, but it is a good idea to keep it in case future changes accidentally introduce esbuild binaries.
 # Remove esbuild binaries to ensure FIPS compliance
