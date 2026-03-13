@@ -3,13 +3,13 @@ import JobsTable from './JobsTable';
 import JobsToolbar from './JobsToolbar';
 import { initialJobsFilterData, JobsFilterDataType } from './const';
 import { filterJob } from './utils';
-import { UnifiedJobKind, TrainingJobState } from '../../types';
+import { UnifiedJobKind, JobDisplayState } from '../../types';
 
 type JobsListViewProps = {
   jobs: UnifiedJobKind[];
-  jobStatuses: Map<string, TrainingJobState>;
+  jobStatuses: Map<string, JobDisplayState>;
   nodeCountMap: Map<string, number>;
-  onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
+  onStatusUpdate: (jobId: string, newStatus: JobDisplayState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
   onDelete: (job: UnifiedJobKind) => void;
   togglingJobId?: string;

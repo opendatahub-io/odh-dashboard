@@ -40,11 +40,11 @@ import {
 import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
 import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { JobDisplayState, TrainingJobState } from '../../types';
 
 type TrainingJobStatusModalProps = {
   job: TrainJobKind;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   onClose?: () => void;
   onDelete?: () => void;
   onPauseClick?: () => void;

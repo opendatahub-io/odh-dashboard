@@ -110,6 +110,16 @@ class TrainingJobTable {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
 
+  filterByName(name: string) {
+    this.findToolbar().findByLabelText('Filter by name').clear().type(name);
+    return this;
+  }
+
+  clearNameFilter() {
+    this.findToolbar().findByLabelText('Filter by name').clear();
+    return this;
+  }
+
   shouldHaveTrainingJobs(count: number) {
     this.findRows().should('have.length', count);
     return this;
