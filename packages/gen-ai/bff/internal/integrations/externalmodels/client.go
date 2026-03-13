@@ -185,19 +185,18 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		return nil, NewConnectionError(c.baseURL, errorMsg)
 	}
 
-	// Validate OpenAI-compatible response format by unmarshaling into SDK types
-	// The SDK's UnmarshalJSON validates all required fields per the OpenAI spec
+	// Validate response can be unmarshaled (basic JSON structure check)
 	if c.modelType == models.ModelTypeLLM {
 		var chatCompletion openai.ChatCompletion
 		if err := json.Unmarshal(responseBody, &chatCompletion); err != nil {
 			return nil, NewNotOpenAICompatibleError(c.baseURL,
-				fmt.Sprintf("Response is not OpenAI chat/completions format: %v", err))
+				fmt.Sprintf("Response is not valid JSON: %v", err))
 		}
 	} else {
 		var embeddingResponse openai.CreateEmbeddingResponse
 		if err := json.Unmarshal(responseBody, &embeddingResponse); err != nil {
 			return nil, NewNotOpenAICompatibleError(c.baseURL,
-				fmt.Sprintf("Response is not OpenAI embeddings format: %v", err))
+				fmt.Sprintf("Response is not valid JSON: %v", err))
 		}
 	}
 

@@ -553,22 +553,6 @@ paths:
                       message:
                         type: string
                         example: 'Request timed out connecting to external model'
-        '502':
-          description: Not OpenAI compatible - API does not match OpenAI format
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: object
-                    properties:
-                      code:
-                        type: string
-                        example: 'NOT_OPENAI_COMPATIBLE'
-                      message:
-                        type: string
-                        example: 'Response is not OpenAI chat/completions format: missing required fields'
         '503':
           description: Connection failed - could not reach the endpoint
           content:
