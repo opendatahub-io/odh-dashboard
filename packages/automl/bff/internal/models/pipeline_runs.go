@@ -8,6 +8,7 @@ type PipelineRun struct {
 	Description              string                    `json:"description,omitempty"`
 	ExperimentID             string                    `json:"experiment_id,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
 	State                    string                    `json:"state"`
 	StorageState             string                    `json:"storage_state,omitempty"`
 	ServiceAccount           string                    `json:"service_account,omitempty"`
@@ -92,6 +93,7 @@ type TaskDetail struct {
 	StartTime    string          `json:"start_time,omitempty"`
 	EndTime      string          `json:"end_time,omitempty"`
 	State        string          `json:"state,omitempty"`
+	ExecutionID  string          `json:"execution_id,omitempty"`
 	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
 	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`
 	Error        *ErrorInfo      `json:"error,omitempty"`
@@ -100,4 +102,24 @@ type TaskDetail struct {
 // ChildTask represents a child task reference
 type ChildTask struct {
 	PodName string `json:"pod_name,omitempty"`
+}
+
+// CreateAutoMLRunRequest is the BFF-level input for creating an AutoML pipeline run.
+type CreateAutoMLRunRequest struct {
+	DisplayName         string `json:"display_name"`
+	Description         string `json:"description,omitempty"`
+	TrainDataSecretName string `json:"train_data_secret_name"`
+	TrainDataBucketName string `json:"train_data_bucket_name"`
+	TrainDataFileKey    string `json:"train_data_file_key"`
+	LabelColumn         string `json:"label_column"`
+	TaskType            string `json:"task_type"`
+	TopN                *int   `json:"top_n,omitempty"`
+}
+
+// CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.
+type CreatePipelineRunKFRequest struct {
+	DisplayName              string                   `json:"display_name"`
+	Description              string                   `json:"description,omitempty"`
+	PipelineVersionReference PipelineVersionReference `json:"pipeline_version_reference"`
+	RuntimeConfig            RuntimeConfig            `json:"runtime_config"`
 }
