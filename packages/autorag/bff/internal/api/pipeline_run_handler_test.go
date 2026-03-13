@@ -21,7 +21,10 @@ import (
 
 func newMinimalTestApp() *App {
 	return &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		config: config.EnvConfig{
+			AuthMethod:                config.AuthMethodInternal,
+			AutoRAGPipelineNamePrefix: "autorag",
+		},
 		logger:       slog.Default(),
 		repositories: repositories.NewRepositories(slog.Default()),
 	}
@@ -55,8 +58,18 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 }
 
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
+	// Use "test-namespace" consistently — it matches the mock client created with "mock://test-namespace"
+	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-ns")
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+	// Add discovered pipeline to context (normally set by middleware)
+	discovered := &repositories.DiscoveredPipeline{
+		PipelineID:        ids.PipelineID,
+		PipelineVersionID: ids.LatestVersionID,
+		PipelineName:      "autorag-pipeline",
+		Namespace:         "test-namespace",
+	}
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 	return req.WithContext(ctx)
 }
 
@@ -314,7 +327,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "faithfulness", params["optimization_metric"])
 	})
 
-	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
+	t.Run("should include pipeline_version_reference from discovered pipeline", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
 
@@ -324,7 +337,8 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
-		assert.Equal(t, constants.AutoRAGPipelineID, response.Data.PipelineVersionReference.PipelineID)
+		// Pipeline ID comes from the discovered pipeline, which uses namespace-derived IDs
+		assert.Equal(t, psmocks.DeriveMockIDs("test-namespace").PipelineID, response.Data.PipelineVersionReference.PipelineID)
 	})
 }
 

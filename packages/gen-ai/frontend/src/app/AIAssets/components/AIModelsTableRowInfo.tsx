@@ -26,7 +26,7 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
       <Popover
         position="right"
         isVisible={isOpen}
-        onHidden={() => setIsOpen(false)}
+        shouldClose={() => setIsOpen(false)}
         bodyContent={
           <Stack hasGutter>
             <StackItem>

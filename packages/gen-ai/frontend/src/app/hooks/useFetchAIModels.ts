@@ -7,6 +7,7 @@ import {
   NotReadyError,
 } from 'mod-arch-core';
 import { AAModelResponse, AIModel } from '~/app/types';
+import { parseEndpointByPrefix } from '~/app/utilities/utils';
 import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
@@ -20,23 +21,12 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
       const rawData = await api.getAAModels(opts);
       const models = Array.isArray(rawData) ? rawData : [];
 
-      return models.map((item: AAModelResponse) => {
-        // Parse endpoints into usable format
-        const internalEndpoint = item.endpoints
-          .find((endpoint) => endpoint.startsWith('internal:'))
-          ?.replace('internal:', '')
-          .trim();
-        const externalEndpoint = item.endpoints
-          .find((endpoint) => endpoint.startsWith('external:'))
-          ?.replace('external:', '')
-          .trim();
-
-        return {
-          ...item,
-          internalEndpoint,
-          externalEndpoint,
-        };
-      });
+      return models.map((item: AAModelResponse) => ({
+        ...item,
+        internalEndpoint: parseEndpointByPrefix(item.endpoints, 'internal'),
+        externalEndpoint: parseEndpointByPrefix(item.endpoints, 'external'),
+        modelSource: item.model_source_type || 'namespace',
+      }));
     },
     [api, apiAvailable],
   );

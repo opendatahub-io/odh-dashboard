@@ -13,6 +13,7 @@ import (
 const maxLimit = 100
 
 type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, None]
+type CreateEvaluationJobEnvelope Envelope[evalhub.EvaluationJob, None]
 type CancelEvaluationJobEnvelope Envelope[string, None]
 
 func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -49,6 +50,52 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 
 	envelope := CancelEvaluationJobEnvelope{Data: "ok"}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	var input evalhub.CreateEvaluationJobRequest
+	if err := app.ReadJSON(w, r, &input); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if input.Name == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("name is required"))
+		return
+	}
+	if input.Model.Name == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model name is required"))
+		return
+	}
+	if len(input.Benchmarks) == 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark is required"))
+		return
+	}
+
+	job, err := client.CreateEvaluationJob(ctx, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to create evaluation job")
+		return
+	}
+	if job == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned empty response for evaluation job"))
+		return
+	}
+
+	envelope := CreateEvaluationJobEnvelope{Data: *job}
+	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

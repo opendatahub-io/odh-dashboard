@@ -254,7 +254,9 @@ describe('Model Registry core', () => {
 
     modelRegistry.landingPage();
 
-    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
   });
 
   it('Shows admin empty state for users with model registry creation permissions', () => {

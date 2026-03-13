@@ -15,6 +15,7 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const GUARDRAILS = 'guardrails';
+const PROMPT_MANAGEMENT = 'promptManagement';
 const AI_ASSET_EXTERNAL_MODELS = 'ai-asset-external-models';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
@@ -40,6 +41,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: AI_ASSET_EXTERNAL_MODELS,
       reliantAreas: [PLUGIN_GEN_AI],
       devFlags: [AI_ASSET_EXTERNAL_MODELS],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MANAGEMENT,
+      reliantAreas: [PLUGIN_GEN_AI],
+      devFlags: [PROMPT_MANAGEMENT],
     },
   },
   {
@@ -113,17 +122,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: 'mcpservers',
       title: 'MCP servers',
       component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
-    },
-  },
-  {
-    type: 'gen-ai.ai-assets/tab',
-    flags: {
-      required: [PLUGIN_GEN_AI, 'modelAsService'],
-    },
-    properties: {
-      id: 'maasmodels',
-      title: 'Models as a service',
-      component: () => import('../app/AIAssets/AIAssetsMaaSTab').then((m) => m.default),
     },
   },
 ];

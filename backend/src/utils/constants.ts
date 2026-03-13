@@ -84,7 +84,7 @@ export const blankDashboardCR: DashboardConfig = {
       automl: false,
       autorag: false,
       modelAsService: false,
-      aiAssetExternalModels: false,
+      aiAssetCustomEndpoints: false,
       maasApiKeys: false,
       disableFineTuning: true,
       disableKueue: true,
@@ -95,13 +95,14 @@ export const blankDashboardCR: DashboardConfig = {
       disableLLMd: false,
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
+      vLLMDeploymentOnMaaS: false,
     },
     notebookController: {
       enabled: true,
     },
     templateOrder: [],
     genAiStudioConfig: {
-      aiAssetExternalModels: {
+      aiAssetCustomEndpoints: {
         externalProviders: false,
         clusterDomains: [],
       },
