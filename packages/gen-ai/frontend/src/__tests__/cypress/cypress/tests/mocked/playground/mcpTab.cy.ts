@@ -70,10 +70,16 @@ describe('Playground - MCP Servers', () => {
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify server is now authenticated and tools button is enabled');
-      serverRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('exist')
+        .should('not.have.attr', 'aria-disabled');
 
       cy.step('Open tools modal');
-      serverRow.findToolsButton().click();
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Wait for tools API call');
       cy.wait('@toolsRequest', { timeout: 10000 });
@@ -377,10 +383,15 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools button is enabled after closing modal');
       // Wait for MCP table to be visible after potential tab remount
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
-      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('exist')
+        .and('not.have.attr', 'aria-disabled');
 
       cy.step('Click tools button to open tools modal');
-      serverRow.findToolsButton().click();
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Verify tools modal opens with tools');
       mcpToolsModal.find().should('be.visible');
@@ -417,7 +428,8 @@ describe('Playground - MCP Servers', () => {
           mcpToolsModal.find().should('not.exist');
 
           cy.step('Re-open tools modal to verify persistence');
-          serverRow.findToolsButton().click();
+          // Re-query the server row after modal close to avoid stale element reference
+          playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
           mcpToolsModal.find().should('be.visible');
 
           cy.step('Verify tool selection persisted (2 tools deselected)');
@@ -462,7 +474,8 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab.closeSuccessModal();
       // Wait for MCP table to be visible after potential tab remount
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
-      serverRow.findToolsButton().click();
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
@@ -555,7 +568,8 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            serverRow.findToolsButton().click();
+            // Re-query the server row after modal close to avoid stale element reference
+            playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
@@ -611,7 +625,11 @@ describe('Playground - MCP Servers', () => {
         .and('contain.text', 'Performance may be degraded with more than 40 active tools');
 
       cy.step('Verify tools count shows 45 active');
-      serverRow.findToolsButton().should('contain.text', '45 active');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('contain.text', '45 active');
 
       cy.step('Test completed - Tools warning alert works correctly');
     },
@@ -653,7 +671,11 @@ describe('Playground - MCP Servers', () => {
       cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
 
       cy.step('Verify tools count shows 40 active');
-      serverRow.findToolsButton().should('contain.text', '40 active');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('contain.text', '40 active');
 
       cy.step('Test completed - No warning for 40 or fewer tools');
     },

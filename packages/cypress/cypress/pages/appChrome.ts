@@ -41,7 +41,24 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    return this.findSideBar().findAppNavItem(args);
+    // Build a unique selector that won't exist if nav item is not present
+    // This allows .should('not.exist') to work properly
+    const selector = `[data-nav-item="${args.name}-${args.rootSection || ''}-${
+      args.subSection || ''
+    }"]`;
+
+    // First check if the nav item exists by trying to find it
+    return cy.get('body').then(($body) => {
+      // Try to find sidebar first
+      const $sidebar = $body.find('#page-sidebar');
+      if ($sidebar.length === 0) {
+        // No sidebar - return a selector that definitely won't exist
+        return cy.get(selector, { timeout: 0 });
+      }
+
+      // Sidebar exists - use findAppNavItem
+      return this.findSideBar().findAppNavItem(args);
+    });
   }
 }
 

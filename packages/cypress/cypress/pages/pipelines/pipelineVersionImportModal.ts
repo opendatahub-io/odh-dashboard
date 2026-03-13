@@ -17,8 +17,8 @@ class PipelineImportModal extends Modal {
     return cy.findByTestId('import-pipeline-modal');
   }
 
-  findSubmitButton() {
-    return cy.findByTestId('modal-submit-button');
+  findSubmitButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('modal-submit-button', options);
   }
 
   findVersionNameInput() {
@@ -89,7 +89,10 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findSubmitButton().click();
+    // Wait for the button to be enabled before clicking (it may be disabled during file upload/processing)
+    // The button should be enabled once file validation and duplicate name check complete
+    // Using a longer timeout as the duplicate name check is debounced
+    this.findSubmitButton({ timeout: 30000 }).should('be.enabled').click();
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {
