@@ -86,14 +86,14 @@ export function useLlamaStackModelsQuery(
 const MOCK_LLAMA_STACK_VECTOR_STORES: LlamaStackVectorStoresResponse = {
   vector_stores: [
     {
-      id: 'ls_milvus',
-      name: 'Milvus',
+      id: 'vs_00000000-0000-0000-0000-000000000001',
+      name: 'test-milvus-store',
       status: 'completed',
       provider: 'milvus',
     },
     {
-      id: 'ls_faiss',
-      name: 'FAISS',
+      id: 'vs_00000000-0000-0000-0000-000000000002',
+      name: 'test-faiss-store',
       status: 'completed',
       provider: 'faiss',
     },
@@ -105,12 +105,19 @@ export function useLlamaStackVectorStoresQuery(
   namespace: string,
   // secretName is optional for now until the secretName form field is created
   secretName?: string,
+  providers?: string[],
 ): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
   return useQuery({
-    queryKey: ['vectorStores', namespace, secretName],
+    queryKey: ['vectorStores', namespace, secretName, providers],
     queryFn: secretName
       ? () => getLlamaStackVectorStores('')(namespace, secretName)({})
       : () => Promise.resolve(MOCK_LLAMA_STACK_VECTOR_STORES),
+    select: providers?.length
+      ? (data) => ({
+          // eslint-disable-next-line camelcase
+          vector_stores: data.vector_stores.filter((vs) => providers.includes(vs.provider)),
+        })
+      : undefined,
   });
 }
 

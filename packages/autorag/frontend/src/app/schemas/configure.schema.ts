@@ -4,7 +4,7 @@ import * as z from 'zod';
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
-export const LLS_DEFAULT_MILVUS = 'ls_milvus';
+export const SUPPORTED_VECTOR_STORE_PROVIDERS = ['milvus'];
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
@@ -35,7 +35,7 @@ function getBaseSchema() {
     test_data_key: z.string().min(1).optional(),
 
     llama_stack_secret_name: z.string().min(1).optional(),
-    llama_stack_vector_database_id: z.string().default(LLS_DEFAULT_MILVUS),
+    llama_stack_vector_database_id: z.string().min(1).optional(),
 
     generation_models: z.array(z.string()).min(1).default([]),
     embeddings_models: z.array(z.string()).min(1).default([]),

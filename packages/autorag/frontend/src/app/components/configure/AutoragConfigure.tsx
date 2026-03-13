@@ -7,10 +7,14 @@ import {
   Grid,
   GridItem,
   Label,
+  MenuToggle,
   Panel,
   PanelMain,
   PanelMainBody,
   PanelFooter,
+  Select,
+  SelectList,
+  SelectOption,
   Split,
   SplitItem,
   Stack,
@@ -27,10 +31,12 @@ import {
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import createConfigureSchema from '~/app/schemas/configure.schema';
+import createConfigureSchema, {
+  SUPPORTED_VECTOR_STORE_PROVIDERS,
+} from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useLlamaStackModelsQuery, useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -59,12 +65,18 @@ function AutoragConfigure(): React.JSX.Element {
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+  const [isVectorStoreSelectOpen, setIsVectorStoreSelectOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
   // TODO: secretName should come from a react-hook-form field. Once it's implemented,
-  // add secretName as a parameter into useLlamaStackModelsQuery
+  // add secretName as a parameter into useLlamaStackModelsQuery and useLlamaStackVectorStoresQuery
   const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
+  const { data: vectorStoresData } = useLlamaStackVectorStoresQuery(
+    String(namespace),
+    undefined,
+    SUPPORTED_VECTOR_STORE_PROVIDERS,
+  );
 
   const form = useForm({
     mode: 'onChange',
@@ -246,10 +258,57 @@ function AutoragConfigure(): React.JSX.Element {
                   <CardTitle>Configure details</CardTitle>
                   <CardBody>
                     <Stack>
-                      <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                        Where would you like to index your documents?
+                      <StackItem className="pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+                        Specify the location for storing the vector index used to retrieve your
+                        documents.
                       </StackItem>
-                      <StackItem data-temp-placeholder>Vector index dropdown</StackItem>
+                      <StackItem>
+                        <Controller
+                          control={control}
+                          name="llama_stack_vector_database_id"
+                          render={({ field: { value, onChange } }) => {
+                            const vectorStores = vectorStoresData?.vector_stores ?? [];
+                            const selectedStore = vectorStores.find((vs) => vs.id === value);
+                            return (
+                              <Select
+                                isOpen={isVectorStoreSelectOpen}
+                                onOpenChange={setIsVectorStoreSelectOpen}
+                                onSelect={(_e, selectedValue) => {
+                                  onChange(selectedValue === value ? undefined : selectedValue);
+                                  setIsVectorStoreSelectOpen(false);
+                                }}
+                                selected={value}
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsVectorStoreSelectOpen((prev) => !prev)}
+                                    isExpanded={isVectorStoreSelectOpen}
+                                    isDisabled={formIsSubmitting || vectorStores.length === 0}
+                                    data-testid="vector-store-select-toggle"
+                                  >
+                                    {selectedStore?.name ??
+                                      (vectorStores.length === 0
+                                        ? 'No vector stores available'
+                                        : 'Select vector index')}
+                                  </MenuToggle>
+                                )}
+                              >
+                                <SelectList data-testid="vector-store-select-list">
+                                  {vectorStores.map((vs) => (
+                                    <SelectOption
+                                      key={vs.id}
+                                      value={vs.id}
+                                      data-testid={`vector-store-option-${vs.id}`}
+                                    >
+                                      {vs.name}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            );
+                          }}
+                        />
+                      </StackItem>
 
                       <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm pf-v6-u-mt-md">
                         Add the data source you would like to use for evaluation.{' '}
