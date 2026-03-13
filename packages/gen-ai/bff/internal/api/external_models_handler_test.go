@@ -630,6 +630,91 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		}
 	})
 
+	It("should return 400 when namespace query parameter is missing", func() {
+		t := GinkgoT()
+
+		requestBody := models.VerifyExternalModelRequest{
+			ModelID:     "gpt-4o",
+			BaseURL:     "https://api.openai.com/v1",
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeLLM,
+		}
+
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		// Request without namespace query parameter
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
+		assert.NoError(t, err)
+
+		// Add RequestIdentity to context for auth
+		ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		// Use Routes() to get the router with middleware
+		router := app.Routes()
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		assert.Equal(t, "400", errorMap["code"])
+		assert.Contains(t, errorMap["message"], "missing required query parameter")
+	})
+
+	It("should return 401 when authentication headers are missing", func() {
+		t := GinkgoT()
+
+		requestBody := models.VerifyExternalModelRequest{
+			ModelID:     "gpt-4o",
+			BaseURL:     "https://api.openai.com/v1",
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeLLM,
+		}
+
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		// Request with namespace query parameter but no authentication headers
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify?namespace=mock-test-namespace-1", bytes.NewReader(bodyBytes))
+		assert.NoError(t, err)
+
+		// No authentication headers - InjectRequestIdentity middleware should catch this
+		rr := httptest.NewRecorder()
+
+		// Use Routes() to get the router with middleware
+		router := app.Routes()
+		router.ServeHTTP(rr, req)
+
+		// InjectRequestIdentity middleware calls unauthorizedResponse when headers are missing
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		assert.Equal(t, "UNAUTHORIZED", errorMap["code"])
+	})
+
 	It("should return 400 when model_id is missing", func() {
 		t := GinkgoT()
 
@@ -1021,7 +1106,8 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 					"total_tokens":      12,
 				},
 			}
-			err := json.NewEncoder(w).Encode(response); require.NoError(t, err)
+			err := json.NewEncoder(w).Encode(response)
+			require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
@@ -1106,7 +1192,8 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 					"total_tokens":  8,
 				},
 			}
-			err = json.NewEncoder(w).Encode(response); require.NoError(t, err)
+			err = json.NewEncoder(w).Encode(response)
+			require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
