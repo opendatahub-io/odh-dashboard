@@ -24,6 +24,9 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //  3. Maps the AutoRAG-specific request to KFP v2beta1 runtime config
 //  4. Submits the run to the Pipeline Server
 //
+// An optional pipelineType query parameter selects which discovered pipeline to use.
+// When omitted, defaults to "autorag".
+//
 // Requirements:
 //   - AutoRAG pipeline must exist in the namespace (returns 500 if not found)
 //   - All required fields in CreateAutoRAGRunRequest must be provided
@@ -43,9 +46,22 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Get discovered pipeline from context - required for POST
-	discovered, ok := ctx.Value(constants.DiscoveredPipelineKey).(*repositories.DiscoveredPipeline)
-	if !ok || discovered == nil {
+	// Determine which pipeline type to use (defaults to "autorag")
+	pipelineType := r.URL.Query().Get("pipelineType")
+	if pipelineType == "" {
+		pipelineType = "autorag"
+	}
+
+	// Validate pipelineType — only "autorag" is supported
+	if pipelineType != "autorag" {
+		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: only \"autorag\" is supported", pipelineType))
+		return
+	}
+
+	// Get discovered pipeline from context
+	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discovered := pipelines[pipelineType]
+	if discovered == nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"))
 		return
 	}
