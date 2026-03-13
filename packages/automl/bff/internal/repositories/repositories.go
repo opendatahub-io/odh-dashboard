@@ -12,10 +12,7 @@ type Repositories struct {
 	PipelineRuns *PipelineRunsRepository
 }
 
-func NewRepositories(logger *slog.Logger) *Repositories {
-	if logger == nil {
-		logger = slog.Default()
-	}
+func NewRepositories(_ *slog.Logger) *Repositories {
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),

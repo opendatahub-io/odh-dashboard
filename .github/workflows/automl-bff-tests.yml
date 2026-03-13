@@ -1,8 +1,8 @@
-name: Test / AutoRAG BFF Tests
+name: Test / AutoML BFF Tests
 on:
   push:
     paths:
-      - "packages/autorag/**"
+      - "packages/automl/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -10,7 +10,7 @@ on:
 
   pull_request:
     paths:
-      - "packages/autorag/**"
+      - "packages/automl/**"
       - ".github/workflows/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
@@ -29,19 +29,19 @@ jobs:
           go-version: "1.24.6"
 
       - name: Lint
-        working-directory: packages/autorag/bff
+        working-directory: packages/automl/bff
         run: make lint
 
       - name: Build (BFF)
-        working-directory: packages/autorag/bff
+        working-directory: packages/automl/bff
         run: make build
 
       - name: Test (BFF)
-        working-directory: packages/autorag/bff
+        working-directory: packages/automl/bff
         run: make test
 
       - name: Check if there are uncommitted file changes
-        working-directory: packages/autorag
+        working-directory: packages/automl
         run: |
           clean=$(git status --porcelain)
           if [[ -z "$clean" ]]; then
