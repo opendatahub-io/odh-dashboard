@@ -1,4 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -24,18 +25,44 @@ export function useExperimentQuery(
   });
 }
 
-export function useFilesQuery(): UseQueryResult<string[], Error> {
+export type ColumnSchema = {
+  name: string;
+  type: 'number' | 'timestamp' | 'bool' | 'string';
+  values?: (string | number)[];
+};
+
+export function useFilesQuery(
+  namespace?: string,
+  secretName?: string,
+  bucket?: string,
+  key?: string,
+): UseQueryResult<ColumnSchema[], Error> {
   return useQuery({
-    queryKey: ['files'],
-    // TODO: Replace with BFF call that retrieves a CSV file and parses
-    // the table columns from it. Returns mock column names for now.
-    queryFn: async () => [
-      'approval_status',
-      'credit_score',
-      'income',
-      'loan_amount',
-      'risk_category',
-    ],
+    queryKey: ['files', namespace, secretName, bucket, key],
+    queryFn: async () => {
+      if (!namespace || !secretName || !key) {
+        return [];
+      }
+
+      const params = new URLSearchParams({
+        namespace,
+        secretName,
+        key,
+        ...(bucket && { bucket }),
+      });
+
+      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file schema: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data?.columns ?? [];
+    },
+    enabled: Boolean(namespace && secretName && key),
+    retry: false,
+    placeholderData: [],
   });
 }
 

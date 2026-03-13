@@ -33,6 +33,8 @@ const (
 	UserPath         = ApiPathPrefix + "/user"
 	NamespacePath    = ApiPathPrefix + "/namespaces"
 	SecretsPath      = ApiPathPrefix + "/secrets"
+	S3FilePath       = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
 	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -162,6 +164,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
+	
+	// S3 operations
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.GetS3FileSchemaHandler))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.GetS3FileHandler))
 
 	// App Router
 	appMux := http.NewServeMux()
