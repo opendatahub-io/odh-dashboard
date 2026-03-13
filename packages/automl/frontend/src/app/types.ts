@@ -65,11 +65,23 @@ export type PipelineRunError = {
 
 export type PipelineSpec = Record<string, unknown>;
 
+/** Known KFP run states. API may return other values; use string for flexibility. */
+export type PipelineRunState =
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'RUNNING'
+  | 'PENDING'
+  | 'SKIPPED'
+  | 'PAUSED'
+  | 'INCOMPLETE'
+  | 'COMPLETE'
+  | 'CANCELLED';
+
 export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: string;
+  state: PipelineRunState | string;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
