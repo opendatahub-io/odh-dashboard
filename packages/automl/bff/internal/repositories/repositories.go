@@ -10,6 +10,7 @@ type Repositories struct {
 	User         *UserRepository
 	Namespace    *NamespaceRepository
 	Pipeline     *PipelineRepository
+	Secret       *SecretRepository
 	PipelineRuns *PipelineRunsRepository
 }
 
@@ -19,6 +20,7 @@ func NewRepositories(_ *slog.Logger) *Repositories {
 		User:         NewUserRepository(),
 		Namespace:    NewNamespaceRepository(),
 		Pipeline:     NewPipelineRepository(),
+		Secret:       NewSecretRepository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

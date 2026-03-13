@@ -34,7 +34,7 @@ type SecretSelectorProps = Omit<
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
-  type?: 'storage' | 'lls';
+  type?: 'storage'; // | 'lls';
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   label?: string;

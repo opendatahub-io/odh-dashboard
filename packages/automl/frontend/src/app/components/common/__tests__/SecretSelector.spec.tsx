@@ -3,11 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useFetchState } from 'mod-arch-core';
 import { SecretListItem } from '~/app/types';
-import {
-  mockSecretListItem,
-  mockStorageSecret,
-  mockLLSSecret,
-} from '~/__mocks__/mockSecretListItem';
+import { mockSecretListItem, mockStorageSecret } from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/components/common/SecretSelector';
 
 jest.mock('mod-arch-core', () => ({
@@ -51,7 +47,6 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [
       mockStorageSecret({ uuid: '1', name: 'aws-secret-1' }),
       mockStorageSecret({ uuid: '2', name: 'aws-secret-2' }),
-      mockLLSSecret({ uuid: '3', name: 'lls-secret-1' }),
     ];
 
     it('should render dropdown with secrets when loaded', () => {
@@ -187,10 +182,9 @@ describe('SecretSelector', () => {
       const toggle = screen.getByTestId('test-selector');
       fireEvent.click(toggle);
 
-      // Should show all three secrets
+      // Should show both secrets
       expect(screen.getByText('aws-secret-1')).toBeInTheDocument();
       expect(screen.getByText('aws-secret-2')).toBeInTheDocument();
-      expect(screen.getByText('lls-secret-1')).toBeInTheDocument();
     });
 
     it('should not display type labels by default', () => {
@@ -249,7 +243,6 @@ describe('SecretSelector', () => {
 
       // Type descriptions should be visible
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
-      expect(screen.getByText('Type: lls')).toBeInTheDocument();
     });
 
     it('should not display descriptions by default', () => {
@@ -259,10 +252,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockStorageSecret({
           uuid: '2',
-          name: 'lls-secret-1',
-          description: 'LLS API credentials',
+          name: 'aws-secret-2',
+          description: 'AWS S3 backup storage',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -290,10 +283,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockStorageSecret({
           uuid: '2',
-          name: 'lls-secret-1',
-          description: 'LLS API credentials',
+          name: 'aws-secret-2',
+          description: 'AWS S3 backup storage',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -585,7 +578,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="lls"
+          type={undefined}
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
@@ -977,12 +970,12 @@ describe('SecretSelector', () => {
 
     it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
-        mockLLSSecret({
+        mockSecretListItem({
           uuid: '1',
-          name: 'lls-secret',
+          name: 'generic-secret',
+          type: 'generic',
           data: {
-            llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
-            llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+            somekey: '[REDACTED]',
           },
         }),
       ];
@@ -999,19 +992,18 @@ describe('SecretSelector', () => {
       );
 
       fireEvent.click(screen.getByTestId('test-selector'));
-      fireEvent.click(screen.getByText('lls-secret'));
+      fireEvent.click(screen.getByText('generic-secret'));
 
-      // Should NOT show validation error - lls type not in additionalRequiredKeys
+      // Should NOT show validation error - generic type not in additionalRequiredKeys
       expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
       expect(mockOnChange).toHaveBeenCalledWith({
         uuid: '1',
-        name: 'lls-secret',
-        type: 'lls',
+        name: 'generic-secret',
+        type: 'generic',
         data: {
-          llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
-          llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+          somekey: '[REDACTED]',
         },
         invalid: false,
       });
@@ -1136,10 +1128,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-dev-credentials',
         }),
-        mockLLSSecret({
+        mockStorageSecret({
           uuid: '3',
-          name: 'lls-prod-secret',
-          displayName: 'Production LLS',
+          name: 'aws-prod-secret',
+          displayName: 'Production AWS Storage',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1158,9 +1150,9 @@ describe('SecretSelector', () => {
       // Should show displayName where available, name otherwise
       expect(screen.getByText('Production AWS')).toBeInTheDocument();
       expect(screen.getByText('aws-dev-credentials')).toBeInTheDocument();
-      expect(screen.getByText('Production LLS')).toBeInTheDocument();
+      expect(screen.getByText('Production AWS Storage')).toBeInTheDocument();
       expect(screen.queryByText('aws-prod-credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('lls-prod-secret')).not.toBeInTheDocument();
+      expect(screen.queryByText('aws-prod-secret')).not.toBeInTheDocument();
     });
 
     it('should call onChange with correct name when selecting secret with displayName', () => {
@@ -1325,10 +1317,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-without-desc',
         }),
-        mockLLSSecret({
+        mockStorageSecret({
           uuid: '3',
-          name: 'lls-with-desc',
-          description: 'LLS endpoint for testing',
+          name: 'aws-with-desc',
+          description: 'S3 endpoint for testing',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1348,11 +1340,10 @@ describe('SecretSelector', () => {
 
       // First secret has type and description
       expect(screen.getByText('S3 bucket with description')).toBeInTheDocument();
-      // Second and first secrets both show Type: s3 (getAllByText for multiple matches)
-      expect(screen.getAllByText('Type: s3')).toHaveLength(2);
+      // All three secrets show Type: s3
+      expect(screen.getAllByText('Type: s3')).toHaveLength(3);
       // Third secret has type and description
-      expect(screen.getByText('Type: lls')).toBeInTheDocument();
-      expect(screen.getByText('LLS endpoint for testing')).toBeInTheDocument();
+      expect(screen.getByText('S3 endpoint for testing')).toBeInTheDocument();
     });
   });
 });

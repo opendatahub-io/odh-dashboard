@@ -73,6 +73,79 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Get Available Namespaces endpoint.
+  /api/v1/secrets:
+    summary: Path used to retrieve and filter secrets from a namespace.
+    description: >-
+      The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The namespace name to query secrets from
+          schema:
+            type: string
+          example: default
+        - name: type
+          in: query
+          required: false
+          description: >-
+            Secret type filter:
+            - 'storage': Filters for storage secrets (e.g., S3 secrets)
+            - Omit for all secrets
+
+            Type detection uses:
+            1. The 'opendatahub.io/connection-type' annotation value if present
+            2. Otherwise, key-based classification (case-insensitive):
+               - S3 requires: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint
+
+            The 'data' field in the response contains all secret keys. Use it to validate additional requirements
+            for your use case (e.g., checking for aws_s3_bucket). Allowed keys show actual values; others show "[REDACTED]".
+          schema:
+            type: string
+            enum:
+              - storage
+          example: storage
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecrets
+      summary: Get filtered secrets
+      description: >-
+        Retrieves secrets from a specified namespace with optional filtering by type.
+        All key matching is case-insensitive.
+
+        Secret Type Detection:
+        1. First checks for the 'opendatahub.io/connection-type' annotation. If present, its value is used as the type.
+        2. Otherwise, performs key-based classification using required classification keys:
+           - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+
+        Type Filtering:
+        - 'storage': Returns only secrets classified as storage types (currently: s3)
+        - No type: Returns all secrets with their detected type classification
+
+        Data Security:
+        The 'data' field contains all secret keys with redacted or actual values:
+        - Allowed keys (currently: aws_s3_bucket) return actual values
+        - All other keys return "[REDACTED]"
+        Key matching for allowed keys is case-insensitive.
+
+        Metadata:
+        - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
+        - 'description': Extracted from 'openshift.io/description' annotation if present
+
   /api/v1/pipeline-runs:
     summary: Pipeline run operations
     description: >-
@@ -159,6 +232,93 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+
+    # Secret Schemas
+    SecretTypeSchema:
+      description: >-
+        Schema defining the classification keys for a secret type.
+        Type detection first checks the 'opendatahub.io/connection-type' annotation.
+        If not present, classification keys are used to identify the secret type through key-based detection.
+        Common optional keys are included in the 'data' field but not required for type classification.
+      type: object
+      properties:
+        classificationKeys:
+          type: array
+          items:
+            type: string
+          description: Keys required for BFF to classify a secret as this type via key-based detection (case-insensitive matching)
+        commonOptionalKeys:
+          type: array
+          items:
+            type: string
+          description: >-
+            Common optional keys that may be required for specific use cases but not for type classification.
+            These appear in the 'data' field when present.
+
+    SecretTypeSchemas:
+      description: Reference documentation for secret type schemas
+      type: object
+      properties:
+        s3:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                commonOptionalKeys:
+                  example: ["aws_s3_bucket"]
+
+    SecretListItem:
+      description: A Kubernetes secret with its UUID, name, type classification, data keys with values/redaction, and metadata
+      required:
+        - uuid
+        - name
+        - type
+        - data
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The Kubernetes UID of the secret
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: The name of the secret
+          example: aws-secret-1
+        type:
+          type: string
+          enum: ["s3", ""]
+          description: >-
+            The type of the secret determined by:
+            1. First, the 'opendatahub.io/connection-type' annotation if present
+            2. Otherwise, key-based detection using classification keys (see SecretTypeSchemas):
+               - 's3': S3 storage secret (has all required S3 classification keys)
+               - '': Empty string if the secret doesn't match any recognized type
+          example: s3
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            Map of all keys in the secret with their values. Security redaction applies:
+            - Keys in the allowed list (currently: aws_s3_bucket) return their actual values
+            - All other keys return the value "[REDACTED]"
+            Key matching for allowed keys is case-insensitive.
+          example:
+            aws_access_key_id: "[REDACTED]"
+            aws_default_region: "[REDACTED]"
+            aws_s3_endpoint: "[REDACTED]"
+            aws_secret_access_key: "[REDACTED]"
+            aws_s3_bucket: "my-bucket-name"
+        displayName:
+          type: string
+          description: Display name from the 'openshift.io/display-name' annotation (if present)
+          example: "My AWS S3 Connection"
+        description:
+          type: string
+          description: Description from the 'openshift.io/description' annotation (if present)
+          example: "S3 bucket for training data storage"
 
     # Pipeline Run Schemas
     PipelineRun:
@@ -397,6 +557,39 @@ components:
       example: 1
 
   responses:
+    SecretsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                description: List of filtered secrets
+                items:
+                  $ref: "#/components/schemas/SecretListItem"
+      description: A response containing a list of filtered secret items
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "403"
+                  message:
+                    type: string
+                    example: "Forbidden"
+
     ConfigResponse:
       description: User configuration response
       content:
