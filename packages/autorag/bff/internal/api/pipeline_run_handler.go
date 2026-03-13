@@ -39,7 +39,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
 		return
 	}
 

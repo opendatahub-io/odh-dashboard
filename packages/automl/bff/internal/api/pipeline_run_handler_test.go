@@ -10,38 +10,34 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/opendatahub-io/autorag-library/bff/internal/config"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
-	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	"github.com/opendatahub-io/automl-library/bff/internal/config"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
 func newMinimalTestApp() *App {
 	return &App{
-		config: config.EnvConfig{
-			AuthMethod:                config.AuthMethodInternal,
-			AutoRAGPipelineNamePrefix: "autorag",
-		},
+		config:       config.EnvConfig{AuthMethod: config.AuthMethodInternal},
 		logger:       slog.Default(),
 		repositories: repositories.NewRepositories(slog.Default()),
 	}
 }
 
-func validCreateRequest() models.CreateAutoRAGRunRequest {
-	return models.CreateAutoRAGRunRequest{
-		DisplayName:          "test-run",
-		Description:          "a test run",
-		TestDataSecretName:   "test-secret",
-		TestDataBucketName:   "test-bucket",
-		TestDataKey:          "test-key",
-		InputDataSecretName:  "input-secret",
-		InputDataBucketName:  "input-bucket",
-		InputDataKey:         "input-key",
-		LlamaStackSecretName: "llama-secret",
-		OptimizationMetric:   "faithfulness",
+func validCreateRequest() models.CreateAutoMLRunRequest {
+	topN := 3
+	return models.CreateAutoMLRunRequest{
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TrainDataSecretName: "minio-secret",
+		TrainDataBucketName: "automl-bucket",
+		TrainDataFileKey:    "data/train.csv",
+		LabelColumn:         "target",
+		TaskType:            "binary",
+		TopN:                &topN,
 	}
 }
 
@@ -58,24 +54,14 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 }
 
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
-	// Use "test-namespace" consistently — it matches the mock client created with "mock://test-namespace"
-	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-	// Add discovered pipeline to context (normally set by middleware)
-	discovered := &repositories.DiscoveredPipeline{
-		PipelineID:        ids.PipelineID,
-		PipelineVersionID: ids.LatestVersionID,
-		PipelineName:      "autorag-pipeline",
-		Namespace:         "test-namespace",
-	}
-	ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-ns")
 	return req.WithContext(ctx)
 }
 
 func TestCreatePipelineRunHandler_Success(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should create run with all required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -93,13 +79,13 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "test-run", response.Data.DisplayName)
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
+		assert.Equal(t, "binary", response.Data.RuntimeConfig.Parameters["task_type"])
 	})
 
-	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
+	t.Run("should default top_n to 3 when not provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
-		body.OptimizationMetric = ""
+		body.TopN = nil
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -110,16 +96,14 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-		assert.NotEmpty(t, response.Data.RunID)
-		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
+		assert.Equal(t, float64(constants.DefaultTopN), response.Data.RuntimeConfig.Parameters["top_n"])
 	})
 
-	t.Run("should accept answer_correctness metric", func(t *testing.T) {
+	t.Run("should accept multiclass task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
-		body.OptimizationMetric = "answer_correctness"
+		body.TaskType = "multiclass"
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -127,10 +111,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("should accept context_correctness metric", func(t *testing.T) {
+	t.Run("should accept regression task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
-		body.OptimizationMetric = "context_correctness"
+		body.TaskType = "regression"
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -138,12 +122,11 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("should include optional fields when provided", func(t *testing.T) {
+	t.Run("should use custom top_n when provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
-		body.EmbeddingsModels = []string{"model-a", "model-b"}
-		body.GenerationModels = []string{"gen-model"}
-		body.LlamaStackVectorDatabaseID = "vectordb-1"
+		topN := 5
+		body.TopN = &topN
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -153,18 +136,14 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, response.Data.RunID)
-		assert.Equal(t, "test-run", response.Data.DisplayName)
-		assert.Equal(t, "PENDING", response.Data.State)
-		assert.NotNil(t, response.Data.PipelineVersionReference)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_database_id"])
+		assert.Equal(t, float64(5), response.Data.RuntimeConfig.Parameters["top_n"])
 	})
 }
 
 func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should reject empty body", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -182,25 +161,25 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject missing required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := models.CreateAutoRAGRunRequest{DisplayName: "only-name"}
+		body := models.CreateAutoMLRunRequest{DisplayName: "only-name"}
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "test_data_secret_name")
+		assert.Contains(t, rr.Body.String(), "train_data_secret_name")
 	})
 
-	t.Run("should reject invalid optimization_metric", func(t *testing.T) {
+	t.Run("should reject invalid task_type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
-		body.OptimizationMetric = "invalid_metric"
+		body.TaskType = "invalid_type"
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "invalid optimization_metric")
+		assert.Contains(t, rr.Body.String(), "invalid task_type")
 	})
 
 	t.Run("should reject unknown JSON fields", func(t *testing.T) {
@@ -273,7 +252,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 	app := newMinimalTestApp()
-	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+	mockClient := psmocks.NewMockPipelineServerClient()
 
 	t.Run("should return envelope with data field", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -317,17 +296,14 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data.RuntimeConfig)
 		params := response.Data.RuntimeConfig.Parameters
-		assert.Equal(t, "test-secret", params["test_data_secret_name"])
-		assert.Equal(t, "test-bucket", params["test_data_bucket_name"])
-		assert.Equal(t, "test-key", params["test_data_key"])
-		assert.Equal(t, "input-secret", params["input_data_secret_name"])
-		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
-		assert.Equal(t, "input-key", params["input_data_key"])
-		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
-		assert.Equal(t, "faithfulness", params["optimization_metric"])
+		assert.Equal(t, "minio-secret", params["train_data_secret_name"])
+		assert.Equal(t, "automl-bucket", params["train_data_bucket_name"])
+		assert.Equal(t, "data/train.csv", params["train_data_file_key"])
+		assert.Equal(t, "target", params["label_column"])
+		assert.Equal(t, "binary", params["task_type"])
 	})
 
-	t.Run("should include pipeline_version_reference from discovered pipeline", func(t *testing.T) {
+	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
 
@@ -337,8 +313,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
-		// Pipeline ID comes from the discovered pipeline, which uses namespace-derived IDs
-		assert.Equal(t, psmocks.DeriveMockIDs("test-namespace").PipelineID, response.Data.PipelineVersionReference.PipelineID)
+		assert.Equal(t, constants.AutoMLPipelineID, response.Data.PipelineVersionReference.PipelineID)
 	})
 }
 

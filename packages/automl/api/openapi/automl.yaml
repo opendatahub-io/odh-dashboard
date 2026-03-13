@@ -147,6 +147,118 @@ paths:
         - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
         - 'description': Extracted from 'openshift.io/description' annotation if present
 
+  # =============================================================================
+  # PIPELINE RUNS ENDPOINTS
+  # =============================================================================
+
+  /api/v1/pipeline-runs:
+    summary: Pipeline run operations
+    description: >-
+      Endpoints for listing and creating pipeline runs from the Pipeline Server
+      in the specified namespace. The Pipeline Server (DSPipelineApplication)
+      is automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineVersionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID of the pipeline version to filter runs by
+          example: "22e57c06-030f-4c63-900d-0a808d577899"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRuns
+      summary: Get Pipeline Runs
+      description: Returns pipeline runs optionally filtered by pipeline version ID
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutoMLRunRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: createPipelineRun
+      summary: Create Pipeline Run
+      description: >-
+        Creates a new AutoML pipeline run. The Pipeline Server is auto-discovered
+        in the namespace. The BFF maps AutoML-specific parameters to KFP v2beta1
+        runtime config and submits the run.
+
+  /api/v1/pipeline-runs/{runId}:
+    summary: Get a single pipeline run by ID
+    description: >-
+      Retrieves a single pipeline run by its unique identifier from the
+      Pipeline Server in the specified namespace. The Pipeline Server
+      (DSPipelineApplication) is automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRunById
+      summary: Get Pipeline Run by ID
+      description: Returns a single pipeline run by its unique identifier
+
 components:
   schemas:
     Config:
@@ -247,6 +359,276 @@ components:
           type: string
           description: Description from the 'openshift.io/description' annotation (if present)
           example: "S3 bucket for training data storage"
+
+    # Pipeline Run Schemas
+    PipelineRun:
+      type: object
+      description: Kubeflow Pipeline Run information
+      required:
+        - run_id
+        - display_name
+        - state
+        - created_at
+      properties:
+        run_id:
+          type: string
+          description: Unique pipeline run identifier
+          example: "abc123-def456-ghi789"
+        display_name:
+          type: string
+          description: Human-readable run name
+          example: "AutoML Training Run 1"
+        description:
+          type: string
+          description: Run description
+          example: "Binary classification on customer churn dataset"
+        experiment_id:
+          type: string
+          description: ID of the experiment this run belongs to
+          example: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+        pipeline_version_reference:
+          type: object
+          description: Reference to pipeline and version
+          properties:
+            pipeline_id:
+              type: string
+              description: ID of the pipeline
+              example: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+            pipeline_version_id:
+              type: string
+              description: ID of the pipeline version
+              example: "22e57c06-030f-4c63-900d-0a808d577899"
+        runtime_config:
+          type: object
+          description: Runtime configuration used for this run, including pipeline parameters
+          nullable: true
+          properties:
+            parameters:
+              type: object
+              description: Key-value map of pipeline parameters
+              additionalProperties: true
+              example:
+                task_type: "binary"
+                label_column: "target"
+                train_data_secret_name: "minio-secret"
+                train_data_bucket_name: "automl-bucket"
+                top_n: 3
+            pipeline_root:
+              type: string
+              description: Root output directory for pipeline artifacts
+        state:
+          type: string
+          enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+          description: Current run state
+          example: "SUCCEEDED"
+        storage_state:
+          type: string
+          description: Storage state of the run
+          example: "AVAILABLE"
+        service_account:
+          type: string
+          description: Service account used to run the pipeline
+          example: "pipeline-runner-dspa"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2026-02-24T10:30:00Z"
+        scheduled_at:
+          type: string
+          format: date-time
+          description: Scheduled timestamp (ISO 8601)
+          example: "2026-02-24T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: Completion timestamp (ISO 8601)
+          example: "2026-02-24T11:15:00Z"
+        error:
+          type: object
+          description: Error information if the run failed
+          nullable: true
+          properties:
+            code:
+              type: integer
+              format: int32
+              description: Error code
+            message:
+              type: string
+              description: Error message
+        state_history:
+          type: array
+          description: History of state changes
+          items:
+            type: object
+            properties:
+              update_time:
+                type: string
+                format: date-time
+                description: When the state changed
+                example: "2026-02-24T10:30:00Z"
+              state:
+                type: string
+                description: The state at this time
+                example: "RUNNING"
+              error:
+                type: object
+                description: Optional error information if the state change was due to an error
+                nullable: true
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    description: Error code
+                  message:
+                    type: string
+                    description: Error message
+        run_details:
+          type: object
+          description: Detailed information about the pipeline run including task execution details
+          nullable: true
+          properties:
+            task_details:
+              type: array
+              description: List of tasks executed as part of this pipeline run
+              items:
+                type: object
+                properties:
+                  run_id:
+                    type: string
+                    description: ID of the pipeline run this task belongs to
+                    example: "abc123-def456"
+                  task_id:
+                    type: string
+                    description: Unique identifier for this task
+                    example: "task-data-preprocessing"
+                  display_name:
+                    type: string
+                    description: Human-readable task name
+                    example: "Data Preprocessing"
+                  create_time:
+                    type: string
+                    format: date-time
+                    description: When the task was created
+                    example: "2026-02-24T10:30:00Z"
+                  start_time:
+                    type: string
+                    format: date-time
+                    description: When the task started executing
+                    example: "2026-02-24T10:30:05Z"
+                  end_time:
+                    type: string
+                    format: date-time
+                    description: When the task completed
+                    example: "2026-02-24T10:35:00Z"
+                  state:
+                    type: string
+                    enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+                    description: Current task state
+                    example: "SUCCEEDED"
+                  execution_id:
+                    type: string
+                    description: Execution ID for this task
+                  state_history:
+                    type: array
+                    description: History of state changes for this task
+                    items:
+                      type: object
+                      properties:
+                        update_time:
+                          type: string
+                          format: date-time
+                          description: When the state changed
+                        state:
+                          type: string
+                          description: The state at this time
+                  child_tasks:
+                    type: array
+                    description: Child tasks or pods created by this task
+                    items:
+                      type: object
+                      properties:
+                        pod_name:
+                          type: string
+                          description: Name of the Kubernetes pod running this task
+                          example: "data-preprocessing-pod-abc123"
+
+    CreateAutoMLRunRequest:
+      type: object
+      description: Request body for creating an AutoML pipeline run
+      required:
+        - display_name
+        - train_data_secret_name
+        - train_data_bucket_name
+        - train_data_file_key
+        - label_column
+        - task_type
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          description: Human-readable name for the run
+          example: "my-training-run"
+        description:
+          type: string
+          description: Optional description of the run
+        train_data_secret_name:
+          type: string
+          minLength: 1
+          description: Kubernetes secret name with S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT, AWS_DEFAULT_REGION)
+          example: "minio-secret"
+        train_data_bucket_name:
+          type: string
+          minLength: 1
+          description: S3-compatible bucket name containing the tabular data file
+          example: "automl-bucket"
+        train_data_file_key:
+          type: string
+          minLength: 1
+          description: S3 object key of the CSV file (features and target column)
+          example: "data/train.csv"
+        label_column:
+          type: string
+          minLength: 1
+          description: Name of the target/label column in the dataset
+          example: "target"
+        task_type:
+          type: string
+          enum:
+            - binary
+            - multiclass
+            - regression
+          description: ML task type; drives metrics and model types
+          example: "binary"
+        top_n:
+          type: integer
+          minimum: 1
+          default: 3
+          description: Number of top models to select and refit (default 3)
+          example: 3
+      additionalProperties: false
+
+    PipelineRunsData:
+      type: object
+      description: List of pipeline runs with pagination support
+      required:
+        - runs
+      properties:
+        runs:
+          type: array
+          description: Array of pipeline runs
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PipelineRun'
+        total_size:
+          type: integer
+          format: int32
+          description: Total number of runs matching the filter
+          example: 42
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page
+          example: "eyJwYWdlIjoyfQ=="
 
     BaseResource:
       allOf:
@@ -447,6 +829,118 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Conflict - Role Binding with the same name already exists
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Service Unavailable - Pipeline Server not ready or not found
+    PipelineRunsResponse:
+      description: Successful response containing pipeline runs
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRunsData'
+          example:
+            metadata: {}
+            data:
+              runs:
+                - run_id: "abc123-def456"
+                  display_name: "AutoML Training Run 1"
+                  description: "Binary classification on customer churn dataset"
+                  experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+                  pipeline_version_reference:
+                    pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                    pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+                  state: "SUCCEEDED"
+                  storage_state: "AVAILABLE"
+                  service_account: "pipeline-runner-dspa"
+                  created_at: "2026-02-24T10:30:00Z"
+                  scheduled_at: "2026-02-24T10:30:00Z"
+                  finished_at: "2026-02-24T11:15:00Z"
+              total_size: 1
+              next_page_token: ""
+    CreatePipelineRunResponse:
+      description: Successful response containing the created pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "my-training-run"
+              state: "PENDING"
+              created_at: "2026-02-25T10:30:00Z"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              runtime_config:
+                parameters:
+                  task_type: "binary"
+                  label_column: "target"
+                  train_data_secret_name: "minio-secret"
+                  train_data_bucket_name: "automl-bucket"
+                  train_data_file_key: "data/train.csv"
+                  top_n: 3
+    PipelineRunResponse:
+      description: Successful response containing a single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "AutoML Training Run 1"
+              description: "Binary classification on customer churn dataset"
+              experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+              pipeline_version_reference:
+                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+                pipeline_version_id: "22e57c06-030f-4c63-900d-0a808d577899"
+              state: "SUCCEEDED"
+              storage_state: "AVAILABLE"
+              service_account: "pipeline-runner-dspa"
+              created_at: "2026-02-24T10:30:00Z"
+              finished_at: "2026-02-24T11:15:00Z"
+              runtime_config:
+                parameters:
+                  task_type: "binary"
+                  label_column: "target"
+                  train_data_secret_name: "minio-secret"
+                  train_data_bucket_name: "automl-bucket"
+                  train_data_file_key: "data/train.csv"
+                  top_n: 3
+              run_details:
+                task_details:
+                  - run_id: "abc123-def456"
+                    task_id: "task-data-preprocessing"
+                    display_name: "Data Preprocessing"
+                    state: "SUCCEEDED"
+                  - run_id: "abc123-def456"
+                    task_id: "task-model-training"
+                    display_name: "Model Training"
+                    state: "SUCCEEDED"
 
   parameters:
     kubeflowUserId:
@@ -497,9 +991,12 @@ components:
         pageSize:
           value: "100"
       name: pageSize
-      description: Number of entities in each page.
+      description: Number of entities in each page. Must be between 1 and 100. Default is 20.
       schema:
-        type: string
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
       in: query
       required: false
     nextPageToken:
@@ -535,9 +1032,12 @@ components:
       required: false
     namespace:
       name: namespace
-      description: The namespace to filter resources by.
+      description: The namespace to filter resources by. Must be a valid DNS-1123 label.
       schema:
         type: string
+        minLength: 1
+        maxLength: 63
+        pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
       in: query
       required: true
 
@@ -552,3 +1052,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: PipelineOperation
+    description: Operations for querying and creating Kubeflow Pipeline runs
