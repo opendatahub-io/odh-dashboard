@@ -26,9 +26,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
-import { Controller, useFormContext, Watch } from 'react-hook-form';
+import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
@@ -68,6 +69,11 @@ function AutoragConfigure(): React.JSX.Element {
 
   const form = useFormContext<ConfigureSchema>();
 
+  const [inputDataBucketName, testDataBucketName] = useWatch({
+    control: form.control,
+    name: ['input_data_bucket_name', 'test_data_bucket_name'],
+  });
+
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
     if (allModelsData?.models && !modelsInitialized.current) {
@@ -87,6 +93,19 @@ function AutoragConfigure(): React.JSX.Element {
       });
     }
   }, [allModelsData, form]);
+
+  // Ensure test bucket and input bucket are always the same
+  useEffect(() => {
+    if (inputDataBucketName !== testDataBucketName) {
+      form.setValue('test_data_bucket_name', inputDataBucketName);
+      form.setValue('test_data_key', '');
+    }
+  }, [form, inputDataBucketName, testDataBucketName]);
+
+  // reset selected file values if bucket changes
+  useEffect(() => {
+    form.setValue('input_data_key', '');
+  }, [form]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -131,7 +150,15 @@ function AutoragConfigure(): React.JSX.Element {
                               value={selectedSecret?.uuid}
                               onChange={(secret) => {
                                 setSelectedSecret(secret);
-                                onChange(secret?.invalid ? '' : secret?.name);
+                                onChange(!secret || secret.invalid ? '' : secret.name);
+                                const bucketKey = findKey(
+                                  secret?.data ?? {},
+                                  (key) => key.toLocaleLowerCase() === 'aws_s3_bucket',
+                                );
+                                form.setValue(
+                                  'input_data_bucket_name',
+                                  secret && bucketKey ? secret.data[bucketKey] : '',
+                                );
                               }}
                               onRefreshReady={(refresh) => {
                                 secretsRefreshRef.current = refresh;
@@ -165,6 +192,7 @@ function AutoragConfigure(): React.JSX.Element {
                         onClose={() => {
                           setSelectedSecret(undefined);
                           form.setValue('input_data_secret_name', '');
+                          form.setValue('input_data_bucket_name', '');
                         }}
                         closeBtnAriaLabel="Clear selected connection"
                       >
@@ -224,8 +252,8 @@ function AutoragConfigure(): React.JSX.Element {
                           <Watch
                             key="edit-experiment-settings"
                             control={form.control}
-                            name={['input_data_bucket_name', 'input_data_key']}
-                            render={([inputDataBucketName, inputDataKey]) => (
+                            name="input_data_key"
+                            render={(inputDataKey) => (
                               <Button
                                 variant="secondary"
                                 onClick={openExperimentSettings}
@@ -341,7 +369,7 @@ function AutoragConfigure(): React.JSX.Element {
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
               const availableKeys = Object.keys(connection.stringData ?? {});
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
@@ -358,10 +386,18 @@ function AutoragConfigure(): React.JSX.Element {
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onSelect={(files) => {
+        onPrimary={(files) => {
           // TODO: replace with actual logic once implemented
           form.setValue('input_data_bucket_name', 'bucket');
           form.setValue('input_data_key', 'key');
+        }}
+        onSelectSource={
+          (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
+        }
+        files={[]}
+        source={{
+          name: 'Foo connection',
+          count: 999999999,
         }}
       />
       <AutoragExperimentSettings

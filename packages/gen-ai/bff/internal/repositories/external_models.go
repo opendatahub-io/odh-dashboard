@@ -47,10 +47,11 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Determine model source type based on URL
-	// Use proper URL parsing to prevent manipulation via query params or paths
 	sourceType := models.ModelSourceTypeExternalProvider
+	endpoint := fmt.Sprintf("external: %s", req.BaseURL)
 	if helper.IsClusterLocalURL(req.BaseURL) {
 		sourceType = models.ModelSourceTypeExternalCluster
+		endpoint = fmt.Sprintf("internal: %s", req.BaseURL)
 	}
 
 	// Return AAModel structure for consistent API response
@@ -62,11 +63,12 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		Version:         "",
 		Usecase:         req.UseCases,
 		Description:     "",
-		Endpoints:       []string{req.BaseURL},
+		Endpoints:       []string{endpoint},
 		Status:          "Running",
 		DisplayName:     req.ModelDisplayName,
 		SAToken:         models.SAToken{},
 		ModelSourceType: sourceType,
+		ModelType:       req.ModelType,
 	}, nil
 }
 

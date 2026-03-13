@@ -205,6 +205,49 @@ paths:
       operationId: listEvaluationJobs
       summary: List Evaluation Jobs
       description: Gets a list of all evaluation jobs from the EvalHub server.
+    post:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - in: query
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the evaluation job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvaluationJobRequest'
+            example:
+              name: 'test-eval-02-03'
+              description: 'A test evaluation'
+              model:
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                name: 'llama-32-1b-instruct'
+              benchmarks:
+                - id: 'arc_easy'
+                  provider_id: 'lm_evaluation_harness'
+                  parameters:
+                    num_examples: 10
+                    limit: 5
+                    tokenizer: 'google/flan-t5-small'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateEvaluationJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createEvaluationJob
+      summary: Create Evaluation Job
+      description: Creates and starts a new evaluation run against the EvalHub control plane.
 
   /eval-hub/api/v1/evaluations/jobs/{id}:
     summary: Cancel or delete an evaluation job
@@ -432,6 +475,13 @@ components:
           items:
             $ref: '#/components/schemas/BenchmarkResult'
 
+    ModelAuth:
+      type: object
+      properties:
+        secret_ref:
+          type: string
+          description: Reference to a Kubernetes secret containing the API key or token
+
     JobModel:
       type: object
       required:
@@ -439,10 +489,59 @@ components:
       properties:
         url:
           type: string
+          description: Inference endpoint URL for the model
+          example: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
         name:
           type: string
-          example: 'meta-llama/Llama-3.1-8B-Instruct'
-          description: Model being evaluated
+          example: 'llama-32-1b-instruct'
+          description: Name of the model or agent being evaluated
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Additional model-level parameters
+        auth:
+          $ref: '#/components/schemas/ModelAuth'
+
+    S3DataRef:
+      type: object
+      properties:
+        bucket:
+          type: string
+          description: S3 bucket name
+        key:
+          type: string
+          description: S3 object key or dataset URL
+        secret_ref:
+          type: string
+          description: Reference to a secret for S3 access credentials
+
+    TestDataRef:
+      type: object
+      properties:
+        s3:
+          $ref: '#/components/schemas/S3DataRef'
+
+    JobPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+          description: Name of the primary scoring metric
+        lower_is_better:
+          type: boolean
+          description: Whether a lower score indicates better performance
+
+    JobPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+          description: Minimum score threshold to pass
 
     JobBenchmark:
       type: object
@@ -456,9 +555,20 @@ components:
         provider_id:
           type: string
           example: 'lm_evaluation_harness'
+          description: ID of the evaluation provider that runs this benchmark
+        weight:
+          type: number
+          description: Relative weight of this benchmark in a collection (default 1)
+        primary_score:
+          $ref: '#/components/schemas/JobPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
         parameters:
           type: object
           additionalProperties: true
+          description: Runtime parameters passed to the benchmark (e.g. num_examples, limit, tokenizer)
+        test_data_ref:
+          $ref: '#/components/schemas/TestDataRef'
 
     EvaluationJob:
       type: object
@@ -475,12 +585,141 @@ components:
           $ref: '#/components/schemas/JobStatus'
         results:
           $ref: '#/components/schemas/JobResults'
+        name:
+          type: string
+          description: User-provided name for the evaluation run
+        description:
+          type: string
+          description: User-provided description
+        tags:
+          type: array
+          items:
+            type: string
         model:
           $ref: '#/components/schemas/JobModel'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
         benchmarks:
           type: array
           items:
             $ref: '#/components/schemas/JobBenchmark'
+        collection:
+          $ref: '#/components/schemas/JobCollection'
+        experiment:
+          $ref: '#/components/schemas/JobExperiment'
+        custom:
+          type: object
+          additionalProperties: true
+        exports:
+          $ref: '#/components/schemas/JobExports'
+
+    ExperimentTag:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    JobExperiment:
+      type: object
+      properties:
+        name:
+          type: string
+          description: MLflow experiment name
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentTag'
+        artifact_location:
+          type: string
+          description: Storage location for experiment artifacts
+
+    JobCollection:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: ID of the benchmark collection to run
+
+    OciCoordinates:
+      type: object
+      properties:
+        oci_host:
+          type: string
+        oci_repository:
+          type: string
+        oci_tag:
+          type: string
+        oci_subject:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+
+    OciK8s:
+      type: object
+      properties:
+        connection:
+          type: string
+
+    OciExport:
+      type: object
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/OciCoordinates'
+        k8s:
+          $ref: '#/components/schemas/OciK8s'
+
+    JobExports:
+      type: object
+      properties:
+        oci:
+          $ref: '#/components/schemas/OciExport'
+
+    CreateEvaluationJobRequest:
+      type: object
+      required:
+        - name
+        - model
+        - benchmarks
+      properties:
+        name:
+          type: string
+          description: Name for the evaluation run
+          example: 'test-eval-02-03'
+        description:
+          type: string
+          description: Optional description
+          example: 'A test evaluation'
+        tags:
+          type: array
+          items:
+            type: string
+        model:
+          $ref: '#/components/schemas/JobModel'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
+        benchmarks:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
+        collection:
+          $ref: '#/components/schemas/JobCollection'
+        experiment:
+          $ref: '#/components/schemas/JobExperiment'
+        custom:
+          type: object
+          additionalProperties: true
+        exports:
+          $ref: '#/components/schemas/JobExports'
 
     EvaluationJobsData:
       type: object
@@ -984,6 +1223,39 @@ components:
                         - 'Instruction adherence'
                         - 'Format compliance'
               total_count: 20
+
+    CreateEvaluationJobResponse:
+      description: Evaluation job created successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/EvaluationJob'
+          example:
+            data:
+              resource:
+                id: 'eval-job-new-001'
+                created_at: '2026-03-09T12:00:00Z'
+                updated_at: '2026-03-09T12:00:00Z'
+              status:
+                state: 'pending'
+              results: {}
+              model:
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                name: 'llama-32-1b-instruct'
+              name: 'test-eval-02-03'
+              description: 'A test evaluation'
+              benchmarks:
+                - id: 'arc_easy'
+                  provider_id: 'lm_evaluation_harness'
+                  parameters:
+                    num_examples: 10
+                    limit: 5
+                    tokenizer: 'google/flan-t5-small'
 
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully

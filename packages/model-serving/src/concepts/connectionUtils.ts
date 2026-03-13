@@ -16,6 +16,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { K8sNameDescriptionType } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
 
@@ -56,34 +57,35 @@ export const handleConnectionCreation = async (
   const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
   const formSecretName = createConnectionData.nameDesc?.k8sName.value;
   const actualSecretName = (() => {
-    if (dryRun && !createConnectionData.saveConnection) {
-      // Always generate a new name for non-saved secrets
-      return getGeneratedSecretName();
-    }
     if (createConnectionData.saveConnection && formSecretName) {
       return formSecretName;
     }
-    return secretName ?? formSecretName ?? getGeneratedSecretName();
+    const candidate = secretName ?? formSecretName;
+    if (!candidate || isGeneratedSecretName(candidate)) {
+      return getGeneratedSecretName();
+    }
+    return candidate;
   })();
-
   const description = createConnectionData.nameDesc?.description ?? '';
+
+  const nameDescForAssembly = ((): K8sNameDescriptionType => {
+    const stored = createConnectionData.nameDesc;
+    if (!stored || isGeneratedSecretName(stored.name)) {
+      return {
+        name: actualSecretName,
+        description,
+        k8sName: actualSecretName,
+      };
+    }
+    return {
+      ...stored,
+      k8sName: translateDisplayNameForK8s(stored.name) || stored.k8sName.value,
+    };
+  })();
   const newConnection = assembleConnectionSecret(
     project,
     connectionTypeName,
-    createConnectionData.nameDesc ?? {
-      name: actualSecretName,
-      description,
-      k8sName: {
-        value: translateDisplayNameForK8s(actualSecretName),
-        state: {
-          immutable: false,
-          invalidCharacters: false,
-          invalidLength: false,
-          maxLength: 0,
-          touched: false,
-        },
-      },
-    },
+    nameDescForAssembly,
     modelLocationData.fieldValues,
   );
 

@@ -5,15 +5,18 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel } from '~/app/types';
-import { MaaSModel } from '~/app/types';
 import AIModelTableRow from '~/app/AIAssets/components/AIModelTableRow';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 // Mock the components and utilities
-jest.mock('../AIModelsTableRowEndpoint', () => ({
+jest.mock('../EndpointDetailModal', () => ({
   __esModule: true,
-  default: ({ isExternal }: { isExternal?: boolean }) => (
-    <div data-testid={isExternal ? 'external-endpoint' : 'internal-endpoint'}>endpoint</div>
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="endpoint-detail-modal">
+      <button onClick={onClose} data-testid="close-endpoint-modal">
+        Close
+      </button>
+    </div>
   ),
 }));
 
@@ -43,6 +46,11 @@ jest.mock('mod-arch-shared', () => ({
   TruncatedText: ({ content }: { content: string }) => (
     <div data-testid="truncated-text">{content}</div>
   ),
+}));
+
+const mockFireMiscTrackingEvent = jest.fn();
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: (...args: unknown[]) => mockFireMiscTrackingEvent(...args),
 }));
 
 const mockNavigate = jest.fn();
@@ -93,8 +101,7 @@ const createMockPlaygroundModel = (modelId: string): LlamaModel => ({
 describe('AIModelTableRow', () => {
   const defaultProps = {
     lsdStatus: null,
-    aiModels: [] as AIModel[],
-    maasModels: [] as MaaSModel[],
+    allModels: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
   };
 
@@ -111,10 +118,10 @@ describe('AIModelTableRow', () => {
     );
 
     expect(screen.getByTestId('model-info')).toHaveTextContent('Test Model');
-    expect(screen.getByTestId('truncated-text')).toHaveTextContent('Test model description');
+    expect(screen.getByTestId('truncated-text')).toHaveTextContent('llm');
   });
 
-  it('should render internal and external endpoints', () => {
+  it('should render View button in endpoints cell', () => {
     const model = createMockAIModel();
     render(
       <TestWrapper>
@@ -122,8 +129,46 @@ describe('AIModelTableRow', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('internal-endpoint')).toBeInTheDocument();
-    expect(screen.getByTestId('external-endpoint')).toBeInTheDocument();
+    expect(screen.getByTestId('endpoint-view-button')).toBeInTheDocument();
+    expect(screen.getByTestId('endpoint-view-button')).toHaveTextContent('View');
+  });
+
+  it('should open endpoint detail modal when View button is clicked', () => {
+    const model = createMockAIModel();
+    render(
+      <TestWrapper>
+        <AIModelTableRow {...defaultProps} model={model} />
+      </TestWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('endpoint-view-button'));
+    expect(screen.getByTestId('endpoint-detail-modal')).toBeInTheDocument();
+  });
+
+  it('should close endpoint detail modal when closed', () => {
+    const model = createMockAIModel();
+    render(
+      <TestWrapper>
+        <AIModelTableRow {...defaultProps} model={model} />
+      </TestWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('endpoint-view-button'));
+    expect(screen.getByTestId('endpoint-detail-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('close-endpoint-modal'));
+    expect(screen.queryByTestId('endpoint-detail-modal')).not.toBeInTheDocument();
+  });
+
+  it('should render View button for MaaS models', () => {
+    const model = createMockAIModel({ isMaaSModel: true });
+    render(
+      <TestWrapper>
+        <AIModelTableRow {...defaultProps} model={model} />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByTestId('endpoint-view-button')).toBeInTheDocument();
   });
 
   it('should render use case', () => {
@@ -212,6 +257,32 @@ describe('AIModelTableRow', () => {
       expect(button.closest('button')).toBeDisabled();
     });
 
+    it('should not disable "Add to playground" button when model is embedding type', () => {
+      const model = createMockAIModel({ model_type: 'embedding' });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      const button = screen.getByText('Add to playground');
+      expect(button.closest('button')).not.toBeDisabled();
+    });
+
+    it('should disable "Try in playground" button when model is embedding type', () => {
+      const model = createMockAIModel({ model_id: 'test-model-id', model_type: 'embedding' });
+      const playgroundModel = createMockPlaygroundModel('test-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+        </TestWrapper>,
+      );
+
+      const button = screen.getByText('Try in playground');
+      expect(button.closest('button')).toBeDisabled();
+    });
+
     it('should open configuration modal when "Add to playground" is clicked', () => {
       const model = createMockAIModel();
       render(
@@ -279,6 +350,44 @@ describe('AIModelTableRow', () => {
 
       // The modal should be open with the model pre-selected
       expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+    });
+  });
+
+  describe('Tracking', () => {
+    it('should track assetType as maas_model for MaaS models on playground launch', () => {
+      const model = createMockAIModel({ model_id: 'maas-model-id', isMaaSModel: true });
+      const playgroundModel = createMockPlaygroundModel('maas-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+        </TestWrapper>,
+      );
+
+      fireEvent.click(screen.getByText('Try in playground'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Available Endpoints Playground Launched',
+        { assetType: 'maas_model', assetId: 'maas-model-id' },
+      );
+    });
+
+    it('should track assetType as model for non-MaaS models on playground launch', () => {
+      const model = createMockAIModel({ model_id: 'ns-model-id', isMaaSModel: false });
+      const playgroundModel = createMockPlaygroundModel('ns-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+        </TestWrapper>,
+      );
+
+      fireEvent.click(screen.getByText('Try in playground'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Available Endpoints Playground Launched',
+        { assetType: 'model', assetId: 'ns-model-id' },
+      );
     });
   });
 });

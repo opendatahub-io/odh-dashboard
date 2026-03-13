@@ -36,7 +36,7 @@ export const applyModelLocation = (
   if (!dryRun) {
     // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
     result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      connectionSecretName ?? createConnectionData?.nameDesc?.name ?? '';
+      connectionSecretName ?? createConnectionData?.nameDesc?.k8sName.value ?? '';
   } else {
     // Remove the connection name in the dry run or it will conflict during updates
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];

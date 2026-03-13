@@ -1304,7 +1304,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  aiAssetExternalModels?: boolean;
+  aiAssetCustomEndpoints?: boolean;
   maasApiKeys?: boolean;
   mlflow?: boolean;
   mcpCatalog?: boolean;
@@ -1312,6 +1312,7 @@ export type DashboardCommonConfig = {
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1340,7 +1341,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       isLLMdDefault?: boolean;
     };
     genAiStudioConfig?: {
-      aiAssetExternalModels?: {
+      aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };

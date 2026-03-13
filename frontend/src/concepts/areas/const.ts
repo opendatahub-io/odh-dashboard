@@ -7,13 +7,14 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
-  aiAssetExternalModels: false,
+  aiAssetCustomEndpoints: false,
   maasApiKeys: false,
   mlflow: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
+  vLLMDeploymentOnMaaS: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -222,6 +223,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.YAML_VIEWER]: {
     featureFlags: ['deploymentWizardYAMLViewer'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.VLLM_ON_MAAS]: {
+    featureFlags: ['vLLMDeploymentOnMaaS'],
   },
 };
 
