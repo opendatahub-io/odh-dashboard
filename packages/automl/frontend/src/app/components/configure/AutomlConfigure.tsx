@@ -414,7 +414,7 @@ function AutomlConfigure(): React.JSX.Element {
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(connection.stringData ?? {});
+              const availableKeys = Object.keys(secret.data);
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
                 ...secret,

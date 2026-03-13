@@ -27,7 +27,7 @@ type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];
   project: string;
   onClose: (submitted?: boolean) => void;
-  onSubmit: (connection: Connection) => void;
+  onSubmit: (connection: Connection) => void | Promise<void>;
 };
 
 const AutomlConnectionModal: React.FC<Props> = ({
@@ -191,8 +191,8 @@ const AutomlConnectionModal: React.FC<Props> = ({
             };
 
             createSecret(assembledConnection)
-              .then(() => {
-                onSubmit(assembledConnection);
+              .then(async () => {
+                await onSubmit(assembledConnection);
                 onClose(true);
               })
               .catch((e) => {

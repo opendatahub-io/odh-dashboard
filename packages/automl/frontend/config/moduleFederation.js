@@ -19,11 +19,9 @@ const moduleFederationConfig = {
     },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
-      requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
     },
     '@openshift/dynamic-plugin-sdk-utils': {
       singleton: true,
-      requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
     },
   },
   exposes: {
