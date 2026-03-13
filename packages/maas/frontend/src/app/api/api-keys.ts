@@ -30,7 +30,8 @@ export const searchApiKeys =
       ),
     ).then((response) => {
       if (isModArchResponse<APIKeyListResponse>(response)) {
-        return response.data;
+        // eslint-disable-next-line camelcase, @typescript-eslint/no-unnecessary-condition
+        return response.data ?? { object: 'list', data: [], has_more: false };
       }
       throw new Error('Invalid response format');
     });
