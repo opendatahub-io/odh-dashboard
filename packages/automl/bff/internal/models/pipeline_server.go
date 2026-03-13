@@ -16,13 +16,27 @@ type DSPipelineApplicationMetadata struct {
 }
 
 type DSPipelineApplicationSpec struct {
-	// Spec fields can be added as needed
-	APIServer *APIServer `json:"apiServer,omitempty"`
+	APIServer     *APIServer     `json:"apiServer,omitempty"`
+	ObjectStorage *ObjectStorage `json:"objectStorage,omitempty"`
 }
 
 type APIServer struct {
-	// API Server configuration
 	Deploy bool `json:"deploy,omitempty"`
+}
+
+// ObjectStorage captures just enough of the DSPA spec to surface the storage secret name.
+type ObjectStorage struct {
+	ExternalStorage *ExternalStorage `json:"externalStorage,omitempty"`
+}
+
+// ExternalStorage holds the external S3-compatible storage reference.
+type ExternalStorage struct {
+	S3CredentialsSecret *S3CredentialsSecret `json:"s3CredentialsSecret,omitempty"`
+}
+
+// S3CredentialsSecret holds the name of the Kubernetes Secret containing the S3 credentials.
+type S3CredentialsSecret struct {
+	SecretName string `json:"secretName,omitempty"`
 }
 
 type DSPipelineApplicationStatus struct {

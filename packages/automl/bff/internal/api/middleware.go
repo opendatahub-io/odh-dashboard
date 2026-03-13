@@ -330,6 +330,19 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Extract the S3 storage secret name from the DSPA spec and store in context.
+			// This allows downstream handlers to reference the storage secret without an
+			// additional Kubernetes API call, since the DSPA is already in memory here.
+			if dspa.Spec != nil &&
+				dspa.Spec.ObjectStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+				storageSecretName := dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName
+				ctx = context.WithValue(ctx, constants.DSPAStorageSecretKey, storageSecretName)
+				logger.Debug("Found DSPA storage secret", "secretName", storageSecretName, "namespace", namespace)
+			}
+
 			// Extract auth token from request identity to forward to Pipeline Server
 			// This works for both internal auth (kubeflow-userid) and user_token auth (Authorization header)
 			authToken := ""
@@ -530,6 +543,13 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 			Spec: &models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
 					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "dspa-secret",
+						},
+					},
 				},
 			},
 			Status: &models.DSPipelineApplicationStatus{
