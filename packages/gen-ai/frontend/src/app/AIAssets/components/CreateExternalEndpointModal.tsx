@@ -189,7 +189,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       model_id: modelId.trim(),
       base_url: endpointUrl.trim(),
       secret_value: token.trim(),
-      provider_type: providerType,
       model_type: modelType,
       ...(modelType === MODEL_TYPE_EMBEDDING &&
         embeddingDimension.trim() && {
@@ -218,7 +217,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     } finally {
       setIsVerifying(false);
     }
-  }, [modelId, endpointUrl, token, providerType, modelType, embeddingDimension, onVerify]);
+  }, [modelId, endpointUrl, token, modelType, embeddingDimension, onVerify]);
 
   const handleSubmit = React.useCallback(async () => {
     if (!isFormValid) {

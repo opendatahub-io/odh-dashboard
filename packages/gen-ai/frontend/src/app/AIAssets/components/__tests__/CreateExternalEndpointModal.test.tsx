@@ -144,7 +144,6 @@ describe('CreateExternalEndpointModal - Verification', () => {
           model_id: 'gpt-4o',
           base_url: 'https://api.openai.com/v1',
           secret_value: 'sk-test-key',
-          provider_type: 'remote::vllm', // Default provider type
           model_type: 'llm',
         });
       });

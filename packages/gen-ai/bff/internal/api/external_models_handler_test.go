@@ -634,10 +634,9 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			BaseURL:      "https://api.openai.com/v1",
-			SecretValue:  "sk-test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			BaseURL:     "https://api.openai.com/v1",
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -677,10 +676,9 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			SecretValue:  "sk-test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:     "gpt-4o",
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -719,10 +717,9 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      "https://api.openai.com/v1",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:   "gpt-4o",
+			BaseURL:   "https://api.openai.com/v1",
+			ModelType: models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -775,56 +772,13 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	It("should return 400 when provider_type is missing", func() {
+	It("should return 400 when model_type is missing", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
 			ModelID:     "gpt-4o",
 			BaseURL:     "https://api.openai.com/v1",
 			SecretValue: "sk-test-key",
-			ModelType:   models.ModelTypeLLM,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "provider_type is required")
-	})
-
-	It("should return 400 when model_type is missing", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      "https://api.openai.com/v1",
-			SecretValue:  "sk-test-key",
-			ProviderType: models.ProviderTypeOpenAI,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -859,58 +813,14 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		assert.Contains(t, errorMap["message"], "model_type is required")
 	})
 
-	It("should return 400 when provider_type is invalid", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      "https://api.openai.com/v1",
-			SecretValue:  "sk-test-key",
-			ProviderType: "invalid::provider",
-			ModelType:    models.ModelTypeLLM,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "invalid provider_type")
-	})
-
 	It("should return 400 when model_type is invalid", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      "https://api.openai.com/v1",
-			SecretValue:  "sk-test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    "invalid_type",
+			ModelID:     "gpt-4o",
+			BaseURL:     "https://api.openai.com/v1",
+			SecretValue: "sk-test-key",
+			ModelType:   "invalid_type",
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -949,11 +859,10 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "text-embedding-3-small",
-			BaseURL:      "https://api.openai.com/v1",
-			SecretValue:  "sk-test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeEmbedding,
+			ModelID:     "text-embedding-3-small",
+			BaseURL:     "https://api.openai.com/v1",
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeEmbedding,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -996,7 +905,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 			ModelID:            "text-embedding-3-small",
 			BaseURL:            "https://api.openai.com/v1",
 			SecretValue:        "sk-test-key",
-			ProviderType:       models.ProviderTypeOpenAI,
 			ModelType:          models.ModelTypeEmbedding,
 			EmbeddingDimension: &zeroDimension,
 		}
@@ -1041,7 +949,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 			ModelID:            "text-embedding-3-small",
 			BaseURL:            "https://api.openai.com/v1",
 			SecretValue:        "sk-test-key",
-			ProviderType:       models.ProviderTypeOpenAI,
 			ModelType:          models.ModelTypeEmbedding,
 			EmbeddingDimension: &negativeDimension,
 		}
@@ -1119,11 +1026,10 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		defer mockServer.Close()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      mockServer.URL,
-			SecretValue:  "test-api-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:     "gpt-4o",
+			BaseURL:     mockServer.URL,
+			SecretValue: "test-api-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -1209,7 +1115,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 			ModelID:            "text-embedding-3-small",
 			BaseURL:            mockServer.URL,
 			SecretValue:        "test-embedding-key",
-			ProviderType:       models.ProviderTypeOpenAI,
 			ModelType:          models.ModelTypeEmbedding,
 			EmbeddingDimension: &embeddingDimension,
 		}
@@ -1257,11 +1162,10 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		defer mockServer.Close()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      mockServer.URL,
-			SecretValue:  "invalid-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:     "gpt-4o",
+			BaseURL:     mockServer.URL,
+			SecretValue: "invalid-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -1307,11 +1211,10 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		defer mockServer.Close()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      mockServer.URL,
-			SecretValue:  "test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:     "gpt-4o",
+			BaseURL:     mockServer.URL,
+			SecretValue: "test-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)
@@ -1350,11 +1253,10 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.VerifyExternalModelRequest{
-			ModelID:      "gpt-4o",
-			BaseURL:      "http://localhost:9999", // Invalid/unreachable endpoint
-			SecretValue:  "test-key",
-			ProviderType: models.ProviderTypeOpenAI,
-			ModelType:    models.ModelTypeLLM,
+			ModelID:     "gpt-4o",
+			BaseURL:     "http://localhost:9999", // Invalid/unreachable endpoint
+			SecretValue: "test-key",
+			ModelType:   models.ModelTypeLLM,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)

@@ -401,7 +401,6 @@ export type VerifyExternalModelRequest = {
   model_id: string;
   base_url: string;
   secret_value: string;
-  provider_type: ExternalModelRequest['provider_type'];
   model_type: ExternalModelRequest['model_type'];
   embedding_dimension?: number;
 };
