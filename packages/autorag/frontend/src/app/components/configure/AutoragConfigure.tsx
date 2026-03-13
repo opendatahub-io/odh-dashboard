@@ -112,11 +112,6 @@ function AutoragConfigure(): React.JSX.Element {
     setIsExperimentSettingsOpen(true);
   };
 
-  const saveExperimentSettingsChanges = () => {
-    // TODO: add form update logic once ready
-    setIsExperimentSettingsOpen(false);
-  };
-
   if (!namespace) {
     return <Navigate to={autoragExperimentsPathname} replace />;
   }
@@ -398,14 +393,11 @@ function AutoragConfigure(): React.JSX.Element {
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {
-          form.reset();
           setIsExperimentSettingsOpen(false);
         }}
         revertChanges={() => {
           form.reset();
-          setIsExperimentSettingsOpen(false);
         }}
-        saveChanges={saveExperimentSettingsChanges}
       />
     </>
   );
