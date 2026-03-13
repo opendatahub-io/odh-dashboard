@@ -28,8 +28,8 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //   - nextPageToken: Pagination token (optional)
 //
 // Error Responses:
-//   - 400: Invalid query parameters or missing pipeline server client
-//   - 500: No AutoRAG pipeline found in namespace
+//   - 400: Invalid query parameters
+//   - 500: Missing pipeline server client (middleware misconfiguration) or no AutoRAG pipeline found
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -41,7 +41,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 
 	// Require discovered AutoRAG pipeline
-	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+		return
+	}
 	discovered := pipelines["autorag"]
 	if discovered == nil {
 		app.serverErrorResponseWithMessage(w, r,
@@ -124,7 +128,11 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Get discovered pipeline from context (added by AttachDiscoveredPipeline middleware)
-	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+		return
+	}
 	discovered := pipelines["autorag"]
 	if discovered == nil {
 		app.serverErrorResponseWithMessage(w, r,

@@ -46,7 +46,7 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 	b, err := json.Marshal(body)
 	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost,
-		"/api/v1/pipeline-runs?namespace=test-ns&pipelineServerId=dspa",
+		"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
 		bytes.NewReader(b))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -56,20 +56,20 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
 	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-ns")
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 	// Inject discovered pipelines map — both types use the same mock IDs for simplicity
 	discoveredPipelines := map[string]*repositories.DiscoveredPipeline{
 		constants.PipelineTypeTimeSeries: {
 			PipelineID:        ids.PipelineID,
 			PipelineVersionID: ids.LatestVersionID,
 			PipelineName:      "automl-timeseries-pipeline",
-			Namespace:         "test-ns",
+			Namespace:         "test-namespace",
 		},
 		constants.PipelineTypeTabular: {
 			PipelineID:        ids.PipelineID,
 			PipelineVersionID: ids.OldVersionID,
 			PipelineName:      "automl-tabular-pipeline",
-			Namespace:         "test-ns",
+			Namespace:         "test-namespace",
 		},
 	}
 	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, discoveredPipelines)
@@ -165,7 +165,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	t.Run("should reject empty body", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-ns&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
 			bytes.NewReader([]byte("")))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -203,7 +203,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 		rr := httptest.NewRecorder()
 		raw := `{"display_name":"test","unknown_field":"bad"}`
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-ns&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
 			bytes.NewReader([]byte(raw)))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -218,7 +218,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	t.Run("should reject malformed JSON", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-ns&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
 			bytes.NewReader([]byte("{invalid")))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -248,7 +248,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := newCreateRequest(t, validCreateRequest())
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-ns")
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
 
 		app.CreatePipelineRunHandler(rr, req, nil)

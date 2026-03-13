@@ -696,7 +696,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		// Don't add discovered pipeline to context
+		// Inject empty map — simulates middleware running but no pipeline found
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{

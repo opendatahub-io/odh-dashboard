@@ -92,9 +92,12 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		allRuns = append(allRuns, runs...)
 	}
 
-	// Sort merged runs by created_at descending
+	// Sort merged runs by created_at descending; break ties on run_id for stable pagination.
 	sort.Slice(allRuns, func(i, j int) bool {
-		return allRuns[i].CreatedAt > allRuns[j].CreatedAt
+		if allRuns[i].CreatedAt != allRuns[j].CreatedAt {
+			return allRuns[i].CreatedAt > allRuns[j].CreatedAt
+		}
+		return allRuns[i].RunID > allRuns[j].RunID
 	})
 
 	// Apply page/pageSize pagination using int64 arithmetic throughout to avoid overflow,
