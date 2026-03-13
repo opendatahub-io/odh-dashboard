@@ -2119,6 +2119,7 @@ components:
             - 'remote::openai'
             - 'remote::anthropic'
             - 'remote::vllm'
+            - 'remote::passthrough'
           example: 'remote::gemini'
           description: Provider type for the external model
         use_cases:
@@ -2144,7 +2145,6 @@ components:
         - model_id
         - base_url
         - secret_value
-        - provider_type
         - model_type
       properties:
         model_id:
@@ -2159,16 +2159,6 @@ components:
           type: string
           example: 'sk-test-key'
           description: API key or authentication token
-        provider_type:
-          type: string
-          enum:
-            - 'remote::gemini'
-            - 'remote::openai'
-            - 'remote::anthropic'
-            - 'remote::vllm'
-            - 'remote::passthrough'
-          example: 'remote::openai'
-          description: Provider type for the external model
         model_type:
           type: string
           enum:
