@@ -8,6 +8,7 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -428,6 +429,9 @@ func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
 }
 
 func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
+	// AWS_DEFAULT_REGION is required for the explicit-secret path (GetS3Credentials).
+	// Callers using managed MinIO should use GetS3CredentialsFromDSPA instead, which
+	// derives the endpoint from the DSPA spec and defaults the region when absent.
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -452,6 +456,93 @@ func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, creds)
 	assert.Contains(t, err.Error(), "AWS_DEFAULT_REGION")
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_Success(t *testing.T) {
+	// Verifies that GetS3CredentialsFromDSPA uses the field names from DSPAObjectStorage
+	// rather than hardcoded AWS_* names, and takes endpoint/region from the struct.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dspa-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-dspa"),
+			},
+			Data: map[string][]byte{
+				"accesskey": []byte("MINIOACCESSKEY"),
+				"secretkey": []byte("MINIOSECRETKEY"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository()
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "accesskey",
+		SecretKeyField: "secretkey",
+		EndpointURL:    "http://minio.test-namespace.svc.cluster.local:9000",
+		Bucket:         "pipeline-artifacts",
+		Region:         "us-east-1",
+	}
+
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(mockClient, context.Background(), "test-namespace", dspaStorage, identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "MINIOACCESSKEY", creds.AccessKeyID)
+	assert.Equal(t, "MINIOSECRETKEY", creds.SecretAccessKey)
+	assert.Equal(t, "http://minio.test-namespace.svc.cluster.local:9000", creds.EndpointURL)
+	assert.Equal(t, "pipeline-artifacts", creds.Bucket)
+	assert.Equal(t, "us-east-1", creds.Region)
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_DefaultsRegion(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "dspa-secret", Namespace: "test-namespace"},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("KEY"),
+				"AWS_SECRET_ACCESS_KEY": []byte("SECRET"),
+			},
+		},
+	}
+
+	s3Repo := repositories.NewS3Repository()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "http://minio:9000",
+		Region:         "", // deliberately empty — should default to us-east-1
+	}
+
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(&mockKubernetesClientForSecrets{secrets: mockSecrets}, context.Background(), "test-namespace", dspaStorage, identity)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "us-east-1", creds.Region)
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_MissingEndpoint(t *testing.T) {
+	s3Repo := repositories.NewS3Repository()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "", // missing
+	}
+
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(&mockKubernetesClientForSecrets{}, context.Background(), "test-namespace", dspaStorage, identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "endpoint")
 }
 
 func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {

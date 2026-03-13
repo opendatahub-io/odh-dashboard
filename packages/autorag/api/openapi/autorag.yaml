@@ -168,9 +168,11 @@ paths:
           in: query
           required: false
           description: >-
-            The name of the Kubernetes secret containing S3 credentials.
-            If omitted, the secret associated with the DSPA (DSPipelineApplication)
-            discovered in this namespace is used automatically.
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, connection details (endpoint, credentials field names, region, bucket)
+            are resolved from the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
           example: aws-secret-1
@@ -221,14 +223,19 @@ paths:
       operationId: getS3File
       summary: Get file from S3
       description: >-
-        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
-        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves an arbitrary file from S3 storage. The file is streamed with
+        transfer-encoding: chunked to efficiently handle large files.
 
-        If secretName is not supplied, the endpoint automatically uses the storage secret
-        associated with the Pipeline Server (DSPipelineApplication) discovered in the
-        namespace — the same secret that the pipeline server itself uses for artifact storage.
+        Two credential resolution modes are supported:
+
+        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace. This works for both external S3 and managed
+        MinIO without requiring the caller to know which secret is in use.
+
+        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
 
   # =============================================================================
   # LSD ENDPOINTS

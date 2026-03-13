@@ -51,7 +51,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 			AuthMethod:     config.AuthMethodInternal,
 			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
 			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
-			// DSPAStorageSecretKey will NOT be set in context for these tests.
+			// DSPAObjectStorageKey will NOT be set in context for these tests.
 			PipelineServerURL: "http://test-pipeline-server",
 		},
 		logger:                      logger,
