@@ -95,6 +95,7 @@ function AutoragExperiments(): React.JSX.Element {
   return (
     <AutoragRunsTable
       runs={runs}
+      namespace={effectiveNamespace}
       totalSize={totalSize}
       page={page}
       pageSize={pageSize}

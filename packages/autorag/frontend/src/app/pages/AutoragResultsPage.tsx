@@ -2,24 +2,29 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
 import AutoragResults from '~/app/components/results/AutoragResults';
-import { useExperimentQuery, usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/queries';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 
 function AutoragResultsPage(): React.JSX.Element {
-  const { runId } = useParams();
+  const { namespace, runId } = useParams();
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId);
-  const { data: experiment, ...experimentQuery } = useExperimentQuery(pipelineRun?.experiment_id);
+  // Early guard: treat missing route params as invalid immediately
+  const missingParams = !namespace || !runId;
 
-  const invalidPipelineRunId = pipelineRunQuery.isError;
+  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(
+    !missingParams ? namespace : undefined,
+    !missingParams ? runId : undefined,
+  );
+
+  const invalidPipelineRunId = missingParams || pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
-      title={experiment?.display_name}
+      title={pipelineRun?.display_name}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
-      loadError={pipelineRunQuery.error ?? experimentQuery.error ?? undefined}
-      loaded={pipelineRunQuery.isFetched && experimentQuery.isFetched}
+      loadError={pipelineRunQuery.error ?? undefined}
+      loaded={missingParams || pipelineRunQuery.isFetched}
       provideChildrenPadding
       removeChildrenTopPadding
     >

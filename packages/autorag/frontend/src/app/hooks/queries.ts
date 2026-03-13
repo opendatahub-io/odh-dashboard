@@ -1,6 +1,10 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { LlamaStackModelType, LlamaStackModelsResponse, PipelineRun } from '~/app/types';
+import { isTerminalState } from '~/app/utilities/pipelineRunStates';
 import { getLlamaStackModels } from '~/app/api/k8s';
-import { LlamaStackModelType, LlamaStackModelsResponse } from '~/app/types';
+
+const PIPELINE_RUN_POLL_INTERVAL = 10000; // 10 seconds
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -76,16 +80,40 @@ export function useLlamaStackModelsQuery(
   });
 }
 
+/**
+ * Fetches a pipeline run with automatic polling.
+ * Polls every 10 seconds until the run reaches a terminal state (SUCCEEDED, FAILED, CANCELED).
+ */
 export function usePipelineRunQuery(
+  namespace?: string,
   runId?: string,
-): UseQueryResult<{ experiment_id: string }, Error> {
+): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId],
+    queryKey: ['pipelineRun', namespace, runId],
     queryFn: async () => {
-      // eslint-disable-next-line camelcase
-      const pipelineRun = { experiment_id: 'FAKE_EXPERIMENT_ID' };
-      return pipelineRun;
+      if (!runId) {
+        throw new Error('Run ID is required');
+      }
+      if (!namespace) {
+        throw new Error('Namespace is required');
+      }
+      return getPipelineRunFromBFF('', namespace, runId);
     },
-    enabled: !!runId,
+    enabled: !!runId && !!namespace,
+    // Poll every 10 seconds
+    refetchInterval: (query) => {
+      const { data } = query.state;
+      // Stop polling if we have data and it's in a terminal state
+      if (data && isTerminalState(data.state)) {
+        return false;
+      }
+      return PIPELINE_RUN_POLL_INTERVAL;
+    },
+    // Also refetch on window focus, but respect the terminal state
+    refetchOnWindowFocus: (query) => {
+      const { data } = query.state;
+      // Don't refetch on focus if in terminal state
+      return !(data && isTerminalState(data.state));
+    },
   });
 }
