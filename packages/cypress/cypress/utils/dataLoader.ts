@@ -20,6 +20,7 @@ import type {
   TiersTestData,
   ResourcesFiltersTestData,
   WorkloadMetricsTestData,
+  KueueWorkbenchTestData,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -179,6 +180,15 @@ export const loadWorkloadMetricsFixture = (
 ): Cypress.Chainable<WorkloadMetricsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WorkloadMetricsTestData;
+
+    return data;
+  });
+
+export const loadKueueWorkbenchFixture = (
+  fixturePath: string,
+): Cypress.Chainable<KueueWorkbenchTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as KueueWorkbenchTestData;
 
     return data;
   });
