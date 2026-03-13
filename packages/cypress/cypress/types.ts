@@ -143,6 +143,8 @@ export type WBTolerationsTestData = {
   hardwareProfileDisplayName?: string;
   hardwareProfileDescription?: string;
   deleteModalMessage?: string;
+  deleteAction: string;
+  deletedStatusBadge: string;
 };
 
 export type ModifyHardwareProfileTestData = {
@@ -348,6 +350,9 @@ export type HardwareProfilesData = {
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
   workbenchRunningStatus: string;
+  notebookImageName: string;
+  editWorkbenchAction: string;
+  settingsHardwareProfilesUrl: string;
 };
 
 export type NamespaceConfig = {

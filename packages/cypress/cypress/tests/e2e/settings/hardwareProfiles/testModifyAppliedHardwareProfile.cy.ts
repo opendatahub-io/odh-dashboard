@@ -129,7 +129,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().type(testData.workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      createSpawnerPage.findNotebookImage(testData.notebookImageName).click();
       hardwareProfileSection.selectPotentiallyDisabledProfile(
         `${hardwareProfileName} ${testData.hardwareProfileDescription} ${testData.hardwareProfileDeploymentSize}`,
         hardwareProfileName,
@@ -146,7 +146,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       cy.step("Editing the workbench's applied Hardware Profile");
       notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findKebab().click();
-      notebookRow.findKebabAction('Edit workbench').click();
+      notebookRow.findKebabAction(testData.editWorkbenchAction).click();
 
       cy.step('Select a different Hardware Profile');
       // update hardware profile selection
@@ -189,7 +189,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       // Navigate back to the project workbenches
       cy.step('Navigate back to project workbenches');
       // Wait for the hardware profile edit to complete
-      cy.url().should('include', '/settings/environment-setup/hardware-profiles');
+      cy.url().should('include', testData.settingsHardwareProfilesUrl);
       // Navigate to the project workbenches using page object
       workbenchPage.visit(projectName);
 

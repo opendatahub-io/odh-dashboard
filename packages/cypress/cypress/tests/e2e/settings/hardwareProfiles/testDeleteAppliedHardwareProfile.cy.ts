@@ -115,7 +115,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       const row = hardwareProfile.getUniqueRow(hardwareProfileDisplayName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete' }).click();
+      cy.findByRole('menuitem', { name: testData.deleteAction }).click();
 
       // Confirm deletion in modal
       cy.step('Confirm deletion in modal');
@@ -140,8 +140,8 @@ describe('Delete Hardware Profile applied to a resource', () => {
       workbenchRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 30000);
 
       // Verify the Hardware profile column shows "Deleted" badge
-      cy.step('Verify Hardware profile column shows "Deleted" badge');
-      workbenchRow.find().contains('Deleted').should('be.visible');
+      cy.step(`Verify Hardware profile column shows "${testData.deletedStatusBadge}" badge`);
+      workbenchRow.find().contains(testData.deletedStatusBadge).should('be.visible');
 
       // Validate that the tolerations are still present in the pod
       cy.step('Validate the Tolerations for the pod are still present');
