@@ -7,10 +7,10 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -19,7 +19,7 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
 //   - namespace (required): The namespace name to query secrets from
-//   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
+//   - type (optional): Filter type - "storage" for AWS secrets, or empty for all secrets
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -43,8 +43,8 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Parse type (optional, default to empty string which means all secrets)
 	secretType := queryParams.Get("type")
 	// Validate type parameter
-	if secretType != "" && secretType != "storage" && secretType != "lls" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'lls', or omitted"))
+	if secretType != "" && secretType != "storage" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage' or omitted"))
 		return
 	}
 

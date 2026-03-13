@@ -26,8 +26,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import createConfigureSchema, {
@@ -40,7 +40,9 @@ import createConfigureSchema, {
 } from '~/app/schemas/configure.schema';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useFilesQuery } from '~/app/hooks/queries';
+import { SecretListItem } from '~/app/types';
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -67,12 +69,17 @@ const PREDICTION_TYPES: {
   },
 ];
 
+const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+
 const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
-
+  const { namespace } = useParams();
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+
   const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
 
   const form = useForm({
@@ -82,14 +89,29 @@ function AutomlConfigure(): React.JSX.Element {
   });
 
   const {
-    formState: { isValid: formIsValid },
+    control,
+    setValue,
+    watch,
+    formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
   } = form;
-  const formDisabled = !formIsValid;
 
-  const trainDataFileKey = form.watch('train_data_file_key');
+  const trainDataSecretName = watch('train_data_secret_name');
+  const trainDataBucketName = watch('train_data_bucket_name');
+  const trainDataFileKey = watch('train_data_file_key');
+
+  const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
 
+  const canSelectLearningType = isFileSelected;
+  // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
+  const formDisabled = !formIsValid || formIsSubmitting;
+
   const { data: columns = [] } = useFilesQuery();
+
+  // reset selected file values if bucket changes
+  useEffect(() => {
+    setValue('train_data_file_key', undefined);
+  }, [trainDataBucketName, setValue]);
 
   return (
     <FormProvider {...form}>
@@ -106,9 +128,45 @@ function AutomlConfigure(): React.JSX.Element {
                         Select or add an S3 connection to upload files or browse existing files.
                       </StackItem>
                       <StackItem>
-                        <Split>
-                          <SplitItem isFilled data-temp-placeholder>
-                            Connections dropdown
+                        <Split
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                          }}
+                        >
+                          <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
+                            {Boolean(namespace) && (
+                              <Controller
+                                control={control}
+                                name="train_data_secret_name"
+                                render={({ field: { onChange } }) => (
+                                  <SecretSelector
+                                    namespace={String(namespace)}
+                                    type="storage"
+                                    additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                    value={selectedSecret?.uuid}
+                                    onChange={(secret) => {
+                                      setSelectedSecret(secret);
+                                      onChange(secret?.invalid ? undefined : secret?.name);
+                                      const bucketKey = Object.keys(secret?.data ?? {}).find(
+                                        (key) => key.toLowerCase() === 'aws_s3_bucket',
+                                      );
+                                      setValue(
+                                        'train_data_bucket_name',
+                                        bucketKey ? secret?.data[bucketKey] : undefined,
+                                      );
+                                    }}
+                                    onRefreshReady={(refresh) => {
+                                      secretsRefreshRef.current = refresh;
+                                    }}
+                                    label="S3 connection"
+                                    placeholder="Select connection"
+                                    toggleWidth="16rem"
+                                    dataTestId="aws-secret-selector"
+                                  />
+                                )}
+                              />
+                            )}
                           </SplitItem>
                           <SplitItem>
                             <Button
@@ -121,26 +179,39 @@ function AutomlConfigure(): React.JSX.Element {
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {Boolean(selectedSecret?.uuid) && (
+                        <>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected connection
+                          </StackItem>
+                          <StackItem>
+                            <Label
+                              onClose={() => {
+                                setSelectedSecret(undefined);
+                                setValue('train_data_secret_name', undefined);
+                                setValue('train_data_bucket_name', undefined);
+                              }}
+                              closeBtnAriaLabel="Clear selected connection"
+                            >
+                              {selectedSecret?.displayName ?? selectedSecret?.name}
+                            </Label>
+                          </StackItem>
 
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label onClose={() => null}>S3 connection test</Label>
-                      </StackItem>
-
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected files
-                      </StackItem>
-                      <StackItem>
-                        <Button
-                          key="select-files"
-                          variant="secondary"
-                          onClick={() => setIsFileExplorerOpen(true)}
-                        >
-                          Select files
-                        </Button>
-                      </StackItem>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected files
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="select-files"
+                              variant="secondary"
+                              onClick={() => setIsFileExplorerOpen(true)}
+                              isDisabled={!canSelectFiles}
+                            >
+                              Select files
+                            </Button>
+                          </StackItem>
+                        </>
+                      )}
                     </Stack>
                   </CardBody>
                 </Card>
@@ -166,6 +237,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 <Card
                                   key={type.value}
                                   isSelectable
+                                  isDisabled={!canSelectLearningType}
                                   isSelected={field.value === type.value}
                                   onClick={() => field.onChange(type.value)}
                                   data-testid={`task-type-card-${type.value}`}
@@ -299,7 +371,7 @@ function AutomlConfigure(): React.JSX.Element {
       </Panel>
 
       <FileExplorer
-        id="AutomlConfigure-FileExplorer"
+        id="AutoMlConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
