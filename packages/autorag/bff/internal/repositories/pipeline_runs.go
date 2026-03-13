@@ -216,6 +216,10 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
 	}
 
+	if req.OptimizationMaxRagPatterns != nil {
+		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
+	}
+
 	return models.CreatePipelineRunKFRequest{
 		DisplayName: req.DisplayName,
 		Description: req.Description,

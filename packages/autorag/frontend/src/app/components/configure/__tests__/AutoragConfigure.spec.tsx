@@ -1,9 +1,12 @@
-import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 // Mock React Router hooks
 jest.mock('react-router', () => ({
@@ -56,11 +59,32 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
 // Mock FileExplorer component
 jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ isOpen, onSelect }: { isOpen: boolean; onSelect: (files: unknown) => void }) =>
+    isOpen ? (
+      <div data-testid="file-explorer-modal">
+        <button
+          data-testid="file-explorer-select-file"
+          onClick={() => onSelect([{ name: 'test-file.txt' }])}
+        >
+          Select File
+        </button>
+      </div>
+    ) : null,
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
+
+const configureSchema = createConfigureSchema();
+
+const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
+  });
+  return <FormProvider {...form}>{children}</FormProvider>;
+};
 
 // Create a QueryClient for tests
 const createTestQueryClient = () =>
@@ -72,10 +96,14 @@ const createTestQueryClient = () =>
     },
   });
 
-// Wrapper component that provides QueryClient
+// Wrapper component that provides QueryClient and Form context
 const renderWithQueryClient = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
-  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <FormWrapper>{component}</FormWrapper>
+    </QueryClientProvider>,
+  );
 };
 
 describe('AutoragConfigure', () => {
@@ -253,23 +281,10 @@ describe('AutoragConfigure', () => {
       fireEvent.click(selectInvalidButton);
 
       // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const modelsEditButton = editButtons[1]; // Second Edit button is for Models to consider
+      const editButton = screen.getByRole('button', { name: 'Edit' });
 
       // Verify it's disabled
-      expect(modelsEditButton).toBeDisabled();
-    });
-
-    it('should disable "Run experiment" button when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Verify the "Run experiment" button is disabled
-      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
-      expect(runExperimentButton).toBeDisabled();
+      expect(editButton).toBeDisabled();
     });
 
     it('should enable "Select files" button when selected secret is valid', () => {
@@ -284,19 +299,30 @@ describe('AutoragConfigure', () => {
       expect(selectFilesButton).toBeEnabled();
     });
 
-    it('should enable "Edit" buttons when selected secret is valid', () => {
+    it('should enable "Edit" button when a file/folder is selected', () => {
       renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+      // Initially Edit button should be disabled (no files selected)
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
 
-      // Verify both Edit buttons are enabled
-      expect(editButtons[0]).toBeEnabled(); // Optimization metric
-      expect(editButtons[1]).toBeEnabled(); // Models to consider
+      // Click "Select files" to open the FileExplorer
+      const selectFilesButton = screen.getByRole('button', { name: 'Select files' });
+      fireEvent.click(selectFilesButton);
+
+      // FileExplorer should now be visible
+      expect(screen.getByTestId('file-explorer-modal')).toBeInTheDocument();
+
+      // Select a file in the FileExplorer (this sets input_data_bucket_name and input_data_key)
+      const fileSelectButton = screen.getByTestId('file-explorer-select-file');
+      fireEvent.click(fileSelectButton);
+
+      // Now Edit button should be enabled after files are selected
+      expect(editButton).toBeEnabled();
     });
   });
 });

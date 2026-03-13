@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import createConfigureSchema from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
 
 jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
@@ -17,8 +17,8 @@ const configureSchema = createConfigureSchema();
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
