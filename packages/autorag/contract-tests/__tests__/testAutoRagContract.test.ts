@@ -779,4 +779,121 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
   });
+
+  describe('S3 File Upload (POST)', () => {
+    const buildFormDataWithFile = (): FormData => {
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob(['test content'], { type: 'application/octet-stream' }),
+        'file.pdf',
+      );
+      return form;
+    };
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - No File Part', () => {
+      it('should return 400 when request body has no file part', async () => {
+        const form = new FormData();
+        form.append('other', 'value');
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Valid Request (all params and file present)', () => {
+      it('should not return 400 when all parameters and file part are provided', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        // Will fail without actual S3 setup, but validates parameter and body parsing
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+  });
 });

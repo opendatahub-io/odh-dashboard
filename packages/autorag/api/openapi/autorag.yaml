@@ -148,11 +148,12 @@ paths:
         - 'lls': Returns only secrets classified as LLS type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
   /api/v1/s3/file:
-    summary: Path used to get a file from S3.
+    summary: Path used to get or upload a file in S3.
     description: >-
-      The REST endpoint/path used to retrieve an arbitrary file from S3 storage.
+      The REST endpoint/path used to retrieve or upload files in S3 storage.
       Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
-      Returns the file with transfer-encoding: chunked for efficient streaming.
+      GET returns the file with transfer-encoding: chunked for efficient streaming.
+      POST accepts a multipart form file and uploads it to the given bucket and key.
     get:
       tags:
         - S3Operation
@@ -222,6 +223,75 @@ paths:
         The file is streamed with transfer-encoding: chunked to efficiently handle large files.
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+    post:
+      tags:
+        - S3Operation
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: The name of the Kubernetes secret containing S3 credentials
+          schema:
+            type: string
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: The S3 bucket name; if not provided, AWS_S3_BUCKET from the secret is used
+          schema:
+            type: string
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: The S3 object key where the file will be uploaded
+          schema:
+            type: string
+          example: documents/myfile.pdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload to S3
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S3UploadSuccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: uploadS3File
+      summary: Upload file to S3
+      description: >-
+        Uploads a file to S3 storage using credentials from a Kubernetes secret.
+        The request must include a multipart form with a file part (e.g. "file").
+        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key,
+        aws_default_region, aws_s3_endpoint).
 
   # =============================================================================
   # LSD ENDPOINTS
@@ -823,6 +893,15 @@ components:
           description: Token for retrieving the next page
           example: "eyJwYWdlIjoyfQ=="
 
+    S3UploadSuccess:
+      description: Response body for successful S3 file upload
+      required:
+        - uploaded
+      type: object
+      properties:
+        uploaded:
+          type: boolean
+          example: true
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"

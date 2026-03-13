@@ -133,3 +133,39 @@ func (r *S3Repository) GetS3Object(
 	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
 	return result.Body, contentType, nil
 }
+
+// UploadS3Object uploads an object to S3 using the transfer manager (same client/endpoint config as GetS3Object).
+// Body is read until EOF and uploaded to the given bucket and key. contentType is optional (defaults to application/octet-stream).
+func (r *S3Repository) UploadS3Object(
+	ctx context.Context,
+	creds *S3Credentials,
+	bucket string,
+	key string,
+	body io.Reader,
+	contentType string,
+) error {
+	cfg := aws.Config{
+		Region:      creds.Region,
+		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(creds.EndpointURL)
+		o.UsePathStyle = true
+	})
+	transferClient := transfermanager.New(s3Client)
+
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	_, err := transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return fmt.Errorf("error uploading object to S3: %w", err)
+	}
+	return nil
+}
