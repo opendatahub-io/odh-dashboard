@@ -291,7 +291,41 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute request
+	// CRITICAL: Re-validate destination IPs right before making request to prevent DNS rebinding attacks
+	// This is the last line of defense against SSRF - validates at request time, not just construction time
+	if !c.skipSSRFValidation {
+		parsedURL, err := url.Parse(fullURL)
+		if err != nil {
+			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
+		}
+
+		hostname := parsedURL.Hostname()
+		if hostname == "" {
+			return nil, NewConnectionError(c.baseURL, "Request URL has no hostname")
+		}
+
+		// Resolve hostname to IP addresses at request time (prevents DNS rebinding)
+		ips, err := net.LookupIP(hostname)
+		if err != nil {
+			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to resolve hostname %s: %v", hostname, err))
+		}
+
+		if len(ips) == 0 {
+			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Hostname %s resolved to no IP addresses", hostname))
+		}
+
+		// Check all resolved IPs - reject if ANY target private/internal resources
+		for _, ip := range ips {
+			if isPrivateIP(ip) {
+				return nil, NewConnectionError(c.baseURL,
+					fmt.Sprintf("Request blocked: destination %s resolves to private IP %s (SSRF protection)", hostname, ip.String()))
+			}
+		}
+
+		c.logger.Debug("SSRF validation passed", "hostname", hostname, "ips", ips)
+	}
+
+	// Execute request (redirects are blocked via CheckRedirect in client config)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		// Check for timeout
