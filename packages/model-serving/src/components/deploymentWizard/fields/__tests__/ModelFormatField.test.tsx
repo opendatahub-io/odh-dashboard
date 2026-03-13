@@ -71,7 +71,10 @@ describe('ModelFormatField', () => {
       mockUseServingRuntimeTemplates.mockReturnValue([[], true, undefined]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.isVisible).toBe(true);
@@ -81,7 +84,10 @@ describe('ModelFormatField', () => {
       mockUseServingRuntimeTemplates.mockReturnValue([[], true, undefined]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.GENERATIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.GENERATIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.isVisible).toBe(false);
@@ -91,7 +97,10 @@ describe('ModelFormatField', () => {
       mockUseServingRuntimeTemplates.mockReturnValue([[], true, undefined]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.GENERATIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.GENERATIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.modelFormat).toEqual({ name: 'vLLM' });
@@ -103,7 +112,10 @@ describe('ModelFormatField', () => {
       getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.PREDICTIVE]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.modelFormatOptions).toEqual([
@@ -119,7 +131,10 @@ describe('ModelFormatField', () => {
       getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.GENERATIVE]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.modelFormatOptions).toEqual([]);
@@ -131,7 +146,10 @@ describe('ModelFormatField', () => {
       getModelTypesFromTemplate.mockReturnValue([]);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.modelFormatOptions).toEqual([
@@ -146,7 +164,10 @@ describe('ModelFormatField', () => {
       const newFormat = { name: 'pytorch', version: '1.8' };
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       act(() => {
@@ -189,7 +210,10 @@ describe('ModelFormatField', () => {
       getServingRuntimeFromTemplate.mockReturnValue(servingRuntimeWithDuplicates);
 
       const { result } = renderHook(() =>
-        useModelFormatField(undefined, ServingRuntimeModelType.PREDICTIVE),
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
       );
 
       expect(result.current.modelFormatOptions).toEqual([
