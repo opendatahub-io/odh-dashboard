@@ -204,24 +204,16 @@ function AutoragConfigure(): React.JSX.Element {
                       Selected files
                     </StackItem>
                     <StackItem>
-                      <Watch
-                        control={form.control}
-                        name="input_data_secret_name"
-                        render={(inputDataSecretName) => (
-                          <Button
-                            key="select-files"
-                            variant="secondary"
-                            onClick={() => setIsFileExplorerOpen(true)}
-                            isDisabled={
-                              !inputDataSecretName ||
-                              selectedSecret?.invalid ||
-                              form.formState.isSubmitting
-                            }
-                          >
-                            Select files
-                          </Button>
-                        )}
-                      />
+                      <Button
+                        key="select-files"
+                        variant="secondary"
+                        onClick={() => setIsFileExplorerOpen(true)}
+                        isDisabled={
+                          !selectedSecret || selectedSecret.invalid || form.formState.isSubmitting
+                        }
+                      >
+                        Select files
+                      </Button>
                     </StackItem>
                   </>
                 )}
