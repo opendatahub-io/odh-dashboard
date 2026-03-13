@@ -164,11 +164,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
             <FlexItem>
               <Button
                 variant="secondary"
-                component={
-                  detailsRoute
-                    ? (props: React.ComponentProps<'a'>) => <Link {...props} to={detailsRoute} />
-                    : 'button'
-                }
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to={detailsRoute ?? '#'} />
+                )}
                 isDisabled={!detailsRoute}
               >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} page

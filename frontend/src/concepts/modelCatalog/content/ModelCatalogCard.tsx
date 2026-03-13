@@ -88,7 +88,16 @@ export const ModelCatalogCard: React.FC<{
                   fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
                 }}
               >
-                {model.name}
+                {truncate ? (
+                  <Truncate
+                    data-testid="model-catalog-card-name"
+                    content={model.name}
+                    position="middle"
+                    tooltipPosition="top"
+                  />
+                ) : (
+                  model.name
+                )}
               </span>
             )}
             <Split hasGutter>

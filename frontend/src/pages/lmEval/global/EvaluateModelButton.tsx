@@ -17,11 +17,7 @@ const EvaluateModelButton: React.FC = () => {
       data-testid="evaluate-model-button"
       variant="primary"
       isAriaDisabled={!project}
-      component={
-        evaluateHref
-          ? (props: React.ComponentProps<'a'>) => <Link {...props} to={evaluateHref} />
-          : 'button'
-      }
+      component={(props: React.ComponentProps<'a'>) => <Link {...props} to={evaluateHref ?? '#'} />}
     >
       Start evaluation run
     </Button>

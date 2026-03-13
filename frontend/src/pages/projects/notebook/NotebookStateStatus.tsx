@@ -161,13 +161,9 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
                 data-id="edit-workbench"
                 key="edit"
                 variant="link"
-                component={
-                  editWorkbenchHref
-                    ? (props: React.ComponentProps<'a'>) => (
-                        <Link {...props} to={editWorkbenchHref} />
-                      )
-                    : 'button'
-                }
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to={editWorkbenchHref ?? '#'} />
+                )}
                 isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
               >
                 Edit workbench

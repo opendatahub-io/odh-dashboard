@@ -51,11 +51,9 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           <Button
             data-testid="empty-model-registry-primary-action"
             variant={ButtonVariant.primary}
-            component={
-              primaryActionHref
-                ? (props: React.ComponentProps<'a'>) => <Link {...props} to={primaryActionHref} />
-                : 'button'
-            }
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link {...props} to={primaryActionHref ?? '#'} />
+            )}
             onClick={primaryActionOnClick}
           >
             {primaryActionText}
@@ -68,11 +66,9 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           <Button
             data-testid="empty-model-registry-secondary-action"
             variant="link"
-            component={
-              secondaryActionHref
-                ? (props: React.ComponentProps<'a'>) => <Link {...props} to={secondaryActionHref} />
-                : 'button'
-            }
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link {...props} to={secondaryActionHref ?? '#'} />
+            )}
             onClick={secondaryActionOnClick}
           >
             {secondaryActionText}

@@ -163,11 +163,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           data-testid="compare-runs-button"
           variant="secondary"
           isAriaDisabled={isCompareDisabled}
-          component={
-            !isCompareDisabled
-              ? (props: React.ComponentProps<'a'>) => <Link {...props} to={compareRunsHref} />
-              : 'button'
-          }
+          component={(props: React.ComponentProps<'a'>) => <Link {...props} to={compareRunsHref} />}
         >
           Compare runs
         </Button>

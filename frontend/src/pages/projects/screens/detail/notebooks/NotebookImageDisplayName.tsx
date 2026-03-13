@@ -110,11 +110,9 @@ export const NotebookImageDisplayName = ({
     <Button
       data-testid="update-latest-version-button"
       variant="link"
-      component={
-        updateImageHref
-          ? (props: React.ComponentProps<'a'>) => <Link {...props} to={updateImageHref} />
-          : 'button'
-      }
+      component={(props: React.ComponentProps<'a'>) => (
+        <Link {...props} to={updateImageHref ?? '#'} />
+      )}
       onClick={() => setIsPopoverVisible(false)}
       isAriaDisabled={!updateImageHref}
     >

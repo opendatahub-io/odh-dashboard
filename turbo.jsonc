@@ -13,7 +13,6 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
     },
     "lint:fix": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"],
       "cache": false
     },
     "test-unit": {
