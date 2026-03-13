@@ -11,6 +11,7 @@ import type {
   ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
+  ModifyHardwareProfileTestData,
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
@@ -104,6 +105,15 @@ export const loadWBTolerationsFixture = (
 ): Cypress.Chainable<WBTolerationsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBTolerationsTestData;
+
+    return data;
+  });
+
+export const loadModifyHardwareProfileFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ModifyHardwareProfileTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModifyHardwareProfileTestData;
 
     return data;
   });

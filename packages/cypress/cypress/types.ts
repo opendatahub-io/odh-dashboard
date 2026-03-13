@@ -145,6 +145,25 @@ export type WBTolerationsTestData = {
   deleteModalMessage?: string;
 };
 
+export type ModifyHardwareProfileTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDisplayNameA: string;
+  hardwareProfileDisplayNameB: string;
+  tolerationValueA: string;
+  tolerationValueB: string;
+  tolerationKeyA: string;
+  tolerationKeyB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+};
+
 export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
@@ -323,6 +342,11 @@ export type HardwareProfilesData = {
   hardwareProfileName: string;
   hardwareProfileDescription: string;
   hardwareProfileEditedDescription: string;
+  updatedHardwareProfileName: string;
+  projectNamespace: string;
+  projectDescription: string;
+  workbenchName: string;
+  hardwareProfileDeploymentSize: string;
 };
 
 export type NamespaceConfig = {
