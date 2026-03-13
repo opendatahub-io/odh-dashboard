@@ -11,6 +11,7 @@ type MaaSModel struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Usecase     string `json:"usecase,omitempty"`
+	ModelType   string `json:"model_type,omitempty"`
 }
 
 // MaaSModelsResponse represents the response structure for listing MaaS models

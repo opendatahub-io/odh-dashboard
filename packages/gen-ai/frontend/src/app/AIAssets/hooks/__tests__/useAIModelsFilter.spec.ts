@@ -32,8 +32,10 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.KEYWORD]: undefined,
+        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
+        [AssetsFilterOptions.STATUS]: undefined,
+        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
     });
 
@@ -98,109 +100,21 @@ describe('useAIModelsFilter', () => {
     });
   });
 
-  describe('Filter by keyword', () => {
-    it('should filter models by keyword in name', () => {
+  describe('Filter by source', () => {
+    it('should filter models by source (select filter)', () => {
       const models = [
-        createMockAIModel({
-          model_id: 'model-1',
-          model_name: 'bert-model',
-          description: 'A BERT model',
-          usecase: 'text-classification',
-        }),
-        createMockAIModel({
-          model_id: 'model-2',
-          model_name: 'gpt-model',
-          description: 'A GPT model',
-          usecase: 'text-generation',
-        }),
+        createMockAIModel({ model_id: 'model-1', modelSource: 'namespace' }),
+        createMockAIModel({ model_id: 'model-2', modelSource: 'maas', isMaaSModel: true }),
       ];
 
       const { result } = testHook(useAIModelsFilter)(models);
 
       act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.KEYWORD, 'bert');
+        result.current.onFilterUpdate(AssetsFilterOptions.SOURCE, 'Internal');
       });
 
       expect(result.current.filteredModels).toHaveLength(1);
       expect(result.current.filteredModels[0].model_id).toBe('model-1');
-    });
-
-    it('should filter models by keyword in description', () => {
-      const models = [
-        createMockAIModel({
-          model_id: 'model-1',
-          model_name: 'model-1',
-          description: 'A powerful BERT model',
-          usecase: 'llm',
-        }),
-        createMockAIModel({
-          model_id: 'model-2',
-          model_name: 'model-2',
-          description: 'A GPT model',
-          usecase: 'llm',
-        }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.KEYWORD, 'powerful');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-1');
-    });
-
-    it('should filter models by keyword in usecase', () => {
-      const models = [
-        createMockAIModel({
-          model_id: 'model-1',
-          model_name: 'model-1',
-          description: 'A model',
-          usecase: 'text-generation',
-        }),
-        createMockAIModel({
-          model_id: 'model-2',
-          model_name: 'model-2',
-          description: 'A model',
-          usecase: 'text-classification',
-        }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.KEYWORD, 'classification');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-2');
-    });
-
-    it('should search across all fields (name, description, usecase)', () => {
-      const models = [
-        createMockAIModel({
-          model_id: 'model-1',
-          model_name: 'bert-model',
-          description: 'Text classification',
-          usecase: 'llm',
-        }),
-        createMockAIModel({
-          model_id: 'model-2',
-          model_name: 'gpt-model',
-          description: 'Text generation',
-          usecase: 'llm',
-        }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.KEYWORD, 'generation');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-2');
     });
   });
 
@@ -233,6 +147,78 @@ describe('useAIModelsFilter', () => {
       });
 
       expect(result.current.filteredModels).toHaveLength(1);
+    });
+  });
+
+  describe('Filter by status', () => {
+    it('should filter models by status (select filter)', () => {
+      const models = [
+        createMockAIModel({ model_id: 'model-1', status: 'Running' }),
+        createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
+        createMockAIModel({ model_id: 'model-3', status: 'Running' }),
+      ];
+
+      const { result } = testHook(useAIModelsFilter)(models);
+
+      act(() => {
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Active');
+      });
+
+      expect(result.current.filteredModels).toHaveLength(2);
+      expect(result.current.filteredModels[0].model_id).toBe('model-1');
+      expect(result.current.filteredModels[1].model_id).toBe('model-3');
+    });
+
+    it('should filter for inactive models', () => {
+      const models = [
+        createMockAIModel({ model_id: 'model-1', status: 'Running' }),
+        createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
+      ];
+
+      const { result } = testHook(useAIModelsFilter)(models);
+
+      act(() => {
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Inactive');
+      });
+
+      expect(result.current.filteredModels).toHaveLength(1);
+      expect(result.current.filteredModels[0].model_id).toBe('model-2');
+    });
+  });
+
+  describe('Filter by model type', () => {
+    it('should filter models by model type (select filter)', () => {
+      const models = [
+        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
+        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
+        createMockAIModel({ model_id: 'model-3', model_type: 'llm' }),
+      ];
+
+      const { result } = testHook(useAIModelsFilter)(models);
+
+      act(() => {
+        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Inferencing');
+      });
+
+      expect(result.current.filteredModels).toHaveLength(2);
+      expect(result.current.filteredModels[0].model_id).toBe('model-1');
+      expect(result.current.filteredModels[1].model_id).toBe('model-3');
+    });
+
+    it('should filter for embedding models', () => {
+      const models = [
+        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
+        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
+      ];
+
+      const { result } = testHook(useAIModelsFilter)(models);
+
+      act(() => {
+        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Embedding');
+      });
+
+      expect(result.current.filteredModels).toHaveLength(1);
+      expect(result.current.filteredModels[0].model_id).toBe('model-2');
     });
   });
 
@@ -308,8 +294,10 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.KEYWORD]: undefined,
+        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
+        [AssetsFilterOptions.STATUS]: undefined,
+        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
       expect(result.current.filteredModels).toEqual(models);
     });
@@ -333,18 +321,15 @@ describe('useAIModelsFilter', () => {
 
       act(() => {
         result.current.onFilterUpdate(AssetsFilterOptions.NAME, 'name-filter');
-        result.current.onFilterUpdate(AssetsFilterOptions.KEYWORD, 'keyword-filter');
       });
 
       expect(result.current.filterData[AssetsFilterOptions.NAME]).toBe('name-filter');
-      expect(result.current.filterData[AssetsFilterOptions.KEYWORD]).toBe('keyword-filter');
 
       act(() => {
         result.current.onFilterUpdate(AssetsFilterOptions.USE_CASE, 'usecase-filter');
       });
 
       expect(result.current.filterData[AssetsFilterOptions.NAME]).toBe('name-filter');
-      expect(result.current.filterData[AssetsFilterOptions.KEYWORD]).toBe('keyword-filter');
       expect(result.current.filterData[AssetsFilterOptions.USE_CASE]).toBe('usecase-filter');
     });
   });

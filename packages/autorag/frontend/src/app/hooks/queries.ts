@@ -26,16 +26,50 @@ export function useExperimentQuery(
   });
 }
 
+// TODO: Remove mock data once the secretName form field is implemented
+// and users can provide a real secret to query LlamaStack models.
+/* eslint-disable camelcase */
+const MOCK_LLAMA_STACK_MODELS: LlamaStackModelsResponse = {
+  models: [
+    {
+      id: 'granite3.2:8b',
+      type: 'llm',
+      provider: 'ollama',
+      resource_path: 'ollama://granite3.2:8b',
+    },
+    {
+      id: 'llama3.2:3b',
+      type: 'llm',
+      provider: 'ollama',
+      resource_path: 'ollama://llama3.2:3b',
+    },
+    {
+      id: 'all-minilm:l6-v2',
+      type: 'embedding',
+      provider: 'ollama',
+      resource_path: 'ollama://all-minilm:l6-v2',
+    },
+    {
+      id: 'nomic-embed-text:v1.5',
+      type: 'embedding',
+      provider: 'ollama',
+      resource_path: 'ollama://nomic-embed-text:v1.5',
+    },
+  ],
+};
+/* eslint-enable camelcase */
+
 export function useLlamaStackModelsQuery(
   namespace: string,
-  //secretName is optional for now until the secretName form field is created
+  // secretName is optional for now until the secretName form field is created
   secretName?: string,
   modelType?: LlamaStackModelType,
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
     queryKey: ['models', namespace, secretName, modelType],
-    queryFn: () => getLlamaStackModels('')(namespace, secretName!)({}),
-    enabled: !!secretName,
+    queryFn: secretName
+      ? () => getLlamaStackModels('')(namespace, secretName)({})
+      : () => Promise.resolve(MOCK_LLAMA_STACK_MODELS),
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,
