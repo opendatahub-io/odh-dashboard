@@ -108,14 +108,6 @@ type ChildTask struct {
 	PodName string `json:"pod_name,omitempty"`
 }
 
-// KFPipelineVersion represents a pipeline version from the KFP v2beta1 API
-type KFPipelineVersion struct {
-	PipelineID        string          `json:"pipeline_id"`
-	PipelineVersionID string          `json:"pipeline_version_id"`
-	DisplayName       string          `json:"display_name"`
-	PipelineSpec      json.RawMessage `json:"pipeline_spec,omitempty"`
-}
-
 // CreateAutoRAGRunRequest is the BFF-level input for creating an AutoRAG pipeline run.
 type CreateAutoRAGRunRequest struct {
 	DisplayName                string   `json:"display_name"`
@@ -152,13 +144,15 @@ type KFPipeline struct {
 }
 
 // KFPipelineVersion represents a version of a pipeline from the KFP v2beta1 API.
-// Used to retrieve the version ID of a discovered pipeline for run creation.
+// Used by pipeline discovery (ListPipelineVersions) and topology enrichment (GetPipelineVersion).
+// The PipelineSpec field is only populated by GetPipelineVersion (single-version endpoint).
 type KFPipelineVersion struct {
-	PipelineID        string `json:"pipeline_id"`         // ID of the parent pipeline
-	PipelineVersionID string `json:"pipeline_version_id"` // Unique version identifier
-	DisplayName       string `json:"display_name"`        // Human-readable version name (e.g., "v1.0.0")
-	Description       string `json:"description,omitempty"`
-	CreatedAt         string `json:"created_at,omitempty"` // ISO 8601 timestamp
+	PipelineID        string          `json:"pipeline_id"`         // ID of the parent pipeline
+	PipelineVersionID string          `json:"pipeline_version_id"` // Unique version identifier
+	DisplayName       string          `json:"display_name"`        // Human-readable version name (e.g., "v1.0.0")
+	Description       string          `json:"description,omitempty"`
+	CreatedAt         string          `json:"created_at,omitempty"`    // ISO 8601 timestamp
+	PipelineSpec      json.RawMessage `json:"pipeline_spec,omitempty"` // DAG definition (only from GetPipelineVersion)
 }
 
 // KFPipelinesResponse represents the response from GET /apis/v2beta1/pipelines.
