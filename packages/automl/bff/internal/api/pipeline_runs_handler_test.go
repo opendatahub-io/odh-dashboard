@@ -17,20 +17,21 @@ import (
 )
 
 // withDiscoveredPipelinesAutoML adds both AutoML discovered pipelines to the request context.
-// Uses the timeseries pipeline's LatestVersionID and the tabular pipeline's OldVersionID
-// so we can verify that both are fetched and merged.
+// Uses the version IDs that the mock client returns in namespace mode so that both pipelines
+// contribute runs when GetAllPipelineRuns filters by PipelineVersionID.
 func withDiscoveredPipelinesAutoML(req *http.Request) *http.Request {
-	ids := psmocks.DeriveMockIDs("test-namespace")
+	tsIDs := psmocks.DeriveMockIDs("test-namespace")
+	tabIDs := psmocks.DeriveTabularMockIDs("test-namespace")
 	pipelines := map[string]*repositories.DiscoveredPipeline{
 		constants.PipelineTypeTimeSeries: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.LatestVersionID,
+			PipelineID:        tsIDs.PipelineID,
+			PipelineVersionID: tsIDs.LatestVersionID,
 			PipelineName:      "automl-timeseries-pipeline",
 			Namespace:         "test-namespace",
 		},
 		constants.PipelineTypeTabular: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.OldVersionID,
+			PipelineID:        tabIDs.PipelineID,
+			PipelineVersionID: tabIDs.LatestVersionID,
 			PipelineName:      "automl-tabular-pipeline",
 			Namespace:         "test-namespace",
 		},
@@ -67,10 +68,27 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, response.Data)
-		// Mock test-namespace returns 3 base runs; timeseries LatestVersionID matches all 3,
-		// tabular OldVersionID matches 0 runs (different version ID). Total = 3.
-		assert.Len(t, response.Data.Runs, 3, "Should return pipeline runs from all discovered pipelines")
-		assert.Equal(t, int32(3), response.Data.TotalSize)
+		// Mock test-namespace returns 4 base runs: 3 timeseries + 1 tabular.
+		// Both discovered pipelines contribute runs to the merged result.
+		assert.Len(t, response.Data.Runs, 4, "Should return merged runs from both discovered pipelines")
+		assert.Equal(t, int32(4), response.Data.TotalSize)
+
+		// Verify runs from both pipeline types are present in the merged result
+		tsVersionID := psmocks.DeriveMockIDs("test-namespace").LatestVersionID
+		tabVersionID := psmocks.DeriveTabularMockIDs("test-namespace").LatestVersionID
+		foundTimeseries, foundTabular := false, false
+		for _, run := range response.Data.Runs {
+			if run.PipelineVersionReference != nil {
+				if run.PipelineVersionReference.PipelineVersionID == tsVersionID {
+					foundTimeseries = true
+				}
+				if run.PipelineVersionReference.PipelineVersionID == tabVersionID {
+					foundTabular = true
+				}
+			}
+		}
+		assert.True(t, foundTimeseries, "at least one timeseries pipeline run should be present")
+		assert.True(t, foundTabular, "at least one tabular pipeline run should be present")
 	})
 
 	t.Run("should handle pagination with page parameter", func(t *testing.T) {
@@ -96,10 +114,10 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-		// Page 1 of pageSize=2 should return at most 2 runs
-		assert.LessOrEqual(t, len(response.Data.Runs), 2)
-		// TotalSize should reflect total across all pipelines
-		assert.Equal(t, int32(3), response.Data.TotalSize)
+		// Page 1 of pageSize=2 should return exactly 2 runs
+		assert.Len(t, response.Data.Runs, 2)
+		// TotalSize should reflect total across all pipelines (3 timeseries + 1 tabular)
+		assert.Equal(t, int32(4), response.Data.TotalSize)
 	})
 
 	t.Run("should handle page 2 pagination", func(t *testing.T) {
@@ -125,9 +143,9 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-		// Page 2 of pageSize=2 with 3 total runs should return 1 run
-		assert.Len(t, response.Data.Runs, 1)
-		assert.Equal(t, int32(3), response.Data.TotalSize)
+		// Page 2 of pageSize=2 with 4 total runs should return 2 runs (indices 2-3)
+		assert.Len(t, response.Data.Runs, 2)
+		assert.Equal(t, int32(4), response.Data.TotalSize)
 	})
 }
 

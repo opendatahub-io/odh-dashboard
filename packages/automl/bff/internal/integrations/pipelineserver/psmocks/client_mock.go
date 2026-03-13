@@ -34,6 +34,17 @@ func DeriveMockIDs(namespace string) MockPipelineIDs {
 	}
 }
 
+// DeriveTabularMockIDs returns mock IDs for the tabular pipeline fixture used in namespace
+// mode (mock:// URL).  The seeds match those used internally by getBaseMockRuns and
+// ListPipelineVersions so tests can inject the correct PipelineVersionID for tabular runs.
+func DeriveTabularMockIDs(namespace string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("cls-pipeline:" + namespace),
+		LatestVersionID: hashUUID("cls-version-latest:" + namespace),
+		OldVersionID:    hashUUID("cls-version-old:" + namespace),
+	}
+}
+
 // DeriveMockIDsFromName returns a consistent MockPipelineIDs set for the given pipeline name
 // and namespace.  Used when multiple named pipelines exist in the same namespace.
 func DeriveMockIDsFromName(namespace, name string) MockPipelineIDs {
@@ -98,7 +109,7 @@ func NewMockPipelineServerClient(baseURL string) *MockPipelineServerClient {
 // - default: 5 runs
 // - bella: 0 runs (empty state)
 // - bento: 30 runs (pagination testing, >25)
-// - test-namespace: 3 runs (for unit tests)
+// - test-namespace: 4 runs (3 timeseries + 1 tabular, for unit tests covering multi-pipeline merge)
 // - other: 5 runs (fallback)
 func getMockRunCount(namespace string) int {
 	switch strings.ToLower(namespace) {
@@ -109,7 +120,7 @@ func getMockRunCount(namespace string) int {
 	case "bento-namespace":
 		return 30
 	case "test-namespace":
-		return 3
+		return 4
 	default:
 		return 5
 	}
