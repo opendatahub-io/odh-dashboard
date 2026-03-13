@@ -41,16 +41,14 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    // Use timeout: 0 to immediately check if sidebar exists without waiting
-    // This allows .should('not.exist') to work when sidebar/nav items don't exist
-    return cy.get('body').then(($body) => {
-      const hasSidebar = $body.find('#page-sidebar').length > 0;
-      if (!hasSidebar) {
-        // No sidebar, return empty result for .should('not.exist') assertions
-        return cy.wrap(Cypress.$(), { log: false });
+    // Check if sidebar exists synchronously to avoid waiting/timeouts
+    return cy.get('body', { timeout: 1000 }).then(($body) => {
+      if ($body.find('#page-sidebar').length === 0) {
+        // No sidebar - return empty for .should('not.exist') to work
+        return cy.wrap(Cypress.$());
       }
-      // Sidebar exists, find the nav item
-      return cy.get('#page-sidebar', { log: false }).findAppNavItem(args);
+      // Sidebar exists - find the nav item
+      return this.findSideBar().findAppNavItem(args);
     });
   }
 }
