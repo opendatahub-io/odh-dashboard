@@ -1,6 +1,10 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { getLlamaStackModels } from '~/app/api/k8s';
-import { LlamaStackModelType, LlamaStackModelsResponse } from '~/app/types';
+import { getLlamaStackModels, getLlamaStackVectorStores } from '~/app/api/k8s';
+import {
+  LlamaStackModelType,
+  LlamaStackModelsResponse,
+  LlamaStackVectorStoresResponse,
+} from '~/app/types';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -73,6 +77,18 @@ export function useLlamaStackModelsQuery(
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,
+  });
+}
+
+export function useLlamaStackVectorStoresQuery(
+  namespace: string,
+  //secretName is optional for now until the secretName form field is created
+  secretName?: string,
+): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
+  return useQuery({
+    queryKey: ['vectorStores', namespace, secretName],
+    queryFn: () => getLlamaStackVectorStores('')(namespace, secretName!)({}),
+    enabled: !!secretName,
   });
 }
 
