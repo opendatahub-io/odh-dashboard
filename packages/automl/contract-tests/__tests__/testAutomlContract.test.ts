@@ -358,6 +358,351 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('S3 File Endpoint', () => {
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when all parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/file');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secretName', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty bucket', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty key', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+        );
+        // Should not return 400 since bucket is provided via secret
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+        );
+        // Should not return 400 since both bucket sources are valid
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+
+    describe('Key Format Variations', () => {
+      it('should handle nested key structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
+        );
+        // Will fail if secret doesn't exist or S3 object doesn't exist, but key format should be valid
+        if (!result.success) {
+          // Format is valid; if it fails, it should not be a request-validation error
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should handle key with special characters', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
+        );
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should handle URL-encoded key', async () => {
+        const encodedKey = encodeURIComponent('documents/my file.pdf');
+        const result = await apiClient.get(
+          `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+        );
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+
+    describe('Valid Bucket and Key Formats', () => {
+      it('should accept simple key format', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
+        );
+        // Will fail without actual S3 setup, but validates parameter parsing
+        if (!result.success) {
+          // Should not be 400 (bad request) since format is valid
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should accept key with multiple path segments', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
+        );
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+  });
+
+  describe('S3 File Schema Endpoint', () => {
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=&secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secretName', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty key', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret and File Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should handle request for non-existent CSV file', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=non-existent.csv',
+        );
+        // Will fail without actual S3 setup, but validates parameter parsing
+        if (!result.success) {
+          // Should not be 400 (bad request) since parameters are valid
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&key=data.csv',
+        );
+        // Should not return 400 since bucket is provided via secret
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=data.csv',
+        );
+        // Should not return 400 since both bucket sources are valid
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+
+    describe('File Format Validation', () => {
+      it('should handle CSV files with nested paths', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/data.csv',
+        );
+        // Will fail if file doesn't exist, but path format should be valid
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should handle URL-encoded file keys', async () => {
+        const encodedKey = encodeURIComponent('data/my file.csv');
+        const result = await apiClient.get(
+          `/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+        );
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {
