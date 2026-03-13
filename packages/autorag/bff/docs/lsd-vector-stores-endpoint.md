@@ -1,12 +1,12 @@
-# LSD Models Endpoint Documentation
+# LSD Vector Stores Endpoint Documentation
 
 ## Overview
 
-This document describes the GET endpoint for retrieving available models from a LlamaStack server using credentials stored in a Kubernetes secret.
+This document describes the GET endpoint for retrieving available vector stores from a LlamaStack server using credentials stored in a Kubernetes secret.
 
 ## Endpoint
 
-**GET** `/api/v1/lsd/models`
+**GET** `/api/v1/lsd/vector-stores`
 
 ## Query Parameters
 
@@ -22,9 +22,9 @@ The endpoint:
 2. Reads the specified Kubernetes secret from the namespace
 3. Extracts `llama_stack_client_base_url` and `llama_stack_client_api_key` from the secret (exact key match, case-sensitive)
 4. Creates a LlamaStack client using those credentials
-5. Calls the LlamaStack server to list available models
-6. Translates the response from LlamaStack's native format into a stable public API format
-7. Returns the models wrapped in a data envelope
+5. Calls the LlamaStack server to list available vector stores via the OpenAI-compatible `GET /v1/vector_stores` endpoint
+6. Extracts `provider_id` from each vector store's `metadata` field (LlamaStack stores provider info in OpenAI metadata)
+7. Returns the vector stores wrapped in a data envelope
 
 ### Secret Requirements
 
@@ -40,7 +40,7 @@ The secret must contain the following keys (exact match, case-sensitive):
 The request passes through the following middleware:
 
 ```
-AttachNamespace -> AttachLlamaStackClientFromSecret -> LlamaStackModelsHandler
+AttachNamespace -> RequireAccessToService -> AttachLlamaStackClientFromSecret -> LlamaStackVectorStoresHandler
 ```
 
 ### Client Creation Precedence
@@ -61,18 +61,18 @@ The response follows the envelope pattern:
 ```json
 {
   "data": {
-    "models": [
+    "vector_stores": [
       {
-        "id": "llama3.2:3b",
-        "type": "llm",
-        "provider": "ollama",
-        "resource_path": "ollama://models/llama3.2:3b"
+        "id": "vs_136a08ec-60da-4f68-b587-54f3def2a84c",
+        "name": "Milvus Vector Store",
+        "status": "completed",
+        "provider": "milvus"
       },
       {
-        "id": "all-minilm:l6-v2",
-        "type": "embedding",
-        "provider": "ollama",
-        "resource_path": "ollama://models/all-minilm:l6-v2"
+        "id": "vs_abc12345-def6-7890-abcd-ef1234567890",
+        "name": "FAISS In-Memory Store",
+        "status": "completed",
+        "provider": "faiss"
       }
     ]
   }
@@ -83,10 +83,10 @@ The response follows the envelope pattern:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Model identifier (e.g., `llama3.2:3b`) |
-| `type` | string | Model type: `llm` or `embedding` |
-| `provider` | string | Provider identifier (e.g., `ollama`, `huggingface`) |
-| `resource_path` | string | Full provider resource path (e.g., `ollama://models/llama3.2:3b`) |
+| `id` | string | Unique vector store identifier (e.g., `vs_136a08ec-...`) |
+| `name` | string | Human-readable name |
+| `status` | string | Vector store status: `expired`, `in_progress`, or `completed` |
+| `provider` | string | Database provider identifier (e.g., `milvus`, `faiss`, `chromadb`). Extracted from LlamaStack's `metadata.provider_id` field. |
 
 ## Error Responses
 
@@ -100,18 +100,18 @@ The response follows the envelope pattern:
 
 ## Examples
 
-### Retrieve models using a secret
+### Retrieve vector stores using a secret
 
 ```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace&secretName=my-lls-secret'
+curl -s -H "Authorization: Bearer $(oc whoami -t)" \
+  'http://localhost:4000/api/v1/lsd/vector-stores?namespace=my-namespace&secretName=my-lls-secret' | jq
 ```
 
 ### Error: Missing secretName
 
 ```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace'
+curl -s -H "Authorization: Bearer $(oc whoami -t)" \
+  'http://localhost:4000/api/v1/lsd/vector-stores?namespace=my-namespace' | jq
 ```
 
 Response (400):
@@ -120,23 +120,6 @@ Response (400):
   "error": {
     "code": "400",
     "message": "missing required query parameter: secretName"
-  }
-}
-```
-
-### Error: Secret not found
-
-```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/lsd/models?namespace=my-namespace&secretName=nonexistent'
-```
-
-Response (404):
-```json
-{
-  "error": {
-    "code": "404",
-    "message": "secret \"nonexistent\" not found in namespace \"my-namespace\""
   }
 }
 ```
@@ -153,7 +136,7 @@ make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
 ```
 
 ```bash
-curl 'http://localhost:4000/api/v1/lsd/models?namespace=default&secretName=any-secret'
+curl -s 'http://localhost:4000/api/v1/lsd/vector-stores?namespace=default&secretName=any-secret' | jq
 ```
 
 ### Developer Override
@@ -166,8 +149,8 @@ make run LLAMA_STACK_URL=http://localhost:8321
 ```
 
 ```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/lsd/models?namespace=default&secretName=any-secret'
+curl -s -H "Authorization: Bearer $(oc whoami -t)" \
+  'http://localhost:4000/api/v1/lsd/vector-stores?namespace=default&secretName=any-secret' | jq
 ```
 
 ### Full E2E
@@ -188,13 +171,13 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 3. Start the BFF without mock flags:
    ```bash
    cd packages/autorag/bff
-   make run
+   make run INSECURE_SKIP_VERIFY=true
    ```
 
 4. Call the endpoint:
    ```bash
-   curl -H "Authorization: Bearer $(oc whoami -t)" \
-     'http://localhost:4000/api/v1/lsd/models?namespace=<namespace>&secretName=my-lls-secret'
+   curl -s -H "Authorization: Bearer $(oc whoami -t)" \
+     'http://localhost:4000/api/v1/lsd/vector-stores?namespace=<namespace>&secretName=my-lls-secret' | jq
    ```
 
 ## Security
@@ -212,21 +195,21 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 | File | Purpose |
 |------|---------|
 | `internal/api/middleware.go` | `AttachLlamaStackClientFromSecret` middleware — reads secret, creates client |
-| `internal/api/lsd_models_handler.go` | HTTP handler — calls repository, returns envelope response |
-| `internal/repositories/lsd_models.go` | Repository — calls LlamaStack client, translates response format |
-| `internal/integrations/llamastack/llamastack_client.go` | LlamaStack client — wraps OpenAI SDK for model listing |
+| `internal/api/lsd_vector_stores_handler.go` | HTTP handler — calls repository, returns envelope response |
+| `internal/repositories/lsd_vector_stores.go` | Repository — calls LlamaStack client, extracts provider from metadata |
+| `internal/integrations/llamastack/llamastack_client.go` | LlamaStack client — wraps OpenAI SDK for vector store listing |
 | `internal/helpers/llamastack.go` | Context helper — retrieves LlamaStack client from request context |
-| `internal/api/app.go` | Route registration and API path constants |
 | `api/openapi/autorag.yaml` | OpenAPI specification |
+
+### Provider ID Source
+
+LlamaStack stores the vector database provider identifier in the `metadata` field of the OpenAI-compatible vector store response, not as a top-level field. The BFF extracts it via `metadata["provider_id"]`. Known provider values include `milvus`, `faiss`, and `chromadb`.
 
 ### Testing
 
 ```bash
 # Run handler tests
-go test -v ./internal/api -run TestLlamaStackModelsHandler
-
-# Run middleware tests
-go test -v ./internal/api -run TestAttachLlamaStackClientFromSecret
+go test -v ./internal/api -run TestLlamaStackVectorStoresHandler
 
 # Run all tests
 go test ./...
