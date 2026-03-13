@@ -166,8 +166,13 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, connection details (endpoint, credentials field names, region, bucket)
+            are resolved from the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
           example: aws-secret-1
@@ -218,10 +223,19 @@ paths:
       operationId: getS3File
       summary: Get file from S3
       description: >-
-        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
-        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves an arbitrary file from S3 storage. The file is streamed with
+        transfer-encoding: chunked to efficiently handle large files.
+
+        Two credential resolution modes are supported:
+
+        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace. This works for both external S3 and managed
+        MinIO without requiring the caller to know which secret is in use.
+
+        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
 
   # =============================================================================
   # LSD ENDPOINTS
@@ -290,13 +304,6 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
-        - name: pipelineVersionId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: ID of the pipeline version to filter runs by
-          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/nextPageToken"
       responses:
@@ -315,12 +322,9 @@ paths:
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: >-
-        Returns pipeline runs with automatic filtering to the discovered AutoRAG managed pipeline.
-        If pipelineVersionId query parameter is not specified, the BFF automatically discovers
-        the AutoRAG pipeline in the namespace and filters runs to that pipeline version.
-        If no AutoRAG pipeline is found and no explicit pipelineVersionId is provided, returns 500 error
-        with a user-visible message indicating that a managed AutoRAG pipeline needs to be deployed.
-        Explicit pipelineVersionId parameter overrides automatic discovery.
+        Returns pipeline runs filtered to the auto-discovered AutoRAG managed pipeline version.
+        The AutoRAG pipeline is automatically discovered in the namespace by name prefix.
+        Returns 500 if no managed AutoRAG pipeline is found in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -328,6 +332,18 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
+        - name: pipelineType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - autorag
+            default: autorag
+          description: >-
+            Selects which discovered AutoRAG pipeline to use for this run.
+            Currently only "autorag" is supported. Defaults to "autorag" when omitted.
+          example: "autorag"
       requestBody:
         required: true
         content:
@@ -352,10 +368,11 @@ paths:
       description: >-
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
-        If no AutoRAG pipeline is found, returns a 500 error with a user-visible message
-        indicating that a managed AutoRAG pipeline needs to be deployed. The Pipeline Server
-        (DSPipelineApplication) is also auto-discovered. The BFF maps AutoRAG-specific
-        parameters to KFP v2beta1 runtime config and submits the run.
+        The optional pipelineType parameter selects which discovered pipeline to use
+        (currently only "autorag" is supported). If no matching AutoRAG pipeline is found,
+        returns a 500 error. The Pipeline Server (DSPipelineApplication) is also
+        auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
+        config and submits the run.
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID

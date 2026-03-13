@@ -174,7 +174,8 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
 }
 
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
-func BuildKFPRunRequest(req models.CreateAutoMLRunRequest) models.CreatePipelineRunKFRequest {
+// pipelineID and pipelineVersionID are injected by the caller (from discovery or hardcoded fallback).
+func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
 	params := map[string]interface{}{
 		"train_data_secret_name": req.TrainDataSecretName,
 		"train_data_bucket_name": req.TrainDataBucketName,
@@ -193,8 +194,8 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest) models.CreatePipeline
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		PipelineVersionReference: models.PipelineVersionReference{
-			PipelineID:        constants.AutoMLPipelineID,
-			PipelineVersionID: constants.AutoMLPipelineVersionID,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		RuntimeConfig: models.RuntimeConfig{
 			Parameters: params,
@@ -203,10 +204,12 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest) models.CreatePipeline
 }
 
 // CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+// pipelineID and pipelineVersionID are provided by the caller (from dynamic discovery).
 func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	req models.CreateAutoMLRunRequest,
+	pipelineID, pipelineVersionID string,
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
@@ -216,7 +219,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, err
 	}
 
-	kfpRequest := BuildKFPRunRequest(req)
+	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {
@@ -229,6 +232,52 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 
 	run := toPipelineRun(kfRun)
 	return &run, nil
+}
+
+// GetAllPipelineRuns fetches all pages of runs for a single pipeline version ID.
+// It auto-paginates through the pipeline server's pages and returns the complete list.
+// This is used by the multi-pipeline runs handler to merge runs from multiple pipelines.
+func (r *PipelineRunsRepository) GetAllPipelineRuns(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	pipelineVersionID string,
+) ([]models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	var allRuns []models.PipelineRun
+	pageToken := ""
+
+	for {
+		filter := buildFilter(pipelineVersionID)
+		params := &ps.ListRunsParams{
+			PageSize:  100, // max page size to minimize round trips
+			PageToken: pageToken,
+			SortBy:    "created_at desc",
+			Filter:    filter,
+		}
+
+		kfResponse, err := client.ListRuns(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching pipeline runs: %w", err)
+		}
+
+		if kfResponse == nil || len(kfResponse.Runs) == 0 {
+			break
+		}
+
+		for _, kfRun := range kfResponse.Runs {
+			allRuns = append(allRuns, toPipelineRun(&kfRun))
+		}
+
+		if kfResponse.NextPageToken == "" {
+			break
+		}
+		pageToken = kfResponse.NextPageToken
+	}
+
+	return allRuns, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID

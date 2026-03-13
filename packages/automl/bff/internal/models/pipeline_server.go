@@ -16,13 +16,47 @@ type DSPipelineApplicationMetadata struct {
 }
 
 type DSPipelineApplicationSpec struct {
-	// Spec fields can be added as needed
-	APIServer *APIServer `json:"apiServer,omitempty"`
+	APIServer     *APIServer     `json:"apiServer,omitempty"`
+	ObjectStorage *ObjectStorage `json:"objectStorage,omitempty"`
 }
 
 type APIServer struct {
-	// API Server configuration
 	Deploy bool `json:"deploy,omitempty"`
+}
+
+// ObjectStorage captures the DSPA objectStorage spec fields needed to connect to S3.
+type ObjectStorage struct {
+	ExternalStorage *ExternalStorage `json:"externalStorage,omitempty"`
+}
+
+// ExternalStorage holds the external S3-compatible storage configuration.
+type ExternalStorage struct {
+	Host                string               `json:"host,omitempty"`
+	Port                string               `json:"port,omitempty"`
+	Scheme              string               `json:"scheme,omitempty"`
+	Region              string               `json:"region,omitempty"`
+	Bucket              string               `json:"bucket,omitempty"`
+	S3CredentialsSecret *S3CredentialsSecret `json:"s3CredentialsSecret,omitempty"`
+}
+
+// S3CredentialsSecret references the Kubernetes Secret and the field names within it.
+type S3CredentialsSecret struct {
+	SecretName string `json:"secretName,omitempty"`
+	AccessKey  string `json:"accessKey,omitempty"` // field NAME inside the secret
+	SecretKey  string `json:"secretKey,omitempty"` // field NAME inside the secret
+}
+
+// DSPAObjectStorage is the resolved object-storage configuration extracted from a
+// DSPipelineApplication spec. It is stored in request context under
+// constants.DSPAObjectStorageKey so handlers can access it without additional
+// Kubernetes API calls.
+type DSPAObjectStorage struct {
+	SecretName     string // name of the Kubernetes Secret holding the credentials
+	AccessKeyField string // key inside SecretName that holds the access key ID
+	SecretKeyField string // key inside SecretName that holds the secret access key
+	EndpointURL    string // fully constructed endpoint: scheme://host[:port]
+	Bucket         string // default bucket from the DSPA spec
+	Region         string // S3-compatible region
 }
 
 type DSPipelineApplicationStatus struct {

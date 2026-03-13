@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
-	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
 // TODO: Confirm caching architecture for shared ODH deployments
@@ -34,7 +34,7 @@ const (
 
 	// defaultPipelineNamePrefix is the default prefix used when none is configured
 	// TODO: Replace name-based identification with pipeline attribute/metadata
-	defaultPipelineNamePrefix = "autorag"
+	defaultPipelineNamePrefix = "automl"
 )
 
 // DiscoveredPipeline holds the discovered pipeline information
@@ -47,7 +47,7 @@ type DiscoveredPipeline struct {
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
-// The map key is the pipeline type (e.g. "autorag").
+// The map key is the pipeline type (e.g. "timeseries", "tabular").
 type pipelineCacheEntry struct {
 	pipelines    map[string]*DiscoveredPipeline
 	expiresAt    time.Time
@@ -67,7 +67,7 @@ var globalPipelineCache = &pipelineCache{
 	entries: make(map[string]*pipelineCacheEntry),
 }
 
-// get retrieves cached pipelines for a namespace if still valid.
+// get retrieves cached pipelines for a key if still valid.
 // Updates the last accessed time for LRU eviction.
 func (c *pipelineCache) get(key string) map[string]*DiscoveredPipeline {
 	c.mu.Lock()
@@ -159,7 +159,7 @@ func NewPipelineRepository() *PipelineRepository {
 //   - ctx: Request context
 //   - namespace: Kubernetes namespace to search in
 //   - pipelineServerBaseURL: Base URL of the pipeline server (used in cache key)
-//   - definitions: map from pipeline type key to name prefix (e.g. {"autorag": "autorag"})
+//   - definitions: map from pipeline type key to name prefix
 //
 // Returns:
 //   - map[string]*DiscoveredPipeline: partial map; missing key means pipeline not found

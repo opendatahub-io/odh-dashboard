@@ -13,17 +13,19 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
-//   - secretName (required): The name of the Kubernetes secret containing S3 credentials
+//   - secretName (optional): Name of the Kubernetes secret holding S3 credentials.
+//     If omitted, the secret name is taken from the DSPA associated with the
+//     Pipeline Server in this namespace (set by AttachPipelineServerClient middleware).
 //   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
 //   - key (required): The S3 object key to retrieve
-//
-// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -42,11 +44,15 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// Resolve S3 credentials from one of two sources:
+	//   1. DSPA object storage config injected by AttachPipelineServerClient (primary in production).
+	//      Uses the credential field names and endpoint coordinates from the DSPA spec, so it
+	//      works for both external S3 and managed MinIO without requiring the caller to know
+	//      which secret is in use.
+	//   2. Explicit secretName query parameter (override / development path).
+	//      Falls back to conventional AWS_* field names for the secret's credential keys.
+	var creds *repositories.S3Credentials
 	secretName := queryParams.Get("secretName")
-	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
-		return
-	}
 
 	key := queryParams.Get("key")
 	if key == "" {
@@ -61,8 +67,19 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	// Fetch credentials using the appropriate path
+	var credsErr error
+	if secretName != "" {
+		// Explicit override: use conventional AWS_* field names
+		creds, credsErr = app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	} else if dspaStorage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && dspaStorage != nil {
+		// Primary production path: use field names and endpoint from DSPA spec
+		creds, credsErr = app.repositories.S3.GetS3CredentialsFromDSPA(client, ctx, namespace, dspaStorage, identity)
+	} else {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required when no DSPA object storage config is available"))
+		return
+	}
+	err = credsErr
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError

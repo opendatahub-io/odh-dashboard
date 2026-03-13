@@ -11,14 +11,39 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// withDiscoveredPipelinesAutoML adds both AutoML discovered pipelines to the request context.
+// Uses the version IDs that the mock client returns in namespace mode so that both pipelines
+// contribute runs when GetAllPipelineRuns filters by PipelineVersionID.
+func withDiscoveredPipelinesAutoML(req *http.Request) *http.Request {
+	tsIDs := psmocks.DeriveMockIDs("test-namespace")
+	tabIDs := psmocks.DeriveTabularMockIDs("test-namespace")
+	pipelines := map[string]*repositories.DiscoveredPipeline{
+		constants.PipelineTypeTimeSeries: {
+			PipelineID:        tsIDs.PipelineID,
+			PipelineVersionID: tsIDs.LatestVersionID,
+			PipelineName:      "automl-timeseries-pipeline",
+			Namespace:         "test-namespace",
+		},
+		constants.PipelineTypeTabular: {
+			PipelineID:        tabIDs.PipelineID,
+			PipelineVersionID: tabIDs.LatestVersionID,
+			PipelineName:      "automl-tabular-pipeline",
+			Namespace:         "test-namespace",
+		},
+	}
+	ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, pipelines)
+	return req.WithContext(ctx)
+}
+
 func TestPipelineRunsHandler_Success(t *testing.T) {
 	app := newTestApp(t)
 
-	t.Run("should return pipeline runs with mock client", func(t *testing.T) {
+	t.Run("should return pipeline runs from all discovered pipelines", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
@@ -28,10 +53,11 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Attach mock client to context
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -42,24 +68,43 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, response.Data)
-		assert.Len(t, response.Data.Runs, 3, "Should return 3 pipeline runs from mock")
-		assert.Equal(t, int32(3), response.Data.TotalSize)
+		// Mock test-namespace returns 4 base runs: 3 timeseries + 1 tabular.
+		// Both discovered pipelines contribute runs to the merged result.
+		assert.Len(t, response.Data.Runs, 4, "Should return merged runs from both discovered pipelines")
+		assert.Equal(t, int32(4), response.Data.TotalSize)
+
+		// Verify runs from both pipeline types are present in the merged result
+		tsVersionID := psmocks.DeriveMockIDs("test-namespace").LatestVersionID
+		tabVersionID := psmocks.DeriveTabularMockIDs("test-namespace").LatestVersionID
+		foundTimeseries, foundTabular := false, false
+		for _, run := range response.Data.Runs {
+			if run.PipelineVersionReference != nil {
+				if run.PipelineVersionReference.PipelineVersionID == tsVersionID {
+					foundTimeseries = true
+				}
+				if run.PipelineVersionReference.PipelineVersionID == tabVersionID {
+					foundTabular = true
+				}
+			}
+		}
+		assert.True(t, foundTimeseries, "at least one timeseries pipeline run should be present")
+		assert.True(t, foundTabular, "at least one tabular pipeline run should be present")
 	})
 
-	t.Run("should filter by pipeline version ID", func(t *testing.T) {
+	t.Run("should handle pagination with page parameter", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId="+pipelineVersionID,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=1",
 			nil,
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -69,39 +114,38 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-
-		// Verify the filter parameter was passed to the client
-		require.NotNil(t, mockClient.LastListRunsParams, "Handler should have called ListRuns")
-		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
-			"Filter should include pipeline_version_id key")
-		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
-			"Filter should include the requested pipeline version ID")
+		// Page 1 of pageSize=2 should return exactly 2 runs
+		assert.Len(t, response.Data.Runs, 2)
+		// TotalSize should reflect total across all pipelines (3 timeseries + 1 tabular)
+		assert.Equal(t, int32(4), response.Data.TotalSize)
 	})
 
-	t.Run("should handle pagination parameters", func(t *testing.T) {
+	t.Run("should handle page 2 pagination", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=10&nextPageToken=token123",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=2",
 			nil,
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		// Verify pagination parameters were passed to the client
-		require.NotNil(t, mockClient.LastListRunsParams, "Handler should have called ListRuns")
-		assert.Equal(t, int32(10), mockClient.LastListRunsParams.PageSize,
-			"PageSize should be forwarded to client")
-		assert.Equal(t, "token123", mockClient.LastListRunsParams.PageToken,
-			"NextPageToken should be forwarded to client")
+		var response PipelineRunsEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data)
+		// Page 2 of pageSize=2 with 4 total runs should return 2 runs (indices 2-3)
+		assert.Len(t, response.Data.Runs, 2)
+		assert.Equal(t, int32(4), response.Data.TotalSize)
 	})
 }
 
@@ -125,6 +169,77 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
+
+	t.Run("should return 500 when no AutoML pipelines discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// Empty pipelines map — no AutoML pipelines discovered
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "500", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "no AutoML pipelines found")
+	})
+
+	t.Run("should reject invalid pageSize", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=notanumber",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should reject pageSize exceeding maximum", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=101",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
 }
 
 func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
@@ -139,10 +254,11 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -175,10 +291,11 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -230,10 +347,11 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -276,11 +394,12 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Attach mock client to context
-		mockClient := psmocks.NewMockPipelineServerClient()
+		// Attach mock client and discovered pipelines to context
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		// Create params with runId
 		params := httprouter.Params{
@@ -313,10 +432,11 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -346,10 +466,11 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -405,10 +526,11 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -474,7 +596,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -510,10 +632,11 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -547,10 +670,11 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient()
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},

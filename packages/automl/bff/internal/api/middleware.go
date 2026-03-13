@@ -17,6 +17,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -220,11 +221,15 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		// Create pipeline server client (mock or real based on configuration)
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("", "", false, app.rootCAs)
+			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
+			mockBaseURL := "mock://" + namespace
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
 			baseURL := app.config.PipelineServerURL
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
 				"namespace", namespace)
 
@@ -325,6 +330,52 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Extract the full object storage configuration from the DSPA spec and store in
+			// context. This allows downstream handlers to connect to S3 (or compatible stores
+			// like managed MinIO) without an additional Kubernetes API call.
+			if dspa.Spec != nil &&
+				dspa.Spec.ObjectStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+				ext := dspa.Spec.ObjectStorage.ExternalStorage
+				cred := ext.S3CredentialsSecret
+
+				endpointURL := ""
+				if ext.Scheme != "" && ext.Host != "" {
+					if ext.Port != "" {
+						endpointURL = fmt.Sprintf("%s://%s:%s", ext.Scheme, ext.Host, ext.Port)
+					} else {
+						endpointURL = fmt.Sprintf("%s://%s", ext.Scheme, ext.Host)
+					}
+				}
+
+				accessKeyField := cred.AccessKey
+				if accessKeyField == "" {
+					accessKeyField = "AWS_ACCESS_KEY_ID"
+				}
+				secretKeyField := cred.SecretKey
+				if secretKeyField == "" {
+					secretKeyField = "AWS_SECRET_ACCESS_KEY"
+				}
+
+				dspaObjectStorage := &models.DSPAObjectStorage{
+					SecretName:     cred.SecretName,
+					AccessKeyField: accessKeyField,
+					SecretKeyField: secretKeyField,
+					EndpointURL:    endpointURL,
+					Bucket:         ext.Bucket,
+					Region:         ext.Region,
+				}
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+				logger.Debug("Found DSPA object storage config",
+					"secretName", cred.SecretName,
+					"namespace", namespace,
+					"hasEndpoint", endpointURL != "",
+					"hasBucket", ext.Bucket != "",
+				)
+			}
+
 			// Extract auth token from request identity to forward to Pipeline Server
 			// This works for both internal auth (kubeflow-userid) and user_token auth (Authorization header)
 			authToken := ""
@@ -357,6 +408,7 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 		}
 
 		r = r.WithContext(ctx)
@@ -525,6 +577,20 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				APIServer: &models.APIServer{
 					Deploy: true,
 				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "minio.test-namespace.svc.cluster.local",
+						Port:   "9000",
+						Scheme: "http",
+						Region: "us-east-1",
+						Bucket: "pipeline-artifacts",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "dspa-secret",
+							AccessKey:  "AWS_ACCESS_KEY_ID",
+							SecretKey:  "AWS_SECRET_ACCESS_KEY",
+						},
+					},
+				},
 			},
 			Status: &models.DSPipelineApplicationStatus{
 				Ready: true,
@@ -673,4 +739,81 @@ func (app *App) discoverReadyDSPA(
 		"namespace", namespace,
 		"total_dspas", len(dspas))
 	return nil, nil
+}
+
+// AttachDiscoveredPipeline middleware discovers managed pipelines and attaches them to context.
+//
+// Middleware Chain Requirements:
+//   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
+//   - Returns 400 if prerequisites are missing
+//
+// Behavior:
+//   - Builds a definitions map from config (pipeline type → name prefix)
+//   - Calls DiscoverNamedPipelines to find all configured pipelines
+//   - Stores the result map in context at constants.DiscoveredPipelinesKey
+//   - Partial maps are allowed — handlers decide if their specific type is required
+//   - Returns 500 only if discovery fails with a hard API error
+//   - Logs discovery results for debugging
+//
+// Handlers using this middleware can retrieve discovered pipelines from context:
+//
+//	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, psParams httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get pipeline server client from context (set by AttachPipelineServerClient middleware)
+		pipelineClient, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+		if !ok || pipelineClient == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing pipeline server client in context - ensure AttachPipelineServerClient middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Get pipeline server base URL from context (used as part of cache key)
+		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
+
+		// Build definitions map: pipeline type key → name prefix
+		definitions := map[string]string{
+			constants.PipelineTypeTimeSeries: app.config.AutoMLTimeSeriesPipelineNamePrefix,
+			constants.PipelineTypeTabular:    app.config.AutoMLTabularPipelineNamePrefix,
+		}
+
+		// Discover named pipelines in the namespace
+		pipelines, err := app.repositories.Pipeline.DiscoverNamedPipelines(pipelineClient, ctx, namespace, pipelineServerBaseURL, definitions)
+		if err != nil {
+			logger.Error("Failed to discover AutoML pipelines",
+				"namespace", namespace,
+				"error", err)
+			app.serverErrorResponseWithMessage(w, r,
+				fmt.Errorf("failed to discover AutoML pipelines: %w", err),
+				fmt.Sprintf("failed to discover AutoML pipelines in namespace %s - check that the pipeline server is accessible", namespace))
+			return
+		}
+
+		for pipelineType, discovered := range pipelines {
+			logger.Debug("Discovered AutoML pipeline",
+				"namespace", namespace,
+				"pipelineType", pipelineType,
+				"pipelineId", discovered.PipelineID,
+				"pipelineVersionId", discovered.PipelineVersionID)
+		}
+		if len(pipelines) == 0 {
+			logger.Debug("No AutoML pipelines discovered in namespace", "namespace", namespace)
+		}
+
+		// Attach discovered pipelines map to context (may be empty)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
+		r = r.WithContext(ctx)
+
+		next(w, r, psParams)
+	}
 }

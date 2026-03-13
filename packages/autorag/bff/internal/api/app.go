@@ -176,8 +176,8 @@ func (app *App) Routes() http.Handler {
 	// Secrets
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
 
-	// S3 operations
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	// S3 operations — AttachPipelineServerClient discovers the DSPA and surfaces its storage secret name
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.GetS3FileHandler))))
 
 	// LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))

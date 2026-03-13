@@ -34,27 +34,17 @@ The endpoint enforces RBAC authorization checks to verify that the authenticated
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed. The first ready DSPipelineApplication in this namespace will be auto-discovered. |
-| `pipelineVersionId` | query string | No | ID of the pipeline version to filter runs by |
-| `pageSize` | query integer | No | Number of results per page (default: 20) |
-| `nextPageToken` | query string | No | Token for retrieving the next page of results |
+| `pageSize` | query integer | No | Number of results per page (default: 20, max: 100) |
+| `page` | query integer | No | Page number to retrieve, 1-indexed (default: 1) |
 
 ## Request Examples
 
 ### Basic Request
 
-Get all pipeline runs from the auto-discovered Pipeline Server in a namespace:
+Get all pipeline runs from all auto-discovered AutoML pipelines in a namespace:
 
 ```bash
 curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
-  -H "Authorization: Bearer <your-token>"
-```
-
-### Filter by Pipeline Version ID
-
-Get pipeline runs for a specific pipeline version:
-
-```bash
-curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -63,7 +53,7 @@ curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&p
 Get a specific page of results:
 
 ```bash
-curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&nextPageToken=eyJwYWdlIjoyfQ==" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&page=2" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -327,15 +317,19 @@ Returned when the specified run ID does not exist:
 }
 ```
 
-## Pipeline Filtering
+## Pipeline Discovery
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+The API automatically discovers all managed AutoML pipelines (time-series and tabular) in the namespace and returns a merged view of their runs:
 
-### Filtering by Pipeline Version ID
+1. Discovers managed pipelines by name prefix (cached for 5 minutes), resolving a single `PipelineVersionID` per pipeline (the most recently created version)
+2. Fetches all runs filtered to those resolved `PipelineVersionID` values — runs from older pipeline versions are excluded
+3. Merges and sorts results by creation time descending
+4. Applies `page`/`pageSize` pagination to the merged list
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filter is provided, all runs from the auto-discovered Pipeline Server are returned.
-
-**Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
+**Discovery Details:**
+- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "automl-timeseries")
+- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "automl-tabular")
+- Returns 500 if no managed AutoML pipelines are found in the namespace
 
 ## Error Responses
 
@@ -487,17 +481,13 @@ The AutoML frontend can use these endpoints to:
 ### Example Frontend Integration
 
 ```javascript
-// List pipeline runs with optional filtering
-async function fetchPipelineRuns(namespace, pipelineVersionId, token) {
+// List pipeline runs from all discovered AutoML pipelines
+async function fetchPipelineRuns(namespace, token, page = 1) {
   const params = new URLSearchParams({
     namespace,
-    pageSize: "20"
+    pageSize: "20",
+    page: String(page),
   });
-
-  // Add pipeline version ID filter if provided
-  if (pipelineVersionId) {
-    params.append("pipelineVersionId", pipelineVersionId);
-  }
 
   const response = await fetch(`/api/v1/pipeline-runs?${params}`, {
     headers: {
@@ -601,8 +591,8 @@ If you receive this error:
 ### No Runs Returned
 
 If the endpoint returns an empty array:
-1. Check that runs exist for the specified pipeline version ID (if filtering)
-2. Verify the pipeline version exists in the Pipeline Server
+1. Check that runs exist for the auto-discovered AutoML pipeline versions
+2. Verify that managed AutoML pipelines and their versions exist in the Pipeline Server
 3. Check the Pipeline Server API directly for runs
 
 ### Connection Errors
