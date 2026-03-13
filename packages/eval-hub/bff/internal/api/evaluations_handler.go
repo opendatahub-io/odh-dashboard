@@ -31,6 +31,8 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	namespace := r.URL.Query().Get("namespace")
+
 	hardDeleteVal := r.URL.Query().Get("hard_delete")
 	var hardDelete bool
 	switch hardDeleteVal {
@@ -43,7 +45,7 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := client.CancelEvaluationJob(ctx, id, hardDelete); err != nil {
+	if err := client.CancelEvaluationJob(ctx, id, namespace, hardDelete); err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to cancel evaluation job: %w", err))
 		return
 	}

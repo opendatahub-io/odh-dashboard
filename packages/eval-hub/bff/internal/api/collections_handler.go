@@ -20,7 +20,9 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	result, err := client.ListCollections(ctx)
+	namespace := r.URL.Query().Get("namespace")
+
+	result, err := client.ListCollections(ctx, namespace)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list collections: %w", err))
 		return

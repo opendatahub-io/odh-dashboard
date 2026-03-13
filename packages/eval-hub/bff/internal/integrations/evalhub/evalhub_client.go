@@ -28,9 +28,9 @@ type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
-	CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error
-	ListCollections(ctx context.Context) (CollectionsResponse, error)
-	ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error)
+	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
+	ListCollections(ctx context.Context, namespace string) (CollectionsResponse, error)
+	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -378,7 +378,7 @@ func NewEvalHubClient(baseURL string, authToken string, insecureSkipVerify bool,
 
 // HealthCheck retrieves the health status from EvalHub.
 func (c *EvalHubClient) HealthCheck(ctx context.Context) (*HealthResponse, error) {
-	resp, err := get[HealthResponse](c, ctx, "/health")
+	resp, err := get[HealthResponse](c, ctx, "/health", nil)
 	if err != nil {
 		return nil, wrapClientError(err, "HealthCheck")
 	}
@@ -386,11 +386,9 @@ func (c *EvalHubClient) HealthCheck(ctx context.Context) (*HealthResponse, error
 }
 
 // ListEvaluationJobs retrieves evaluation jobs from EvalHub, forwarding any query filters.
+// The namespace is sent as the X-Tenant header rather than a query parameter.
 func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error) {
 	qp := url.Values{}
-	if params.Namespace != "" {
-		qp.Set("namespace", params.Namespace)
-	}
 	if params.Limit != "" {
 		qp.Set("limit", params.Limit)
 	}
@@ -412,7 +410,12 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 		path = fmt.Sprintf("%s?%s", path, encoded)
 	}
 
-	resp, err := get[EvaluationJobsResponse](c, ctx, path)
+	var headers map[string]string
+	if params.Namespace != "" {
+		headers = map[string]string{"X-Tenant": params.Namespace}
+	}
+
+	resp, err := get[EvaluationJobsResponse](c, ctx, path, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "ListEvaluationJobs")
 	}
@@ -422,25 +425,35 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 // CancelEvaluationJob cancels or permanently deletes an evaluation job.
 // When hardDelete is false the upstream API cancels a running job.
 // When hardDelete is true the job is permanently removed.
-func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error {
+// The namespace is sent as the X-Tenant header rather than a query parameter.
+func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error {
 	path := fmt.Sprintf("/evaluations/jobs/%s", url.PathEscape(id))
 	if hardDelete {
 		path += "?hard_delete=true"
 	}
 
-	if err := doRequest(c, ctx, http.MethodDelete, path); err != nil {
+	var headers map[string]string
+	if namespace != "" {
+		headers = map[string]string{"X-Tenant": namespace}
+	}
+
+	if err := doRequest(c, ctx, http.MethodDelete, path, headers); err != nil {
 		return wrapClientError(err, "CancelEvaluationJob")
 	}
 	return nil
 }
 
 // CreateEvaluationJob submits a new evaluation run to the EvalHub API.
+// The namespace is sent as the X-Tenant header rather than a query parameter.
 func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error) {
 	path := "/evaluations/jobs"
+
+	var headers map[string]string
 	if namespace != "" {
-		path = fmt.Sprintf("%s?namespace=%s", path, url.QueryEscape(namespace))
+		headers = map[string]string{"X-Tenant": namespace}
 	}
-	resp, err := post[EvaluationJob](c, ctx, path, req)
+
+	resp, err := post[EvaluationJob](c, ctx, path, req, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "CreateEvaluationJob")
 	}
@@ -448,8 +461,13 @@ func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, namespace strin
 }
 
 // ListCollections retrieves all benchmark collections from EvalHub.
-func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
-	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
+// The namespace is sent as the X-Tenant header.
+func (c *EvalHubClient) ListCollections(ctx context.Context, namespace string) (CollectionsResponse, error) {
+	var headers map[string]string
+	if namespace != "" {
+		headers = map[string]string{"X-Tenant": namespace}
+	}
+	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections", headers)
 	if err != nil {
 		return CollectionsResponse{Items: []Collection{}}, wrapClientError(err, "ListCollections")
 	}
@@ -462,12 +480,17 @@ func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsRespons
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
 // limit controls page size (1-100); offset controls pagination start index.
 // Passing 0 for both uses the upstream defaults (limit=50, offset=0).
-func (c *EvalHubClient) ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error) {
+// The namespace is sent as the X-Tenant header.
+func (c *EvalHubClient) ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error) {
 	path := "/evaluations/providers"
 	if limit > 0 || offset > 0 {
 		path = fmt.Sprintf("%s?limit=%d&offset=%d", path, limit, offset)
 	}
-	resp, err := get[ProvidersResponse](c, ctx, path)
+	var headers map[string]string
+	if namespace != "" {
+		headers = map[string]string{"X-Tenant": namespace}
+	}
+	resp, err := get[ProvidersResponse](c, ctx, path, headers)
 	if err != nil {
 		return ProvidersResponse{}, wrapClientError(err, "ListProviders")
 	}
@@ -476,7 +499,8 @@ func (c *EvalHubClient) ListProviders(ctx context.Context, limit, offset int) (P
 
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
-func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) {
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return nil, err
@@ -484,6 +508,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 	req.Header.Set("Accept", "application/json")
 	if c.authToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -512,7 +539,8 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 }
 
 // post performs a typed POST request against the EvalHub API.
-func post[T any](c *EvalHubClient, ctx context.Context, path string, body any) (*T, error) {
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, extraHeaders map[string]string) (*T, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -526,6 +554,9 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any) (
 	req.Header.Set("Accept", "application/json")
 	if c.authToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -554,7 +585,8 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any) (
 }
 
 // doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).
-func doRequest(c *EvalHubClient, ctx context.Context, method, path string) error {
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func doRequest(c *EvalHubClient, ctx context.Context, method, path string, extraHeaders map[string]string) error {
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, nil)
 	if err != nil {
 		return err
@@ -562,6 +594,9 @@ func doRequest(c *EvalHubClient, ctx context.Context, method, path string) error
 	req.Header.Set("Accept", "application/json")
 	if c.authToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := c.httpClient.Do(req)

@@ -95,7 +95,7 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
-		assert.Equal(t, "my-ns", r.URL.Query().Get("namespace"))
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "10", r.URL.Query().Get("limit"))
 		assert.Equal(t, "5", r.URL.Query().Get("offset"))
 		assert.Equal(t, "completed", r.URL.Query().Get("status"))
@@ -158,7 +158,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "test-namespace")
 
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
@@ -176,7 +176,7 @@ func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "")
 
 	require.NoError(t, err)
 	assert.NotNil(t, result.Items, "Items should be an empty slice, not nil")
@@ -193,7 +193,7 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "")
 
 	require.Error(t, err)
 	assert.NotNil(t, result.Items, "Items should be an empty slice even on error")

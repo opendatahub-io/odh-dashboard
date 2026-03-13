@@ -18,12 +18,12 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context) (*evalhub.HealthRespo
 }
 
 // ListCollections returns all mock benchmark collections.
-func (m *MockEvalHubClient) ListCollections(_ context.Context) (evalhub.CollectionsResponse, error) {
+func (m *MockEvalHubClient) ListCollections(_ context.Context, _ string) (evalhub.CollectionsResponse, error) {
 	return evalhub.CollectionsResponse{Items: mockCollections()}, nil
 }
 
 // ListProviders returns all mock evaluation providers with their benchmark catalogues.
-func (m *MockEvalHubClient) ListProviders(_ context.Context, _, _ int) (evalhub.ProvidersResponse, error) {
+func (m *MockEvalHubClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	providers := mockProviders()
 	return evalhub.ProvidersResponse{Items: providers, TotalCount: countBenchmarks(providers)}, nil
 }
@@ -283,7 +283,7 @@ func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req
 	}, nil
 }
 
-func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ bool) error {
+func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ string, _ bool) error {
 	return nil
 }
 
