@@ -191,6 +191,10 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       secret_value: token.trim(),
       provider_type: providerType,
       model_type: modelType,
+      ...(modelType === MODEL_TYPE_EMBEDDING &&
+        embeddingDimension.trim() && {
+          embedding_dimension: parseInt(embeddingDimension.trim(), 10),
+        }),
     };
 
     setIsVerifying(true);
@@ -214,7 +218,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     } finally {
       setIsVerifying(false);
     }
-  }, [modelId, endpointUrl, token, providerType, modelType, onVerify]);
+  }, [modelId, endpointUrl, token, providerType, modelType, embeddingDimension, onVerify]);
 
   const handleSubmit = React.useCallback(async () => {
     if (!isFormValid) {
@@ -474,6 +478,33 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormHelperText>
           </FormGroup>
 
+          {modelType === MODEL_TYPE_EMBEDDING && (
+            <FormGroup label="Embedding dimension" isRequired fieldId="embedding-dimension">
+              <TextInput
+                isRequired
+                type="number"
+                id="embedding-dimension"
+                name="embedding-dimension"
+                value={embeddingDimension}
+                onChange={(_event, value) => setEmbeddingDimension(value)}
+                onBlur={() => setTouched({ ...touched, embeddingDimension: true })}
+                validated={
+                  touched.embeddingDimension &&
+                  (!embeddingDimension.trim() || parseInt(embeddingDimension, 10) <= 0)
+                    ? 'error'
+                    : 'default'
+                }
+                placeholder="e.g. 768, 1536, 3072"
+                data-testid="create-external-model-embedding-dimension-input"
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>The output vector size for this embedding model.</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+          )}
+
           <FormGroup
             label="URL"
             isRequired
@@ -530,14 +561,16 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           </FormGroup>
 
           {/* Verification */}
-          <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Button
-              variant="link"
+              variant="secondary"
               onClick={handleVerify}
               isDisabled={
                 !modelId.trim() ||
                 !endpointUrl.trim() ||
                 !token.trim() ||
+                (modelType === MODEL_TYPE_EMBEDDING &&
+                  (!embeddingDimension.trim() || parseInt(embeddingDimension, 10) <= 0)) ||
                 isVerifying ||
                 isSubmitting
               }
@@ -562,33 +595,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               />
             )}
           </div>
-
-          {modelType === MODEL_TYPE_EMBEDDING && (
-            <FormGroup label="Embedding dimension" isRequired fieldId="embedding-dimension">
-              <TextInput
-                isRequired
-                type="number"
-                id="embedding-dimension"
-                name="embedding-dimension"
-                value={embeddingDimension}
-                onChange={(_event, value) => setEmbeddingDimension(value)}
-                onBlur={() => setTouched({ ...touched, embeddingDimension: true })}
-                validated={
-                  touched.embeddingDimension &&
-                  (!embeddingDimension.trim() || parseInt(embeddingDimension, 10) <= 0)
-                    ? 'error'
-                    : 'default'
-                }
-                placeholder="e.g. 768, 1536, 3072"
-                data-testid="create-external-model-embedding-dimension-input"
-              />
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>The output vector size for this embedding model.</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-          )}
 
           <FormGroup label="Use case" fieldId="use-cases">
             <TextInput

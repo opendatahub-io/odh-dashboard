@@ -403,6 +403,7 @@ export type VerifyExternalModelRequest = {
   secret_value: string;
   provider_type: ExternalModelRequest['provider_type'];
   model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
 };
 
 export type VerifyExternalModelResponse = {

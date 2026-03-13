@@ -102,6 +102,6 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 		return nil, err
 	}
 
-	// Verify the model using the client
-	return client.VerifyModel(ctx, req.ModelID)
+	// Verify the model using the client (pass embedding dimension for embedding models)
+	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }

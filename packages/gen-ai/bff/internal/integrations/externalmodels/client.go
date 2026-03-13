@@ -32,13 +32,14 @@ type chatCompletionMessage struct {
 
 // embeddingRequest represents an OpenAI-compatible embeddings request
 type embeddingRequest struct {
-	Model string `json:"model"`
-	Input string `json:"input"`
+	Model      string `json:"model"`
+	Input      string `json:"input"`
+	Dimensions *int   `json:"dimensions,omitempty"`
 }
 
 // ExternalModelsClientInterface defines the interface for external models client operations
 type ExternalModelsClientInterface interface {
-	VerifyModel(ctx context.Context, modelID string) (*models.VerifyExternalModelResponse, error)
+	VerifyModel(ctx context.Context, modelID string, embeddingDimension *int) (*models.VerifyExternalModelResponse, error)
 }
 
 // ExternalModelsClient handles communication with external model endpoints
@@ -91,7 +92,7 @@ func NewExternalModelsClientWithTLS(
 }
 
 // VerifyModel tests the external model endpoint and validates OpenAI compatibility
-func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string) (*models.VerifyExternalModelResponse, error) {
+func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, embeddingDimension *int) (*models.VerifyExternalModelResponse, error) {
 	startTime := time.Now()
 
 	// Build test request based on model type using typed OpenAI-compatible structs
@@ -117,8 +118,9 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string) 
 		// Embeddings test - send minimal request to validate endpoint compatibility
 		endpoint = "/embeddings"
 		embeddingReq := embeddingRequest{
-			Model: modelID,
-			Input: "test",
+			Model:      modelID,
+			Input:      "test",
+			Dimensions: embeddingDimension,
 		}
 		requestBody, err = json.Marshal(embeddingReq)
 		if err != nil {

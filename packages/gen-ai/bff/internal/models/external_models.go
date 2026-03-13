@@ -14,11 +14,12 @@ type ExternalModelRequest struct {
 
 // VerifyExternalModelRequest represents a request to verify an external model
 type VerifyExternalModelRequest struct {
-	ModelID      string           `json:"model_id"`
-	BaseURL      string           `json:"base_url"`
-	SecretValue  string           `json:"secret_value"`
-	ProviderType ProviderTypeEnum `json:"provider_type"`
-	ModelType    ModelTypeEnum    `json:"model_type"`
+	ModelID            string           `json:"model_id"`
+	BaseURL            string           `json:"base_url"`
+	SecretValue        string           `json:"secret_value"`
+	ProviderType       ProviderTypeEnum `json:"provider_type"`
+	ModelType          ModelTypeEnum    `json:"model_type"`
+	EmbeddingDimension *int             `json:"embedding_dimension,omitempty"`
 }
 
 // VerifyExternalModelResponse represents the verification result
