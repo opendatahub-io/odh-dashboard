@@ -69,6 +69,10 @@ npm run lint:fix
 npm run type-check
 ```
 
+## Documentation
+
+**[docs/BOOKMARKS.md](docs/BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
