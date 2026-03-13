@@ -20,7 +20,7 @@ import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '#~/types';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
-import EnableModal from '#~/pages/exploreApplication/EnableModal';
+import useOdhAppEnableModal from '#~/pages/exploreApplication/useOdhAppEnableModal';
 import { removeComponent } from '#~/services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
@@ -54,6 +54,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
   const { isAdmin } = useUser();
+  const OdhAppEnableModal = useOdhAppEnableModal(odhApp);
 
   if (odhApp.metadata.name === 'mlflow' && !mlflowEnabled) {
     return null;
@@ -308,7 +309,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         </span>
       </CardBody>
       {cardFooter}
-      {enableOpen && <EnableModal onClose={() => setEnableOpen(false)} selectedApp={odhApp} />}
+      {enableOpen && OdhAppEnableModal && (
+        <OdhAppEnableModal onClose={() => setEnableOpen(false)} selectedApp={odhApp} />
+      )}
     </Card>
   );
 };
