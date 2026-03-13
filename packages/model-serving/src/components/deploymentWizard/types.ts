@@ -206,6 +206,7 @@ export type WizardField<
   reducerFunctions: {
     // TODO: make dispatch function that clears if this field's dependencies are changing
     setFieldData: (fieldData: FieldData) => FieldData;
+    getFieldData?: (storedValue: FieldData, wizardState: WizardFormData['state']) => FieldData;
     getInitialFieldData: (fieldData?: FieldData, externalData?: ExternalData) => FieldData;
     validationSchema?: z.ZodSchema<FieldData>;
   };
@@ -226,6 +227,13 @@ export type WizardField<
     wizardState: WizardFormData['state'],
     externalData?: ExternalData,
   ) => WizardReviewSection[];
+};
+
+export const resolveFieldValue = (field: WizardField, state: WizardFormData['state']): unknown => {
+  const storedValue: unknown = state[field.id];
+  return field.reducerFunctions.getFieldData
+    ? field.reducerFunctions.getFieldData(storedValue, state)
+    : storedValue;
 };
 
 // actual fields

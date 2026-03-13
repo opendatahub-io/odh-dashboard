@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WizardField } from '../types';
+import { resolveFieldValue, type WizardField } from '../types';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
@@ -26,7 +26,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
         <React.Fragment key={field.id}>
           {field.component({
             id: field.id,
-            value: wizardState.state[field.id],
+            value: resolveFieldValue(field, wizardState.state),
             onChange: (value) => {
               wizardState.dispatch({
                 type: 'setFieldData',
