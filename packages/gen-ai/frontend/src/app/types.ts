@@ -397,6 +397,28 @@ export type ExternalModelRequest = {
 
 export type ExternalModelResponse = AAModelResponse;
 
+export type VerifyExternalModelRequest = {
+  model_id: string;
+  base_url: string;
+  secret_value: string;
+  model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
+};
+
+export type VerifyExternalModelResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+// Error response structure (matches BFF)
+export type ExternalModelVerificationError = {
+  code: 'CONNECTION_FAILED' | 'TIMEOUT' | 'UNAUTHORIZED' | 'NOT_OPENAI_COMPATIBLE';
+  message: string;
+  base_url?: string;
+  model_id?: string;
+};
+
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,
@@ -511,6 +533,7 @@ export type GenAiAPIs = {
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
+  verifyExternalModel: VerifyExternalModel;
 };
 
 export interface MaaSModel {
@@ -583,3 +606,7 @@ type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegiste
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
 type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;
+type VerifyExternalModel = ModArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>;

@@ -3,9 +3,12 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/helpers"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -81,4 +84,47 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	modelID string,
 ) error {
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client
+func (r *ExternalModelsRepository) VerifyExternalModel(
+	logger *slog.Logger,
+	ctx context.Context,
+	req models.VerifyExternalModelRequest,
+) (*models.VerifyExternalModelResponse, error) {
+	// Create client for the external model endpoint
+	// Use testing constructor for localhost URLs (test mode), otherwise use production constructor
+	var client *externalmodels.ExternalModelsClient
+	var err error
+
+	if isTestingURL(req.BaseURL) {
+		logger.Debug("Using testing client for localhost URL", "url", req.BaseURL)
+		client, err = externalmodels.NewExternalModelsClientForTesting(
+			logger,
+			req.BaseURL,
+			req.SecretValue,
+			req.ModelType,
+		)
+	} else {
+		client, err = externalmodels.NewExternalModelsClient(
+			logger,
+			req.BaseURL,
+			req.SecretValue,
+			req.ModelType,
+		)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the model using the client (pass embedding dimension for embedding models)
+	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
+}
+
+// isTestingURL checks if a URL is a localhost/testing URL
+func isTestingURL(baseURL string) bool {
+	return strings.HasPrefix(baseURL, "http://127.0.0.1") ||
+		strings.HasPrefix(baseURL, "http://localhost") ||
+		strings.HasPrefix(baseURL, "http://[::1]")
 }
