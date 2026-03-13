@@ -347,6 +347,7 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
+  workbenchRunningStatus: string;
 };
 
 export type NamespaceConfig = {

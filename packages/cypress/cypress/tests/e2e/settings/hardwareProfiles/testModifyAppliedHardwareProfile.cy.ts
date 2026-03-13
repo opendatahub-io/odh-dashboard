@@ -140,8 +140,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a status`);
       let notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      // TODO: Make this more flexible, or at least ensure it is good enough
-      notebookRow.findHaveNotebookStatusText(120000).should('not.have.text', 'Starting');
+      notebookRow.expectStatusLabelToBe(testData.workbenchRunningStatus, 120000);
 
       // Edit the workbench and update
       cy.step("Editing the workbench's applied Hardware Profile");
@@ -168,7 +167,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
 
       // Verify workbench is running before modifying the hardware profile
       cy.step('Verify workbench is running with the updated hardware profile');
-      notebookEditedRow.findHaveNotebookStatusText(120000).should('not.have.text', 'Starting');
+      notebookEditedRow.expectStatusLabelToBe(testData.workbenchRunningStatus, 120000);
 
       // Modify the hardware profile while the workbench is running
       cy.step('Navigate to Hardware Profiles to modify the applied profile');
@@ -191,18 +190,13 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       cy.step('Navigate back to project workbenches');
       // Wait for the hardware profile edit to complete
       cy.url().should('include', '/settings/environment-setup/hardware-profiles');
-      // Navigate directly to the project workbenches
-      cy.visit(`/projects/${projectName}?section=workbenches`);
+      // Navigate to the project workbenches using page object
+      workbenchPage.visit(projectName);
 
       // Verify the workbench is still running (hasn't stopped)
       cy.step('Verify workbench is still running and has not stopped');
       const notebookAfterModification = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookAfterModification
-        .findHaveNotebookStatusText(30000)
-        .should('not.have.text', 'Stopped');
-      notebookAfterModification
-        .findHaveNotebookStatusText(30000)
-        .should('not.have.text', 'Starting');
+      notebookAfterModification.expectStatusLabelToBe(testData.workbenchRunningStatus, 30000);
 
       // Verify the "Updated" tag is present in the hardware profile column
       cy.step('Verify the "Updated" tag is displayed in the hardware profile column');
