@@ -521,17 +521,52 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
-			// Extract the S3 storage secret name from the DSPA spec and store in context.
-			// This allows downstream handlers to reference the storage secret without an
-			// additional Kubernetes API call, since the DSPA is already in memory here.
+			// Extract the full object storage configuration from the DSPA spec and store in
+			// context. This allows downstream handlers to connect to S3 (or compatible stores
+			// like managed MinIO) without an additional Kubernetes API call.
 			if dspa.Spec != nil &&
 				dspa.Spec.ObjectStorage != nil &&
 				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
 				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
 				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
-				storageSecretName := dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName
-				ctx = context.WithValue(ctx, constants.DSPAStorageSecretKey, storageSecretName)
-				logger.Debug("Found DSPA storage secret", "secretName", storageSecretName, "namespace", namespace)
+				ext := dspa.Spec.ObjectStorage.ExternalStorage
+				cred := ext.S3CredentialsSecret
+
+				// Construct the endpoint URL from scheme, host, and optional port.
+				endpointURL := ""
+				if ext.Scheme != "" && ext.Host != "" {
+					if ext.Port != "" {
+						endpointURL = fmt.Sprintf("%s://%s:%s", ext.Scheme, ext.Host, ext.Port)
+					} else {
+						endpointURL = fmt.Sprintf("%s://%s", ext.Scheme, ext.Host)
+					}
+				}
+
+				// Apply default field names when the DSPA spec omits them.
+				accessKeyField := cred.AccessKey
+				if accessKeyField == "" {
+					accessKeyField = "AWS_ACCESS_KEY_ID"
+				}
+				secretKeyField := cred.SecretKey
+				if secretKeyField == "" {
+					secretKeyField = "AWS_SECRET_ACCESS_KEY"
+				}
+
+				dspaObjectStorage := &models.DSPAObjectStorage{
+					SecretName:     cred.SecretName,
+					AccessKeyField: accessKeyField,
+					SecretKeyField: secretKeyField,
+					EndpointURL:    endpointURL,
+					Bucket:         ext.Bucket,
+					Region:         ext.Region,
+				}
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+				logger.Debug("Found DSPA object storage config",
+					"secretName", cred.SecretName,
+					"namespace", namespace,
+					"hasEndpoint", endpointURL != "",
+					"hasBucket", ext.Bucket != "",
+				)
 			}
 
 			// Extract auth token from request identity to forward to Pipeline Server
@@ -737,8 +772,15 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				},
 				ObjectStorage: &models.ObjectStorage{
 					ExternalStorage: &models.ExternalStorage{
+						Host:   "minio.test-namespace.svc.cluster.local",
+						Port:   "9000",
+						Scheme: "http",
+						Region: "us-east-1",
+						Bucket: "pipeline-artifacts",
 						S3CredentialsSecret: &models.S3CredentialsSecret{
 							SecretName: "dspa-secret",
+							AccessKey:  "AWS_ACCESS_KEY_ID",
+							SecretKey:  "AWS_SECRET_ACCESS_KEY",
 						},
 					},
 				},
@@ -869,8 +911,15 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 					},
 					ObjectStorage: &models.ObjectStorage{
 						ExternalStorage: &models.ExternalStorage{
+							Host:   fmt.Sprintf("minio.%s.svc.cluster.local", namespace),
+							Port:   "9000",
+							Scheme: "http",
+							Region: "us-east-1",
+							Bucket: "pipeline-artifacts",
 							S3CredentialsSecret: &models.S3CredentialsSecret{
 								SecretName: "dspa-secret",
+								AccessKey:  "AWS_ACCESS_KEY_ID",
+								SecretKey:  "AWS_SECRET_ACCESS_KEY",
 							},
 						},
 					},

@@ -10,7 +10,7 @@ const (
 	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
 	PipelineServerBaseURLKey    contextKey = "PipelineServerBaseURLKey"
 	DiscoveredPipelinesKey      contextKey = "DiscoveredPipelinesKey"
-	DSPAStorageSecretKey        contextKey = "DSPAStorageSecretKey"
+	DSPAObjectStorageKey        contextKey = "DSPAObjectStorageKey"
 
 	// The following keys are used to store the user access token in the context
 	RequestIdentityKey contextKey = "requestIdentityKey"
