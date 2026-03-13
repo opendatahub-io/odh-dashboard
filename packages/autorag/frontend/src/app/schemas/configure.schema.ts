@@ -15,6 +15,12 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_CONTEXT_CORRECTNESS,
 ]);
 
+export const RAG_OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
+  [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
+  [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
+  [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
+};
+
 export const EXPERIMENT_SETTINGS_FIELDS = [
   'optimization_metric',
   'optimization_max_rag_patterns',

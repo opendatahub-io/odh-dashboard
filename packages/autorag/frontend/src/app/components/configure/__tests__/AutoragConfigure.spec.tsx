@@ -381,34 +381,16 @@ describe('AutoragConfigure', () => {
       expect(selectFilesButton).toBeDisabled();
     });
 
-    it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
+    it('should disable "Edit" button for experiment settings when selected secret is invalid', () => {
       renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
       fireEvent.click(selectInvalidButton);
 
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const optimizationMetricEditButton = editButtons[0]; // First Edit button is for Optimization metric
-
-      // Verify it's disabled
-      expect(optimizationMetricEditButton).toBeDisabled();
-    });
-
-    it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const modelsEditButton = editButtons[1]; // Second Edit button is for Models to consider
-
-      // Verify it's disabled
-      expect(modelsEditButton).toBeDisabled();
+      // Verify the Edit button is disabled
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
     });
 
     it('should disable "Run experiment" button when selected secret is invalid', () => {
@@ -435,19 +417,16 @@ describe('AutoragConfigure', () => {
       expect(selectFilesButton).toBeEnabled();
     });
 
-    it('should enable "Edit" buttons when selected secret is valid', () => {
+    it('should enable "Edit" button when selected secret is valid', () => {
       renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-
-      // Verify both Edit buttons are enabled
-      expect(editButtons[0]).toBeEnabled(); // Optimization metric
-      expect(editButtons[1]).toBeEnabled(); // Models to consider
+      // Verify the Edit button is enabled
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeEnabled();
     });
   });
 });

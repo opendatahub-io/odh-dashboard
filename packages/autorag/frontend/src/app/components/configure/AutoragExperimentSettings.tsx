@@ -28,6 +28,7 @@ import {
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_OPTIMIZATION_METRIC_LABELS,
 } from '~/app/schemas/configure.schema';
 import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
 
@@ -38,17 +39,17 @@ const OPTIMIZATION_METRICS: {
 }[] = [
   {
     value: RAG_METRIC_FAITHFULNESS,
-    label: 'Answer faithfulness',
+    label: RAG_OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
-    label: 'Answer correctness',
+    label: RAG_OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
   },
   {
     value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: 'Context correctness',
+    label: RAG_OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
     description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
