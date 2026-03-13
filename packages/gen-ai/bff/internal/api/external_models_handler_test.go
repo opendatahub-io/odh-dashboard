@@ -1021,7 +1021,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 					"total_tokens":      12,
 				},
 			}
-			json.NewEncoder(w).Encode(response)
+			err := json.NewEncoder(w).Encode(response); require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
@@ -1106,7 +1106,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 					"total_tokens":  8,
 				},
 			}
-			json.NewEncoder(w).Encode(response)
+			err = json.NewEncoder(w).Encode(response); require.NoError(t, err)
 		}))
 		defer mockServer.Close()
 
