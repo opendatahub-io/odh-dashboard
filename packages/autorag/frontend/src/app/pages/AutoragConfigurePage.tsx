@@ -15,7 +15,7 @@ import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React, { useState } from 'react';
-import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
@@ -26,7 +26,11 @@ import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
-const createFields = ['display_name', 'description'] as const;
+const createFields = [
+  'display_name',
+  'description',
+  'llama_stack_secret_name',
+] as const satisfies Array<FieldPath<ConfigureSchema>>;
 
 function AutoragConfigurePage(): React.JSX.Element {
   const navigate = useNavigate();
@@ -49,7 +53,10 @@ function AutoragConfigurePage(): React.JSX.Element {
     defaultValues: configureSchema.defaults,
   });
 
-  const [displayName] = useWatch({ control: form.control, name: createFields });
+  const [displayName, , llamaStackSecretName] = useWatch({
+    control: form.control,
+    name: createFields,
+  });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
@@ -58,7 +65,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="primary"
-          isDisabled={!displayName}
+          isDisabled={!displayName || !llamaStackSecretName}
           onClick={() => {
             setStep('configure');
           }}

@@ -63,16 +63,15 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
-  // TODO: secretName should come from a react-hook-form field. Once it's implemented,
-  // add secretName as a parameter into useLlamaStackModelsQuery
-  const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), undefined);
 
   const form = useFormContext<ConfigureSchema>();
 
-  const [inputDataBucketName, testDataBucketName] = useWatch({
+  const [llamaStackSecretName, inputDataBucketName, testDataBucketName] = useWatch({
     control: form.control,
-    name: ['input_data_bucket_name', 'test_data_bucket_name'],
+    name: ['llama_stack_secret_name', 'input_data_bucket_name', 'test_data_bucket_name'],
   });
+
+  const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), llamaStackSecretName);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
