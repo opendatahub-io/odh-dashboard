@@ -55,7 +55,16 @@ describe('Delete Hardware Profile applied to a resource', () => {
 
   it(
     'Verify Hardware Profile can be deleted while applied to a workbench without affecting the workbench',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@Tier1', '@HardwareProfilesCI'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@HardwareProfiles',
+        '@Smoke',
+        '@SmokeSet1',
+        '@Tier1',
+        '@HardwareProfilesCI',
+      ],
+    },
     () => {
       // Get hardware profile display name for use throughout test
       const hardwareProfileDisplayName =
@@ -115,7 +124,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       const row = hardwareProfile.getUniqueRow(hardwareProfileDisplayName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: testData.deleteAction }).click();
+      hardwareProfile.findDeleteAction().click();
 
       // Confirm deletion in modal
       cy.step('Confirm deletion in modal');
@@ -155,8 +164,6 @@ describe('Delete Hardware Profile applied to a resource', () => {
           `✅ Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} still displays in the pod as expected`,
         );
       });
-
-      // Note: Workbench cleanup is handled by the after() hook which deletes the entire project
     },
   );
 });

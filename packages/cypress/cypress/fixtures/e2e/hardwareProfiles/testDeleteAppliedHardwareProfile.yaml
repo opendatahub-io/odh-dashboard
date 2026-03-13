@@ -10,5 +10,4 @@ resourceYamlPath: "resources/hardwareProfile/delete_applied_hardware_profile.yam
 hardwareProfileDeploymentSize: "Delete Applied HP Test CPU: Request = 2 Cores; Limit = 4 Cores; Memory: Request = 4 GiB; Limit = 8 GiB"
 tolerationValue: "test-toleration-value"
 deleteModalMessage: "Deployed workloads using this profile will not be affected."
-deleteAction: "Delete"
 deletedStatusBadge: "Deleted"

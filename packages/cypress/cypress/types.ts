@@ -156,7 +156,6 @@ export type WBTolerationsTestData = {
   hardwareProfileDisplayName?: string;
   hardwareProfileDescription?: string;
   deleteModalMessage?: string;
-  deleteAction: string;
   deletedStatusBadge: string;
 };
 
