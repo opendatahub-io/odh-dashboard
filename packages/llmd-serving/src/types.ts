@@ -76,3 +76,10 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
 };
+
+export enum LLMInferenceServiceReadyConditionReason {
+  PROGRESS_DEADLINE_EXCEEDED = 'ProgressDeadlineExceeded',
+  STOPPED = 'Stopped',
+  MINIMUM_REPLICAS_UNAVAILABLE = 'MinimumReplicasUnavailable',
+  PROGRESSING = 'Progressing',
+}
