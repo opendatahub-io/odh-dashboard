@@ -158,8 +158,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test models with only MaaS models (no regular models to avoid Kubernetes client issues)
 		models := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
-			{ModelName: "granite-7b-lab", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+			{ModelName: "granite-7b-lab", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -200,7 +200,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test with a model that is not ready (mistral-7b-instruct has Ready: false in mock)
 		models := []models.InstallModel{
-			{ModelName: "mistral-7b-instruct", IsMaaSModel: true},
+			{ModelName: "mistral-7b-instruct", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -225,7 +225,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		// Test with a model that doesn't exist in the mock
 		models := []models.InstallModel{
-			{ModelName: "non-existent-model", IsMaaSModel: true},
+			{ModelName: "non-existent-model", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -251,7 +251,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		testModels := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -280,7 +280,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		testModels := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 		}
 
 		ctx := context.Background()
@@ -652,5 +652,545 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
 		assert.Len(t, endpoints, 1)
 		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
+}
+
+func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
+	t.Run("should successfully generate config with only MaaS models", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			// No k8s client needed for MaaS-only models
+		}
+
+		// Test with only MaaS models - no k8s access required
+		models := []models.InstallModel{
+			{
+				ModelName:       "llama-2-7b-chat",
+				ModelSourceType: models.ModelSourceTypeMaaS,
+			},
+		}
+
+		ctx := context.Background()
+
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+
+		// This should succeed since we're only using MaaS models
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "llama-2-7b-chat")
+	})
+}
+
+func TestModelSourceTypeRouting(t *testing.T) {
+	tests := []struct {
+		name               string
+		modelSourceType    models.ModelSourceTypeEnum
+		expectedHandling   string
+		shouldCallExternal bool
+		shouldCallCluster  bool
+	}{
+		{
+			name:               "external_provider routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeExternalProvider,
+			expectedHandling:   "external",
+			shouldCallExternal: true,
+			shouldCallCluster:  false,
+		},
+		{
+			name:               "external_cluster routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeExternalCluster,
+			expectedHandling:   "external",
+			shouldCallExternal: true,
+			shouldCallCluster:  false,
+		},
+		{
+			name:               "namespace routes to cluster model handling",
+			modelSourceType:    models.ModelSourceTypeNamespace,
+			expectedHandling:   "cluster",
+			shouldCallExternal: false,
+			shouldCallCluster:  true,
+		},
+		{
+			name:               "empty source type defaults to cluster handling",
+			modelSourceType:    "",
+			expectedHandling:   "cluster",
+			shouldCallExternal: false,
+			shouldCallCluster:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify the enum values are correct
+			switch tt.modelSourceType {
+			case models.ModelSourceTypeExternalProvider:
+				assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), tt.modelSourceType)
+			case models.ModelSourceTypeExternalCluster:
+				assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), tt.modelSourceType)
+			case models.ModelSourceTypeNamespace:
+				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
+			}
+
+			// Verify routing logic using the actual production helper
+			isExternal := models.IsExternalModelSource(tt.modelSourceType)
+			assert.Equal(t, tt.shouldCallExternal, isExternal,
+				"ModelSourceType %s should route to external handling: %v", tt.modelSourceType, tt.shouldCallExternal)
+
+			isCluster := !isExternal
+			assert.Equal(t, tt.shouldCallCluster, isCluster,
+				"ModelSourceType %s should route to cluster handling: %v", tt.modelSourceType, tt.shouldCallCluster)
+		})
+	}
+}
+
+func TestModelSourceTypeConstants(t *testing.T) {
+	t.Run("ModelSourceType enum values must not change", func(t *testing.T) {
+		// These values are part of the API contract and must remain stable
+		assert.Equal(t, models.ModelSourceTypeEnum("namespace"), models.ModelSourceTypeNamespace,
+			"ModelSourceTypeNamespace value must be 'namespace'")
+		assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), models.ModelSourceTypeExternalCluster,
+			"ModelSourceTypeExternalCluster value must be 'external_cluster'")
+		assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), models.ModelSourceTypeExternalProvider,
+			"ModelSourceTypeExternalProvider value must be 'external_provider'")
+	})
+}
+
+func TestInstallModelUnmarshalJSON(t *testing.T) {
+	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",			"model_source_type": "external_provider"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+	})
+
+	t.Run("should handle external_cluster ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "qwen3-06b",			"model_source_type": "external_cluster"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "qwen3-06b", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeExternalCluster, model.ModelSourceType)
+	})
+
+	t.Run("should handle namespace ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-3-8b",			"model_source_type": "namespace"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "llama-3-8b", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
+	})
+
+	t.Run("should reject missing ModelSourceType field", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-3-8b"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "model_source_type is required")
+	})
+
+	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"max_tokens": 4096
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.NotNil(t, model.MaxTokens)
+		assert.Equal(t, 4096, *model.MaxTokens)
+	})
+
+	t.Run("should handle max_tokens as float64", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"max_tokens": 4096.0
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.NotNil(t, model.MaxTokens)
+		assert.Equal(t, 4096, *model.MaxTokens)
+	})
+
+	t.Run("should reject fractional max_tokens", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"max_tokens": 4096.5
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "max_tokens must be an integer")
+	})
+
+	t.Run("should handle nil max_tokens", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"max_tokens": null
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Nil(t, model.MaxTokens)
+	})
+
+	t.Run("should handle maas ModelSourceType", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "llama-2-7b-chat",
+			"model_source_type": "maas"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "llama-2-7b-chat", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeMaaS, model.ModelSourceType)
+	})
+
+	t.Run("should reject invalid model_source_type", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",			"model_source_type": "invalid_value"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_source_type")
+		assert.Contains(t, err.Error(), "invalid_value")
+	})
+
+	t.Run("should reject random garbage in model_source_type", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",			"model_source_type": "foobar123"
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_source_type")
+		assert.Contains(t, err.Error(), "foobar123")
+	})
+
+	t.Run("should reject empty model_source_type", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "test-model",
+			"model_source_type": ""
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "model_source_type is required")
+	})
+}
+
+func TestValidateExternalModelsConfig(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
+	}
+
+	t.Run("should reject provider with empty provider_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty provider_id")
+	})
+
+	t.Run("should reject provider with invalid provider_type", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: "invalid::type",
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.example.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid provider_type")
+	})
+
+	t.Run("should reject provider with empty base_url", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty base_url")
+	})
+
+	t.Run("should reject provider with malformed base_url", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "://invalid-url",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "malformed base_url")
+	})
+
+	t.Run("should reject provider with base_url missing scheme", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "api.openai.com/v1",
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing scheme")
+	})
+
+	t.Run("should reject model with empty model_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeLLM,
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty model_id")
+	})
+
+	t.Run("should reject model with empty provider_id", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "",
+						ModelType:  models.ModelTypeLLM,
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty provider_id")
+	})
+
+	t.Run("should reject model with invalid model_type", func(t *testing.T) {
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeVLLM,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.example.com/v1",
+						},
+					},
+				},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "test-provider",
+						ModelType:  "invalid-type",
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid model_type")
+	})
+
+	t.Run("should reject model with negative embedding_dimension", func(t *testing.T) {
+		negativeDim := -1
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &negativeDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid embedding_dimension")
+	})
+
+	t.Run("should reject model with unreasonably large embedding_dimension", func(t *testing.T) {
+		hugeDim := 200000
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "test-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "test-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &hugeDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unreasonably large embedding_dimension")
+	})
+
+	t.Run("should accept valid configuration", func(t *testing.T) {
+		validDim := 1536
+		config := &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "openai-provider",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: "https://api.openai.com/v1",
+						},
+					},
+				},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{
+					{
+						ModelID:    "gpt-4o",
+						ProviderID: "openai-provider",
+						ModelType:  models.ModelTypeLLM,
+					},
+					{
+						ModelID:    "text-embedding-ada-002",
+						ProviderID: "openai-provider",
+						ModelType:  models.ModelTypeEmbedding,
+						Metadata: models.RegisteredModelMetadata{
+							EmbeddingDimension: &validDim,
+						},
+					},
+				},
+			},
+		}
+
+		err := client.validateExternalModelsConfig(config)
+		assert.NoError(t, err)
 	})
 }
