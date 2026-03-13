@@ -11,9 +11,24 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// withDiscoveredPipeline adds a mock discovered pipeline to the request context.
+// IDs are derived from "test-namespace" to match the mock client created with "mock://test-namespace".
+func withDiscoveredPipeline(req *http.Request) *http.Request {
+	ids := psmocks.DeriveMockIDs("test-namespace")
+	discovered := &repositories.DiscoveredPipeline{
+		PipelineID:        ids.PipelineID,
+		PipelineVersionID: ids.LatestVersionID,
+		PipelineName:      "autorag-pipeline",
+		Namespace:         "test-namespace",
+	}
+	ctx := context.WithValue(req.Context(), constants.DiscoveredPipelineKey, discovered)
+	return req.WithContext(ctx)
+}
 
 func TestPipelineRunsHandler_Success(t *testing.T) {
 	app := newTestApp(t)
@@ -32,6 +47,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -42,13 +58,14 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, response.Data)
-		assert.Len(t, response.Data.Runs, 3, "Should return 3 pipeline runs from mock")
+		// With discovered pipeline filter, mock returns only runs from that pipeline version (all 3 base runs)
+		assert.Len(t, response.Data.Runs, 3, "Should return filtered pipeline runs from discovered pipeline")
 		assert.Equal(t, int32(3), response.Data.TotalSize)
 	})
 
 	t.Run("should filter by pipeline version ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
+		pipelineVersionID := psmocks.DeriveMockIDs("test-namespace").LatestVersionID
 		req, err := http.NewRequest(
 			http.MethodGet,
 			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId="+pipelineVersionID,
@@ -60,6 +77,8 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		// Explicit filter doesn't require discovered pipeline, but include it for consistency
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -91,6 +110,7 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -125,6 +145,59 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("should return 500 when no AutoRAG pipeline discovered and no explicit filter", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// Explicitly set discovered pipeline to nil (no AutoRAG pipeline found)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, (*repositories.DiscoveredPipeline)(nil))
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		// Error message should be visible to help users understand the issue
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "500", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
+	})
+
+	t.Run("should succeed with explicit pipelineVersionId even when no AutoRAG pipeline discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=explicit-version-123",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// No discovered pipeline, but explicit filter should work
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, (*repositories.DiscoveredPipeline)(nil))
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
 }
 
 func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
@@ -143,6 +216,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -179,6 +253,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -234,6 +309,7 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
@@ -276,10 +352,17 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Attach mock client to context
+		// Attach mock client and discovered pipeline to context
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		// Create params with runId
@@ -316,6 +399,13 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{
@@ -349,6 +439,13 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{
@@ -408,6 +505,13 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{
@@ -477,6 +581,13 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		// Pass empty runId
@@ -513,6 +624,13 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{
@@ -550,6 +668,13 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{
@@ -573,4 +698,151 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, "500", response.Error.Code)
 		assert.Contains(t, response.Error.Message, "server encountered a problem")
 	})
+
+	t.Run("should return 404 when run belongs to different pipeline", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-different-pipeline"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Create mock client that returns a run with different pipeline ID
+		mockClient := &differentPipelineMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+
+		// Discovered pipeline has specific IDs
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 404 because run belongs to different pipeline
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("should return 500 when no discovered pipeline in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-test-123"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		// Don't add discovered pipeline to context
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 500 with user-visible message
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "500", response.Error.Code)
+		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
+	})
+
+	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-nil-reference"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Create mock client that returns a run with nil PipelineVersionReference
+		mockClient := &nilPipelineReferenceMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+
+		// Discovered pipeline
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "autorag-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		// Should return 404 for security (data integrity issue)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+// differentPipelineMockClient returns runs with a different pipeline ID
+type differentPipelineMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *differentPipelineMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run := &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Different Pipeline Run",
+		State:       "SUCCEEDED",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        "different-pipeline-id",
+			PipelineVersionID: "different-version-id",
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}
+	return run, nil
+}
+
+// nilPipelineReferenceMockClient returns runs with nil PipelineVersionReference
+type nilPipelineReferenceMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *nilPipelineReferenceMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run := &models.KFPipelineRun{
+		RunID:                    runID,
+		DisplayName:              "Run Without Pipeline Reference",
+		State:                    "SUCCEEDED",
+		PipelineVersionReference: nil, // Missing pipeline reference
+		CreatedAt:                "2024-01-01T00:00:00Z",
+	}
+	return run, nil
 }

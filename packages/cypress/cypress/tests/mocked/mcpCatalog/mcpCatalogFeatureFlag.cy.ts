@@ -12,7 +12,9 @@ describe('MCP Catalog feature flag', () => {
     );
     navSidebar.visit();
     navSidebar.findNavSection('AI hub').should('exist');
-    navSidebar.findNavItem({ name: 'MCP Catalog', rootSection: 'AI hub' }).should('exist');
+    navSidebar
+      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'MCP servers' })
+      .should('exist');
   });
 
   it('should not show MCP Catalog nav item when feature flag is disabled', () => {
@@ -23,7 +25,9 @@ describe('MCP Catalog feature flag', () => {
       }),
     );
     navSidebar.visit();
-    navSidebar.findNavItem({ name: 'MCP Catalog', rootSection: 'AI hub' }).should('not.exist');
+    navSidebar
+      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'MCP servers' })
+      .should('not.exist');
   });
 
   it('should show 404 page when navigating to MCP Catalog with flag disabled', () => {

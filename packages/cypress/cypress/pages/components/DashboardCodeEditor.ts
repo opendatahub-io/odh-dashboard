@@ -21,12 +21,17 @@ interface MonacoWindow {
  */
 export class DashboardCodeEditor extends Contextual<HTMLElement> {
   waitForReady(): this {
-    this.find().should(($el) => {
-      const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
-      const editors = win.monaco.editor.getEditors();
-      expect(editors).to.have.length.greaterThan(0);
-      expect(editors[0].getModel()).to.not.equal(null);
-    });
+    // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(1000);
+    this.find()
+      .find('.monaco-editor')
+      .should(($el) => {
+        const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
+        const editors = win.monaco.editor.getEditors();
+        expect(editors).to.have.length.greaterThan(0);
+        expect(editors[0].getModel()).to.not.equal(null);
+      });
     return this;
   }
 
@@ -36,6 +41,10 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
 
   findUpload(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('input[type="file"]');
+  }
+
+  findStartFromScratchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: 'Start from scratch' });
   }
 
   containsText(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -48,27 +57,29 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   setValue(value: string): void {
-    this.waitForReady();
-    this.find().then(($el) => {
-      const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
-      const model = win.monaco.editor.getEditors()[0]?.getModel();
-      if (!model) {
-        throw new Error('No Monaco editor model found');
-      }
-      model.setValue(value);
-    });
+    this.find()
+      .find('.monaco-editor')
+      .then(($el) => {
+        const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
+        const model = win.monaco.editor.getEditors()[0]?.getModel();
+        if (!model) {
+          throw new Error('No Monaco editor model found');
+        }
+        model.setValue(value);
+      });
   }
 
   replaceInEditor(oldText: string, newText: string): void {
-    this.waitForReady();
-    this.find().then(($el) => {
-      const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
-      const model = win.monaco.editor.getEditors()[0]?.getModel();
-      if (!model) {
-        throw new Error('No Monaco editor model found');
-      }
-      expect(model.getValue()).to.include(oldText);
-      model.setValue(model.getValue().replace(oldText, newText));
-    });
+    this.find()
+      .find('.monaco-editor')
+      .then(($el) => {
+        const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
+        const model = win.monaco.editor.getEditors()[0]?.getModel();
+        if (!model) {
+          throw new Error('No Monaco editor model found');
+        }
+        expect(model.getValue()).to.include(oldText);
+        model.setValue(model.getValue().replace(oldText, newText));
+      });
   }
 }

@@ -297,14 +297,14 @@ export const applyConnectionData = (
   secretName?: string,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  if (createConnectionData.nameDesc?.name) {
+  if (secretName || createConnectionData.nameDesc?.name) {
     result.metadata.annotations = {
       ...result.metadata.annotations,
     };
     // Apply connection name to the annotations
     if (!dryRun) {
       result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-        secretName ?? createConnectionData.nameDesc.name;
+        secretName ?? createConnectionData.nameDesc?.name ?? '';
     }
     // Apply connection path to the annotations if the connection type is S3ObjectStorage
     if (

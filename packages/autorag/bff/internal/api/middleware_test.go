@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -18,7 +17,6 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -69,10 +67,9 @@ func TestAttachNamespace(t *testing.T) {
 	})
 }
 
-func TestAttachLlamaStackClient(t *testing.T) {
-	t.Run("should attach mock client when MockLSClient is true", func(t *testing.T) {
+func TestAttachLlamaStackClientFromSecret(t *testing.T) {
+	t.Run("should return 400 when secretName query parameter is missing", func(t *testing.T) {
 		app := App{
-			config:                  config.EnvConfig{MockLSClient: true},
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
 			repositories:            repositories.NewRepositories(slog.Default()),
 		}
@@ -81,34 +78,69 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing required query parameter: secretName")
+	})
+
+	t.Run("should return 400 when secretName is invalid DNS-1123 label", func(t *testing.T) {
+		app := App{
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(slog.Default()),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=INVALID_NAME", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "invalid secretName")
+	})
+
+	t.Run("should attach mock client when MockLSClient is true", func(t *testing.T) {
+		app := App{
+			config:                  config.EnvConfig{MockLSClient: true},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(slog.Default()),
+		}
+
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			client := r.Context().Value(constants.LlamaStackClientKey)
 			assert.NotNil(t, client)
-			mockClient := client.(*lsmocks.MockLlamaStackClient)
-			models, _ := mockClient.ListModels(r.Context())
-			assert.Len(t, models, 7) // autorag mock returns 7 models
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("should use LLAMA_STACK_URL environment override when set", func(t *testing.T) {
+	t.Run("should use LLAMA_STACK_URL when auth is disabled", func(t *testing.T) {
 		mockFactory := &CapturingMockClientFactory{}
 
 		app := App{
-			config:                  config.EnvConfig{LlamaStackURL: testLlamaStackURL},
+			config: config.EnvConfig{
+				AuthMethod:    config.AuthMethodDisabled,
+				LlamaStackURL: testLlamaStackURL,
+			},
 			llamaStackClientFactory: mockFactory,
 			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		req = req.WithContext(ctx)
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
@@ -117,33 +149,49 @@ func TestAttachLlamaStackClient(t *testing.T) {
 		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
 	})
 
-	t.Run("should retrieve service url from LlamaStackDistribution when no env provided", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDAllowed: true,
-			// Will return default mock LSD with serviceURL
+	t.Run("should return 500 when auth is disabled and LLAMA_STACK_URL is not set", func(t *testing.T) {
+		app := App{
+			config: config.EnvConfig{
+				AuthMethod: config.AuthMethodDisabled,
+			},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(slog.Default()),
+			logger:                  slog.Default(),
 		}
-		mockLSFactory := &CapturingMockClientFactory{}
+
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("should use LLAMA_STACK_URL as developer override when set", func(t *testing.T) {
+		mockFactory := &CapturingMockClientFactory{}
 
 		app := App{
-			logger:                  slog.Default(),
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: mockLSFactory,
+			config:                  config.EnvConfig{LlamaStackURL: testLlamaStackURL},
+			llamaStackClientFactory: mockFactory,
 			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		reqCtx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		reqCtx = context.WithValue(reqCtx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		req = req.WithContext(reqCtx)
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, "http://mock-lsd.test-namespace.svc.cluster.local:8321", mockLSFactory.CapturedURL)
+		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
 	})
 
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
@@ -152,195 +200,100 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			repositories:            repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
+		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "missing namespace in context")
 	})
+}
 
-	t.Run("should return error when RequestIdentity is missing from context (non-mock mode)", func(t *testing.T) {
-		app := App{
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+func TestIsValidLlamaStackURL(t *testing.T) {
+	t.Run("should accept valid http URL with DNS hostname", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://llamastack.my-namespace.svc.cluster.local:8321")
+		assert.NoError(t, err)
 	})
 
-	t.Run("should return error when GetClient fails", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.FailingMockTokenClientFactory{
-			GetClientError: assert.AnError,
-		}
-
-		app := App{
-			config:                  config.EnvConfig{},
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	t.Run("should accept valid https URL", func(t *testing.T) {
+		err := isValidLlamaStackURL("https://llamastack.example.com:8321")
+		assert.NoError(t, err)
 	})
 
-	t.Run("should return error when GetLlamaStackDistributions fails", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			GetLSDError: assert.AnError,
-		}
-
-		app := App{
-			config:                  config.EnvConfig{},
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	t.Run("should accept private IP addresses (cluster-internal)", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://10.0.0.5:8321")
+		assert.NoError(t, err)
 	})
 
-	t.Run("should return 404 when no LlamaStackDistribution found in namespace", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			ShouldReturnEmptyLSD: true,
-		}
-
-		app := App{
-			config:                  config.EnvConfig{},
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		// 404 is correct: no LSD resource exists in the namespace, so the resource is not found
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the requested resource could not be found")
+	t.Run("should reject non-http/https schemes", func(t *testing.T) {
+		err := isValidLlamaStackURL("ftp://llamastack:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid URL scheme")
 	})
 
-	t.Run("should return error when LlamaStackDistribution has no serviceURL", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			ShouldReturnNoURL: true,
-		}
-
-		app := App{
-			config:                  config.EnvConfig{},
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		// Server errors return generic message (detailed error is logged but not exposed to client)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	t.Run("should reject loopback IPv4 address", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://127.0.0.1:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "loopback")
 	})
 
-	t.Run("should handle multiple LlamaStackDistributions by using the first", func(t *testing.T) {
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			GetLSDList: &lsdapi.LlamaStackDistributionList{
-				Items: []lsdapi.LlamaStackDistribution{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "lsd-1",
-							Namespace: testNamespace,
-						},
-						Status: lsdapi.LlamaStackDistributionStatus{
-							ServiceURL: "http://lsd-1.test-namespace.svc.cluster.local:8321",
-						},
-					},
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "lsd-2",
-							Namespace: testNamespace,
-						},
-						Status: lsdapi.LlamaStackDistributionStatus{
-							ServiceURL: "http://lsd-2.test-namespace.svc.cluster.local:8321",
-						},
-					},
-				},
-			},
+	t.Run("should reject loopback IPv6 address", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://[::1]:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "loopback")
+	})
+
+	t.Run("should reject cloud metadata endpoint (169.254.169.254)", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://169.254.169.254/latest/meta-data/")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "link-local")
+	})
+
+	t.Run("should reject other link-local addresses", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://169.254.0.1:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "link-local")
+	})
+
+	t.Run("should reject unspecified address 0.0.0.0", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://0.0.0.0:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unspecified")
+	})
+
+	t.Run("should reject URL without host", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "must contain a host")
+	})
+
+	t.Run("should reject localhost (resolves to loopback)", func(t *testing.T) {
+		err := isValidLlamaStackURL("http://localhost:8321")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "loopback")
+	})
+
+	t.Run("should allow non-resolving hostname (fails at connection time instead)", func(t *testing.T) {
+		// Hostnames that don't resolve are allowed through — they may only be resolvable
+		// inside a cluster (e.g., svc.cluster.local). The HTTP client will fail later
+		// with a connection error, handled as 502 Bad Gateway.
+		err := isValidLlamaStackURL("http://this-hostname-does-not-exist.invalid:8321")
+		assert.NoError(t, err)
+	})
+
+	t.Run("should block metadata.google.internal if it resolves to link-local", func(t *testing.T) {
+		// In OpenShift/CI environments this hostname doesn't resolve, so it passes
+		// validation (non-resolving hostnames are allowed through).
+		// In GCP environments it would resolve to 169.254.169.254 and be blocked as link-local.
+		err := isValidLlamaStackURL("http://metadata.google.internal")
+		if err != nil {
+			// If it resolved (e.g., in GCP), it should be blocked as link-local
+			assert.Contains(t, err.Error(), "link-local")
 		}
-		mockLSFactory := &CapturingMockClientFactory{}
-
-		app := App{
-			config:                  config.EnvConfig{},
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: mockLSFactory,
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
-			w.WriteHeader(http.StatusOK)
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		// Should use the first LSD's serviceURL
-		assert.Equal(t, "http://lsd-1.test-namespace.svc.cluster.local:8321", mockLSFactory.CapturedURL)
+		// If it didn't resolve (e.g., in OpenShift/CI), no error — that's expected
 	})
 }
 

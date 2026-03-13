@@ -45,6 +45,20 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.eval-hub-ui-image
+  - name: automl-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.automl-ui-image
+  - name: autorag-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.autorag-ui-image
 configurations:
   - params.yaml
 patchesJson6902:

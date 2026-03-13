@@ -109,6 +109,19 @@ export type WBEditTestData = {
   notebookImage: string;
 };
 
+export type KueueWorkbenchTestData = {
+  projectName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  hardwareProfileName: string;
+  hardwareProfileDisplayName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  sectionTab: string;
+  notebookImage: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;

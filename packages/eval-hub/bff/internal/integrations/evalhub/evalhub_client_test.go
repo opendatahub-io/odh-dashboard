@@ -137,6 +137,69 @@ func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 	assert.Equal(t, ErrCodeServerUnavailable, ehErr.Code)
 }
 
+func TestEvalHubClient_ListCollections(t *testing.T) {
+	resp := CollectionsResponse{
+		Items: []Collection{
+			{
+				Resource:    CollectionResource{ID: "col-1"},
+				Name:        "Safety Suite",
+				Description: "Safety benchmarks",
+			},
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, "col-1", result.Items[0].Resource.ID)
+	assert.Equal(t, "Safety Suite", result.Items[0].Name)
+}
+
+func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write([]byte(`{}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.NoError(t, err)
+	assert.NotNil(t, result.Items, "Items should be an empty slice, not nil")
+	assert.Empty(t, result.Items)
+}
+
+func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		if _, err := w.Write([]byte("internal error")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background())
+
+	require.Error(t, err)
+	assert.NotNil(t, result.Items, "Items should be an empty slice even on error")
+	assert.Empty(t, result.Items)
+}
+
 func TestEvalHubClient_ConnectionError(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
 	_, err := client.HealthCheck(context.Background())

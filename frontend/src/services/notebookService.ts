@@ -8,7 +8,7 @@ export const getNotebook = (namespace: string, name: string): Promise<Notebook> 
     .get(url)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message);
     });
 };
 
@@ -23,13 +23,13 @@ export const getNotebookAndStatus = (
     .get(url)
     .then((response) => response.data)
     .catch((e) => {
-      if (e.response.status === 404) {
+      if (e.response?.status === 404) {
         return { notebook, isRunning: false };
       }
       /* eslint-disable-next-line no-console */
       console.error(
         'Checking notebook status failed, falling back on notebook check logic',
-        e.response.data.message,
+        e.response?.data?.message || e.message,
       );
       // Notebooks are unreliable to live status on replicas -- but if we have nothing else...
       const isRunning = !!(
@@ -48,7 +48,7 @@ export const enableNotebook = async (notebookData: NotebookData): Promise<Notebo
     .post(url, notebookData)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message);
     });
 };
 
@@ -65,6 +65,6 @@ export const stopNotebook = (username?: string): Promise<Notebook> => {
     .patch(url, patch)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message);
     });
 };
