@@ -41,16 +41,16 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    // Get sidebar element without waiting (synchronous check)
-    // This allows .should('not.exist') assertions to work when sidebar or nav items don't exist
-    return cy.document().then((doc) => {
-      const $sidebar = Cypress.$(doc).find('#page-sidebar');
-      if ($sidebar.length === 0) {
-        // Sidebar doesn't exist, return empty jQuery object
-        return cy.wrap(Cypress.$());
+    // Use timeout: 0 to immediately check if sidebar exists without waiting
+    // This allows .should('not.exist') to work when sidebar/nav items don't exist
+    return cy.get('body').then(($body) => {
+      const hasSidebar = $body.find('#page-sidebar').length > 0;
+      if (!hasSidebar) {
+        // No sidebar, return empty result for .should('not.exist') assertions
+        return cy.wrap(Cypress.$(), { log: false });
       }
-      // Sidebar exists, find the nav item within it
-      return cy.wrap($sidebar).findAppNavItem(args);
+      // Sidebar exists, find the nav item
+      return cy.get('#page-sidebar', { log: false }).findAppNavItem(args);
     });
   }
 }
