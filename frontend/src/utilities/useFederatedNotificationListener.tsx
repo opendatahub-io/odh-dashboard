@@ -33,14 +33,21 @@ export const useFederatedNotificationListener = (): void => {
         const { detail } = event as CustomEvent;
         if (!detail) return;
 
-        const { status, title, message, timestamp, linkUrl, linkLabel } = detail as {
+        const {
+          status,
+          title,
+          message,
+          timestamp,
+          linkUrl,
+          linkLabel,
+        }: {
           status?: AlertVariant;
           title: string;
           message?: string;
           timestamp?: string;
           linkUrl?: string;
           linkLabel?: string;
-        };
+        } = detail;
 
         const timestampDate = timestamp ? new Date(timestamp) : new Date();
 
