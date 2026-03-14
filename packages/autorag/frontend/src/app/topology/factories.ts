@@ -11,8 +11,7 @@ import {
 } from '@patternfly/react-topology';
 import StandardTaskNode from './StandardTaskNode';
 import PipelineTaskEdge from './PipelineTaskEdge';
-import PipelineDefaultTaskGroup from './PipelineDefaultTaskGroup';
-import { EXECUTION_TASK_NODE_TYPE, HIDDEN_EDGE_TYPE } from './const';
+import { HIDDEN_EDGE_TYPE } from './const';
 
 export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   if (kind === ModelKind.graph) {
@@ -25,8 +24,6 @@ export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:
       return withSelection()(PipelineTaskEdge);
-    case EXECUTION_TASK_NODE_TYPE:
-      return withSelection()(PipelineDefaultTaskGroup);
     case HIDDEN_EDGE_TYPE:
       return () => null;
     default:

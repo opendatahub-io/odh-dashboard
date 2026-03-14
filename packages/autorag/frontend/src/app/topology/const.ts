@@ -5,5 +5,4 @@ export const PIPELINE_NODE_SEPARATION_HORIZONTAL = 70;
 export const NODE_WIDTH = 200;
 export const NODE_HEIGHT = 35;
 
-export const EXECUTION_TASK_NODE_TYPE = 'EXECUTION_TASK_NODE';
 export const HIDDEN_EDGE_TYPE = 'hidden-edge';
