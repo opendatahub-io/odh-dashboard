@@ -46,7 +46,7 @@ export type PipelineVersionReference = {
 };
 
 export type PipelineRunRuntimeConfig = {
-  parameters?: Record<string, string>;
+  parameters?: Record<string, unknown>;
   pipeline_root?: string;
 };
 

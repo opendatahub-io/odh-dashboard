@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {
-  DEFAULT_SPACER_NODE_TYPE,
   GraphElement,
-  EdgeTerminalType,
   observer,
   TaskEdge,
   WithSelectionProps,
@@ -18,17 +16,7 @@ const PipelineTaskEdge: React.FC<PipelineTaskEdgeProps> = ({ element, ...props }
     throw new Error('Element is not Edge');
   }
   const edge = element;
-  return (
-    <TaskEdge
-      element={edge}
-      endTerminalType={
-        edge.getTarget().getType() !== DEFAULT_SPACER_NODE_TYPE
-          ? EdgeTerminalType.directional
-          : undefined
-      }
-      {...props}
-    />
-  );
+  return <TaskEdge element={edge} {...props} />;
 };
 
 export default observer(PipelineTaskEdge);

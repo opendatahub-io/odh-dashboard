@@ -25,8 +25,8 @@ const useTopologyController = (graphId: string): Visualization | null => {
     visualizationController.registerLayoutFactory(
       (type: string, graph: Graph): Layout | undefined =>
         new PipelineDagreGroupsLayout(graph, {
-          nodesep: PIPELINE_NODE_SEPARATION_HORIZONTAL,
-          ranksep: PIPELINE_NODE_SEPARATION_VERTICAL,
+          nodesep: PIPELINE_NODE_SEPARATION_VERTICAL,
+          ranksep: PIPELINE_NODE_SEPARATION_HORIZONTAL,
           rankdir: 'LR',
         }),
     );
@@ -43,7 +43,9 @@ const useTopologyController = (graphId: string): Visualization | null => {
       false,
     );
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
-      visualizationController.getGraph().fit(75);
+      requestAnimationFrame(() => {
+        visualizationController.getGraph().fit(75);
+      });
     });
 
     setController(visualizationController);

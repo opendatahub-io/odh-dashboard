@@ -12,7 +12,7 @@ import {
 import StandardTaskNode from './StandardTaskNode';
 import PipelineTaskEdge from './PipelineTaskEdge';
 import PipelineDefaultTaskGroup from './PipelineDefaultTaskGroup';
-import { EXECUTION_TASK_NODE_TYPE } from './const';
+import { EXECUTION_TASK_NODE_TYPE, HIDDEN_EDGE_TYPE } from './const';
 
 export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   if (kind === ModelKind.graph) {
@@ -27,6 +27,8 @@ export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
       return withSelection()(PipelineTaskEdge);
     case EXECUTION_TASK_NODE_TYPE:
       return withSelection()(PipelineDefaultTaskGroup);
+    case HIDDEN_EDGE_TYPE:
+      return () => null;
     default:
       return undefined;
   }

@@ -38,7 +38,7 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
       case ExecutionStateKF.RUNNING:
         return RunStatus.InProgress;
       default:
-        return data?.runStatus;
+        return data?.runStatus ?? RunStatus.Pending;
     }
   }, [state, data?.runStatus]);
 
@@ -56,7 +56,13 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
           RunStatus.Cancelled,
           RunStatus.Failed,
           RunStatus.Running,
+          RunStatus.Pending,
         ]}
+        truncateLength={Infinity}
+        badge={data?.badge}
+        badgeColor="#E0E0E0"
+        badgeTextColor="#151515"
+        badgeBorderColor="#FFFFFF00"
         whenOffset={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
         whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
         {...rest}

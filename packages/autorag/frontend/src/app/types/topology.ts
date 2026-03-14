@@ -37,6 +37,7 @@ export type PipelineTask = {
 export type StandardTaskNodeData = {
   pipelineTask: PipelineTask;
   runStatus?: RunStatus;
+  badge?: string;
 };
 
 export type PipelineNodeModelExpanded = PipelineNodeModel & {

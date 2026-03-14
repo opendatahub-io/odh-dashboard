@@ -1,4 +1,4 @@
-import { ApplicationsPage } from 'mod-arch-shared';
+import { ApplicationsPage, TitleWithIcon, ProjectObjectType } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
 import AutoragResults from '~/app/components/results/AutoragResults';
@@ -15,7 +15,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={pipelineRun?.display_name}
+      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
       loadError={pipelineRunQuery.error ?? experimentQuery.error ?? undefined}

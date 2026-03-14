@@ -13,6 +13,8 @@ import {
 } from '@patternfly/react-topology';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { MODEL_NODE_PREFIX } from './useAutoRAGTaskTopology';
+import { HIDDEN_EDGE_TYPE } from './const';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
@@ -37,7 +39,12 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     });
 
     const renderNodes = addSpacerNodes(updateNodes);
-    const edges = getEdgesFromNodes(renderNodes);
+    const edges = getEdgesFromNodes(renderNodes).map((e) => {
+      if (e.source?.startsWith(MODEL_NODE_PREFIX) || e.target?.startsWith(MODEL_NODE_PREFIX)) {
+        return { ...e, type: HIDDEN_EDGE_TYPE };
+      }
+      return e;
+    });
 
     try {
       controller.fromModel({ nodes: renderNodes, edges }, true);

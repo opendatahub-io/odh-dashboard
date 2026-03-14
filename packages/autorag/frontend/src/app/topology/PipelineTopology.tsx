@@ -13,12 +13,14 @@ type PipelineTopologyProps = {
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
   nodes: PipelineNodeModel[];
+  className?: string;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   nodes,
   selectedIds,
   onSelectionChange,
+  className,
 }) => {
   const controller = useTopologyController('autorag-graph');
 
@@ -57,9 +59,11 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   }
 
   return (
-    <VisualizationProvider controller={controller}>
-      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} />
-    </VisualizationProvider>
+    <div className={className}>
+      <VisualizationProvider controller={controller}>
+        <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} />
+      </VisualizationProvider>
+    </div>
   );
 };
 

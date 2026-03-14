@@ -70,6 +70,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={mockRuns}
+        namespace="test-ns"
         totalSize={defaultPaginationProps.totalSize}
         page={defaultPaginationProps.page}
         pageSize={defaultPaginationProps.pageSize}
@@ -85,6 +86,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={mockRuns}
+        namespace="test-ns"
         totalSize={defaultPaginationProps.totalSize}
         page={defaultPaginationProps.page}
         pageSize={defaultPaginationProps.pageSize}
@@ -101,6 +103,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={[]}
+        namespace="test-ns"
         totalSize={0}
         page={1}
         pageSize={20}
@@ -118,6 +121,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={mockRuns}
+        namespace="test-ns"
         totalSize={defaultPaginationProps.totalSize}
         page={defaultPaginationProps.page}
         pageSize={defaultPaginationProps.pageSize}
