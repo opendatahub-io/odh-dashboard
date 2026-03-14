@@ -35,20 +35,6 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   emptyStateMessage = 'Select a feature store to view its lineage.',
   height = '100%',
 }) => {
-  if (!project) {
-    return (
-      <EmptyState
-        headingLevel="h6"
-        icon={PlusCircleIcon}
-        titleText={emptyStateTitle}
-        variant={EmptyStateVariant.lg}
-        data-testid="empty-state-title"
-      >
-        <EmptyStateBody data-testid="empty-state-body">{emptyStateMessage}</EmptyStateBody>
-      </EmptyState>
-    );
-  }
-
   const [hideNodesWithoutRelationships, setHideNodesWithoutRelationships] = useState(false);
   const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
   const [currentFilterType, setCurrentFilterType] =
@@ -56,6 +42,8 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const [conversionError, setConversionError] = useState<string | null>(null);
   const { triggerCenter, forceCenter } = useLineageCenter();
   const [lineageKey, setLineageKey] = useState(0);
+  const featureViewLineageState = useFeatureViewLineage(project, featureViewName);
+  const featureStoreLineageState = useFeatureStoreLineage(featureViewName ? undefined : project);
 
   // Force re-render when forceCenter is triggered (tab switch)
   useEffect(() => {
@@ -68,9 +56,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     data: lineageData,
     loaded: lineageDataLoaded,
     error,
-  } = featureViewName
-    ? useFeatureViewLineage(project, featureViewName)
-    : useFeatureStoreLineage(project);
+  } = featureViewName ? featureViewLineageState : featureStoreLineageState;
 
   const componentFactory = useMemo(
     () => createLineageComponentFactory(FeatureStoreLineageNode),
@@ -174,6 +160,20 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
     <FeatureStoreLineageNodePopover {...props} featureViewName={featureViewName} />
   );
+
+  if (!project) {
+    return (
+      <EmptyState
+        headingLevel="h6"
+        icon={PlusCircleIcon}
+        titleText={emptyStateTitle}
+        variant={EmptyStateVariant.lg}
+        data-testid="empty-state-title"
+      >
+        <EmptyStateBody data-testid="empty-state-body">{emptyStateMessage}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
   return (
     <PageSection
