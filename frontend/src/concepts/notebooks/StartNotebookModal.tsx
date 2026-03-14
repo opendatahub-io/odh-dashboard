@@ -29,16 +29,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import {
-  t_global_icon_color_brand_default as BrandIconColor,
   t_global_icon_size_font_md as InfoIconSize,
   t_global_spacer_xs as ExtraSmallSpacerSize,
-  t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
-  t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_info_default as InfoColor,
-  t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
-import { InfoCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
@@ -54,6 +50,7 @@ import {
 } from '#~/concepts/kueue/types';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
+import { getStatusLineIconAndColor } from './utils';
 import './StartNotebookModal.scss';
 
 const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
@@ -172,17 +169,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       return null;
     }
 
-    let color: string;
-    switch (spawnStatus?.status) {
-      case AlertVariant.danger:
-        color = DangerColor.var;
-        break;
-      case AlertVariant.warning:
-        color = WarningColor.var;
-        break;
-      default:
-        color = RegularColor.var;
-    }
+    const { IconComponent, color, iconClassName } = getStatusLineIconAndColor({
+      notebookStatus,
+      kueueStatus,
+      inProgress,
+    });
 
     const kueueTitle = showKueueMessage ? kueueStatus.message?.trim() || kueueStatus.status : null;
     const workbenchTitle =
@@ -196,13 +187,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
     return (
       <StackItem>
-        <Flex gap={{ default: 'gapSm' }}>
-          {(!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
-            <FlexItem>
-              <InProgressIcon style={{ color: BrandIconColor.var }} className="odh-u-spin" />
+        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+          {IconComponent ? (
+            <FlexItem flex={{ default: 'flexNone' }}>
+              <IconComponent style={{ color }} className={iconClassName} />
             </FlexItem>
           ) : null}
-          <FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }} style={{ minWidth: 0 }}>
             <Content style={{ color }} data-testid="notebook-latest-status">
               {title}
             </Content>

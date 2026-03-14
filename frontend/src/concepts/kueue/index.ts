@@ -5,6 +5,10 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
+import {
+  t_global_color_status_warning_300 as WarningColorDesign,
+  t_global_text_color_status_danger_default as DangerColor,
+} from '@patternfly/react-tokens';
 import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 
 import {
@@ -120,13 +124,19 @@ export const getKueueWorkloadStatusWithMessage = (
 export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo => {
   switch (status) {
     case KueueWorkloadStatus.Queued:
-      return { label: 'Queued', color: 'grey', IconComponent: OutlinedClockIcon };
+      return {
+        label: 'Queued',
+        color: 'grey',
+        IconComponent: OutlinedClockIcon,
+        contentColor: WarningColorDesign.var,
+      };
     case KueueWorkloadStatus.Failed:
       return {
         label: 'Failed',
         status: 'danger',
         color: 'red',
         IconComponent: ExclamationCircleIcon,
+        contentColor: DangerColor.var,
       };
     case KueueWorkloadStatus.Preempted:
       return {
@@ -134,6 +144,7 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
+        contentColor: WarningColorDesign.var,
       };
     case KueueWorkloadStatus.Inadmissible:
       return {
@@ -141,6 +152,7 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
+        contentColor: WarningColorDesign.var,
       };
     case KueueWorkloadStatus.Running:
       return { label: 'Running', color: 'blue', IconComponent: InProgressIcon };

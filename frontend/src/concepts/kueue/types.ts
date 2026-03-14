@@ -22,6 +22,7 @@ export type KueueStatusInfo = {
   color?: LabelProps['color'];
   IconComponent: ComponentType<SVGProps<SVGSVGElement>>;
   iconClassName?: string;
+  contentColor?: string;
 };
 
 /**
