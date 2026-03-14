@@ -215,11 +215,16 @@ func (c *RealPipelineServerClient) GetPipelineVersion(ctx context.Context, pipel
 		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 		body, _ := io.ReadAll(limitedReader)
 		_, _ = io.Copy(io.Discard, resp.Body)
-		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: string(body)}
+
+		errorMsg := string(body)
+		if len(body) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: errorMsg}
 	}
 
 	var version models.KFPipelineVersion
-	if err := json.NewDecoder(resp.Body).Decode(&version); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&version); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
