@@ -3,7 +3,7 @@ module github.com/kubeflow/notebooks/workspaces/controller
 go 1.22.12
 
 require (
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	golang.org/x/time v0.3.0
