@@ -3,10 +3,13 @@ import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import SecretSelector from '../common/SecretSelector';
+import SecretSelector, { SecretSelection } from '../common/SecretSelector';
 
 function AutoragCreate(): React.JSX.Element {
   const { namespace } = useParams();
+  const [selectedLlamaStackSecret, setSelectedLlamaStackSecret] = React.useState<
+    SecretSelection | undefined
+  >();
 
   const form = useFormContext<ConfigureSchema>();
 
@@ -40,8 +43,9 @@ function AutoragCreate(): React.JSX.Element {
               placeholder="Select Llama Stack secret"
               type="lls"
               namespace={namespace ?? ''}
-              value={field.value || undefined}
+              value={selectedLlamaStackSecret?.uuid}
               onChange={(secret) => {
+                setSelectedLlamaStackSecret(secret);
                 field.onChange(!secret || secret.invalid ? '' : secret.name);
               }}
             />
