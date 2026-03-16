@@ -14,16 +14,27 @@ import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { REGISTRY_OCI_STORAGE } from '~/odh/extensions';
 
 const ModelCatalogWrapperContent: React.FC = () => {
-  const {
-    configSettings,
-    userSettings,
-    loaded,
-    loadError,
-  } = useSettings();
+  const { configSettings, userSettings, loaded, loadError } = useSettings();
+  const areaExtensions = useExtensions(isAreaExtension);
+  const isRegistryOciStorageEnabled = areaExtensions.some(
+    (ext) => ext.properties.id === REGISTRY_OCI_STORAGE,
+  );
+
+  const crdOverrides = React.useMemo(
+    () => ({
+      [TempDevFeature.RegistryStorage]: isRegistryOciStorageEnabled,
+    }),
+    [isRegistryOciStorageEnabled],
+  );
+
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -39,7 +50,7 @@ const ModelCatalogWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <OdhDevFeatureFlagOverridesProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={crdOverrides}>
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>
