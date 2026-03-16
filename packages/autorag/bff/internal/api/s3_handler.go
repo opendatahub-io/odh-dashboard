@@ -181,13 +181,15 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Validate parameters
-	namespace, secretName, bucket, path, parameterError := validateParameters(r)
-	if parameterError != nil {
-		app.badRequestResponse(w, r, parameterError)
+	parameters, validationError := validateParameters(r)
+	if validationError != nil {
+		app.badRequestResponse(w, r, validationError)
 		return
 	}
 
-	queryParams := r.URL.Query()
+	namespace := parameters.Namespace
+	secretName := parameters.SecretName
+	bucket := parameters.Bucket
 
 	// Get Kubernetes client
 	client, clientError := app.kubernetesClientFactory.GetClient(ctx)
@@ -245,27 +247,21 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Determine bucket: use query param if provided, otherwise use bucket from secret
-	bucket = queryParams.Get("bucket")
+	// Determine bucket: use query param if provided, otherwise fall back to bucket from secret
 	if bucket == "" {
 		if creds.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+			app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
 			return
 		}
 		bucket = creds.Bucket
 	}
 
-	// Main
-
-	app.logger.Info(fmt.Sprintf("GetS3FilesHandler calling list with path: %s", path))
-
-	options := repositories.GetS3ObjectsOptions{
-		Path:   "",
-		Search: "",
-		Next:   "",
-		Limit:  1000,
-	}
-	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket, options)
+	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket, repositories.GetS3ObjectsOptions{
+    Path:   parameters.Path,
+    Search: parameters.Search,
+    Next:   parameters.Next,
+    Limit:  parameters.Limit,
+  })
 	if listError != nil {
 		app.serverErrorResponse(w, r, listError)
 		return
@@ -276,28 +272,62 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
-func validateParameters(r *http.Request) (namespace string, secretName string, bucket string, path string, err error) {
+type getS3FilesParams struct {
+	Namespace  string
+	SecretName string
+	Bucket     string
+	Path       string
+	Search     string
+	Next       string
+	Limit      int32
+}
+
+func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	queryParams := r.URL.Query()
 
-	namespace = queryParams.Get("namespace")
+	namespace := queryParams.Get("namespace")
 	if namespace == "" {
-		return "", "", "", "", errors.New("query parameter 'namespace' is required")
+		return nil, errors.New("query parameter 'namespace' is required")
 	}
 
-	secretName = queryParams.Get("secret_name")
+	secretName := queryParams.Get("secret_name")
 	if secretName == "" {
-		return "", "", "", "", errors.New("query parameter 'secret_name' is required")
+		return nil, errors.New("query parameter 'secret_name' is required")
 	}
 
-	bucket = queryParams.Get("bucket")
-	if bucket == "" {
-		return "", "", "", "", errors.New("query parameter 'bucket' is required")
-	}
+	bucket := queryParams.Get("bucket")
 
-	path = queryParams.Get("path")
+	path := queryParams.Get("path")
 	if path == "" {
-		return "", "", "", "", errors.New("query parameter 'path' is required")
+		return nil, errors.New("query parameter 'path' is required")
 	}
 
-	return namespace, secretName, bucket, path, nil
+	search := queryParams.Get("search")
+	if search != "" && strings.Contains(search, "/") {
+		return nil, errors.New("query parameter 'search' must not contain '/' characters")
+	}
+
+	next := queryParams.Get("next")
+	if queryParams.Has("next") && next == "" {
+		return nil, errors.New("query parameter 'next' must be a non-empty string if provided")
+	}
+
+	var limit int32 = 1000
+	if limitStr := queryParams.Get("limit"); limitStr != "" {
+		parsed, err := strconv.ParseInt(limitStr, 10, 32)
+		if err != nil || parsed < 1 || parsed > 1000 {
+			return nil, errors.New("query parameter 'limit' must be a positive number between 1 and 1000")
+		}
+		limit = int32(parsed)
+	}
+
+	return &getS3FilesParams{
+		Namespace:  namespace,
+		SecretName: secretName,
+		Bucket:     bucket,
+		Path:       path,
+		Search:     search,
+		Next:       next,
+		Limit:      limit,
+	}, nil
 }

@@ -177,11 +177,24 @@ func (r *S3Repository) GetS3Objects(
 
 	var err error
 	var output *s3.ListObjectsV2Output
+
+	prefix := options.Search
+	if options.Path != "" {
+		if !strings.HasSuffix(options.Path, "/") {
+			options.Path += "/"
+		}
+		prefix = options.Path + options.Search
+	}
+
 	input := &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
-		Prefix:    aws.String("/"), // TODO [ Gustavo ] This prefix will be *both*: Folder to view + leading search to filter
-		MaxKeys:   aws.Int32(1000),
+		Prefix:    aws.String(prefix),
+		MaxKeys:   aws.Int32(options.Limit),
+	}
+
+	if options.Next != "" {
+		input.ContinuationToken = aws.String(options.Next)
 	}
 
 	// TODO [ Gustavo ] Pagination: resp.IsTruncated:bool -> More items in next page

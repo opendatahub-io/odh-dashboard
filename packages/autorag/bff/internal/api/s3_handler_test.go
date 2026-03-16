@@ -531,9 +531,207 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
 }
 
-// TODO [ Gustavo ] Add tests for GetS3FilesHandler
+func TestGetS3FilesHandler_MissingNamespace(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-func TestGetS3FilesHandler_CanFetchListOfObjects(t *testing.T) {
+	params := url.Values{}
+	params.Set("secret_name", "aws-secret-1")
+	params.Set("bucket", "my-bucket")
+	params.Set("path", "some-path")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_MissingSecretName(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("bucket", "my-bucket")
+	params.Set("path", "some-path")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
+	// No bucket query param, and secret has no AWS_S3_BUCKET — should 400 from handler fallback
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secret_name", "aws-secret-1")
+	params.Set("path", "some-path")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_MissingPath(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secret_name", "aws-secret-1")
+	params.Set("bucket", "my-bucket")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_InvalidSearch(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secret_name", "aws-secret-1")
+	params.Set("bucket", "my-bucket")
+	params.Set("path", "some-path")
+	params.Set("search", "invalid/search")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_InvalidNext(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secret_name", "aws-secret-1")
+	params.Set("bucket", "my-bucket")
+	params.Set("path", "some-path")
+	params.Set("next", "")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		uri.String(),
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	testCases := []struct {
+		name  string
+		limit string
+	}{
+		{name: "Zero", limit: "0"},
+		{name: "Negative", limit: "-1"},
+		{name: "Over max", limit: "1001"},
+		{name: "Non-numeric", limit: "abc"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			params := url.Values{}
+			params.Set("namespace", "test-namespace")
+			params.Set("secret_name", "aws-secret-1")
+			params.Set("bucket", "my-bucket")
+			params.Set("path", "some-path")
+			params.Set("limit", tc.limit)
+			uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+			_, res, err := setupApiTest[integrations.HTTPError](
+				"GET",
+				uri.String(),
+				nil,
+				factory,
+				identity,
+			)
+
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+		})
+	}
+}
+
+func TestGetS3FilesHandler_CallsS3ListObjectsV2Correctly(t *testing.T) {
+  // TODO [ Gustavo ] Useless test so far since we need to add more testing for the repositories/s3.go directly to test ListObjectsV2 behaviour
 	namespace := "test-namespace"
 	secretName := "aws-secret-1"
 	bucket := "my-bucket"
@@ -578,5 +776,6 @@ func TestGetS3FilesHandler_CanFetchListOfObjects(t *testing.T) {
 	t.Logf("Response body (raw): %s", string(body))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	// Validation passes (search, next, limit are optional), but S3 call fails without a real/mock S3 backend
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }
