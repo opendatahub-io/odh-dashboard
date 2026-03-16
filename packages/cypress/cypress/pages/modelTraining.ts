@@ -775,6 +775,10 @@ class RayJobResourcesTab {
     return cy.findByTestId('nodes-value');
   }
 
+  findProcessesPerNodeValue() {
+    return cy.findByTestId('processes-per-node-value');
+  }
+
   findResourcesPerNodeSection() {
     return cy.findByTestId('resources-per-node-section');
   }

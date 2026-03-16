@@ -68,6 +68,7 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({ job, nodeCount 
   const { project, projects } = useModelTrainingContext();
   const { clusterSpec, loaded: clusterSpecLoaded } = useRayClusterSpec(job);
   const workerGroupSpecs = clusterSpec?.workerGroupSpecs;
+  const numOfHosts = workerGroupSpecs?.[0]?.numOfHosts ?? 1;
 
   const jobProject = project ?? projects?.find((p) => p.metadata.name === job.metadata.namespace);
   const isProjectKueueEnabled = jobProject?.metadata.labels?.[KUEUE_MANAGED_LABEL] === 'true';
@@ -98,6 +99,18 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({ job, nodeCount 
             <DescriptionListDescription data-testid="nodes-value">
               {nodeCount || '-'}
             </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+              Processes per node
+            </DescriptionListTerm>
+            {clusterSpecLoaded ? (
+              <DescriptionListDescription data-testid="processes-per-node-value">
+                {numOfHosts}
+              </DescriptionListDescription>
+            ) : (
+              <Skeleton width="80px" />
+            )}
           </DescriptionListGroup>
         </DescriptionList>
       </StackItem>

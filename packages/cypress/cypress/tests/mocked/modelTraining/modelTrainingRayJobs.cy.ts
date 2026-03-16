@@ -508,6 +508,7 @@ describe('RayJob Resources Tab', () => {
     rayJobDetailsDrawer.selectTab('Resources');
 
     rayJobResourcesTab.findNodesValue().should('contain', '2');
+    rayJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
   });
 
   it('should display per-worker-group resources', () => {
