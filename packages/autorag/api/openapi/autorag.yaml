@@ -260,12 +260,32 @@ paths:
           example: my-bucket
         - name: path
           in: query
-          required: true
-          description: The S3 path to filter the results
+          required: false
+          description: the S3-like folder path to search within.
           schema:
             type: string
-          example: /
-        # TODO: Define additional parameters for working with search/paginated result set from ListObjectsV2
+          example: /folder1/folder2/folder3
+        - name: search
+          in: query
+          required: false
+          description: The search term to filter results by. S3 only allows searching by leading values
+          schema:
+            type: string
+          example: my-search-query
+        - name: next
+          in: query
+          required: false
+          description: The token value to use for the next page
+          schema:
+            type: string
+          example: /continuationtokenexample
+        - name: limit
+          in: query
+          required: false
+          description: The limit for the number of items to return per page
+          schema:
+            type: integer
+          example: 20
       responses:
         "200":
           $ref: "#/components/responses/S3GetFilesResponse"
@@ -939,6 +959,110 @@ components:
             The external id that come from the clients' system. This field is optional.
             If set, it must be unique among all resources within a database instance.
           type: string
+    MetadataValue:
+      oneOf:
+        - $ref: "#/components/schemas/MetadataIntValue"
+        - $ref: "#/components/schemas/MetadataDoubleValue"
+        - $ref: "#/components/schemas/MetadataStringValue"
+        - $ref: "#/components/schemas/MetadataStructValue"
+        - $ref: "#/components/schemas/MetadataProtoValue"
+        - $ref: "#/components/schemas/MetadataBoolValue"
+      discriminator:
+        propertyName: metadataType
+        mapping:
+          MetadataBoolValue: "#/components/schemas/MetadataBoolValue"
+          MetadataDoubleValue: "#/components/schemas/MetadataDoubleValue"
+          MetadataIntValue: "#/components/schemas/MetadataIntValue"
+          MetadataProtoValue: "#/components/schemas/MetadataProtoValue"
+          MetadataStringValue: "#/components/schemas/MetadataStringValue"
+          MetadataStructValue: "#/components/schemas/MetadataStructValue"
+      description: A value in properties.
+    MetadataIntValue:
+      description: An integer (int64) property value.
+      type: object
+      required:
+        - metadataType
+        - int_value
+      properties:
+        int_value:
+          format: int64
+          type: string
+        metadataType:
+          type: string
+          example: MetadataIntValue
+          default: MetadataIntValue
+    MetadataDoubleValue:
+      description: A double property value.
+      type: object
+      required:
+        - metadataType
+        - double_value
+      properties:
+        double_value:
+          format: double
+          type: number
+        metadataType:
+          type: string
+          example: MetadataDoubleValue
+          default: MetadataDoubleValue
+    MetadataStringValue:
+      description: A string property value.
+      type: object
+      required:
+        - metadataType
+        - string_value
+      properties:
+        string_value:
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStringValue
+          default: MetadataStringValue
+    MetadataStructValue:
+      description: A struct property value.
+      type: object
+      required:
+        - metadataType
+        - struct_value
+      properties:
+        struct_value:
+          description: Base64 encoded bytes for struct value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStructValue
+          default: MetadataStructValue
+    MetadataProtoValue:
+      description: A proto property value.
+      type: object
+      required:
+        - metadataType
+        - type
+        - proto_value
+      properties:
+        type:
+          description: url describing proto value
+          type: string
+        proto_value:
+          description: Base64 encoded bytes for proto value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataProtoValue
+          default: MetadataProtoValue
+    MetadataBoolValue:
+      description: A bool property value.
+      type: object
+      required:
+        - metadataType
+        - bool_value
+      properties:
+        bool_value:
+          type: boolean
+        metadataType:
+          type: string
+          example: MetadataBoolValue
+          default: MetadataBoolValue
 
     Error:
       description: Error code and message.
@@ -1273,17 +1397,40 @@ components:
       description: Conflict - Role Binding with the same name already exists
 
     S3GetFilesResponse:
-      description: S3 response when retrieving files successfully
+      description: S3 response when retrieving files successfully. Aligns to the S3 ListObjectsV2 SDK return value
       content:
         application/json:
           schema:
             type: object
             properties:
-              metadata:
+              CommonPrefixes:
+                type: array
+              Contents:
+                type: array
+              ContinuationToken:
+                type: string
+              Delimiter:
+                type: string
+              EncodingType:
+                type: string
+              IsTruncated:
+                type: boolean
+              KeyCount:
+                type: integer
+              MaxKeys:
+                type: integer
+              Name:
+                type: string
+              NextContinuationToken:
+                type: string
+              Prefix:
+                type: string
+              RequestCharged:
+                type: string
+              StartAfter:
+                type: string
+              ResultMetadata:
                 type: object
-                description: Response metadata
-              data:
-                $ref: '#/components/schemas/PipelineRun'
 
   parameters:
     kubeflowUserId:
