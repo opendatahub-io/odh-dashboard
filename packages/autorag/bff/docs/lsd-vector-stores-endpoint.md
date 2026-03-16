@@ -171,7 +171,7 @@ curl -s -H "Authorization: Bearer $(oc whoami -t)" \
 3. Start the BFF without mock flags:
    ```bash
    cd packages/autorag/bff
-   make run INSECURE_SKIP_VERIFY=true
+   make run
    ```
 
 4. Call the endpoint:
