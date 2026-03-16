@@ -308,7 +308,7 @@ class ModelRegistry {
   }
 
   findDeployAction() {
-    return cy.findByRole('menuitem', { name: /Deploy/i });
+    return cy.findByRole('menuitem', { name: /Deploy/ });
   }
 
   findArchiveModelVersionAction() {
