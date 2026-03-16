@@ -65,6 +65,7 @@ function AutoragConfigure(): React.JSX.Element {
   const modelsInitialized = useRef(false);
 
   const form = useFormContext<ConfigureSchema>();
+  const { getValues, reset, setValue } = form;
 
   const [llamaStackSecretName, inputDataBucketName, testDataBucketName] = useWatch({
     control: form.control,
@@ -77,8 +78,8 @@ function AutoragConfigure(): React.JSX.Element {
     // Initialize available generation and embedding models into the form data
     if (allModelsData?.models && !modelsInitialized.current) {
       modelsInitialized.current = true;
-      form.reset({
-        ...form.getValues(),
+      reset({
+        ...getValues(),
         // eslint-disable-next-line camelcase
         generation_models: allModelsData.models
           .filter((model) => model.type === 'llm')
@@ -91,24 +92,24 @@ function AutoragConfigure(): React.JSX.Element {
           .toSorted((a, b) => a.localeCompare(b)),
       });
     }
-  }, [allModelsData, form]);
+  }, [allModelsData, getValues, reset]);
 
   // Ensure test bucket and input bucket are always the same
   useEffect(() => {
     if (inputDataBucketName !== testDataBucketName) {
-      form.setValue('test_data_bucket_name', inputDataBucketName);
-      form.setValue('test_data_key', '');
+      setValue('test_data_bucket_name', inputDataBucketName, { shouldValidate: true });
+      setValue('test_data_key', '', { shouldValidate: true });
     }
-  }, [form, inputDataBucketName, testDataBucketName]);
+  }, [inputDataBucketName, setValue, testDataBucketName]);
 
   // reset selected file values if bucket changes
   useEffect(() => {
-    form.setValue('input_data_key', '');
-  }, [form, inputDataBucketName]);
+    setValue('input_data_key', '', { shouldValidate: true });
+  }, [inputDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
-    form.reset({ ...form.getValues() });
+    reset({ ...getValues() });
     setIsExperimentSettingsOpen(true);
   };
 
@@ -149,7 +150,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   secret?.data ?? {},
                                   (value, key) => key.toLowerCase() === 'aws_s3_bucket',
                                 );
-                                form.setValue(
+                                setValue(
                                   'input_data_bucket_name',
                                   secret && bucketKey ? secret.data[bucketKey] : '',
                                   { shouldValidate: true },
@@ -186,8 +187,8 @@ function AutoragConfigure(): React.JSX.Element {
                       <Label
                         onClose={() => {
                           setSelectedSecret(undefined);
-                          form.setValue('input_data_secret_name', '');
-                          form.setValue('input_data_bucket_name', '');
+                          setValue('input_data_secret_name', '', { shouldValidate: true });
+                          setValue('input_data_bucket_name', '', { shouldValidate: true });
                         }}
                         closeBtnAriaLabel="Clear selected connection"
                       >
@@ -367,12 +368,14 @@ function AutoragConfigure(): React.JSX.Element {
                 ...secret,
                 invalid,
               });
-              form.setValue('input_data_secret_name', invalid ? '' : secret.name);
+              setValue('input_data_secret_name', invalid ? '' : secret.name, {
+                shouldValidate: true,
+              });
               const bucketKey = findKey(
                 secret.data,
                 (value, key) => key.toLowerCase() === 'aws_s3_bucket',
               );
-              form.setValue('input_data_bucket_name', bucketKey ? secret.data[bucketKey] : '', {
+              setValue('input_data_bucket_name', bucketKey ? secret.data[bucketKey] : '', {
                 shouldValidate: true,
               });
             }
@@ -386,7 +389,7 @@ function AutoragConfigure(): React.JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onPrimary={(files) => {
           // TODO: replace with actual logic once implemented
-          form.setValue('input_data_key', 'key');
+          setValue('input_data_key', 'key', { shouldValidate: true });
         }}
         onSelectSource={
           (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
@@ -403,7 +406,7 @@ function AutoragConfigure(): React.JSX.Element {
           setIsExperimentSettingsOpen(false);
         }}
         revertChanges={() => {
-          form.reset();
+          reset();
         }}
       />
     </>
