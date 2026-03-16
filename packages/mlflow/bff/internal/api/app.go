@@ -50,9 +50,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	rootCAs := initRootCAs(cfg.BundlePaths, logger)
 
-	k8sFactory, testEnv, err := initK8sFactory(cfg, logger)
-	if err != nil {
-		return nil, err
+	var k8sFactory k8s.KubernetesClientFactory
+	var testEnv *envtest.Environment
+	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
+		var err error
+		k8sFactory, testEnv, err = initK8sFactory(cfg, logger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mlflowFactory, mlflowState, err := initMLflowFactory(cfg, logger, rootCAs)

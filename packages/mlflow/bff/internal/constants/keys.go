@@ -13,13 +13,6 @@ const (
 	MLflowClientKey            contextKey = "MLflowClientKey"
 	WorkspaceQueryParameterKey contextKey = "workspace"
 
-	// For config.AuthMethodInternal
-	// Kubeflow authorization operates using custom authentication headers:
-	// Note: The functionality for `kubeflow-groups` is not fully operational at Kubeflow platform at this time
-	// but it's supported on MLflow BFF
-	KubeflowUserIDHeader       = "kubeflow-userid" // kubeflow-userid :contains the user's email address
-	KubeflowUserGroupsIDHeader = "kubeflow-groups" // kubeflow-groups : Holds a comma-separated list of user groups
-
 	TraceIDKey     contextKey = "TraceIDKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 )

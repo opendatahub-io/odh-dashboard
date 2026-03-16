@@ -59,9 +59,9 @@ The following environment variables are used to configure the deployment and dev
 ### `DEPLOYMENT_MODE`
 
 - **Description**: Specifies the deployment mode for the UI.
-- **Default Value**: `kubeflow` (BFF), `standalone` (local dev)
+- **Default Value**: `standalone`
 - **Note**: This variable is used to determine how the UI is built and deployed.
-- **Possible Values**: `standalone`, `federated`, `kubeflow`
+- **Possible Values**: `standalone`, `federated`
 - **Example**: `DEPLOYMENT_MODE=standalone`
 
 ### `STYLE_THEME`

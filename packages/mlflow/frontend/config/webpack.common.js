@@ -15,14 +15,8 @@ const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
 const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../../frontend/src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
-const {
-  _OUTPUT_ONLY: OUTPUT_ONLY,
-  FAVICON,
-  PRODUCT_NAME,
-  COVERAGE,
-  _DEPLOYMENT_MODE: DEPLOYMENT_MODE,
-} = process.env;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/mlflow/' : PUBLIC_PATH;
+const { _OUTPUT_ONLY: OUTPUT_ONLY, FAVICON, PRODUCT_NAME, COVERAGE } = process.env;
+const BASE_PATH = PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(

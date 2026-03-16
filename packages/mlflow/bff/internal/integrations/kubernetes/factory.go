@@ -14,14 +14,6 @@ import (
 
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
-
-	case config.AuthMethodInternal:
-		k8sFactory, err := NewStaticClientFactory(logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create static client factory: %w", err)
-		}
-		return k8sFactory, nil
-
 	case config.AuthMethodUser:
 		k8sFactory := NewTokenClientFactory(logger, cfg)
 		return k8sFactory, nil
@@ -37,59 +29,6 @@ type KubernetesClientFactory interface {
 	GetClient(ctx context.Context) (KubernetesClientInterface, error)
 	ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error)
 	ValidateRequestIdentity(identity *RequestIdentity) error
-}
-
-// StaticClientFactory uses the running backend's credentials to create a single
-// shared Kubernetes client (pod service account or local kubeconfig).
-type StaticClientFactory struct {
-	Logger *slog.Logger
-	Client KubernetesClientInterface
-}
-
-func NewStaticClientFactory(logger *slog.Logger) (KubernetesClientFactory, error) {
-	client, err := newInternalKubernetesClient(logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create service account client: %w", err)
-	}
-	return &StaticClientFactory{
-		Client: client,
-		Logger: logger,
-	}, nil
-}
-
-func (f *StaticClientFactory) GetClient(_ context.Context) (KubernetesClientInterface, error) {
-	return f.Client, nil
-}
-
-func (f *StaticClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
-
-	userID := httpHeader.Get(constants.KubeflowUserIDHeader)
-	if userID == "" {
-		return nil, errors.New("missing required kubeflow-userid header")
-	}
-
-	userGroupsHeader := httpHeader.Get(constants.KubeflowUserGroupsIDHeader)
-	var groups []string
-	if userGroupsHeader != "" {
-		for _, g := range strings.Split(userGroupsHeader, ",") {
-			groups = append(groups, strings.TrimSpace(g))
-		}
-	}
-	identity := &RequestIdentity{
-		UserID: userID,
-		Groups: groups,
-	}
-	return identity, nil
-}
-
-func (f *StaticClientFactory) ValidateRequestIdentity(identity *RequestIdentity) error {
-	if identity == nil {
-		return errors.New("missing identity")
-	}
-	if identity.UserID == "" {
-		return errors.New("user ID (kubeflow-userid) required for internal authentication")
-	}
-	return nil
 }
 
 // TokenClientFactory creates per-request Kubernetes clients using a

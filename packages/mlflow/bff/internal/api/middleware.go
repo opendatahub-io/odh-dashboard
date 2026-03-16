@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
 	"github.com/opendatahub-io/mlflow/bff/internal/constants"
 	helper "github.com/opendatahub-io/mlflow/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
@@ -40,6 +41,11 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
 			app.badRequestResponse(w, r, err)
@@ -61,7 +67,7 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		AllowedOrigins:     app.config.AllowedOrigins,
 		AllowCredentials:   true,
 		AllowedMethods:     []string{"GET", "PUT", "POST", "PATCH", "DELETE"},
-		AllowedHeaders:     []string{constants.KubeflowUserIDHeader, constants.KubeflowUserGroupsIDHeader},
+		AllowedHeaders:     []string{"Authorization", "X-Forwarded-Access-Token"},
 		Debug:              app.config.LogLevel == slog.LevelDebug,
 		OptionsPassthrough: false,
 	})
@@ -103,6 +109,11 @@ func (app *App) AttachWorkspace(next func(http.ResponseWriter, *http.Request, ht
 // and that it passes validation checks via the Kubernetes client factory.
 func (app *App) RequireValidIdentity(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
 		ctx := r.Context()
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 		if !ok || identity == nil {
@@ -125,19 +136,14 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
-		// Safe: RequireValidIdentity guarantees identity is present and valid.
-		identity := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
 		var token string
-		if identity.Token != "" {
-			token = identity.Token
-		} else {
-			authHeader := r.Header.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-			} else if rawToken := r.Header.Get("X-Forwarded-Access-Token"); rawToken != "" {
-				token = strings.TrimSpace(rawToken)
+		if app.config.AuthMethod != config.AuthMethodDisabled {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
 			}
+			token = identity.Token
 		}
 
 		workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)

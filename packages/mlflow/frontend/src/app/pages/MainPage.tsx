@@ -1,11 +1,23 @@
 // This page is a temporary placeholder used only to verify BFF connectivity during development.
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, List, ListItem, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  Flex,
+  FlexItem,
+  List,
+  ListItem,
+  MenuToggle,
+  MenuToggleElement,
+  Select,
+  SelectList,
+  SelectOption,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { useNamespaceSelector } from 'mod-arch-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { URL_PREFIX, BFF_API_VERSION, WORKSPACE_PARAM } from '~/app/utilities/const';
-
-const DEFAULT_WORKSPACE = 'default';
 
 interface Experiment {
   name: string;
@@ -15,18 +27,39 @@ const MainPage: React.FC = () => {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loadError, setLoadError] = useState<Error | undefined>();
   const [loaded, setLoaded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { namespaces, preferredNamespace, updatePreferredNamespace, namespacesLoaded } =
+    useNamespaceSelector();
 
-  const workspace = searchParams.get(WORKSPACE_PARAM) || DEFAULT_WORKSPACE;
+  const excludedNames = new Set(['default', 'system', 'openshift', 'opendatahub']);
+  const filteredNamespaces = namespaces.filter(
+    (ns) =>
+      !ns.name.startsWith('openshift-') &&
+      !ns.name.startsWith('kube-') &&
+      !excludedNames.has(ns.name),
+  );
+
+  const workspace =
+    searchParams.get(WORKSPACE_PARAM) ||
+    preferredNamespace?.name ||
+    filteredNamespaces[0]?.name ||
+    '';
 
   useEffect(() => {
-    if (searchParams.has(WORKSPACE_PARAM)) {
+    if (!workspace || searchParams.get(WORKSPACE_PARAM) === workspace) {
       return;
     }
-    setSearchParams({ [WORKSPACE_PARAM]: DEFAULT_WORKSPACE }, { replace: true });
-  }, [searchParams, setSearchParams]);
+    setSearchParams({ [WORKSPACE_PARAM]: workspace }, { replace: true });
+  }, [workspace, searchParams, setSearchParams]);
 
   useEffect(() => {
+    if (!workspace) {
+      return;
+    }
+    setLoaded(false);
+    setLoadError(undefined);
+
     fetch(
       `${URL_PREFIX}/api/${BFF_API_VERSION}/experiments?${WORKSPACE_PARAM}=${encodeURIComponent(workspace)}`,
     )
@@ -46,42 +79,87 @@ const MainPage: React.FC = () => {
       });
   }, [workspace]);
 
+  const onProjectSelect = (
+    _event: React.MouseEvent<Element> | undefined,
+    value: string | number | undefined,
+  ) => {
+    if (value) {
+      const selected = String(value);
+      const match = filteredNamespaces.find((n) => n.name === selected);
+      if (match) {
+        updatePreferredNamespace(match);
+      }
+      setSearchParams({ [WORKSPACE_PARAM]: selected }, { replace: true });
+    }
+    setIsOpen(false);
+  };
+
   return (
     <ApplicationsPage
       title="MLflow"
       description="MLflow Experiment Tracking"
       empty={false}
       loadError={loadError}
-      loaded={loaded}
+      loaded
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      {loaded && !loadError && (
-        <Stack hasGutter>
-          <StackItem>
-            <Alert
-              variant="success"
-              isInline
-              isPlain
-              title={
-                <>
-                  BFF connected — {experiments.length} experiment
-                  {experiments.length !== 1 ? 's' : ''} found in workspace <em>{workspace}</em>
-                </>
-              }
-            />
-          </StackItem>
-          {experiments.length > 0 && (
+      <Stack hasGutter>
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>Project</FlexItem>
+            <FlexItem>
+              <Select
+                isOpen={isOpen}
+                selected={workspace}
+                onSelect={onProjectSelect}
+                onOpenChange={(open) => setIsOpen(open)}
+                isScrollable
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsOpen(!isOpen)}
+                    isExpanded={isOpen}
+                    isDisabled={!namespacesLoaded || filteredNamespaces.length === 0}
+                    style={{ minWidth: '250px' }}
+                  >
+                    {workspace || 'Select project'}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {filteredNamespaces.map((ns) => (
+                    <SelectOption key={ns.name} value={ns.name} isSelected={ns.name === workspace}>
+                      {ns.name}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FlexItem>
+          </Flex>
+        </StackItem>
+        {loaded && !loadError && workspace && (
+          <>
             <StackItem>
-              <List>
-                {experiments.map((exp) => (
-                  <ListItem key={exp.name}>{exp.name}</ListItem>
-                ))}
-              </List>
+              <Alert
+                variant="success"
+                isInline
+                isPlain
+                title={`BFF connected — ${experiments.length} experiment${experiments.length !== 1 ? 's' : ''} found`}
+              />
             </StackItem>
-          )}
-        </Stack>
-      )}
+            {experiments.length > 0 && (
+              <StackItem>
+                <List>
+                  {experiments.map((exp) => (
+                    <ListItem key={exp.name}>{exp.name}</ListItem>
+                  ))}
+                </List>
+              </StackItem>
+            )}
+          </>
+        )}
+      </Stack>
     </ApplicationsPage>
   );
 };

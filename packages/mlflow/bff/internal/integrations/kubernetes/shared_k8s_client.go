@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// SharedClientLogic holds the common fields used by both InternalKubernetesClient
+// SharedClientLogic holds the common fields used by Kubernetes client implementations
 // and TokenKubernetesClient to avoid duplication.
 type SharedClientLogic struct {
 	Client kubernetes.Interface

@@ -53,6 +53,7 @@ make dev-mlflow-up    # http://127.0.0.1:5001
 
 Once running, you can access:
 - **MLflow BFF frontend**: http://localhost:9000
+- **BFF API directly** (auth disabled in mock mode): `curl http://localhost:4000/api/v1/experiments?workspace=default`
 - **MLflow UI** (native, if started via `make dev-mlflow-up`): http://127.0.0.1:5001
 
 ### Remote MLflow Mode
@@ -179,8 +180,7 @@ Related to RHOAIENG-5678
 - [Frontend Testing](frontend/docs/testing.md) - Testing guidelines
 
 **For Deployment:**
-- [Local Deployment Guide](docs/local-deployment-guide.md) - Kind cluster deployment
-- [Kubeflow Development Guide](docs/kubeflow-development-guide.md) - Kubeflow mode
+- [Kind Deployment Script](scripts/deploy_kind_cluster.sh) - Automated kind cluster deployment
 
 **For Standards:**
 - [ODH Best Practices](/docs/best-practices.md) - Coding standards

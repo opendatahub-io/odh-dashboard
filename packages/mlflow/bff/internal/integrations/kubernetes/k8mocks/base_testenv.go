@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	nsKubeflow = "kubeflow"
-	nsDora     = "dora-namespace"
-	nsGiulio   = "giulio-namespace"
-	nsBento    = "bento-namespace"
-	rbacGroup  = "rbac.authorization.k8s.io"
+	nsMLflow  = "mlflow"
+	nsDora    = "dora-namespace"
+	nsGiulio  = "giulio-namespace"
+	nsBento   = "bento-namespace"
+	rbacGroup = "rbac.authorization.k8s.io"
 )
 
 // DefaultTestUsers provides pre-configured test users for envtest scenarios.
@@ -94,7 +94,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 }
 
 func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface) error {
-	namespaces := []string{nsKubeflow, nsDora, nsGiulio, nsBento}
+	namespaces := []string{nsMLflow, nsDora, nsGiulio, nsBento}
 	for _, ns := range namespaces {
 		if err := createNamespace(ctx, mockK8sClient, ns); err != nil {
 			return err
@@ -102,11 +102,11 @@ func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface) error {
 	}
 
 	services := []testServiceDef{
-		{Name: "mlflow", Namespace: nsKubeflow, DisplayName: "MLflow", Description: "MLflow Description", ClusterIP: "10.0.0.10", ComponentLabel: "mlflow"},
-		{Name: "mlflow-one", Namespace: nsKubeflow, DisplayName: "MLflow One", Description: "MLflow One description", ClusterIP: "10.0.0.11", ComponentLabel: "mlflow"},
+		{Name: "mlflow", Namespace: nsMLflow, DisplayName: "MLflow", Description: "MLflow Description", ClusterIP: "10.0.0.10", ComponentLabel: "mlflow"},
+		{Name: "mlflow-one", Namespace: nsMLflow, DisplayName: "MLflow One", Description: "MLflow One description", ClusterIP: "10.0.0.11", ComponentLabel: "mlflow"},
 		{Name: "mlflow-dora", Namespace: nsDora, DisplayName: "MLflow Dora", Description: "MLflow Dora description", ClusterIP: "10.0.0.12", ComponentLabel: "mlflow"},
 		{Name: "mlflow-giulio", Namespace: nsGiulio, DisplayName: "MLflow Giulio", Description: "MLflow Giulio description", ClusterIP: "10.0.0.13", ComponentLabel: "mlflow"},
-		{Name: "non-mlflow", Namespace: nsKubeflow, DisplayName: "Not a MLflow", Description: "Not a MLflow description", ClusterIP: "10.0.0.14"},
+		{Name: "non-mlflow", Namespace: nsMLflow, DisplayName: "Not a MLflow", Description: "Not a MLflow description", ClusterIP: "10.0.0.14"},
 	}
 	for _, svc := range services {
 		if err := createService(ctx, mockK8sClient, svc); err != nil {

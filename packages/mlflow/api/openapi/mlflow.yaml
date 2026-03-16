@@ -90,8 +90,6 @@ paths:
     get:
       tags:
         - K8SOperation
-      parameters:
-        - $ref: "#/components/parameters/kubeflowUserId"
       responses:
         "200":
           $ref: "#/components/responses/ConfigResponse"
@@ -363,12 +361,6 @@ components:
       description: Conflict - Role Binding with the same name already exists
 
   parameters:
-    kubeflowUserId:
-      in: header
-      name: kubeflow-userid
-      schema:
-        type: string
-      required: true
     id:
       name: id
       description: The ID of resource.

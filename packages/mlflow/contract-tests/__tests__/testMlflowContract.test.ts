@@ -7,10 +7,6 @@ describe('MLflow API Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
   const apiClient = new ContractApiClient({
     baseUrl,
-    defaultHeaders: {
-      'kubeflow-userid': 'dev-user@example.com',
-      'kubeflow-groups': 'system:masters',
-    },
   });
 
   const apiSchema = loadOpenAPISchema('api/openapi/mlflow.yaml');

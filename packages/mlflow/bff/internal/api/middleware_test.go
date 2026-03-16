@@ -48,7 +48,7 @@ func (m *mockK8sFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) 
 
 func newTestAppWithFactory(factory mlflowpkg.MLflowClientFactory) *App {
 	return &App{
-		config:              config.EnvConfig{},
+		config:              config.EnvConfig{AuthMethod: config.AuthMethodUser},
 		logger:              slog.New(slog.NewTextHandler(os.Stderr, nil)),
 		mlflowClientFactory: factory,
 	}
@@ -223,14 +223,13 @@ func TestAttachMLflowClientWithIdentityToken(t *testing.T) {
 	mockFactory.AssertExpectations(t)
 }
 
-func TestAttachMLflowClientKubeflowModeAuthorizationHeader(t *testing.T) {
+func TestAttachMLflowClientDisabledAuthSkipsIdentity(t *testing.T) {
 	mockFactory := &mlflowpkg.MockFactory{}
 	mockClient := &mlflowpkg.MockClient{}
 	app := newTestAppWithFactory(mockFactory)
+	app.config.AuthMethod = config.AuthMethodDisabled
 
-	// Kubeflow mode: identity has no Token, so middleware reads Authorization header
-	// and strips "Bearer " prefix before passing raw token to factory
-	mockFactory.On("GetClient", mock.Anything, "direct-token", "my-ns").
+	mockFactory.On("GetClient", mock.Anything, "", "my-ns").
 		Return(mockClient, nil)
 
 	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -238,8 +237,6 @@ func TestAttachMLflowClientKubeflowModeAuthorizationHeader(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req.Header.Set("Authorization", "Bearer direct-token")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
 	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
@@ -249,79 +246,29 @@ func TestAttachMLflowClientKubeflowModeAuthorizationHeader(t *testing.T) {
 	mockFactory.AssertExpectations(t)
 }
 
-func TestAttachMLflowClientKubeflowModeXForwardedToken(t *testing.T) {
+func TestAttachMLflowClientMissingIdentityReturns500(t *testing.T) {
 	mockFactory := &mlflowpkg.MockFactory{}
-	mockClient := &mlflowpkg.MockClient{}
 	app := newTestAppWithFactory(mockFactory)
-
-	// Kubeflow mode with X-Forwarded-Access-Token fallback
-	mockFactory.On("GetClient", mock.Anything, "raw-token", "my-ns").
-		Return(mockClient, nil)
+	app.config.AuthMethod = config.AuthMethodUser
 
 	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req.Header.Set("X-Forwarded-Access-Token", "raw-token")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
 	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	handler(rr, req, nil)
 
-	assert.Equal(t, http.StatusOK, rr.Code)
-	mockFactory.AssertExpectations(t)
-}
-
-func TestAttachMLflowClientIdentityTokenTakesPrecedence(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	mockClient := &mlflowpkg.MockClient{}
-	app := newTestAppWithFactory(mockFactory)
-
-	// When identity has a Token, it takes precedence over headers
-	mockFactory.On("GetClient", mock.Anything, "identity-token", "my-ns").
-		Return(mockClient, nil)
-
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req.Header.Set("Authorization", "Bearer header-token")
-	req = withIdentity(req, &k8s.RequestIdentity{Token: "identity-token"})
-	req = withWorkspace(req, "my-ns")
-	rr := httptest.NewRecorder()
-
-	handler(rr, req, nil)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-	mockFactory.AssertExpectations(t)
-}
-
-func TestAttachMLflowClientMissingIdentityPanics(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	app := newTestAppWithFactory(mockFactory)
-
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	rr := httptest.NewRecorder()
-
-	// AttachMLflowClient assumes RequireValidIdentity ran first; calling without
-	// identity in context is a programming error that panics.
-	assert.Panics(t, func() {
-		handler(rr, req, nil)
-	})
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
 func TestAttachMLflowClientMLflowNotConfigured(t *testing.T) {
 	mockFactory := &mlflowpkg.MockFactory{}
 	app := newTestAppWithFactory(mockFactory)
 
-	mockFactory.On("GetClient", mock.Anything, "", "").
+	mockFactory.On("GetClient", mock.Anything, "some-token", "").
 		Return(nil, mlflowpkg.ErrMLflowNotConfigured)
 
 	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -329,7 +276,7 @@ func TestAttachMLflowClientMLflowNotConfigured(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
+	req = withIdentity(req, &k8s.RequestIdentity{Token: "some-token"})
 	rr := httptest.NewRecorder()
 
 	handler(rr, req, nil)

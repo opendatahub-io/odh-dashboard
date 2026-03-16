@@ -33,12 +33,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		return empty, nil, err
 	}
 
-	// Inject headers expected by middleware for internal auth
-	if identity != nil && identity.UserID != "" {
-		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
-	}
-
-	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories()}
+	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodDisabled}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories()}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)

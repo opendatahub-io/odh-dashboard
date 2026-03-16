@@ -20,9 +20,9 @@ else
     echo "Verifying cluster..."
     kubectl cluster-info
 
-    # Step 2: Create kubeflow namespace
-    echo "Creating kubeflow namespace..."
-    kubectl create namespace kubeflow
+    # Step 2: Create mlflow namespace
+    echo "Creating mlflow namespace..."
+    kubectl create namespace mlflow
 fi
 # Step 4: Deploy MLflow UI
 echo "Editing kustomize image..."
@@ -33,15 +33,15 @@ popd > /dev/null
 pushd ./manifests/overlays/standalone > /dev/null || { echo "Error: manifests/overlays/standalone directory not found"; exit 1; }
 
 echo "Deploying MLflow UI..."
-kustomize edit set namespace kubeflow
-kubectl apply -n kubeflow -k .
+kustomize edit set namespace mlflow
+kubectl apply -n mlflow -k .
 
 # Wait for deployment to be available
 echo "Waiting MLflow UI to be available..."
-kubectl wait --for=condition=available -n kubeflow deployment/mlflow-ui --timeout=1m
+kubectl wait --for=condition=available -n mlflow deployment/mlflow-ui --timeout=1m
 popd > /dev/null
 
 # Step 5: Port-forward the service
 echo "Port-forwarding MLflow UI..."
 echo -e "\033[32mDashboard available in http://localhost:8080\033[0m"
-kubectl port-forward svc/mlflow-ui-service -n kubeflow 8080:8080
+kubectl port-forward svc/mlflow-ui-service -n mlflow 8080:8080

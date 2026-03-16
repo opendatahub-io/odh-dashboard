@@ -32,7 +32,7 @@ dev-install-dependencies: ## Install dependencies for frontend
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s + MLflow)
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF connecting to a real MLflow instance (requires .env.local with MLFLOW_URL)
@@ -48,7 +48,7 @@ dev-mlflow-up: ## Start local MLflow tracking server for development
 
 .PHONY: dev-bff-mock-local
 dev-bff-mock-local: ## Run BFF with mocked K8s but real local MLflow
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend and BFF (all mocks) in development mode
@@ -64,20 +64,6 @@ dev-start-mock-local: ## Run frontend and BFF with mocked K8s + local MLflow (st
 dev-start: ## Run frontend and BFF connecting to a real MLflow instance
 	@trap 'exit 0' INT; \
 	AUTH_METHOD=user_token make -j 2 dev-bff dev-frontend
-
-########### Dev Kubeflow ############
-.PHONY: dev-start-kubeflow
-dev-start-kubeflow:
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff-kubeflow dev-frontend-kubeflow
-
-.PHONY: dev-frontend-kubeflow
-dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
-
-.PHONY: dev-bff-kubeflow
-dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 
 
 ########### Dev Federated ###########
 .PHONY: dev-start-federated
@@ -97,7 +83,7 @@ dev-bff-federated:
 
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
@@ -109,7 +95,7 @@ docker-build-federated:
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
@@ -139,14 +125,10 @@ docker-push-federated:
 kind-deployment:
 	./scripts/deploy_kind_cluster.sh
 
-.PHONY: kubeflow-deployment
-kubeflow-deployment:
-	./scripts/deploy_kubeflow_cluster.sh
-
 ############ Component Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
@@ -162,4 +144,4 @@ build: frontend-build bff-build
 ############ Run mocked ########
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
-	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled DEV_MODE=true
