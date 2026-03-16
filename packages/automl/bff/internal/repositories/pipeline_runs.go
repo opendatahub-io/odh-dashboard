@@ -16,6 +16,10 @@ import (
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
 
+// maxRunsPerPipeline caps the total number of runs fetched across all pages for a single pipeline
+// to prevent unbounded memory accumulation when paginating through large result sets.
+const maxRunsPerPipeline = 10000
+
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
 
@@ -225,6 +229,13 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, err
 	}
 
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipelineID is required")
+	}
+	if pipelineVersionID == "" {
+		return nil, fmt.Errorf("pipelineVersionID is required")
+	}
+
 	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
@@ -277,6 +288,10 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 
 		for _, kfRun := range kfResponse.Runs {
 			allRuns = append(allRuns, toPipelineRun(&kfRun, pipelineType))
+		}
+
+		if len(allRuns) >= maxRunsPerPipeline {
+			break
 		}
 
 		if kfResponse.NextPageToken == "" {

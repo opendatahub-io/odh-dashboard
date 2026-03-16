@@ -59,7 +59,11 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Get discovered pipeline from context
-	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok || pipelines == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return
+	}
 	discovered := pipelines[pipelineType]
 	if discovered == nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"))

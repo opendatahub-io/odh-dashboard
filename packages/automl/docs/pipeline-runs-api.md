@@ -345,7 +345,7 @@ POST /api/v1/pipeline-runs
 | `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
 | `train_data_file_key` | string | Yes | S3 object key for the training data file |
 | `label_column` | string | Yes | Name of the target column in the training data |
-| `task_type` | string | Yes | Type of classification task: `binary` or `multiclass` |
+| `task_type` | string | Yes | Type of task: `binary`, `multiclass`, or `regression` |
 | `top_n` | integer | No | Number of top models to consider |
 
 **Notes:**

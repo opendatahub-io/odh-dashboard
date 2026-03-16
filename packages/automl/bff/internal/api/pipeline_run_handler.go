@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -11,6 +12,9 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
+
+// maxRequestBodyBytes caps the request body size to 10 MiB to prevent unbounded memory use.
+const maxRequestBodyBytes = 10 << 20
 
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
@@ -58,7 +62,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	var req models.CreateAutoMLRunRequest
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))

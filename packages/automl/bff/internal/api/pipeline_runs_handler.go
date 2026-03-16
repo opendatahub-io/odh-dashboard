@@ -42,7 +42,13 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 
 	// Get all discovered pipelines from context
-	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("discovered pipelines missing from context"),
+			"internal error: discovered pipelines context key has wrong type - check middleware configuration")
+		return
+	}
 	if len(discoveredPipelines) == 0 {
 		app.serverErrorResponseWithMessage(w, r,
 			fmt.Errorf("no AutoML pipelines found in namespace"),
@@ -180,7 +186,11 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		app.notFoundResponse(w, r)
 		return
 	}
-	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return
+	}
 	matchedPipelineType := ""
 	for pipelineType, discovered := range discoveredPipelines {
 		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
