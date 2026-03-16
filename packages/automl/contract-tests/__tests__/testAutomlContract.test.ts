@@ -368,14 +368,18 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
-      it('should support filtering by pipeline version ID', async () => {
-        const result = await apiClient.get(
-          '/api/v1/pipeline-runs?namespace=test-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899',
-        );
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/PipelineRunsResponse/content/application/json/schema',
-          status: 200,
-        });
+      it('should include pipeline_type on every run in the list', async () => {
+        const result = await apiClient.get('/api/v1/pipeline-runs?namespace=test-namespace');
+        expect(result.success).toBe(true);
+        if (result.success) {
+          type RunsData = { runs?: Array<{ pipeline_type?: string }> };
+          const data = result.response.data as { data: RunsData };
+          const runs = data.data.runs ?? [];
+          expect(runs.length).toBeGreaterThan(0);
+          runs.forEach((run) => {
+            expect(['timeseries', 'tabular']).toContain(run.pipeline_type);
+          });
+        }
       });
 
       it('should support pagination parameters', async () => {
@@ -398,6 +402,18 @@ describe('AutoML API Contract Tests', () => {
           ref: '#/components/responses/PipelineRunResponse/content/application/json/schema',
           status: 200,
         });
+      });
+
+      it('should include pipeline_type on a single run response', async () => {
+        const result = await apiClient.get(
+          '/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          type RunData = { pipeline_type?: string };
+          const data = result.response.data as { data: RunData };
+          expect(['timeseries', 'tabular']).toContain(data.data.pipeline_type);
+        }
       });
 
       it('should return 404 for non-existent run ID', async () => {
@@ -425,6 +441,26 @@ describe('AutoML API Contract Tests', () => {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
           status: 200,
         });
+      });
+
+      it('should include pipeline_type on the created run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
+          {
+            display_name: 'pipeline-type-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          },
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          type RunData = { pipeline_type?: string };
+          const data = result.response.data as { data: RunData };
+          expect(data.data.pipeline_type).toBe('timeseries');
+        }
       });
 
       it('should create a pipeline run with all optional fields', async () => {

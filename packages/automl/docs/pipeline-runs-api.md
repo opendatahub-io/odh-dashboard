@@ -9,13 +9,15 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discov
 ## Endpoints
 
 ```http
-GET /api/v1/pipeline-runs
-GET /api/v1/pipeline-runs/{runId}
+GET  /api/v1/pipeline-runs
+GET  /api/v1/pipeline-runs/{runId}
+POST /api/v1/pipeline-runs
 ```
 
-The API provides two endpoints:
+The API provides three endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
+- **Create Run**: Submit a new AutoML pipeline run with training parameters
 
 ## Authentication
 
@@ -34,27 +36,17 @@ The endpoint enforces RBAC authorization checks to verify that the authenticated
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed. The first ready DSPipelineApplication in this namespace will be auto-discovered. |
-| `pipelineVersionId` | query string | No | ID of the pipeline version to filter runs by |
-| `pageSize` | query integer | No | Number of results per page (default: 20) |
-| `nextPageToken` | query string | No | Token for retrieving the next page of results |
+| `pageSize` | query integer | No | Number of results per page (default: 20, max: 100) |
+| `page` | query integer | No | Page number to retrieve, 1-indexed (default: 1) |
 
 ## Request Examples
 
 ### Basic Request
 
-Get all pipeline runs from the auto-discovered Pipeline Server in a namespace:
+Get all pipeline runs from all auto-discovered AutoML pipelines in a namespace:
 
 ```bash
 curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
-  -H "Authorization: Bearer <your-token>"
-```
-
-### Filter by Pipeline Version ID
-
-Get pipeline runs for a specific pipeline version:
-
-```bash
-curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -63,7 +55,7 @@ curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&p
 Get a specific page of results:
 
 ```bash
-curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&nextPageToken=eyJwYWdlIjoyfQ==" \
+curl -X GET "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&page=2" \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -170,6 +162,7 @@ The endpoint returns a JSON response with the following structure:
 | `error` | object | Optional error information if the run failed (contains `code` and `message` fields) |
 | `state_history` | array | History of state changes (see below) |
 | `run_details` | object | Detailed task execution information (see below) |
+| `pipeline_type` | string | Type of AutoML pipeline that produced this run (`timeseries` or `tabular`) |
 
 #### PipelineVersionReference Object
 
@@ -327,15 +320,83 @@ Returned when the specified run ID does not exist:
 }
 ```
 
-## Pipeline Filtering
+## Create Pipeline Run
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+### Endpoint
 
-### Filtering by Pipeline Version ID
+```http
+POST /api/v1/pipeline-runs
+```
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filter is provided, all runs from the auto-discovered Pipeline Server are returned.
+### Parameters
 
-**Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `pipelineType` | query string | No | AutoML pipeline type to use: `timeseries` (default) or `tabular` |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `display_name` | string | Yes | Human-readable name for the run |
+| `description` | string | No | Optional description of the run |
+| `train_data_secret_name` | string | Yes | Name of the K8s secret containing S3 credentials |
+| `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
+| `train_data_file_key` | string | Yes | S3 object key for the training data file |
+| `label_column` | string | Yes | Name of the target column in the training data |
+| `task_type` | string | Yes | Type of task: `binary`, `multiclass`, or `regression` |
+| `top_n` | integer | No | Number of top models to consider |
+
+**Notes:**
+- Unknown JSON fields are rejected (strict decoding)
+- `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
+- The `pipelineType` query parameter selects between the auto-discovered timeseries and tabular pipelines (defaults to `timeseries`)
+- If the requested pipeline type is not found in the namespace, the request returns a 500 error
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "my-automl-run",
+    "train_data_secret_name": "minio-secret",
+    "train_data_bucket_name": "automl-bucket",
+    "train_data_file_key": "data/train.csv",
+    "label_column": "target",
+    "task_type": "binary"
+  }'
+```
+
+### Response Format
+
+Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as GET responses).
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing required fields, invalid `task_type`, unknown JSON fields, invalid `pipelineType`, or missing `namespace` |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Pipeline Discovery
+
+The API automatically discovers all managed AutoML pipelines (time-series and tabular) in the namespace and returns a merged view of their runs:
+
+1. Discovers managed pipelines by name prefix (cached for 5 minutes), resolving a single `PipelineVersionID` per pipeline (the most recently created version)
+2. Fetches all runs filtered to those resolved `PipelineVersionID` values — runs from older pipeline versions are excluded
+3. Merges and sorts results by creation time descending
+4. Applies `page`/`pageSize` pagination to the merged list
+
+**Discovery Details:**
+- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "automl-timeseries")
+- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "automl-tabular")
+- Returns 500 if no managed AutoML pipelines are found in the namespace
 
 ## Error Responses
 
@@ -425,20 +486,23 @@ go run cmd/main.go --mock-pipeline-server-client
 
 ### Mock Data
 
-Mock mode returns 3 sample pipeline runs with various states and task details:
+Mock mode returns 4 sample pipeline runs covering both pipeline types:
 
-1. **Succeeded Run** (`run-abc123-def456`) - Completed optimization run with 3 tasks:
+1. **Succeeded Run** (`run-abc123-def456`) - Timeseries pipeline, completed run with 3 tasks:
    - Data Preprocessing (SUCCEEDED)
    - Model Training (SUCCEEDED)
    - Model Evaluation (SUCCEEDED)
 
-2. **Running Run** (`run-ghi789-jkl012`) - Currently executing run with 2 tasks:
+2. **Running Run** (`run-ghi789-jkl012`) - Timeseries pipeline, currently executing run with 2 tasks:
    - Data Loading (SUCCEEDED)
    - Feature Engineering (RUNNING)
 
-3. **Failed Run** (`run-mno345-pqr678`) - Failed baseline run with 2 tasks:
+3. **Failed Run** (`run-mno345-pqr678`) - Timeseries pipeline, failed baseline run with 2 tasks:
    - Data Validation (SUCCEEDED)
    - Data Fetch (FAILED)
+
+4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed classification run with 1 task:
+   - Data Preprocessing (SUCCEEDED)
 
 Each task includes detailed information such as:
 - Task execution timeline (create_time, start_time, end_time)
@@ -487,17 +551,13 @@ The AutoML frontend can use these endpoints to:
 ### Example Frontend Integration
 
 ```javascript
-// List pipeline runs with optional filtering
-async function fetchPipelineRuns(namespace, pipelineVersionId, token) {
+// List pipeline runs from all discovered AutoML pipelines
+async function fetchPipelineRuns(namespace, token, page = 1) {
   const params = new URLSearchParams({
     namespace,
-    pageSize: "20"
+    pageSize: "20",
+    page: String(page),
   });
-
-  // Add pipeline version ID filter if provided
-  if (pipelineVersionId) {
-    params.append("pipelineVersionId", pipelineVersionId);
-  }
 
   const response = await fetch(`/api/v1/pipeline-runs?${params}`, {
     headers: {
@@ -601,8 +661,8 @@ If you receive this error:
 ### No Runs Returned
 
 If the endpoint returns an empty array:
-1. Check that runs exist for the specified pipeline version ID (if filtering)
-2. Verify the pipeline version exists in the Pipeline Server
+1. Check that runs exist for the auto-discovered AutoML pipeline versions
+2. Verify that managed AutoML pipelines and their versions exist in the Pipeline Server
 3. Check the Pipeline Server API directly for runs
 
 ### Connection Errors

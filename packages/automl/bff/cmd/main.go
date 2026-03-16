@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/api"
@@ -28,6 +29,8 @@ func main() {
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
+	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "automl-timeseries"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: automl-timeseries)")
+	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "automl-tabular"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: automl-tabular)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -54,6 +57,10 @@ func main() {
 
 	flag.Parse()
 
+	// Normalise pipeline name prefixes (trimming is safe before logger exists)
+	cfg.AutoMLTimeSeriesPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTimeSeriesPipelineNamePrefix)
+	cfg.AutoMLTabularPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTabularPipelineNamePrefix)
+
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
 	if (cfg.MockK8Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
@@ -78,6 +85,28 @@ func main() {
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+
+	// Validate pipeline name prefixes
+	if cfg.AutoMLTimeSeriesPipelineNamePrefix == "" {
+		logger.Error("automl-timeseries-pipeline-name-prefix must not be empty")
+		os.Exit(1)
+	}
+	if cfg.AutoMLTabularPipelineNamePrefix == "" {
+		logger.Error("automl-tabular-pipeline-name-prefix must not be empty")
+		os.Exit(1)
+	}
+	// Prefixes are matched case-insensitively; reject identical or overlapping values
+	// (e.g. "automl" vs "automl-ts" would cause "automl-ts-pipeline" to match both)
+	tsLower := strings.ToLower(cfg.AutoMLTimeSeriesPipelineNamePrefix)
+	tabLower := strings.ToLower(cfg.AutoMLTabularPipelineNamePrefix)
+	if tsLower == tabLower ||
+		strings.HasPrefix(tsLower, tabLower) ||
+		strings.HasPrefix(tabLower, tsLower) {
+		logger.Error("automl-timeseries-pipeline-name-prefix and automl-tabular-pipeline-name-prefix must not be equal or overlap (case-insensitive)",
+			"timeseries", cfg.AutoMLTimeSeriesPipelineNamePrefix,
+			"tabular", cfg.AutoMLTabularPipelineNamePrefix)
 		os.Exit(1)
 	}
 
