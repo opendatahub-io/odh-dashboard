@@ -20,6 +20,7 @@ import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContex
 import FilterToolbar from '#~/components/FilterToolbar';
 import SimpleSelect from '#~/components/SimpleSelect';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import SubjectRolesTableSection from './SubjectRolesTableSection';
 import {
   FilterDataType,
@@ -121,9 +122,14 @@ const ProjectPermissions: React.FC = () => {
                     <Button
                       variant="primary"
                       data-testid="permissions-assign-roles-button"
-                      onClick={() =>
-                        navigate(`/projects/${currentProject.metadata.name}/permissions/assign`)
-                      }
+                      onClick={() => {
+                        /* eslint-disable camelcase */
+                        fireMiscTrackingEvent('RBAC Role Management Opened', {
+                          manage_permissions_button: 'toolbar',
+                        });
+                        /* eslint-enable camelcase */
+                        navigate(`/projects/${currentProject.metadata.name}/permissions/assign`);
+                      }}
                     >
                       Manage permissions
                     </Button>

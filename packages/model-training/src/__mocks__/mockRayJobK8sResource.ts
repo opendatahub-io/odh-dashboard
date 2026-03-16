@@ -12,6 +12,8 @@ type MockRayJobConfigType = {
   runtimeEnvYAML?: string;
   suspend?: boolean;
   submissionMode?: RayJobKind['spec']['submissionMode'];
+  rayVersion?: string;
+  shutdownAfterJobFinishes?: boolean;
   jobStatus?: string;
   jobDeploymentStatus?: string;
   rayClusterName?: string;
@@ -22,6 +24,7 @@ type MockRayJobConfigType = {
   reason?: string;
   succeeded?: number;
   failed?: number;
+  clusterSelector?: Record<string, string>;
   additionalLabels?: Record<string, string>;
   isDeleting?: boolean;
 };
@@ -35,9 +38,12 @@ export const mockRayJobK8sResource = ({
   runtimeEnvYAML = 'pip:\n  - torch\n  - transformers',
   suspend = false,
   submissionMode = 'K8sJobMode',
+  rayVersion = '2.9.0',
+  shutdownAfterJobFinishes = true,
   jobStatus,
   jobDeploymentStatus,
-  rayClusterName = `${name}-raycluster`,
+  clusterSelector,
+  rayClusterName = clusterSelector?.['ray.io/cluster'] ?? `${name}-raycluster`,
   dashboardURL = `http://${name}-head-svc.${namespace}:8265`,
   startTime,
   endTime,
@@ -108,11 +114,16 @@ export const mockRayJobK8sResource = ({
         runtimeEnvYAML,
         suspend,
         submissionMode,
-        shutdownAfterJobFinishes: true,
+        shutdownAfterJobFinishes,
         ttlSecondsAfterFinished: 300,
-        rayClusterSpec: {
-          headGroupSpec: { template: {} },
-        },
+        ...(clusterSelector
+          ? { clusterSelector }
+          : {
+              rayClusterSpec: {
+                rayVersion,
+                headGroupSpec: { template: {} },
+              },
+            }),
       },
       status: {
         jobStatus: resolvedJobStatus,

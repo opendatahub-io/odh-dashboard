@@ -1,0 +1,131 @@
+/* eslint-disable camelcase -- PipelineRun type uses snake_case */
+import '@testing-library/jest-dom';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type { PipelineRun } from '~/app/types';
+import AutomlRunsTableRow, { getStatusLabelProps } from '../AutomlRunsTableRow';
+
+jest.mock('mod-arch-shared', () => ({
+  relativeTime: () => '1 day ago',
+}));
+
+describe('getStatusLabelProps', () => {
+  it('should return success status for SUCCEEDED', () => {
+    expect(getStatusLabelProps('SUCCEEDED')).toEqual({ status: 'success' });
+    expect(getStatusLabelProps('succeeded')).toEqual({ status: 'success' });
+  });
+
+  it('should return success status for COMPLETE', () => {
+    expect(getStatusLabelProps('COMPLETE')).toEqual({ status: 'success' });
+    expect(getStatusLabelProps('complete')).toEqual({ status: 'success' });
+  });
+
+  it('should return success status when state includes succeeded', () => {
+    expect(getStatusLabelProps('CUSTOM_SUCCEEDED')).toEqual({ status: 'success' });
+  });
+
+  it('should return danger status for FAILED', () => {
+    expect(getStatusLabelProps('FAILED')).toEqual({ status: 'danger' });
+    expect(getStatusLabelProps('failed')).toEqual({ status: 'danger' });
+  });
+
+  it('should return danger status when state includes failed', () => {
+    expect(getStatusLabelProps('CUSTOM_FAILED')).toEqual({ status: 'danger' });
+  });
+
+  it('should return info status for RUNNING', () => {
+    expect(getStatusLabelProps('RUNNING')).toEqual({ status: 'info' });
+    expect(getStatusLabelProps('running')).toEqual({ status: 'info' });
+  });
+
+  it('should return info status when state includes running', () => {
+    expect(getStatusLabelProps('STILL_RUNNING')).toEqual({ status: 'info' });
+  });
+
+  it('should return warning status for PENDING', () => {
+    expect(getStatusLabelProps('PENDING')).toEqual({ status: 'warning' });
+    expect(getStatusLabelProps('pending')).toEqual({ status: 'warning' });
+  });
+
+  it('should return warning status for INCOMPLETE', () => {
+    expect(getStatusLabelProps('INCOMPLETE')).toEqual({ status: 'warning' });
+    expect(getStatusLabelProps('incomplete')).toEqual({ status: 'warning' });
+  });
+
+  it('should return warning status when state includes pending', () => {
+    expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ status: 'warning' });
+  });
+
+  it('should return warning status for PAUSED', () => {
+    expect(getStatusLabelProps('PAUSED')).toEqual({ status: 'warning' });
+  });
+
+  it('should return grey color for SKIPPED', () => {
+    expect(getStatusLabelProps('SKIPPED')).toEqual({ color: 'grey' });
+  });
+
+  it('should return grey color for CANCELLED', () => {
+    expect(getStatusLabelProps('CANCELLED')).toEqual({ color: 'grey' });
+  });
+
+  it('should return grey color for unknown state', () => {
+    expect(getStatusLabelProps('UNKNOWN')).toEqual({ color: 'grey' });
+  });
+
+  it('should return grey color for empty or undefined state', () => {
+    expect(getStatusLabelProps('')).toEqual({ color: 'grey' });
+    expect(getStatusLabelProps(undefined)).toEqual({ color: 'grey' });
+  });
+});
+
+describe('AutomlRunsTableRow', () => {
+  const mockRun: PipelineRun = {
+    run_id: 'r1',
+    display_name: 'Run One',
+    description: 'First run',
+    state: 'SUCCEEDED',
+    created_at: '2025-01-17',
+    pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
+  };
+
+  it('should render run name', () => {
+    render(<AutomlRunsTableRow run={mockRun} />);
+    expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
+  });
+
+  it('should render description', () => {
+    render(<AutomlRunsTableRow run={mockRun} />);
+    expect(screen.getByText('First run')).toBeInTheDocument();
+  });
+
+  it('should render em dash for missing description', () => {
+    render(<AutomlRunsTableRow run={{ ...mockRun, description: undefined }} />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('should render state with Label', () => {
+    render(<AutomlRunsTableRow run={mockRun} />);
+    expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
+  });
+
+  it('should render different states correctly', () => {
+    const { rerender } = render(<AutomlRunsTableRow run={mockRun} />);
+    expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
+
+    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }} />);
+    expect(screen.getByText('FAILED')).toBeInTheDocument();
+
+    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }} />);
+    expect(screen.getByText('RUNNING')).toBeInTheDocument();
+  });
+
+  it('should render em dash for invalid created_at', () => {
+    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: 'invalid-date' }} />);
+    expect(screen.getAllByText('—')).toHaveLength(1);
+  });
+
+  it('should render em dash for empty created_at', () => {
+    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} />);
+    expect(screen.getAllByText('—')).toHaveLength(1);
+  });
+});

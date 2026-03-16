@@ -2,10 +2,12 @@ package psmocks
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,34 +15,221 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
+// MockPipelineIDs holds deterministic, namespace-scoped UUIDs for mock pipeline fixtures.
+// Because IDs are derived from the namespace, each tenant gets a distinct set — so a test
+// using the wrong namespace will produce mismatching IDs and fail authorization checks.
+type MockPipelineIDs struct {
+	PipelineID      string // UUID for the AutoML pipeline
+	LatestVersionID string // UUID for the most-recently-created pipeline version
+	OldVersionID    string // UUID for the older pipeline version
+}
+
+// DeriveMockIDs returns a consistent MockPipelineIDs set for the given namespace by
+// applying SHA-256 to distinct seeds.  Two different namespaces always produce different IDs.
+func DeriveMockIDs(namespace string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("pipeline:" + namespace),
+		LatestVersionID: hashUUID("version-latest:" + namespace),
+		OldVersionID:    hashUUID("version-old:" + namespace),
+	}
+}
+
+// DeriveTabularMockIDs returns mock IDs for the tabular pipeline fixture used in namespace
+// mode (mock:// URL).  The seeds match those used internally by getBaseMockRuns and
+// ListPipelineVersions so tests can inject the correct PipelineVersionID for tabular runs.
+func DeriveTabularMockIDs(namespace string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("cls-pipeline:" + namespace),
+		LatestVersionID: hashUUID("cls-version-latest:" + namespace),
+		OldVersionID:    hashUUID("cls-version-old:" + namespace),
+	}
+}
+
+// DeriveMockIDsFromName returns a consistent MockPipelineIDs set for the given pipeline name
+// and namespace.  Used when multiple named pipelines exist in the same namespace.
+func DeriveMockIDsFromName(namespace, name string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("pipeline:" + name + ":" + namespace),
+		LatestVersionID: hashUUID("version-latest:" + name + ":" + namespace),
+		OldVersionID:    hashUUID("version-old:" + name + ":" + namespace),
+	}
+}
+
+// hashUUID converts the SHA-256 digest of input into a UUID-formatted string.
+func hashUUID(input string) string {
+	h := sha256.Sum256([]byte(input))
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		h[0:4], h[4:6], h[6:8], h[8:10], h[10:16])
+}
+
+// defaultPipelineNamePrefix is the prefix used when PipelineNamePrefix is not set.
+const defaultPipelineNamePrefix = "automl"
+
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
+	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
+	Namespace string
+	// PipelineNamePrefix is the prefix used to construct the AutoML pipeline's DisplayName in
+	// ListPipelines (e.g. "automl" → "automl-pipeline").  Defaults to "automl" when empty,
+	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
+	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// Ignored when PipelineNames is set.
+	PipelineNamePrefix string
+	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
+	// pipeline entry per name in this slice (with IDs derived from name+namespace).
+	// ListPipelineVersions returns versions for any of these pipelines' derived IDs.
+	PipelineNames []string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
 }
 
-// NewMockPipelineServerClient creates a new mock pipeline server client.
-func NewMockPipelineServerClient() *MockPipelineServerClient {
-	return &MockPipelineServerClient{}
+// pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
+// falling back to the default prefix when PipelineNamePrefix is not set.
+func (m *MockPipelineServerClient) pipelineDisplayName() string {
+	prefix := m.PipelineNamePrefix
+	if prefix == "" {
+		prefix = defaultPipelineNamePrefix
+	}
+	return prefix + "-pipeline"
 }
 
-// ListRuns returns mock pipeline run data with support for filtering and pagination
+// NewMockPipelineServerClient creates a new mock pipeline server client.
+// baseURL can be "mock://namespace" to get namespace-specific mock data for UX testing.
+func NewMockPipelineServerClient(baseURL string) *MockPipelineServerClient {
+	namespace := ""
+	if strings.HasPrefix(baseURL, "mock://") {
+		namespace = strings.TrimPrefix(baseURL, "mock://")
+	}
+	return &MockPipelineServerClient{Namespace: namespace}
+}
+
+// getMockRunCount returns the number of runs per namespace for UX testing:
+// - default: 5 runs
+// - bella: 0 runs (empty state)
+// - bento: 30 runs (pagination testing, >25)
+// - test-namespace: 4 runs (3 timeseries + 1 tabular, for unit tests covering multi-pipeline merge)
+// - other: 5 runs (fallback)
+func getMockRunCount(namespace string) int {
+	switch strings.ToLower(namespace) {
+	case "default":
+		return 5
+	case "bella-namespace":
+		return 0
+	case "bento-namespace":
+		return 30
+	case "test-namespace":
+		return 4
+	default:
+		return 5
+	}
+}
+
+// ListRuns returns mock pipeline run data with support for filtering and pagination.
+// Returns namespace-specific counts for UX testing: default=5, bella=0, bento=30.
 func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelineserver.ListRunsParams) (*models.KFPipelineRunResponse, error) {
 	// Record params for test assertions
 	m.LastListRunsParams = params
 
-	// Build full list of mock runs
-	allRuns := []models.KFPipelineRun{
+	// Get runs for this namespace (count varies for UX testing)
+	allRuns := getMockRunsForNamespace(m.Namespace)
+
+	// Apply filtering if filter parameter is provided
+	filteredRuns := allRuns
+	if params != nil && params.Filter != "" {
+		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
+		if pipelineVersionID != "" {
+			var matched []models.KFPipelineRun
+			for _, run := range allRuns {
+				if run.PipelineVersionReference != nil &&
+					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
+					matched = append(matched, run)
+				}
+			}
+			filteredRuns = matched
+		}
+	}
+
+	// Apply pagination
+	pageSize := int32(20) // default page size
+	if params != nil && params.PageSize > 0 {
+		pageSize = params.PageSize
+	}
+
+	// Parse page token to get offset
+	offset := int32(0)
+	if params != nil && params.PageToken != "" {
+		if parsedOffset, err := strconv.ParseInt(params.PageToken, 10, 32); err == nil {
+			offset = int32(parsedOffset)
+		}
+	}
+
+	// Calculate slice bounds
+	start := offset
+	end := offset + pageSize
+	totalSize := int32(len(filteredRuns))
+
+	// Ensure bounds are within range
+	if start > totalSize {
+		start = totalSize
+	}
+	if end > totalSize {
+		end = totalSize
+	}
+
+	// Get the page slice
+	pagedRuns := filteredRuns[start:end]
+
+	// Calculate next page token
+	nextPageToken := ""
+	if end < totalSize {
+		nextPageToken = fmt.Sprintf("%d", end)
+	}
+
+	return &models.KFPipelineRunResponse{
+		Runs:          pagedRuns,
+		TotalSize:     totalSize,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
+// getMockRunsForNamespace returns mock runs for the given namespace.
+// Uses getMockRunCount for UX testing: default=5, bella=0, bento=30.
+func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
+	count := getMockRunCount(namespace)
+	if count == 0 {
+		return nil
+	}
+	baseRuns := getBaseMockRuns(namespace)
+	if count <= len(baseRuns) {
+		return baseRuns[:count]
+	}
+	// Expand: cycle through base runs with unique IDs
+	result := make([]models.KFPipelineRun, 0, count)
+	for i := 0; i < count; i++ {
+		template := &baseRuns[i%len(baseRuns)]
+		run := cloneRunWithVariant(template, i)
+		result = append(result, run)
+	}
+	return result
+}
+
+// getBaseMockRuns returns the base run templates with IDs derived from the namespace
+// so that runs from different tenants carry distinct pipeline references.
+// Includes both timeseries and tabular pipeline runs to enable ownership validation tests.
+func getBaseMockRuns(namespace string) []models.KFPipelineRun {
+	ids := DeriveMockIDs(namespace)
+	tabIDs := DeriveTabularMockIDs(namespace)
+	return []models.KFPipelineRun{
 		{
 			RunID:        "run-abc123-def456",
 			DisplayName:  "AutoML Optimization Run 1",
 			Description:  "Test optimization run",
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "SUCCEEDED",
 			StorageState:   "AVAILABLE",
@@ -105,8 +294,8 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 			Description:  "Another test run",
 			ExperimentID: "exp-456",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "version-v2",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "RUNNING",
 			StorageState:   "AVAILABLE",
@@ -153,8 +342,8 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 			Description:  "Baseline comparison run",
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "FAILED",
 			StorageState:   "AVAILABLE",
@@ -213,65 +402,63 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 				},
 			},
 		},
+		// Tabular pipeline run — exercises ownership validation for the second pipeline type
+		{
+			RunID:        "run-tabular-001",
+			DisplayName:  "AutoML Tabular Run 1",
+			Description:  "Tabular classification run",
+			ExperimentID: "exp-tabular-1",
+			PipelineVersionReference: &models.PipelineVersionReference{
+				PipelineID:        tabIDs.PipelineID,
+				PipelineVersionID: tabIDs.LatestVersionID,
+			},
+			State:          "SUCCEEDED",
+			StorageState:   "AVAILABLE",
+			ServiceAccount: "pipeline-runner-dspa",
+			CreatedAt:      "2026-02-25T09:00:00Z",
+			ScheduledAt:    "2026-02-25T09:00:00Z",
+			FinishedAt:     "2026-02-25T09:45:00Z",
+			StateHistory: []models.RuntimeStatus{
+				{UpdateTime: "2026-02-25T09:00:00Z", State: "RUNNING"},
+				{UpdateTime: "2026-02-25T09:45:00Z", State: "SUCCEEDED"},
+			},
+			RunDetails: &models.RunDetails{
+				TaskDetails: []models.TaskDetail{
+					{
+						RunID:       "run-tabular-001",
+						TaskID:      "task-tabular-preprocessing",
+						DisplayName: "Data Preprocessing",
+						CreateTime:  "2026-02-25T09:00:00Z",
+						StartTime:   "2026-02-25T09:00:05Z",
+						EndTime:     "2026-02-25T09:45:00Z",
+						State:       "SUCCEEDED",
+						ChildTasks:  []models.ChildTask{{PodName: "tabular-preprocessing-pod"}},
+					},
+				},
+			},
+		},
 	}
+}
 
-	// Apply filtering if filter parameter is provided
-	filteredRuns := allRuns
-	if params != nil && params.Filter != "" {
-		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
-		if pipelineVersionID != "" {
-			var matched []models.KFPipelineRun
-			for _, run := range allRuns {
-				if run.PipelineVersionReference != nil &&
-					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
-					matched = append(matched, run)
-				}
-			}
-			filteredRuns = matched
+// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index.
+// TaskDetails are deep-copied to prevent mutations from affecting the original template.
+func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPipelineRun {
+	run := *template
+	suffix := fmt.Sprintf("-%d", index)
+	run.RunID = template.RunID + suffix
+	run.DisplayName = template.DisplayName + " " + suffix
+	if run.RunDetails != nil {
+		details := *run.RunDetails
+		// Deep copy the TaskDetails slice so mutations don't affect the original template
+		tasks := make([]models.TaskDetail, len(details.TaskDetails))
+		copy(tasks, details.TaskDetails)
+		for i := range tasks {
+			tasks[i].RunID = run.RunID
 		}
+		details.TaskDetails = tasks
+		run.RunDetails = &details
 	}
-
-	// Apply pagination
-	pageSize := int32(20) // default page size
-	if params != nil && params.PageSize > 0 {
-		pageSize = params.PageSize
-	}
-
-	// Parse page token to get offset
-	offset := int32(0)
-	if params != nil && params.PageToken != "" {
-		if parsedOffset, err := strconv.ParseInt(params.PageToken, 10, 32); err == nil {
-			offset = int32(parsedOffset)
-		}
-	}
-
-	// Calculate slice bounds
-	start := offset
-	end := offset + pageSize
-	totalSize := int32(len(filteredRuns))
-
-	// Ensure bounds are within range
-	if start > totalSize {
-		start = totalSize
-	}
-	if end > totalSize {
-		end = totalSize
-	}
-
-	// Get the page slice
-	pagedRuns := filteredRuns[start:end]
-
-	// Calculate next page token
-	nextPageToken := ""
-	if end < totalSize {
-		nextPageToken = fmt.Sprintf("%d", end)
-	}
-
-	return &models.KFPipelineRunResponse{
-		Runs:          pagedRuns,
-		TotalSize:     totalSize,
-		NextPageToken: nextPageToken,
-	}, nil
+	return run
 }
 
 // extractPipelineVersionIDFromFilter parses the filter JSON and extracts pipeline_version_id if present
@@ -320,15 +507,16 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID
+	// Return mock data based on the run ID, using namespace-derived IDs
+	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
 		DisplayName:  "AutoML Optimization Run",
 		Description:  "Test optimization run",
 		ExperimentID: "exp-123",
 		PipelineVersionReference: &models.PipelineVersionReference{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
 		},
 		State:          "SUCCEEDED",
 		StorageState:   "AVAILABLE",
@@ -378,6 +566,174 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	return mockRun, nil
 }
 
+// ListPipelines returns mock pipeline data with namespace-derived IDs.
+// The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
+// When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.
+// In namespace mode (Namespace != "") with no PipelineNames override, returns both AutoML pipeline
+// types so the discovery middleware can find them using the default prefixes.
+func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		pipelines := make([]models.KFPipeline, 0, len(m.PipelineNames))
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			pipelines = append(pipelines, models.KFPipeline{
+				PipelineID:  ids.PipelineID,
+				DisplayName: name,
+				Description: "Managed AutoML pipeline",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			})
+		}
+		return &models.KFPipelinesResponse{
+			Pipelines:     pipelines,
+			TotalSize:     int32(len(pipelines)),
+			NextPageToken: "",
+		}, nil
+	}
+
+	ids := DeriveMockIDs(m.Namespace)
+
+	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
+	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
+	if m.Namespace != "" {
+		tabIDs := DeriveTabularMockIDs(m.Namespace)
+		return &models.KFPipelinesResponse{
+			Pipelines: []models.KFPipeline{
+				{
+					PipelineID:  ids.PipelineID,
+					DisplayName: "automl-timeseries-pipeline",
+					Description: "Managed AutoML time-series pipeline",
+					CreatedAt:   "2026-02-20T10:00:00Z",
+					Namespace:   m.Namespace,
+				},
+				{
+					PipelineID:  tabIDs.PipelineID,
+					DisplayName: "automl-tabular-pipeline",
+					Description: "Managed AutoML tabular pipeline",
+					CreatedAt:   "2026-02-20T10:00:00Z",
+					Namespace:   m.Namespace,
+				},
+			},
+			TotalSize:     2,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Non-namespace mode (e.g. "http://mock-ps"): return single pipeline with default prefix
+	// for backward compatibility with repository unit tests.
+	return &models.KFPipelinesResponse{
+		Pipelines: []models.KFPipeline{
+			{
+				PipelineID:  ids.PipelineID,
+				DisplayName: m.pipelineDisplayName(),
+				Description: "Managed AutoML pipeline for optimization",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+			{
+				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),
+				DisplayName: "another-pipeline",
+				Description: "Some other pipeline",
+				CreatedAt:   "2026-02-21T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+// ListPipelineVersions returns mock pipeline version data sorted by created_at desc (newest first),
+// matching the sort order requested by the real pipeline server client.
+// When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
+func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			if pipelineID == ids.PipelineID {
+				return &models.KFPipelineVersionsResponse{
+					PipelineVersions: []models.KFPipelineVersion{
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.LatestVersionID,
+							DisplayName:       "v1.0.0",
+							Description:       "Pipeline version",
+							CreatedAt:         "2026-02-23T10:00:00Z",
+						},
+					},
+					TotalSize:     1,
+					NextPageToken: "",
+				}, nil
+			}
+		}
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{},
+			TotalSize:        0,
+			NextPageToken:    "",
+		}, nil
+	}
+
+	ids := DeriveMockIDs(m.Namespace)
+
+	// In namespace mode, also accept the tabular pipeline ID (distinct from timeseries)
+	if m.Namespace != "" {
+		tabIDs := DeriveTabularMockIDs(m.Namespace)
+		if pipelineID == tabIDs.PipelineID {
+			return &models.KFPipelineVersionsResponse{
+				PipelineVersions: []models.KFPipelineVersion{
+					{
+						PipelineID:        tabIDs.PipelineID,
+						PipelineVersionID: tabIDs.LatestVersionID,
+						DisplayName:       "v1.0.0",
+						Description:       "Managed AutoML tabular pipeline version",
+						CreatedAt:         "2026-02-23T10:00:00Z",
+					},
+					{
+						PipelineID:        tabIDs.PipelineID,
+						PipelineVersionID: tabIDs.OldVersionID,
+						DisplayName:       "v0.x.x",
+						Description:       "Initial AutoML tabular pipeline version",
+						CreatedAt:         "2026-02-20T10:00:00Z",
+					},
+				},
+				TotalSize:     2,
+				NextPageToken: "",
+			}, nil
+		}
+	}
+
+	// Only return versions for this namespace's AutoML timeseries pipeline
+	if pipelineID == ids.PipelineID {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        ids.PipelineID,
+					PipelineVersionID: ids.LatestVersionID,
+					DisplayName:       "v2.0.0",
+					Description:       "Updated AutoML pipeline with improved metrics",
+					CreatedAt:         "2026-02-23T10:00:00Z",
+				},
+				{
+					PipelineID:        ids.PipelineID,
+					PipelineVersionID: ids.OldVersionID,
+					DisplayName:       "v1.0.0",
+					Description:       "Initial AutoML pipeline version",
+					CreatedAt:         "2026-02-20T10:00:00Z",
+				},
+			},
+			TotalSize:     2,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Return empty for pipelines not belonging to this namespace
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{},
+		TotalSize:        0,
+		NextPageToken:    "",
+	}, nil
+}
+
 // CreateRun returns a mock pipeline run response matching real KFP v2beta1 output
 func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	now := time.Now().UTC()
@@ -399,10 +755,7 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 		CreatedAt:      now.Format(time.RFC3339),
 		ScheduledAt:    now.Format(time.RFC3339),
 		StateHistory: []models.RuntimeStatus{
-			{
-				UpdateTime: now.Format(time.RFC3339),
-				State:      "PENDING",
-			},
+			{UpdateTime: now.Format(time.RFC3339), State: "PENDING"},
 		},
 		RunDetails: &models.RunDetails{
 			TaskDetails: []models.TaskDetail{
@@ -434,6 +787,7 @@ func NewMockClientFactory() *MockClientFactory {
 }
 
 // CreateClient creates a mock pipeline server client.
+// When baseURL is "mock://namespace", returns namespace-specific mock data for UX testing.
 func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) pipelineserver.PipelineServerClientInterface {
-	return NewMockPipelineServerClient()
+	return NewMockPipelineServerClient(baseURL)
 }

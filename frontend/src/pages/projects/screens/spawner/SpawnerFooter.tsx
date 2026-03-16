@@ -263,13 +263,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           <Alert
             isInline
             variant="danger"
-            title="Error creating workbench"
+            title={editNotebook ? 'Error updating workbench' : 'Error creating workbench'}
+            data-testid="spawner-error-alert"
             actionLinks={
               // If this is a 409 conflict error on the notebook (not PVC or Secret or ConfigMap)
               error.statusObject.code === 409 &&
               error.statusObject.details?.kind === 'notebooks' ? (
                 <>
                   <AlertActionLink
+                    data-testid="force-update-button"
                     onClick={() =>
                       updateNotebookPromise(false)
                         .then((notebook) => {

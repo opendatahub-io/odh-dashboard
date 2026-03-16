@@ -9,6 +9,9 @@ const (
 
 	MinRagPatterns = 4
 	MaxRagPatterns = 20
+
+	// PipelineTypeAutoRAG identifies the AutoRAG pipeline type used during discovery and in run responses.
+	PipelineTypeAutoRAG = "autorag"
 )
 
 var ValidOptimizationMetrics = map[string]bool{
