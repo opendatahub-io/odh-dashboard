@@ -683,9 +683,93 @@ class TrainingJobDetailsTab {
   }
 }
 
+class RayJobDetailsDrawer {
+  find() {
+    return cy.findByTestId('ray-job-details-drawer');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('ray-job-details-drawer').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByTestId('ray-job-drawer-title');
+  }
+
+  findCloseButton() {
+    return this.find().findByLabelText('Close drawer panel');
+  }
+
+  findKebabMenu() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTab(tabName: string) {
+    return this.find().findByRole('tab', { name: tabName });
+  }
+
+  selectTab(tabName: string) {
+    this.findTab(tabName).click();
+    return this;
+  }
+
+  close() {
+    this.findCloseButton().click();
+  }
+
+  clickKebabMenu() {
+    this.findKebabMenu().click();
+  }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
+}
+
+class RayJobDetailsTab {
+  findJobSummarySection() {
+    return cy.findByTestId('job-summary-section');
+  }
+
+  findRayVersionValue() {
+    return cy.findByTestId('ray-version-value');
+  }
+
+  findExecutionsSection() {
+    return cy.findByTestId('executions-section');
+  }
+
+  findEntrypointCommandValue() {
+    return cy.findByTestId('entrypoint-command-value');
+  }
+
+  findSubmissionModeValue() {
+    return cy.findByTestId('submission-mode-value');
+  }
+
+  findManagementSection() {
+    return cy.findByTestId('management-section');
+  }
+
+  findShutdownPolicyValue() {
+    return cy.findByTestId('shutdown-policy-value');
+  }
+
+  findClusterNameValue() {
+    return cy.findByTestId('cluster-name-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
+export const rayJobDetailsDrawer = new RayJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
@@ -693,3 +777,4 @@ export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
+export const rayJobDetailsTab = new RayJobDetailsTab();

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
@@ -122,6 +123,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
+		RuntimeConfig:            kfRun.RuntimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -132,6 +134,101 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
 	}
+}
+
+// ValidateCreateAutoMLRunRequest checks that all required fields are present
+// and that optional enum fields have valid values.
+func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
+	var missing []string
+	if req.DisplayName == "" {
+		missing = append(missing, "display_name")
+	}
+	if req.TrainDataSecretName == "" {
+		missing = append(missing, "train_data_secret_name")
+	}
+	if req.TrainDataBucketName == "" {
+		missing = append(missing, "train_data_bucket_name")
+	}
+	if req.TrainDataFileKey == "" {
+		missing = append(missing, "train_data_file_key")
+	}
+	if req.LabelColumn == "" {
+		missing = append(missing, "label_column")
+	}
+	if req.TaskType == "" {
+		missing = append(missing, "task_type")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %v", missing)
+	}
+
+	if !constants.ValidTaskTypes[req.TaskType] {
+		return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", req.TaskType)
+	}
+
+	if req.TopN != nil && *req.TopN <= 0 {
+		return fmt.Errorf("invalid top_n: must be a positive integer")
+	}
+
+	return nil
+}
+
+// BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
+func BuildKFPRunRequest(req models.CreateAutoMLRunRequest) models.CreatePipelineRunKFRequest {
+	params := map[string]interface{}{
+		"train_data_secret_name": req.TrainDataSecretName,
+		"train_data_bucket_name": req.TrainDataBucketName,
+		"train_data_file_key":    req.TrainDataFileKey,
+		"label_column":           req.LabelColumn,
+		"task_type":              req.TaskType,
+	}
+
+	topN := constants.DefaultTopN
+	if req.TopN != nil {
+		topN = *req.TopN
+	}
+	params["top_n"] = topN
+
+	return models.CreatePipelineRunKFRequest{
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+		PipelineVersionReference: models.PipelineVersionReference{
+			PipelineID:        constants.AutoMLPipelineID,
+			PipelineVersionID: constants.AutoMLPipelineVersionID,
+		},
+		RuntimeConfig: models.RuntimeConfig{
+			Parameters: params,
+		},
+	}
+}
+
+// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+func (r *PipelineRunsRepository) CreatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	req models.CreateAutoMLRunRequest,
+) (*models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := ValidateCreateAutoMLRunRequest(req); err != nil {
+		return nil, err
+	}
+
+	kfpRequest := BuildKFPRunRequest(req)
+
+	kfRun, err := client.CreateRun(ctx, kfpRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
+	}
+
+	if kfRun == nil {
+		return nil, fmt.Errorf("pipeline server returned nil run")
+	}
+
+	run := toPipelineRun(kfRun)
+	return &run, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { mockRayJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
+import { mockRayClusterK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayClusterK8sResource';
 import {
   TrainingJobState,
   RayJobDeploymentStatus,
@@ -14,11 +15,18 @@ import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/m
 import {
   ClusterQueueModel,
   LocalQueueModel,
+  RayClusterModel,
   RayJobModel,
   TrainJobModel,
 } from '@odh-dashboard/internal/api/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
-import { modelTrainingGlobal, trainingJobTable } from '../../../pages/modelTraining';
+import {
+  modelTrainingGlobal,
+  trainingJobTable,
+  trainingJobDetailsDrawer,
+  rayJobDetailsDrawer,
+  rayJobDetailsTab,
+} from '../../../pages/modelTraining';
 import { ProjectModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
@@ -62,6 +70,23 @@ const mockRayJobs = mockRayJobK8sResourceList([
     namespace: projectName,
     suspend: true,
     jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED,
+  },
+  {
+    name: 'ray-persist-cluster-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    shutdownAfterJobFinishes: false,
+    entrypoint: 'python interactive.py',
+  },
+  {
+    name: 'ray-workspace-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    clusterSelector: { 'ray.io/cluster': 'shared-ray-cluster' },
+    rayClusterName: 'shared-ray-cluster',
+    entrypoint: 'python workspace_train.py',
   },
 ]);
 
@@ -135,6 +160,15 @@ const initIntercepts = () => {
   });
 
   cy.interceptK8s({ model: ClusterQueueModel, name: 'test-cluster-queue' }, mockClusterQueues[0]);
+
+  cy.interceptK8s(
+    { model: RayClusterModel, ns: projectName, name: 'shared-ray-cluster' },
+    mockRayClusterK8sResource({
+      name: 'shared-ray-cluster',
+      namespace: projectName,
+      rayVersion: '2.40.0',
+    }),
+  );
 };
 
 describe('RayJobs in Jobs Table', () => {
@@ -214,7 +248,7 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('contain', 'RayJob');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
     trainingJobTable.findTypeColumn().should('not.contain', 'TrainJob');
-    trainingJobTable.findRows().should('have.length', 4);
+    trainingJobTable.findRows().should('have.length', 6);
   });
 
   it('should show all jobs after selecting All in type filter', () => {
@@ -233,6 +267,163 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('not.exist');
     trainRow.findTrainingJobName().should('contain', 'train-job-one');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
-    trainingJobTable.findRows().should('have.length', 5);
+    trainingJobTable.findRows().should('have.length', 7);
+  });
+});
+
+describe('RayJob Details Drawer', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should open RayJob drawer when clicking on a RayJob name', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    rayJobDetailsDrawer.shouldBeClosed();
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.findTitle().should('contain', 'ray-data-processing');
+  });
+
+  it('should have all four tabs', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.findTab('Details').should('exist');
+    rayJobDetailsDrawer.findTab('Resources').should('exist');
+    rayJobDetailsDrawer.findTab('Pods').should('exist');
+    rayJobDetailsDrawer.findTab('Logs').should('exist');
+  });
+
+  it('should have delete action in kebab menu', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Delete job').should('exist');
+  });
+
+  it('should close drawer when clicking close button', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.close();
+    rayJobDetailsDrawer.shouldBeClosed();
+  });
+
+  it('should open TrainJob drawer when clicking a TrainJob after closing RayJob drawer', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findNameLink().click();
+    rayJobDetailsDrawer.shouldBeOpen();
+
+    rayJobDetailsDrawer.close();
+    rayJobDetailsDrawer.shouldBeClosed();
+
+    const trainRow = trainingJobTable.getTableRow('train-job-one');
+    trainRow.findNameLink().click();
+    trainingJobDetailsDrawer.shouldBeOpen();
+  });
+});
+
+describe('RayJob Details Tab', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should display all sections in the Details tab', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab.findJobSummarySection().should('exist');
+    rayJobDetailsTab.findExecutionsSection().should('exist');
+    rayJobDetailsTab.findManagementSection().should('exist');
+  });
+
+  it('should display correct job summary values', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab.findRayVersionValue().should('contain', '2.9.0');
+  });
+
+  it('should display correct executions values', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab.findEntrypointCommandValue().should('contain', 'python process_data.py');
+    rayJobDetailsTab.findSubmissionModeValue().should('contain', 'K8sJobMode');
+  });
+
+  it('should display correct management values', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab
+      .findShutdownPolicyValue()
+      .should('contain', 'Cluster is deleted after job finishes');
+    rayJobDetailsTab.findClusterNameValue().should('contain', 'ray-data-processing-raycluster');
+  });
+
+  it('should show alternate shutdown policy when cluster persists after job finishes', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-persist-cluster-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab
+      .findShutdownPolicyValue()
+      .should('contain', 'Cluster persists after job finishes');
+  });
+
+  it('should display ray version from workspace RayCluster', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-workspace-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Details');
+
+    rayJobDetailsTab.findRayVersionValue().should('contain', '2.40.0');
+    rayJobDetailsTab.findClusterNameValue().should('contain', 'shared-ray-cluster');
   });
 });

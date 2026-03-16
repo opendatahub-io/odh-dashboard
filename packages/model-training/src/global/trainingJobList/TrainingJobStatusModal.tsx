@@ -86,7 +86,10 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     if (!workloadLoaded || workloads.length === 0) return null;
     return workloads[0];
   }, [workloads, workloadLoaded]);
-  const workloadConditions = workload?.status?.conditions || [];
+  const workloadConditions = React.useMemo(
+    () => workload?.status?.conditions ?? [],
+    [workload?.status?.conditions],
+  );
 
   const [events, eventsLoaded] = useWatchTrainJobEvents(
     job.metadata.namespace,

@@ -103,10 +103,8 @@ export const useModelFormatField = (
   }, [modelType, tmpModelFormat]);
 
   const handleSetModelFormat = React.useCallback(
-    (newFormat: SupportedModelFormats) => {
-      setTmpModelFormat(newFormat);
-    },
-    [tmpModelFormat],
+    (newFormat: SupportedModelFormats) => setTmpModelFormat(newFormat),
+    [],
   );
 
   return {

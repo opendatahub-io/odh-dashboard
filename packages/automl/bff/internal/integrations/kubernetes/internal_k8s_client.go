@@ -9,10 +9,19 @@ import (
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// InternalKubernetesClient uses the backend's service account credentials to perform
+// operations with user impersonation via SubjectAccessReview.
+//
+// This client validates namespace existence before permission checks in GetSecrets,
+// providing clearer error messages that distinguish "namespace not found" from
+// "permission denied". This is feasible because the service account has cluster-level
+// access. TokenKubernetesClient omits this check since it uses the user's token directly
+// and cannot distinguish these cases as easily.
 type InternalKubernetesClient struct {
 	SharedClientLogic
 }
@@ -183,6 +192,59 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 		"errors", errorCount)
 
 	return allowed, nil
+}
+
+// GetSecrets lists secrets in a namespace.
+func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Verify the namespace exists before permission checks to provide clearer error messages.
+	// The service account can distinguish "namespace not found" from "permission denied",
+	// improving UX compared to TokenKubernetesClient which cannot make this distinction.
+	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
+	}
+
+	// Check if user has permission to list secrets in the namespace
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Resource:  "secrets",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check secret list permissions", "namespace", namespace, "user", identity.UserID, "error", err)
+		return nil, fmt.Errorf("failed to check permissions to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	if !response.Status.Allowed {
+		kc.Logger.Warn("user not allowed to list secrets", "namespace", namespace, "user", identity.UserID)
+		status := metav1.Status{
+			Status:  metav1.StatusFailure,
+			Reason:  metav1.StatusReasonForbidden,
+			Message: fmt.Sprintf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace),
+			Code:    403,
+		}
+		return nil, &k8serrors.StatusError{ErrStatus: status}
+	}
+
+	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	return secretList.Items, nil
 }
 
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
