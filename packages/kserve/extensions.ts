@@ -1,6 +1,6 @@
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports, no-restricted-syntax
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports, no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
@@ -148,7 +148,11 @@ const extensions: (
         import('./src/hardware').then((m) => (deployment) => ({
           data: m.extractHardwareProfileConfig(deployment),
         })),
-      extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
+      // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+      extractModelFormat: () =>
+        import(
+          '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/extractModelFormat'
+        ).then((m) => m.extractKServeModelFormatWithNIM),
       extractReplicas: () =>
         import('./src/hardware').then((m) => (deployment) => ({
           data: m.extractReplicas(deployment),

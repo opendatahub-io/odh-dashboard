@@ -22,10 +22,11 @@ import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
+import { isNIMOperatorManaged } from './nim/nimOperatorUtils';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
-  obj: ServingRuntimeKind;
+  obj?: ServingRuntimeKind;
   isvc?: InferenceServiceKind;
 };
 
@@ -36,7 +37,13 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   // todo: deal with the accelProfile below...
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
-  const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
+  let resources;
+  if (isvc && isNIMOperatorManaged(isvc)) {
+    resources = isvc.spec.predictor.containers?.[0]?.resources;
+  } else {
+    resources = isvc?.spec.predictor.model?.resources || obj?.spec.containers[0].resources;
+  }
+
   const sizes = getModelServingSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
@@ -48,7 +55,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
       <DescriptionListGroup>
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
         <DescriptionListDescription>
-          {isvc?.spec.predictor.minReplicas ?? obj.spec.replicas ?? 'Unknown'}
+          {isvc?.spec.predictor.minReplicas ?? obj?.spec.replicas ?? 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
       {resources && (

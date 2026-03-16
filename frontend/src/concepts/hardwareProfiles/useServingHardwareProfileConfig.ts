@@ -1,5 +1,6 @@
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/projects/nim/nimOperatorUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -10,7 +11,14 @@ export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
 ): Parameters<typeof useHardwareProfileConfig> => {
   const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-  const resources = inferenceService?.spec.predictor.model?.resources;
+
+  let resources;
+  if (inferenceService && isNIMOperatorManaged(inferenceService)) {
+    resources = inferenceService.spec.predictor.containers?.[0]?.resources;
+  } else {
+    resources = inferenceService?.spec.predictor.model?.resources;
+  }
+
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
   const namespace = inferenceService?.metadata.namespace;
