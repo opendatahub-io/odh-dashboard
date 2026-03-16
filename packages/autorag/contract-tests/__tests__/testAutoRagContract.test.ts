@@ -636,7 +636,26 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  // TODO [ Gustavo ] Add an S3 Files endpoint test suite
+  describe('S3 Files Endpoint', () => {
+    describe('Error Cases - Missing Parameters', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+    describe('Error Cases - Empty Parameters', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+    describe('Error Cases - Secret Issues', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+    describe('Bucket Parameter Fallback', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+    describe('Key Format Variations', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+    describe('Valid Bucket and Key Formats', () => {
+      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    });
+  });
 
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
