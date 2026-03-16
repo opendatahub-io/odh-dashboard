@@ -15,9 +15,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
@@ -29,9 +27,7 @@ import {
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import createConfigureSchema, {
-  RAG_OPTIMIZATION_METRIC_LABELS,
-} from '~/app/schemas/configure.schema';
+import createConfigureSchema from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
@@ -267,53 +263,58 @@ function AutoragConfigure(): React.JSX.Element {
                         Evaluation data source upload component
                       </StackItem>
 
-                      <StackItem className="pf-v6-u-mt-md">
-                        <Card>
-                          <CardHeader
-                            hasWrap
-                            actions={{
-                              actions: [
-                                <Button
-                                  key="edit-experiment-settings"
-                                  variant="secondary"
-                                  onClick={openExperimentSettings}
-                                  isDisabled={!hasFiles || formIsSubmitting}
-                                >
-                                  Edit
-                                </Button>,
-                              ],
-                            }}
-                          >
-                            <CardTitle>Models to consider</CardTitle>
-                          </CardHeader>
-                          <CardBody>
-                            <Stack hasGutter>
-                              <StackItem>
-                                {generationModels.length} foundation model
-                                {generationModels.length !== 1 ? 's' : ''}{' '}
-                                <Tooltip content="Large language models used for generating responses">
-                                  <OutlinedQuestionCircleIcon className="pf-v6-u-ml-xs" />
-                                </Tooltip>
-                              </StackItem>
-                              <StackItem>
-                                {embeddingModels.length} embedding model
-                                {embeddingModels.length !== 1 ? 's' : ''}{' '}
-                                <Tooltip content="Models used for converting text into vector representations">
-                                  <OutlinedQuestionCircleIcon className="pf-v6-u-ml-xs" />
-                                </Tooltip>
-                              </StackItem>
-                              <StackItem>
-                                <strong>Optimization metric</strong>
-                              </StackItem>
-                              <StackItem>
-                                {(optimizationMetric &&
-                                  RAG_OPTIMIZATION_METRIC_LABELS[optimizationMetric]) ||
-                                  optimizationMetric}
-                              </StackItem>
-                            </Stack>
-                          </CardBody>
-                        </Card>
-                      </StackItem>
+                      <Grid hasGutter className="pf-v6-u-mt-md">
+                        <GridItem span={6}>
+                          <Card className="pf-v6-u-h-100">
+                            <CardHeader
+                              hasWrap
+                              actions={{
+                                actions: [
+                                  <Button
+                                    key="edit-optimization-metric"
+                                    variant="secondary"
+                                    onClick={openExperimentSettings}
+                                    isDisabled={!hasFiles || formIsSubmitting}
+                                  >
+                                    Edit
+                                  </Button>,
+                                ],
+                              }}
+                            >
+                              <CardTitle>Optimization metric</CardTitle>
+                            </CardHeader>
+                            <CardBody className="pf-v6-u-mb-sm">{optimizationMetric}</CardBody>
+                          </Card>
+                        </GridItem>
+                        <GridItem span={6}>
+                          <Card className="pf-v6-u-h-100">
+                            <CardHeader
+                              hasWrap
+                              actions={{
+                                actions: [
+                                  <Button
+                                    key="edit-considered-models"
+                                    variant="secondary"
+                                    onClick={openExperimentSettings}
+                                    isDisabled={!hasFiles || formIsSubmitting}
+                                  >
+                                    Edit
+                                  </Button>,
+                                ],
+                              }}
+                            >
+                              <CardTitle>Models to consider</CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                              <strong>Foundation models:</strong>&nbsp;
+                              {generationModels.length || 'None'}
+                              <br />
+                              <strong>Embedding models:</strong>&nbsp;
+                              {embeddingModels.length || 'None'}
+                            </CardBody>
+                          </Card>
+                        </GridItem>
+                      </Grid>
                     </Stack>
                   </CardBody>
                 </Card>
