@@ -19,6 +19,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
+import RayJobDetailsTab from './RayJobDetailsTab';
 import { RayJobKind } from '../../k8sTypes';
 
 type RayJobDetailsDrawerProps = {
@@ -100,9 +101,7 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
           role="region"
         >
           <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
-            <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-              Details content will be available in a future update.
-            </Content>
+            <RayJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
             <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
