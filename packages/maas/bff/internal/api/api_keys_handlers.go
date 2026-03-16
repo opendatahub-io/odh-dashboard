@@ -31,7 +31,7 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	if request.Data.Name == "" {
+	if strings.TrimSpace(request.Data.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
@@ -136,6 +136,7 @@ func BulkRevokeAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, 
 		app.badRequestResponse(w, r, errors.New("username is required"))
 		return
 	}
+	request.Data.Username = username
 
 	response, err := app.repositories.APIKeys.BulkRevokeAPIKeys(r.Context(), request.Data)
 	if err != nil {

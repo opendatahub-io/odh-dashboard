@@ -35,7 +35,7 @@ const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
   typeof v.id === 'string' &&
   typeof v.name === 'string' &&
   typeof v.createdAt === 'string' &&
-  typeof v.expiresAt === 'string';
+  (v.expiresAt === undefined || typeof v.expiresAt === 'string');
 
 const isBulkRevokeResponse = (v: unknown): v is BulkRevokeResponse =>
   isRecord(v) && typeof v.revokedCount === 'number' && typeof v.message === 'string';

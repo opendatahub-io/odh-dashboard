@@ -30,9 +30,9 @@ const MaasWrapperContent: React.FC = () => {
     return <Bullseye>Loading...</Bullseye>;
   }
   if (!contextValue) {
-    return null;
+    return <div>Unable to load settings. Please reload the page.</div>;
   }
-  return configSettings && userSettings ? (
+  return (
     <AppContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
@@ -40,7 +40,7 @@ const MaasWrapperContent: React.FC = () => {
         </NotificationContextProvider>
       </BrowserStorageContextProvider>
     </AppContext.Provider>
-  ) : null;
+  );
 };
 const MaasWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
