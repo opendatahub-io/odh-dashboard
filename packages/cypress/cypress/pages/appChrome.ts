@@ -41,7 +41,13 @@ class AppChrome {
   }
 
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
-    return this.findSideBar().findAppNavItem(args);
+    return cy.get('body', { timeout: 0 }).then(($body) => {
+      const $sidebar = $body.find('#page-sidebar');
+      if ($sidebar.length === 0) {
+        return cy.wrap(Cypress.$()) as unknown as Cypress.Chainable<JQuery>;
+      }
+      return cy.wrap($sidebar).findAppNavItem(args);
+    });
   }
 }
 
