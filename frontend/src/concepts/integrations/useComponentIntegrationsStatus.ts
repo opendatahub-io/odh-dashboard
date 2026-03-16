@@ -12,6 +12,7 @@ export const useComponentIntegrationsStatus = (): FetchStateObject<
   const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);
 
   const fetchCallbackPromise = React.useCallback(async () => {
+    void forceUpdate; // referenced to trigger re-fetches when the store updates
     const result = await fetchComponents(false);
     const integrations = result.filter((c) => c.spec.internalRoute);
 

@@ -136,8 +136,13 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
             createSpawnerPage.getDescriptionInput().type(editedTestDescription);
             createSpawnerPage.findSubmitButton().click();
 
+            // Handle potential 409 conflict when the workbench resource was modified between load and submit
+            cy.step('Handle potential conflict error on submit');
+            createSpawnerPage.handleConflictIfPresent();
+
             // Verify that the workbench has been updated
             cy.step('Verifying the Edited details display after updating');
+            workbenchPage.findNotebookTable(30000).should('exist');
             const notebookEditedRow = workbenchPage.getNotebookRow(editedTestNamespace);
             notebookEditedRow.findNotebookDescription(editedTestDescription);
 

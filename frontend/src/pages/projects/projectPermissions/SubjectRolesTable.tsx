@@ -10,6 +10,8 @@ import { ClusterRoleKind, RoleBindingKind, RoleBindingSubject, RoleKind } from '
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { getRoleTypeForTracking } from './trackingUtils';
 import SubjectRolesTableRow from './SubjectRolesTableRow';
 import SubjectRolesRemoveRoleModal from './SubjectRolesRemoveRoleModal';
 import { columns } from './columns';
@@ -200,6 +202,11 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
     setRemoveError(undefined);
     try {
       await removeSubjectFromRoleBinding({ namespace, roleBinding: rb, subject });
+      /* eslint-disable camelcase */
+      fireMiscTrackingEvent('RBAC Role Unassigned', {
+        role_type: getRoleTypeForTracking(removingRow.roleRef, removingRow.role),
+      });
+      /* eslint-enable camelcase */
       await roleBindings.refresh();
       setRemovingRow(undefined);
     } catch (e) {

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertVariant } from '@patternfly/react-core';
 import { useAppDispatch } from '#~/redux/hooks';
 import { addNotification } from '#~/redux/actions/actions';
@@ -23,28 +24,60 @@ const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 export const useFederatedNotificationListener = (): void => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleNotificationEvent = (event: Event) => {
       try {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const customEvent = event as CustomEvent;
-        if (!customEvent.detail) {
-          return;
-        }
+        const { detail } = event as CustomEvent;
+        if (!detail) return;
 
-        const { status, title, message, timestamp } = customEvent.detail;
+        const {
+          status,
+          title,
+          message,
+          timestamp,
+          linkUrl,
+          linkLabel,
+        }: {
+          status?: AlertVariant;
+          title: string;
+          message?: string;
+          timestamp?: string;
+          linkUrl?: string;
+          linkLabel?: string;
+        } = detail;
 
         const timestampDate = timestamp ? new Date(timestamp) : new Date();
 
-        dispatch(
-          addNotification({
-            status: status || AlertVariant.info,
-            title,
-            message,
-            timestamp: timestampDate,
-          }),
-        );
+        const notificationMessage =
+          linkUrl && linkLabel && message ? (
+            <p>
+              {message}
+              <a
+                href={linkUrl}
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  navigate(linkUrl);
+                }}
+              >
+                {linkLabel}
+              </a>
+              .
+            </p>
+          ) : (
+            message
+          );
+
+        const notificationPayload = {
+          status: status || AlertVariant.info,
+          title,
+          message: notificationMessage,
+          timestamp: timestampDate,
+        };
+
+        dispatch(addNotification(notificationPayload));
       } catch (error) {
         console.error('[NotificationBridge] Failed to handle notification event:', error);
       }
@@ -55,5 +88,5 @@ export const useFederatedNotificationListener = (): void => {
     return () => {
       window.removeEventListener(NOTIFICATION_BRIDGE_EVENT, handleNotificationEvent);
     };
-  }, [dispatch]);
+  }, [dispatch, navigate]);
 };
