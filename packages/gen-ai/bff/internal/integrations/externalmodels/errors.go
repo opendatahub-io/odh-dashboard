@@ -25,6 +25,7 @@ const (
 	ErrCodeTimeout             = "TIMEOUT"
 	ErrCodeUnauthorized        = "UNAUTHORIZED"
 	ErrCodeNotOpenAICompatible = "NOT_OPENAI_COMPATIBLE"
+	ErrCodeInvalidConfiguration = "INVALID_CONFIGURATION"
 )
 
 // Constructor functions
@@ -61,5 +62,14 @@ func NewNotOpenAICompatibleError(baseURL, message string) *ExternalModelError {
 		Message:    message,
 		BaseURL:    baseURL,
 		StatusCode: 502,
+	}
+}
+
+func NewInvalidConfigurationError(baseURL, message string) *ExternalModelError {
+	return &ExternalModelError{
+		Code:       ErrCodeInvalidConfiguration,
+		Message:    message,
+		BaseURL:    baseURL,
+		StatusCode: 400,
 	}
 }

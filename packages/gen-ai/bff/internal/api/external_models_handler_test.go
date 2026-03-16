@@ -1168,4 +1168,75 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 
 		assert.Equal(t, "CONNECTION_FAILED", errorMap["code"])
 	})
+
+	It("should return INVALID_CONFIGURATION for URL validation errors", func() {
+		t := GinkgoT()
+
+		testCases := []struct {
+			name             string
+			baseURL          string
+			expectedMessage  string
+		}{
+			{
+				name:            "invalid URL scheme (ftp)",
+				baseURL:         "ftp://invalid.example.com",
+				expectedMessage: "HTTP or HTTPS scheme",
+			},
+			{
+				name:            "HTTP URL in production mode",
+				baseURL:         "http://api.example.com/v1",
+				expectedMessage: "HTTPS in production",
+			},
+			{
+				name:            "URL without hostname",
+				baseURL:         "https://",
+				expectedMessage: "valid hostname",
+			},
+			{
+				name:            "malformed URL",
+				baseURL:         "://invalid",
+				expectedMessage: "Invalid base URL",
+			},
+		}
+
+		for _, tc := range testCases {
+			requestBody := models.VerifyExternalModelRequest{
+				ModelID:     "gpt-4o",
+				BaseURL:     tc.baseURL,
+				SecretValue: "test-key",
+				ModelType:   models.ModelTypeLLM,
+			}
+
+			bodyBytes, err := json.Marshal(requestBody)
+			require.NoError(t, err, "Failed for case: %s", tc.name)
+
+			req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
+			assert.NoError(t, err)
+
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+				Token: "FAKE_BEARER_TOKEN",
+			})
+			req = req.WithContext(ctx)
+			rr := httptest.NewRecorder()
+
+			app.VerifyExternalModelHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code, "Failed for case: %s", tc.name)
+
+			var response map[string]interface{}
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			assert.NoError(t, err)
+
+			errorData, exists := response["error"]
+			assert.True(t, exists, "Response should contain 'error' field for case: %s", tc.name)
+
+			errorMap, ok := errorData.(map[string]interface{})
+			assert.True(t, ok, "Error should be a map for case: %s", tc.name)
+
+			assert.Equal(t, "INVALID_CONFIGURATION", errorMap["code"], "Failed for case: %s", tc.name)
+			assert.Contains(t, errorMap["message"], tc.expectedMessage, "Failed for case: %s", tc.name)
+		}
+	})
 })

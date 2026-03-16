@@ -105,22 +105,23 @@ func isPrivateIP(ip net.IP) bool {
 }
 
 // validateBaseURL performs basic URL validation without DNS lookup
+// Returns *ExternalModelError for validation failures
 func validateBaseURL(baseURL string, allowHTTP bool) error {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
-		return fmt.Errorf("invalid base URL: %w", err)
+		return NewInvalidConfigurationError(baseURL, fmt.Sprintf("Invalid base URL: %v", err))
 	}
 
 	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
-		return fmt.Errorf("base URL must use HTTP or HTTPS scheme, got: %s", parsedURL.Scheme)
+		return NewInvalidConfigurationError(baseURL, fmt.Sprintf("Base URL must use HTTP or HTTPS scheme, got: %s", parsedURL.Scheme))
 	}
 
 	if parsedURL.Scheme != "https" && !allowHTTP {
-		return fmt.Errorf("base URL must use HTTPS in production")
+		return NewInvalidConfigurationError(baseURL, "Base URL must use HTTPS in production")
 	}
 
 	if parsedURL.Hostname() == "" {
-		return fmt.Errorf("base URL must contain a valid hostname")
+		return NewInvalidConfigurationError(baseURL, "Base URL must contain a valid hostname")
 	}
 
 	return nil
@@ -170,6 +171,7 @@ func NewExternalModelsClient(
 		var err error
 		rootCAs, err = x509.SystemCertPool()
 		if err != nil {
+			// This is an internal server error, not a configuration error
 			return nil, fmt.Errorf("failed to load system certificate pool: %w", err)
 		}
 	}
