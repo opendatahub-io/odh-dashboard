@@ -87,7 +87,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { projects } = React.useContext(ProjectsContext);
   const { dashboardConfig } = useApplicationSettings();
-  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
+  const hardwareProfileOrder = React.useMemo(
+    () => dashboardConfig?.spec.hardwareProfileOrder || [],
+    [dashboardConfig?.spec.hardwareProfileOrder],
+  );
 
   // Get the project for Kueue configuration:
   // 1. If we have a project prop (namespace string), find the actual project object
@@ -179,7 +182,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     isHardwareProfileSupported,
     kueueFilteringState,
     hardwareProfileOrder,
-    searchHardwareProfile,
   ]);
 
   const renderMenuItem = (

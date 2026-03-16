@@ -1,5 +1,6 @@
 import * as React from 'react';
 import ContentModal from '#~/components/modals/ContentModal';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { PendingChangeType } from '#~/pages/projects/projectPermissions/types';
 
 type DiscardChangesModalProps = {
@@ -30,6 +31,12 @@ const getModalMessage = (changeType: PendingChangeType): React.ReactNode => {
   }
 };
 
+const PENDING_CHANGE_TO_DISCARD_REASON: Record<PendingChangeType, string> = {
+  [PendingChangeType.Kind]: 'switch_subject_kind',
+  [PendingChangeType.Switch]: 'switch_subject',
+  [PendingChangeType.Clear]: 'clear_input',
+};
+
 const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
   changeType,
   onDiscard,
@@ -45,7 +52,14 @@ const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
     buttonActions={[
       {
         label: 'Discard',
-        onClick: onDiscard,
+        onClick: () => {
+          /* eslint-disable camelcase */
+          fireMiscTrackingEvent('RBAC Subject Changed', {
+            discard_reason: PENDING_CHANGE_TO_DISCARD_REASON[changeType],
+          });
+          /* eslint-enable camelcase */
+          onDiscard();
+        },
         variant: 'primary',
         dataTestId: 'discard-changes-confirm',
       },

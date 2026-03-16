@@ -143,7 +143,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		app.PipelineRunsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
 	t.Run("should return 500 when no AutoRAG pipeline discovered and no explicit filter", func(t *testing.T) {
@@ -566,7 +566,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		app.PipelineRunHandler(rr, req, params)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
 	t.Run("should fail with empty runId", func(t *testing.T) {

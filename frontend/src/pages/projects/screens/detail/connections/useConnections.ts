@@ -27,7 +27,7 @@ const useConnections = (
 
       return connections;
     },
-    [namespace],
+    [namespace, includeDashboardFalse],
   );
 
   return useFetch(callback, [], fetchOptions);

@@ -40,6 +40,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelCatalog: boolean;
       disableModelRegistry: boolean;
       disableModelRegistrySecureDB: boolean;
+      registryOciStorage: boolean;
       disableServingRuntimeParams: boolean;
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
@@ -61,6 +62,7 @@ export type DashboardConfig = K8sResourceCommon & {
       projectRBAC: boolean;
       maasApiKeys: boolean;
       deploymentWizardYAMLViewer: boolean;
+      vLLMDeploymentOnMaaS: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

@@ -109,6 +109,19 @@ export type WBEditTestData = {
   notebookImage: string;
 };
 
+export type KueueWorkbenchTestData = {
+  projectName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  hardwareProfileName: string;
+  hardwareProfileDisplayName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  sectionTab: string;
+  notebookImage: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -140,6 +153,29 @@ export type WBTolerationsTestData = {
   hardwareProfileName: string;
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
+  hardwareProfileDisplayName?: string;
+  hardwareProfileDescription?: string;
+  deleteModalMessage?: string;
+  deletedStatusBadge: string;
+};
+
+export type ModifyHardwareProfileTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDisplayNameA: string;
+  hardwareProfileDisplayNameB: string;
+  tolerationValueA: string;
+  tolerationValueB: string;
+  tolerationKeyA: string;
+  tolerationKeyB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
 };
 
 export type WBStatusTestData = {
@@ -320,6 +356,15 @@ export type HardwareProfilesData = {
   hardwareProfileName: string;
   hardwareProfileDescription: string;
   hardwareProfileEditedDescription: string;
+  updatedHardwareProfileName: string;
+  projectNamespace: string;
+  projectDescription: string;
+  workbenchName: string;
+  hardwareProfileDeploymentSize: string;
+  workbenchRunningStatus: string;
+  notebookImageName: string;
+  editWorkbenchAction: string;
+  settingsHardwareProfilesUrl: string;
 };
 
 export type NamespaceConfig = {

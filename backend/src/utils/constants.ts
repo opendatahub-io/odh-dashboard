@@ -74,6 +74,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelCatalog: false,
       disableModelRegistry: false,
       disableModelRegistrySecureDB: false,
+      registryOciStorage: false,
       disableServingRuntimeParams: false,
       disableConnectionTypes: false,
       disableStorageClasses: false,
@@ -95,6 +96,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLLMd: false,
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
+      vLLMDeploymentOnMaaS: false,
     },
     notebookController: {
       enabled: true,

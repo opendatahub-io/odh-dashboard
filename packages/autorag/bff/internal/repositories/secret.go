@@ -205,21 +205,15 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 
 // buildAvailableKeysMap extracts all keys from a secret's Data and StringData fields
 // and builds a map where:
-// - Keys in the constants.AllowedSecretKeys list have their actual values
+// - Keys in the allowed list have their actual values
 // - All other keys have the value "[REDACTED]"
 // Key matching for allowed keys is case-insensitive.
 func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 	result := make(map[string]string)
 
-	// Create a map of lowercase allowed keys for case-insensitive lookup
-	allowedKeysLower := make(map[string]bool)
-	for _, key := range constants.AllowedSecretKeys {
-		allowedKeysLower[strings.ToLower(key)] = true
-	}
-
 	// Process Data field
 	for key, value := range secret.Data {
-		if allowedKeysLower[strings.ToLower(key)] {
+		if constants.IsAllowedSecretKey(key) {
 			// Return actual value for allowed keys
 			result[key] = string(value)
 		} else {
@@ -231,7 +225,7 @@ func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 	// Process StringData field (avoiding duplicates)
 	for key, value := range secret.StringData {
 		if _, exists := result[key]; !exists {
-			if allowedKeysLower[strings.ToLower(key)] {
+			if constants.IsAllowedSecretKey(key) {
 				// Return actual value for allowed keys
 				result[key] = value
 			} else {

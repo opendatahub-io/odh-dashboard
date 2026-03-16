@@ -257,7 +257,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {

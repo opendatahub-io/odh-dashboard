@@ -8,28 +8,25 @@ const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',
   displayName: 'Test Project',
 });
-const MockProjectsProvider = ({ children }: { children: React.ReactNode }) =>
-  React.useMemo(
-    () => (
-      <ProjectsContext.Provider
-        value={{
-          projects: [mockProject],
-          loaded: true,
-          preferredProject: null,
-          modelServingProjects: [],
-          nonActiveProjects: [],
-          updatePreferredProject: () => {
-            // Mock implementation
-          },
-          waitForProject: () => Promise.resolve(),
-          loadError: undefined,
-        }}
-      >
-        {children}
-      </ProjectsContext.Provider>
-    ),
+const MockProjectsProvider = ({ children }: { children: React.ReactNode }) => {
+  const contextValue = React.useMemo(
+    () => ({
+      projects: [mockProject],
+      loaded: true,
+      preferredProject: null,
+      modelServingProjects: [],
+      nonActiveProjects: [],
+      updatePreferredProject: () => {
+        // Mock implementation
+      },
+      waitForProject: () => Promise.resolve(),
+      loadError: undefined,
+    }),
     [],
   );
+
+  return <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>;
+};
 describe('ProjectSection', () => {
   const mockSetProject = jest.fn();
 

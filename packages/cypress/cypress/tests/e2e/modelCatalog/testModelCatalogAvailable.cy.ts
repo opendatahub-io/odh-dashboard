@@ -34,7 +34,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();
@@ -52,7 +52,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to Model Catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();

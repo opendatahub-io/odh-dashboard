@@ -89,6 +89,8 @@ spec:
                       type: boolean
                     disableModelRegistrySecureDB:
                       type: boolean
+                    registryOciStorage:
+                      type: boolean
                     disableServingRuntimeParams:
                       type: boolean
                     disableStorageClasses:
@@ -122,6 +124,8 @@ spec:
                     observabilityDashboard:
                       type: boolean
                     disableLLMd:
+                      type: boolean
+                    deploymentWizardYAMLViewer:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'

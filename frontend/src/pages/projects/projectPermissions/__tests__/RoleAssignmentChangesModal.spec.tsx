@@ -481,8 +481,9 @@ describe('RoleAssignmentChangesModal', () => {
         expect(screen.getByTestId('assign-roles-confirm-save')).toBeDisabled();
       });
 
-      // Close button should be hidden while saving (onClose is undefined)
-      expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
+      // Close button is still rendered but clicking it does nothing while saving
+      fireEvent.click(screen.getByLabelText('Close'));
+      expect(mockOnClose).not.toHaveBeenCalled();
     });
   });
 

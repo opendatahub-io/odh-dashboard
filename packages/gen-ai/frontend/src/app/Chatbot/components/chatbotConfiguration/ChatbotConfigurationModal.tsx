@@ -52,14 +52,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
 
-  // Convert pure MaaS models to AIModel format so they can be used in the table
-  const maasAsAIModels: AIModel[] = React.useMemo(() => {
-    const aiModelIds = new Set(aiModels.map((model) => model.model_id));
-    // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
-    return maasModels
-      .filter((maasModel) => !aiModelIds.has(maasModel.id))
-      .map(convertMaaSModelToAIModel);
-  }, [aiModels, maasModels]);
+  const maasAsAIModels: AIModel[] = React.useMemo(
+    () => maasModels.map(convertMaaSModelToAIModel),
+    [maasModels],
+  );
 
   // Merge all models and MaaS models for display
   const allModels = React.useMemo(
@@ -154,10 +150,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         .installLSD({
           models: selectedModels.map((model) => {
             const maxTokens = maxTokensMap.get(model.model_name);
+            const isMaaS = model.model_source_type === 'maas';
             return {
-              model_name:
-                model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
-              is_maas_model: model.isMaaSModel || false,
+              model_name: isMaaS ? model.model_id : model.model_name,
+              model_source_type: model.model_source_type,
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),
