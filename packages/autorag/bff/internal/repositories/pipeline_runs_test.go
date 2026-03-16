@@ -293,4 +293,40 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		err := ValidateCreateAutoRAGRunRequest(req)
 		assert.NoError(t, err)
 	})
+
+	t.Run("should allow nil optimization_max_rag_patterns", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.OptimizationMaxRagPatterns = nil
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid optimization_max_rag_patterns", func(t *testing.T) {
+		for _, value := range []int{4, 8, 12, 20} {
+			req := newValidCreateRequest()
+			req.OptimizationMaxRagPatterns = &value
+			err := ValidateCreateAutoRAGRunRequest(req)
+			assert.NoError(t, err, "value %d should be valid", value)
+		}
+	})
+
+	t.Run("should reject optimization_max_rag_patterns below minimum", func(t *testing.T) {
+		req := newValidCreateRequest()
+		value := 3
+		req.OptimizationMaxRagPatterns = &value
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "optimization_max_rag_patterns")
+		assert.Contains(t, err.Error(), "at least 4")
+	})
+
+	t.Run("should reject optimization_max_rag_patterns above maximum", func(t *testing.T) {
+		req := newValidCreateRequest()
+		value := 21
+		req.OptimizationMaxRagPatterns = &value
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "optimization_max_rag_patterns")
+		assert.Contains(t, err.Error(), "at most 20")
+	})
 }

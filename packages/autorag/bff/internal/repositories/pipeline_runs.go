@@ -172,6 +172,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return fmt.Errorf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric)
 	}
 
+	if req.OptimizationMaxRagPatterns != nil {
+		value := *req.OptimizationMaxRagPatterns
+		if value < constants.MinRagPatterns {
+			return fmt.Errorf("optimization_max_rag_patterns must be at least %d, got %d", constants.MinRagPatterns, value)
+		}
+		if value > constants.MaxRagPatterns {
+			return fmt.Errorf("optimization_max_rag_patterns must be at most %d, got %d", constants.MaxRagPatterns, value)
+		}
+	}
+
 	return nil
 }
 

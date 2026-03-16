@@ -7,20 +7,89 @@ import { FormProvider, useForm } from 'react-hook-form';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
+// Mock React Router hooks
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: jest.fn(() => ({ namespace: 'test-namespace' })),
+}));
+
+// Mock SecretSelector component to avoid fetch errors
+jest.mock('~/app/components/common/SecretSelector', () => ({
+  __esModule: true,
+  default: ({
+    onChange,
+    value,
+    dataTestId,
+  }: {
+    onChange: (
+      secret:
+        | {
+            uuid: string;
+            name: string;
+            data: Record<string, string>;
+            type?: string;
+            invalid?: boolean;
+          }
+        | undefined,
+    ) => void;
+    value?: string;
+    dataTestId?: string;
+  }) => (
+    <div data-testid={dataTestId}>
+      <button
+        data-testid={`${dataTestId}-select-secret`}
+        onClick={() =>
+          onChange({
+            uuid: 'secret-1',
+            name: 'Test LLS Secret',
+            data: {},
+            type: 'lls',
+            invalid: false,
+          })
+        }
+      >
+        Select Secret
+      </button>
+      {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
+    </div>
+  ),
+}));
+
 const configureSchema = createConfigureSchema();
 
-const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const FormWrapper: React.FC<{
+  children: React.ReactNode;
+  onSubmit?: (data: unknown) => void;
+  defaultValues?: Partial<typeof configureSchema.defaults>;
+}> = ({ children, onSubmit, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
-  return <FormProvider {...form}>{children}</FormProvider>;
+  return (
+    <FormProvider {...form}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (onSubmit) {
+            form.handleSubmit(onSubmit)();
+          }
+        }}
+      >
+        {children}
+        <button type="submit">Submit</button>
+      </form>
+    </FormProvider>
+  );
 };
 
-const renderComponent = () =>
+const renderComponent = (
+  onSubmit?: (data: unknown) => void,
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) =>
   render(
-    <FormWrapper>
+    <FormWrapper onSubmit={onSubmit} defaultValues={defaultValues}>
       <AutoragCreate />
     </FormWrapper>,
   );
@@ -95,15 +164,45 @@ describe('AutoragCreate', () => {
   describe('Form validation', () => {
     it('should allow form submission when Name is filled', async () => {
       const user = userEvent.setup();
-      renderComponent();
+      const handleSubmit = jest.fn();
+
+      // Provide defaults for required fields not rendered by AutoragCreate
+      /* eslint-disable camelcase */
+      const defaultValues = {
+        input_data_secret_name: 'test-secret',
+        input_data_bucket_name: 'test-bucket',
+        input_data_key: 'test-key',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test-key',
+        llama_stack_secret_name: 'test-llama-secret',
+        generation_models: ['test-model'],
+        embeddings_models: ['test-embedding'],
+      };
+      /* eslint-enable camelcase */
+
+      renderComponent(handleSubmit, defaultValues);
 
       const nameInput = screen.getByLabelText(/Name/i);
       await user.type(nameInput, 'Valid Name');
 
-      // Name field should be valid (no error message)
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      await user.click(submitButton);
+
       await waitFor(() => {
-        expect(screen.queryByText(/required/i)).not.toBeInTheDocument();
+        expect(handleSubmit).toHaveBeenCalledTimes(1);
       });
+
+      const [[submittedData]] = handleSubmit.mock.calls;
+      /* eslint-disable camelcase */
+      expect(submittedData).toMatchObject({
+        display_name: 'Valid Name',
+        input_data_secret_name: 'test-secret',
+        llama_stack_secret_name: 'test-llama-secret',
+        generation_models: ['test-model'],
+        embeddings_models: ['test-embedding'],
+      });
+      /* eslint-enable camelcase */
     });
 
     it('should clear the Name field when user clears it', async () => {

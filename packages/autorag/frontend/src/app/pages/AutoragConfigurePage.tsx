@@ -63,13 +63,7 @@ function AutoragConfigurePage(): React.JSX.Element {
   const createActions = (
     <>
       <ActionListItem>
-        <Button
-          variant="primary"
-          isDisabled={!displayName || !llamaStackSecretName}
-          onClick={() => {
-            setStep('configure');
-          }}
-        >
+        <Button type="submit" variant="primary" isDisabled={!displayName || !llamaStackSecretName}>
           Next
         </Button>
       </ActionListItem>
@@ -90,26 +84,9 @@ function AutoragConfigurePage(): React.JSX.Element {
     <>
       <ActionListItem>
         <Button
+          type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
-          onClick={() => {
-            form.handleSubmit(
-              async (data: ConfigureSchema) => {
-                try {
-                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                  navigate(`${autoragConfigurePathname}/${pipelineRun.run_id}`);
-                } catch (error) {
-                  notification.error(
-                    'Failed to create pipeline run',
-                    error instanceof Error ? error.message : '',
-                  );
-                }
-              },
-              // this `onInvalid` case should be impossible to hit
-              // since we disable the button when the form is invalid
-              () => notification.error('Form is invalid'),
-            )();
-          }}
         >
           Run experiment
         </Button>
@@ -182,12 +159,34 @@ function AutoragConfigurePage(): React.JSX.Element {
     >
       <FormProvider {...form}>
         <Stack
+          component="form"
           className="pf-v6-u-h-100"
           hasGutter
-          component="form"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
+
+            if (step === 'create') {
+              setStep('configure');
+              return;
+            }
+
+            form.handleSubmit(
+              async (data: ConfigureSchema) => {
+                try {
+                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                  navigate(`${autoragConfigurePathname}/${pipelineRun.run_id}`);
+                } catch (error) {
+                  notification.error(
+                    'Failed to create pipeline run',
+                    error instanceof Error ? error.message : '',
+                  );
+                }
+              },
+              // this `onInvalid` case should be impossible to hit
+              // since we disable the button when the form is invalid
+              () => notification.error('Form is invalid'),
+            )();
           }}
         >
           <StackItem isFilled>

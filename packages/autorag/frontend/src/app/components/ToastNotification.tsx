@@ -9,10 +9,11 @@ interface ToastNotificationProps {
 }
 
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
-  const { ackNotification } = useStore();
+  const { removeNotification } = useStore();
 
   const [timedOut, setTimedOut] = React.useState(false);
   const [mouseOver, setMouseOver] = React.useState(false);
+  const [focusWithin, setFocusWithin] = React.useState(false);
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
@@ -24,21 +25,17 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
   }, []);
 
   React.useEffect(() => {
-    if (!notification.hidden && timedOut && !mouseOver) {
-      ackNotification(notification);
+    if (timedOut && !mouseOver && !focusWithin) {
+      removeNotification(notification.id);
     }
-  }, [ackNotification, mouseOver, notification, timedOut]);
-
-  if (notification.hidden) {
-    return null;
-  }
+  }, [focusWithin, mouseOver, notification, removeNotification, timedOut]);
 
   return (
     <Alert
       variant={notification.status}
       data-testid="toast-notification-alert"
       title={notification.title}
-      actionClose={<AlertActionCloseButton onClose={() => ackNotification(notification)} />}
+      actionClose={<AlertActionCloseButton onClose={() => removeNotification(notification.id)} />}
       actionLinks={
         notification.actions && (
           <>
@@ -52,6 +49,12 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
       }
       onMouseEnter={() => setMouseOver(true)}
       onMouseLeave={() => setMouseOver(false)}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocusWithin(false);
+        }
+      }}
     >
       {notification.message}
     </Alert>

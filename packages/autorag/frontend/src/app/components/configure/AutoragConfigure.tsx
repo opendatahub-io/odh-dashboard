@@ -104,7 +104,7 @@ function AutoragConfigure(): React.JSX.Element {
   // reset selected file values if bucket changes
   useEffect(() => {
     form.setValue('input_data_key', '');
-  }, [form]);
+  }, [form, inputDataBucketName]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -147,11 +147,12 @@ function AutoragConfigure(): React.JSX.Element {
                                 onChange(!secret || secret.invalid ? '' : secret.name);
                                 const bucketKey = findKey(
                                   secret?.data ?? {},
-                                  (key) => key.toLowerCase() === 'aws_s3_bucket',
+                                  (value, key) => key.toLowerCase() === 'aws_s3_bucket',
                                 );
                                 form.setValue(
                                   'input_data_bucket_name',
                                   secret && bucketKey ? secret.data[bucketKey] : '',
+                                  { shouldValidate: true },
                                 );
                               }}
                               onRefreshReady={(refresh) => {
@@ -367,6 +368,13 @@ function AutoragConfigure(): React.JSX.Element {
                 invalid,
               });
               form.setValue('input_data_secret_name', invalid ? '' : secret.name);
+              const bucketKey = findKey(
+                secret.data,
+                (value, key) => key.toLowerCase() === 'aws_s3_bucket',
+              );
+              form.setValue('input_data_bucket_name', bucketKey ? secret.data[bucketKey] : '', {
+                shouldValidate: true,
+              });
             }
           }}
         />
@@ -378,7 +386,6 @@ function AutoragConfigure(): React.JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onPrimary={(files) => {
           // TODO: replace with actual logic once implemented
-          form.setValue('input_data_bucket_name', 'bucket');
           form.setValue('input_data_key', 'key');
         }}
         onSelectSource={

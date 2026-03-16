@@ -206,6 +206,34 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "invalid optimization_metric")
 	})
 
+	t.Run("should reject optimization_max_rag_patterns below minimum", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		body := validCreateRequest()
+		value := 3
+		body.OptimizationMaxRagPatterns = &value
+		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "optimization_max_rag_patterns")
+		assert.Contains(t, rr.Body.String(), "at least 4")
+	})
+
+	t.Run("should reject optimization_max_rag_patterns above maximum", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		body := validCreateRequest()
+		value := 21
+		body.OptimizationMaxRagPatterns = &value
+		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "optimization_max_rag_patterns")
+		assert.Contains(t, rr.Body.String(), "at most 20")
+	})
+
 	t.Run("should reject unknown JSON fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		raw := `{"display_name":"test","unknown_field":"bad"}`

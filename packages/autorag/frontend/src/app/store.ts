@@ -8,12 +8,11 @@ export interface AppNotificationAction {
 }
 
 export interface AppNotification {
-  id?: number;
+  id: number;
   status: AlertVariant;
   title: string;
   message?: React.ReactNode;
   actions?: AppNotificationAction[];
-  hidden?: boolean;
   read?: boolean;
   timestamp: Date;
 }
@@ -21,9 +20,7 @@ export interface AppNotification {
 interface StoreState {
   notifications: AppNotification[];
   addNotification: (notification: Omit<AppNotification, 'id'>) => void;
-  hideNotification: (notification: AppNotification) => void;
-  ackNotification: (notification: AppNotification) => void;
-  removeNotification: (notification: AppNotification) => void;
+  removeNotification: (notificationId: number) => void;
 }
 
 let notificationCount = 0;
@@ -40,18 +37,8 @@ export const useStore = create<StoreState>((set) => ({
         },
       ],
     })),
-  hideNotification: (notification) =>
+  removeNotification: (notificationId) =>
     set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === notification.id ? { ...n, hidden: true } : n,
-      ),
-    })),
-  ackNotification: (notification) =>
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== notification.id),
-    })),
-  removeNotification: (notification) =>
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== notification.id),
+      notifications: state.notifications.filter((n) => n.id !== notificationId),
     })),
 }));

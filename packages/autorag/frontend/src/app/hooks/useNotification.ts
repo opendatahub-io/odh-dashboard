@@ -84,7 +84,7 @@ export const useNotification = (): NotificationFunc => {
   const remove: NotificationRemoveProps = React.useCallback(
     (id) => {
       if (id !== undefined) {
-        removeNotification({ id, status: AlertVariant.info, title: '', timestamp: new Date() });
+        removeNotification(id);
       }
     },
     [removeNotification],

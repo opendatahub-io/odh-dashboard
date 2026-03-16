@@ -44,8 +44,8 @@ function AutoragExperiments(): React.JSX.Element {
   const loadError = defsError ?? runsError;
 
   const handleCreateClick = React.useCallback(() => {
-    navigate(`${autoragConfigurePathname}/${namespace ?? effectiveNamespace}`);
-  }, [navigate, namespace, effectiveNamespace]);
+    navigate(`${autoragConfigurePathname}/${effectiveNamespace}`);
+  }, [navigate, effectiveNamespace]);
 
   const createButton = (
     <Button variant="primary" onClick={handleCreateClick}>
@@ -85,7 +85,7 @@ function AutoragExperiments(): React.JSX.Element {
   if (!hasExperiments) {
     return (
       <EmptyExperimentsState
-        createExperimentRoute={`${autoragConfigurePathname}/${namespace ?? effectiveNamespace}`}
+        createExperimentRoute={`${autoragConfigurePathname}/${effectiveNamespace}`}
         dataTestId="empty-experiments-state"
       />
     );
