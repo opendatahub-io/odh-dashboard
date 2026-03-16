@@ -1,0 +1,388 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
+	"github.com/opendatahub-io/mlflow/bff/internal/constants"
+	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
+	mlflowpkg "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+)
+
+// mockK8sFactory is a lightweight mock for KubernetesClientFactory used in middleware tests.
+type mockK8sFactory struct {
+	mock.Mock
+}
+
+func (m *mockK8sFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(k8s.KubernetesClientInterface), args.Error(1)
+}
+
+func (m *mockK8sFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
+	args := m.Called(httpHeader)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*k8s.RequestIdentity), args.Error(1)
+}
+
+func (m *mockK8sFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	args := m.Called(identity)
+	return args.Error(0)
+}
+
+func newTestAppWithFactory(factory mlflowpkg.MLflowClientFactory) *App {
+	return &App{
+		config:              config.EnvConfig{},
+		logger:              slog.New(slog.NewTextHandler(os.Stderr, nil)),
+		mlflowClientFactory: factory,
+	}
+}
+
+func newTestAppWithFactories(mlflowFactory mlflowpkg.MLflowClientFactory, k8sFactory k8s.KubernetesClientFactory) *App {
+	return &App{
+		config:                  config.EnvConfig{},
+		logger:                  slog.New(slog.NewTextHandler(os.Stderr, nil)),
+		mlflowClientFactory:     mlflowFactory,
+		kubernetesClientFactory: k8sFactory,
+	}
+}
+
+// withIdentity adds a RequestIdentity to the request context.
+func withIdentity(req *http.Request, identity *k8s.RequestIdentity) *http.Request {
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	return req.WithContext(ctx)
+}
+
+// withWorkspace adds a workspace value to the request context.
+func withWorkspace(req *http.Request, workspace string) *http.Request {
+	ctx := context.WithValue(req.Context(), constants.WorkspaceQueryParameterKey, workspace)
+	return req.WithContext(ctx)
+}
+
+// --- AttachWorkspace tests ---
+
+func TestAttachWorkspaceSuccess(t *testing.T) {
+	app := newTestAppWithFactory(nil)
+	var capturedWorkspace string
+
+	handler := app.AttachWorkspace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		capturedWorkspace, _ = r.Context().Value(constants.WorkspaceQueryParameterKey).(string)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments?workspace=my-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "my-ns", capturedWorkspace)
+}
+
+func TestAttachWorkspaceMissing(t *testing.T) {
+	app := newTestAppWithFactory(nil)
+
+	handler := app.AttachWorkspace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Contains(t, errResp.Error.Message, "workspace")
+}
+
+func TestAttachWorkspaceEmpty(t *testing.T) {
+	app := newTestAppWithFactory(nil)
+
+	handler := app.AttachWorkspace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments?workspace=", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+// --- RequireValidIdentity tests ---
+
+func TestRequireValidIdentitySuccess(t *testing.T) {
+	k8sMock := &mockK8sFactory{}
+	app := newTestAppWithFactories(nil, k8sMock)
+
+	identity := &k8s.RequestIdentity{Token: "my-token"}
+	k8sMock.On("ValidateRequestIdentity", identity).Return(nil)
+
+	var called bool
+	handler := app.RequireValidIdentity(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, identity)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+	k8sMock.AssertExpectations(t)
+}
+
+func TestRequireValidIdentityMissing(t *testing.T) {
+	k8sMock := &mockK8sFactory{}
+	app := newTestAppWithFactories(nil, k8sMock)
+
+	handler := app.RequireValidIdentity(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Contains(t, errResp.Error.Message, "RequestIdentity")
+}
+
+func TestRequireValidIdentityValidationFails(t *testing.T) {
+	k8sMock := &mockK8sFactory{}
+	app := newTestAppWithFactories(nil, k8sMock)
+
+	identity := &k8s.RequestIdentity{}
+	k8sMock.On("ValidateRequestIdentity", identity).Return(fmt.Errorf("token is required for token-based authentication"))
+
+	handler := app.RequireValidIdentity(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, identity)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Contains(t, errResp.Error.Message, "token is required")
+	k8sMock.AssertExpectations(t)
+}
+
+// --- AttachMLflowClient tests ---
+
+func TestAttachMLflowClientWithIdentityToken(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	mockClient := &mlflowpkg.MockClient{}
+	app := newTestAppWithFactory(mockFactory)
+
+	// Factory receives raw token (no "Bearer " prefix); factory adds it internally
+	mockFactory.On("GetClient", mock.Anything, "my-token", "my-ns").
+		Return(mockClient, nil)
+
+	var capturedClient mlflowpkg.ClientInterface
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		capturedClient = r.Context().Value(constants.MLflowClientKey).(mlflowpkg.ClientInterface)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, mockClient, capturedClient)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientKubeflowModeAuthorizationHeader(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	mockClient := &mlflowpkg.MockClient{}
+	app := newTestAppWithFactory(mockFactory)
+
+	// Kubeflow mode: identity has no Token, so middleware reads Authorization header
+	// and strips "Bearer " prefix before passing raw token to factory
+	mockFactory.On("GetClient", mock.Anything, "direct-token", "my-ns").
+		Return(mockClient, nil)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req.Header.Set("Authorization", "Bearer direct-token")
+	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientKubeflowModeXForwardedToken(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	mockClient := &mlflowpkg.MockClient{}
+	app := newTestAppWithFactory(mockFactory)
+
+	// Kubeflow mode with X-Forwarded-Access-Token fallback
+	mockFactory.On("GetClient", mock.Anything, "raw-token", "my-ns").
+		Return(mockClient, nil)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req.Header.Set("X-Forwarded-Access-Token", "raw-token")
+	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientIdentityTokenTakesPrecedence(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	mockClient := &mlflowpkg.MockClient{}
+	app := newTestAppWithFactory(mockFactory)
+
+	// When identity has a Token, it takes precedence over headers
+	mockFactory.On("GetClient", mock.Anything, "identity-token", "my-ns").
+		Return(mockClient, nil)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req.Header.Set("Authorization", "Bearer header-token")
+	req = withIdentity(req, &k8s.RequestIdentity{Token: "identity-token"})
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientMissingIdentityPanics(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	app := newTestAppWithFactory(mockFactory)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+
+	// AttachMLflowClient assumes RequireValidIdentity ran first; calling without
+	// identity in context is a programming error that panics.
+	assert.Panics(t, func() {
+		handler(rr, req, nil)
+	})
+}
+
+func TestAttachMLflowClientMLflowNotConfigured(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	app := newTestAppWithFactory(mockFactory)
+
+	mockFactory.On("GetClient", mock.Anything, "", "").
+		Return(nil, mlflowpkg.ErrMLflowNotConfigured)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, &k8s.RequestIdentity{UserID: "user@example.com"})
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "service_unavailable", errResp.Error.Code)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientFactoryError(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	app := newTestAppWithFactory(mockFactory)
+
+	mockFactory.On("GetClient", mock.Anything, "my-token", "ns").
+		Return(nil, fmt.Errorf("mlflow auth token is required"))
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withWorkspace(req, "ns")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestAttachMLflowClientWorkspaceFromContext(t *testing.T) {
+	mockFactory := &mlflowpkg.MockFactory{}
+	mockClient := &mlflowpkg.MockClient{}
+	app := newTestAppWithFactory(mockFactory)
+
+	mockFactory.On("GetClient", mock.Anything, "my-token", "workspace-from-ctx").
+		Return(mockClient, nil)
+
+	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withWorkspace(req, "workspace-from-ctx")
+	rr := httptest.NewRecorder()
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	mockFactory.AssertExpectations(t)
+}

@@ -11,6 +11,7 @@ const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
 const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 const URL_PREFIX = '/mlflow';
 const BFF_API_VERSION = 'v1';
+const WORKSPACE_PARAM = 'workspace';
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
 
 export {
@@ -23,6 +24,7 @@ export {
   URL_PREFIX,
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
+  WORKSPACE_PARAM,
   MANDATORY_NAMESPACE,
   COMPANY_URI,
 };

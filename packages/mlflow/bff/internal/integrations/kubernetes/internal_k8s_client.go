@@ -51,119 +51,100 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Optimization 1: Early exit for cluster admins
-	// Check if user is cluster-admin first to avoid individual SAR checks
 	isAdmin, err := kc.IsClusterAdmin(identity)
 	if err != nil {
 		kc.Logger.Warn("failed to check cluster admin status", "user", identity.UserID, "error", err)
-		// Continue with individual checks if cluster admin check fails
 	} else if isAdmin {
-		namespaceList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list namespaces: %w", err)
+		namespaceList, listErr := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+		if listErr != nil {
+			return nil, fmt.Errorf("failed to list namespaces: %w", listErr)
 		}
 		return namespaceList.Items, nil
 	}
 
-	// List namespaces
 	namespaceList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
-	// Optimization 2: Worker pool for parallel SAR processing
-	// Use a fixed number of workers to process namespace checks, providing better resource control
-	const numWorkers = 10 // Fixed number of workers to avoid resource overhead
+	return kc.filterAccessibleNamespaces(ctx, namespaceList.Items, identity)
+}
 
-	type sarJob struct {
-		namespace corev1.Namespace
+const sarWorkerCount = 10
+
+type sarResult struct {
+	namespace corev1.Namespace
+	allowed   bool
+	err       error
+}
+
+// filterAccessibleNamespaces runs parallel SubjectAccessReview checks to
+// determine which namespaces the user can access.
+func (kc *InternalKubernetesClient) filterAccessibleNamespaces(ctx context.Context, namespaces []corev1.Namespace, identity *RequestIdentity) ([]corev1.Namespace, error) {
+	jobs := make(chan corev1.Namespace, len(namespaces))
+	results := make(chan sarResult, len(namespaces))
+
+	for w := 0; w < sarWorkerCount; w++ {
+		go kc.sarWorker(ctx, identity, jobs, results)
 	}
 
-	type sarResult struct {
-		namespace corev1.Namespace
-		allowed   bool
-		err       error
-	}
-
-	// Create job and result channels
-	jobs := make(chan sarJob, len(namespaceList.Items))
-	results := make(chan sarResult, len(namespaceList.Items))
-
-	// Start worker pool
-	for w := 0; w < numWorkers; w++ {
-		go func() {
-			for {
-				select {
-				case <-ctx.Done():
-					// Respect context cancellation
-					return
-				case job, ok := <-jobs:
-					if !ok {
-						// Jobs channel closed, exit worker
-						return
-					}
-
-					// Perform SAR check
-					sar := &authv1.SubjectAccessReview{
-						Spec: authv1.SubjectAccessReviewSpec{
-							User:   identity.UserID,
-							Groups: identity.Groups,
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "get",
-								Resource:  "namespaces",
-								Namespace: job.namespace.Name,
-							},
-						},
-					}
-
-					response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-
-					select {
-					case <-ctx.Done():
-						// Context cancelled, exit worker
-						return
-					case results <- sarResult{
-						namespace: job.namespace,
-						allowed:   err == nil && response.Status.Allowed,
-						err:       err,
-					}:
-						// Result sent successfully
-					}
-				}
-			}
-		}()
-	}
-
-	// Send jobs to workers
 	go func() {
 		defer close(jobs)
-		for _, ns := range namespaceList.Items {
+		for _, ns := range namespaces {
 			select {
 			case <-ctx.Done():
-				// Context cancelled, stop sending jobs
 				return
-			case jobs <- sarJob{namespace: ns}:
-				// Job sent successfully
+			case jobs <- ns:
 			}
 		}
 	}()
 
-	// Collect results
-	var allowed []corev1.Namespace
-	errorCount := 0
-	processed := 0
+	return kc.collectSARResults(ctx, len(namespaces), results, identity)
+}
 
-	for processed < len(namespaceList.Items) {
+func (kc *InternalKubernetesClient) sarWorker(ctx context.Context, identity *RequestIdentity, jobs <-chan corev1.Namespace, results chan<- sarResult) {
+	for {
 		select {
 		case <-ctx.Done():
-			// Context cancelled, return what we have so far
+			return
+		case ns, ok := <-jobs:
+			if !ok {
+				return
+			}
+			sar := &authv1.SubjectAccessReview{
+				Spec: authv1.SubjectAccessReviewSpec{
+					User:   identity.UserID,
+					Groups: identity.Groups,
+					ResourceAttributes: &authv1.ResourceAttributes{
+						Verb:      "get",
+						Resource:  "namespaces",
+						Namespace: ns.Name,
+					},
+				},
+			}
+			response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+			select {
+			case <-ctx.Done():
+				return
+			case results <- sarResult{namespace: ns, allowed: err == nil && response.Status.Allowed, err: err}:
+			}
+		}
+	}
+}
+
+func (kc *InternalKubernetesClient) collectSARResults(ctx context.Context, total int, results <-chan sarResult, identity *RequestIdentity) ([]corev1.Namespace, error) {
+	var allowed []corev1.Namespace
+	var errorCount int
+
+	for processed := 0; processed < total; processed++ {
+		select {
+		case <-ctx.Done():
 			kc.Logger.Warn("context cancelled during namespace access checks",
 				"user", identity.UserID,
 				"processed", processed,
-				"total", len(namespaceList.Items))
+				"total", total)
 			return allowed, ctx.Err()
 		case result := <-results:
-			processed++
 			if result.err != nil {
 				kc.Logger.Error("failed SAR for namespace", "namespace", result.namespace.Name, "error", result.err)
 				errorCount++
@@ -177,7 +158,7 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 
 	kc.Logger.Debug("namespace access check completed",
 		"user", identity.UserID,
-		"total_namespaces", len(namespaceList.Items),
+		"total_namespaces", total,
 		"accessible_namespaces", len(allowed),
 		"errors", errorCount)
 

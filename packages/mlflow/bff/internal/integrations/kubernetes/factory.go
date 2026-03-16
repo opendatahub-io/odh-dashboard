@@ -31,16 +31,16 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 	}
 }
 
-// ─── STATIC FACTORY (INTERNAL) ──────────────────────────────────────────
-// uses the credentials of the running backend to create a single instance of the client
-// If running inside the cluster, it uses the pod's service account.
-// If running locally (e.g. for development), it uses the current user's kubeconfig context.
+// KubernetesClientFactory abstracts the creation of Kubernetes clients and
+// the extraction/validation of request identities.
 type KubernetesClientFactory interface {
 	GetClient(ctx context.Context) (KubernetesClientInterface, error)
 	ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error)
 	ValidateRequestIdentity(identity *RequestIdentity) error
 }
 
+// StaticClientFactory uses the running backend's credentials to create a single
+// shared Kubernetes client (pod service account or local kubeconfig).
 type StaticClientFactory struct {
 	Logger *slog.Logger
 	Client KubernetesClientInterface
@@ -64,16 +64,12 @@ func (f *StaticClientFactory) GetClient(_ context.Context) (KubernetesClientInte
 func (f *StaticClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
 
 	userID := httpHeader.Get(constants.KubeflowUserIDHeader)
-	//`kubeflow-userid`: Contains the user's email address.
 	if userID == "" {
 		return nil, errors.New("missing required kubeflow-userid header")
 	}
 
-	userGroupsHeader := httpHeader.Get(constants.KubeflowUserGroupsIdHeader)
-	// Note: The functionality for `kubeflow-groups` is not fully operational at Kubeflow platform at this time
-	// but it's supported on MLflow BFF
-	//`kubeflow-groups`: Holds a comma-separated list of user groups.
-	groups := []string{}
+	userGroupsHeader := httpHeader.Get(constants.KubeflowUserGroupsIDHeader)
+	var groups []string
 	if userGroupsHeader != "" {
 		for _, g := range strings.Split(userGroupsHeader, ",") {
 			groups = append(groups, strings.TrimSpace(g))
@@ -96,12 +92,8 @@ func (f *StaticClientFactory) ValidateRequestIdentity(identity *RequestIdentity)
 	return nil
 }
 
-//
-// ─── TOKEN FACTORY (USER TOKEN) ────────────────────────────────────────────────
-// uses a user-provided Bearer token for client creation.
-// each user has a separate client instance.
-//
-
+// TokenClientFactory creates per-request Kubernetes clients using a
+// user-provided Bearer token. Each user gets a separate client instance.
 type TokenClientFactory struct {
 	Logger *slog.Logger
 	Header string

@@ -27,22 +27,43 @@ help: ## Display this help.
 ############ Dev Environment ############
 
 .PHONY: dev-install-dependencies
-dev-install-dependencies:
+dev-install-dependencies: ## Install dependencies for frontend
 	cd frontend && npm install
 
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s + MLflow)
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+
 .PHONY: dev-bff
-dev-bff:
-	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
+dev-bff: ## Run BFF connecting to a real MLflow instance (requires .env.local with MLFLOW_URL)
+	cd bff && MLFLOW_URL=${MLFLOW_URL} make run PORT=4000 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=$(or ${INSECURE_SKIP_VERIFY},false) DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
 
 .PHONY: dev-frontend
-dev-frontend:
+dev-frontend: ## Run only the frontend in development mode
 	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
 
-.PHONY: dev-start
-dev-start:
+.PHONY: dev-mlflow-up
+dev-mlflow-up: ## Start local MLflow tracking server for development
+	cd bff && make mlflow-up
+
+.PHONY: dev-bff-mock-local
+dev-bff-mock-local: ## Run BFF with mocked K8s but real local MLflow
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+
+.PHONY: dev-start-mock
+dev-start-mock: ## Run frontend and BFF (all mocks) in development mode
 	@trap 'exit 0' INT; \
-	make -j 2 dev-bff dev-frontend
+	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start-mock-local
+dev-start-mock-local: ## Run frontend and BFF with mocked K8s + local MLflow (started and seeded automatically by the BFF)
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-mock-local dev-frontend
+
+.PHONY: dev-start
+dev-start: ## Run frontend and BFF connecting to a real MLflow instance
+	@trap 'exit 0' INT; \
+	AUTH_METHOD=user_token make -j 2 dev-bff dev-frontend
 
 ########### Dev Kubeflow ############
 .PHONY: dev-start-kubeflow
@@ -122,7 +143,7 @@ kind-deployment:
 kubeflow-deployment:
 	./scripts/deploy_kubeflow_cluster.sh
 
-############ Build ############	
+############ Component Build ############
 .PHONY: frontend-build
 frontend-build:
 	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
@@ -141,7 +162,4 @@ build: frontend-build bff-build
 ############ Run mocked ########
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
-	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
-
-	
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true

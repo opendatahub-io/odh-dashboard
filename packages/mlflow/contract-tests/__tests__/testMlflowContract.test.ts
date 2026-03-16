@@ -44,4 +44,14 @@ describe('MLflow API Contract Tests', () => {
       });
     });
   });
+
+  describe('Experiments Endpoint', () => {
+    it('should successfully retrieve experiments list', async () => {
+      const result = await apiClient.get('/api/v1/experiments?workspace=test-ns');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ExperimentsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
 });

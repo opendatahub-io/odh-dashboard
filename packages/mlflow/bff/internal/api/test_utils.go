@@ -15,7 +15,7 @@ import (
 )
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
-func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
+func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) { //nolint:unused
 	var empty T
 	var reqBody io.Reader
 	if body != nil {
