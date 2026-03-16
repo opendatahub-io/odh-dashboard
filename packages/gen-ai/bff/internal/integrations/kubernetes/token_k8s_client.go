@@ -77,6 +77,11 @@ const (
 	authAnnotationKey = "security.opendatahub.io/enable-auth"
 )
 
+type modelProviderInfoEntry struct {
+	providerID  string
+	tokenEnvVar string
+}
+
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
 	Client    client.Client
@@ -1468,10 +1473,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	config.AddModel(embeddingModel)
 
 	// Track provider IDs and token env vars for guardrails configuration
-	modelProviderInfo := make(map[string]struct {
-		providerID  string
-		tokenEnvVar string
-	}, len(installModels))
+	modelProviderInfo := make(map[string]modelProviderInfoEntry, len(installModels))
 
 	for i, model := range installModels {
 		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1497,10 +1499,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = struct {
-				providerID  string
-				tokenEnvVar string
-			}{providerID: providerID, tokenEnvVar: tokenEnvVar}
+			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
 			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1523,10 +1522,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			kc.Logger.Info("Added external model to configuration", "model", modelID, "providerID", providerID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = struct {
-				providerID  string
-				tokenEnvVar string
-			}{providerID: providerID, tokenEnvVar: tokenEnvVar}
+			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 
 		} else {
 			// Handle regular cluster models (InferenceService/LLMInferenceService)
@@ -1549,10 +1545,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			kc.Logger.Info("Added cluster model to configuration", "model", modelID, "providerID", providerID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = struct {
-				providerID  string
-				tokenEnvVar string
-			}{providerID: providerID, tokenEnvVar: tokenEnvVar}
+			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 		}
 	}
 
