@@ -6,12 +6,7 @@ This document provides comprehensive guidance for AI agents working on the Open 
 
 ODH Dashboard is a **monorepo** containing the main dashboard application and multiple feature packages. It provides the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub.
 
-**Quick Links:**
-- 📚 [BOOKMARKS.md](BOOKMARKS.md) - Key documentation and resources
-- 🏗️ [docs/architecture.md](docs/architecture.md) - Detailed architecture
-- 🧩 [docs/module-federation.md](docs/module-federation.md) - Module Federation patterns
-- 🧪 [docs/testing.md](docs/testing.md) - Testing guide
-- 📋 [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+**Quick Links**: See [BOOKMARKS.md](BOOKMARKS.md) for key documentation and resources.
 
 ## Repository Structure
 
@@ -52,45 +47,6 @@ odh-dashboard/
 | Cypress       | E2E and component testing                  |
 | Jest          | Unit testing                               |
 | Turbo         | Monorepo task runner                       |
-
-## Architecture Decisions
-
-### Why Monorepo?
-
-**Decision**: Use npm workspaces + Turbo monorepo structure
-
-**Rationale**:
-- **Code sharing**: Shared utilities, types, and components across features
-- **Atomic changes**: Update multiple packages in single commit
-- **Simplified dependencies**: Single node_modules, consistent versions
-- **Developer experience**: Single install, unified tooling
-
-**Trade-offs**:
-- Larger repository size
-- More complex CI/CD (mitigated by Turbo caching)
-
-### Why Module Federation?
-
-**Decision**: Use Webpack Module Federation for runtime code-splitting
-
-**Rationale**:
-- **Plugin architecture**: External teams can build features independently
-- **Runtime loading**: Load features on-demand, not at build time
-- **Isolation**: Features can be developed, tested, deployed separately
-- **Performance**: Only load features user actually uses
-
-**Implementation**: See [docs/module-federation.md](docs/module-federation.md)
-
-### Why Turbo?
-
-**Decision**: Use Turbo for monorepo task orchestration
-
-**Rationale**:
-- **Speed**: Caches task outputs, only rebuilds changed packages
-- **Simplicity**: Runs tasks across workspaces with single command
-- **CI/CD**: Intelligent task scheduling based on dependencies
-
-**Alternative considered**: Nx (more features, more complex)
 
 ## Development Patterns
 
@@ -216,16 +172,6 @@ npm run type-check
 cd packages/gen-ai && npm run build
 ```
 
-## Package-Specific Guidelines
-
-Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file:
-
-- `frontend/AGENTS.md` - Main dashboard frontend
-- `backend/AGENTS.md` - Main dashboard backend
-- `packages/gen-ai/AGENTS.md` - Gen AI features
-- `packages/model-registry/AGENTS.md` - Model Registry
-- `packages/cypress/AGENTS.md` - Testing framework
-
 ## Specialized Agent Rules
 
 Before performing certain tasks, read and follow the corresponding specialized rules:
@@ -300,14 +246,6 @@ See [docs/pr-review-guidelines.md](docs/pr-review-guidelines.md) for review proc
 - **Testing**: See [docs/testing.md](docs/testing.md)
 - **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md)
 - **SMEs**: See [docs/smes.md](docs/smes.md) for subject matter experts
-
-## Useful External Resources
-
-- [PatternFly v6](https://www.patternfly.org/v6/) - Primary UI library
-- [React 18](https://react.dev/) - Frontend framework
-- [TypeScript](https://www.typescriptlang.org/) - Type system
-- [Turbo](https://turbo.build/) - Monorepo tool
-- [Module Federation](https://module-federation.io/) - Code sharing
 
 ---
 

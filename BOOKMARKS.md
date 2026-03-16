@@ -12,6 +12,7 @@ This file serves as a context anchor for AI agents, providing quick links to key
 
 ### Architecture & Design
 - [docs/architecture.md](docs/architecture.md) - Overall system architecture
+- [docs/architecture-decisions.md](docs/architecture-decisions.md) - Key architecture decisions (monorepo, Module Federation, Turbo)
 - [docs/module-federation.md](docs/module-federation.md) - Module Federation implementation
 - [docs/extensibility.md](docs/extensibility.md) - Plugin/extension system
 - [docs/modular-architecture-quality-gates.md](docs/modular-architecture-quality-gates.md) - Quality standards
@@ -49,48 +50,6 @@ This file serves as a context anchor for AI agents, providing quick links to key
 - [docs/admin-dashboard.md](docs/admin-dashboard.md) - Admin features
 - [docs/onboard-modular-architecture.md](docs/onboard-modular-architecture.md) - Onboarding new modules
 
-## 🎨 UI/UX Resources
-
-### PatternFly (Primary UI Library)
-- [PatternFly v6 Documentation](https://www.patternfly.org/v6/)
-- [PatternFly v6 Components](https://www.patternfly.org/v6/components/about-modal)
-- [PatternFly v6 Layouts](https://www.patternfly.org/v6/layouts/bullseye)
-- [PatternFly React](https://github.com/patternfly/patternfly-react)
-- [PatternFly Design Guidelines](https://www.patternfly.org/v6/ux-writing/about)
-
-### Material UI (Secondary - Kubeflow Mode)
-- [Material UI Documentation](https://mui.com/material-ui/)
-- [Material UI Components](https://mui.com/material-ui/all-components/)
-
-### React Patterns
-- [React 18 Documentation](https://react.dev/)
-- [React Hooks](https://react.dev/reference/react/hooks)
-- [React Patterns](https://react.dev/learn)
-- [TypeScript with React](https://react-typescript-cheatsheet.netlify.app/)
-
-## 🔧 Technical Resources
-
-### TypeScript
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
-- [TypeScript Strict Mode](https://www.typescriptlang.org/tsconfig#strict)
-- [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)
-
-### Testing
-- [Jest Documentation](https://jestjs.io/docs/getting-started)
-- [Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
-- [Cypress Documentation](https://docs.cypress.io/)
-- [Cypress Best Practices](https://docs.cypress.io/guides/references/best-practices)
-
-### Build Tools
-- [Turbo Documentation](https://turbo.build/repo/docs)
-- [npm Workspaces](https://docs.npmjs.com/cli/v10/using-npm/workspaces)
-- [Webpack Module Federation](https://webpack.js.org/concepts/module-federation/)
-- [Module Federation Concepts](https://module-federation.io/)
-
-### Go (BFF Services)
-- [Go Documentation](https://go.dev/doc/)
-- [Go Best Practices](https://go.dev/doc/effective_go)
-
 ## 📦 Key Package Locations
 
 ### Main Applications
@@ -116,32 +75,6 @@ This file serves as a context anchor for AI agents, providing quick links to key
 - [packages/plugin-core/](packages/plugin-core/) - Plugin core utilities
 - [packages/plugin-template/](packages/plugin-template/) - Plugin template
 
-## 🔍 Quick Search Guides
-
-### Finding Code by Feature
-```bash
-# Search for components
-find frontend/src packages/*/frontend/src -name "*.tsx" | grep -i <feature>
-
-# Search for API calls
-grep -r "axios\|fetch" frontend/src packages/*/frontend/src
-
-# Search for tests
-find . -name "*.test.ts*" | grep <keyword>
-```
-
-### Finding Documentation
-```bash
-# All markdown docs
-find docs -name "*.md"
-
-# Agent-specific rules
-ls docs/agent-rules/
-
-# Architecture docs
-ls docs/*architecture*.md docs/module-federation.md
-```
-
 ## 🚀 Common Tasks Quick Reference
 
 | Task | Command | Documentation |
@@ -156,13 +89,6 @@ ls docs/*architecture*.md docs/module-federation.md
 | Write unit test | Follow patterns | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md) |
 | Write E2E test | Follow patterns | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md) |
 | Add new package | Follow module guide | [docs/onboard-modular-architecture.md](docs/onboard-modular-architecture.md) |
-
-## 📞 Getting Help
-
-- **Issues**: [GitHub Issues](https://github.com/opendatahub-io/odh-dashboard/issues)
-- **SMEs**: See [docs/smes.md](docs/smes.md)
-- **Code Owners**: See [OWNERS](OWNERS) and [OWNERS_ALIASES](OWNERS_ALIASES)
-- **Slack**: Ask in team channels (see team documentation)
 
 ---
 
