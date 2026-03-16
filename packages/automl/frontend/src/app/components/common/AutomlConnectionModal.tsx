@@ -75,6 +75,14 @@ const AutomlConnectionModal: React.FC<Props> = ({
     [key: string]: boolean | string;
   }>({});
 
+  React.useEffect(() => {
+    if (selectedConnectionType === undefined && enabledConnectionTypes.length === 1) {
+      const connectionType = enabledConnectionTypes[0];
+      setSelectedConnectionType(connectionType);
+      setConnectionValues(getDefaultValues(connectionType));
+    }
+  }, [enabledConnectionTypes, selectedConnectionType]);
+
   const isFormValid = React.useMemo(() => {
     const hasMissingRequiredField = selectedConnectionType?.data?.fields?.find((field) => {
       if (

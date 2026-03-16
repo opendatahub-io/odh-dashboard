@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -106,6 +107,7 @@ function AutomlConfigure(): React.JSX.Element {
     [allConnectionTypes],
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
@@ -178,6 +180,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
+                                    setNewConnectionNotLoaded(false);
                                     setSelectedSecret(secret);
                                     onChange(secret?.invalid ? undefined : secret?.name);
                                     setValue(
@@ -207,6 +210,14 @@ function AutomlConfigure(): React.JSX.Element {
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {newConnectionNotLoaded && (
+                        <StackItem className="pf-v6-u-mt-md">
+                          <Alert variant="warning" isInline title="Connection added">
+                            The connection was created but could not be loaded. Please refresh the
+                            page to see it.
+                          </Alert>
+                        </StackItem>
+                      )}
                       {Boolean(selectedSecret?.uuid) && (
                         <>
                           <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
@@ -413,8 +424,9 @@ function AutomlConfigure(): React.JSX.Element {
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
+              setNewConnectionNotLoaded(false);
               const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(secret.data);
+              const availableKeys = Object.keys(secret.data ?? connection.stringData ?? {});
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
                 ...secret,
@@ -423,8 +435,10 @@ function AutomlConfigure(): React.JSX.Element {
               setValue('train_data_secret_name', invalid ? undefined : secret.name);
               setValue(
                 'train_data_bucket_name',
-                invalid ? undefined : getBucketFromSecretData(secret.data),
+                invalid ? undefined : getBucketFromSecretData(secret.data ?? connection.stringData),
               );
+            } else {
+              setNewConnectionNotLoaded(true);
             }
           }}
         />
