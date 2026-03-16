@@ -129,8 +129,10 @@ export const useExtractFormDataFromDeployment = (
     }
 
     return {
-      // Extract model type information from deployment metadata
-      modelTypeField: getModelTypeFromDeployment(deployment),
+      modelTypeField:
+        typeof formDataExtension?.properties.extractModelType === 'function'
+          ? formDataExtension.properties.extractModelType(deployment) ?? undefined
+          : getModelTypeFromDeployment(deployment),
 
       // Setup K8s name and description fields with deployment model data
       k8sNameDesc: setupDefaults({ initialData: deployment.model }),

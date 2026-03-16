@@ -18,7 +18,6 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
@@ -49,12 +48,7 @@ export const getModelTypeFromDeployment = (
 ): ModelTypeFieldData | undefined => {
   const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
   if (modelType && isValidModelType(modelType)) {
-    return {
-      type: modelType,
-      legacyVLLM:
-        deployment.model.kind === 'InferenceService' &&
-        modelType === ServingRuntimeModelType.GENERATIVE,
-    };
+    return { type: modelType, legacyVLLM: false };
   }
   return undefined;
 };
