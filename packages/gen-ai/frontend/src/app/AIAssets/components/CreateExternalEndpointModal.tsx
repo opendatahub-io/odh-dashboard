@@ -328,12 +328,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 setIsModelTypeOpen(false);
               }}
               onOpenChange={(nextOpen) => setIsModelTypeOpen(nextOpen)}
+              isDisabled={isVerifying || isSubmitting}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                   ref={toggleRef}
                   onClick={() => setIsModelTypeOpen(!isModelTypeOpen)}
                   isFullWidth
                   data-testid="create-external-model-type-select"
+                  isDisabled={isVerifying || isSubmitting}
                 >
                   {modelTypeLabel}
                 </MenuToggle>
@@ -370,12 +372,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 setIsProviderTypeOpen(false);
               }}
               onOpenChange={(nextOpen) => setIsProviderTypeOpen(nextOpen)}
+              isDisabled={isVerifying || isSubmitting}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                   ref={toggleRef}
                   onClick={() => setIsProviderTypeOpen(!isProviderTypeOpen)}
                   isFullWidth
                   data-testid="create-external-model-provider-select"
+                  isDisabled={isVerifying || isSubmitting}
                 >
                   {providerTypeLabel}
                 </MenuToggle>
@@ -426,6 +430,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setModelId(value)}
               onBlur={() => setTouched({ ...touched, modelId: true })}
               validated={touched.modelId && !modelId.trim() ? 'error' : 'default'}
+              isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. text-embedding-3-small, BAAI/bge-large-en-v1.5'
@@ -463,6 +468,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               name="display-name"
               value={displayName}
               onChange={(_event, value) => setDisplayName(value)}
+              isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. OpenAI Small Embeddings, BGE Large EN'
@@ -493,6 +499,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                     ? 'error'
                     : 'default'
                 }
+                isDisabled={isVerifying || isSubmitting}
                 placeholder="e.g. 768, 1536, 3072"
                 data-testid="create-external-model-embedding-dimension-input"
               />
@@ -529,6 +536,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setEndpointUrl(value)}
               onBlur={() => setTouched({ ...touched, endpointUrl: true })}
               validated={touched.endpointUrl && !endpointUrl.trim() ? 'error' : 'default'}
+              isDisabled={isVerifying || isSubmitting}
               placeholder="e.g. https://api.openai.com/v1"
               data-testid="create-external-model-url-input"
             />
@@ -549,6 +557,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setToken(value)}
               onBlur={() => setTouched({ ...touched, token: true })}
               validated={touched.token && !token.trim() ? 'error' : 'default'}
+              isDisabled={isVerifying || isSubmitting}
               placeholder="Your API key or token"
               data-testid="create-external-model-token-input"
             />
@@ -602,6 +611,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               name="use-cases"
               value={useCases}
               onChange={(_event, value) => setUseCases(value)}
+              isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
                   ? 'e.g. Document search, Semantic similarity'
