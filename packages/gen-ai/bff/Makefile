@@ -144,7 +144,7 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
 	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
-	$(UV) run --with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with milvus-lite --with pymilvus --with chardet --with ollama --with pypdf \
+	$(UV) run --with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
 		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
 
 .PHONY: llamastack-down

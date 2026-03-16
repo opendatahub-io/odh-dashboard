@@ -88,6 +88,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 
 	recordingDir := filepath.Join(projectRoot, "testdata", "llamastack")
 	configPath := filepath.Join(projectRoot, "testdata", "llamastack", "config.yaml")
+	requirementsPath := filepath.Join(projectRoot, "testdata", "llamastack", "requirements.txt")
 
 	// Determine inference mode and API key
 	inferenceMode := os.Getenv("LLAMA_STACK_TEST_INFERENCE_MODE")
@@ -108,11 +109,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 		"--refresh-package", "llama-stack-api",
 		"--with", "llama-stack=="+version,
 		"--with", "llama-stack-api=="+version,
-		"--with", "milvus-lite",
-		"--with", "pymilvus",
-		"--with", "chardet",
-		"--with", "ollama",
-		"--with", "pypdf",
+		"--with-requirements", requirementsPath,
 		"llama", "stack", "run", configPath,
 		"--port", fmt.Sprintf("%d", port),
 	)
