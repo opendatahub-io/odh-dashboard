@@ -1,5 +1,5 @@
 import { FormGroup, TextArea, TextInput } from '@patternfly/react-core';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -12,6 +12,16 @@ function AutoragCreate(): React.JSX.Element {
   >();
 
   const form = useFormContext<ConfigureSchema>();
+  const { setValue } = form;
+
+  // When pressing "Back" to return to this screen, the SecretSelector appears to have no value set
+  // even though "llama_stack_secret_name" is set from before.
+  // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
+  // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
+  // no selection appears to be made.
+  useEffect(() => {
+    setValue('llama_stack_secret_name', '');
+  }, [setValue]);
 
   return (
     <>
