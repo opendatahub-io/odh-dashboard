@@ -113,6 +113,19 @@ describe('AutoragVectorStoreSelector', () => {
     expect(toggle).toHaveTextContent('No vector stores available');
   });
 
+  it('should disable the toggle when fetching vector stores fails', () => {
+    mockUseLlamaStackVectorStoresQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    } as unknown as ReturnType<typeof useLlamaStackVectorStoresQuery>);
+
+    renderWithProviders(<AutoragVectorStoreSelector />);
+
+    const toggle = screen.getByTestId('vector-store-select-toggle');
+    expect(toggle).toBeDisabled();
+  });
+
   it('should show a loading skeleton when vector stores are loading', () => {
     mockUseLlamaStackVectorStoresQuery.mockReturnValue({
       data: undefined,

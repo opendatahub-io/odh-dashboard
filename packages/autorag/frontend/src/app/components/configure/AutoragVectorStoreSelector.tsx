@@ -19,11 +19,11 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   // TODO: secretName should come from a react-hook-form field. Once it's implemented,
   // add secretName as a parameter into useLlamaStackVectorStoresQuery
-  const { data: vectorStoresData, isLoading } = useLlamaStackVectorStoresQuery(
-    namespace,
-    undefined,
-    SUPPORTED_VECTOR_STORE_PROVIDERS,
-  );
+  const {
+    data: vectorStoresData,
+    isLoading,
+    isError,
+  } = useLlamaStackVectorStoresQuery(namespace, undefined, SUPPORTED_VECTOR_STORE_PROVIDERS);
 
   const vectorStores = vectorStoresData?.vector_stores ?? [];
   const selectedStore = vectorStores.find((vs) => vs.id === field.value);
@@ -47,7 +47,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || vectorStores.length === 0}
+          isDisabled={isSubmitting || isError || vectorStores.length === 0}
           data-testid="vector-store-select-toggle"
         >
           {selectedStore?.name ??
