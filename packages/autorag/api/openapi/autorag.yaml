@@ -228,12 +228,15 @@ paths:
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
 
   /api/v1/s3/files:
-    summary: Retrieve a list of files from an S3 connection.
-    description: >-
-      Retrieves a list of files from an S3-compatible connection.
-      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
-      Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
+    summary: Endpoints for dealing with multiple files within an S3-compatible connection
     get:
+      operationId: getS3Files
+      summary: Get files from S3
+      description: >-
+        Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
+        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
+        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url).
+        Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
       tags:
         - S3Operation
       parameters:
@@ -253,7 +256,7 @@ paths:
           example: aws-secret-1
         - name: bucket
           in: query
-          required: true
+          required: false
           description: The S3 bucket name
           schema:
             type: string
@@ -297,12 +300,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-      operationId: getS3Files
-      summary: Get files from S3
-      description: >-
-        Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
-        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
-        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url).
 
   # =============================================================================
   # LSD ENDPOINTS
@@ -917,8 +914,50 @@ components:
 
     S3ListObjectsResult:
       type: object
-      description: The result from calling S3's ListObjects method (specifically ListObjectsV2)
-      additionalProperties: true
+      description: A listing of S3 objects and virtual folders within a bucket prefix.
+      properties:
+        CommonPrefixes:
+          type: array
+          items:
+            type: object
+            properties:
+              Prefix:
+                type: string
+        Contents:
+          type: array
+          items:
+            type: object
+            properties:
+              Key:
+                type: string
+              LastModified:
+                type: string
+                format: date-time
+              ETag:
+                type: string
+              Size:
+                type: integer
+                format: int64
+              StorageClass:
+                type: string
+        ContinuationToken:
+          type: string
+        Delimiter:
+          type: string
+        IsTruncated:
+          type: boolean
+        KeyCount:
+          type: integer
+          format: int32
+        MaxKeys:
+          type: integer
+          format: int32
+        Name:
+          type: string
+        NextContinuationToken:
+          type: string
+        Prefix:
+          type: string
 
     BaseResource:
       allOf:
@@ -1408,40 +1447,11 @@ components:
       description: Conflict - Role Binding with the same name already exists
 
     S3GetFilesResponse:
-      description: S3 response when retrieving files successfully. Aligns to the S3 ListObjectsV2 SDK return value
+      description: S3 response when retrieving files successfully
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              CommonPrefixes:
-                type: array
-              Contents:
-                type: array
-              ContinuationToken:
-                type: string
-              Delimiter:
-                type: string
-              EncodingType:
-                type: string
-              IsTruncated:
-                type: boolean
-              KeyCount:
-                type: integer
-              MaxKeys:
-                type: integer
-              Name:
-                type: string
-              NextContinuationToken:
-                type: string
-              Prefix:
-                type: string
-              RequestCharged:
-                type: string
-              StartAfter:
-                type: string
-              ResultMetadata:
-                type: object
+            $ref: "#/components/schemas/S3ListObjectsResult"
 
   parameters:
     kubeflowUserId:

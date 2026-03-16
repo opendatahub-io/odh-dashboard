@@ -172,7 +172,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
 func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Validate identity
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
 	if !ok || identity == nil {
@@ -180,30 +179,42 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Validate parameters
-	parameters, validationError := validateParameters(r)
-	if validationError != nil {
-		app.badRequestResponse(w, r, validationError)
+	// Get namespace from context (Note: namespace is provided via the AttachNamespace middleware)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 		return
 	}
 
-	namespace := parameters.Namespace
+	// Validate parameters
+	parameters, err := validateParameters(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	secretName := parameters.SecretName
 	bucket := parameters.Bucket
 
 	// Get Kubernetes client
-	client, clientError := app.kubernetesClientFactory.GetClient(ctx)
-	if clientError != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", clientError))
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
 		return
 	}
 
+	// TODO [ PR-Feedback: AI ] This entire K8s error handling block is duplicated
+	//   verbatim from GetS3FileHandler and also mirrors secrets_handler.go. Extract
+	//   into a shared helper, e.g. handleK8sCredentialError(w, r, err, namespace, secretName).
+	//   Also: the strings.Contains(err.Error(), "not found") check is fragile — define typed/sentinel
+	//   errors in the repository layer instead of matching on error message substrings.
+
 	// Get S3 credentials from the secret
-	creds, credentialsError := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
-	if credentialsError != nil {
+	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
-		if errors.As(credentialsError, &statusErr) {
+		if errors.As(err, &statusErr) {
 			if apierrors.IsNotFound(statusErr) {
 				httpError := &integrations.HTTPError{
 					StatusCode: http.StatusNotFound,
@@ -216,34 +227,34 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, credentialsError.Error())
+				app.forbiddenResponse(w, r, err.Error())
 				return
 			}
 			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, credentialsError.Error())
+				app.unauthorizedResponse(w, r, err.Error())
 				return
 			}
 		}
 
 		// Check if it's a secret not found or validation error
-		if strings.Contains(credentialsError.Error(), "not found") {
+		if strings.Contains(err.Error(), "not found") {
 			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
 				ErrorResponse: integrations.ErrorResponse{
 					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: credentialsError.Error(),
+					Message: err.Error(),
 				},
 			}
 			app.errorResponse(w, r, httpError)
 			return
 		}
 
-		if strings.Contains(credentialsError.Error(), "missing required field") {
-			app.badRequestResponse(w, r, credentialsError)
+		if strings.Contains(err.Error(), "missing required field") {
+			app.badRequestResponse(w, r, err)
 			return
 		}
 
-		app.serverErrorResponse(w, r, credentialsError)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -256,14 +267,14 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
-	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket, repositories.GetS3ObjectsOptions{
+	result, err := app.repositories.S3.GetS3Objects(ctx, creds, bucket, repositories.GetS3ObjectsOptions{
 		Path:   parameters.Path,
 		Search: parameters.Search,
 		Next:   parameters.Next,
 		Limit:  parameters.Limit,
 	})
-	if listError != nil {
-		app.serverErrorResponse(w, r, listError)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -273,7 +284,6 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 }
 
 type getS3FilesParams struct {
-	Namespace  string
 	SecretName string
 	Bucket     string
 	Path       string
@@ -284,11 +294,6 @@ type getS3FilesParams struct {
 
 func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	queryParams := r.URL.Query()
-
-	namespace := queryParams.Get("namespace")
-	if namespace == "" {
-		return nil, errors.New("query parameter 'namespace' is required")
-	}
 
 	secretName := queryParams.Get("secret_name")
 	if secretName == "" {
@@ -322,7 +327,6 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	}
 
 	return &getS3FilesParams{
-		Namespace:  namespace,
 		SecretName: secretName,
 		Bucket:     bucket,
 		Path:       path,

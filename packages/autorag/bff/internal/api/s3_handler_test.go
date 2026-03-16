@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -729,54 +728,4 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 		})
 	}
-}
-
-func TestGetS3FilesHandler_CallsS3ListObjectsV2Correctly(t *testing.T) {
-	// TODO [ Gustavo ] Useless test so far since we need to add more testing for the repositories/s3.go directly to test ListObjectsV2 behaviour
-	namespace := "test-namespace"
-	secretName := "aws-secret-1"
-	bucket := "my-bucket"
-
-	mockSecrets := []corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace,
-				UID:       types.UID("uid-1"),
-			},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
-				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
-				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
-				"AWS_S3_BUCKET":         []byte(bucket),
-			},
-		},
-	}
-
-	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	params := url.Values{}
-	params.Set("namespace", namespace)
-	params.Set("secret_name", secretName)
-	params.Set("bucket", bucket)
-	params.Set("path", "some-path")
-	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
-
-	body, res, err := setupApiTest[json.RawMessage](
-		"GET",
-		uri.String(),
-		nil,
-		factory,
-		identity,
-	)
-
-	t.Logf("Response status: %d", res.StatusCode)
-	t.Logf("Response body (raw): %s", string(body))
-
-	assert.NoError(t, err)
-	// Validation passes (search, next, limit are optional), but S3 call fails without a real/mock S3 backend
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }

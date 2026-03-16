@@ -144,14 +144,43 @@ type GetS3ObjectsOptions struct {
 	Limit  int32  // Variable amount of max keys so we can paginate
 }
 
+// S3ObjectInfo represents a single S3 object in the listing response.
+type S3ObjectInfo struct {
+	Key          string `json:"Key"`
+	LastModified string `json:"LastModified,omitempty"`
+	ETag         string `json:"ETag,omitempty"`
+	Size         int64  `json:"Size"`
+	StorageClass string `json:"StorageClass,omitempty"`
+}
+
+// S3CommonPrefix represents a common prefix (virtual folder) in the listing response.
+type S3CommonPrefix struct {
+	Prefix string `json:"Prefix"`
+}
+
+// S3ListObjectsResponse is the BFF's own response type for S3 list operations,
+// decoupled from the AWS SDK's ListObjectsV2Output.
+type S3ListObjectsResponse struct {
+	CommonPrefixes        []S3CommonPrefix `json:"CommonPrefixes,omitempty"`
+	Contents              []S3ObjectInfo   `json:"Contents,omitempty"`
+	ContinuationToken     string           `json:"ContinuationToken,omitempty"`
+	Delimiter             string           `json:"Delimiter,omitempty"`
+	IsTruncated           bool             `json:"IsTruncated"`
+	KeyCount              int32            `json:"KeyCount"`
+	MaxKeys               int32            `json:"MaxKeys"`
+	Name                  string           `json:"Name,omitempty"`
+	NextContinuationToken string           `json:"NextContinuationToken,omitempty"`
+	Prefix                string           `json:"Prefix,omitempty"`
+}
+
 // GetS3Objects retrieves objects from S3
 func (r *S3Repository) GetS3Objects(
 	ctx context.Context,
 	creds *S3Credentials,
 	bucket string,
 	options GetS3ObjectsOptions,
-) (*s3.ListObjectsV2Output, error) {
-  // TODO [Gustavo] This function currently handles the FileExplorer case where path,search,page are passed in explicitly. Additional case to cover in the future: List all and find by regex for table where resource powers AutoRAG leaderboard
+) (*S3ListObjectsResponse, error) {
+	// TODO [Gustavo] This function currently handles the FileExplorer case where path,search,page are passed in explicitly. Additional case to cover in the future: List all and find by regex for table where resource powers AutoRAG leaderboard
 
 	cfg := aws.Config{
 		Region:      creds.Region,
@@ -163,9 +192,6 @@ func (r *S3Repository) GetS3Objects(
 		// Enable path-style addressing for S3-compatible services like MinIO
 		o.UsePathStyle = true
 	})
-
-	var err error
-	var output *s3.ListObjectsV2Output
 
 	prefix := options.Search
 	if options.Path != "" {
@@ -186,14 +212,65 @@ func (r *S3Repository) GetS3Objects(
 		input.ContinuationToken = aws.String(options.Next)
 	}
 
-	output, err = s3Client.ListObjectsV2(ctx, input)
+	output, err := s3Client.ListObjectsV2(ctx, input)
 	if err != nil {
 		var noBucket *types.NoSuchBucket
 		if errors.As(err, &noBucket) {
 			log.Printf("Bucket %s does not exist.\n", bucket)
 			err = noBucket
 		}
+		return nil, err
 	}
 
-	return output, err
+	// Map SDK output to our own response type
+	result := &S3ListObjectsResponse{
+		IsTruncated: *output.IsTruncated,
+		KeyCount:    *output.KeyCount,
+		MaxKeys:     *output.MaxKeys,
+	}
+
+	if output.Name != nil {
+		result.Name = *output.Name
+	}
+	if output.Prefix != nil {
+		result.Prefix = *output.Prefix
+	}
+	if output.Delimiter != nil {
+		result.Delimiter = *output.Delimiter
+	}
+	if output.ContinuationToken != nil {
+		result.ContinuationToken = *output.ContinuationToken
+	}
+	if output.NextContinuationToken != nil {
+		result.NextContinuationToken = *output.NextContinuationToken
+	}
+
+	for _, cp := range output.CommonPrefixes {
+		prefix := ""
+		if cp.Prefix != nil {
+			prefix = *cp.Prefix
+		}
+		result.CommonPrefixes = append(result.CommonPrefixes, S3CommonPrefix{Prefix: prefix})
+	}
+
+	for _, obj := range output.Contents {
+		info := S3ObjectInfo{
+			Size: aws.ToInt64(obj.Size),
+		}
+		if obj.Key != nil {
+			info.Key = *obj.Key
+		}
+		if obj.LastModified != nil {
+			info.LastModified = obj.LastModified.Format("2006-01-02T15:04:05Z")
+		}
+		if obj.ETag != nil {
+			info.ETag = *obj.ETag
+		}
+		if obj.StorageClass != "" {
+			info.StorageClass = string(obj.StorageClass)
+		}
+		result.Contents = append(result.Contents, info)
+	}
+
+	return result, nil
 }
