@@ -2139,37 +2139,65 @@ components:
           description: Output vector size for embedding models (required for embedding models)
 
     # Verify External Model Request Schema
+    # Uses oneOf to enforce conditional requirements based on model_type
     VerifyExternalModelRequest:
-      type: object
-      required:
-        - model_id
-        - base_url
-        - secret_value
-        - model_type
-      properties:
-        model_id:
-          type: string
-          example: 'gpt-4o'
-          description: Model identifier to test
-        base_url:
-          type: string
-          example: 'https://api.openai.com/v1'
-          description: Base URL of the API endpoint
-        secret_value:
-          type: string
-          example: 'sk-test-key'
-          description: API key or authentication token
-        model_type:
-          type: string
-          enum:
-            - 'llm'
-            - 'embedding'
-          example: 'llm'
-          description: Type of model to verify (affects which API endpoint is tested)
-        embedding_dimension:
-          type: integer
-          example: 1536
-          description: Output vector size for embedding models (required for embedding models, passed to embeddings API)
+      oneOf:
+        # LLM model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - secret_value
+            - model_type
+          properties:
+            model_id:
+              type: string
+              example: 'gpt-4o'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'llm'
+              description: Type of model to verify (LLM models use /chat/completions endpoint)
+        # Embedding model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - secret_value
+            - model_type
+            - embedding_dimension
+          properties:
+            model_id:
+              type: string
+              example: 'text-embedding-3-small'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'embedding'
+              description: Type of model to verify (embedding models use /embeddings endpoint)
+            embedding_dimension:
+              type: integer
+              minimum: 1
+              example: 1536
+              description: Output vector size for embedding models (must be positive integer)
 
     # Verify External Model Response Schema
     VerifyExternalModelResponse:
