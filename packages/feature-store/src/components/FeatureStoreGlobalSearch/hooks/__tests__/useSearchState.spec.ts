@@ -28,7 +28,6 @@ describe('useSearchState', () => {
       expect(result.current.isSearching).toBe(false);
       expect(result.current.searchInputRef.current).toBeNull();
       expect(result.current.searchMenuRef.current).toBeNull();
-      expect(result.current.timeoutRef.current).toBeUndefined();
     });
 
     it('should detect small screen on initial load', () => {
@@ -206,35 +205,8 @@ describe('useSearchState', () => {
       const { result } = renderHook(() => useSearchState());
       expect(result.current.searchInputRef).toBeDefined();
       expect(result.current.searchMenuRef).toBeDefined();
-      expect(result.current.timeoutRef).toBeDefined();
       expect(result.current.searchInputRef.current).toBeNull();
       expect(result.current.searchMenuRef.current).toBeNull();
-      expect(result.current.timeoutRef.current).toBeUndefined();
-    });
-  });
-
-  describe('timeout cleanup', () => {
-    it('should clear timeout on unmount', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-      const { result, unmount } = renderHook(() => useSearchState());
-
-      const mockTimeout = setTimeout(() => {
-        // Mock timeout function
-      }, 1000) as NodeJS.Timeout;
-      result.current.timeoutRef.current = mockTimeout;
-
-      unmount();
-      expect(clearTimeoutSpy).toHaveBeenCalledWith(mockTimeout);
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it('should not call clearTimeout if no timeout is set', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-      const { unmount } = renderHook(() => useSearchState());
-
-      unmount();
-      expect(clearTimeoutSpy).not.toHaveBeenCalled();
-      clearTimeoutSpy.mockRestore();
     });
   });
 

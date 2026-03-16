@@ -74,8 +74,8 @@ class WorkbenchPage {
     cy.testA11y();
   }
 
-  private findNotebookTable() {
-    return cy.findByTestId('notebook-table');
+  findNotebookTable(timeout?: number) {
+    return cy.findByTestId('notebook-table', ...(timeout != null ? [{ timeout }] : []));
   }
 
   findNotebookTableHeaderButton(name: string) {
@@ -88,8 +88,8 @@ class WorkbenchPage {
     );
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-state-title');
+  findEmptyState(timeout?: number) {
+    return cy.findByTestId('empty-state-title', timeout !== undefined ? { timeout } : {});
   }
 
   findCreateButton() {
@@ -551,6 +551,19 @@ class CreateSpawnerPage {
 
   findSubmitButton() {
     return cy.findByTestId('submit-button');
+  }
+
+  handleConflictIfPresent() {
+    // Wait for the submit API call to complete: the button is disabled while
+    // the request is in-flight, then either removed (success) or re-enabled (error).
+    this.findSubmitButton().should('be.disabled');
+    cy.get('[data-testid="submit-button"]:disabled', { timeout: 30000 }).should('not.exist');
+
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="force-update-button"]').length) {
+        cy.findByTestId('force-update-button').click();
+      }
+    });
   }
 
   findCancelButton() {
