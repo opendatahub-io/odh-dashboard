@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import CreateExternalEndpointModal from '../CreateExternalEndpointModal';
+import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 
 describe('CreateExternalEndpointModal - Verification', () => {
   const mockOnClose = jest.fn();
