@@ -2,11 +2,11 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useNavigate } from 'react-router-dom';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -136,9 +136,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotEmptyState
