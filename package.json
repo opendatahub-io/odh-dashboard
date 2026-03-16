@@ -98,10 +98,10 @@
       "react-router-dom": "^7.6.2",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "@patternfly/react-core": "^6.4.0",
+      "@patternfly/react-core": "^6.4.1",
       "@patternfly/react-icons": "^6.4.0",
       "@patternfly/react-styles": "^6.4.0",
-      "@patternfly/react-table": "^6.4.0",
+      "@patternfly/react-table": "^6.4.1",
       "@patternfly/react-virtualized-extension": "^6.2.0"
     },
     "@patternfly/react-topology": {
