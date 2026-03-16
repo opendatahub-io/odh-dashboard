@@ -92,28 +92,16 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	ctx context.Context,
 	req models.VerifyExternalModelRequest,
 ) (*models.VerifyExternalModelResponse, error) {
-	// Create client for the external model endpoint
-	// Use testing constructor for localhost URLs (test mode), otherwise use production constructor
-	var client *externalmodels.ExternalModelsClient
-	var err error
-
-	if isTestingURL(req.BaseURL) {
-		logger.Debug("Using testing client for localhost URL", "url", req.BaseURL)
-		client, err = externalmodels.NewExternalModelsClientForTesting(
-			logger,
-			req.BaseURL,
-			req.SecretValue,
-			req.ModelType,
-		)
-	} else {
-		client, err = externalmodels.NewExternalModelsClient(
-			logger,
-			req.BaseURL,
-			req.SecretValue,
-			req.ModelType,
-		)
-	}
-
+	// Create client with SSRF validation disabled for localhost URLs (testing/development)
+	client, err := externalmodels.NewExternalModelsClient(
+		logger,
+		req.BaseURL,
+		req.SecretValue,
+		req.ModelType,
+		&externalmodels.ClientOptions{
+			SkipSSRFValidation: isLocalhost(req.BaseURL),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +110,9 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }
 
-// isTestingURL checks if a URL is a localhost/testing URL
-func isTestingURL(baseURL string) bool {
-	return strings.HasPrefix(baseURL, "http://127.0.0.1") ||
-		strings.HasPrefix(baseURL, "http://localhost") ||
-		strings.HasPrefix(baseURL, "http://[::1]")
+// isLocalhost checks if a URL points to localhost
+func isLocalhost(baseURL string) bool {
+	return strings.Contains(baseURL, "127.0.0.1") ||
+		strings.Contains(baseURL, "localhost") ||
+		strings.Contains(baseURL, "[::1]")
 }

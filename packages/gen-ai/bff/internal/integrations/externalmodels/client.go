@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -49,6 +48,14 @@ const (
 	// maxResponseBodySize limits response body reads to 10MB to prevent memory exhaustion
 	maxResponseBodySize = 10 * 1024 * 1024 // 10MB
 )
+
+// ClientOptions configures the external models client
+type ClientOptions struct {
+	// SkipSSRFValidation bypasses SSRF protection (testing only)
+	SkipSSRFValidation bool
+	// RootCAs for TLS verification (defaults to system pool if not provided)
+	RootCAs *x509.CertPool
+}
 
 // ExternalModelsClient handles communication with external model endpoints
 type ExternalModelsClient struct {
@@ -97,36 +104,30 @@ func isPrivateIP(ip net.IP) bool {
 	return false
 }
 
-// validateBaseURL performs security checks on the base URL to prevent SSRF
-func validateBaseURL(baseURL string, skipSSRFCheck bool) error {
-	// Parse the URL
+// validateBaseURL performs basic URL validation without DNS lookup
+func validateBaseURL(baseURL string, allowHTTP bool) error {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return fmt.Errorf("invalid base URL: %w", err)
 	}
 
-	// Require HTTPS or HTTP (for testing with mock servers)
 	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
 		return fmt.Errorf("base URL must use HTTP or HTTPS scheme, got: %s", parsedURL.Scheme)
 	}
 
-	// Always require HTTPS in production (only allow HTTP if SSRF check is skipped for testing)
-	if parsedURL.Scheme != "https" && !skipSSRFCheck {
-		return fmt.Errorf("base URL must use HTTPS scheme in production, got: %s", parsedURL.Scheme)
+	if parsedURL.Scheme != "https" && !allowHTTP {
+		return fmt.Errorf("base URL must use HTTPS in production")
 	}
 
-	// Extract hostname (without port)
-	hostname := parsedURL.Hostname()
-	if hostname == "" {
+	if parsedURL.Hostname() == "" {
 		return fmt.Errorf("base URL must contain a valid hostname")
 	}
 
-	// Skip SSRF validation if requested (for testing only)
-	if skipSSRFCheck {
-		return nil
-	}
+	return nil
+}
 
-	// Resolve hostname to IP addresses
+// validateRequestSSRF performs SSRF protection at request time (prevents DNS rebinding attacks)
+func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	ips, err := net.LookupIP(hostname)
 	if err != nil {
 		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
@@ -136,65 +137,59 @@ func validateBaseURL(baseURL string, skipSSRFCheck bool) error {
 		return fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
 	}
 
-	// Check all resolved IPs - reject if ANY are private
 	for _, ip := range ips {
 		if isPrivateIP(ip) {
-			return fmt.Errorf("base URL resolves to private IP address %s (SSRF protection)", ip.String())
+			return fmt.Errorf("request blocked: destination %s resolves to private IP %s (SSRF protection)", hostname, ip.String())
 		}
 	}
 
+	logger.Debug("SSRF validation passed", "hostname", hostname, "ips", ips)
 	return nil
 }
 
-// NewExternalModelsClient creates a new client for verifying external model endpoints
-// Uses system certificate pool for TLS verification
+// NewExternalModelsClient creates a client for verifying external model endpoints
 func NewExternalModelsClient(
 	logger *slog.Logger,
 	baseURL string,
 	apiKey string,
 	modelType models.ModelTypeEnum,
+	opts *ClientOptions,
 ) (*ExternalModelsClient, error) {
-	// Use system cert pool by default
-	rootCAs, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load system certificate pool: %w", err)
-	}
-	return NewExternalModelsClientWithTLS(logger, baseURL, apiKey, modelType, rootCAs)
-}
-
-// NewExternalModelsClientWithTLS creates a new client with custom TLS configuration
-// Requires rootCAs to be provided for secure TLS verification
-func NewExternalModelsClientWithTLS(
-	logger *slog.Logger,
-	baseURL string,
-	apiKey string,
-	modelType models.ModelTypeEnum,
-	rootCAs *x509.CertPool,
-) (*ExternalModelsClient, error) {
-	// Validate rootCAs is provided
-	if rootCAs == nil {
-		return nil, errors.New("rootCAs certificate pool is required for secure TLS verification")
+	if opts == nil {
+		opts = &ClientOptions{}
 	}
 
-	// Validate base URL to prevent SSRF
-	if err := validateBaseURL(baseURL, false); err != nil {
-		return nil, fmt.Errorf("base URL validation failed: %w", err)
+	// Basic URL validation (no DNS lookup - SSRF check happens at request time)
+	if err := validateBaseURL(baseURL, opts.SkipSSRFValidation); err != nil {
+		return nil, err
 	}
 
-	// Configure TLS with provided root CAs - never skip verification
-	tlsConfig := &tls.Config{
-		RootCAs:    rootCAs,
-		MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
+	// Setup TLS certificate pool
+	rootCAs := opts.RootCAs
+	if rootCAs == nil && !opts.SkipSSRFValidation {
+		var err error
+		rootCAs, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load system certificate pool: %w", err)
+		}
+	}
+
+	// Configure HTTP transport
+	var transport http.RoundTripper
+	if rootCAs != nil {
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:    rootCAs,
+				MinVersion: tls.VersionTLS12,
+			},
+		}
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 35 * time.Second, // Slightly longer than context timeout
-		// Prevent redirects to avoid SSRF via redirect chains
+		Transport: transport,
+		Timeout:   35 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // Don't follow redirects
+			return http.ErrUseLastResponse // Prevent redirect-based SSRF
 		},
 	}
 
@@ -204,38 +199,7 @@ func NewExternalModelsClientWithTLS(
 		baseURL:            baseURL,
 		apiKey:             apiKey,
 		modelType:          modelType,
-		skipSSRFValidation: false,
-	}, nil
-}
-
-// NewExternalModelsClientForTesting creates a client for testing that allows localhost/HTTP
-// WARNING: Only use this in tests - it bypasses SSRF protection
-func NewExternalModelsClientForTesting(
-	logger *slog.Logger,
-	baseURL string,
-	apiKey string,
-	modelType models.ModelTypeEnum,
-) (*ExternalModelsClient, error) {
-	// Validate base URL (allows HTTP and localhost for testing)
-	if err := validateBaseURL(baseURL, true); err != nil {
-		return nil, fmt.Errorf("base URL validation failed: %w", err)
-	}
-
-	// Simple HTTP client for testing - no TLS requirements
-	httpClient := &http.Client{
-		Timeout: 35 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // Still prevent redirects in tests
-		},
-	}
-
-	return &ExternalModelsClient{
-		logger:             logger,
-		httpClient:         httpClient,
-		baseURL:            baseURL,
-		apiKey:             apiKey,
-		modelType:          modelType,
-		skipSSRFValidation: true,
+		skipSSRFValidation: opts.SkipSSRFValidation,
 	}, nil
 }
 
@@ -291,38 +255,16 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 	req.Header.Set("Content-Type", "application/json")
 
-	// CRITICAL: Re-validate destination IPs right before making request to prevent DNS rebinding attacks
-	// This is the last line of defense against SSRF - validates at request time, not just construction time
+	// SSRF protection: validate destination at request time (prevents DNS rebinding attacks)
 	if !c.skipSSRFValidation {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
 		}
 
-		hostname := parsedURL.Hostname()
-		if hostname == "" {
-			return nil, NewConnectionError(c.baseURL, "Request URL has no hostname")
+		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+			return nil, NewConnectionError(c.baseURL, err.Error())
 		}
-
-		// Resolve hostname to IP addresses at request time (prevents DNS rebinding)
-		ips, err := net.LookupIP(hostname)
-		if err != nil {
-			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to resolve hostname %s: %v", hostname, err))
-		}
-
-		if len(ips) == 0 {
-			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Hostname %s resolved to no IP addresses", hostname))
-		}
-
-		// Check all resolved IPs - reject if ANY target private/internal resources
-		for _, ip := range ips {
-			if isPrivateIP(ip) {
-				return nil, NewConnectionError(c.baseURL,
-					fmt.Sprintf("Request blocked: destination %s resolves to private IP %s (SSRF protection)", hostname, ip.String()))
-			}
-		}
-
-		c.logger.Debug("SSRF validation passed", "hostname", hostname, "ips", ips)
 	}
 
 	// Execute request (redirects are blocked via CheckRedirect in client config)
