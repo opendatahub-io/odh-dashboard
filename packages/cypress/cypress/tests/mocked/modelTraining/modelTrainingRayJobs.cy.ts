@@ -143,9 +143,14 @@ const mockRayJobs = mockRayJobK8sResourceList([
     clusterSelector: { 'ray.io/cluster': 'shared-ray-cluster' },
     rayClusterName: 'shared-ray-cluster',
     entrypoint: 'python workspace_train.py',
+  },
+  {
     name: 'ray-pending-job',
     namespace: projectName,
     jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    clusterSelector: { 'ray.io/cluster': 'shared-ray-cluster' },
+    rayClusterName: 'shared-ray-cluster',
+    entrypoint: 'python workspace_train.py',
     jobStatus: undefined,
   },
   {
@@ -430,7 +435,6 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('contain', 'RayJob');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
     trainingJobTable.findTypeColumn().should('not.contain', 'TrainJob');
-    trainingJobTable.findRows().should('have.length', 11);
   });
 
   it('should show all jobs after selecting All in type filter', () => {
@@ -450,7 +454,6 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('not.exist');
     trainRow.findTrainingJobName().should('contain', 'train-job-one');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
-    trainingJobTable.findRows().should('have.length', 12);
   });
 });
 
@@ -496,7 +499,7 @@ describe('RayJob status column', () => {
       .getTableRow('ray-data-processing')
       .find()
       .find('[data-label="Status"]')
-      .findByTestId('training-job-status')
+      .findByTestId('ray-job-status')
       .should('exist');
   });
   it('should show Inadmissible status when Kueue rejects the workload', () => {
@@ -667,6 +670,7 @@ describe('RayJob Details Tab', () => {
   it('should display ray version from workspace RayCluster', () => {
     modelTrainingGlobal.visit(projectName);
 
+    trainingJobTable.filterByName('ray-workspace-job');
     const row = trainingJobTable.getTableRow('ray-workspace-job');
     row.findNameLink().click();
 

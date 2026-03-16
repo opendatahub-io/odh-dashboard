@@ -184,9 +184,13 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findStatus() {
-    // Find the status label by testid (the clickable Label component)
-    // The entire Label is clickable, not just the icon
-    return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
+    return this.find()
+      .find('[data-label="Status"]')
+      .find('[data-testid="training-job-status"],[data-testid="ray-job-status"]');
+  }
+
+  findStatusLoading() {
+    return this.find().find('[data-label="Status"]').findByTestId('ray-job-status-loading');
   }
 
   findStatusProgressBar() {

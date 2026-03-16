@@ -21,7 +21,7 @@ const RayJobStatus = ({
   const isLoadingStatus = isLoading && jobStatus === undefined;
 
   if (isLoadingStatus) {
-    return <Skeleton height="24px" width="80px" />;
+    return <Skeleton height="24px" width="80px" data-testid="ray-job-status-loading" />;
   }
 
   const statusInfo = getStatusInfo(status);
@@ -32,7 +32,7 @@ const RayJobStatus = ({
       status={statusInfo.status}
       color={statusInfo.color}
       icon={<statusInfo.IconComponent />}
-      data-testid="training-job-status"
+      data-testid="ray-job-status"
       onClick={onClick}
       style={onClick !== undefined ? { cursor: 'pointer' } : undefined}
     >

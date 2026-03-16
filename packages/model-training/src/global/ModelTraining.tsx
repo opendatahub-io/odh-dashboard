@@ -76,7 +76,7 @@ const ModelTraining = (): React.ReactElement => {
     return map;
   }, [allJobs, hasWorkspaceRayJobs, rayClusterData]);
 
-  const { jobStatuses, updateJobStatus } = useJobStatuses(allJobs);
+  const { jobStatuses, isLoading: isLoadingStatus, updateJobStatus } = useJobStatuses(allJobs);
 
   const handleSelectJob = React.useCallback((job: UnifiedJobKind) => {
     const jobId = job.metadata.uid || job.metadata.name;
@@ -200,6 +200,7 @@ const ModelTraining = (): React.ReactElement => {
             <JobsListView
               jobs={allJobs}
               jobStatuses={jobStatuses}
+              isLoadingStatus={isLoadingStatus}
               nodeCountMap={nodeCountMap}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}

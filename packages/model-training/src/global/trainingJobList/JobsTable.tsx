@@ -9,6 +9,7 @@ import { JobDisplayState, UnifiedJobKind, isRayJob, isTrainJob } from '../../typ
 type JobsTableProps = {
   jobs: UnifiedJobKind[];
   jobStatuses?: Map<string, JobDisplayState>;
+  isLoadingStatus?: boolean;
   nodeCountMap: Map<string, number>;
   onStatusUpdate?: (jobId: string, newStatus: JobDisplayState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
@@ -21,6 +22,7 @@ type JobsTableProps = {
 const JobsTable: React.FC<JobsTableProps> = ({
   jobs,
   jobStatuses,
+  isLoadingStatus,
   nodeCountMap,
   onStatusUpdate,
   onSelectJob,
@@ -55,6 +57,7 @@ const JobsTable: React.FC<JobsTableProps> = ({
               key={jobId}
               job={job}
               jobStatus={jobStatus}
+              isLoadingStatus={isLoadingStatus}
               nodeCount={nodeCountMap.get(jobId) ?? 0}
               onSelectJob={(j) => onSelectJob(j)}
               onDelete={(j) => onDelete(j)}
