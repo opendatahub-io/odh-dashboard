@@ -257,11 +257,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket, repositories.GetS3ObjectsOptions{
-    Path:   parameters.Path,
-    Search: parameters.Search,
-    Next:   parameters.Next,
-    Limit:  parameters.Limit,
-  })
+		Path:   parameters.Path,
+		Search: parameters.Search,
+		Next:   parameters.Next,
+		Limit:  parameters.Limit,
+	})
 	if listError != nil {
 		app.serverErrorResponse(w, r, listError)
 		return
@@ -298,8 +298,8 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	bucket := queryParams.Get("bucket")
 
 	path := queryParams.Get("path")
-	if path == "" {
-		return nil, errors.New("query parameter 'path' is required")
+	if queryParams.Has("path") && path == "" {
+		return nil, errors.New("query parameter 'path' must be a non-empty string if provided")
 	}
 
 	search := queryParams.Get("search")

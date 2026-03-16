@@ -618,7 +618,7 @@ func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FilesHandler_MissingPath(t *testing.T) {
+func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
@@ -627,6 +627,7 @@ func TestGetS3FilesHandler_MissingPath(t *testing.T) {
 	params.Set("namespace", "test-namespace")
 	params.Set("secret_name", "aws-secret-1")
 	params.Set("bucket", "my-bucket")
+	params.Set("path", "")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
 	_, res, err := setupApiTest[integrations.HTTPError](
@@ -731,7 +732,7 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 }
 
 func TestGetS3FilesHandler_CallsS3ListObjectsV2Correctly(t *testing.T) {
-  // TODO [ Gustavo ] Useless test so far since we need to add more testing for the repositories/s3.go directly to test ListObjectsV2 behaviour
+	// TODO [ Gustavo ] Useless test so far since we need to add more testing for the repositories/s3.go directly to test ListObjectsV2 behaviour
 	namespace := "test-namespace"
 	secretName := "aws-secret-1"
 	bucket := "my-bucket"
