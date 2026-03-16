@@ -1472,6 +1472,23 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	)
 	config.AddModel(embeddingModel)
 
+	// Pre-fetch the external models ConfigMap once if any external models are present
+	var externalModelsConfig *models.ExternalModelsConfig
+	for _, model := range installModels {
+		if models.IsExternalModelSource(model.ModelSourceType) {
+			cfg, err := kc.getExternalModelsConfig(ctx, namespace)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+				}
+				return "", fmt.Errorf("failed to get external models ConfigMap: %w", err)
+			}
+			externalModelsConfig = cfg
+			kc.Logger.Debug("loaded external models ConfigMap", "namespace", namespace)
+			break
+		}
+	}
+
 	// Track provider IDs and token env vars for guardrails configuration
 	modelProviderInfo := make(map[string]modelProviderInfoEntry, len(installModels))
 
@@ -1503,7 +1520,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
 			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-			modelDetails, err := kc.getExternalModelDetails(ctx, namespace, model.ModelName)
+			modelDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
 			if err != nil {
 				kc.Logger.Error("failed to get external model details", "model", model.ModelName, "error", err)
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
@@ -1732,16 +1749,8 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 	return nil
 }
 
-// getExternalModelDetails retrieves external model details from the gen-ai-aa-external-models ConfigMap
-func (kc *TokenKubernetesClient) getExternalModelDetails(ctx context.Context, namespace string, modelID string) (map[string]interface{}, error) {
-	config, err := kc.getExternalModelsConfig(ctx, namespace)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
-		}
-		return nil, fmt.Errorf("failed to get external models ConfigMap: %w", err)
-	}
-
+// getExternalModelDetails retrieves external model details from a pre-fetched ExternalModelsConfig.
+func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.ExternalModelsConfig, modelID string) (map[string]interface{}, error) {
 	// Find the model by model_id
 	var foundModel *models.RegisteredModel
 	for i := range config.RegisteredResources.Models {
