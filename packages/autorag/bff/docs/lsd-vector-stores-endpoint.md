@@ -39,7 +39,7 @@ The secret must contain the following keys (exact match, case-sensitive):
 
 The request passes through the following middleware:
 
-```
+```text
 AttachNamespace -> RequireAccessToService -> AttachLlamaStackClientFromSecret -> LlamaStackVectorStoresHandler
 ```
 
@@ -160,13 +160,17 @@ curl -s -H "Authorization: Bearer $(oc whoami -t)" \
    oc port-forward svc/<llamastack-service> -n <namespace> 8321:8321
    ```
 
-2. Create a secret with LlamaStack credentials:
+2. Create a secret with LlamaStack credentials (use the in-cluster service DNS name):
    ```bash
    oc create secret generic my-lls-secret \
      --namespace=<namespace> \
-     --from-literal=llama_stack_client_base_url=http://localhost:8321 \
+     --from-literal=llama_stack_client_base_url=http://<llamastack-service>.<namespace>.svc.cluster.local:8321 \
      --from-literal=llama_stack_client_api_key=dummy
    ```
+
+   > **Note:** The secret-sourced base URL is validated to reject loopback addresses.
+   > For local development with port-forwarded LlamaStack, use the `LLAMA_STACK_URL`
+   > environment variable override instead: `make run LLAMA_STACK_URL=http://localhost:8321`
 
 3. Start the BFF without mock flags:
    ```bash
@@ -183,7 +187,7 @@ curl -s -H "Authorization: Bearer $(oc whoami -t)" \
 ## Security
 
 - Authentication is enforced by the `InjectRequestIdentity` global middleware
-- Secret access is authorized by Kubernetes RBAC — the user must have `list` permission on secrets in the namespace
+- Secret access is authorized by Kubernetes RBAC — the user must have `get` permission on the specific Secret
 - The `secretName` parameter is validated as a DNS-1123 label to prevent injection
 - The LlamaStack base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
 - Secret values (API keys) are not logged
