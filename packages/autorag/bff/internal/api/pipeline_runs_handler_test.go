@@ -62,6 +62,12 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		// With discovered pipeline filter, mock returns only runs from that pipeline version (all 3 base runs)
 		assert.Len(t, response.Data.Runs, 3, "Should return filtered pipeline runs from discovered pipeline")
 		assert.Equal(t, int32(3), response.Data.TotalSize)
+
+		// Verify pipeline_type is set to "autorag" on every returned run
+		for i, run := range response.Data.Runs {
+			assert.Equal(t, constants.PipelineTypeAutoRAG, run.PipelineType,
+				"Runs[%d] pipeline_type should be %s", i, constants.PipelineTypeAutoRAG)
+		}
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
@@ -437,6 +443,9 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 			assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
 			assert.NotEmpty(t, task.State, "Task state should not be empty")
 		}
+
+		// Verify pipeline_type is set to "autorag"
+		assert.Equal(t, constants.PipelineTypeAutoRAG, run.PipelineType, "pipeline_type should be autorag")
 	})
 
 	t.Run("should include task details with inputs and outputs", func(t *testing.T) {

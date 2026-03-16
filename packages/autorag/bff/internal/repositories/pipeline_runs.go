@@ -24,13 +24,15 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID.
+// pipelineType is set on each returned run to identify the owning pipeline (e.g. "autorag").
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
 	pageSize int32,
 	pageToken string,
+	pipelineType string,
 ) (*models.PipelineRunsData, error) {
 	// Guard against nil client to prevent panic
 	if client == nil {
@@ -64,7 +66,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		runs = append(runs, toPipelineRun(&kfRun))
+		runs = append(runs, toPipelineRun(&kfRun, pipelineType))
 	}
 
 	return &models.PipelineRunsData{
@@ -115,8 +117,9 @@ func buildFilter(pipelineVersionID string) string {
 	return string(filterJSON)
 }
 
-// toPipelineRun transforms a Kubeflow pipeline run to our stable API format
-func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
+// toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
+// pipelineType identifies the owning pipeline (e.g. "autorag").
+func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
@@ -133,6 +136,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
+		PipelineType:             pipelineType,
 	}
 }
 
@@ -243,6 +247,7 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 //   - req: AutoRAG-specific run parameters
 //   - pipelineID: ID of the AutoRAG pipeline (from discovery)
 //   - pipelineVersionID: Version ID of the AutoRAG pipeline (from discovery)
+//   - pipelineType: Pipeline type to set on the returned run (e.g. "autorag")
 //
 // Returns:
 //   - *models.PipelineRun: The created run in stable API format
@@ -252,6 +257,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 	ctx context.Context,
 	req models.CreateAutoRAGRunRequest,
 	pipelineID, pipelineVersionID string,
+	pipelineType string,
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
@@ -268,7 +274,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
 
-	run := toPipelineRun(kfRun)
+	run := toPipelineRun(kfRun, pipelineType)
 	return &run, nil
 }
 
@@ -298,7 +304,8 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 		return nil, ErrPipelineRunNotFound
 	}
 
-	// Transform Kubeflow format to our stable API format
-	run := toPipelineRun(kfRun)
+	// Transform Kubeflow format to our stable API format.
+	// pipeline_type is not set here; the handler sets it after ownership validation.
+	run := toPipelineRun(kfRun, "")
 	return &run, nil
 }

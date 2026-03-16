@@ -76,6 +76,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		req,
 		discovered.PipelineID,
 		discovered.PipelineVersionID,
+		pipelineType,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create pipeline run: %w", err))

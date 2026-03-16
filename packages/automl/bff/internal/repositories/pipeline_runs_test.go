@@ -20,7 +20,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -34,7 +34,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockNamespace)
 		pipelineVersionID := ids.LatestVersionID
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -47,14 +47,14 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -83,6 +83,9 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 				assert.NotEmpty(t, run.StateHistory[0].UpdateTime)
 				assert.NotEmpty(t, run.StateHistory[0].State)
 			}
+
+			// Verify pipeline_type is set from the pipelineType parameter
+			assert.Equal(t, constants.PipelineTypeTimeSeries, run.PipelineType)
 		}
 	})
 }

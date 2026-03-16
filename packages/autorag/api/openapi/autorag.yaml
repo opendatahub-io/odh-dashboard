@@ -740,6 +740,14 @@ components:
                           type: string
                           description: Name of the Kubernetes pod running this task
                           example: "data-preprocessing-pod-abc123"
+        pipeline_type:
+          type: string
+          enum:
+            - autorag
+          description: >-
+            Type of the pipeline that produced this run. Always "autorag" for
+            AutoRAG pipeline runs.
+          example: "autorag"
 
     CreateAutoRAGRunRequest:
       type: object

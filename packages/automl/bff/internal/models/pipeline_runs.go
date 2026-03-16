@@ -18,6 +18,7 @@ type PipelineRun struct {
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
+	PipelineType             string                    `json:"pipeline_type,omitempty"`
 }
 
 // PipelineVersionReference contains pipeline and version IDs

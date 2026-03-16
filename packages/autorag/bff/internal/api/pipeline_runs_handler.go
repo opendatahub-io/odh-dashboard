@@ -77,13 +77,14 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 
 	pageToken := query.Get("nextPageToken")
 
-	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version
+	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version.
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
 		discovered.PipelineVersionID,
 		pageSize,
 		pageToken,
+		constants.PipelineTypeAutoRAG,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
@@ -183,6 +184,9 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		app.notFoundResponse(w, r)
 		return
 	}
+
+	// Set the pipeline type now that ownership is confirmed.
+	run.PipelineType = constants.PipelineTypeAutoRAG
 
 	// Wrap in envelope response
 	response := PipelineRunEnvelope{

@@ -24,13 +24,15 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID.
+// pipelineType is set on each returned run to identify the owning pipeline type (e.g. "timeseries", "tabular").
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
 	pageSize int32,
 	pageToken string,
+	pipelineType string,
 ) (*models.PipelineRunsData, error) {
 	// Guard against nil client to prevent panic
 	if client == nil {
@@ -64,7 +66,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		runs = append(runs, toPipelineRun(&kfRun))
+		runs = append(runs, toPipelineRun(&kfRun, pipelineType))
 	}
 
 	return &models.PipelineRunsData{
@@ -115,8 +117,9 @@ func buildFilter(pipelineVersionID string) string {
 	return string(filterJSON)
 }
 
-// toPipelineRun transforms a Kubeflow pipeline run to our stable API format
-func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
+// toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
+// pipelineType identifies which discovered pipeline produced this run (e.g. "timeseries", "tabular").
+func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
@@ -133,6 +136,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
+		PipelineType:             pipelineType,
 	}
 }
 
@@ -205,11 +209,13 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 
 // CreatePipelineRun validates the request, builds the KFP payload, and submits it.
 // pipelineID and pipelineVersionID are provided by the caller (from dynamic discovery).
+// pipelineType is set on the returned run to identify the pipeline type (e.g. "timeseries", "tabular").
 func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	req models.CreateAutoMLRunRequest,
 	pipelineID, pipelineVersionID string,
+	pipelineType string,
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
@@ -230,17 +236,19 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("pipeline server returned nil run")
 	}
 
-	run := toPipelineRun(kfRun)
+	run := toPipelineRun(kfRun, pipelineType)
 	return &run, nil
 }
 
 // GetAllPipelineRuns fetches all pages of runs for a single pipeline version ID.
 // It auto-paginates through the pipeline server's pages and returns the complete list.
+// pipelineType is set on each returned run to identify the owning pipeline type (e.g. "timeseries", "tabular").
 // This is used by the multi-pipeline runs handler to merge runs from multiple pipelines.
 func (r *PipelineRunsRepository) GetAllPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
+	pipelineType string,
 ) ([]models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
@@ -268,7 +276,7 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 		}
 
 		for _, kfRun := range kfResponse.Runs {
-			allRuns = append(allRuns, toPipelineRun(&kfRun))
+			allRuns = append(allRuns, toPipelineRun(&kfRun, pipelineType))
 		}
 
 		if kfResponse.NextPageToken == "" {
@@ -306,7 +314,8 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 		return nil, ErrPipelineRunNotFound
 	}
 
-	// Transform Kubeflow format to our stable API format
-	run := toPipelineRun(kfRun)
+	// Transform Kubeflow format to our stable API format.
+	// pipeline_type is not set here; the handler sets it after ownership validation.
+	run := toPipelineRun(kfRun, "")
 	return &run, nil
 }

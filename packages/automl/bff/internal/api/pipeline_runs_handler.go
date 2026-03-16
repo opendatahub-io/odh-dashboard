@@ -81,10 +81,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		page = parsed
 	}
 
-	// Fetch all runs for each discovered pipeline and merge
+	// Fetch all runs for each discovered pipeline and merge.
+	// The pipeline type key is passed through so each run carries its pipeline_type field.
 	var allRuns []models.PipelineRun
-	for _, discovered := range discoveredPipelines {
-		runs, err := app.repositories.PipelineRuns.GetAllPipelineRuns(client, ctx, discovered.PipelineVersionID)
+	for pipelineType, discovered := range discoveredPipelines {
+		runs, err := app.repositories.PipelineRuns.GetAllPipelineRuns(client, ctx, discovered.PipelineVersionID, pipelineType)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
 			return
@@ -180,18 +181,19 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	belongs := false
-	for _, discovered := range discoveredPipelines {
+	matchedPipelineType := ""
+	for pipelineType, discovered := range discoveredPipelines {
 		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
 			run.PipelineVersionReference.PipelineVersionID == discovered.PipelineVersionID {
-			belongs = true
+			matchedPipelineType = pipelineType
 			break
 		}
 	}
-	if !belongs {
+	if matchedPipelineType == "" {
 		app.notFoundResponse(w, r)
 		return
 	}
+	run.PipelineType = matchedPipelineType
 
 	// Wrap in envelope response
 	response := PipelineRunEnvelope{

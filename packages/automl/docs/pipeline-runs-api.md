@@ -9,13 +9,15 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discov
 ## Endpoints
 
 ```http
-GET /api/v1/pipeline-runs
-GET /api/v1/pipeline-runs/{runId}
+GET  /api/v1/pipeline-runs
+GET  /api/v1/pipeline-runs/{runId}
+POST /api/v1/pipeline-runs
 ```
 
-The API provides two endpoints:
+The API provides three endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
+- **Create Run**: Submit a new AutoML pipeline run with training parameters
 
 ## Authentication
 
@@ -160,6 +162,7 @@ The endpoint returns a JSON response with the following structure:
 | `error` | object | Optional error information if the run failed (contains `code` and `message` fields) |
 | `state_history` | array | History of state changes (see below) |
 | `run_details` | object | Detailed task execution information (see below) |
+| `pipeline_type` | string | Type of AutoML pipeline that produced this run (`timeseries` or `tabular`) |
 
 #### PipelineVersionReference Object
 
@@ -317,6 +320,70 @@ Returned when the specified run ID does not exist:
 }
 ```
 
+## Create Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `pipelineType` | query string | No | AutoML pipeline type to use: `timeseries` (default) or `tabular` |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `display_name` | string | Yes | Human-readable name for the run |
+| `description` | string | No | Optional description of the run |
+| `train_data_secret_name` | string | Yes | Name of the K8s secret containing S3 credentials |
+| `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
+| `train_data_file_key` | string | Yes | S3 object key for the training data file |
+| `label_column` | string | Yes | Name of the target column in the training data |
+| `task_type` | string | Yes | Type of classification task: `binary` or `multiclass` |
+| `top_n` | integer | No | Number of top models to consider |
+
+**Notes:**
+- Unknown JSON fields are rejected (strict decoding)
+- `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
+- The `pipelineType` query parameter selects between the auto-discovered timeseries and tabular pipelines (defaults to `timeseries`)
+- If the requested pipeline type is not found in the namespace, the request returns a 500 error
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "my-automl-run",
+    "train_data_secret_name": "minio-secret",
+    "train_data_bucket_name": "automl-bucket",
+    "train_data_file_key": "data/train.csv",
+    "label_column": "target",
+    "task_type": "binary"
+  }'
+```
+
+### Response Format
+
+Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as GET responses).
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing required fields, invalid `task_type`, unknown JSON fields, invalid `pipelineType`, or missing `namespace` |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
 ## Pipeline Discovery
 
 The API automatically discovers all managed AutoML pipelines (time-series and tabular) in the namespace and returns a merged view of their runs:
@@ -419,20 +486,23 @@ go run cmd/main.go --mock-pipeline-server-client
 
 ### Mock Data
 
-Mock mode returns 3 sample pipeline runs with various states and task details:
+Mock mode returns 4 sample pipeline runs covering both pipeline types:
 
-1. **Succeeded Run** (`run-abc123-def456`) - Completed optimization run with 3 tasks:
+1. **Succeeded Run** (`run-abc123-def456`) - Timeseries pipeline, completed run with 3 tasks:
    - Data Preprocessing (SUCCEEDED)
    - Model Training (SUCCEEDED)
    - Model Evaluation (SUCCEEDED)
 
-2. **Running Run** (`run-ghi789-jkl012`) - Currently executing run with 2 tasks:
+2. **Running Run** (`run-ghi789-jkl012`) - Timeseries pipeline, currently executing run with 2 tasks:
    - Data Loading (SUCCEEDED)
    - Feature Engineering (RUNNING)
 
-3. **Failed Run** (`run-mno345-pqr678`) - Failed baseline run with 2 tasks:
+3. **Failed Run** (`run-mno345-pqr678`) - Timeseries pipeline, failed baseline run with 2 tasks:
    - Data Validation (SUCCEEDED)
    - Data Fetch (FAILED)
+
+4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed classification run with 1 task:
+   - Data Preprocessing (SUCCEEDED)
 
 Each task includes detailed information such as:
 - Task execution timeline (create_time, start_time, end_time)

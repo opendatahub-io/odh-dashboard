@@ -182,6 +182,49 @@ paths:
         Returns merged pipeline runs from all auto-discovered AutoML pipelines (time-series
         and tabular). Runs are sorted by creation time descending and paginated using
         page/pageSize. Returns 500 if no managed AutoML pipelines are found in the namespace.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - timeseries
+              - tabular
+            default: timeseries
+          description: Type of AutoML pipeline to use for run creation (defaults to timeseries)
+          example: "timeseries"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutoMLRunRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: createPipelineRun
+      summary: Create Pipeline Run
+      description: >-
+        Creates a new AutoML pipeline run using the auto-discovered pipeline for the
+        requested pipeline type. The pipelineType query parameter selects which discovered
+        pipeline to use; when omitted it defaults to "timeseries".
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID
@@ -323,6 +366,53 @@ components:
           example: "S3 bucket for training data storage"
 
     # Pipeline Run Schemas
+    CreateAutoMLRunRequest:
+      type: object
+      description: Request body for creating an AutoML pipeline run
+      required:
+        - display_name
+        - train_data_secret_name
+        - train_data_bucket_name
+        - train_data_file_key
+        - label_column
+        - task_type
+      properties:
+        display_name:
+          type: string
+          description: Human-readable name for the run
+          example: "AutoML Optimization Run 1"
+        description:
+          type: string
+          description: Optional run description
+          example: "Test optimization run"
+        train_data_secret_name:
+          type: string
+          description: Name of the Kubernetes secret containing S3 credentials
+          example: "minio-secret"
+        train_data_bucket_name:
+          type: string
+          description: S3 bucket name containing the training data
+          example: "automl-bucket"
+        train_data_file_key:
+          type: string
+          description: S3 object key for the training data file
+          example: "data/train.csv"
+        label_column:
+          type: string
+          description: Name of the target column in the training data
+          example: "target"
+        task_type:
+          type: string
+          enum:
+            - binary
+            - multiclass
+          description: Type of classification task
+          example: "binary"
+        top_n:
+          type: integer
+          description: Number of top models to consider (optional)
+          example: 5
+
     PipelineRun:
       type: object
       description: A Kubeflow Pipeline run
@@ -394,6 +484,15 @@ components:
           $ref: "#/components/schemas/ErrorInfo"
         run_details:
           $ref: "#/components/schemas/RunDetails"
+        pipeline_type:
+          type: string
+          enum:
+            - timeseries
+            - tabular
+          description: >-
+            Type of the AutoML pipeline that produced this run. Identifies whether
+            this is a time-series or tabular (classification/regression) pipeline run.
+          example: "timeseries"
 
     PipelineVersionReference:
       type: object
@@ -509,6 +608,9 @@ components:
     PipelineRunsData:
       type: object
       description: Container for pipeline runs list response data
+      required:
+        - runs
+        - total_size
       properties:
         runs:
           type: array
@@ -519,13 +621,6 @@ components:
           type: integer
           description: Total number of runs across all discovered pipelines
           example: 10
-
-    PipelineRunData:
-      type: object
-      description: Container for single pipeline run response data
-      properties:
-        run:
-          $ref: "#/components/schemas/PipelineRun"
 
   parameters:
     namespace:
@@ -622,6 +717,21 @@ components:
 
     PipelineRunResponse:
       description: Single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRun"
+
+    CreatePipelineRunResponse:
+      description: Created pipeline run
       content:
         application/json:
           schema:

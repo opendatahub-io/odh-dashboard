@@ -220,9 +220,7 @@ func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
 // Includes both timeseries and tabular pipeline runs to enable ownership validation tests.
 func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 	ids := DeriveMockIDs(namespace)
-	// Tabular pipeline IDs mirror the derivation in ListPipelines/ListPipelineVersions
-	clsID := hashUUID("cls-pipeline:" + namespace)
-	clsVersionID := hashUUID("cls-version-latest:" + namespace)
+	tabIDs := DeriveTabularMockIDs(namespace)
 	return []models.KFPipelineRun{
 		{
 			RunID:        "run-abc123-def456",
@@ -411,8 +409,8 @@ func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 			Description:  "Tabular classification run",
 			ExperimentID: "exp-tabular-1",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        clsID,
-				PipelineVersionID: clsVersionID,
+				PipelineID:        tabIDs.PipelineID,
+				PipelineVersionID: tabIDs.LatestVersionID,
 			},
 			State:          "SUCCEEDED",
 			StorageState:   "AVAILABLE",
@@ -598,7 +596,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
 	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
 	if m.Namespace != "" {
-		clsID := hashUUID("cls-pipeline:" + m.Namespace)
+		tabIDs := DeriveTabularMockIDs(m.Namespace)
 		return &models.KFPipelinesResponse{
 			Pipelines: []models.KFPipeline{
 				{
@@ -609,7 +607,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 					Namespace:   m.Namespace,
 				},
 				{
-					PipelineID:  clsID,
+					PipelineID:  tabIDs.PipelineID,
 					DisplayName: "automl-tabular-pipeline",
 					Description: "Managed AutoML tabular pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
@@ -679,20 +677,26 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 
 	// In namespace mode, also accept the tabular pipeline ID (distinct from timeseries)
 	if m.Namespace != "" {
-		clsID := hashUUID("cls-pipeline:" + m.Namespace)
-		clsVersionID := hashUUID("cls-version-latest:" + m.Namespace)
-		if pipelineID == clsID {
+		tabIDs := DeriveTabularMockIDs(m.Namespace)
+		if pipelineID == tabIDs.PipelineID {
 			return &models.KFPipelineVersionsResponse{
 				PipelineVersions: []models.KFPipelineVersion{
 					{
-						PipelineID:        clsID,
-						PipelineVersionID: clsVersionID,
+						PipelineID:        tabIDs.PipelineID,
+						PipelineVersionID: tabIDs.LatestVersionID,
 						DisplayName:       "v1.0.0",
 						Description:       "Managed AutoML tabular pipeline version",
 						CreatedAt:         "2026-02-23T10:00:00Z",
 					},
+					{
+						PipelineID:        tabIDs.PipelineID,
+						PipelineVersionID: tabIDs.OldVersionID,
+						DisplayName:       "v0.x.x",
+						Description:       "Initial AutoML tabular pipeline version",
+						CreatedAt:         "2026-02-20T10:00:00Z",
+					},
 				},
-				TotalSize:     1,
+				TotalSize:     2,
 				NextPageToken: "",
 			}, nil
 		}

@@ -81,9 +81,13 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 			if run.PipelineVersionReference != nil {
 				if run.PipelineVersionReference.PipelineVersionID == tsVersionID {
 					foundTimeseries = true
+					assert.Equal(t, constants.PipelineTypeTimeSeries, run.PipelineType,
+						"timeseries run %s should have pipeline_type=%s", run.RunID, constants.PipelineTypeTimeSeries)
 				}
 				if run.PipelineVersionReference.PipelineVersionID == tabVersionID {
 					foundTabular = true
+					assert.Equal(t, constants.PipelineTypeTabular, run.PipelineType,
+						"tabular run %s should have pipeline_type=%s", run.RunID, constants.PipelineTypeTabular)
 				}
 			}
 		}
@@ -92,8 +96,8 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should handle pagination with page parameter", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
+		rr1 := httptest.NewRecorder()
+		req1, err := http.NewRequest(
 			http.MethodGet,
 			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=1",
 			nil,
@@ -101,23 +105,63 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx := context.WithValue(req1.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipelinesAutoML(req)
+		req1 = req1.WithContext(ctx)
+		req1 = withDiscoveredPipelinesAutoML(req1)
 
-		app.PipelineRunsHandler(rr, req, nil)
+		app.PipelineRunsHandler(rr1, req1, nil)
+		assert.Equal(t, http.StatusOK, rr1.Code)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response PipelineRunsEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		var page1Response PipelineRunsEnvelope
+		err = json.Unmarshal(rr1.Body.Bytes(), &page1Response)
 		assert.NoError(t, err)
-		assert.NotNil(t, response.Data)
+		assert.NotNil(t, page1Response.Data)
 		// Page 1 of pageSize=2 should return exactly 2 runs
-		assert.Len(t, response.Data.Runs, 2)
+		assert.Len(t, page1Response.Data.Runs, 2)
 		// TotalSize should reflect total across all pipelines (3 timeseries + 1 tabular)
-		assert.Equal(t, int32(4), response.Data.TotalSize)
+		assert.Equal(t, int32(4), page1Response.Data.TotalSize)
+
+		rr2 := httptest.NewRecorder()
+		req2, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=2",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient2 := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx2 := context.WithValue(req2.Context(), constants.PipelineServerClientKey, mockClient2)
+		ctx2 = context.WithValue(ctx2, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req2 = req2.WithContext(ctx2)
+		req2 = withDiscoveredPipelinesAutoML(req2)
+
+		app.PipelineRunsHandler(rr2, req2, nil)
+		assert.Equal(t, http.StatusOK, rr2.Code)
+
+		var page2Response PipelineRunsEnvelope
+		err = json.Unmarshal(rr2.Body.Bytes(), &page2Response)
+		assert.NoError(t, err)
+		assert.NotNil(t, page2Response.Data)
+		assert.Len(t, page2Response.Data.Runs, 2)
+		assert.Equal(t, int32(4), page2Response.Data.TotalSize)
+
+		// Pages must be disjoint
+		page1IDs := make(map[string]bool)
+		for _, run := range page1Response.Data.Runs {
+			page1IDs[run.RunID] = true
+		}
+		for _, run := range page2Response.Data.Runs {
+			assert.False(t, page1IDs[run.RunID], "run %q appears on both page 1 and page 2", run.RunID)
+		}
+
+		// Each page must be sorted by created_at descending
+		for _, pageResp := range []PipelineRunsEnvelope{page1Response, page2Response} {
+			for i := 1; i < len(pageResp.Data.Runs); i++ {
+				assert.GreaterOrEqual(t, pageResp.Data.Runs[i-1].CreatedAt, pageResp.Data.Runs[i].CreatedAt,
+					"runs should be sorted by created_at descending")
+			}
+		}
 	})
 
 	t.Run("should handle page 2 pagination", func(t *testing.T) {
@@ -307,34 +351,38 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		if len(response.Data.Runs) > 0 {
-			run := response.Data.Runs[0]
+		assert.Greater(t, len(response.Data.Runs), 0, "Should have at least one run")
+		for i, run := range response.Data.Runs {
 			// Verify required fields
-			assert.NotEmpty(t, run.RunID, "RunID should not be empty")
-			assert.NotEmpty(t, run.DisplayName, "DisplayName should not be empty")
-			assert.NotEmpty(t, run.State, "State should not be empty")
-			assert.NotEmpty(t, run.CreatedAt, "CreatedAt should not be empty")
+			assert.NotEmpty(t, run.RunID, "Runs[%d] RunID should not be empty", i)
+			assert.NotEmpty(t, run.DisplayName, "Runs[%d] DisplayName should not be empty", i)
+			assert.NotEmpty(t, run.State, "Runs[%d] State should not be empty", i)
+			assert.NotEmpty(t, run.CreatedAt, "Runs[%d] CreatedAt should not be empty", i)
 
 			// Verify enhanced fields are present
-			assert.NotEmpty(t, run.ExperimentID, "ExperimentID should not be empty")
-			assert.NotNil(t, run.PipelineVersionReference, "PipelineVersionReference should not be nil")
+			assert.NotEmpty(t, run.ExperimentID, "Runs[%d] ExperimentID should not be empty", i)
+			assert.NotNil(t, run.PipelineVersionReference, "Runs[%d] PipelineVersionReference should not be nil", i)
 			if run.PipelineVersionReference != nil {
-				assert.NotEmpty(t, run.PipelineVersionReference.PipelineID, "PipelineID should not be empty")
-				assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID, "PipelineVersionID should not be empty")
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineID, "Runs[%d] PipelineID should not be empty", i)
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID, "Runs[%d] PipelineVersionID should not be empty", i)
 			}
-			assert.NotEmpty(t, run.StorageState, "StorageState should not be empty")
-			assert.NotEmpty(t, run.ServiceAccount, "ServiceAccount should not be empty")
+			assert.NotEmpty(t, run.StorageState, "Runs[%d] StorageState should not be empty", i)
+			assert.NotEmpty(t, run.ServiceAccount, "Runs[%d] ServiceAccount should not be empty", i)
 
 			// Verify state history is present
-			assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
-			assert.Greater(t, len(run.StateHistory), 0, "StateHistory should have at least one entry")
+			assert.NotNil(t, run.StateHistory, "Runs[%d] StateHistory should not be nil", i)
+			assert.Greater(t, len(run.StateHistory), 0, "Runs[%d] StateHistory should have at least one entry", i)
 			if len(run.StateHistory) > 0 {
-				assert.NotEmpty(t, run.StateHistory[0].UpdateTime, "StateHistory UpdateTime should not be empty")
-				assert.NotEmpty(t, run.StateHistory[0].State, "StateHistory State should not be empty")
+				assert.NotEmpty(t, run.StateHistory[0].UpdateTime, "Runs[%d] StateHistory UpdateTime should not be empty", i)
+				assert.NotEmpty(t, run.StateHistory[0].State, "Runs[%d] StateHistory State should not be empty", i)
 			}
 
 			// Verify run details are present
-			assert.NotNil(t, run.RunDetails, "RunDetails should not be nil")
+			assert.NotNil(t, run.RunDetails, "Runs[%d] RunDetails should not be nil", i)
+
+			// Verify pipeline_type is one of the known AutoML types
+			assert.Contains(t, []string{constants.PipelineTypeTimeSeries, constants.PipelineTypeTabular}, run.PipelineType,
+				"Runs[%d] pipeline_type should be timeseries or tabular", i)
 		}
 	})
 
@@ -514,6 +562,10 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 			assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
 			assert.NotEmpty(t, task.State, "Task state should not be empty")
 		}
+
+		// Verify pipeline_type is set to a known AutoML type
+		assert.Contains(t, []string{constants.PipelineTypeTimeSeries, constants.PipelineTypeTabular}, run.PipelineType,
+			"pipeline_type should be timeseries or tabular")
 	})
 
 	t.Run("should include task details with inputs and outputs", func(t *testing.T) {
