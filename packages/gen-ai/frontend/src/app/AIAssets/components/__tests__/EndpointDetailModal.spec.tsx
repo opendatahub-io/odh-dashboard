@@ -38,6 +38,7 @@ const createMockModel = (overrides?: Partial<AIModel>): AIModel => ({
   status: 'Running',
   display_name: 'Test Model',
   sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
@@ -129,7 +130,7 @@ describe('EndpointDetailModal', () => {
   describe('MaaS models', () => {
     it('should show both endpoints and API key section for MaaS models', () => {
       const model = createMockModel({
-        isMaaSModel: true,
+        model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/models/test/v1',
         internalEndpoint: 'http://test-model.ns.svc.cluster.local:8080/v1',
       });
@@ -153,7 +154,7 @@ describe('EndpointDetailModal', () => {
 
     it('should call generateToken when Generate API Key button is clicked', () => {
       const model = createMockModel({
-        isMaaSModel: true,
+        model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -172,7 +173,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -192,7 +193,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -211,7 +212,7 @@ describe('EndpointDetailModal', () => {
       }));
 
       const model = createMockModel({
-        isMaaSModel: true,
+        model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
       });
       renderModal(model);
@@ -223,7 +224,7 @@ describe('EndpointDetailModal', () => {
   describe('Field matrix per model source', () => {
     it('should show only internal endpoint for Internal models', () => {
       const model = createMockModel({
-        modelSource: 'namespace',
+        model_source_type: 'namespace',
         internalEndpoint: 'http://granite-7b.ns.svc.cluster.local:8080/v1',
       });
       renderModal(model);
@@ -235,7 +236,7 @@ describe('EndpointDetailModal', () => {
 
     it('should show both endpoints for Internal models with external route', () => {
       const model = createMockModel({
-        modelSource: 'namespace',
+        model_source_type: 'namespace',
         externalEndpoint: 'https://api.example.com/models/mistral/v1',
         internalEndpoint: 'http://mistral-7b.ns.svc.cluster.local:8080/v1',
       });
@@ -248,7 +249,7 @@ describe('EndpointDetailModal', () => {
 
     it('should show only external endpoint for External models', () => {
       const model = createMockModel({
-        modelSource: 'external_provider',
+        model_source_type: 'external_provider',
         externalEndpoint: 'https://api.external-provider.com/v1',
       });
       renderModal(model);

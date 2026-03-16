@@ -18,35 +18,38 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   status: 'Running' as const,
   display_name: 'Test',
   sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
 describe('getSourceLabel', () => {
   it('should return "Internal" for namespace without external endpoint', () => {
-    expect(getSourceLabel(makeModel({ modelSource: 'namespace' }))).toBe('Internal');
+    expect(getSourceLabel(makeModel({ model_source_type: 'namespace' }))).toBe('Internal');
   });
 
   it('should return "Internal" for namespace with external endpoint', () => {
     expect(
       getSourceLabel(
-        makeModel({ modelSource: 'namespace', externalEndpoint: 'https://example.com' }),
+        makeModel({ model_source_type: 'namespace', externalEndpoint: 'https://example.com' }),
       ),
     ).toBe('Internal');
   });
 
   it('should return "Public route" for external_cluster', () => {
-    expect(getSourceLabel(makeModel({ modelSource: 'external_cluster' }))).toBe('Public route');
+    expect(getSourceLabel(makeModel({ model_source_type: 'external_cluster' }))).toBe(
+      'Public route',
+    );
   });
 
   it('should return "External" for external_provider', () => {
-    expect(getSourceLabel(makeModel({ modelSource: 'external_provider' }))).toBe('External');
+    expect(getSourceLabel(makeModel({ model_source_type: 'external_provider' }))).toBe('External');
   });
 
   it('should return "MaaS" for maas', () => {
-    expect(getSourceLabel(makeModel({ modelSource: 'maas' }))).toBe('MaaS');
+    expect(getSourceLabel(makeModel({ model_source_type: 'maas' }))).toBe('MaaS');
   });
 
-  it('should return "Internal" when modelSource is undefined', () => {
+  it('should return "Internal" when model_source_type is undefined', () => {
     expect(getSourceLabel(makeModel())).toBe('Internal');
   });
 });
@@ -79,7 +82,7 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.internalEndpoint).toBeUndefined();
   });
 
-  it('should set modelSource to "maas"', () => {
+  it('should set model_source_type to "maas"', () => {
     const maasModel: MaaSModel = {
       id: 'test-model',
       object: 'model',
@@ -89,7 +92,7 @@ describe('convertMaaSModelToAIModel', () => {
       url: 'https://maas.example.com/model',
     };
     const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.modelSource).toBe('maas');
+    expect(result.model_source_type).toBe('maas');
   });
 
   it('should use model_type from BFF when available', () => {
@@ -121,7 +124,7 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.model_type).toBeUndefined();
   });
 
-  it('should set isMaaSModel and maasModelId correctly', () => {
+  it('should set model_source_type and model_id correctly', () => {
     const maasModel: MaaSModel = {
       id: 'my-maas-model-id',
       object: 'model',
@@ -131,8 +134,8 @@ describe('convertMaaSModelToAIModel', () => {
       url: 'https://maas.example.com/model',
     };
     const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.isMaaSModel).toBe(true);
-    expect(result.maasModelId).toBe('my-maas-model-id');
+    expect(result.model_source_type).toBe('maas');
+    expect(result.model_id).toBe('my-maas-model-id');
   });
 
   it('should use display_name for model_name when available', () => {
