@@ -172,7 +172,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       groups,
       projectHardwareProfiles,
       localQueues,
-      kueueStatusByNotebookName,
     ],
   );
 

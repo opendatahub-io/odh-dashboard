@@ -14,7 +14,6 @@ export interface UseSearchStateReturn {
   setIsSearching: (searching: boolean) => void;
   searchInputRef: React.RefObject<HTMLInputElement>;
   searchMenuRef: React.RefObject<HTMLDivElement>;
-  timeoutRef: React.MutableRefObject<NodeJS.Timeout | undefined>;
 }
 
 export const useSearchState = ({
@@ -27,7 +26,6 @@ export const useSearchState = ({
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const searchMenuRef = React.useRef<HTMLDivElement>(null);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -54,14 +52,6 @@ export const useSearchState = ({
     }
   }, [isLoading]);
 
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
   return {
     searchValue,
     setSearchValue,
@@ -72,6 +62,5 @@ export const useSearchState = ({
     setIsSearching,
     searchInputRef,
     searchMenuRef,
-    timeoutRef,
   };
 };
