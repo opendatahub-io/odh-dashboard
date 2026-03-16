@@ -786,6 +786,8 @@ func TestModelSourceTypeConstants(t *testing.T) {
 			"ModelSourceTypeExternalCluster value must be 'external_cluster'")
 		assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), models.ModelSourceTypeExternalProvider,
 			"ModelSourceTypeExternalProvider value must be 'external_provider'")
+		assert.Equal(t, models.ModelSourceTypeEnum("maas"), models.ModelSourceTypeMaaS,
+			"ModelSourceTypeMaaS value must be 'maas'")
 	})
 }
 
