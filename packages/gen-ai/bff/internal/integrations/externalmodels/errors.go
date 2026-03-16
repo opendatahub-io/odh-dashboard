@@ -21,10 +21,10 @@ func (e *ExternalModelError) Error() string {
 
 // Error codes
 const (
-	ErrCodeConnectionFailed    = "CONNECTION_FAILED"
-	ErrCodeTimeout             = "TIMEOUT"
-	ErrCodeUnauthorized        = "UNAUTHORIZED"
-	ErrCodeNotOpenAICompatible = "NOT_OPENAI_COMPATIBLE"
+	ErrCodeConnectionFailed     = "CONNECTION_FAILED"
+	ErrCodeTimeout              = "TIMEOUT"
+	ErrCodeUnauthorized         = "UNAUTHORIZED"
+	ErrCodeNotOpenAICompatible  = "NOT_OPENAI_COMPATIBLE"
 	ErrCodeInvalidConfiguration = "INVALID_CONFIGURATION"
 )
 

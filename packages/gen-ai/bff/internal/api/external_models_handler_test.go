@@ -859,7 +859,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-
 	It("should successfully verify an LLM model with OpenAI-compatible API", func() {
 		t := GinkgoT()
 
@@ -1173,9 +1172,9 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		t := GinkgoT()
 
 		testCases := []struct {
-			name             string
-			baseURL          string
-			expectedMessage  string
+			name            string
+			baseURL         string
+			expectedMessage string
 		}{
 			{
 				name:            "invalid URL scheme (ftp)",
