@@ -134,12 +134,12 @@ func validateIPAddress(ip net.IP) error
 
 The validation is applied in:
 
-1. **`GetS3Credentials()`** in `s3.go` (line 90-95)
+1. **`GetS3Credentials()`** in `s3.go`
    - Called when retrieving credentials from Kubernetes secrets
    - Validates and normalizes the `AWS_S3_ENDPOINT` value
    - Returns error if endpoint is invalid
 
-2. **`GetS3Credentials()`** in `s3_mock.go` (line 77-79)
+2. **`GetS3Credentials()`** in `s3_mock.go`
    - Mock implementation skips SSRF validation
    - Stores endpoint as-is for test fixtures
    - Tests can verify validation in the real implementation
@@ -243,7 +243,7 @@ go test -v ./internal/api -run TestS3Repository_GetS3Credentials
 - ✅ Invalid URL format rejection
 - ✅ Valid HTTPS URL acceptance
 
-All tests are located in `internal/api/s3_handler_test.go` (lines 638-863).
+All tests are located in `internal/api/s3_handler_test.go`.
 
 ## Troubleshooting
 
