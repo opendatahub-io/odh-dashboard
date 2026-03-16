@@ -732,6 +732,40 @@ class RayJobDetailsDrawer {
   }
 }
 
+class RayJobDetailsTab {
+  findJobSummarySection() {
+    return cy.findByTestId('job-summary-section');
+  }
+
+  findRayVersionValue() {
+    return cy.findByTestId('ray-version-value');
+  }
+
+  findExecutionsSection() {
+    return cy.findByTestId('executions-section');
+  }
+
+  findEntrypointCommandValue() {
+    return cy.findByTestId('entrypoint-command-value');
+  }
+
+  findSubmissionModeValue() {
+    return cy.findByTestId('submission-mode-value');
+  }
+
+  findManagementSection() {
+    return cy.findByTestId('management-section');
+  }
+
+  findShutdownPolicyValue() {
+    return cy.findByTestId('shutdown-policy-value');
+  }
+
+  findClusterNameValue() {
+    return cy.findByTestId('cluster-name-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -743,3 +777,4 @@ export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
+export const rayJobDetailsTab = new RayJobDetailsTab();
