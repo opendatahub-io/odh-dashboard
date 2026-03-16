@@ -10,40 +10,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// mockNamespace is the namespace that NewMockPipelineServerClient("http://mock-ps") produces.
+// Since "http://mock-ps" is not a "mock://" URL, the mock's Namespace field is "".
+const mockNamespace = ""
+
 func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	repo := NewPipelineRunsRepository()
-	mockClient := psmocks.NewMockPipelineServerClient()
+	mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		assert.Len(t, runsData.Runs, 3)
-		assert.Equal(t, int32(3), runsData.TotalSize)
+		// Mock with empty namespace returns 5 runs (default count for unknown namespace)
+		assert.Len(t, runsData.Runs, 5)
+		assert.Equal(t, int32(5), runsData.TotalSize)
 	})
 
-	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
+	t.Run("should pass pipeline version ID filter to the client", func(t *testing.T) {
+		// Use the derived version ID for the empty namespace (matching how mock generates IDs)
+		ids := psmocks.DeriveMockIDs(mockNamespace)
+		pipelineVersionID := ids.LatestVersionID
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock now filters by pipeline version ID - 2 runs have this version ID
-		assert.Len(t, runsData.Runs, 2)
+		// Verify the filter was forwarded to the client with the requested version ID
+		assert.NotNil(t, mockClient.LastListRunsParams, "GetPipelineRuns should have called ListRuns")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
+			"filter should include the requested pipeline version ID")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
+			"filter should include the pipeline_version_id key")
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -72,6 +83,9 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 				assert.NotEmpty(t, run.StateHistory[0].UpdateTime)
 				assert.NotEmpty(t, run.StateHistory[0].State)
 			}
+
+			// Verify pipeline_type is set from the pipelineType parameter
+			assert.Equal(t, constants.PipelineTypeTimeSeries, run.PipelineType)
 		}
 	})
 }
@@ -123,11 +137,11 @@ func newValidCreateRequest() models.CreateAutoMLRunRequest {
 func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should map all required parameters correctly", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id")
 
 		assert.Equal(t, "test-run", result.DisplayName)
-		assert.Equal(t, constants.AutoMLPipelineID, result.PipelineVersionReference.PipelineID)
-		assert.Equal(t, constants.AutoMLPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
+		assert.Equal(t, "test-pipeline-id", result.PipelineVersionReference.PipelineID)
+		assert.Equal(t, "test-version-id", result.PipelineVersionReference.PipelineVersionID)
 
 		params := result.RuntimeConfig.Parameters
 		assert.Equal(t, "minio-secret", params["train_data_secret_name"])
@@ -140,7 +154,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should default top_n to 3 when nil", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.TopN = nil
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id")
 
 		assert.Equal(t, constants.DefaultTopN, result.RuntimeConfig.Parameters["top_n"])
 	})
@@ -149,7 +163,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		req := newValidCreateRequest()
 		topN := 5
 		req.TopN = &topN
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id")
 
 		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
 	})
@@ -157,7 +171,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should pass description to KFP request", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.Description = "my description"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id")
 
 		assert.Equal(t, "my description", result.Description)
 	})

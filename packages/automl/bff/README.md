@@ -8,14 +8,15 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes the following endpoints:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/secrets` – list and filter secrets from a namespace (supports filtering by storage type)
-
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
+- GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
+- GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
+- POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
 
 ## Development
 
@@ -96,10 +97,13 @@ make docker-build
 The following JSON endpoints are available plus static asset serving (index.html fallback):
 
 ```text
-GET /healthcheck
-GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
-GET /api/v1/secrets      (filter secrets by type, e.g., ?resource=namespace&type=storage)
+GET  /healthcheck
+GET  /api/v1/user
+GET  /api/v1/namespaces          (dev / mock mode only)
+GET  /api/v1/secrets             (filter secrets by type, e.g., ?namespace=default&type=storage)
+GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered AutoML pipelines)
+GET  /api/v1/pipeline-runs/:runId
+POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
 ```
 
 For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).
