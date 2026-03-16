@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
+	"net"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,6 +29,95 @@ type S3Repository struct{}
 
 func NewS3Repository() *S3Repository {
 	return &S3Repository{}
+}
+
+// validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
+// It ensures the URL uses HTTPS, is properly formatted, and does not target private IP ranges.
+// Returns the normalized URL string or an error if validation fails.
+func validateAndNormalizeEndpoint(endpoint string) (string, error) {
+	if endpoint == "" {
+		return "", fmt.Errorf("endpoint URL cannot be empty")
+	}
+
+	// Parse the URL
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
+	}
+
+	// Ensure scheme is HTTPS
+	if parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("endpoint URL must use HTTPS scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Extract hostname (may be hostname or IP)
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return "", fmt.Errorf("endpoint URL must have a valid hostname")
+	}
+
+	// Check if the hostname is an IP address
+	ip := net.ParseIP(hostname)
+	if ip != nil {
+		// Direct IP address - validate it
+		if err := validateIPAddress(ip); err != nil {
+			return "", err
+		}
+	} else {
+		// Hostname - resolve it and validate all IPs
+		ips, err := net.LookupIP(hostname)
+		if err != nil {
+			// Allow unresolvable hostnames (they might resolve at runtime in a different network)
+			// but log a warning
+			slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed",
+				"hostname", hostname,
+				"error", err.Error())
+		} else {
+			// Validate all resolved IPs
+			for _, resolvedIP := range ips {
+				if err := validateIPAddress(resolvedIP); err != nil {
+					return "", fmt.Errorf("endpoint hostname '%s' resolves to blocked IP %s: %w", hostname, resolvedIP, err)
+				}
+			}
+		}
+	}
+
+	// Return the normalized URL string
+	return parsedURL.String(), nil
+}
+
+// validateIPAddress checks if an IP address is in a blocked range (private or link-local).
+// Returns an error if the IP is blocked, nil otherwise.
+func validateIPAddress(ip net.IP) error {
+	// Define blocked IP ranges
+	blockedRanges := []struct {
+		cidr        string
+		description string
+	}{
+		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
+		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
+		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
+		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
+		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
+		{"::1/128", "IPv6 loopback"},
+		{"fe80::/10", "IPv6 link-local"},
+		{"fc00::/7", "IPv6 unique local addresses"},
+	}
+
+	for _, blocked := range blockedRanges {
+		_, network, err := net.ParseCIDR(blocked.cidr)
+		if err != nil {
+			// Should never happen with hardcoded CIDRs, but handle gracefully
+			slog.Error("Failed to parse blocked CIDR", "cidr", blocked.cidr, "error", err)
+			continue
+		}
+
+		if network.Contains(ip) {
+			return fmt.Errorf("endpoint IP %s is in blocked %s", ip, blocked.description)
+		}
+	}
+
+	return nil
 }
 
 // GetS3Credentials retrieves S3 credentials from a Kubernetes secret
@@ -63,7 +155,7 @@ func (r *S3Repository) GetS3Credentials(
 	creds.AccessKeyID = getValue("AWS_ACCESS_KEY_ID")
 	creds.SecretAccessKey = getValue("AWS_SECRET_ACCESS_KEY")
 	creds.Region = getValue("AWS_DEFAULT_REGION")
-	creds.EndpointURL = getValue("AWS_S3_ENDPOINT")
+	rawEndpoint := getValue("AWS_S3_ENDPOINT")
 	creds.Bucket = getValue("AWS_S3_BUCKET") // Optional bucket name
 
 	// Validate that all required fields are present
@@ -76,9 +168,16 @@ func (r *S3Repository) GetS3Credentials(
 	if creds.Region == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
 	}
-	if creds.EndpointURL == "" {
+	if rawEndpoint == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
 	}
+
+	// Validate and normalize the endpoint URL to prevent SSRF attacks
+	validatedEndpoint, err := validateAndNormalizeEndpoint(rawEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s' has invalid AWS_S3_ENDPOINT: %w", secretName, err)
+	}
+	creds.EndpointURL = validatedEndpoint
 
 	return creds, nil
 }

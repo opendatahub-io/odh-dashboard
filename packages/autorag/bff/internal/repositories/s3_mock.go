@@ -53,7 +53,7 @@ func (r *MockS3Repository) GetS3Credentials(
 	creds.AccessKeyID = getValue("AWS_ACCESS_KEY_ID")
 	creds.SecretAccessKey = getValue("AWS_SECRET_ACCESS_KEY")
 	creds.Region = getValue("AWS_DEFAULT_REGION")
-	creds.EndpointURL = getValue("AWS_S3_ENDPOINT")
+	rawEndpoint := getValue("AWS_S3_ENDPOINT")
 	creds.Bucket = getValue("AWS_S3_BUCKET") // Optional bucket name
 
 	// Validate required fields
@@ -66,9 +66,13 @@ func (r *MockS3Repository) GetS3Credentials(
 	if creds.Region == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
 	}
-	if creds.EndpointURL == "" {
+	if rawEndpoint == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
 	}
+
+	// For mock implementation, skip SSRF validation since we're not actually connecting to S3
+	// Just store the endpoint as-is for test fixtures
+	creds.EndpointURL = rawEndpoint
 
 	return creds, nil
 }

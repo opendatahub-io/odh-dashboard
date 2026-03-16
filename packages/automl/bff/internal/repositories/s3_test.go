@@ -269,7 +269,7 @@ func TestCollectBooleanValues(t *testing.T) {
 				{"0", "value"},
 			},
 			colIndex: 0,
-			expected: []interface{}{0, 1},
+			expected: []interface{}{int64(0), int64(1)},
 		},
 		{
 			name: "string booleans",
