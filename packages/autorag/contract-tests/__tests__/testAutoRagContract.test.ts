@@ -638,22 +638,210 @@ describe('AutoRAG API Contract Tests', () => {
 
   describe('S3 Files Endpoint', () => {
     describe('Error Cases - Missing Parameters', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?secret_name=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secret_name parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/files?namespace=default&bucket=my-bucket');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=test-secret',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when all parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/files');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
     });
     describe('Error Cases - Empty Parameters', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=&secret_name=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secret_name', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty bucket when secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=test-secret&bucket=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
     });
     describe('Error Cases - Secret Issues', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=non-existent-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=non-existent-namespace&secret_name=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
     });
     describe('Bucket Parameter Fallback', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket',
+        );
+        // Should not return 400 since bucket is provided via secret
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket&bucket=override-bucket',
+        );
+        // Should not return 400 since both bucket sources are valid
+        if (!result.success) {
+          expect(result.error.status).not.toBe(400);
+        }
+      }, 8000);
     });
-    describe('Key Format Variations', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
-    });
-    describe('Valid Bucket and Key Formats', () => {
-      // TODO [ AI ] Implement test case. See the 'S3 File Endpoint' test suite
+    describe('Search parameters handling', () => {
+      const searchParamsUri =
+        '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket';
+
+      describe('path parameter', () => {
+        it('should accept request with valid path parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&path=folder/subfolder`);
+          if (!result.success) {
+            expect(result.error.status).not.toBe(400);
+          }
+        }, 8000);
+
+        it('should return 400 when path is provided but empty', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&path=`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('search parameter', () => {
+        it('should accept request with valid search parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&search=myfile`);
+          if (!result.success) {
+            expect(result.error.status).not.toBe(400);
+          }
+        }, 8000);
+
+        it('should return 400 when search contains slash characters', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&search=folder/file`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('next parameter', () => {
+        it('should accept request with valid next parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&next=some-continuation-token`);
+          if (!result.success) {
+            expect(result.error.status).not.toBe(400);
+          }
+        }, 8000);
+
+        it('should return 400 when next is provided but empty', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&next=`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('limit parameter', () => {
+        it('should accept request with valid limit parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=20`);
+          if (!result.success) {
+            expect(result.error.status).not.toBe(400);
+          }
+        }, 8000);
+
+        it('should return 400 when limit is zero', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=0`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit is negative', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=-1`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit exceeds 1000', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=1001`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit is not a number', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=abc`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
     });
   });
 
@@ -680,6 +868,7 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
         // Verify every returned run belongs to the requested pipeline version
+        // TODO [ Gustavo + Chris ] The line below is showing: TS18048: result.response is possibly undefined
         const runs = result.response.data?.data?.runs ?? [];
         expect(runs.length).toBeGreaterThan(0);
         for (const run of runs) {
