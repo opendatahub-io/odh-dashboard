@@ -58,7 +58,11 @@ export function useFilesQuery(
       }
 
       const data = await response.json();
-      return data.data?.columns ?? [];
+      const columns = data?.data?.columns;
+      if (!Array.isArray(columns)) {
+        return [];
+      }
+      return columns as ColumnSchema[];
     },
     enabled: Boolean(namespace && secretName && key),
     retry: false,
