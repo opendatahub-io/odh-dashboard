@@ -103,8 +103,8 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Model Registry');
-      modelRegistry.navigate();
+      cy.step('Visit Model Registry Page');
+      modelRegistry.visit();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);
@@ -219,7 +219,7 @@ describe('Verify models can be deployed from model registry', () => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       // Check deployment link and verify status in deployments view
-      modelRegistry.navigate();
+      modelRegistry.visit();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
       cy.contains(ModelStateLabel.STARTED).should('be.visible');
