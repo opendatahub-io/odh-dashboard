@@ -328,7 +328,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 setIsModelTypeOpen(false);
               }}
               onOpenChange={(nextOpen) => setIsModelTypeOpen(nextOpen)}
-              isDisabled={isVerifying || isSubmitting}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                   ref={toggleRef}
@@ -372,7 +371,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 setIsProviderTypeOpen(false);
               }}
               onOpenChange={(nextOpen) => setIsProviderTypeOpen(nextOpen)}
-              isDisabled={isVerifying || isSubmitting}
               toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                   ref={toggleRef}
