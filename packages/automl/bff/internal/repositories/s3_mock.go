@@ -11,6 +11,10 @@ import (
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 )
 
+// mockCSVContent is the shared CSV fixture used by both GetS3Object and GetS3CSVSchema
+// It matches the 5-column schema: id (integer), name (string), score (double), is_active (bool), created_at (timestamp)
+const mockCSVContent = "id,name,score,is_active,created_at\n1,Alice,95.5,true,2024-01-15T10:30:00Z\n2,Bob,87.3,false,2024-01-16T14:45:00Z\n"
+
 // MockS3Repository is a mock implementation of S3RepositoryInterface for testing
 type MockS3Repository struct{}
 
@@ -94,8 +98,7 @@ func (r *MockS3Repository) GetS3Object(
 
 	// Return mock CSV content for .csv files
 	if strings.HasSuffix(key, ".csv") {
-		mockContent := []byte("column1,column2,column3\nvalue1,value2,value3\n")
-		return bytes.NewReader(mockContent), "text/csv", nil
+		return bytes.NewReader([]byte(mockCSVContent)), "text/csv", nil
 	}
 
 	// Default: return generic mock content
@@ -115,7 +118,12 @@ func (r *MockS3Repository) GetS3CSVSchema(
 		return nil, &types.NoSuchKey{}
 	}
 
-	// Return mock schema with various column types
+	// Validate that the key is a CSV file
+	if !strings.HasSuffix(key, ".csv") {
+		return nil, fmt.Errorf("schema inspection is only supported for CSV files, got: %s", key)
+	}
+
+	// Return mock schema matching the mockCSVContent fixture
 	mockSchema := []ColumnSchema{
 		{
 			Name: "id",

@@ -60,6 +60,12 @@ func main() {
 
 	flag.Parse()
 
+	// Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
+	// a mock Kubernetes client for GetS3Credentials and s3_handler.go
+	if cfg.MockS3Client {
+		cfg.MockK8Client = true
+	}
+
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
 	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient || cfg.MockS3Client) && cfg.AuthMethod == "user_token" {

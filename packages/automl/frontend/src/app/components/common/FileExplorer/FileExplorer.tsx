@@ -75,7 +75,7 @@ interface FileExplorerProps {
   id?: string;
   isOpen: boolean;
   onClose: (_event: KeyboardEvent | React.MouseEvent) => void;
-  onSelect: (files: Files, textValue: string) => void;
+  onSelect: (files: Files) => void;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSelect }) => {
   const [textValue, setTextValue] = useState('');
@@ -122,7 +122,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSele
               size: '10mb',
               path: `/${textValue}`,
             };
-            onSelect([file], textValue);
+            onSelect([file]);
             onClose(_event);
           }}
         >

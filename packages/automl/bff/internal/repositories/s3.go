@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -180,6 +179,7 @@ func (r *S3Repository) GetS3CSVSchema(
 	maxFetch := 10 * 1024 * 1024       // Safety limit: don't fetch more than 10MB
 	var accumulated bytes.Buffer
 	bytesFetched := 0
+	targetRecords := 101 // header + 100 data rows
 
 	for {
 		// Calculate the range for this request
@@ -197,11 +197,36 @@ func (r *S3Repository) GetS3CSVSchema(
 			Range:  aws.String(rangeHeader),
 		})
 		if err != nil {
+			// Check if the error is because the range extends past the end of the file
+			// This can happen with quoted multiline fields - treat as EOF instead of error
+			if strings.Contains(err.Error(), "InvalidRange") ||
+				strings.Contains(err.Error(), "invalid range") ||
+				strings.Contains(err.Error(), "Requested Range Not Satisfiable") {
+				// We've reached the end of the file
+				break
+			}
 			return nil, fmt.Errorf("error retrieving CSV file from S3: %w", err)
 		}
 
-		// Read the chunk data
-		chunkData, err := io.ReadAll(result.Body)
+		// Read the chunk data with bounded read to prevent memory exhaustion
+		// Calculate expected size from the requested range
+		expectedSize := int64(rangeEnd - rangeStart + 1)
+		var readLimit int64 = expectedSize
+
+		// If ContentLength is available and smaller, use it
+		if result.ContentLength != nil && *result.ContentLength > 0 && *result.ContentLength < readLimit {
+			readLimit = *result.ContentLength
+		}
+
+		// Also enforce our safety limit
+		maxRemaining := int64(maxFetch - bytesFetched)
+		if readLimit > maxRemaining {
+			readLimit = maxRemaining
+		}
+
+		// Use LimitReader to cap the read to expected size
+		limitedReader := io.LimitReader(result.Body, readLimit)
+		chunkData, err := io.ReadAll(limitedReader)
 		result.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("error reading CSV file data: %w", err)
@@ -216,10 +241,30 @@ func (r *S3Repository) GetS3CSVSchema(
 		accumulated.Write(chunkData)
 		bytesFetched += len(chunkData)
 
-		// Count lines to see if we have enough
-		lineCount := countLines(accumulated.Bytes())
-		// We need header + 100 data rows = 101 lines minimum
-		if lineCount >= 101 {
+		// Parse CSV records to count them properly (handles multiline quoted fields)
+		csvReader := csv.NewReader(bytes.NewReader(accumulated.Bytes()))
+		csvReader.TrimLeadingSpace = true
+		csvReader.LazyQuotes = true
+
+		recordCount := 0
+		for {
+			_, err := csvReader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// If we can't parse, we might need more data
+				// Continue fetching unless we've hit the safety limit
+				break
+			}
+			recordCount++
+			if recordCount >= targetRecords {
+				break
+			}
+		}
+
+		// Check if we have enough complete CSV records
+		if recordCount >= targetRecords {
 			break
 		}
 
@@ -532,9 +577,17 @@ func isTimestamp(s string) bool {
 		}
 	}
 
-	// Check for Unix timestamp (numeric timestamp)
-	if matched, _ := regexp.MatchString(`^\d{10}$|^\d{13}$`, s); matched {
-		return true
+	// Check for Unix timestamp (numeric timestamp in plausible epoch range)
+	// Parse as integer first
+	if num, err := strconv.ParseInt(s, 10, 64); err == nil {
+		// Check for 10-digit seconds (1980-01-01 to 2100-01-01)
+		if num >= 315532800 && num <= 4102444800 {
+			return true
+		}
+		// Check for 13-digit milliseconds (1980-01-01 to 2100-01-01)
+		if num >= 315532800000 && num <= 4102444800000 {
+			return true
+		}
 	}
 
 	return false
