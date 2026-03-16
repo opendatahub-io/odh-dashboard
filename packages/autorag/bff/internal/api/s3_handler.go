@@ -13,6 +13,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -171,8 +172,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
 func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	app.logger.Warn("In progress...")
-
 	// Validate identity
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -184,7 +183,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Validate parameters
 	namespace, secretName, bucket, path, parameterError := validateParameters(r)
 	if parameterError != nil {
-		app.badRequestResponse(w, r, fmt.Errorf(parameterError.Error()))
+		app.badRequestResponse(w, r, parameterError)
 		return
 	}
 
@@ -198,11 +197,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
-	if err != nil {
+	creds, credentialsError := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	if credentialsError != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
+		if errors.As(credentialsError, &statusErr) {
 			if apierrors.IsNotFound(statusErr) {
 				httpError := &integrations.HTTPError{
 					StatusCode: http.StatusNotFound,
@@ -215,34 +214,34 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
+				app.forbiddenResponse(w, r, credentialsError.Error())
 				return
 			}
 			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
+				app.unauthorizedResponse(w, r, credentialsError.Error())
 				return
 			}
 		}
 
 		// Check if it's a secret not found or validation error
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(credentialsError.Error(), "not found") {
 			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
 				ErrorResponse: integrations.ErrorResponse{
 					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
+					Message: credentialsError.Error(),
 				},
 			}
 			app.errorResponse(w, r, httpError)
 			return
 		}
 
-		if strings.Contains(err.Error(), "missing required field") {
-			app.badRequestResponse(w, r, err)
+		if strings.Contains(credentialsError.Error(), "missing required field") {
+			app.badRequestResponse(w, r, credentialsError)
 			return
 		}
 
-		app.serverErrorResponse(w, r, err)
+		app.serverErrorResponse(w, r, credentialsError)
 		return
 	}
 
@@ -260,10 +259,15 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	app.logger.Info(fmt.Sprintf("GetS3FilesHandler calling list with path: %s", path))
 
-	// TODO [ Gustavo ] Add more parameters
-	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket)
+	options := repositories.GetS3ObjectsOptions{
+		Path:   "",
+		Search: "",
+		Next:   "",
+		Limit:  1000,
+	}
+	result, listError := app.repositories.S3.GetS3Objects(ctx, creds, bucket, options)
 	if listError != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf(listError.Error()))
+		app.serverErrorResponse(w, r, listError)
 		return
 	}
 

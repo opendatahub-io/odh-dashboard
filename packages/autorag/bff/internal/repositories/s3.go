@@ -137,11 +137,19 @@ func (r *S3Repository) GetS3Object(
 	return result.Body, contentType, nil
 }
 
+type GetS3ObjectsOptions struct {
+	Path   string // Denotes the current "folder" we should be searching in
+	Search string // The value the user entered into the search bar
+	Next   string // The token value to use if the user wants the next page
+	Limit  int32  // Variable amount of max keys so we can paginate
+}
+
 // GetS3Objects retrieves objects from S3
 func (r *S3Repository) GetS3Objects(
 	ctx context.Context,
 	creds *S3Credentials,
 	bucket string,
+	options GetS3ObjectsOptions,
 ) (*s3.ListObjectsV2Output, error) {
 	// Create AWS config with credentials
 	cfg := aws.Config{
@@ -160,6 +168,12 @@ func (r *S3Repository) GetS3Objects(
 	//   1. FileExplorer case where path,search,page are passed in
 	//   2. List all and find by regex for table where resource powers AutoRAG leaderboard
 	//  So in some cases we will need to fetch only what is requested vs fetch all
+
+	// Required parameters in function signature:
+	// path: Denotes the current "folder" we should be searching in
+	// search: The value the user entered into the search bar
+	// next: The token value to use if the user wants the next page
+	// max keys: Variable amount of max keys so we can paginate
 
 	var err error
 	var output *s3.ListObjectsV2Output

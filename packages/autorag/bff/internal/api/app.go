@@ -37,6 +37,7 @@ const (
 	NamespacePath    = ApiPathPrefix + "/namespaces"
 	SecretsPath      = ApiPathPrefix + "/secrets"
 	S3FilePath       = ApiPathPrefix + "/s3/file"
+	S3FilesPath      = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -178,6 +179,7 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FilesHandler)))
 
 	// LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
