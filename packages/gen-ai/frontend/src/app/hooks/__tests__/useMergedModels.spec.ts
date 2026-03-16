@@ -30,9 +30,7 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   usecase: 'llm',
   status: 'Running',
   sa_token: { name: '', token_name: '', token: '' },
-  isMaaSModel: false,
-  maasModelId: undefined,
-  modelSource: 'namespace',
+  model_source_type: 'namespace',
   ...overrides,
 });
 
@@ -96,7 +94,7 @@ describe('useMergedModels', () => {
 
     expect(result.current.models).toHaveLength(1);
     expect(result.current.models[0].model_name).toBe('granite-7b');
-    expect(result.current.models[0].isMaaSModel).toBe(false);
+    expect(result.current.models[0].model_source_type).toBe('namespace');
   });
 
   it('should return only MaaS models (converted) when no AI models exist', () => {
@@ -117,8 +115,7 @@ describe('useMergedModels', () => {
 
     expect(result.current.models).toHaveLength(1);
     expect(result.current.models[0].model_name).toBe('Llama 2 Chat');
-    expect(result.current.models[0].isMaaSModel).toBe(true);
-    expect(result.current.models[0].modelSource).toBe('maas');
+    expect(result.current.models[0].model_source_type).toBe('maas');
   });
 
   it('should include both namespace and MaaS versions when the same model exists in both sources', () => {
@@ -126,7 +123,7 @@ describe('useMergedModels', () => {
       model_name: 'granite-7b-lab',
       model_id: 'granite-7b-lab',
       display_name: 'Granite 7B Lab',
-      modelSource: 'namespace',
+      model_source_type: 'namespace',
     });
     const maasModel = createMaaSModel({
       id: 'granite-7b-lab',
@@ -151,15 +148,15 @@ describe('useMergedModels', () => {
 
     expect(result.current.models).toHaveLength(2);
 
-    const nsVersion = result.current.models.find((m) => m.modelSource === 'namespace');
-    const maasVersion = result.current.models.find((m) => m.modelSource === 'maas');
+    const nsVersion = result.current.models.find((m) => m.model_source_type === 'namespace');
+    const maasVersion = result.current.models.find((m) => m.model_source_type === 'maas');
 
     expect(nsVersion).toBeDefined();
-    expect(nsVersion!.isMaaSModel).toBe(false);
+    expect(nsVersion!.model_source_type).toBe('namespace');
 
     expect(maasVersion).toBeDefined();
-    expect(maasVersion!.isMaaSModel).toBe(true);
-    expect(maasVersion!.maasModelId).toBe('granite-7b-lab');
+    expect(maasVersion!.model_source_type).toBe('maas');
+    expect(maasVersion!.model_id).toBe('granite-7b-lab');
   });
 
   it('should include all models from both sources without deduplication', () => {
@@ -198,7 +195,7 @@ describe('useMergedModels', () => {
       createAIModel({
         model_name: 'shared-model',
         model_id: 'shared-model',
-        modelSource: 'namespace',
+        model_source_type: 'namespace',
       }),
     ];
     const maasModels = [createMaaSModel({ id: 'shared-model' })];
@@ -218,7 +215,7 @@ describe('useMergedModels', () => {
 
     const { result } = testHook(useMergedModels)();
 
-    const sources = result.current.models.map((m) => m.modelSource);
+    const sources = result.current.models.map((m) => m.model_source_type);
     expect(sources).toEqual(['namespace', 'maas']);
   });
 
@@ -306,7 +303,7 @@ describe('useMergedModels', () => {
       expect(result.current.aiError).toBe(aiError);
       expect(result.current.maasError).toBeUndefined();
       expect(result.current.models).toHaveLength(1);
-      expect(result.current.models[0].isMaaSModel).toBe(true);
+      expect(result.current.models[0].model_source_type).toBe('maas');
     });
 
     it('should surface both errors when both sources fail', () => {

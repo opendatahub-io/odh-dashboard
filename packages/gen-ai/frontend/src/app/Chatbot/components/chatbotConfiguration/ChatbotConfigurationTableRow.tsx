@@ -121,7 +121,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
           title={
             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>
-                {model.isMaaSModel ? (
+                {model.model_source_type === 'maas' ? (
                   model.display_name
                 ) : (
                   <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
