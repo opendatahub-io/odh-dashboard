@@ -423,16 +423,21 @@ Cypress.Commands.add(
   'findKebabAction',
   { prevSubject: 'element' },
   (subject, name, isDropdownToggle) => {
-    Cypress.log({ displayName: 'findKebab', message: name });
-    return cy
-      .wrap(subject)
+    Cypress.log({ displayName: 'findKebabAction', message: name });
+
+    // First, find and click the kebab if needed
+    // We break this into a separate chain to avoid holding a reference to a potentially stale element
+    cy.wrap(subject)
       .findKebab(isDropdownToggle)
       .then(($el) => {
         if ($el.attr('aria-expanded') === 'false') {
           cy.wrap($el).click();
         }
-        return cy.findByRole('menuitem', { name });
       });
+
+    // Then independently query for the menuitem from document root
+    // This avoids chaining from the subject element which may have been detached during React re-renders
+    return cy.findByRole('menuitem', { name });
   },
 );
 
