@@ -10,10 +10,8 @@ jest.mock('react-router', () => ({
 }));
 
 const mockUsePipelineRunQuery = jest.fn();
-const mockUseExperimentQuery = jest.fn();
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
-  useExperimentQuery: (...args: unknown[]) => mockUseExperimentQuery(...args),
 }));
 
 jest.mock('~/app/components/results/AutoragResults', () => ({
@@ -54,7 +52,6 @@ describe('AutoragResultsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
-    mockUseExperimentQuery.mockReturnValue({ isFetched: true, error: null });
   });
 
   it('should pass namespace and runId from URL params to usePipelineRunQuery', () => {

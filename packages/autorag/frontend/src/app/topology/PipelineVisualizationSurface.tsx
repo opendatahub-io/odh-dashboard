@@ -48,6 +48,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
 
     try {
       controller.fromModel({ nodes: renderNodes, edges }, true);
+      setError(null);
     } catch (e) {
       if (e instanceof Error) {
         setError(e);

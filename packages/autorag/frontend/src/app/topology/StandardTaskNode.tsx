@@ -55,7 +55,7 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
           RunStatus.Succeeded,
           RunStatus.Cancelled,
           RunStatus.Failed,
-          RunStatus.Running,
+          RunStatus.InProgress,
           RunStatus.Pending,
         ]}
         truncateLength={Infinity}

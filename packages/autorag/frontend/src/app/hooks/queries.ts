@@ -86,7 +86,7 @@ export function usePipelineRunQuery(
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
     queryKey: ['pipelineRun', runId, namespace],
-    queryFn: () => getPipelineRunFromBFF('', runId!, namespace!),
+    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     refetchInterval: (query) => {
       const state = query.state.data?.state;

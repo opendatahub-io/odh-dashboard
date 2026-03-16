@@ -42,13 +42,18 @@ const useTopologyController = (graphId: string): Visualization | null => {
       },
       false,
     );
-    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
+    const onLayoutEnd = () => {
       requestAnimationFrame(() => {
         visualizationController.getGraph().fit(75);
       });
-    });
+    };
+    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
 
     setController(visualizationController);
+
+    return () => {
+      visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
+    };
   }, [graphId]);
 
   return controller;

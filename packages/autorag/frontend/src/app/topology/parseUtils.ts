@@ -13,7 +13,7 @@ export const parseRuntimeInfoFromRunDetails = (
   taskId: string,
   runDetails?: RunDetailsKF,
 ): PipelineTaskRunStatus | undefined => {
-  if (!runDetails) {
+  if (!runDetails?.task_details) {
     return undefined;
   }
 
