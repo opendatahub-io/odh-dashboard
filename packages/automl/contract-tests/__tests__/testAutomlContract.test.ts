@@ -478,9 +478,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
         );
-        // Should not return 400 since bucket is provided via secret
+        // Mock S3 should succeed when bucket is provided via secret's AWS_S3_BUCKET field
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -488,9 +489,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
         );
-        // Should not return 400 since both bucket sources are valid
+        // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });
@@ -500,10 +502,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
         );
-        // Will fail if secret doesn't exist or S3 object doesn't exist, but key format should be valid
+        // Mock S3 should return file data for valid key formats
         if (!result.success) {
-          // Format is valid; if it fails, it should not be a request-validation error
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -513,6 +515,7 @@ describe('AutoML API Contract Tests', () => {
         );
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -523,6 +526,7 @@ describe('AutoML API Contract Tests', () => {
         );
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });
@@ -532,10 +536,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
         );
-        // Will fail without actual S3 setup, but validates parameter parsing
+        // Mock S3 validates parameter parsing and returns mock file data
         if (!result.success) {
-          // Should not be 400 (bad request) since format is valid
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -545,6 +549,7 @@ describe('AutoML API Contract Tests', () => {
         );
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });
@@ -650,10 +655,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=non-existent.csv',
         );
-        // Will fail without actual S3 setup, but validates parameter parsing
+        // Mock S3 returns 404 for files with "non-existent" in the key
         if (!result.success) {
-          // Should not be 400 (bad request) since parameters are valid
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });
@@ -663,9 +668,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&key=data.csv',
         );
-        // Should not return 400 since bucket is provided via secret
+        // Mock S3 should return schema when bucket is provided via secret's AWS_S3_BUCKET field
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -673,9 +679,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=data.csv',
         );
-        // Should not return 400 since both bucket sources are valid
+        // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });
@@ -685,9 +692,10 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/data.csv',
         );
-        // Will fail if file doesn't exist, but path format should be valid
+        // Mock S3 returns schema data for valid CSV key formats
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
 
@@ -698,6 +706,7 @@ describe('AutoML API Contract Tests', () => {
         );
         if (!result.success) {
           expect(result.error.status).not.toBe(400);
+          expect(result.error.status).toBeLessThan(500);
         }
       }, 8000);
     });

@@ -131,9 +131,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
+		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
+			MockS3Client: cfg.MockS3Client,
+		}),
+		testEnv: testEnv,
+		rootCAs: rootCAs,
 	}
 	return app, nil
 }

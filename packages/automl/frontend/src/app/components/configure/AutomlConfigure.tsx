@@ -451,7 +451,9 @@ function AutomlConfigure(): React.JSX.Element {
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelect={(files) => {
-          setValue('train_data_file_key', files[0].name);
+          if (Array.isArray(files) && files.length > 0) {
+            setValue('train_data_file_key', files[0].name);
+          }
         }}
       />
     </FormProvider>

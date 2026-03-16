@@ -27,7 +27,7 @@ export function useExperimentQuery(
 
 export type ColumnSchema = {
   name: string;
-  type: 'number' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
   values?: (string | number)[];
 };
 

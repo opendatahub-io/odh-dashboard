@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -268,16 +269,22 @@ func (r *S3Repository) GetS3CSVSchema(
 
 	// Read data rows
 	var dataRows [][]string
+	rowNum := 1 // Start at 1 since header is row 0
 	for {
 		row, err := reader.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			// If we hit an error after reading some rows, continue with what we have
-			break
+			// Log parse error and skip this row instead of failing entire process
+			// Note: not logging error details to avoid leaking CSV data in logs
+			slog.Error("Failed to read CSV row, skipping",
+				"rowNum", rowNum)
+			rowNum++
+			continue
 		}
 		dataRows = append(dataRows, row)
+		rowNum++
 	}
 
 	// Check if we have at least 100 data rows
@@ -379,12 +386,19 @@ func extractFirstLine(data []byte) (string, error) {
 	return "", fmt.Errorf("CSV file must contain at least one complete line")
 }
 
-// countLines counts the number of newline characters in the data
+// countLines counts the number of lines in the data
+// Handles \r, \n, and \r\n line endings correctly
 func countLines(data []byte) int {
 	count := 0
-	for _, b := range data {
-		if b == '\n' {
+	for i := 0; i < len(data); i++ {
+		switch data[i] {
+		case '\n':
 			count++
+		case '\r':
+			// Only count \r if it's not part of \r\n
+			if i+1 >= len(data) || data[i+1] != '\n' {
+				count++
+			}
 		}
 	}
 	return count

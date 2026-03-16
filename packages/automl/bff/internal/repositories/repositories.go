@@ -11,18 +11,38 @@ type Repositories struct {
 	Namespace    *NamespaceRepository
 	Pipeline     *PipelineRepository
 	Secret       *SecretRepository
-	S3           *S3Repository
+	S3           S3RepositoryInterface
 	PipelineRuns *PipelineRunsRepository
 }
 
-func NewRepositories(_ *slog.Logger) *Repositories {
+// RepositoryConfig contains configuration for repository initialization
+type RepositoryConfig struct {
+	MockS3Client bool
+}
+
+// NewRepositories creates a new Repositories instance.
+// Accepts an optional RepositoryConfig - if not provided, uses default values.
+func NewRepositories(_ *slog.Logger, configs ...RepositoryConfig) *Repositories {
+	// Use default config if none provided
+	var config RepositoryConfig
+	if len(configs) > 0 {
+		config = configs[0]
+	}
+
+	var s3Repo S3RepositoryInterface
+	if config.MockS3Client {
+		s3Repo = NewMockS3Repository()
+	} else {
+		s3Repo = NewS3Repository()
+	}
+
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),
 		Namespace:    NewNamespaceRepository(),
 		Pipeline:     NewPipelineRepository(),
 		Secret:       NewSecretRepository(),
-		S3:           NewS3Repository(),
+		S3:           s3Repo,
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }
