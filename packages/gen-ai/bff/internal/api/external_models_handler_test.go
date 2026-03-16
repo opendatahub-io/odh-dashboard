@@ -715,129 +715,131 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		assert.Equal(t, "UNAUTHORIZED", errorMap["code"])
 	})
 
-	It("should return 400 when model_id is missing", func() {
+	It("should validate request fields and return 400 for invalid input", func() {
 		t := GinkgoT()
 
-		requestBody := models.VerifyExternalModelRequest{
-			BaseURL:     "https://api.openai.com/v1",
-			SecretValue: "sk-test-key",
-			ModelType:   models.ModelTypeLLM,
+		zeroDimension := 0
+		negativeDimension := -5
+
+		testCases := []struct {
+			name          string
+			request       models.VerifyExternalModelRequest
+			expectedError string
+		}{
+			{
+				name: "missing model_id",
+				request: models.VerifyExternalModelRequest{
+					BaseURL:     "https://api.openai.com/v1",
+					SecretValue: "sk-test-key",
+					ModelType:   models.ModelTypeLLM,
+				},
+				expectedError: "model_id is required",
+			},
+			{
+				name: "missing base_url",
+				request: models.VerifyExternalModelRequest{
+					ModelID:     "gpt-4o",
+					SecretValue: "sk-test-key",
+					ModelType:   models.ModelTypeLLM,
+				},
+				expectedError: "base_url is required",
+			},
+			{
+				name: "missing secret_value",
+				request: models.VerifyExternalModelRequest{
+					ModelID:   "gpt-4o",
+					BaseURL:   "https://api.openai.com/v1",
+					ModelType: models.ModelTypeLLM,
+				},
+				expectedError: "secret_value is required",
+			},
+			{
+				name: "missing model_type",
+				request: models.VerifyExternalModelRequest{
+					ModelID:     "gpt-4o",
+					BaseURL:     "https://api.openai.com/v1",
+					SecretValue: "sk-test-key",
+				},
+				expectedError: "model_type is required",
+			},
+			{
+				name: "invalid model_type",
+				request: models.VerifyExternalModelRequest{
+					ModelID:     "gpt-4o",
+					BaseURL:     "https://api.openai.com/v1",
+					SecretValue: "sk-test-key",
+					ModelType:   "invalid_type",
+				},
+				expectedError: "invalid model_type",
+			},
+			{
+				name: "missing embedding_dimension for embedding model",
+				request: models.VerifyExternalModelRequest{
+					ModelID:     "text-embedding-3-small",
+					BaseURL:     "https://api.openai.com/v1",
+					SecretValue: "sk-test-key",
+					ModelType:   models.ModelTypeEmbedding,
+				},
+				expectedError: "embedding_dimension is required for embedding models",
+			},
+			{
+				name: "zero embedding_dimension",
+				request: models.VerifyExternalModelRequest{
+					ModelID:            "text-embedding-3-small",
+					BaseURL:            "https://api.openai.com/v1",
+					SecretValue:        "sk-test-key",
+					ModelType:          models.ModelTypeEmbedding,
+					EmbeddingDimension: &zeroDimension,
+				},
+				expectedError: "embedding_dimension must be a positive number",
+			},
+			{
+				name: "negative embedding_dimension",
+				request: models.VerifyExternalModelRequest{
+					ModelID:            "text-embedding-3-small",
+					BaseURL:            "https://api.openai.com/v1",
+					SecretValue:        "sk-test-key",
+					ModelType:          models.ModelTypeEmbedding,
+					EmbeddingDimension: &negativeDimension,
+				},
+				expectedError: "embedding_dimension must be a positive number",
+			},
 		}
 
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
+		for _, tc := range testCases {
+			// Create context for subtests
+			bodyBytes, err := json.Marshal(tc.request)
+			require.NoError(t, err, "Failed for case: %s", tc.name)
 
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
+			req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
+			assert.NoError(t, err)
 
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+				Token: "FAKE_BEARER_TOKEN",
+			})
+			req = req.WithContext(ctx)
 
-		rr := httptest.NewRecorder()
+			rr := httptest.NewRecorder()
+			app.VerifyExternalModelHandler(rr, req, nil)
 
-		app.VerifyExternalModelHandler(rr, req, nil)
+			assert.Equal(t, http.StatusBadRequest, rr.Code, "Failed for case: %s", tc.name)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+			var response map[string]interface{}
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			assert.NoError(t, err)
 
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
+			errorData, exists := response["error"]
+			assert.True(t, exists, "Response should contain 'error' field for case: %s", tc.name)
 
-		errorData, exists := response["error"]
-		assert.True(t, exists, "Response should contain 'error' field")
+			errorMap, ok := errorData.(map[string]interface{})
+			assert.True(t, ok, "Error should be a map for case: %s", tc.name)
 
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok, "Error should be a map")
-
-		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "model_id is required")
-	})
-
-	It("should return 400 when base_url is missing", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:     "gpt-4o",
-			SecretValue: "sk-test-key",
-			ModelType:   models.ModelTypeLLM,
+			assert.Equal(t, "400", errorMap["code"], "Failed for case: %s", tc.name)
+			assert.Contains(t, errorMap["message"], tc.expectedError, "Failed for case: %s", tc.name)
 		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "base_url is required")
 	})
-
-	It("should return 400 when secret_value is missing", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:   "gpt-4o",
-			BaseURL:   "https://api.openai.com/v1",
-			ModelType: models.ModelTypeLLM,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "secret_value is required")
-	})
-
 	It("should return 400 when request body is invalid JSON", func() {
 		t := GinkgoT()
 
@@ -857,218 +859,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	It("should return 400 when model_type is missing", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:     "gpt-4o",
-			BaseURL:     "https://api.openai.com/v1",
-			SecretValue: "sk-test-key",
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "model_type is required")
-	})
-
-	It("should return 400 when model_type is invalid", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:     "gpt-4o",
-			BaseURL:     "https://api.openai.com/v1",
-			SecretValue: "sk-test-key",
-			ModelType:   "invalid_type",
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "invalid model_type")
-	})
-
-	It("should return 400 when embedding_dimension is missing for embedding models", func() {
-		t := GinkgoT()
-
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:     "text-embedding-3-small",
-			BaseURL:     "https://api.openai.com/v1",
-			SecretValue: "sk-test-key",
-			ModelType:   models.ModelTypeEmbedding,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "embedding_dimension is required for embedding models")
-	})
-
-	It("should return 400 when embedding_dimension is invalid (zero) for embedding models", func() {
-		t := GinkgoT()
-
-		zeroDimension := 0
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:            "text-embedding-3-small",
-			BaseURL:            "https://api.openai.com/v1",
-			SecretValue:        "sk-test-key",
-			ModelType:          models.ModelTypeEmbedding,
-			EmbeddingDimension: &zeroDimension,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "embedding_dimension must be a positive number")
-	})
-
-	It("should return 400 when embedding_dimension is invalid (negative) for embedding models", func() {
-		t := GinkgoT()
-
-		negativeDimension := -5
-		requestBody := models.VerifyExternalModelRequest{
-			ModelID:            "text-embedding-3-small",
-			BaseURL:            "https://api.openai.com/v1",
-			SecretValue:        "sk-test-key",
-			ModelType:          models.ModelTypeEmbedding,
-			EmbeddingDimension: &negativeDimension,
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.VerifyExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists)
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok)
-
-		assert.Contains(t, errorMap["message"], "embedding_dimension must be a positive number")
-	})
 
 	It("should successfully verify an LLM model with OpenAI-compatible API", func() {
 		t := GinkgoT()
