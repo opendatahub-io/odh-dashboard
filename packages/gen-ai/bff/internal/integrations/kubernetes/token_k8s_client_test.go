@@ -15,9 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 )
@@ -656,30 +660,58 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	t.Run("should successfully generate config with only MaaS models", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+	t.Run("should successfully generate config with external_cluster model", func(t *testing.T) {
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		configMapYAML := `
+providers:
+  inference:
+    - provider_id: "cluster-vllm-provider"
+      provider_type: "remote::vllm"
+      config:
+        base_url: "https://qwen3-06b.test-namespace.svc.cluster.local:8080/v1"
+registered_resources:
+  models:
+    - model_id: "qwen3-06b"
+      provider_id: "cluster-vllm-provider"
+      model_type: "llm"
+`
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-namespace",
+			},
+			Data: map[string]string{
+				"config.yaml": configMapYAML,
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(configMap).
+			Build()
 
 		client := &TokenKubernetesClient{
 			Logger: slog.Default(),
-			// No k8s client needed for MaaS-only models
+			Client: fakeClient,
 		}
 
-		// Test with only MaaS models - no k8s access required
-		models := []models.InstallModel{
+		installModels := []models.InstallModel{
 			{
-				ModelName:       "llama-2-7b-chat",
-				ModelSourceType: models.ModelSourceTypeMaaS,
+				ModelName:       "qwen3-06b",
+				ModelSourceType: models.ModelSourceTypeExternalCluster,
 			},
 		}
 
 		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, false, nil)
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
-
-		// This should succeed since we're only using MaaS models
-		assert.NoError(t, err)
-		assert.NotEmpty(t, result)
-		assert.Contains(t, result, "llama-2-7b-chat")
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+		assert.Contains(t, result, "qwen3-06b")
+		assert.Contains(t, result, "cluster-vllm-provider")
+		assert.Contains(t, result, "svc.cluster.local")
 	})
 }
 
