@@ -58,7 +58,7 @@ func (r *APIKeysRepository) RevokeAPIKey(ctx context.Context, id string) (*model
 
 // BulkRevokeAPIKeys revokes all active API keys for a specific user
 func (r *APIKeysRepository) BulkRevokeAPIKeys(ctx context.Context, request models.APIKeyBulkRevokeRequest) (*models.APIKeyBulkRevokeResponse, error) {
-	r.logger.Debug("Bulk revoking API keys", slog.String("username", request.Username))
+	r.logger.Debug("Bulk revoking API keys")
 
 	return r.maasClient.BulkRevokeAPIKeys(ctx, request)
 }

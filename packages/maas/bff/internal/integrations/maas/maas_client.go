@@ -18,9 +18,10 @@ import (
 )
 
 type MaasClient struct {
-	httpClient *http.Client
-	prefix     *url.URL
-	logger     *slog.Logger
+	httpClient       *http.Client
+	prefix           *url.URL
+	logger           *slog.Logger
+	maxResponseSize  int64
 }
 
 type MaasApiError struct {
@@ -39,6 +40,7 @@ func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 		},
 		prefix: prefix.JoinPath("v1"),
 		logger: logger,
+		maxResponseSize: 2 << 20, // 2MB
 	}
 }
 
@@ -51,7 +53,11 @@ func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCrea
 	endpoint := c.prefix.JoinPath("api-keys")
 	var apiResponse models.APIKeyCreateResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
-	return &apiResponse, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySearchRequest) (*models.APIKeyListResponse, error) {
@@ -63,7 +69,11 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 	endpoint := c.prefix.JoinPath("api-keys", "search")
 	var apiResponse models.APIKeyListResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
-	return &apiResponse, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) GetAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
@@ -72,7 +82,11 @@ func (c *MaasClient) GetAPIKey(ctx context.Context, id string) (*models.APIKey, 
 	var apiResponse models.APIKey
 	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
 
-	return &apiResponse, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) RevokeAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
@@ -81,7 +95,11 @@ func (c *MaasClient) RevokeAPIKey(ctx context.Context, id string) (*models.APIKe
 	var apiResponse models.APIKey
 	err := c.sendRequest(ctx, "DELETE", endpoint, nil, &apiResponse)
 
-	return &apiResponse, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKeyBulkRevokeRequest) (*models.APIKeyBulkRevokeResponse, error) {
@@ -93,7 +111,11 @@ func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKe
 	endpoint := c.prefix.JoinPath("api-keys", "bulk-revoke")
 	var apiResponse models.APIKeyBulkRevokeResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
-	return &apiResponse, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
@@ -102,7 +124,11 @@ func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error)
 	var apiResponse models.MaaSModelsResponse
 	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
 
-	return apiResponse.Data, err
+	if err != nil {
+		return nil, err
+	}
+
+	return apiResponse.Data, nil
 }
 
 func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any) error {
@@ -126,7 +152,7 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode >= 400 {
-		body, readBodyErr := io.ReadAll(response.Body)
+		body, readBodyErr := io.ReadAll(io.LimitReader(response.Body, c.maxResponseSize))
 		if readBodyErr != nil {
 			c.logger.Error("unknown error when invoking maas-api (read body)", "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
 			return fmt.Errorf("unknown error when invoking maas-api (read body): %w", readBodyErr)
@@ -142,7 +168,7 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 		return fmt.Errorf("request to maas-api failed: %s", maasApiError.Error)
 	}
 
-	body, readBodyErr := io.ReadAll(response.Body)
+	body, readBodyErr := io.ReadAll(io.LimitReader(response.Body, c.maxResponseSize))
 	if readBodyErr != nil {
 		c.logger.Warn("request to maas-api succeeded but the response could not be read", "error", readBodyErr.Error(), "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
 		return fmt.Errorf("request to maas-api succeeded but the response could not be read: %w", readBodyErr)

@@ -23,14 +23,14 @@ const MaasWrapperContent: React.FC = () => {
     () => (configSettings && userSettings ? { config: configSettings, user: userSettings } : null),
     [configSettings, userSettings],
   );
-  if (!contextValue) {
-    return null;
-  }
   if (loadError) {
-    return <div>Error: {loadError.message}</div>;
+    return <div>Unable to load settings. Please reload the page.</div>;
   }
   if (!loaded) {
     return <Bullseye>Loading...</Bullseye>;
+  }
+  if (!contextValue) {
+    return null;
   }
   return configSettings && userSettings ? (
     <AppContext.Provider value={contextValue}>

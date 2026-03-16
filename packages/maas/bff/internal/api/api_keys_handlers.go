@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -130,7 +131,8 @@ func BulkRevokeAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	if request.Data.Username == "" {
+	username := strings.TrimSpace(request.Data.Username)
+	if username == "" {
 		app.badRequestResponse(w, r, errors.New("username is required"))
 		return
 	}

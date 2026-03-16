@@ -16,6 +16,30 @@ import type {
   APIKey,
 } from '~/app/types/api-key';
 
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+const isAPIKey = (v: unknown): v is APIKey =>
+  isRecord(v) && typeof v.id === 'string' && typeof v.name === 'string';
+
+const isAPIKeyListResponse = (v: unknown): v is APIKeyListResponse =>
+  isRecord(v) &&
+  Array.isArray(v.data) &&
+  typeof v.has_more === 'boolean' &&
+  typeof v.object === 'string' &&
+  v.data.every(isAPIKey);
+
+const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
+  isRecord(v) &&
+  typeof v.key === 'string' &&
+  typeof v.keyPrefix === 'string' &&
+  typeof v.id === 'string' &&
+  typeof v.name === 'string' &&
+  typeof v.createdAt === 'string' &&
+  typeof v.expiresAt === 'string';
+
+const isBulkRevokeResponse = (v: unknown): v is BulkRevokeResponse =>
+  isRecord(v) && typeof v.revokedCount === 'number' && typeof v.message === 'string';
+
 /** POST /api/v1/api-keys/search - Search API keys with optional filters, sorting, and pagination */
 export const searchApiKeys =
   (hostPath = '') =>
@@ -29,9 +53,8 @@ export const searchApiKeys =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<APIKeyListResponse>(response)) {
-        // eslint-disable-next-line camelcase, @typescript-eslint/no-unnecessary-condition
-        return response.data ?? { object: 'list', data: [], has_more: false };
+      if (isModArchResponse<unknown>(response) && isAPIKeyListResponse(response.data)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
@@ -49,7 +72,7 @@ export const createApiKey =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<CreateAPIKeyResponse>(response)) {
+      if (isModArchResponse<unknown>(response) && isCreateAPIKeyResponse(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');
@@ -68,7 +91,7 @@ export const bulkRevokeApiKeys =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<BulkRevokeResponse>(response)) {
+      if (isModArchResponse<unknown>(response) && isBulkRevokeResponse(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');
@@ -79,9 +102,15 @@ export const revokeApiKey =
   (hostPath = '') =>
   (opts: APIOptions, keyId: string): Promise<APIKey> =>
     handleRestFailures(
-      restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${keyId}`, {}, {}, opts),
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${encodeURIComponent(keyId)}`,
+        {},
+        {},
+        opts,
+      ),
     ).then((response) => {
-      if (isModArchResponse<APIKey>(response)) {
+      if (isModArchResponse<unknown>(response) && isAPIKey(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');

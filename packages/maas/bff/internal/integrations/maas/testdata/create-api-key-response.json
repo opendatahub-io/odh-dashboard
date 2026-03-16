@@ -1,6 +1,6 @@
 {
-  "key": "sk-oai-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
-  "keyPrefix": "sk-oai-abc",
+  "key": "MOCK_API_KEY_NOT_REAL_DO_NOT_USE",
+  "keyPrefix": "MOCK_API_KEY",
   "id": "key_new_api_key_001",
   "name": "new-api-key",
   "createdAt": "2026-03-10T12:00:00Z",

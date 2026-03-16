@@ -94,7 +94,7 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
   return {
     name: 'production-backend',
     description: 'Production API key for backend service',
-    expiresIn: '168h', // 168 hours in seconds (7 days)
+    expiresIn: '168h', // 7 days in hours
   };
 };
 
