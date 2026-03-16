@@ -205,6 +205,10 @@ export type GenericFieldProps = {
   isEditing?: boolean;
 };
 
+export type WizardStateOverrides = {
+  tokenAuthentication?: { isDisabled?: boolean };
+};
+
 export type WizardField<
   FieldData = unknown,
   ExternalData = unknown,
@@ -223,6 +227,10 @@ export type WizardField<
     ) => FieldData;
     resolveDependencies?: (formData: WizardFormData['state']) => Dependencies;
     validationSchema?: z.ZodSchema<FieldData>;
+    getFieldOverrides?: (
+      effectiveValue: FieldData,
+      wizardState: RecursivePartial<WizardFormData['state']>,
+    ) => WizardStateOverrides;
   };
   externalDataHook?: (initialData?: InitialWizardFormData) => {
     data: ExternalData;
@@ -248,6 +256,9 @@ export type WizardField<
 
 export const resolveFieldValue = (field: WizardField, state: WizardFormData['state']): unknown => {
   const storedValue: unknown = state[field.id];
+  if (storedValue == null) {
+    return undefined;
+  }
   return field.reducerFunctions.getFieldData
     ? field.reducerFunctions.getFieldData(storedValue, state)
     : storedValue;

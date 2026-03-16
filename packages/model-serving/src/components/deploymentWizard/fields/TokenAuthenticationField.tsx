@@ -47,6 +47,7 @@ export type TokenAuthenticationFieldHook = {
   data: TokenAuthenticationFieldData | undefined;
   setData: (data: TokenAuthenticationFieldData) => void;
   shouldAutoCheck: boolean;
+  isDisabled: boolean;
 };
 
 export const useTokenAuthenticationField = (
@@ -93,6 +94,7 @@ export const useTokenAuthenticationField = (
     data: tokenAuthData,
     setData: setTokenAuthData,
     shouldAutoCheck,
+    isDisabled: false,
   };
 };
 
@@ -189,35 +191,14 @@ type TokenAuthenticationFieldProps = {
   tokens?: TokenAuthenticationFieldData;
   onChange?: TokenAuthenticationFieldHook['setData'];
   allowCreate?: boolean;
-  forceDisabled?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
   tokens = [],
   onChange,
   allowCreate = false,
-  forceDisabled = false,
 }) => {
-  const savedTokensRef = React.useRef<TokenAuthenticationFieldData | null>(null);
-  const wasForceDisabledRef = React.useRef(forceDisabled);
-
-  React.useEffect(() => {
-    if (forceDisabled && tokens.length > 0) {
-      savedTokensRef.current = tokens;
-      onChange?.([]);
-    }
-    if (!forceDisabled && wasForceDisabledRef.current) {
-      if (savedTokensRef.current) {
-        onChange?.(savedTokensRef.current);
-      } else {
-        onChange?.([{ uuid: getUniqueId('ml'), displayName: 'default-name', error: '' }]);
-      }
-      savedTokensRef.current = null;
-    }
-    wasForceDisabledRef.current = forceDisabled;
-  }, [forceDisabled, tokens, onChange]);
-
-  const isDisabled = forceDisabled || !allowCreate;
+  const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
     const displayName = 'default-name';
     const duplicated = tokens.filter((token) => token.displayName === displayName);

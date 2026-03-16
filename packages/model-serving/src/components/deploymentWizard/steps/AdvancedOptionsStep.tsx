@@ -24,7 +24,6 @@ import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 import type { ExternalDataMap } from '../ExternalDataLoader';
-import { resolveFieldValue } from '../types';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -46,18 +45,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
   const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
-
-  const isMaaSChecked = (() => {
-    const fieldDef = wizardState.fields.find((f) => f.id === 'maas/save-as-maas-checkbox');
-    if (!fieldDef) {
-      return false;
-    }
-    const resolved = resolveFieldValue(fieldDef, wizardState.state);
-    if (typeof resolved === 'object' && resolved !== null && 'isChecked' in resolved) {
-      return !!resolved.isChecked;
-    }
-    return false;
-  })();
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer = React.useMemo(() => {
@@ -167,8 +154,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               >
                 <TokenAuthenticationField
                   tokens={tokenAuthData}
-                  allowCreate={allowCreate}
-                  forceDisabled={isMaaSChecked}
+                  allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
                   onChange={wizardState.state.tokenAuthentication.setData}
                 />
               </FormGroup>

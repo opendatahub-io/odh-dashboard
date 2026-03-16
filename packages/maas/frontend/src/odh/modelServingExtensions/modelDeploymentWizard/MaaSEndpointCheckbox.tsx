@@ -73,13 +73,16 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   reducerFunctions: {
     setFieldData: setMaaSFieldData,
     getFieldData: (storedValue, wizardState) => {
-      if (!wizardState.modelAvailability?.data?.saveAsAiAsset) {
+      if (!wizardState.modelAvailability.data.saveAsAiAsset) {
         return { isChecked: false };
       }
       return storedValue;
     },
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
+    getFieldOverrides: (fieldValue) => ({
+      tokenAuthentication: { isDisabled: fieldValue.isChecked },
+    }),
   },
   component: MaaSField,
   getReviewSections: (value) => [

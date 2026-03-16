@@ -31,11 +31,14 @@ export const modelAvailabilityField: ModelAvailabilityField = {
 export const extractModelAvailabilityData = (
   deployment: LLMdDeployment,
 ): WizardFormData['state']['modelAvailability']['data'] => {
+  const hasMaaSGateway =
+    deployment.model.spec.router?.gateway?.refs?.some(
+      (ref) => ref.name === 'maas-default-gateway' && ref.namespace === 'openshift-ingress',
+    ) ?? false;
+
   return {
     saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
-    // Note: MaaS data is now extracted by the maas package's WizardFieldExtractorExtension
-    // This field is kept for backwards compatibility but may be undefined
-    saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
+    saveAsMaaS: hasMaaSGateway || !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
 };
