@@ -151,29 +151,18 @@ func (r *S3Repository) GetS3Objects(
 	bucket string,
 	options GetS3ObjectsOptions,
 ) (*s3.ListObjectsV2Output, error) {
-	// Create AWS config with credentials
+  // TODO [Gustavo] This function currently handles the FileExplorer case where path,search,page are passed in explicitly. Additional case to cover in the future: List all and find by regex for table where resource powers AutoRAG leaderboard
+
 	cfg := aws.Config{
 		Region:      creds.Region,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
 	}
 
-	// Create S3 client
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(creds.EndpointURL)
 		// Enable path-style addressing for S3-compatible services like MinIO
 		o.UsePathStyle = true
 	})
-
-	// TODO [Gustavo] repo function has to handle multiple cases:
-	//   1. FileExplorer case where path,search,page are passed in
-	//   2. List all and find by regex for table where resource powers AutoRAG leaderboard
-	//  So in some cases we will need to fetch only what is requested vs fetch all
-
-	// Required parameters in function signature:
-	// path: Denotes the current "folder" we should be searching in
-	// search: The value the user entered into the search bar
-	// next: The token value to use if the user wants the next page
-	// max keys: Variable amount of max keys so we can paginate
 
 	var err error
 	var output *s3.ListObjectsV2Output
@@ -196,9 +185,6 @@ func (r *S3Repository) GetS3Objects(
 	if options.Next != "" {
 		input.ContinuationToken = aws.String(options.Next)
 	}
-
-	// TODO [ Gustavo ] Pagination: resp.IsTruncated:bool -> More items in next page
-	// TODO [ Gustavo ] Pagination: if resp.IsTruncated=true and resp.NextContinuationToken
 
 	output, err = s3Client.ListObjectsV2(ctx, input)
 	if err != nil {
