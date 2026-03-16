@@ -121,7 +121,9 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Non-administrator');
-    expect(lastUpdate.textContent).toContain('June 25, 2024');
+    expect(lastUpdate.textContent).toContain(
+      new Date('2024-06-25T05:36:37Z').toLocaleString(undefined, { dateStyle: 'long' }),
+    );
   });
 
   it('should show the appropriate RHOAI values', async () => {
@@ -152,6 +154,8 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Administrator');
-    expect(lastUpdate.textContent).toContain('June 25, 2024');
+    expect(lastUpdate.textContent).toContain(
+      new Date('2024-06-25T05:36:37Z').toLocaleString(undefined, { dateStyle: 'long' }),
+    );
   });
 });
