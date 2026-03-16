@@ -52,7 +52,13 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Get the discovered pipeline for the requested type from context
-	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok || discoveredPipelines == nil {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("discovered pipelines missing from context for pipelineType %q", pipelineType),
+			"internal error: discovered pipelines context key has wrong type - check middleware configuration")
+		return
+	}
 	discovered := discoveredPipelines[pipelineType]
 	if discovered == nil {
 		app.serverErrorResponseWithMessage(w, r,
