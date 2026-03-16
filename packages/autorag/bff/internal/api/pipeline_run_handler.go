@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -11,6 +12,9 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
+
+// maxRequestBodyBytes caps the request body size to 10 MiB to prevent unbounded memory use.
+const maxRequestBodyBytes = 10 << 20
 
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
@@ -46,15 +50,15 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Determine which pipeline type to use (defaults to "autorag")
+	// Determine which pipeline type to use (defaults to constants.PipelineTypeAutoRAG)
 	pipelineType := r.URL.Query().Get("pipelineType")
 	if pipelineType == "" {
-		pipelineType = "autorag"
+		pipelineType = constants.PipelineTypeAutoRAG
 	}
 
-	// Validate pipelineType — only "autorag" is supported
-	if pipelineType != "autorag" {
-		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: only \"autorag\" is supported", pipelineType))
+	// Validate pipelineType — only constants.PipelineTypeAutoRAG is supported
+	if pipelineType != constants.PipelineTypeAutoRAG {
+		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG))
 		return
 	}
 
@@ -71,10 +75,15 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	var req models.CreateAutoRAGRunRequest
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
 		return
 	}
 
@@ -89,7 +98,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		req,
 		discovered.PipelineID,
 		discovered.PipelineVersionID,
-		constants.PipelineTypeAutoRAG,
+		pipelineType,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create pipeline run: %w", err))

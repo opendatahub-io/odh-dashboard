@@ -68,6 +68,11 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
 		return
 	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		return
+	}
 
 	if err := repositories.ValidateCreateAutoMLRunRequest(req); err != nil {
 		app.badRequestResponse(w, r, err)

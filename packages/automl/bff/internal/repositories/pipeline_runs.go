@@ -286,8 +286,12 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 			break
 		}
 
-		for _, kfRun := range kfResponse.Runs {
-			allRuns = append(allRuns, toPipelineRun(&kfRun, pipelineType))
+		remaining := maxRunsPerPipeline - len(allRuns)
+		for i := range kfResponse.Runs {
+			if i >= remaining {
+				break
+			}
+			allRuns = append(allRuns, toPipelineRun(&kfResponse.Runs[i], pipelineType))
 		}
 
 		if len(allRuns) >= maxRunsPerPipeline {
