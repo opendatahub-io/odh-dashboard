@@ -23,8 +23,8 @@ func NewS3Repository() *S3Repository {
 
 // GetS3Credentials retrieves S3 credentials from a Kubernetes secret
 func (r *S3Repository) GetS3Credentials(
-	client k8s.KubernetesClientInterface,
-	ctx context.Context,
+  ctx context.Context,
+  client k8s.KubernetesClientInterface,
 	namespace string,
 	secretName string,
 	identity *k8s.RequestIdentity,

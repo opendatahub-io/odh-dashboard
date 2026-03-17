@@ -361,7 +361,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 			s3Repo := repositories.NewS3Repository()
 			client, _ := factory.GetClient(context.Background())
 
-			creds, err := s3Repo.GetS3Credentials(client, context.Background(), "test-namespace", tc.secret.Name, identity)
+			creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", tc.secret.Name, identity)
 
 			assert.NoError(t, err)
 			assert.NotNil(t, creds)
@@ -396,7 +396,7 @@ func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "aws-secret-1", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-1", identity)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, creds)
@@ -425,7 +425,7 @@ func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "non-existent", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "non-existent", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -452,7 +452,7 @@ func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "incomplete-secret", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -479,7 +479,7 @@ func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "incomplete-secret", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -506,7 +506,7 @@ func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "incomplete-secret", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -533,7 +533,7 @@ func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "incomplete-secret", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -547,7 +547,7 @@ func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "aws-secret-1", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-1", identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
@@ -577,7 +577,7 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	s3Repo := repositories.NewS3Repository()
 
-	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "aws-secret-no-bucket", identity)
+	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-no-bucket", identity)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, creds)

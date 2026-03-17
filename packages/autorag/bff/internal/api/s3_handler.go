@@ -1,25 +1,23 @@
 package api
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
+  "context"
+  "errors"
+  "fmt"
+  "io"
+  "net/http"
+  "strconv"
+  "strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	// TODO [ PR-Feedback: AI ] Duplicate import — "kubernetes" is imported twice (bare + aliased as k8s). Pick one.
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
-	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+  "github.com/aws/aws-sdk-go-v2/service/s3/types"
+  "github.com/julienschmidt/httprouter"
+  "github.com/opendatahub-io/autorag-library/bff/internal/constants"
+  "github.com/opendatahub-io/autorag-library/bff/internal/integrations"
+  "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+  s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+  "github.com/opendatahub-io/autorag-library/bff/internal/models"
+  "github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+  apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
@@ -50,8 +48,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	// TODO [ PR-Feedback: AI ] S2: Inconsistent error message — this says "is required and cannot be empty"
-	//   but validateParameters (line 329) says just "is required". Consolidate for a uniform API surface.
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
@@ -76,7 +72,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	// Get S3 credentials from the secret
-	creds, err := app.getS3CredentialsFromSecret(client, ctx, namespace, secretName, identity)
+	creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
 	if err != nil {
 		var httpErr *integrations.HTTPError
 		if errors.As(err, &httpErr) {
@@ -185,7 +181,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Get S3 credentials from the secret
-	creds, err := app.getS3CredentialsFromSecret(client, ctx, namespace, secretName, identity)
+	creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
 	if err != nil {
 		var httpErr *integrations.HTTPError
 		if errors.As(err, &httpErr) {
@@ -244,17 +240,14 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
-// TODO [ PR-Feedback: AI ] ctx context.Context must be the first parameter per Go convention.
-//   Change signature to: (ctx context.Context, client k8s.KubernetesClientInterface, namespace string, ...)
-//   Same issue in repositories/s3.go GetS3Credentials.
 func (app *App) getS3CredentialsFromSecret(
-	client k8s.KubernetesClientInterface,
-	ctx context.Context,
+  ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
 	namespace string,
 	secretName string,
-	identity *k8s.RequestIdentity,
+	identity *kubernetes.RequestIdentity,
 ) (*s3int.S3Credentials, error) {
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
@@ -330,7 +323,7 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		return nil, errors.New("query parameter 'secretName' is required")
+		return nil, errors.New("query parameter 'secretName' is required and cannot be empty")
 	}
 	if !isValidDNS1123Subdomain(secretName) {
 		return nil, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
