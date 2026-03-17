@@ -517,12 +517,8 @@ export type ModelRegistryTestData = {
   ociSourceBucket: string;
   ociSourceRegion: string;
   ociSourcePath: string;
-  ociSourceAccessKeyId: string;
-  ociSourceSecretAccessKey: string;
   ociDestinationRegistry: string;
   ociDestinationUri: string;
-  ociDestinationUsername: string;
-  ociDestinationPassword: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

@@ -256,12 +256,13 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findNamespaceSelector().should('be.visible');
 
       cy.step('Select a namespace from the dropdown');
-      registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click({ force: true });
-      registerModelPage.findFirstNamespaceOption().then(($option) => {
-        const namespaceName = $option.text().trim();
-        cy.wrap($option).click();
-        cy.step(`Selected namespace: ${namespaceName}`);
-      });
+      const namespaceName = Cypress.env('APPLICATIONS_NAMESPACE');
+      expect(namespaceName, 'APPLICATIONS_NAMESPACE must be set')
+        .to.be.a('string')
+        .and.not.be.empty;
+      registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
+      registerModelPage.findNamespaceOption(namespaceName).click();
+      cy.step(`Selected namespace: ${namespaceName}`);
 
       cy.step('Verify origin and destination location sections appear');
       registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });
@@ -298,12 +299,24 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.LOCATION_REGION)
         .type(testData.ociSourceRegion);
       registerModelPage.findFormField(FormFieldSelector.LOCATION_PATH).type(testData.ociSourcePath);
+
+      const sourceAccessKeyId = Cypress.env('OCI_SOURCE_ACCESS_KEY_ID');
+      const sourceSecretAccessKey = Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY');
+      const destinationUsername = Cypress.env('OCI_DESTINATION_USERNAME');
+      const destinationPassword = Cypress.env('OCI_DESTINATION_PASSWORD');
+      expect(sourceAccessKeyId, 'OCI_SOURCE_ACCESS_KEY_ID').to.be.a('string').and.not.be.empty;
+      expect(sourceSecretAccessKey, 'OCI_SOURCE_SECRET_ACCESS_KEY')
+        .to.be.a('string')
+        .and.not.be.empty;
+      expect(destinationUsername, 'OCI_DESTINATION_USERNAME').to.be.a('string').and.not.be.empty;
+      expect(destinationPassword, 'OCI_DESTINATION_PASSWORD').to.be.a('string').and.not.be.empty;
+
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
-        .type(testData.ociSourceAccessKeyId);
+        .type(sourceAccessKeyId, { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_SECRET_ACCESS_KEY)
-        .type(testData.ociSourceSecretAccessKey);
+        .type(sourceSecretAccessKey, { log: false });
 
       cy.step('Fill in OCI destination fields');
       registerModelPage
@@ -314,10 +327,10 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(testData.ociDestinationUsername);
+        .type(destinationUsername, { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(testData.ociDestinationPassword);
+        .type(destinationPassword, { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
@@ -331,10 +344,16 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
 
-      // The transfer job will fail on PSI clusters due to lack of TLS support.
-      // We still verify the failure notification appears as part of the UI flow.
-      cy.step('Verify transfer job failure notification (expected due to no TLS on PSI)');
-      cy.contains(/Model transfer job failed/, { timeout: 60000 }).should('be.visible');
+      const expectFailure = Cypress.env('EXPECT_OCI_TRANSFER_FAILURE');
+      cy.step('Verify transfer job terminal notification');
+      if (typeof expectFailure === 'boolean') {
+        cy.contains(
+          expectFailure ? /Model transfer job failed/ : /Model transfer job succeeded/,
+          { timeout: 60000 },
+        ).should('be.visible');
+      } else {
+        cy.contains(/Model transfer job (failed|succeeded)/, { timeout: 60000 }).should('be.visible');
+      }
     },
   );
 
