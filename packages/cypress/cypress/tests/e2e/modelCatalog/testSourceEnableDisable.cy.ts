@@ -5,7 +5,7 @@ import { modelCatalog } from '../../../pages/modelCatalog/modelCatalog';
 import {
   verifyModelCatalogSourceEnabled,
   waitForModelCatalogCards,
-  waitForModelCatalogEmptyState,
+  waitForModelCatalogAfterDisable,
   enableModelCatalogSource,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -65,11 +65,8 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       cy.step('Navigate to catalog');
       modelCatalog.visit();
 
-      cy.step('Wait for model catalog to show empty state');
-      waitForModelCatalogEmptyState();
-
-      cy.step('Verify model catalog shows empty state');
-      modelCatalog.findModelCatalogEmptyState().should('exist');
+      cy.step('Wait for catalog to reflect disabled sources');
+      waitForModelCatalogAfterDisable([testData.redhatAiSourceId, testData.redhatAiSourceId2]);
     },
   );
 });
