@@ -536,7 +536,7 @@ func TestGetS3FilesHandler_MissingNamespace(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	params := url.Values{}
-	params.Set("secret_name", "aws-secret-1")
+	params.Set("secretName", "aws-secret-1")
 	params.Set("bucket", "my-bucket")
 	params.Set("path", "some-path")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
@@ -601,7 +601,7 @@ func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
 
 	params := url.Values{}
 	params.Set("namespace", "test-namespace")
-	params.Set("secret_name", "aws-secret-1")
+	params.Set("secretName", "aws-secret-1")
 	params.Set("path", "some-path")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
@@ -624,7 +624,7 @@ func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 
 	params := url.Values{}
 	params.Set("namespace", "test-namespace")
-	params.Set("secret_name", "aws-secret-1")
+	params.Set("secretName", "aws-secret-1")
 	params.Set("bucket", "my-bucket")
 	params.Set("path", "")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
@@ -648,7 +648,7 @@ func TestGetS3FilesHandler_InvalidSearch(t *testing.T) {
 
 	params := url.Values{}
 	params.Set("namespace", "test-namespace")
-	params.Set("secret_name", "aws-secret-1")
+	params.Set("secretName", "aws-secret-1")
 	params.Set("bucket", "my-bucket")
 	params.Set("path", "some-path")
 	params.Set("search", "invalid/search")
@@ -673,7 +673,7 @@ func TestGetS3FilesHandler_InvalidNext(t *testing.T) {
 
 	params := url.Values{}
 	params.Set("namespace", "test-namespace")
-	params.Set("secret_name", "aws-secret-1")
+	params.Set("secretName", "aws-secret-1")
 	params.Set("bucket", "my-bucket")
 	params.Set("path", "some-path")
 	params.Set("next", "")
@@ -710,7 +710,7 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			params := url.Values{}
 			params.Set("namespace", "test-namespace")
-			params.Set("secret_name", "aws-secret-1")
+			params.Set("secretName", "aws-secret-1")
 			params.Set("bucket", "my-bucket")
 			params.Set("path", "some-path")
 			params.Set("limit", tc.limit)

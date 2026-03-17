@@ -640,7 +640,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?secret_name=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files?secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -648,7 +648,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 when secret_name parameter is missing', async () => {
+      it('should return 400 when secretName parameter is missing', async () => {
         const result = await apiClient.get('/api/v1/s3/files?namespace=default&bucket=my-bucket');
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -658,7 +658,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=test-secret',
+          '/api/v1/s3/files?namespace=default&secretName=test-secret',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -677,7 +677,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Empty Parameters', () => {
       it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=&secret_name=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files?namespace=&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -687,7 +687,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for empty secret_name', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=&bucket=my-bucket',
+          '/api/v1/s3/files?namespace=default&secretName=&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -697,7 +697,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for empty bucket when secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=test-secret&bucket=',
+          '/api/v1/s3/files?namespace=default&secretName=test-secret&bucket=',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -708,7 +708,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Secret Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=non-existent-secret&bucket=my-bucket',
+          '/api/v1/s3/files?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -718,7 +718,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 404 when namespace does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=non-existent-namespace&secret_name=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -729,7 +729,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Bucket Parameter Fallback', () => {
       it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket',
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
         );
         // Should not return 400 since bucket is provided via secret
         if (!result.success) {
@@ -739,7 +739,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket&bucket=override-bucket',
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
         );
         // Should not return 400 since both bucket sources are valid
         if (!result.success) {
@@ -749,7 +749,7 @@ describe('AutoRAG API Contract Tests', () => {
     });
     describe('Search parameters handling', () => {
       const searchParamsUri =
-        '/api/v1/s3/files?namespace=default&secret_name=test-secret-with-bucket';
+        '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket';
 
       describe('path parameter', () => {
         it('should accept request with valid path parameter', async () => {
