@@ -39,10 +39,25 @@
 ## React Patterns
 
 - Functional components only — never class components
-- Use React hooks (`useState`, `useEffect`, `useMemo`, `useCallback`, `useContext`)
 - Custom hooks should be prefixed with `use` and placed in a `hooks/` directory
 - Components should be modular and self-contained
 - Use `data-testid` attributes on interactive elements for test selectors
+
+### Hooks Best Practices
+
+- **`useEffect`** — [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect). Common misuses to flag:
+  - Do NOT use `useEffect` to transform data for rendering — compute it during render or use `useMemo`
+  - Do NOT use `useEffect` to handle user events — use event handlers instead
+  - Do NOT use `useEffect` to reset state when a prop changes — use a `key` to reset the component
+  - Do NOT use `useEffect` + `setState` to derive state from props — compute it inline or use `useMemo`
+  - Valid uses: fetching data, subscriptions, synchronizing with external systems (DOM, timers, third-party libs)
+- **`useCallback`** — only memoize when reference stability matters:
+  - Use when: function is passed as prop, used as `useEffect` dependency, or returned from a custom hook
+  - Do NOT use for: simple event handlers used only in the same component
+- **`useMemo`** — only memoize expensive computations; React is performant by default
+- **`useRef`** — avoid unless you need DOM access or a mutable value that persists across renders without triggering re-renders
+- **Custom hooks** — always memoize functions returned from hooks (consumers can't control reference stability)
+- See [docs/best-practices.md](../best-practices.md) for detailed examples and code patterns
 
 ## PatternFly v6
 
