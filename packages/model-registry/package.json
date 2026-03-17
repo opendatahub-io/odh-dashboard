@@ -24,7 +24,7 @@
     "branch": "fix/sar-missing-groups",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "73cf511653d807ec64a1ac271ce0919371c7df74"
+    "commit": "23d4a59b385baa57858e268f740434d405454385"
   },
   "module-federation": {
     "name": "modelRegistry",
