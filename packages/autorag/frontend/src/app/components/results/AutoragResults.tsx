@@ -1,7 +1,7 @@
 import React from 'react';
 
 function AutoragResults(): React.JSX.Element {
-  return <div>results</div>;
+  return <></>;
 }
 
 export default AutoragResults;

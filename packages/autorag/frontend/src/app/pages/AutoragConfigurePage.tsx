@@ -43,9 +43,9 @@ function AutoragConfigurePage(): React.JSX.Element {
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
-  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
-
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
+
+  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
 
   const form = useForm({
     mode: 'onChange',

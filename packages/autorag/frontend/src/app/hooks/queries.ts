@@ -1,30 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { getLlamaStackModels } from '~/app/api/k8s';
-import { LlamaStackModelType, LlamaStackModelsResponse } from '~/app/types';
-
-export function useExperimentsQuery(): UseQueryResult<never[], Error> {
-  return useQuery({
-    queryKey: ['experiments'],
-    queryFn: async () => {
-      const experiments: never[] = [];
-      return experiments;
-    },
-  });
-}
-
-export function useExperimentQuery(
-  experimentId?: string,
-): UseQueryResult<{ display_name: string }, Error> {
-  return useQuery({
-    queryKey: ['experiments', experimentId],
-    queryFn: async () => {
-      // eslint-disable-next-line camelcase
-      const experiment = { display_name: 'FAKE_EXPERIMENT_NAME' };
-      return experiment;
-    },
-    enabled: !!experimentId,
-  });
-}
+import { LlamaStackModelsResponse, LlamaStackModelType } from '~/app/types';
 
 export function useLlamaStackModelsQuery(
   namespace: string,
@@ -42,12 +18,12 @@ export function useLlamaStackModelsQuery(
 
 export function usePipelineRunQuery(
   runId?: string,
-): UseQueryResult<{ experiment_id: string }, Error> {
+): UseQueryResult<{ display_name: string }, Error> {
   return useQuery({
     queryKey: ['pipelineRun', runId],
     queryFn: async () => {
       // eslint-disable-next-line camelcase
-      const pipelineRun = { experiment_id: 'FAKE_EXPERIMENT_ID' };
+      const pipelineRun = { display_name: 'RUN_NAME' };
       return pipelineRun;
     },
     enabled: !!runId,
