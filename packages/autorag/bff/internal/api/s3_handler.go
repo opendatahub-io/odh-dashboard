@@ -224,7 +224,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
+	response := S3FilesEnvelope{
+		Data: *result,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

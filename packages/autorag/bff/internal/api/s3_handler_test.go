@@ -887,8 +887,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		assert.Equal(t, "my-bucket", body.Name)
 		assert.Equal(t, "/", body.Delimiter)
@@ -906,8 +907,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		assert.Equal(t, "my-bucket", body.Name)
 		// MockS3Client returns known objects for the "datasets/" path
@@ -927,8 +929,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		assert.Equal(t, "secret-bucket", body.Name)
 	})
@@ -946,8 +949,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		assert.Equal(t, int32(2), body.MaxKeys)
 		// MockS3Client has 4 results objects, so limit=2 should truncate
@@ -966,8 +970,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		assert.Equal(t, int32(1000), body.MaxKeys)
 	})
@@ -985,8 +990,9 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var body models.S3ListObjectsResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		var envelope S3FilesEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+		body := envelope.Data
 		assert.NoError(t, err)
 		// MockS3Client filters by prefix; "results/run-001" matches one object
 		assert.Len(t, body.Contents, 1)
