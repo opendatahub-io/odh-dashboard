@@ -19,8 +19,9 @@
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
-    "branch": "main",
+    "DO_NOT_MERGE_OVERRIDDEN_FOR_PR": "https://github.com/kubeflow/model-registry/pull/2425",
+    "repo": "https://github.com/mturley/model-registry-midstream.git",
+    "branch": "fix/sar-missing-groups",
     "src": "clients/ui",
     "target": "upstream",
     "commit": "73cf511653d807ec64a1ac271ce0919371c7df74"
