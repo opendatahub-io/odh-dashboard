@@ -867,9 +867,16 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/PipelineRunsResponse/content/application/json/schema',
           status: 200,
         });
-        // Verify every returned run belongs to the requested pipeline version
-        // TODO [ Gustavo + Chris ] The line below is showing: TS18048: result.response is possibly undefined
-        const runs = result.response.data?.data?.runs ?? [];
+        // Narrow the type — if toMatchContract passed, this must hold
+        expect(result.success).toBe(true);
+        if (!result.success) throw new Error('unreachable');
+
+        const responseData = result.response.data as {
+          data?: {
+            runs?: Array<{ pipeline_version_reference?: { pipeline_version_id?: string } }>;
+          };
+        };
+        const runs = responseData.data?.runs ?? [];
         expect(runs.length).toBeGreaterThan(0);
         for (const run of runs) {
           expect(run.pipeline_version_reference?.pipeline_version_id).toBe(latestVersionId);
