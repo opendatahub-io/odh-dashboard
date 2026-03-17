@@ -185,14 +185,27 @@ func applySearch(
 }
 
 // MockClientFactory creates mock S3 clients.
-type MockClientFactory struct{}
+type MockClientFactory struct {
+	mockClient s3client.S3ClientInterface
+}
+
+// Ensure MockClientFactory implements the interface
+var _ s3client.S3ClientFactory = (*MockClientFactory)(nil)
 
 // NewMockClientFactory creates a new mock client factory.
 func NewMockClientFactory() *MockClientFactory {
 	return &MockClientFactory{}
 }
 
+// SetMockClient sets a specific mock client to be returned by CreateClient.
+func (f *MockClientFactory) SetMockClient(client s3client.S3ClientInterface) {
+	f.mockClient = client
+}
+
 // CreateClient returns a mock S3 client, ignoring credentials.
 func (f *MockClientFactory) CreateClient(_ *s3client.S3Credentials) s3client.S3ClientInterface {
+	if f.mockClient != nil {
+		return f.mockClient
+	}
 	return &MockS3Client{}
 }

@@ -2,13 +2,22 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +25,55 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+// failingS3Client always returns an error for GetObject and ListObjects.
+type failingS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (f *failingS3Client) GetObject(_ context.Context, _, _ string) (io.Reader, string, error) {
+	return nil, "", fmt.Errorf("connection refused")
+}
+
+func (f *failingS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	return nil, fmt.Errorf("S3 connection timeout")
+}
+
+// newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
+// for testing S3 handler logic in isolation.
+func newS3HandlerTestApp(k8Factory kubernetes.KubernetesClientFactory, s3Factory s3int.S3ClientFactory) *App {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  logger,
+		kubernetesClientFactory: k8Factory,
+		s3ClientFactory:         s3Factory,
+		repositories:            repositories.NewRepositories(logger),
+	}
+}
+
+// setupS3ApiTest creates an App with both K8s and S3 mocks, sends a request through the full
+// middleware chain (Routes), and returns the raw response recorder.
+func setupS3ApiTest(
+	method, requestURL string,
+	k8Factory kubernetes.KubernetesClientFactory,
+	s3Factory s3int.S3ClientFactory,
+	identity *kubernetes.RequestIdentity,
+) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest(method, requestURL, http.NoBody)
+	if identity != nil && identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	app := newS3HandlerTestApp(k8Factory, s3Factory)
+
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	return rr
+}
 
 func TestGetS3FileHandler_MissingNamespace(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
@@ -730,4 +788,228 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 	}
 }
 
-// TODO [ Gustavo ] Add tests for repo/s3.go using dependency injection
+// --- Tests verifying the S3 SDK is called correctly ---
+
+func validS3Secret(name, namespace string) corev1.Secret {
+	return corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			UID:       types.UID("uid-valid"),
+		},
+		Data: map[string][]byte{
+			"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+			"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+			"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			"AWS_S3_BUCKET":         []byte("secret-bucket"),
+		},
+	}
+}
+
+func TestGetS3FileHandler_Success(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	t.Run("should stream file content with correct bucket and key", func(t *testing.T) {
+		rr := setupS3ApiTest(
+			"GET",
+			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=docs/file.pdf",
+			k8sFactory, s3Factory, identity,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "text/plain", rr.Header().Get("Content-Type"))
+		// MockS3Client embeds bucket/key in the response body
+		assert.Contains(t, rr.Body.String(), "s3://my-bucket/docs/file.pdf")
+	})
+
+	t.Run("should fall back to bucket from secret when no query param", func(t *testing.T) {
+		rr := setupS3ApiTest(
+			"GET",
+			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+			k8sFactory, s3Factory, identity,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, rr.Body.String(), "s3://secret-bucket/file.pdf")
+	})
+
+	t.Run("should use query bucket over secret bucket", func(t *testing.T) {
+		rr := setupS3ApiTest(
+			"GET",
+			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=override-bucket&key=file.pdf",
+			k8sFactory, s3Factory, identity,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, rr.Body.String(), "s3://override-bucket/file.pdf")
+	})
+}
+
+func TestGetS3FileHandler_S3Error(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&failingS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTest(
+		"GET",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		k8sFactory, s3Factory, identity,
+	)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestGetS3FilesHandler_Success(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	t.Run("should return listing for root path", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		params.Set("bucket", "my-bucket")
+		params.Set("path", "root")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		assert.Equal(t, "my-bucket", body.Name)
+		assert.Equal(t, "/", body.Delimiter)
+	})
+
+	t.Run("should return objects for known path", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		params.Set("bucket", "my-bucket")
+		params.Set("path", "datasets")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		assert.Equal(t, "my-bucket", body.Name)
+		// MockS3Client returns known objects for the "datasets/" path
+		assert.NotEmpty(t, body.Contents)
+		assert.NotEmpty(t, body.CommonPrefixes)
+	})
+
+	t.Run("should fall back to bucket from secret", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		// No bucket — should use "secret-bucket" from the secret
+		params.Set("path", "datasets")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		assert.Equal(t, "secret-bucket", body.Name)
+	})
+
+	t.Run("should respect limit parameter", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		params.Set("bucket", "my-bucket")
+		params.Set("path", "results")
+		params.Set("limit", "2")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		assert.Equal(t, int32(2), body.MaxKeys)
+		// MockS3Client has 4 results objects, so limit=2 should truncate
+		assert.True(t, body.IsTruncated)
+	})
+
+	t.Run("should default limit to 1000", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		params.Set("bucket", "my-bucket")
+		params.Set("path", "datasets")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		assert.Equal(t, int32(1000), body.MaxKeys)
+	})
+
+	t.Run("should pass search filter to S3 mock", func(t *testing.T) {
+		params := url.Values{}
+		params.Set("namespace", "test-namespace")
+		params.Set("secretName", "aws-secret-1")
+		params.Set("bucket", "my-bucket")
+		params.Set("path", "results")
+		params.Set("search", "run-001")
+		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var body models.S3ListObjectsResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &body)
+		assert.NoError(t, err)
+		// MockS3Client filters by prefix; "results/run-001" matches one object
+		assert.Len(t, body.Contents, 1)
+		assert.Contains(t, body.Contents[0].Key, "run-001")
+	})
+}
+
+func TestGetS3FilesHandler_S3Error(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&failingS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secretName", "aws-secret-1")
+	params.Set("bucket", "my-bucket")
+	params.Set("path", "data")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
