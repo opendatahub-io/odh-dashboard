@@ -227,6 +227,7 @@ paths:
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
 
+  # TODO [ Gustavo ] Ongoing discussion on what this endpoint and the other S3/file endpoint should be structured as
   /api/v1/s3/files:
     summary: Endpoints for dealing with multiple files within an S3-compatible connection
     get:
