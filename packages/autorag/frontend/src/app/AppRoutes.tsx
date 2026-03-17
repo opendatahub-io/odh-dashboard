@@ -11,7 +11,7 @@ function AppRoutes(): React.JSX.Element {
       <Route path="/" element={<Navigate to="experiments" replace />} />
       <Route path="/experiments/:namespace?" element={<AutoragExperimentsPage />} />
       <Route path="/configure/:namespace" element={<AutoragConfigurePage />} />
-      <Route path="/results/:runId" element={<AutoragResultsPage />} />
+      <Route path="/results/:namespace/:runId" element={<AutoragResultsPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

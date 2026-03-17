@@ -23,7 +23,7 @@ import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunsMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
-import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
 const createFields = [
@@ -152,7 +152,7 @@ function AutoragConfigurePage(): React.JSX.Element {
               async (data: ConfigureSchema) => {
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                  navigate(`${autoragConfigurePathname}/${pipelineRun.run_id}`);
+                  navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                 } catch (error) {
                   notification.error(
                     'Failed to create pipeline run',
