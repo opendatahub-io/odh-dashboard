@@ -1,6 +1,12 @@
 import * as React from 'react';
-import { Form, FormGroup, Popover, Stack, StackItem } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  Form,
+  FormGroup,
+  FormGroupLabelHelp,
+  Popover,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import { WorkerGroupReplicaState } from '../../hooks/useRayJobNodeScaling';
@@ -37,18 +43,16 @@ const ScaleRayJobNodesModal: React.FC<ScaleRayJobNodesModalProps> = ({
         <StackItem>
           <Form>
             <FormGroup
-              label={
-                <>
-                  Head node{' '}
-                  <Popover
-                    bodyContent="Every RayJob has 1 head node. This number is not editable."
-                    aria-label="Head node info"
-                  >
-                    <OutlinedQuestionCircleIcon data-testid="head-node-info-popover" />
-                  </Popover>
-                </>
-              }
+              label="Head node"
               fieldId="head-node-count"
+              labelHelp={
+                <Popover bodyContent="Every RayJob has 1 head node. This number is not editable.">
+                  <FormGroupLabelHelp
+                    aria-label="More info for head node field"
+                    data-testid="head-node-info-popover"
+                  />
+                </Popover>
+              }
             >
               <NumberInputWrapper
                 inputProps={{

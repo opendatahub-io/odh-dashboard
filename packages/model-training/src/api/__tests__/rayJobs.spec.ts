@@ -192,7 +192,7 @@ describe('RayJob API', () => {
       ]);
     });
 
-    it('should skip unknown group names', async () => {
+    it('should skip unknown group names and not call the API', async () => {
       const job = {
         ...baseJob,
         spec: {
@@ -204,13 +204,13 @@ describe('RayJob API', () => {
         },
       };
 
-      await updateRayJobNumNodes(job, [{ groupName: 'nonexistent', replicas: 5 }]);
+      const result = await updateRayJobNumNodes(job, [{ groupName: 'nonexistent', replicas: 5 }]);
 
-      const callArgs = mockK8sPatchResource.mock.calls[0][0] as { patches: unknown[] };
-      expect(callArgs.patches).toHaveLength(0);
+      expect(mockK8sPatchResource).not.toHaveBeenCalled();
+      expect(result).toBe(job);
     });
 
-    it('should produce no patches for a job with no worker groups', async () => {
+    it('should produce no patches for a job with no worker groups and not call the API', async () => {
       const job = {
         ...baseJob,
         spec: {
@@ -222,10 +222,34 @@ describe('RayJob API', () => {
         },
       };
 
-      await updateRayJobNumNodes(job, []);
+      const result = await updateRayJobNumNodes(job, []);
 
-      const callArgs = mockK8sPatchResource.mock.calls[0][0] as { patches: unknown[] };
-      expect(callArgs.patches).toHaveLength(0);
+      expect(mockK8sPatchResource).not.toHaveBeenCalled();
+      expect(result).toBe(job);
+    });
+
+    it('should use add op when replicas field is not yet set on the worker group', async () => {
+      const job = {
+        ...baseJob,
+        spec: {
+          ...baseJob.spec,
+          rayClusterSpec: {
+            headGroupSpec: { template: {} },
+            workerGroupSpecs: [{ groupName: 'workers', template: {} }],
+          },
+        },
+      };
+
+      await updateRayJobNumNodes(job, [{ groupName: 'workers', replicas: 2 }]);
+
+      const callArgs = mockK8sPatchResource.mock.calls[0][0] as {
+        patches: { op: string; path: string; value: number }[];
+      };
+      expect(callArgs.patches).toContainEqual({
+        op: 'add',
+        path: '/spec/rayClusterSpec/workerGroupSpecs/0/replicas',
+        value: 2,
+      });
     });
 
     it('should propagate API errors', async () => {

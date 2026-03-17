@@ -63,7 +63,11 @@ export const updateRayJobNumNodes = async (
     }
     const base = `/spec/rayClusterSpec/workerGroupSpecs/${index}`;
 
-    patches.push({ op: 'replace', path: `${base}/replicas`, value: replicas });
+    patches.push({
+      op: existing.replicas === undefined ? 'add' : 'replace',
+      path: `${base}/replicas`,
+      value: replicas,
+    });
 
     if (existing.minReplicas !== undefined) {
       patches.push({ op: 'replace', path: `${base}/minReplicas`, value: replicas });
@@ -72,6 +76,10 @@ export const updateRayJobNumNodes = async (
       patches.push({ op: 'replace', path: `${base}/maxReplicas`, value: replicas });
     }
   });
+
+  if (patches.length === 0) {
+    return job;
+  }
 
   return k8sPatchResource<RayJobKind>(
     applyK8sAPIOptions(
