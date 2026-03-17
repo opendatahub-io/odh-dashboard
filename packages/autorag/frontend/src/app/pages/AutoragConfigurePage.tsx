@@ -93,29 +93,6 @@ function AutoragConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
-          variant="warning"
-          onClick={() => {
-            form.reset({
-              /* eslint-disable camelcase */
-              display_name: 'a',
-              input_data_secret_name: 'a',
-              input_data_bucket_name: 'a',
-              input_data_key: 'a',
-              test_data_secret_name: 'a',
-              test_data_bucket_name: 'a',
-              test_data_key: 'a',
-              llama_stack_secret_name: 'a',
-              generation_models: ['a'],
-              embeddings_models: ['a'],
-              /* eslint-enable camelcase */
-            });
-          }}
-        >
-          Set dummy payload
-        </Button>
-      </ActionListItem>
-      <ActionListItem>
-        <Button
           variant="link"
           onClick={() => {
             setStep('create');
