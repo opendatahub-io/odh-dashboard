@@ -1,19 +1,18 @@
 package repositories
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"io"
-	"log"
-	"strings"
+  "context"
+  "errors"
+  "fmt"
+  "io"
+  "strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+  "github.com/aws/aws-sdk-go-v2/aws"
+  "github.com/aws/aws-sdk-go-v2/credentials"
+  "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+  "github.com/aws/aws-sdk-go-v2/service/s3"
+  "github.com/aws/aws-sdk-go-v2/service/s3/types"
+  k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 )
 
 // S3Credentials contains the credentials needed to connect to S3
@@ -216,26 +215,22 @@ func (r *S3Repository) GetS3Objects(
 	if err != nil {
 		var noBucket *types.NoSuchBucket
 		if errors.As(err, &noBucket) {
-			// TODO [ PR-Feedback: AI ] Use the app's structured slog.Logger instead of log.Printf.
-			//   S3Repository doesn't have a logger — either inject one via NewS3Repository or
-			//   return the error and let the handler log it. log.Printf produces unstructured output.
-			log.Printf("Bucket %s does not exist.\n", bucket)
 			err = noBucket
 		}
 		return nil, err
 	}
 
-	// TODO [ PR-Feedback: AI ] IsTruncated, KeyCount, MaxKeys are dereferenced without nil checks,
-	//   but all other pointer fields below have nil guards. Either be consistent (add nil checks
-	//   here too) or drop the nil checks on the others since the SDK populates them.
-
 	// Map SDK output to our own response type
-	result := &S3ListObjectsResponse{
-		IsTruncated: *output.IsTruncated,
-		KeyCount:    *output.KeyCount,
-		MaxKeys:     *output.MaxKeys,
-	}
-
+	result := &S3ListObjectsResponse{}
+  if output.IsTruncated != nil {
+    result.IsTruncated = *output.IsTruncated
+  }
+  if output.KeyCount != nil {
+    result.KeyCount = *output.KeyCount
+  }
+  if output.MaxKeys != nil {
+    result.MaxKeys = *output.MaxKeys
+  }
 	if output.Name != nil {
 		result.Name = *output.Name
 	}
