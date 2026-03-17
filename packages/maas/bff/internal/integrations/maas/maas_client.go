@@ -18,10 +18,10 @@ import (
 )
 
 type MaasClient struct {
-	httpClient       *http.Client
-	prefix           *url.URL
-	logger           *slog.Logger
-	maxResponseSize  int64
+	httpClient      *http.Client
+	prefix          *url.URL
+	logger          *slog.Logger
+	maxResponseSize int64
 }
 
 type MaasApiError struct {
@@ -38,8 +38,8 @@ func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 				},
 			},
 		},
-		prefix: prefix.JoinPath("v1"),
-		logger: logger,
+		prefix:          prefix.JoinPath("v1"),
+		logger:          logger,
 		maxResponseSize: 2 << 20, // 2MB
 	}
 }
