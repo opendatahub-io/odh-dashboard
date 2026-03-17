@@ -10,7 +10,15 @@ const (
 	ModelSourceTypeExternalCluster ModelSourceTypeEnum = "external_cluster"
 	// ModelSourceTypeExternalProvider indicates an external model pointing to a provider (outside cluster)
 	ModelSourceTypeExternalProvider ModelSourceTypeEnum = "external_provider"
+	// ModelSourceTypeMaaS indicates a MaaS (Model as a Service) model
+	ModelSourceTypeMaaS ModelSourceTypeEnum = "maas"
 )
+
+// IsExternalModelSource returns true if the model source type indicates an external model
+// (either external_cluster or external_provider), false otherwise.
+func IsExternalModelSource(sourceType ModelSourceTypeEnum) bool {
+	return sourceType == ModelSourceTypeExternalProvider || sourceType == ModelSourceTypeExternalCluster
+}
 
 type AAModel struct {
 	ModelName       string              `json:"model_name"`

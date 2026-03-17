@@ -39,7 +39,7 @@ const ModelCatalogWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <OdhDevFeatureFlagOverridesProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>

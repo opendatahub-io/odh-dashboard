@@ -148,6 +148,8 @@ export const useModelServerSelectField = (
       };
     }
     return null;
+    // We want dependencies to be specific to the values being used. If something else inside hardwareProfile changes, then it will recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     modelServerTemplates,
     modelFormat,
@@ -258,7 +260,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
         </Flex>
       </MenuItem>
     ),
-    [options, data, setData, getServingRuntimeDropdownLabel],
+    [data, setData, getServingRuntimeDropdownLabel],
   );
 
   const filteredProjectScopedTemplates = options.filter(

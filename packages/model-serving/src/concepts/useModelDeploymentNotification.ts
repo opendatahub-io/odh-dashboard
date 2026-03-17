@@ -145,6 +145,8 @@ export const useModelDeploymentNotification = (
     registerNotification,
     navigate,
     namespace,
+    deployment.model.metadata.name,
+    deployment.model.metadata.namespace,
     notification,
     fetchDeploymentExtension,
     fetchDeploymentExtensionLoaded,

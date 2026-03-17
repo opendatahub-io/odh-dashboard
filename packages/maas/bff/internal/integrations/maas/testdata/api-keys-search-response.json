@@ -1,0 +1,48 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "key_prod_backend_001",
+      "name": "production-backend",
+      "description": "Production API key for backend service",
+      "username": "admin-user",
+      "groups": ["system:authenticated", "premium-users"],
+      "creationDate": "2025-12-01T00:00:00Z",
+      "expirationDate": "2125-12-01T00:00:00Z",
+      "status": "active",
+      "lastUsedAt": "2026-03-10T14:30:00Z"
+    },
+    {
+      "id": "key_dev_testing_002",
+      "name": "development-testing",
+      "description": "Development API key for testing purposes",
+      "username": "dev-user",
+      "groups": ["system:authenticated"],
+      "creationDate": "2025-11-01T00:00:00Z",
+      "expirationDate": "2125-11-01T00:00:00Z",
+      "status": "active",
+      "lastUsedAt": "2026-03-09T10:15:00Z"
+    },
+    {
+      "id": "key_ci_pipeline_003",
+      "name": "ci-pipeline",
+      "description": "API key for CI/CD pipeline automation",
+      "username": "ci-bot",
+      "groups": ["system:authenticated", "ci-users"],
+      "creationDate": "2025-10-01T00:00:00Z",
+      "expirationDate": "2125-10-01T00:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "key_expired_old_004",
+      "name": "old-service-key",
+      "description": "Expired API key from previous deployment",
+      "username": "admin-user",
+      "groups": ["system:authenticated"],
+      "creationDate": "2025-09-01T00:00:00Z",
+      "expirationDate": "2025-10-01T00:00:00Z",
+      "status": "expired"
+    }
+  ],
+  "has_more": false
+}

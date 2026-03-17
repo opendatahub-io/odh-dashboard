@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { RayJobKind } from '@odh-dashboard/model-training/k8sTypes';
+import { RayJobKind, RayWorkerGroupSpec } from '@odh-dashboard/model-training/k8sTypes';
 import { RayJobStatusValue, RayJobDeploymentStatus } from '@odh-dashboard/model-training/types';
 
 type MockRayJobConfigType = {
@@ -12,6 +12,8 @@ type MockRayJobConfigType = {
   runtimeEnvYAML?: string;
   suspend?: boolean;
   submissionMode?: RayJobKind['spec']['submissionMode'];
+  rayVersion?: string;
+  shutdownAfterJobFinishes?: boolean;
   jobStatus?: string;
   jobDeploymentStatus?: string;
   rayClusterName?: string;
@@ -22,6 +24,8 @@ type MockRayJobConfigType = {
   reason?: string;
   succeeded?: number;
   failed?: number;
+  workerGroupSpecs?: RayWorkerGroupSpec[];
+  clusterSelector?: Record<string, string>;
   additionalLabels?: Record<string, string>;
   isDeleting?: boolean;
 };
@@ -35,9 +39,12 @@ export const mockRayJobK8sResource = ({
   runtimeEnvYAML = 'pip:\n  - torch\n  - transformers',
   suspend = false,
   submissionMode = 'K8sJobMode',
+  rayVersion = '2.9.0',
+  shutdownAfterJobFinishes = true,
   jobStatus,
   jobDeploymentStatus,
-  rayClusterName = `${name}-raycluster`,
+  clusterSelector,
+  rayClusterName = clusterSelector?.['ray.io/cluster'] ?? `${name}-raycluster`,
   dashboardURL = `http://${name}-head-svc.${namespace}:8265`,
   startTime,
   endTime,
@@ -45,6 +52,7 @@ export const mockRayJobK8sResource = ({
   reason,
   succeeded = 0,
   failed = 0,
+  workerGroupSpecs,
   additionalLabels = {},
   isDeleting = false,
 }: MockRayJobConfigType = {}): RayJobKind => {
@@ -108,11 +116,51 @@ export const mockRayJobK8sResource = ({
         runtimeEnvYAML,
         suspend,
         submissionMode,
-        shutdownAfterJobFinishes: true,
+        shutdownAfterJobFinishes,
         ttlSecondsAfterFinished: 300,
-        rayClusterSpec: {
-          headGroupSpec: { template: {} },
-        },
+        ...(clusterSelector
+          ? { clusterSelector }
+          : {
+              rayClusterSpec: {
+                rayVersion,
+                headGroupSpec: {
+                  template: {
+                    spec: {
+                      containers: [
+                        {
+                          name: 'ray-head',
+                          resources: {
+                            requests: { cpu: '1', memory: '2Gi' },
+                            limits: { cpu: '2', memory: '4Gi' },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+                workerGroupSpecs: workerGroupSpecs ?? [
+                  {
+                    groupName: 'worker-group-1',
+                    replicas: 1,
+                    minReplicas: 0,
+                    maxReplicas: 4,
+                    template: {
+                      spec: {
+                        containers: [
+                          {
+                            name: 'ray-worker',
+                            resources: {
+                              requests: { cpu: '1', memory: '2Gi' },
+                              limits: { cpu: '2', memory: '2Gi' },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            }),
       },
       status: {
         jobStatus: resolvedJobStatus,

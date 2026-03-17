@@ -134,7 +134,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
       rowRenderer={(model) => (
         <AIModelTableRow
           lsdStatus={lsdStatus}
-          key={`${model.modelSource || 'namespace'}-${model.model_id}`}
+          key={`${model.model_source_type}-${model.model_id}`}
           model={model}
           allModels={models}
           playgroundModels={playgroundModels}

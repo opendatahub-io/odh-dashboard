@@ -350,7 +350,7 @@ export const ConnectionSection: React.FC<Props> = ({
       didInitialPVCPrefill.current = true;
       setPrefillComplete(true);
     },
-    [pvcs, existingUriOption, data.storage, setData],
+    [pvcs, existingUriOption, data.storage, setData, pvcNameFromUri],
   );
 
   React.useEffect(() => {
@@ -379,7 +379,7 @@ export const ConnectionSection: React.FC<Props> = ({
       didInitialPVCPrefill.current = true;
       setPrefillComplete(true);
     }
-  }, [loaded, pvcs, existingUriOption, data.storage, setData, handlePVCPrefill]);
+  }, [loaded, pvcs, existingUriOption, data.storage, setData, handlePVCPrefill, pvcNameFromUri]);
 
   if (loadError) {
     return (

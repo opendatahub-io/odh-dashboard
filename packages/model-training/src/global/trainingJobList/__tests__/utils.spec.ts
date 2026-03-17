@@ -19,15 +19,15 @@ import {
   ConditionStatus,
   JobSectionName,
 } from '../utils';
-import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../../api';
+import { getWorkloadForJob, setTrainJobPauseState } from '../../../api';
 
 // Mock the API functions
 jest.mock('../../../api', () => ({
-  getWorkloadForTrainJob: jest.fn(),
+  getWorkloadForJob: jest.fn(),
   setTrainJobPauseState: jest.fn(),
 }));
 
-const mockGetWorkloadForTrainJob = jest.mocked(getWorkloadForTrainJob);
+const mockGetWorkloadForJob = jest.mocked(getWorkloadForJob);
 const mockSetTrainJobPauseState = jest.mocked(setTrainJobPauseState);
 
 // Test constants
@@ -67,7 +67,7 @@ describe('getStatusInfo', () => {
     expect(result.label).toBe('Complete');
     expect(result.status).toBe('success');
     expect(result.color).toBe('green');
-    expect(result.alertTitle).toBe('Training Job Complete');
+    expect(result.alertTitle).toBe('Job Complete');
     expect(result.alertVariant).toBeDefined();
   });
 
@@ -76,7 +76,7 @@ describe('getStatusInfo', () => {
     expect(result.label).toBe('Failed');
     expect(result.status).toBe('danger');
     expect(result.color).toBe('red');
-    expect(result.alertTitle).toBe('Training Job Failed');
+    expect(result.alertTitle).toBe('Job Failed');
     expect(result.alertVariant).toBeDefined();
   });
 
@@ -368,14 +368,14 @@ describe('getStatusAlert', () => {
   it('should return alert with default title for SUCCEEDED status', () => {
     const result = getStatusAlert(TrainingJobState.SUCCEEDED);
     expect(result).not.toBeNull();
-    expect(result?.title).toBe('Training Job Complete');
+    expect(result?.title).toBe('Job Complete');
     expect(result?.variant).toBeDefined();
   });
 
   it('should return alert with default title for FAILED status', () => {
     const result = getStatusAlert(TrainingJobState.FAILED);
     expect(result).not.toBeNull();
-    expect(result?.title).toBe('Training Job Failed');
+    expect(result?.title).toBe('Job Failed');
     expect(result?.variant).toBeDefined();
   });
 
@@ -752,7 +752,7 @@ describe('getTrainingJobStatus', () => {
         },
       ],
     });
-    mockGetWorkloadForTrainJob.mockResolvedValue(null);
+    mockGetWorkloadForJob.mockResolvedValue(null);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.SUCCEEDED);
@@ -772,7 +772,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
@@ -792,7 +792,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.FAILED);
@@ -812,7 +812,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.SUCCEEDED);
@@ -832,7 +832,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.PREEMPTED);
@@ -852,7 +852,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.RUNNING);
@@ -883,7 +883,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload1);
+    mockGetWorkloadForJob.mockResolvedValue(workload1);
     expect((await getTrainingJobStatus(job)).status).toBe(TrainingJobState.QUEUED);
 
     // Test: Not Admitted and QuotaReserved is False
@@ -896,7 +896,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload2);
+    mockGetWorkloadForJob.mockResolvedValue(workload2);
     expect((await getTrainingJobStatus(job)).status).toBe(TrainingJobState.QUEUED);
   });
 
@@ -905,7 +905,7 @@ describe('getTrainingJobStatus', () => {
       name: TEST_JOB_NAME,
     });
     const workload = createMockWorkload([], false);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.PAUSED);
@@ -918,7 +918,7 @@ describe('getTrainingJobStatus', () => {
       suspend: true,
     });
     const workload = createMockWorkload([]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.PAUSED);
@@ -940,7 +940,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.PENDING);
@@ -954,7 +954,7 @@ describe('getTrainingJobStatus', () => {
       status: TrainingJobState.CREATED,
       jobsStatus: [], // No active jobs to avoid RUNNING from jobsStatus check
     });
-    mockGetWorkloadForTrainJob.mockResolvedValue(null);
+    mockGetWorkloadForJob.mockResolvedValue(null);
     expect((await getTrainingJobStatus(job1)).status).toBe(TrainingJobState.QUEUED);
 
     const job2 = mockTrainJobK8sResource({
@@ -972,7 +972,7 @@ describe('getTrainingJobStatus', () => {
       jobsStatus: [], // Empty jobsStatus to avoid RUNNING from jobsStatus check
     });
     const workload = createMockWorkload([]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
     expect((await getTrainingJobStatus(job2)).status).toBe(TrainingJobState.QUEUED);
   });
 
@@ -1021,7 +1021,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     // With PodsReady=True, it returns RUNNING from workload conditions (line 326-328)
@@ -1034,7 +1034,7 @@ describe('getTrainingJobStatus', () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
     });
-    mockGetWorkloadForTrainJob.mockRejectedValue(new Error('API error'));
+    mockGetWorkloadForJob.mockRejectedValue(new Error('API error'));
 
     const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -1060,7 +1060,7 @@ describe('getTrainingJobStatus', () => {
 
     const result = await getTrainingJobStatus(job, { skipPauseCheck: true });
     expect(result.status).toBe(TrainingJobState.SUCCEEDED);
-    expect(mockGetWorkloadForTrainJob).not.toHaveBeenCalled();
+    expect(mockGetWorkloadForJob).not.toHaveBeenCalled();
   });
 
   it('should prioritize TrainJob FAILED over Workload QUEUED', async () => {
@@ -1090,7 +1090,7 @@ describe('getTrainingJobStatus', () => {
         lastTransitionTime: TEST_TIMESTAMP,
       },
     ]);
-    mockGetWorkloadForTrainJob.mockResolvedValue(workload);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
 
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.FAILED);
