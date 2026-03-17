@@ -184,7 +184,11 @@ func CleanupMLflowState(state *MLflowState, logger *slog.Logger) {
 		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
 			logger.Error("Failed to send SIGKILL to MLflow process group", slog.Int("pid", pid), slog.Any("error", err))
 		}
-		<-state.ProcessDone
+		select {
+		case <-state.ProcessDone:
+		case <-time.After(shutdownWait):
+			logger.Error("MLflow process did not exit after SIGKILL", slog.Int("pid", pid), slog.Duration("timeout", shutdownWait))
+		}
 	}
 
 	state.Cancel()

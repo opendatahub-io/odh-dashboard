@@ -68,7 +68,7 @@ The following environment variables are used to configure the deployment and dev
 
 - **Description**: Specifies the theme/styling framework to be used for the UI.
 - **Default Value**: `mui-theme`
-- **Possible Values**: `mui-theme`, `patternfly`
+- **Possible Values**: `mui-theme`, `patternfly-theme`
 - **Example**: `STYLE_THEME=mui-theme`
 
 ### `MLFLOW_URL`

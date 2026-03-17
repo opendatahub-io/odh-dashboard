@@ -82,7 +82,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9110 PROXY_PORT=4020 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9110 PROXY_PORT=4020 npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -100,7 +100,7 @@ docker-build-standalone:
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly-theme -t ${IMG_UI_FEDERATED} .
 
 .PHONY: docker-buildx
 docker-buildx:
@@ -112,7 +112,7 @@ docker-buildx-standalone:
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly-theme --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
 
 ############ Push ############
 
