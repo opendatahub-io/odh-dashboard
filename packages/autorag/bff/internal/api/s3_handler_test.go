@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
@@ -37,6 +39,15 @@ func (f *failingS3Client) GetObject(_ context.Context, _, _ string) (io.Reader, 
 
 func (f *failingS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
 	return nil, fmt.Errorf("S3 connection timeout")
+}
+
+// noSuchBucketS3Client returns a NoSuchBucket error from ListObjects.
+type noSuchBucketS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (n *noSuchBucketS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	return nil, &s3types.NoSuchBucket{Message: aws.String("The specified bucket does not exist")}
 }
 
 // newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
@@ -599,7 +610,7 @@ func TestGetS3FilesHandler_MissingNamespace(t *testing.T) {
 	params.Set("path", "some-path")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -609,6 +620,7 @@ func TestGetS3FilesHandler_MissingNamespace(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "namespace")
 }
 
 func TestGetS3FilesHandler_MissingSecretName(t *testing.T) {
@@ -622,7 +634,7 @@ func TestGetS3FilesHandler_MissingSecretName(t *testing.T) {
 	params.Set("path", "some-path")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -632,6 +644,7 @@ func TestGetS3FilesHandler_MissingSecretName(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "secretName")
 }
 
 func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
@@ -663,7 +676,7 @@ func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
 	params.Set("path", "some-path")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -673,12 +686,8 @@ func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "bucket")
 }
-
-// TODO [ PR-Feedback: AI ] T1: Error-path tests only assert status codes, never the response body/message.
-//   If a test gets 400 for a *different* reason than expected (e.g. secretName missing instead of
-//   path empty), the test still passes. Add assert.Contains(t, body.Message, "path") or similar
-//   to pin down the specific validation being exercised. Applies to all error tests in this file.
 
 func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
@@ -692,7 +701,7 @@ func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 	params.Set("path", "")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -702,6 +711,7 @@ func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "path")
 }
 
 func TestGetS3FilesHandler_InvalidSearch(t *testing.T) {
@@ -717,7 +727,7 @@ func TestGetS3FilesHandler_InvalidSearch(t *testing.T) {
 	params.Set("search", "invalid/search")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -727,6 +737,7 @@ func TestGetS3FilesHandler_InvalidSearch(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "search")
 }
 
 func TestGetS3FilesHandler_InvalidNext(t *testing.T) {
@@ -742,7 +753,7 @@ func TestGetS3FilesHandler_InvalidNext(t *testing.T) {
 	params.Set("next", "")
 	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-	_, res, err := setupApiTest[integrations.HTTPError](
+	body, res, err := setupApiTest[ErrorEnvelope](
 		"GET",
 		uri.String(),
 		nil,
@@ -752,6 +763,7 @@ func TestGetS3FilesHandler_InvalidNext(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Contains(t, body.Error.Message, "next")
 }
 
 func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
@@ -779,7 +791,7 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 			params.Set("limit", tc.limit)
 			uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
-			_, res, err := setupApiTest[integrations.HTTPError](
+			body, res, err := setupApiTest[ErrorEnvelope](
 				"GET",
 				uri.String(),
 				nil,
@@ -789,6 +801,7 @@ func TestGetS3FilesHandler_InvalidLimit(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+			assert.Contains(t, body.Error.Message, "limit")
 		})
 	}
 }
@@ -1005,9 +1018,30 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 	})
 }
 
-// TODO [ PR-Feedback: AI ] T3: No test for the NoSuchBucket error path. GetS3FilesHandler handles
-//   NoSuchBucket (errors.As) and returns 404, but there's no unit test covering it.
-//   Add a test with a mock S3 client that returns &types.NoSuchBucket{} and assert 404.
+func TestGetS3FilesHandler_NoSuchBucket(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&noSuchBucketS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secretName", "aws-secret-1")
+	params.Set("bucket", "non-existent-bucket")
+	params.Set("path", "data")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+
+	var envelope ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	assert.Contains(t, envelope.Error.Message, "does not exist")
+}
 
 func TestGetS3FilesHandler_S3Error(t *testing.T) {
 	secret := validS3Secret("aws-secret-1", "test-namespace")
