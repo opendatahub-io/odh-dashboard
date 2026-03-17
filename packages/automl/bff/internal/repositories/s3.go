@@ -11,6 +11,7 @@ import (
 	"math"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -74,11 +75,18 @@ func validateAndNormalizeEndpoint(endpoint string) (string, error) {
 		// Hostname - resolve it and validate all IPs
 		ips, err := net.LookupIP(hostname)
 		if err != nil {
-			// Allow unresolvable hostnames (they might resolve at runtime in a different network)
-			// but log a warning
-			slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed",
-				"hostname", hostname,
-				"error", err.Error())
+			// Check if permissive mode is enabled for unresolvable hostnames
+			allowUnresolved := os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true"
+
+			if allowUnresolved {
+				// Non-production/testing mode: allow with warning
+				slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed (ALLOW_UNRESOLVED_S3_ENDPOINTS=true)",
+					"hostname", hostname,
+					"error", err.Error())
+			} else {
+				// Production mode: treat DNS resolution failure as a security error
+				return "", fmt.Errorf("endpoint hostname '%s' cannot be resolved: %w (this may indicate a DNS rebinding attempt or misconfiguration)", hostname, err)
+			}
 		} else {
 			// Validate all resolved IPs
 			for _, resolvedIP := range ips {
@@ -197,6 +205,12 @@ func (r *S3Repository) GetS3Object(
 	bucket string,
 	key string,
 ) (io.Reader, string, error) {
+	// Revalidate the endpoint on each request to ensure SSRF protection
+	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("endpoint validation failed: %w", err)
+	}
+
 	// Create AWS config with credentials
 	cfg := aws.Config{
 		Region:      creds.Region,
@@ -205,7 +219,7 @@ func (r *S3Repository) GetS3Object(
 
 	// Create S3 client
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(creds.EndpointURL)
+		o.BaseEndpoint = aws.String(validatedEndpoint)
 		// Enable path-style addressing for S3-compatible services like MinIO
 		o.UsePathStyle = true
 	})
@@ -259,6 +273,12 @@ func (r *S3Repository) GetS3CSVSchema(
 	bucket string,
 	key string,
 ) ([]ColumnSchema, error) {
+	// Revalidate the endpoint on each request to ensure SSRF protection
+	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
+	if err != nil {
+		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+	}
+
 	// Create AWS config with credentials
 	cfg := aws.Config{
 		Region:      creds.Region,
@@ -267,7 +287,7 @@ func (r *S3Repository) GetS3CSVSchema(
 
 	// Create S3 client
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(creds.EndpointURL)
+		o.BaseEndpoint = aws.String(validatedEndpoint)
 		// Enable path-style addressing for S3-compatible services like MinIO
 		o.UsePathStyle = true
 	})

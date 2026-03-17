@@ -89,6 +89,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
 	// Validate pipeline name prefixes
 	if cfg.AutoMLTimeSeriesPipelineNamePrefix == "" {
 		logger.Error("automl-timeseries-pipeline-name-prefix must not be empty")

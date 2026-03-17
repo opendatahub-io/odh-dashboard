@@ -93,6 +93,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
 
