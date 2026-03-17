@@ -4,7 +4,6 @@ import type { PipelineRun } from '~/app/types';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
-import { mockAutoRAGPatterns } from '~/app/mocks/mockAutoRAGPatterns';
 import './AutoragResults.scss';
 
 type AutoragResultsProps = {
@@ -17,10 +16,7 @@ function AutoragResults({ pipelineRun }: AutoragResultsProps): React.JSX.Element
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  // TODO: replace mockAutoRAGPatterns with real pattern data fetched from S3
-  const patterns = pipelineRun?.state === 'SUCCEEDED' ? mockAutoRAGPatterns : undefined;
-
-  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails, patterns);
+  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails);
 
   return (
     <Stack hasGutter>
