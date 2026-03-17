@@ -205,7 +205,8 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
-	// TODO [ PR-Feedback: AI ] **HANDLED IN FUTURE PR** A new AWS S3 client is created on every request. The AWS SDK client
+	// TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
+  //    A new AWS S3 client is created on every request. The AWS SDK client
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	// Create S3 client and list objects

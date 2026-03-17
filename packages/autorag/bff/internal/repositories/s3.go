@@ -32,7 +32,8 @@ func (r *S3Repository) GetS3Credentials(
 	// Fetch the specific secret
 	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
 	if err != nil {
-		// TODO [ PR-Feedback: AI ] R1: This wrapping leaks internal details into user-facing responses.
+		// TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
+    //   This wrapping leaks internal details into user-facing responses.
 		//   The handler uses err.Error() in HTTP responses, so the full wrapped message
 		//   ("error fetching secret 'foo' from namespace bar: <k8s error>") is exposed to clients.
 		//   Either don't wrap here (just `return nil, err`) or use the unwrapped error for responses.
@@ -43,7 +44,8 @@ func (r *S3Repository) GetS3Credentials(
 	creds := &s3client.S3Credentials{}
 	secretData := secret.Data
 
-	// TODO [ PR-Feedback: AI ] Replace O(n*m) closure with a pre-built normalized map.
+  // TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
+  //   Replace O(n*m) closure with a pre-built normalized map.
 	//   Current approach iterates all secret keys for each lookup and has non-deterministic
 	//   behavior with duplicate keys. Simpler and faster:
 	//     normalizedData := make(map[string]string, len(secretData))
