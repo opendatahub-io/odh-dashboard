@@ -33,7 +33,7 @@ const McpCatalogWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <OdhDevFeatureFlagOverridesProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               <NotificationListener>
                 <McpCatalogRoutes />
