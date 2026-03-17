@@ -1453,7 +1453,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/S3ListObjectsResult"
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/S3ListObjectsResult"
 
   parameters:
     kubeflowUserId:

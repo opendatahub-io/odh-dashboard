@@ -1,23 +1,25 @@
 package api
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
+  "context"
+  "errors"
+  "fmt"
+  "io"
+  "net/http"
+  "strconv"
+  "strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+  "github.com/aws/aws-sdk-go-v2/service/s3/types"
+  "github.com/julienschmidt/httprouter"
+  "github.com/opendatahub-io/autorag-library/bff/internal/constants"
+  "github.com/opendatahub-io/autorag-library/bff/internal/integrations"
+  "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+  k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+  "github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+  apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
+
+type S3FilesEnvelope Envelope[repositories.S3ListObjectsResponse, None]
 
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
