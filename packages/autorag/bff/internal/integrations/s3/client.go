@@ -117,7 +117,10 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 		return nil, err
 	}
 
-	result := &models.S3ListObjectsResponse{}
+	result := &models.S3ListObjectsResponse{
+		CommonPrefixes: []models.S3CommonPrefix{},
+		Contents:       []models.S3ObjectInfo{},
+	}
 	if output.IsTruncated != nil {
 		result.IsTruncated = *output.IsTruncated
 	}

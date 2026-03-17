@@ -17,8 +17,8 @@ type S3CommonPrefix struct {
 // S3ListObjectsResponse is the BFF's own response type for S3 list operations,
 // decoupled from the AWS SDK's ListObjectsV2Output.
 type S3ListObjectsResponse struct {
-	CommonPrefixes        []S3CommonPrefix `json:"CommonPrefixes,omitempty"`
-	Contents              []S3ObjectInfo   `json:"Contents,omitempty"`
+	CommonPrefixes        []S3CommonPrefix `json:"CommonPrefixes"`
+	Contents              []S3ObjectInfo   `json:"Contents"`
 	ContinuationToken     string           `json:"ContinuationToken,omitempty"`
 	Delimiter             string           `json:"Delimiter,omitempty"`
 	IsTruncated           bool             `json:"IsTruncated"`
