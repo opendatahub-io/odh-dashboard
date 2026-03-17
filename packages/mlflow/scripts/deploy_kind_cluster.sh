@@ -6,6 +6,11 @@ command -v docker >/dev/null 2>&1 || { echo >&2 "Docker is required but it's not
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "kubectl is required but it's not installed. Aborting."; exit 1; }
 command -v kind >/dev/null 2>&1 || { echo >&2 "kind is required but it's not installed. Aborting."; exit 1; }
 
+if [[ -z "${IMG_UI_STANDALONE:-}" ]]; then
+    echo >&2 "Error: IMG_UI_STANDALONE is required but not set. Export it before running this script."
+    exit 1
+fi
+
 echo "WARNING: You must have proper push / pull access to ${IMG_UI_STANDALONE}. If this is a new image, make sure you set it to public to avoid issues."
 
 # Set Kubernetes context to kind
@@ -28,7 +33,7 @@ kubectl create namespace mlflow --dry-run=client -o yaml | kubectl apply -f -
 # Step 4: Deploy MLflow UI
 echo "Editing kustomize image..."
 pushd ./manifests/base > /dev/null || { echo "Error: manifests/base directory not found"; exit 1; }
-kustomize edit set image mlflow-ui=${IMG_UI_STANDALONE}
+kustomize edit set image "mlflow-ui=${IMG_UI_STANDALONE}"
 popd > /dev/null || { echo "Error: popd failed"; exit 1; }
 
 pushd ./manifests/overlays/standalone > /dev/null || { echo "Error: manifests/overlays/standalone directory not found"; exit 1; }

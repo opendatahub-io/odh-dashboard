@@ -186,7 +186,7 @@ func TestRequireValidIdentityValidationFails(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler(rr, req, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 	var errResp HTTPError
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))

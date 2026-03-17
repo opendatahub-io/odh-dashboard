@@ -124,7 +124,10 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 
 	cleanup := func() {
 		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		<-processDone
+		select {
+		case <-processDone:
+		case <-time.After(shutdownWait):
+		}
 		cancel()
 		_ = os.RemoveAll(dataDir)
 	}

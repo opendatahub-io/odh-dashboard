@@ -126,7 +126,7 @@ func (app *App) RequireValidIdentity(next func(http.ResponseWriter, *http.Reques
 			return
 		}
 		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
+			app.unauthorizedResponse(w, r, err)
 			return
 		}
 		next(w, r, ps)
@@ -163,6 +163,17 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 					Error:      ErrorPayload{Code: "service_unavailable", Message: "MLflow is not configured"},
 				}
 				app.errorResponse(w, r, httpErr)
+				return
+			}
+			if errors.Is(err, mlflowpkg.ErrTokenRequired) {
+				app.errorResponse(w, r, &HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Error:      ErrorPayload{Code: "authentication_required", Message: "authentication token is required"},
+				})
+				return
+			}
+			if errors.Is(err, mlflowpkg.ErrNamespaceRequired) {
+				app.badRequestResponse(w, r, fmt.Errorf("workspace namespace is required"))
 				return
 			}
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to get MLflow client: %w", err))

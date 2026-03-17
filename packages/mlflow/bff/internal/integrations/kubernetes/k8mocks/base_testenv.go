@@ -58,6 +58,10 @@ type TestEnvInput struct {
 // SetupEnvTest creates a controller-runtime envtest environment, bootstraps
 // mock resources, and returns the environment plus a Kubernetes clientset.
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
+	if input.Ctx == nil {
+		input.Ctx = context.Background()
+	}
+
 	var binaryAssetsDir string
 	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
 		binaryAssetsDir = envtestAssets
@@ -80,10 +84,12 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
+		_ = testEnv.Stop()
 		return nil, nil, fmt.Errorf("failed to create clientset: %w", err)
 	}
 
 	if err := setupMock(input.Ctx, clientset); err != nil {
+		_ = testEnv.Stop()
 		return nil, nil, fmt.Errorf("failed to setup mock data: %w", err)
 	}
 

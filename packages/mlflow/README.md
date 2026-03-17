@@ -93,7 +93,12 @@ Here is an example of what your `.env.local` file might look like:
 CONTAINER_TOOL=docker
 IMG_UI=quay.io/<personal-registry>/mlflow-ui:latest
 IMG_UI_STANDALONE=quay.io/<personal-registry>/mlflow-ui-standalone:latest
+IMG_UI_FEDERATED=quay.io/<personal-registry>/mlflow-ui-federated:latest
 PLATFORM=linux/amd64
+
+# Optional: for remote MLflow (standalone or federated mode)
+# MLFLOW_URL=https://my-mlflow-server.example.com
+# INSECURE_SKIP_VERIFY=false
 ```
 
 ## Build and Push Commands
