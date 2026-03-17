@@ -1,18 +1,18 @@
 package repositories
 
 import (
-  "context"
-  "errors"
-  "fmt"
-  "io"
-  "strings"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
 
-  "github.com/aws/aws-sdk-go-v2/aws"
-  "github.com/aws/aws-sdk-go-v2/credentials"
-  "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
-  "github.com/aws/aws-sdk-go-v2/service/s3"
-  "github.com/aws/aws-sdk-go-v2/service/s3/types"
-  k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 )
 
 // S3Credentials contains the credentials needed to connect to S3
@@ -222,15 +222,15 @@ func (r *S3Repository) GetS3Objects(
 
 	// Map SDK output to our own response type
 	result := &S3ListObjectsResponse{}
-  if output.IsTruncated != nil {
-    result.IsTruncated = *output.IsTruncated
-  }
-  if output.KeyCount != nil {
-    result.KeyCount = *output.KeyCount
-  }
-  if output.MaxKeys != nil {
-    result.MaxKeys = *output.MaxKeys
-  }
+	if output.IsTruncated != nil {
+		result.IsTruncated = *output.IsTruncated
+	}
+	if output.KeyCount != nil {
+		result.KeyCount = *output.KeyCount
+	}
+	if output.MaxKeys != nil {
+		result.MaxKeys = *output.MaxKeys
+	}
 	if output.Name != nil {
 		result.Name = *output.Name
 	}

@@ -43,11 +43,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	// TODO [ PR-Feedback: AI = Gustavo + Daniel ] unlike the LSD models endpoint, there is no DNS-1123 validation on the secret name here. See isValidDNS1123Subdomain
-
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
+		return
+	}
+	if !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
@@ -91,9 +93,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			}
 		}
 
-    // TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
-	  //   messages change wording, these checks silently break. Define typed/sentinel errors in the
-	  //   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
+		// TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
+		//   messages change wording, these checks silently break. Define typed/sentinel errors in the
+		//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
 		// Check if it's a secret not found or validation error
 		if strings.Contains(err.Error(), "not found") {
 			httpError := &integrations.HTTPError{
