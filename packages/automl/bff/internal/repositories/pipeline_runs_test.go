@@ -159,11 +159,6 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	}
 }
 
-// newValidCreateRequest is an alias for backward compatibility - defaults to tabular
-func newValidCreateRequest() models.CreateAutoMLRunRequest {
-	return newValidTabularRequest()
-}
-
 func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should map all required tabular parameters correctly", func(t *testing.T) {
 		req := newValidTabularRequest()
