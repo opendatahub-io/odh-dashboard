@@ -330,7 +330,7 @@ func (r *S3Repository) GetS3CSVSchema(
 		// Read the chunk data with bounded read to prevent memory exhaustion
 		// Calculate expected size from the requested range
 		expectedSize := int64(rangeEnd - rangeStart + 1)
-		var readLimit int64 = expectedSize
+		readLimit := expectedSize
 
 		// If ContentLength is available and smaller, use it
 		if result.ContentLength != nil && *result.ContentLength > 0 && *result.ContentLength < readLimit {
