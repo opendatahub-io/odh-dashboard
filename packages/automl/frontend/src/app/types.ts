@@ -103,3 +103,43 @@ export type SecretListItem = {
   displayName?: string;
   description?: string;
 };
+
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
+export type FeatureImportanceData = {
+  importance: Record<string, number>;
+  stddev: Record<string, number>;
+  p_value: Record<string, number>;
+  n: Record<string, number>;
+  p99_high: Record<string, number>;
+  p99_low: Record<string, number>;
+};
+
+export type EvaluationMetrics = Record<string, number>;
+
+export type ConfusionMatrixData = Record<string, Record<string, number>>;
+
+export type ModelArtifactContext = {
+  data_config: {
+    sampling_config: Record<string, unknown>;
+    split_config: Record<string, unknown>;
+  };
+  task_type: TaskType;
+  label_column: string;
+  model_config: Record<string, unknown>;
+  location: {
+    model_directory: string;
+    predictor: string;
+    notebook: string;
+  };
+  metrics: {
+    test_data: EvaluationMetrics;
+  };
+};
+
+export type ModelArtifact = {
+  display_name: string;
+  context: ModelArtifactContext;
+  rank: number;
+  created_at: string;
+};
