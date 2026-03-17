@@ -7,7 +7,7 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs from a
 **Key Features:**
 - **Multi-Pipeline Support:** Unified API for both tabular (binary, multiclass, regression) and timeseries (forecasting) AutoML pipelines
 - **Auto-Discovery:** Automatically discovers and manages multiple pipeline types in a namespace
-- **Type-Safe Schemas:** Discriminated union request bodies based on `pipelineType` query parameter
+- **Type-Safe Schemas:** Discriminated union request bodies based on the `task_type` request body field
 - **Merged Results:** List endpoint returns runs from all discovered pipeline types, sorted by creation time
 
 **API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
@@ -551,25 +551,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 }
 ```
 
-**Invalid task_type for tabular pipeline:**
-```json
-{
-  "error": {
-    "code": "400",
-    "message": "invalid task_type \"unsupervised\": must be one of binary, multiclass, regression"
-  }
-}
-```
-
-**Invalid task_type for timeseries pipeline:**
-```json
-{
-  "error": {
-    "code": "400",
-    "message": "invalid task_type \"binary\" for timeseries pipeline: must be \"timeseries\""
-  }
-}
-```
+**Note:** The API automatically selects the appropriate pipeline (tabular or timeseries) based on the `task_type` field in the request body. Invalid `task_type` values are reported using the generic invalid task_type error shown above, which lists all valid values. See the [Pipeline Types](#pipeline-types) section for details on supported task types and their corresponding pipelines.
 
 ## Pipeline Discovery
 
