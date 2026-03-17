@@ -40,7 +40,7 @@ function createConfigureSchema() {
       test_data_key: z.string().min(1).default(''),
 
       llama_stack_secret_name: z.string().min(1).default(''),
-      llama_stack_vector_database_id: z.string().min(1).default(LLS_DEFAULT_MILVUS),
+      llama_stack_vector_database_id: z.string().default('').optional(),
 
       generation_models: z.array(z.string()).min(1).default([]),
       embeddings_models: z.array(z.string()).min(1).default([]),
@@ -58,6 +58,9 @@ function createConfigureSchema() {
       (data) => {
         if (data.description === '') {
           delete data.description;
+        }
+        if (data.llama_stack_vector_database_id === '') {
+          delete data.llama_stack_vector_database_id;
         }
         return data;
       },
