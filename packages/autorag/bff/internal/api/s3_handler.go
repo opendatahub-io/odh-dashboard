@@ -200,9 +200,6 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// TODO [ PR-Feedback: AI ] No DNS-1123 validation on secret_name. The LSD models endpoint
-	//   validates secretName with isValidDNS1123Label — the S3 endpoints should do the same,
-	//   otherwise K8s returns ugly API errors instead of a clean 400.
 	secretName := parameters.SecretName
 	bucket := parameters.Bucket
 
@@ -308,6 +305,9 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	secretName := queryParams.Get("secret_name")
 	if secretName == "" {
 		return nil, errors.New("query parameter 'secret_name' is required")
+	}
+	if !isValidDNS1123Subdomain(secretName) {
+		return nil, errors.New("invalid secret_name: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 	}
 
 	bucket := queryParams.Get("bucket")
