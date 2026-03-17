@@ -170,6 +170,7 @@ var pipelineSpecificFields = map[string][]fieldCheck{
 		{"task_type", func(r models.CreateAutoMLRunRequest) bool { return r.TaskType != nil && *r.TaskType != "" }, true},
 	},
 	constants.PipelineTypeTimeSeries: {
+		{"task_type", func(r models.CreateAutoMLRunRequest) bool { return r.TaskType != nil && *r.TaskType != "" }, true},
 		{"target", func(r models.CreateAutoMLRunRequest) bool { return r.Target != nil && *r.Target != "" }, true},
 		{"id_column", func(r models.CreateAutoMLRunRequest) bool { return r.IDColumn != nil && *r.IDColumn != "" }, true},
 		{"timestamp_column", func(r models.CreateAutoMLRunRequest) bool {
@@ -214,6 +215,19 @@ func getAllPipelineSpecificFields() []fieldCheck {
 	return allFields
 }
 
+// DeterminePipelineType maps a task_type value to its corresponding pipeline type.
+// Returns "tabular" for binary/multiclass/regression tasks, and "timeseries" for timeseries tasks.
+func DeterminePipelineType(taskType string) (string, error) {
+	switch taskType {
+	case constants.TaskTypeBinary, constants.TaskTypeMulticlass, constants.TaskTypeRegression:
+		return constants.PipelineTypeTabular, nil
+	case constants.PipelineTypeTimeSeries:
+		return constants.PipelineTypeTimeSeries, nil
+	default:
+		return "", fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression, timeseries", taskType)
+	}
+}
+
 // ValidateCreateAutoMLRunRequest checks that all required fields are present,
 // rejects fields not in the pipeline type's schema, and validates enum/range values.
 //
@@ -221,10 +235,10 @@ func getAllPipelineSpecificFields() []fieldCheck {
 //   - display_name, train_data_secret_name, train_data_bucket_name, train_data_file_key
 //
 // Tabular-specific required fields (pipelineType=tabular):
-//   - label_column, task_type
+//   - label_column, task_type (must be binary/multiclass/regression)
 //
 // Timeseries-specific required fields (pipelineType=timeseries):
-//   - target, id_column, timestamp_column
+//   - task_type (must be "timeseries"), target, id_column, timestamp_column
 func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) error {
 	// Get complete schema for this pipeline type
 	schema, err := getSchemaForPipelineType(pipelineType)
@@ -260,10 +274,16 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		return fmt.Errorf("unexpected fields for %s pipeline: %v", pipelineType, unexpected)
 	}
 
-	// Validate enum values
-	if pipelineType == constants.PipelineTypeTabular && req.TaskType != nil {
-		if !constants.ValidTaskTypes[*req.TaskType] {
-			return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType)
+	// Validate enum values and consistency with pipeline type
+	if req.TaskType != nil {
+		if pipelineType == constants.PipelineTypeTabular {
+			if !constants.ValidTaskTypes[*req.TaskType] {
+				return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType)
+			}
+		} else if pipelineType == constants.PipelineTypeTimeSeries {
+			if *req.TaskType != constants.PipelineTypeTimeSeries {
+				return fmt.Errorf("invalid task_type %q for timeseries pipeline: must be \"timeseries\"", *req.TaskType)
+			}
 		}
 	}
 
@@ -282,6 +302,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
 // pipelineID and pipelineVersionID are injected by the caller (from discovery or hardcoded fallback).
 // The parameters map is built based on the pipelineType (tabular or timeseries).
+// Note: task_type is stripped from timeseries parameters as it's not a supported KFP parameter.
 func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID, pipelineType string) models.CreatePipelineRunKFRequest {
 	// Common parameters for all pipeline types
 	params := map[string]interface{}{
@@ -300,6 +321,8 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 			params["task_type"] = *req.TaskType
 		}
 	case constants.PipelineTypeTimeSeries:
+		// Note: task_type is NOT included for timeseries pipelines as it's only used for discrimination
+		// and is not a valid KFP parameter for the timeseries pipeline
 		if req.Target != nil {
 			params["target"] = *req.Target
 		}

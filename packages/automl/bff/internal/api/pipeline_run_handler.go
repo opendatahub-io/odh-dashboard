@@ -39,15 +39,29 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Determine which pipeline type to use (defaults to timeseries)
-	pipelineType := r.URL.Query().Get("pipelineType")
-	if pipelineType == "" {
-		pipelineType = constants.PipelineTypeTimeSeries
+	// Decode the request body first to access task_type
+	var req models.CreateAutoMLRunRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		return
 	}
 
-	// Validate pipelineType is a known value
-	if !constants.ValidPipelineTypes[pipelineType] {
-		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: must be one of timeseries, tabular", pipelineType))
+	// Determine pipeline type from task_type in request body
+	if req.TaskType == nil || *req.TaskType == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("task_type is required in request body"))
+		return
+	}
+
+	pipelineType, err := repositories.DeterminePipelineType(*req.TaskType)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -64,19 +78,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		app.serverErrorResponseWithMessage(w, r,
 			fmt.Errorf("no AutoML %s pipeline found in namespace", pipelineType),
 			fmt.Sprintf("no AutoML %s pipeline found in namespace - ensure a managed AutoML pipeline is deployed", pipelineType))
-		return
-	}
-
-	var req models.CreateAutoMLRunRequest
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
-		return
-	}
-	var extra interface{}
-	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
 		return
 	}
 

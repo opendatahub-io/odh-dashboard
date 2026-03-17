@@ -27,9 +27,9 @@ The API provides three endpoints:
 
 ## Pipeline Types
 
-The API supports two types of AutoML pipelines:
+The API supports two types of AutoML pipelines, determined by the `task_type` field in the request body:
 
-### Tabular (Binary, Multiclass, Regression) (`pipelineType=tabular`)
+### Tabular (Binary, Multiclass, Regression) (`task_type`: `binary`, `multiclass`, or `regression`)
 Used for binary classification, multiclass classification, and regression tasks on tabular/structured data.
 
 **Use Cases:**
@@ -38,10 +38,10 @@ Used for binary classification, multiclass classification, and regression tasks 
 - Regression (e.g., price prediction, sales estimation, risk scoring)
 
 **Required Parameters:**
-- `label_column`: Target column name in the training data
 - `task_type`: Type of task (`binary`, `multiclass`, or `regression`)
+- `label_column`: Target column name in the training data
 
-### Timeseries Forecasting (`pipelineType=timeseries`)
+### Timeseries Forecasting (`task_type`: `timeseries`)
 Used for forecasting future values in time series data.
 
 **Use Cases:**
@@ -51,13 +51,12 @@ Used for forecasting future values in time series data.
 - Weather prediction
 
 **Required Parameters:**
+- `task_type`: Must be `timeseries`
 - `target`: Target column to forecast
 - `id_column`: Column identifying each time series
 - `timestamp_column`: Timestamp/datetime column
 - `prediction_length` (optional): Number of timesteps to forecast (default: 1)
 - `known_covariates_names` (optional): List of covariate columns that are known in the future
-
-**Default Behavior:** When the `pipelineType` query parameter is omitted, the API defaults to `timeseries`.
 
 ## Authentication
 
@@ -373,11 +372,10 @@ POST /api/v1/pipeline-runs
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
-| `pipelineType` | query string | No | AutoML pipeline type to use: `timeseries` (default) or `tabular` |
 
 ### Request Body
 
-The request body schema varies based on the `pipelineType` query parameter. The API uses a discriminated union with separate schemas for tabular and timeseries pipelines.
+The request body schema varies based on the `task_type` field. The API uses a discriminated union with `task_type` as the discriminator to determine which pipeline to use.
 
 #### Common Fields (All Pipeline Types)
 
@@ -388,18 +386,18 @@ The request body schema varies based on the `pipelineType` query parameter. The 
 | `train_data_secret_name` | string | Yes | Name of the K8s secret containing S3 credentials |
 | `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
 | `train_data_file_key` | string | Yes | S3 object key for the training data file |
+| `task_type` | string | Yes | Type of task (discriminator): `binary`, `multiclass`, `regression`, or `timeseries` |
 | `top_n` | integer | No | Number of top models to consider (default: 3) |
 
-#### Tabular Pipeline Fields (`pipelineType=tabular`)
+#### Tabular Pipeline Fields (`task_type`: `binary`, `multiclass`, or `regression`)
 
-Additional required fields for tabular (binary, multiclass, regression) pipelines:
+Additional required fields for tabular pipelines:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `label_column` | string | Yes | Name of the target column in the training data |
-| `task_type` | string | Yes | Type of task: `binary`, `multiclass`, or `regression` |
 
-#### Timeseries Pipeline Fields (`pipelineType=timeseries`)
+#### Timeseries Pipeline Fields (`task_type`: `timeseries`)
 
 Additional required fields for timeseries forecasting pipelines:
 
@@ -412,18 +410,19 @@ Additional required fields for timeseries forecasting pipelines:
 | `known_covariates_names` | array of strings | No | Optional list of known covariate column names |
 
 **Notes:**
+- `task_type` is required in all requests and determines which pipeline type to use
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
-- The `pipelineType` query parameter selects between the auto-discovered timeseries and tabular pipelines (defaults to `timeseries`)
+- The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
 - If the requested pipeline type is not found in the namespace, the request returns a 500 error
-- Request body validation is performed based on the selected pipeline type
+- Request body validation is performed based on the selected task type
 
 ### Request Examples
 
 #### Tabular Binary Classification Pipeline
 
 ```bash
-curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=tabular" \
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -432,8 +431,8 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
     "train_data_secret_name": "s3-credentials",
     "train_data_bucket_name": "ml-datasets",
     "train_data_file_key": "credit/train.csv",
-    "label_column": "default",
     "task_type": "binary",
+    "label_column": "default",
     "top_n": 5
   }'
 ```
@@ -441,7 +440,7 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
 #### Tabular Multiclass Classification Pipeline
 
 ```bash
-curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=tabular" \
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -450,8 +449,8 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
     "train_data_secret_name": "s3-credentials",
     "train_data_bucket_name": "ml-datasets",
     "train_data_file_key": "customers/train.csv",
-    "label_column": "segment",
     "task_type": "multiclass",
+    "label_column": "segment",
     "top_n": 5
   }'
 ```
@@ -459,7 +458,7 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
 #### Tabular Regression Pipeline
 
 ```bash
-curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=tabular" \
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -468,8 +467,8 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
     "train_data_secret_name": "s3-credentials",
     "train_data_bucket_name": "ml-datasets",
     "train_data_file_key": "housing/train.csv",
-    "label_column": "price",
     "task_type": "regression",
+    "label_column": "price",
     "top_n": 3
   }'
 ```
@@ -477,7 +476,7 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
 #### Timeseries Forecasting Pipeline
 
 ```bash
-curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=timeseries" \
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -486,6 +485,7 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
     "train_data_secret_name": "s3-credentials",
     "train_data_bucket_name": "ml-datasets",
     "train_data_file_key": "sales/historical.csv",
+    "task_type": "timeseries",
     "target": "sales",
     "id_column": "store_id",
     "timestamp_column": "date",
@@ -495,8 +495,6 @@ curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&
   }'
 ```
 
-**Note:** When `pipelineType` is omitted, it defaults to `timeseries`.
-
 ### Response Format
 
 Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as GET responses).
@@ -505,7 +503,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 
 | Status | Condition |
 |--------|-----------|
-| `400 Bad Request` | Missing required fields (common or pipeline-type-specific), invalid `task_type` (tabular), invalid `pipelineType`, unknown JSON fields, or missing `namespace` |
+| `400 Bad Request` | Missing required fields (common or task-type-specific), missing `task_type`, invalid `task_type` value, unknown JSON fields, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
 | `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
@@ -513,12 +511,22 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 
 #### Example Validation Errors
 
+**Missing task_type:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "task_type is required in request body"
+  }
+}
+```
+
 **Missing tabular-specific fields:**
 ```json
 {
   "error": {
     "code": "400",
-    "message": "missing required fields: [label_column task_type]"
+    "message": "missing required fields: [label_column]"
   }
 }
 ```
@@ -533,6 +541,16 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 }
 ```
 
+**Invalid task_type value:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "invalid task_type \"unsupervised\": must be one of binary, multiclass, regression, timeseries"
+  }
+}
+```
+
 **Invalid task_type for tabular pipeline:**
 ```json
 {
@@ -543,12 +561,12 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 }
 ```
 
-**Invalid pipelineType:**
+**Invalid task_type for timeseries pipeline:**
 ```json
 {
   "error": {
     "code": "400",
-    "message": "unsupported pipelineType \"invalid\": must be one of timeseries, tabular"
+    "message": "invalid task_type \"binary\" for timeseries pipeline: must be \"timeseries\""
   }
 }
 ```
@@ -755,8 +773,7 @@ async function fetchPipelineRun(namespace, runId, token) {
 // Create a tabular pipeline run (binary, multiclass, or regression)
 async function createTabularRun(namespace, token, config) {
   const params = new URLSearchParams({
-    namespace,
-    pipelineType: 'tabular'
+    namespace
   });
 
   /* eslint-disable camelcase */
@@ -766,8 +783,8 @@ async function createTabularRun(namespace, token, config) {
     train_data_secret_name: config.secretName,
     train_data_bucket_name: config.bucketName,
     train_data_file_key: config.fileKey,
-    label_column: config.labelColumn,
     task_type: config.taskType,  // 'binary', 'multiclass', or 'regression'
+    label_column: config.labelColumn,
     top_n: config.topN
   };
   /* eslint-enable camelcase */
@@ -788,8 +805,7 @@ async function createTabularRun(namespace, token, config) {
 // Create a timeseries forecasting pipeline run
 async function createTimeSeriesRun(namespace, token, config) {
   const params = new URLSearchParams({
-    namespace,
-    pipelineType: 'timeseries'
+    namespace
   });
 
   /* eslint-disable camelcase */
@@ -799,6 +815,7 @@ async function createTimeSeriesRun(namespace, token, config) {
     train_data_secret_name: config.secretName,
     train_data_bucket_name: config.bucketName,
     train_data_file_key: config.fileKey,
+    task_type: 'timeseries',
     target: config.target,
     id_column: config.idColumn,
     timestamp_column: config.timestampColumn,

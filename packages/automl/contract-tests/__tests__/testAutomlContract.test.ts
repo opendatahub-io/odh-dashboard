@@ -430,17 +430,14 @@ describe('AutoML API Contract Tests', () => {
     describe('Create Pipeline Run', () => {
       describe('Tabular Pipeline', () => {
         it('should create a tabular pipeline run with required fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'contract-test-tabular-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              label_column: 'target',
-              task_type: 'binary',
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'contract-test-tabular-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
           expect(result).toMatchContract(apiSchema, {
             ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
             status: 200,
@@ -448,17 +445,14 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should include pipeline_type on the created tabular run', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'pipeline-type-tabular-test-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              label_column: 'target',
-              task_type: 'binary',
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'pipeline-type-tabular-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
           expect(result.success).toBe(true);
           if (result.success) {
             type RunData = { pipeline_type?: string };
@@ -468,19 +462,16 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should create a tabular pipeline run with all optional fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'full-options-tabular-run',
-              description: 'Tabular run with all optional fields',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              label_column: 'target',
-              task_type: 'multiclass',
-              top_n: 5,
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'full-options-tabular-run',
+            description: 'Tabular run with all optional fields',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'multiclass',
+            top_n: 5,
+          });
           expect(result).toMatchContract(apiSchema, {
             ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
             status: 200,
@@ -488,17 +479,14 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should create a tabular regression pipeline run', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'regression-test-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              label_column: 'price',
-              task_type: 'regression',
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'regression-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'price',
+            task_type: 'regression',
+          });
           expect(result).toMatchContract(apiSchema, {
             ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
             status: 200,
@@ -506,16 +494,13 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should return 400 for missing required tabular fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'incomplete-tabular-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              // Missing label_column and task_type
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-tabular-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            // Missing label_column and task_type
+          });
           expect(result.success).toBe(false);
           if (!result.success) {
             expect(result.error.status).toBe(400);
@@ -523,17 +508,14 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should return 400 for invalid task_type', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'bad-task-type-run',
-              train_data_secret_name: 's',
-              train_data_bucket_name: 'b',
-              train_data_file_key: 'k',
-              label_column: 'target',
-              task_type: 'unsupervised',
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'bad-task-type-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'unsupervised',
+          });
           expect(result.success).toBe(false);
           if (!result.success) {
             expect(result.error.status).toBe(400);
@@ -543,18 +525,16 @@ describe('AutoML API Contract Tests', () => {
 
       describe('Timeseries Pipeline', () => {
         it('should create a timeseries pipeline run with required fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
-            {
-              display_name: 'contract-test-timeseries-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              target: 'sales',
-              id_column: 'store_id',
-              timestamp_column: 'date',
-            },
-          );
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'contract-test-timeseries-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+          });
           expect(result).toMatchContract(apiSchema, {
             ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
             status: 200,
@@ -562,107 +542,12 @@ describe('AutoML API Contract Tests', () => {
         });
 
         it('should include pipeline_type on the created timeseries run', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
-            {
-              display_name: 'pipeline-type-timeseries-test-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              target: 'sales',
-              id_column: 'store_id',
-              timestamp_column: 'date',
-            },
-          );
-          expect(result.success).toBe(true);
-          if (result.success) {
-            type RunData = { pipeline_type?: string };
-            const data = result.response.data as { data: RunData };
-            expect(data.data.pipeline_type).toBe('timeseries');
-          }
-        });
-
-        it('should create a timeseries pipeline run with all optional fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
-            {
-              display_name: 'full-options-timeseries-run',
-              description: 'Timeseries run with all optional fields',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              target: 'sales',
-              id_column: 'store_id',
-              timestamp_column: 'date',
-              prediction_length: 7,
-              known_covariates_names: ['temperature', 'is_holiday'],
-              top_n: 5,
-            },
-          );
-          expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-            status: 200,
-          });
-        });
-
-        it('should return 400 for missing required timeseries fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
-            {
-              display_name: 'incomplete-timeseries-run',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              target: 'sales',
-              // Missing id_column and timestamp_column
-            },
-          );
-          expect(result.success).toBe(false);
-          if (!result.success) {
-            expect(result.error.status).toBe(400);
-          }
-        });
-      });
-
-      describe('General Validation', () => {
-        it('should return 400 for missing common required fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'incomplete-run',
-            },
-          );
-          expect(result.success).toBe(false);
-          if (!result.success) {
-            expect(result.error.status).toBe(400);
-          }
-        });
-
-        it('should return 400 for unknown JSON fields', async () => {
-          const result = await apiClient.post(
-            '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=tabular',
-            {
-              display_name: 'test',
-              train_data_secret_name: 'minio-secret',
-              train_data_bucket_name: 'automl-bucket',
-              train_data_file_key: 'data/train.csv',
-              label_column: 'target',
-              task_type: 'binary',
-              unknown_field: 'should be rejected',
-            },
-          );
-          expect(result.success).toBe(false);
-          if (!result.success) {
-            expect(result.error.status).toBe(400);
-          }
-        });
-
-        it('should default to timeseries when pipelineType is omitted', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-            display_name: 'default-pipeline-type-run',
+            display_name: 'pipeline-type-timeseries-test-run',
             train_data_secret_name: 'minio-secret',
             train_data_bucket_name: 'automl-bucket',
             train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
             target: 'sales',
             id_column: 'store_id',
             timestamp_column: 'date',
@@ -672,6 +557,87 @@ describe('AutoML API Contract Tests', () => {
             type RunData = { pipeline_type?: string };
             const data = result.response.data as { data: RunData };
             expect(data.data.pipeline_type).toBe('timeseries');
+          }
+        });
+
+        it('should create a timeseries pipeline run with all optional fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'full-options-timeseries-run',
+            description: 'Timeseries run with all optional fields',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+            prediction_length: 7,
+            known_covariates_names: ['temperature', 'is_holiday'],
+            top_n: 5,
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('should return 400 for missing required timeseries fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-timeseries-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            // Missing id_column and timestamp_column
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('General Validation', () => {
+        it('should return 400 for missing common required fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-run',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for unknown JSON fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'test',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+            unknown_field: 'should be rejected',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when task_type is missing', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'missing-task-type-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
           }
         });
       });

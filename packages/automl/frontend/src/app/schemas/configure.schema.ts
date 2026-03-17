@@ -31,7 +31,6 @@ function getBaseSchema() {
     label_column: z.string().default('').optional(),
 
     // Timeseries-specific fields (optional at base level, validated conditionally)
-    // task_type will be deleted by transformer before submission for timeseries
     target: z.string().default('').optional(),
     id_column: z.string().default('').optional(),
     timestamp_column: z.string().default('').optional(),
@@ -68,14 +67,21 @@ type Transformer = (data: ConfigureSchema) => void;
 const VALIDATORS: Array<Validator> = [];
 
 const TRANSFORMERS: Array<Transformer> = [
-  (payload) => {
-    // Remove the task_type when POSTing a timeseries run
-    if (payload.task_type === TASK_TYPE_TIMESERIES) {
-      // Type assertion needed because task_type is required in the schema but deleted before API submission
-      // when creating a time series run
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions, no-param-reassign
-      delete (payload as any).task_type;
+  // Remove task-type-specific fields based on the selected task_type
+  (data) => {
+    /* eslint-disable no-param-reassign */
+    if (data.task_type === TASK_TYPE_TIMESERIES) {
+      // Remove tabular-specific fields
+      delete data.label_column;
+    } else {
+      // Remove timeseries-specific fields for tabular task types
+      delete data.target;
+      delete data.id_column;
+      delete data.timestamp_column;
+      delete data.prediction_length;
+      delete data.known_covariates_names;
     }
+    /* eslint-enable no-param-reassign */
   },
 ];
 

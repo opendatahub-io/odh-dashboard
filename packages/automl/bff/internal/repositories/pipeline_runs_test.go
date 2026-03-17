@@ -140,6 +140,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 // newValidTimeSeriesRequest creates a valid timeseries pipeline request for testing
 func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	topN := 3
+	taskType := "timeseries"
 	target := "sales"
 	idColumn := "store_id"
 	timestampColumn := "date"
@@ -150,6 +151,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 		TrainDataSecretName:  "minio-secret",
 		TrainDataBucketName:  "automl",
 		TrainDataFileKey:     "data/train.csv",
+		TaskType:             &taskType,
 		Target:               &target,
 		IDColumn:             &idColumn,
 		TimestampColumn:      &timestampColumn,
@@ -193,6 +195,8 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "date", params["timestamp_column"])
 		assert.Equal(t, 7, params["prediction_length"])
 		assert.Equal(t, []string{"temperature", "is_holiday"}, params["known_covariates_names"])
+		// task_type should NOT be in parameters for timeseries (used for discrimination only, not a KFP parameter)
+		assert.NotContains(t, params, "task_type")
 	})
 
 	t.Run("should default top_n to 3 when nil", func(t *testing.T) {
@@ -218,6 +222,44 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
 		assert.Equal(t, "my description", result.Description)
+	})
+}
+
+func TestDeterminePipelineType(t *testing.T) {
+	t.Run("should return tabular for binary task type", func(t *testing.T) {
+		pipelineType, err := DeterminePipelineType("binary")
+		assert.NoError(t, err)
+		assert.Equal(t, constants.PipelineTypeTabular, pipelineType)
+	})
+
+	t.Run("should return tabular for multiclass task type", func(t *testing.T) {
+		pipelineType, err := DeterminePipelineType("multiclass")
+		assert.NoError(t, err)
+		assert.Equal(t, constants.PipelineTypeTabular, pipelineType)
+	})
+
+	t.Run("should return tabular for regression task type", func(t *testing.T) {
+		pipelineType, err := DeterminePipelineType("regression")
+		assert.NoError(t, err)
+		assert.Equal(t, constants.PipelineTypeTabular, pipelineType)
+	})
+
+	t.Run("should return timeseries for timeseries task type", func(t *testing.T) {
+		pipelineType, err := DeterminePipelineType("timeseries")
+		assert.NoError(t, err)
+		assert.Equal(t, constants.PipelineTypeTimeSeries, pipelineType)
+	})
+
+	t.Run("should return error for invalid task type", func(t *testing.T) {
+		_, err := DeterminePipelineType("invalid")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid task_type")
+	})
+
+	t.Run("should return error for empty task type", func(t *testing.T) {
+		_, err := DeterminePipelineType("")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid task_type")
 	})
 }
 
@@ -258,6 +300,7 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name")
 		assert.Contains(t, err.Error(), "train_data_secret_name")
+		assert.Contains(t, err.Error(), "task_type")
 		assert.Contains(t, err.Error(), "target")
 		assert.Contains(t, err.Error(), "id_column")
 		assert.Contains(t, err.Error(), "timestamp_column")
@@ -279,6 +322,24 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid task_type")
+	})
+
+	t.Run("should accept task_type=timeseries for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		taskType := "timeseries"
+		req.TaskType = &taskType
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject non-timeseries task_type for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid task_type")
+		assert.Contains(t, err.Error(), "timeseries")
 	})
 
 	t.Run("should reject non-positive top_n", func(t *testing.T) {
@@ -346,20 +407,17 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Contains(t, err.Error(), "timestamp_column")
 	})
 
-	t.Run("should reject tabular fields when pipeline type is timeseries", func(t *testing.T) {
+	t.Run("should reject tabular-only fields when pipeline type is timeseries", func(t *testing.T) {
 		req := newValidTimeSeriesRequest()
-		// Add tabular-specific fields
+		// Add tabular-only field
 		labelColumn := "target"
-		taskType := "binary"
 		req.LabelColumn = &labelColumn
-		req.TaskType = &taskType
 
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected fields")
 		assert.Contains(t, err.Error(), "timeseries")
 		assert.Contains(t, err.Error(), "label_column")
-		assert.Contains(t, err.Error(), "task_type")
 	})
 
 	t.Run("should reject single unexpected field for tabular pipeline", func(t *testing.T) {
