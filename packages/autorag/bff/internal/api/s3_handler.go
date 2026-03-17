@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -67,53 +69,17 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	creds, err := app.getS3CredentialsFromSecret(client, ctx, namespace, secretName, identity)
 	if err != nil {
-		// Check if it's a Kubernetes API error and handle accordingly
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
-					},
-				}
-				app.errorResponse(w, r, httpError)
+		var httpErr *integrations.HTTPError
+		if errors.As(err, &httpErr) {
+			if httpErr.StatusCode == http.StatusUnauthorized {
+				app.unauthorizedResponse(w, r, httpErr.Message)
 				return
 			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
-				return
-			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
-				return
-			}
-		}
-
-		// TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
-		//   messages change wording, these checks silently break. Define typed/sentinel errors in the
-		//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
-		// Check if it's a secret not found or validation error
-		if strings.Contains(err.Error(), "not found") {
-			httpError := &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			}
-			app.errorResponse(w, r, httpError)
+			app.errorResponse(w, r, httpErr)
 			return
 		}
-
-		if strings.Contains(err.Error(), "missing required field") {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -210,57 +176,18 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// TODO [ PR-Feedback: AI ] This entire K8s error handling block is duplicated
-	//   verbatim from GetS3FileHandler and also mirrors secrets_handler.go. Extract
-	//   into a shared helper, e.g. handleK8sCredentialError(w, r, err, namespace, secretName).
-	//   Also: the strings.Contains(err.Error(), "not found") check is fragile — define typed/sentinel
-	//   errors in the repository layer instead of matching on error message substrings.
-
 	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	creds, err := app.getS3CredentialsFromSecret(client, ctx, namespace, secretName, identity)
 	if err != nil {
-		// Check if it's a Kubernetes API error and handle accordingly
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
-					},
-				}
-				app.errorResponse(w, r, httpError)
+		var httpErr *integrations.HTTPError
+		if errors.As(err, &httpErr) {
+			if httpErr.StatusCode == http.StatusUnauthorized {
+				app.unauthorizedResponse(w, r, httpErr.Message)
 				return
 			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
-				return
-			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
-				return
-			}
-		}
-
-		// Check if it's a secret not found or validation error
-		if strings.Contains(err.Error(), "not found") {
-			httpError := &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			}
-			app.errorResponse(w, r, httpError)
+			app.errorResponse(w, r, httpErr)
 			return
 		}
-
-		if strings.Contains(err.Error(), "missing required field") {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -288,6 +215,78 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	if err := app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *App) getS3CredentialsFromSecret(
+	client k8s.KubernetesClientInterface,
+	ctx context.Context,
+	namespace string,
+	secretName string,
+	identity *k8s.RequestIdentity,
+) (*repositories.S3Credentials, error) {
+	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	if err != nil {
+		// Check if it's a Kubernetes API error and handle accordingly
+		var statusErr *apierrors.StatusError
+		if errors.As(err, &statusErr) {
+			if apierrors.IsNotFound(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusNotFound,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusNotFound),
+						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
+					},
+				}
+			}
+			if apierrors.IsForbidden(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusForbidden,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusForbidden),
+						Message: err.Error(),
+					},
+				}
+			}
+			if apierrors.IsUnauthorized(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusUnauthorized),
+						Message: "Access unauthorized",
+					},
+				}
+			}
+		}
+
+		// TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
+		//   messages change wording, these checks silently break. Define typed/sentinel errors in the
+		//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
+		// Check if it's a secret not found or validation error
+		// Check if it's a secret not found or validation error
+		if strings.Contains(err.Error(), "not found") {
+			return nil, &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: err.Error(),
+				},
+			}
+		}
+
+		if strings.Contains(err.Error(), "missing required field") {
+			return nil, &integrations.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusBadRequest),
+					Message: err.Error(),
+				},
+			}
+		}
+
+		return nil, err
+	}
+
+	return creds, nil
 }
 
 type getS3FilesParams struct {
