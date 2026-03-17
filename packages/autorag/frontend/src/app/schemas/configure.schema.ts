@@ -62,6 +62,8 @@ function createConfigureSchema() {
         if (data.llama_stack_vector_database_id === '') {
           delete data.llama_stack_vector_database_id;
         }
+        // @ts-expect-error: TODO - remove this once rag pipeline def is updated
+        delete data.optimization_max_rag_patterns;
         return data;
       },
     ],
