@@ -766,6 +766,64 @@ class RayJobDetailsTab {
   }
 }
 
+class RayJobResourcesTab {
+  findNodeConfigurationsSection() {
+    return cy.findByTestId('node-configurations-section');
+  }
+
+  findNodesValue() {
+    return cy.findByTestId('nodes-value');
+  }
+
+  findProcessesPerNodeValue() {
+    return cy.findByTestId('processes-per-node-value');
+  }
+
+  findResourcesPerNodeSection() {
+    return cy.findByTestId('resources-per-node-section');
+  }
+
+  findWorkerGroupTitle(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-title`);
+  }
+
+  findWorkerGroupCpuRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-requests`);
+  }
+
+  findWorkerGroupCpuLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-limits`);
+  }
+
+  findWorkerGroupMemoryRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-requests`);
+  }
+
+  findWorkerGroupMemoryLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-limits`);
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -778,3 +836,4 @@ export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
 export const rayJobDetailsTab = new RayJobDetailsTab();
+export const rayJobResourcesTab = new RayJobResourcesTab();
