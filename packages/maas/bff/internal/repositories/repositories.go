@@ -9,12 +9,13 @@ import (
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck *HealthCheckRepository
-	User        *UserRepository
-	Namespace   *NamespaceRepository
-	Tiers       *TiersRepository
-	APIKeys     *APIKeysRepository
-	Models      *ModelsRepository
+	HealthCheck   *HealthCheckRepository
+	User          *UserRepository
+	Namespace     *NamespaceRepository
+	Tiers         *TiersRepository
+	APIKeys       *APIKeysRepository
+	Models        *ModelsRepository
+	Subscriptions *SubscriptionsRepository
 }
 
 func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) (*Repositories, error) {
@@ -39,7 +40,8 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.TiersConfigMapName,
 			config.GatewayNamespace,
 			config.GatewayName),
-		APIKeys: apiKeysRepo,
-		Models:  modelsRepo,
+		APIKeys:       apiKeysRepo,
+		Models:        modelsRepo,
+		Subscriptions: NewSubscriptionsRepository(logger),
 	}, nil
 }
