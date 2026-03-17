@@ -205,7 +205,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
-	// TODO [ PR-Feedback: AI ] A new AWS S3 client is created on every request. The AWS SDK client
+	// TODO [ PR-Feedback: AI ] **HANDLED IN FUTURE PR** A new AWS S3 client is created on every request. The AWS SDK client
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	// Create S3 client and list objects
@@ -223,9 +223,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 			return
 		}
 
-		// TODO [ PR-Feedback: AI ] Missing AccessDenied handling for ListObjects — GetS3FileHandler
-		//   checks for AccessDenied on GetObject (line 121), but ListObjects doesn't. If S3 creds
-		//   lack ListBucket permission, user gets a generic 500 instead of 403.
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 bucket '%s'", bucket))
+			return
+		}
 
 		app.serverErrorResponse(w, r, err)
 		return
@@ -307,9 +309,7 @@ func (app *App) getS3CredentialsFromSecret(
 	return creds, nil
 }
 
-// TODO [ PR-Feedback: AI ] S3: Struct name starts with a verb ("get") which Go convention
-//   reserves for functions. Consider renaming to s3FilesParams or listS3FilesParams.
-type getS3FilesParams struct {
+type s3FilesParams struct {
 	SecretName string
 	Bucket     string
 	Path       string
@@ -318,7 +318,7 @@ type getS3FilesParams struct {
 	Limit      int32
 }
 
-func validateParameters(r *http.Request) (*getS3FilesParams, error) {
+func validateParameters(r *http.Request) (*s3FilesParams, error) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -346,18 +346,17 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 		return nil, errors.New("query parameter 'next' must be a non-empty string if provided")
 	}
 
-	// TODO [ PR-Feedback: AI ] S6: Magic number 1000 appears here and in the range check below.
-	//   Extract to a named constant (e.g. const defaultS3ListLimit int32 = 1000).
-	var limit int32 = 1000
+	const maxS3ListLimit int32 = 1000
+	var limit int32 = maxS3ListLimit
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		parsed, err := strconv.ParseInt(limitStr, 10, 32)
-		if err != nil || parsed < 1 || parsed > 1000 {
+		if err != nil || parsed < 1 || parsed > int64(maxS3ListLimit) {
 			return nil, errors.New("query parameter 'limit' must be a positive number between 1 and 1000")
 		}
 		limit = int32(parsed)
 	}
 
-	return &getS3FilesParams{
+	return &s3FilesParams{
 		SecretName: secretName,
 		Bucket:     bucket,
 		Path:       path,
