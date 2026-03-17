@@ -1,0 +1,117 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Per-repo CodeRabbit config for opendatahub-io/odh-dashboard
+# Inherits org-wide baseline from opendatahub-io/coderabbit.
+# Only overrides listed below differ from the org baseline.
+
+inheritance: true
+
+reviews:
+  # ── Path filters (additive to baseline) ─────────────────────────
+  path_filters:
+    # Baseline already excludes: vendor, node_modules, bin, __pycache__,
+    #   *.sum, *.pb.go, *.generated.go, synced security configs
+    - "!package-lock.json"
+    - "!.github/**"
+    - "!.tekton/**"
+    - "!**/@mf-types/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+
+  # ── Monorepo path instructions ──────────────────────────────────
+  # These supplement the baseline instructions (Go, Python, TS, etc.)
+  # with odh-dashboard-specific architectural guidance.
+  path_instructions:
+    # ── Main frontend app ─────────────────────────────────────────
+    - path: "frontend/src/**/*.{ts,tsx}"
+      instructions: |
+        ODH DASHBOARD FRONTEND (main app):
+        1. PatternFly components: use PF5 imports from @patternfly/react-core, not custom wrappers
+        2. Redux state: verify actions dispatch through proper reducers, no direct store mutation
+        3. Route guards: protected routes must check user permissions before rendering
+        4. API calls: use the shared API utilities, never raw fetch(); handle loading/error states
+        5. No hardcoded cluster URLs or API endpoints (use config from backend)
+
+    # ── Main backend (Node.js/TypeScript) ─────────────────────────
+    - path: "backend/src/**/*.{ts,js}"
+      instructions: |
+        ODH DASHBOARD BACKEND (Node.js BFF):
+        1. All external API calls must use the service account token, never user-provided tokens
+        2. Validate and sanitize route parameters before K8s API calls (prevent injection)
+        3. Proxy endpoints must not expose internal cluster addresses to the client
+        4. Error responses must not leak cluster internals (pod names, IPs, stack traces)
+        5. Verify RBAC: backend routes should check user permissions via SubjectAccessReview
+
+    # ── Feature plugin frontends ──────────────────────────────────
+    - path: "packages/*/frontend/src/**/*.{ts,tsx}"
+      instructions: |
+        FEATURE PLUGIN FRONTEND (Module Federation):
+        1. Plugins must use plugin-core APIs for navigation, not direct router manipulation
+        2. Shared dependencies (React, PatternFly, Redux) must come from the host app
+        3. No global CSS — use PatternFly utility classes or CSS modules only
+        4. Lazy-load heavy components; plugins load on demand via Module Federation
+        5. Plugin-to-plugin communication must go through the shared Redux store or events
+
+    # ── Go BFF services ───────────────────────────────────────────
+    - path: "packages/*/bff/**/*.go"
+      instructions: |
+        GO BFF SERVICE (Backend-for-Frontend):
+        1. Validate all incoming request bodies and query parameters at handler level
+        2. Use the shared K8s client config; do not create ad-hoc kubeconfig readers
+        3. HTTP clients to external services must set timeouts and use TLS verification
+        4. No credentials in BFF code — use mounted secrets or environment variables
+        5. OpenAPI spec in api/ or docs/ must match actual handler signatures
+        6. Follow .golangci.yaml rules in the package root
+
+    - path: "packages/*/bff/internal/**/*.go"
+      instructions: |
+        GO BFF INTERNALS:
+        1. Repository pattern: data access through repository interfaces, not direct K8s calls in handlers
+        2. Mock interfaces for unit testing (see mocks/ directory)
+        3. Error wrapping: use fmt.Errorf with %w for error chains
+        4. Context propagation: pass context.Context through all layers
+
+    # ── Cypress E2E tests ─────────────────────────────────────────
+    - path: "packages/cypress/**/*.{ts,js}"
+      instructions: |
+        CYPRESS E2E TESTS:
+        1. No hardcoded credentials — use Cypress environment variables (cypress.env.json)
+        2. Test data cleanup: delete resources created during tests in after() hooks
+        3. Use data-testid selectors, not CSS classes (resilient to style changes)
+        4. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness
+        5. Tests must be idempotent: runnable in any order without shared state
+
+    # ── Contract tests ────────────────────────────────────────────
+    - path: "packages/*/contract-tests/**/*.{ts,js}"
+      instructions: |
+        CONTRACT TESTS:
+        1. Contracts must match the OpenAPI spec in the corresponding api/ directory
+        2. Provider verification tests must run against actual BFF endpoints
+        3. No mocking of the provider in contract verification (defeats the purpose)
+
+    # ── Shared config packages ────────────────────────────────────
+    - path: "packages/{eslint-config,eslint-plugin,jest-config,tsconfig}/**"
+      instructions: |
+        SHARED CONFIG PACKAGES:
+        1. Changes here affect ALL packages — ensure backward compatibility
+        2. ESLint rule changes must not introduce new warnings in existing packages
+        3. TypeScript config changes must not break any package's build
+        4. Version bumps should be coordinated across the monorepo
+
+    # ── Kubernetes manifests ──────────────────────────────────────
+    - path: "manifests/**/*.yaml"
+      instructions: |
+        K8S DEPLOYMENT MANIFESTS:
+        1. No :latest image tags — use pinned versions or digests
+        2. Resource requests and limits must be set on all containers
+        3. SecurityContext: runAsNonRoot, readOnlyRootFilesystem, drop ALL capabilities
+        4. No hostPath volumes or privileged containers
+        5. Validate with kustomize build before merging
+
+    # ── Dockerfiles ───────────────────────────────────────────────
+    - path: "packages/*/Dockerfile*"
+      instructions: |
+        FEATURE PACKAGE DOCKERFILES:
+        1. Multi-stage builds: separate build and runtime stages
+        2. Copy only necessary artifacts to runtime stage (no source code, node_modules, .git)
+        3. Use the same base image version as the main Dockerfile where possible
+        4. No npm install in runtime stage — copy from build stage
