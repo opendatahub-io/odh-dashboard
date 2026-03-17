@@ -12,7 +12,8 @@
 - Never hardcode secrets, tokens, API keys, or passwords in source code
 - Use Kubernetes Secrets for sensitive configuration
 - Environment variables for runtime configuration (never committed)
-- The `.env` files in the repo are for local development only — they must never contain real credentials
+- Tracked `.env` files must only contain non-sensitive defaults and placeholders — never real credentials
+- Sensitive local overrides go in `.env.local` (gitignored). See `.env.local.example` for the template
 
 ## Input Validation
 
@@ -30,7 +31,8 @@
 
 ## Frontend Security
 
-- Use PatternFly components which handle XSS protection by default
+- Use PatternFly components, but treat XSS prevention as an application responsibility
+- Never render untrusted HTML; sanitize/validate any rich content before rendering
 - Avoid direct DOM manipulation
 - Use React's built-in escaping for dynamic content
 - Validate URLs before navigation or rendering links

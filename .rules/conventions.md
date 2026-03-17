@@ -33,7 +33,8 @@
 - Strict mode enabled
 - Shared `tsconfig` in `packages/tsconfig/`
 - Avoid `any` types — use `unknown` with type guards instead
-- Prefer interfaces over type aliases for object shapes
+- Use `interface` for extendable object contracts (leverages declaration merging and `extends`/`implements`)
+- Use `type` for unions, intersections, mapped/conditional types, and utility-type composition
 
 ## React Patterns
 

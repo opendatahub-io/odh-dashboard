@@ -21,12 +21,13 @@ Each feature package is a **Module Federation remote** that gets dynamically loa
 - `maas` — Model-as-a-Service (has Go BFF)
 - `notebooks` — Notebooks management
 - `kserve` — KServe integration
-- `automl` — AutoML features
-- `autorag` — AutoRAG features
-- `eval-hub` — Evaluation Hub
+- `automl` — AutoML features (has Go BFF)
+- `autorag` — AutoRAG features (has Go BFF)
+- `eval-hub` — Evaluation Hub (has Go BFF)
 - `feature-store` — Feature Store
 - `llmd-serving` — LLM serving
-- `mlflow` / `mlflow-embedded` — MLflow integration
+- `mlflow` — MLflow integration (has Go BFF)
+- `mlflow-embedded` — Embedded MLflow integration
 - `observability` — Observability features
 - `plugin-core` — Core plugin utilities shared across plugins
 - `plugin-template` — Scaffold for new plugins
@@ -52,9 +53,9 @@ Each feature package is a **Module Federation remote** that gets dynamically loa
 
 ## BFF (Backend-for-Frontend) Architecture
 
-Some packages (`gen-ai`, `model-registry`, `maas`) have a Go-based BFF service:
-- Located in `bff/` or `upstream/bff/` within the package
-- Requires Go >= 1.24
+Several packages have a Go-based BFF service: `automl`, `autorag`, `eval-hub`, `gen-ai`, `maas`, `mlflow`.
+- Located in `bff/` within the package
+- Check each package's `bff/go.mod` for its required Go toolchain version
 - Exposes REST APIs consumed by the package's frontend
 - Must expose a `/healthcheck` endpoint
-- Has its own OpenAPI specification in `bff/openapi/`
+- Has its own OpenAPI specification in `api/` or `bff/openapi/`
