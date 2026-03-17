@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrSecretNotFound     = errors.New("secret not found")
+	ErrSecretNotFound       = errors.New("secret not found")
 	ErrMissingRequiredField = errors.New("missing required field")
 )
 
