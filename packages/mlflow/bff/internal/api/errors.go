@@ -28,6 +28,14 @@ func (app *App) LogError(r *http.Request, err error) {
 	app.logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusUnauthorized,
+		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusUnauthorized), Message: err.Error()},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusBadRequest,

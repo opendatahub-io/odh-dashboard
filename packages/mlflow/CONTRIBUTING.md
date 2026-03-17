@@ -86,6 +86,8 @@ If the MLflow server uses a self-signed certificate, add `INSECURE_SKIP_VERIFY=t
 MLFLOW_URL=https://my-mlflow-server.example.com INSECURE_SKIP_VERIFY=true make dev-start
 ```
 
+> **Warning**: Do not enable `INSECURE_SKIP_VERIFY` in production. Disabling TLS verification exposes the connection to man-in-the-middle attacks.
+
 Then test with curl:
 ```bash
 TOKEN=$(oc whoami -t)

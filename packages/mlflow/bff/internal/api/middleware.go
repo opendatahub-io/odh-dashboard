@@ -48,7 +48,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
-			app.badRequestResponse(w, r, err)
+			app.unauthorizedResponse(w, r, err)
 			return
 		}
 
@@ -99,7 +99,7 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 // Returns 400 if the parameter is missing.
 func (app *App) AttachWorkspace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		workspace := r.URL.Query().Get("workspace")
+		workspace := strings.TrimSpace(r.URL.Query().Get("workspace"))
 		if workspace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: workspace"))
 			return

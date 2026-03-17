@@ -48,6 +48,7 @@ type MLflowState struct {
 	TrackingURI string
 	Ctx         context.Context
 	Cancel      context.CancelFunc
+	ProcessDone <-chan error
 }
 
 // SetupMLflow starts a local MLflow server as a child process and returns
@@ -118,9 +119,18 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		slog.Int("port", port),
 	)
 
-	if err := waitForMLflowHealth(port, logger); err != nil {
+	processDone := make(chan error, 1)
+	go func() { processDone <- cmd.Wait() }()
+
+	cleanup := func() {
 		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		<-processDone
 		cancel()
+		_ = os.RemoveAll(dataDir)
+	}
+
+	if err := waitForMLflowHealth(port, logger, processDone); err != nil {
+		cleanup()
 		return nil, fmt.Errorf("MLflow failed to become healthy: %w", err)
 	}
 
@@ -132,8 +142,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	)
 
 	if err := SeedExperimentsAndRuns(trackingURI, logger); err != nil {
-		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		cancel()
+		cleanup()
 		return nil, fmt.Errorf("failed to seed MLflow: %w", err)
 	}
 
@@ -144,6 +153,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		TrackingURI: trackingURI,
 		Ctx:         ctx,
 		Cancel:      cancel,
+		ProcessDone: processDone,
 	}, nil
 }
 
@@ -163,20 +173,15 @@ func CleanupMLflowState(state *MLflowState, logger *slog.Logger) {
 		logger.Info("Sent SIGTERM to MLflow process group", slog.Int("pid", pid))
 	}
 
-	done := make(chan error, 1)
-	go func() {
-		done <- state.Cmd.Wait()
-	}()
-
 	select {
-	case <-done:
+	case <-state.ProcessDone:
 		logger.Info("MLflow process exited gracefully")
 	case <-time.After(shutdownWait):
 		logger.Error("MLflow did not exit in time, sending SIGKILL", slog.Duration("timeout", shutdownWait))
 		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
 			logger.Error("Failed to send SIGKILL to MLflow process group", slog.Int("pid", pid), slog.Any("error", err))
 		}
-		<-done
+		<-state.ProcessDone
 	}
 
 	state.Cancel()
@@ -225,9 +230,14 @@ func isMLflowHealthy(port int) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func waitForMLflowHealth(port int, logger *slog.Logger) error {
+func waitForMLflowHealth(port int, logger *slog.Logger, processDone <-chan error) error {
 	deadline := time.Now().Add(healthTimeout)
 	for time.Now().Before(deadline) {
+		select {
+		case err := <-processDone:
+			return fmt.Errorf("MLflow process exited before becoming healthy: %w", err)
+		default:
+		}
 		if isMLflowHealthy(port) {
 			return nil
 		}

@@ -168,3 +168,50 @@ func TestHandleMLflowClientErrorGenericError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
+
+func TestHandleMLflowClientErrorWrappedNotConfigured(t *testing.T) {
+	app := newTestAppWithRepos()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+
+	app.handleMLflowClientError(rr, req, fmt.Errorf("repo: %w", mlflowpkg.ErrMLflowNotConfigured))
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "service_unavailable", errResp.Error.Code)
+	assert.Contains(t, errResp.Error.Message, "MLflow is not configured")
+}
+
+func TestHandleMLflowClientErrorWrappedAPIError(t *testing.T) {
+	app := newTestAppWithRepos()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+
+	apiErr := &sdkmlflow.APIError{StatusCode: http.StatusForbidden, Message: "access denied"}
+	app.handleMLflowClientError(rr, req, fmt.Errorf("repo: %w", apiErr))
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "forbidden", errResp.Error.Code)
+}
+
+func TestHandleMLflowClientErrorWrappedURLError(t *testing.T) {
+	app := newTestAppWithRepos()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+
+	urlErr := &url.Error{
+		Op:  "Get",
+		URL: "https://mlflow.example.com",
+		Err: fmt.Errorf("connection refused"),
+	}
+	app.handleMLflowClientError(rr, req, fmt.Errorf("repo: %w", urlErr))
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "service_unavailable", errResp.Error.Code)
+	assert.Contains(t, errResp.Error.Message, "not reachable")
+}

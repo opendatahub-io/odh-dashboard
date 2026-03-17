@@ -10,8 +10,8 @@ echo "WARNING: You must have proper push / pull access to ${IMG_UI_STANDALONE}. 
 
 # Set Kubernetes context to kind
 echo "Setting Kubernetes context to kind..."
-if kubectl config use-context kind-kind  >/dev/null 2>&1; then
-  echo "MLflow deployment already exists. Skipping to step 4."
+if kubectl config use-context kind-kind >/dev/null 2>&1 && kubectl cluster-info >/dev/null 2>&1; then
+  echo "Kind cluster reachable, skipping creation."
 else
     # Step 1: Create a kind cluster
     echo "Creating kind cluster..."
@@ -22,11 +22,8 @@ else
     kubectl cluster-info
 fi
 
-# Ensure mlflow namespace exists (idempotent)
-if ! kubectl get namespace mlflow >/dev/null 2>&1; then
-    echo "Creating mlflow namespace..."
-    kubectl create namespace mlflow
-fi
+# Ensure mlflow namespace exists (idempotent + race-safe)
+kubectl create namespace mlflow --dry-run=client -o yaml | kubectl apply -f -
 
 # Step 4: Deploy MLflow UI
 echo "Editing kustomize image..."

@@ -17,6 +17,9 @@ on:
       - '!**.gitignore'
       - '!**.md'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
