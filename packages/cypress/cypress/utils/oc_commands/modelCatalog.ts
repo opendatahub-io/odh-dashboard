@@ -387,6 +387,76 @@ export const waitForModelCatalogCards = (
 };
 
 /**
+ * Check whether any catalog sources other than the specified ones are enabled.
+ * Reads the model-catalog-sources (user overrides) ConfigMap, falling back to model-catalog-default-sources.
+ * @param excludeSourceIds Source IDs to exclude from the check
+ * @returns A Cypress chainable that resolves with true if at least one other source is enabled.
+ */
+export const hasOtherEnabledCatalogSources = (
+  excludeSourceIds: string[],
+): Cypress.Chainable<boolean> => {
+  const namespace = getModelRegistryNamespace();
+  const excludeFilter = excludeSourceIds.map((id) => `"${id}"`).join(', ');
+
+  const buildJqFilter = (): string =>
+    `[.catalogs[] | select(.enabled == true) | select(.id | IN(${excludeFilter}) | not)] | length`;
+
+  const buildCommand = (configmap: string): string => {
+    const getYaml = `oc get configmap ${configmap} -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+    return `
+      if command -v yq >/dev/null 2>&1; then
+        ${getYaml} | yq -o=json | jq '${buildJqFilter()}'
+      else
+        ${getYaml} | python3 -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' 2>/dev/null | jq '${buildJqFilter()}'
+      fi
+    `.trim();
+  };
+
+  const userCmd = buildCommand('model-catalog-sources');
+  const defaultCmd = buildCommand('model-catalog-default-sources');
+
+  return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
+    const userCount = parseInt(userResult.stdout.trim(), 10);
+    if (userResult.code === 0 && !Number.isNaN(userCount)) {
+      cy.log(`Other enabled sources (user configmap): ${userCount}`);
+      return cy.wrap(userCount > 0);
+    }
+
+    return execWithOutput(defaultCmd, 30).then((defaultResult: CommandLineResult) => {
+      const defaultCount = parseInt(defaultResult.stdout.trim(), 10);
+      if (defaultResult.code === 0 && !Number.isNaN(defaultCount)) {
+        cy.log(`Other enabled sources (default configmap): ${defaultCount}`);
+        return cy.wrap(defaultCount > 0);
+      }
+
+      cy.log('Could not determine other enabled sources, assuming none');
+      return cy.wrap(false);
+    });
+  });
+};
+
+/**
+ * Poll until the model catalog UI has stabilized after disabling sources.
+ * If other sources are still enabled, waits for cards to be present (no empty state).
+ * If no other sources remain, waits for the empty state to appear.
+ * @param disabledSourceIds The source IDs that were just disabled
+ * @param maxAttempts Maximum number of attempts (default: 20)
+ * @param pollIntervalMs Interval between attempts in milliseconds (default: 5000)
+ * @returns A Cypress chainable that resolves when the UI has stabilized.
+ */
+export const waitForModelCatalogAfterDisable = (
+  disabledSourceIds: string[],
+): Cypress.Chainable<undefined> =>
+  hasOtherEnabledCatalogSources(disabledSourceIds).then((hasOthers) => {
+    if (hasOthers) {
+      cy.step('Other catalog sources are enabled — waiting for catalog cards');
+      return waitForModelCatalogCards();
+    }
+    cy.step('No other catalog sources — waiting for empty state');
+    return waitForModelCatalogEmptyState();
+  });
+
+/**
  * Poll until model catalog shows empty state, reloading the page between attempts.
  * Useful after disabling all sources to wait for the UI to reflect the change.
  * @param maxAttempts Maximum number of attempts (default: 20)
