@@ -24,7 +24,7 @@ import { useJobStatuses } from './trainingJobList/hooks/useJobStatuses';
 import { getUnifiedJobNodeCount } from './trainingJobList/utils';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { RayClusterKind } from '../k8sTypes';
-import { TrainingJobState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
+import { JobDisplayState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
 import { useRayClusters } from '../api';
 
 const title = 'Jobs';
@@ -76,7 +76,7 @@ const ModelTraining = (): React.ReactElement => {
     return map;
   }, [allJobs, hasWorkspaceRayJobs, rayClusterData]);
 
-  const { jobStatuses, updateJobStatus } = useJobStatuses(allJobs);
+  const { jobStatuses, isLoading: isLoadingStatus, updateJobStatus } = useJobStatuses(allJobs);
 
   const handleSelectJob = React.useCallback((job: UnifiedJobKind) => {
     const jobId = job.metadata.uid || job.metadata.name;
@@ -86,7 +86,7 @@ const ModelTraining = (): React.ReactElement => {
   }, []);
 
   const handleStatusUpdate = React.useCallback(
-    (jobId: string, newStatus: TrainingJobState) => {
+    (jobId: string, newStatus: JobDisplayState) => {
       updateJobStatus(jobId, newStatus);
     },
     [updateJobStatus],
@@ -200,6 +200,7 @@ const ModelTraining = (): React.ReactElement => {
             <JobsListView
               jobs={allJobs}
               jobStatuses={jobStatuses}
+              isLoadingStatus={isLoadingStatus}
               nodeCountMap={nodeCountMap}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
