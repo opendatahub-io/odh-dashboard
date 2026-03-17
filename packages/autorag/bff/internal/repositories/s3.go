@@ -1,16 +1,16 @@
 package repositories
 
 import (
-  "context"
-  "fmt"
-  "io"
-  "strings"
+	"context"
+	"fmt"
+	"io"
+	"strings"
 
-  "github.com/aws/aws-sdk-go-v2/aws"
-  "github.com/aws/aws-sdk-go-v2/credentials"
-  "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
-  "github.com/aws/aws-sdk-go-v2/service/s3"
-  k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 )
 
 // S3Credentials contains the credentials needed to connect to S3
