@@ -110,11 +110,13 @@ func validateIPAddress(ip net.IP) error {
 		cidr        string
 		description string
 	}{
+		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
 		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
 		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
 		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
+		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
 		{"fc00::/7", "IPv6 unique local addresses"},

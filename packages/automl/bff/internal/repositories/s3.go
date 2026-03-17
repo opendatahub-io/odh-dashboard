@@ -117,11 +117,13 @@ func validateIPAddress(ip net.IP) error {
 		cidr        string
 		description string
 	}{
+		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
 		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
 		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
 		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
+		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
 		{"fc00::/7", "IPv6 unique local addresses"},
@@ -269,22 +271,48 @@ type ColumnSchema struct {
 	Values []interface{} `json:"values,omitempty"`
 }
 
+// CSVSchemaResult contains the schema inference result with parsing metadata
+type CSVSchemaResult struct {
+	Columns       []ColumnSchema `json:"columns"`
+	ParseWarnings int            `json:"parse_warnings"`
+}
+
 // GetS3CSVSchema retrieves the schema of a CSV file from S3 with inferred column types.
 // Reads the header line and a minimum of 100 data rows to determine column types.
-// Types are inferred in priority order: bool, timestamp, integer, double, string.
+//
+// Type inference priority (highest to lowest): bool → timestamp → integer → double → string
+//
+// IMPORTANT: Boolean detection includes "0" and "1" as boolean values (see isBoolean).
+// This means columns containing only 0 and 1 will be classified as "bool" not "integer".
+// Design rationale: This provides better UI representation for common boolean encodings,
+// while the underlying CSV data remains unchanged (numeric values are preserved).
+// ML workflows are not impacted as this classification is for schema display only.
+//
+// Example: A column [0, 1, 0, 1] will be typed as "bool" with values [0, 1].
+// To force integer type, ensure the column contains values outside {0,1} (e.g., 2, 3).
+//
 // Integer is assumed before double - columns are typed as integer until a decimal is found.
 // For boolean columns, returns the unique values found in the data.
 // Returns an error if the file has fewer than 100 data rows.
+//
+// Parse warnings: Rows that fail CSV parsing are silently skipped to match the behavior
+// of the upstream AutoML backend service. The ParseWarnings count in the result indicates
+// how many rows were skipped, allowing clients to detect data quality issues.
 func (r *S3Repository) GetS3CSVSchema(
 	ctx context.Context,
 	creds *S3Credentials,
 	bucket string,
 	key string,
-) ([]ColumnSchema, error) {
+) (CSVSchemaResult, error) {
+	// Validate file extension early (case-insensitive)
+	if !strings.HasSuffix(strings.ToLower(key), ".csv") {
+		return CSVSchemaResult{}, fmt.Errorf("only CSV files are supported (must have .csv extension)")
+	}
+
 	// Revalidate the endpoint on each request to ensure SSRF protection
 	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
-		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+		return CSVSchemaResult{}, fmt.Errorf("endpoint validation failed: %w", err)
 	}
 
 	// Create AWS config with credentials
@@ -332,7 +360,20 @@ func (r *S3Repository) GetS3CSVSchema(
 				// We've reached the end of the file
 				break
 			}
-			return nil, fmt.Errorf("error retrieving CSV file from S3: %w", err)
+			return CSVSchemaResult{}, fmt.Errorf("error retrieving CSV file from S3: %w", err)
+		}
+
+		// Validate content type on first chunk.
+		// Logs a warning (not error) for unexpected content types, since S3 content-types can be unreliable
+		if bytesFetched == 0 && result.ContentType != nil {
+			contentType := strings.ToLower(*result.ContentType)
+			if !strings.Contains(contentType, "csv") &&
+				!strings.Contains(contentType, "text/plain") &&
+				!strings.Contains(contentType, "application/vnd.ms-excel") {
+				slog.Warn("CSV file has unexpected content type",
+					"key", key,
+					"contentType", contentType)
+			}
 		}
 
 		// Read the chunk data with bounded read to prevent memory exhaustion
@@ -356,7 +397,7 @@ func (r *S3Repository) GetS3CSVSchema(
 		chunkData, err := io.ReadAll(limitedReader)
 		result.Body.Close()
 		if err != nil {
-			return nil, fmt.Errorf("error reading CSV file data: %w", err)
+			return CSVSchemaResult{}, fmt.Errorf("error reading CSV file data: %w", err)
 		}
 
 		// Check if we got an empty response (reached end of file)
@@ -410,12 +451,12 @@ func (r *S3Repository) GetS3CSVSchema(
 
 	// Check if the data is valid UTF-8
 	if !utf8.Valid(data) {
-		return nil, fmt.Errorf("file does not appear to be a valid text/CSV file (invalid UTF-8)")
+		return CSVSchemaResult{}, fmt.Errorf("file does not appear to be a valid text/CSV file (invalid UTF-8)")
 	}
 
 	// Check if we have any data
 	if len(data) == 0 {
-		return nil, fmt.Errorf("CSV file is empty")
+		return CSVSchemaResult{}, fmt.Errorf("CSV file is empty")
 	}
 
 	// Parse the CSV data
@@ -426,7 +467,7 @@ func (r *S3Repository) GetS3CSVSchema(
 	// Read the header
 	header, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("error reading CSV header: %w", err)
+		return CSVSchemaResult{}, fmt.Errorf("error reading CSV header: %w", err)
 	}
 
 	// Trim whitespace from each column name
@@ -436,11 +477,12 @@ func (r *S3Repository) GetS3CSVSchema(
 
 	// Validate that we have at least one column
 	if len(header) == 0 {
-		return nil, fmt.Errorf("CSV file has no columns in header")
+		return CSVSchemaResult{}, fmt.Errorf("CSV file has no columns in header")
 	}
 
-	// Read data rows
+	// Read data rows and track parse warnings
 	var dataRows [][]string
+	parseWarnings := 0
 	rowNum := 1 // Start at 1 since header is row 0
 	for {
 		row, err := reader.Read()
@@ -448,10 +490,13 @@ func (r *S3Repository) GetS3CSVSchema(
 			break
 		}
 		if err != nil {
-			// Log parse error and skip this row instead of failing entire process
+			// Parse errors are silently skipped to match upstream AutoML backend behavior.
+			// This allows inference to continue with partial data rather than failing entirely.
+			// The parseWarnings counter tracks skipped rows so clients can detect data quality issues.
 			// Note: not logging error details to avoid leaking CSV data in logs
 			slog.Error("Failed to read CSV row, skipping",
 				"rowNum", rowNum)
+			parseWarnings++
 			rowNum++
 			continue
 		}
@@ -461,7 +506,7 @@ func (r *S3Repository) GetS3CSVSchema(
 
 	// Check if we have at least 100 data rows
 	if len(dataRows) < 100 {
-		return nil, fmt.Errorf("CSV file must contain at least 100 data rows (excluding header), found %d. Only files with 100 or more lines are supported", len(dataRows))
+		return CSVSchemaResult{}, fmt.Errorf("CSV file must contain at least 100 data rows (excluding header), found %d. Only files with 100 or more lines are supported", len(dataRows))
 	}
 
 	// Infer types for each column
@@ -478,7 +523,10 @@ func (r *S3Repository) GetS3CSVSchema(
 		}
 	}
 
-	return columnSchemas, nil
+	return CSVSchemaResult{
+		Columns:       columnSchemas,
+		ParseWarnings: parseWarnings,
+	}, nil
 }
 
 // extractFirstLine finds and returns the first complete line from the data.
@@ -576,9 +624,25 @@ func countLines(data []byte) int {
 	return count
 }
 
-// inferColumnType infers the data type of a column by examining all values
-// Types are checked in priority order: bool, timestamp, integer, double, string
-// Falls back to a lower priority type if any value doesn't match the current type
+// inferColumnType infers the data type of a column by examining all values.
+//
+// Type inference uses a priority-based cascade system (highest to lowest priority):
+//  1. bool      - true/false, t/f, yes/no, y/n, AND "0"/"1" (see isBoolean for rationale)
+//  2. timestamp - ISO8601, common date formats, Unix epoch timestamps
+//  3. integer   - Whole numbers without decimals (excludes 0/1-only columns → classified as bool)
+//  4. double    - Numbers with decimal points
+//  5. string    - Fallback for all other values
+//
+// The function starts at the highest priority (bool) and falls back to lower priorities
+// if any value in the column doesn't match the current type. Once a value doesn't match,
+// all previous values are re-checked against the next priority type.
+//
+// Example cascade: If a column has ["0", "1", "2"], the "2" fails bool check (not in {0,1}),
+// so the function cascades to timestamp check, then integer (which succeeds for all three values).
+// Result: "integer" type.
+//
+// NOTE: This priority order means 0/1-only columns become "bool" not "integer" (deliberate choice).
+// See isBoolean() documentation for rationale and implications.
 func inferColumnType(rows [][]string, colIndex int) string {
 	if len(rows) == 0 {
 		return "string"
@@ -680,7 +744,28 @@ func isInteger(s string) bool {
 	return f == float64(int64(f)) && !strings.Contains(s, ".")
 }
 
-// isTimestamp checks if a string represents a timestamp or date
+// isTimestamp checks if a string represents a timestamp or date.
+//
+// KNOWN LIMITATION - Timestamp Range Collision:
+// 10-digit integers in the range [315,532,800 – 4,102,444,800] (1980-2100) are classified as Unix timestamps.
+// This creates potential collisions with non-temporal data that happens to fall in this range:
+//   - Product IDs (e.g., 1234567890)
+//   - Customer/Order IDs (e.g., 1500000000)
+//   - Phone numbers, measurements, or other identifiers
+//
+// Impact: A column containing ONLY integers in this range will be misclassified as "timestamp" instead of "integer".
+// The collision is mitigated by checking ALL values in the column via allValuesMatchType():
+//   - If even ONE value is outside [315532800-4102444800], the column falls back to "integer"
+//   - This reduces false positives but doesn't eliminate the collision entirely
+//
+// Design rationale: The range [1980-2100] is chosen to balance:
+//   - True positive rate: Captures most real-world Unix timestamps
+//   - False positive rate: Minimizes misclassification of arbitrary integers
+//
+// Future enhancement: Consider column name heuristics (e.g., "created_at", "timestamp", "date")
+// as an additional signal before classifying purely numeric columns as timestamps.
+//
+// See TestInferColumnType "COLLISION" test cases for documented examples.
 func isTimestamp(s string) bool {
 	// Common timestamp formats to check
 	formats := []string{
@@ -708,6 +793,7 @@ func isTimestamp(s string) bool {
 	// Parse as integer first
 	if num, err := strconv.ParseInt(s, 10, 64); err == nil {
 		// Check for 10-digit seconds (1980-01-01 to 2100-01-01)
+		// NOTE: This range overlaps with common ID ranges - see function documentation for collision details
 		if num >= 315532800 && num <= 4102444800 {
 			return true
 		}
@@ -720,7 +806,26 @@ func isTimestamp(s string) bool {
 	return false
 }
 
-// isBoolean checks if a string represents a boolean value
+// isBoolean checks if a string represents a boolean value.
+//
+// DELIBERATE DESIGN CHOICE: Includes "0" and "1" as boolean values.
+// This causes columns containing only 0 and 1 to be classified as "bool" instead of "integer".
+//
+// Rationale:
+// - Common boolean encoding in datasets (0=false, 1=true)
+// - Provides better UI representation for binary categorical variables
+// - Type classification is for display/schema purposes only
+// - Does NOT modify underlying CSV data (numeric values are preserved)
+// - Does NOT impact ML processing (data remains numeric)
+//
+// Implication: Binary numeric feature columns (e.g., [0,1,0,1]) will display as "bool".
+// This is intentional behavior to support common data conventions where 0/1 represents
+// boolean states rather than continuous numeric values.
+//
+// Accepted values (case-insensitive):
+//   - true/false, t/f
+//   - yes/no, y/n
+//   - 1/0 (treated as boolean, not integer - see note above)
 func isBoolean(s string) bool {
 	lower := strings.ToLower(s)
 	boolValues := []string{
@@ -728,7 +833,7 @@ func isBoolean(s string) bool {
 		"t", "f",
 		"yes", "no",
 		"y", "n",
-		"1", "0",
+		"1", "0", // Deliberate: classify 0/1 as boolean for UI display (see function doc)
 	}
 
 	for _, bv := range boolValues {

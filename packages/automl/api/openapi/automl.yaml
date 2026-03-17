@@ -229,7 +229,29 @@ paths:
     description: >-
       The REST endpoint/path used to retrieve the schema of a CSV file from S3 storage.
       Reads the header and a minimum of 100 data rows to determine column names and infer data types.
-      Types are inferred in priority order: bool, timestamp, integer, double, string.
+      The inferred types are for UI display and schema preview purposes only and do not modify
+      the underlying CSV data.
+
+
+      Type Inference Priority (highest to lowest):
+
+      1. bool - Accepts: true/false, t/f, yes/no, y/n, 1/0 (case-insensitive).
+         NOTE: Numeric values "0" and "1" are classified as boolean for schema display. Columns
+         containing only 0 and 1 values will show type "bool" rather than "integer". This is a
+         display classification only - the underlying numeric data remains unchanged and ML
+         processing is not affected. Binary features like is_premium: [0,1,0,1] will display as
+         bool but retain numeric values.
+
+      2. timestamp - Detects ISO8601, common date formats, and Unix timestamps in plausible ranges.
+
+      3. integer - Whole numbers without decimal points. Note: columns with only 0/1 values are
+         classified as bool (see above) for display purposes.
+
+      4. double - Numeric values with decimal points or that don't fit integer/bool.
+
+      5. string - Fallback for all other values.
+
+
       Integer is assumed before double - columns are typed as integer until a decimal is found.
       Uses proper CSV parsing to handle quoted values and different line endings (\n, \r\n, \r).
       Returns an error if the file has fewer than 100 data rows.
@@ -298,6 +320,7 @@ paths:
                                 oneOf:
                                   - type: string
                                   - type: number
+                                  - type: boolean
                         description: Array of column definitions with inferred types
                         example:
                           - name: "customerID"
@@ -311,6 +334,10 @@ paths:
                             type: "double"
                           - name: "signup_date"
                             type: "timestamp"
+                      parse_warnings:
+                        type: integer
+                        description: Number of rows that failed CSV parsing and were skipped during schema inference
+                        example: 0
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -326,7 +353,26 @@ paths:
       description: >-
         Retrieves the column names and inferred data types from a CSV file in S3 storage.
         Reads the header line plus a minimum of 100 data rows to accurately determine column types.
-        Types are inferred in priority order: bool, timestamp, integer, double, string.
+
+
+        Type Inference Priority (highest to lowest):
+
+        1. bool - Matches: true/false, t/f, yes/no, y/n, 1/0 (case-insensitive).
+           NOTE: "0" and "1" are treated as boolean values for UI display purposes. A column
+           containing only 0 and 1 will be classified as bool, not integer. This classification
+           is for schema display only and does not modify the underlying data or affect ML processing.
+           Binary numeric features (e.g., is_premium: [0,1,0,1]) will display as bool type but
+           retain their numeric values.
+
+        2. timestamp - Recognizes ISO8601, common date formats, Unix epoch timestamps.
+
+        3. integer - Whole numbers without decimals (excluding 0/1-only columns, which display as bool).
+
+        4. double - Numbers with decimal points or outside integer range.
+
+        5. string - Default fallback for all other values.
+
+
         Integer is assumed before double - columns with only whole numbers are typed as integer,
         but if any decimal value is found, the column becomes double.
         For boolean columns, returns the unique values found in the data.
@@ -508,7 +554,6 @@ components:
       required:
         - uuid
         - name
-        - type
         - data
       type: object
       properties:
@@ -522,13 +567,17 @@ components:
           example: aws-secret-1
         type:
           type: string
-          enum: ["s3", ""]
           description: >-
-            The type of the secret determined by:
-            1. First, the 'opendatahub.io/connection-type' annotation if present
-            2. Otherwise, key-based detection using classification keys (see SecretTypeSchemas):
+            Optional type of the secret determined by the following precedence:
+            1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
+            2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
-               - '': Empty string if the secret doesn't match any recognized type
+
+            When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
+            for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
+            results even if it lacks the typical storage classification keys.
+
+            This field is omitted from the response if the secret doesn't match any recognized type and has no connection-type annotation.
           example: s3
         data:
           type: object

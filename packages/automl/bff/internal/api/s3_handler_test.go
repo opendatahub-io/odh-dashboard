@@ -832,6 +832,174 @@ func TestS3Repository_GetS3Credentials_RejectsInvalidURL(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid AWS_S3_ENDPOINT")
 }
 
+func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_0(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "this-network-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://0.0.0.0:9000"), // 0.0.0.0/8 "This Network"
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "this-network-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "this network")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_1(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "this-network-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://0.0.0.1:9000"), // 0.0.0.0/8 "This Network"
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "this-network-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "this network")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsReservedFutureUse(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "reserved-future-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://240.0.0.1:9000"), // 240.0.0.0/4 reserved for future use
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "reserved-future-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "reserved for future use")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6Loopback(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ipv6-loopback-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://[::1]:9000"), // IPv6 loopback
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "ipv6-loopback-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 loopback")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6LinkLocal(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ipv6-linklocal-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://[fe80::1]:9000"), // IPv6 link-local
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "ipv6-linklocal-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 link-local")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6UniqueLocal(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ipv6-ula-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://[fc00::1]:9000"), // IPv6 unique local addresses
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	creds, err := s3Repo.GetS3Credentials(mockClient, context.Background(), "test-namespace", "ipv6-ula-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 unique local")
+}
+
 func TestS3Repository_GetS3Credentials_AcceptsValidHTTPSURL(t *testing.T) {
 	mockSecrets := []corev1.Secret{
 		{
@@ -858,4 +1026,60 @@ func TestS3Repository_GetS3Credentials_AcceptsValidHTTPSURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, creds)
 	assert.Equal(t, "https://s3.us-east-1.amazonaws.com", creds.EndpointURL)
+}
+
+func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
+	// Create a mock secret with valid S3 credentials
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: "default",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	// Make request to get CSV schema
+	result, res, err := setupApiTest[map[string]interface{}](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify response structure includes parse_warnings
+	assert.NotNil(t, result)
+	data, ok := result["data"].(map[string]interface{})
+	assert.True(t, ok, "Response should have 'data' field")
+	assert.NotNil(t, data)
+
+	// Verify parse_warnings field exists
+	parseWarnings, ok := data["parse_warnings"]
+	assert.True(t, ok, "Response data should have 'parse_warnings' field")
+	assert.NotNil(t, parseWarnings)
+
+	// For mock data, parse_warnings should be 0
+	parseWarningsFloat, ok := parseWarnings.(float64)
+	assert.True(t, ok, "parse_warnings should be a number")
+	assert.Equal(t, float64(0), parseWarningsFloat, "Mock data should have 0 parse warnings")
+
+	// Verify columns field still exists
+	columns, ok := data["columns"]
+	assert.True(t, ok, "Response data should have 'columns' field")
+	assert.NotNil(t, columns)
 }

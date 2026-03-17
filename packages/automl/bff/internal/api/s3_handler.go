@@ -274,7 +274,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	// Retrieve the CSV schema from S3
-	columns, err := app.repositories.S3.GetS3CSVSchema(ctx, creds, bucket, key)
+	schemaResult, err := app.repositories.S3.GetS3CSVSchema(ctx, creds, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
 		var noSuchKey *types.NoSuchKey
@@ -315,10 +315,11 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	// Return the columns in the standard response format
+	// Return the columns and parse warnings in the standard response format
 	response := map[string]interface{}{
 		"data": map[string]interface{}{
-			"columns": columns,
+			"columns":        schemaResult.Columns,
+			"parse_warnings": schemaResult.ParseWarnings,
 		},
 	}
 

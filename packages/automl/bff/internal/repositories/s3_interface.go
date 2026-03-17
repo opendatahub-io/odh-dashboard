@@ -32,5 +32,5 @@ type S3RepositoryInterface interface {
 		creds *S3Credentials,
 		bucket string,
 		key string,
-	) ([]ColumnSchema, error)
+	) (CSVSchemaResult, error)
 }

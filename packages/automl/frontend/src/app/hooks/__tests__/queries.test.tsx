@@ -66,6 +66,8 @@ describe('useFilesQuery', () => {
           { name: 'id', type: 'integer' },
           { name: 'name', type: 'string' },
         ],
+        // eslint-disable-next-line camelcase
+        parse_warnings: 0,
       },
     };
 
@@ -93,6 +95,8 @@ describe('useFilesQuery', () => {
     const mockResponse = {
       data: {
         columns: [{ name: 'id', type: 'integer' }],
+        // eslint-disable-next-line camelcase
+        parse_warnings: 0,
       },
     };
 
@@ -127,6 +131,8 @@ describe('useFilesQuery', () => {
     const mockResponse = {
       data: {
         columns: mockColumns,
+        // eslint-disable-next-line camelcase
+        parse_warnings: 0,
       },
     };
 
@@ -224,6 +230,8 @@ describe('useFilesQuery', () => {
     const mockResponse = {
       data: {
         columns: [{ name: 'id', type: 'integer' }],
+        // eslint-disable-next-line camelcase
+        parse_warnings: 0,
       },
     };
 

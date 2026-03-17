@@ -116,15 +116,15 @@ func (r *MockS3Repository) GetS3CSVSchema(
 	creds *S3Credentials,
 	bucket string,
 	key string,
-) ([]ColumnSchema, error) {
+) (CSVSchemaResult, error) {
 	// Simulate file not found for non-existent files
 	if strings.Contains(key, "non-existent") {
-		return nil, &types.NoSuchKey{}
+		return CSVSchemaResult{}, &types.NoSuchKey{}
 	}
 
 	// Validate that the key is a CSV file
 	if !strings.HasSuffix(key, ".csv") {
-		return nil, fmt.Errorf("schema inspection is only supported for CSV files, got: %s", key)
+		return CSVSchemaResult{}, fmt.Errorf("schema inspection is only supported for CSV files, got: %s", key)
 	}
 
 	// Return mock schema matching the mockCSVContent fixture
@@ -152,5 +152,8 @@ func (r *MockS3Repository) GetS3CSVSchema(
 		},
 	}
 
-	return mockSchema, nil
+	return CSVSchemaResult{
+		Columns:       mockSchema,
+		ParseWarnings: 0,
+	}, nil
 }

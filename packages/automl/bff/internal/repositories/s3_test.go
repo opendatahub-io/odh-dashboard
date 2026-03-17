@@ -74,6 +74,14 @@ func TestIsTimestamp(t *testing.T) {
 		{"Not a timestamp", "abc", false},
 		{"Number", "123", false},
 		{"Empty", "", false},
+		// Ambiguous values that fall in Unix timestamp range [315532800-4102444800] (1980-2100)
+		// These could be product IDs, customer IDs, or other identifiers but are classified as timestamps
+		{"Ambiguous: 1234567890 (could be ID or timestamp 2009-02-13)", "1234567890", true},
+		{"Ambiguous: 2000000000 (could be ID or timestamp 2033-05-18)", "2000000000", true},
+		{"Ambiguous: 1500000000 (could be ID or timestamp 2017-07-14)", "1500000000", true},
+		// Values outside the timestamp range are NOT classified as timestamps
+		{"Below range: 100000000 (< 1980)", "100000000", false},
+		{"Above range: 5000000000 (> 2100)", "5000000000", false},
 	}
 
 	for _, tt := range tests {
@@ -243,6 +251,36 @@ func TestInferColumnType(t *testing.T) {
 			},
 			colIndex: 0,
 			expected: "double",
+		},
+		{
+			name: "COLLISION: integers in Unix timestamp range classified as timestamp",
+			rows: [][]string{
+				{"1234567890", "value"}, // Could be product ID, classified as 2009-02-13 timestamp
+				{"1500000000", "value"}, // Could be customer ID, classified as 2017-07-14 timestamp
+				{"2000000000", "value"}, // Could be order ID, classified as 2033-05-18 timestamp
+			},
+			colIndex: 0,
+			expected: "timestamp", // Classified as timestamp despite being potential IDs
+		},
+		{
+			name: "integers outside Unix timestamp range stay as integer",
+			rows: [][]string{
+				{"100000000", "value"},  // Below 1980 threshold
+				{"200000000", "value"},  // Below 1980 threshold
+				{"5000000000", "value"}, // Above 2100 threshold
+			},
+			colIndex: 0,
+			expected: "integer", // Correctly classified as integer
+		},
+		{
+			name: "mixed values - integers in range and out of range fall to integer",
+			rows: [][]string{
+				{"1234567890", "value"}, // In timestamp range (1980-2100)
+				{"100000000", "value"},  // Below timestamp range
+				{"5000000000", "value"}, // Above timestamp range
+			},
+			colIndex: 0,
+			expected: "integer", // Falls to integer because not ALL values are in timestamp range
 		},
 	}
 
