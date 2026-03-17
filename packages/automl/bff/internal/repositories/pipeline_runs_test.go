@@ -331,4 +331,61 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported pipeline type")
 	})
+
+	t.Run("should reject timeseries fields when pipeline type is tabular", func(t *testing.T) {
+		req := newValidTabularRequest()
+		// Add timeseries-specific fields
+		target := "sales"
+		idColumn := "store_id"
+		timestampColumn := "date"
+		req.Target = &target
+		req.IDColumn = &idColumn
+		req.TimestampColumn = &timestampColumn
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected fields")
+		assert.Contains(t, err.Error(), "tabular")
+		assert.Contains(t, err.Error(), "target")
+		assert.Contains(t, err.Error(), "id_column")
+		assert.Contains(t, err.Error(), "timestamp_column")
+	})
+
+	t.Run("should reject tabular fields when pipeline type is timeseries", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		// Add tabular-specific fields
+		labelColumn := "target"
+		taskType := "binary"
+		req.LabelColumn = &labelColumn
+		req.TaskType = &taskType
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected fields")
+		assert.Contains(t, err.Error(), "timeseries")
+		assert.Contains(t, err.Error(), "label_column")
+		assert.Contains(t, err.Error(), "task_type")
+	})
+
+	t.Run("should reject single unexpected field for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		target := "sales"
+		req.Target = &target
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected fields")
+		assert.Contains(t, err.Error(), "target")
+	})
+
+	t.Run("should reject single unexpected field for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		labelColumn := "target"
+		req.LabelColumn = &labelColumn
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected fields")
+		assert.Contains(t, err.Error(), "label_column")
+	})
 }

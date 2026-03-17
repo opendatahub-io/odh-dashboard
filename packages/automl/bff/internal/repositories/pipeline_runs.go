@@ -144,8 +144,78 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 	}
 }
 
-// ValidateCreateAutoMLRunRequest checks that all required fields are present
-// and that optional enum fields have valid values based on the pipeline type.
+// fieldCheck defines a field validation rule
+type fieldCheck struct {
+	name     string
+	isSet    func(models.CreateAutoMLRunRequest) bool
+	required bool
+}
+
+// commonFields are fields allowed for all pipeline types
+var commonFields = []fieldCheck{
+	// Common required fields
+	{"display_name", func(r models.CreateAutoMLRunRequest) bool { return r.DisplayName != "" }, true},
+	{"train_data_secret_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataSecretName != "" }, true},
+	{"train_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataBucketName != "" }, true},
+	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
+	// Common optional fields
+	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
+	{"description", func(r models.CreateAutoMLRunRequest) bool { return r.Description != "" }, false},
+}
+
+// pipelineSpecificFields defines pipeline-type-specific fields (combined with commonFields to form complete schema)
+var pipelineSpecificFields = map[string][]fieldCheck{
+	constants.PipelineTypeTabular: {
+		{"label_column", func(r models.CreateAutoMLRunRequest) bool { return r.LabelColumn != nil && *r.LabelColumn != "" }, true},
+		{"task_type", func(r models.CreateAutoMLRunRequest) bool { return r.TaskType != nil && *r.TaskType != "" }, true},
+	},
+	constants.PipelineTypeTimeSeries: {
+		{"target", func(r models.CreateAutoMLRunRequest) bool { return r.Target != nil && *r.Target != "" }, true},
+		{"id_column", func(r models.CreateAutoMLRunRequest) bool { return r.IDColumn != nil && *r.IDColumn != "" }, true},
+		{"timestamp_column", func(r models.CreateAutoMLRunRequest) bool {
+			return r.TimestampColumn != nil && *r.TimestampColumn != ""
+		}, true},
+		{"prediction_length", func(r models.CreateAutoMLRunRequest) bool { return r.PredictionLength != nil }, false},
+		{"known_covariates_names", func(r models.CreateAutoMLRunRequest) bool { return r.KnownCovariatesNames != nil }, false},
+	},
+}
+
+// getSchemaForPipelineType returns the complete field schema (common + pipeline-specific) for a given pipeline type
+func getSchemaForPipelineType(pipelineType string) ([]fieldCheck, error) {
+	specificFields, exists := pipelineSpecificFields[pipelineType]
+	if !exists {
+		return nil, fmt.Errorf("unsupported pipeline type: %s", pipelineType)
+	}
+
+	// Combine common fields with pipeline-specific fields
+	schema := make([]fieldCheck, 0, len(commonFields)+len(specificFields))
+	schema = append(schema, commonFields...)
+	schema = append(schema, specificFields...)
+	return schema, nil
+}
+
+// getAllPipelineSpecificFields returns all pipeline-specific fields across all pipeline types
+func getAllPipelineSpecificFields() []fieldCheck {
+	seen := make(map[string]bool)
+	var allFields []fieldCheck
+
+	for _, fields := range pipelineSpecificFields {
+		for _, field := range fields {
+			if !seen[field.name] {
+				seen[field.name] = true
+				allFields = append(allFields, fieldCheck{
+					name:  field.name,
+					isSet: field.isSet,
+				})
+			}
+		}
+	}
+
+	return allFields
+}
+
+// ValidateCreateAutoMLRunRequest checks that all required fields are present,
+// rejects fields not in the pipeline type's schema, and validates enum/range values.
 //
 // Common required fields (all pipeline types):
 //   - display_name, train_data_secret_name, train_data_bucket_name, train_data_file_key
@@ -156,47 +226,38 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 // Timeseries-specific required fields (pipelineType=timeseries):
 //   - target, id_column, timestamp_column
 func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) error {
+	// Get complete schema for this pipeline type
+	schema, err := getSchemaForPipelineType(pipelineType)
+	if err != nil {
+		return err
+	}
+
+	// Build allowed fields map and check required fields
+	allowedFields := make(map[string]bool)
 	var missing []string
 
-	// Validate common required fields
-	if req.DisplayName == "" {
-		missing = append(missing, "display_name")
-	}
-	if req.TrainDataSecretName == "" {
-		missing = append(missing, "train_data_secret_name")
-	}
-	if req.TrainDataBucketName == "" {
-		missing = append(missing, "train_data_bucket_name")
-	}
-	if req.TrainDataFileKey == "" {
-		missing = append(missing, "train_data_file_key")
-	}
+	for _, field := range schema {
+		allowedFields[field.name] = true
 
-	// Validate pipeline-specific required fields
-	switch pipelineType {
-	case constants.PipelineTypeTabular:
-		if req.LabelColumn == nil || *req.LabelColumn == "" {
-			missing = append(missing, "label_column")
+		if field.required && !field.isSet(req) {
+			missing = append(missing, field.name)
 		}
-		if req.TaskType == nil || *req.TaskType == "" {
-			missing = append(missing, "task_type")
-		}
-	case constants.PipelineTypeTimeSeries:
-		if req.Target == nil || *req.Target == "" {
-			missing = append(missing, "target")
-		}
-		if req.IDColumn == nil || *req.IDColumn == "" {
-			missing = append(missing, "id_column")
-		}
-		if req.TimestampColumn == nil || *req.TimestampColumn == "" {
-			missing = append(missing, "timestamp_column")
-		}
-	default:
-		return fmt.Errorf("unsupported pipeline type: %s", pipelineType)
 	}
 
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required fields: %v", missing)
+	}
+
+	// Reject any set pipeline-specific field that's not allowed for this pipeline type
+	var unexpected []string
+	for _, field := range getAllPipelineSpecificFields() {
+		if field.isSet(req) && !allowedFields[field.name] {
+			unexpected = append(unexpected, field.name)
+		}
+	}
+
+	if len(unexpected) > 0 {
+		return fmt.Errorf("unexpected fields for %s pipeline: %v", pipelineType, unexpected)
 	}
 
 	// Validate enum values
@@ -206,7 +267,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
-	// Validate optional fields
+	// Validate optional field ranges
 	if req.TopN != nil && *req.TopN <= 0 {
 		return fmt.Errorf("invalid top_n: must be a positive integer")
 	}
