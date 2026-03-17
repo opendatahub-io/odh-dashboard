@@ -38,7 +38,7 @@ reviews:
         7. Custom components go in frontend/src/components. PF-first: verify with the team before
            creating new custom components.
 
-    - path: "frontend/src/**/*.test.{ts,tsx}"
+    - path: "frontend/src/**/*.{test,spec}.{ts,tsx}"
       instructions: |
         FRONTEND UNIT TESTS (Jest):
         1. Co-locate tests with source: MyComponent.test.tsx next to MyComponent.tsx
@@ -71,7 +71,7 @@ reviews:
         5. Follow PatternFly v6 patterns consistent with the main frontend app.
 
     # ── Feature plugin source (packages with direct src/) ─────────
-    - path: "packages/{model-registry,model-serving,model-serving-backport,model-training,kserve,llmd-serving,feature-store,observability,mlflow-embedded,plugin-core,app-config}/src/**/*.{ts,tsx}"
+    - path: "packages/{model-registry,model-serving,model-training,kserve,llmd-serving,feature-store,observability,plugin-core,app-config}/src/**/*.{ts,tsx}"
       instructions: |
         FEATURE PACKAGE SOURCE:
         These packages contribute to the dashboard via extensions or direct imports.
@@ -79,6 +79,21 @@ reviews:
         2. Exports must be stable — other packages depend on them.
         3. Co-locate tests with source files.
         4. Check for AGENTS.md in the package root for package-specific guidance.
+
+    - path: "packages/mlflow-embedded/{experiments,prompts,shared}/**/*.{ts,tsx}"
+      instructions: |
+        MLFLOW EMBEDDED PACKAGE:
+        This package contributes to the dashboard via extensions or direct imports.
+        1. Follow the same PatternFly v6 and TypeScript strict-mode conventions as the main frontend.
+        2. Exports must be stable — other packages depend on them.
+        3. Co-locate tests with source files.
+
+    - path: "packages/model-serving/modelRegistry/**/*.{ts,tsx}"
+      instructions: |
+        MODEL SERVING — MODEL REGISTRY INTEGRATION:
+        1. Follow the same PatternFly v6 and TypeScript strict-mode conventions as the main frontend.
+        2. Ensure model registry API calls use shared utilities and handle errors consistently.
+        3. Co-locate tests with source files.
 
     # ── Go BFF services ───────────────────────────────────────────
     - path: "packages/*/bff/**/*.go"
@@ -117,7 +132,7 @@ reviews:
         6. Follow conventions in docs/agent-rules/cypress-e2e.md and docs/agent-rules/cypress-mock.md.
 
     # ── Package-level Cypress tests ───────────────────────────────
-    - path: "packages/*/cypress/**/*.{ts,js}"
+    - path: "packages/*/frontend/src/__tests__/cypress/**/*.{ts,js}"
       instructions: |
         PACKAGE CYPRESS TESTS:
         Same conventions as the shared Cypress framework (packages/cypress).
@@ -179,10 +194,18 @@ reviews:
         2. Cache inputs/outputs must be accurate — incorrect caching causes stale builds.
         3. Changes here affect all package build ordering and CI performance.
 
-    # ── Module Federation config ──────────────────────────────────
-    - path: "**/webpack.config.{ts,js}"
+    # ── Webpack config ────────────────────────────────────────────
+    - path: "**/webpack.{common,dev,prod}.{ts,js}"
       instructions: |
-        WEBPACK / MODULE FEDERATION CONFIG:
+        WEBPACK CONFIG:
+        1. Build configuration changes affect dev and production bundles.
+        2. Ensure dev/prod parity — avoid dev-only shortcuts that mask production issues.
+        3. Changes here affect build performance and output for all consumers.
+
+    # ── Module Federation config ──────────────────────────────────
+    - path: "**/moduleFederation.{ts,js}"
+      instructions: |
+        MODULE FEDERATION CONFIG:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
         2. Remote entry configuration must be consistent with manifests/modular-architecture/.
         3. Changes to shared dependency list require coordination across all plugins.
