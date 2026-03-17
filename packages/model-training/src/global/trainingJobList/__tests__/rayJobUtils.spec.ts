@@ -261,6 +261,32 @@ describe('getRayJobStatus', () => {
   // ──────────────────────────────────────────────────────────────────
   // KUEUE — no workload created yet
   // ──────────────────────────────────────────────────────────────────
+  it('Kueue, no workload — FAILED when jobStatus FAILED', async () => {
+    mockGetWorkloadForJob.mockResolvedValue(null);
+    expect((await getRayJobStatus(kueueJob({ jobStatus: RayJobStatusValue.FAILED }))).status).toBe(
+      RayJobState.FAILED,
+    );
+  });
+
+  it('Kueue, no workload — FAILED when jobDeploymentStatus Failed', async () => {
+    mockGetWorkloadForJob.mockResolvedValue(null);
+    expect(
+      (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.FAILED })))
+        .status,
+    ).toBe(RayJobState.FAILED);
+  });
+
+  it('Kueue, no workload — FAILED when jobDeploymentStatus ValidationFailed', async () => {
+    mockGetWorkloadForJob.mockResolvedValue(null);
+    expect(
+      (
+        await getRayJobStatus(
+          kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.VALIDATION_FAILED }),
+        )
+      ).status,
+    ).toBe(RayJobState.FAILED);
+  });
+
   it('Kueue, no workload — PAUSED when spec.suspend=true', async () => {
     mockGetWorkloadForJob.mockResolvedValue(null);
     expect((await getRayJobStatus(kueueJob({ suspend: true }))).status).toBe(RayJobState.PAUSED);

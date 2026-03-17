@@ -1089,6 +1089,15 @@ export const getRayJobStatus = async (
     }
 
     // Kueue-enabled but workload not yet created — use CR fields only
+    // P4: CR terminal failure
+    if (
+      jobStatus === RayJobStatusValue.FAILED ||
+      jobDeploymentStatus === RayJobDeploymentStatus.FAILED ||
+      jobDeploymentStatus === RayJobDeploymentStatus.VALIDATION_FAILED
+    ) {
+      return { status: RayJobState.FAILED, isLoading: false };
+    }
+
     // P7: Paused
     if (
       jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDED ||
