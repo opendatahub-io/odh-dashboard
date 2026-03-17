@@ -143,11 +143,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
         {
           name: formData.name.trim(),
           description: formData.description?.trim() || undefined,
-          expiration: expirationDuration,
+          expiresIn: expirationDuration,
         },
       );
 
-      setCreatedToken(response.token);
+      setCreatedToken(response.key);
       setIsCreating(false);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to create API key'));

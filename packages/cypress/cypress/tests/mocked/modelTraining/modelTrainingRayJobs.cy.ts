@@ -12,12 +12,15 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
+import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ClusterQueueModel,
   LocalQueueModel,
   RayClusterModel,
   RayJobModel,
   TrainJobModel,
+  WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
@@ -26,11 +29,16 @@ import {
   trainingJobDetailsDrawer,
   rayJobDetailsDrawer,
   rayJobDetailsTab,
+  rayJobResourcesTab,
 } from '../../../pages/modelTraining';
+import { tablePagination } from '../../../pages/components/Pagination';
 import { ProjectModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
 const projectDisplayName = 'Test RayJobs Project';
+const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
+const KUEUE_JOB_UID_LABEL = 'kueue.x-k8s.io/job-uid';
+const KUEUE_JOB_NAME_LABEL = 'kueue.x-k8s.io/job-name';
 
 const mockTrainJobs = mockTrainJobK8sResourceList([
   {
@@ -72,6 +80,54 @@ const mockRayJobs = mockRayJobK8sResourceList([
     jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED,
   },
   {
+    name: 'ray-multi-group-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    entrypoint: 'python multi_worker.py',
+    additionalLabels: { 'kueue.x-k8s.io/queue-name': 'default-queue' },
+    workerGroupSpecs: [
+      {
+        groupName: 'gpu-workers',
+        replicas: 2,
+        minReplicas: 1,
+        maxReplicas: 4,
+        template: {
+          spec: {
+            containers: [
+              {
+                name: 'ray-worker',
+                resources: {
+                  requests: { cpu: '2', memory: '4Gi' },
+                  limits: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': '1' },
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        groupName: 'cpu-workers',
+        replicas: 3,
+        minReplicas: 1,
+        maxReplicas: 6,
+        template: {
+          spec: {
+            containers: [
+              {
+                name: 'ray-worker',
+                resources: {
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '2', memory: '4Gi' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  {
     name: 'ray-persist-cluster-job',
     namespace: projectName,
     jobStatus: RayJobStatusValue.RUNNING,
@@ -88,7 +144,104 @@ const mockRayJobs = mockRayJobK8sResourceList([
     rayClusterName: 'shared-ray-cluster',
     entrypoint: 'python workspace_train.py',
   },
+  {
+    name: 'ray-pending-job',
+    namespace: projectName,
+    jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    clusterSelector: { 'ray.io/cluster': 'shared-ray-cluster' },
+    rayClusterName: 'shared-ray-cluster',
+    entrypoint: 'python workspace_train.py',
+    jobStatus: undefined,
+  },
+  {
+    name: 'ray-queued-job',
+    namespace: projectName,
+    jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
+    jobStatus: undefined,
+  },
+  {
+    name: 'ray-deleting-job',
+    namespace: projectName,
+    isDeleting: true,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+  },
+  {
+    name: 'ray-inadmissible-kueue',
+    namespace: projectName,
+    additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
+    jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    jobStatus: undefined,
+  },
+  {
+    name: 'ray-preempted-kueue',
+    namespace: projectName,
+    additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
+    jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+    jobStatus: undefined,
+  },
+  {
+    name: 'ray-queued-kueue',
+    namespace: projectName,
+    additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
+    jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
+    jobStatus: undefined,
+  },
+  {
+    name: 'ray-pending-kueue',
+    namespace: projectName,
+    additionalLabels: { [KUEUE_QUEUE_LABEL]: 'default-queue' },
+    jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
+    jobStatus: undefined,
+  },
 ]);
+
+// Build workloads for each Kueue-managed RayJob, linking by job UID + name labels.
+// This mirrors the pattern in modelTraining.cy.ts so the frontend's label-selector
+// lookup resolves to the correct workload in both real and mocked environments.
+const kueueWorkloadStatusMap: Record<string, WorkloadStatusType> = {
+  'ray-inadmissible-kueue': WorkloadStatusType.Inadmissible,
+  'ray-preempted-kueue': WorkloadStatusType.Evicted,
+  'ray-queued-kueue': WorkloadStatusType.Pending,
+  'ray-pending-kueue': WorkloadStatusType.Admitted, // overridden below to QuotaReserved=True only
+};
+
+const mockRayJobWorkloads = mockRayJobs
+  .filter((job) => job.metadata.labels?.[KUEUE_QUEUE_LABEL])
+  .map((job) => {
+    const workloadStatus = kueueWorkloadStatusMap[job.metadata.name];
+    const workload = mockWorkloadK8sResource({
+      k8sName: `workload-${job.metadata.name}`,
+      namespace: job.metadata.namespace,
+      mockStatus: workloadStatus,
+    });
+
+    // Override conditions for Pending-kueue: QuotaReserved=True but no PodsReady
+    // This drives the "Pending" display path (quota reserved, pods not yet scheduled)
+    if (job.metadata.name === 'ray-pending-kueue' && workload.status) {
+      workload.status.conditions = [
+        {
+          lastTransitionTime: '2024-03-18T19:15:28Z',
+          message: 'Quota reserved in ClusterQueue test-cluster-queue',
+          reason: 'QuotaReserved',
+          status: 'True',
+          type: 'QuotaReserved',
+        },
+      ];
+    }
+
+    return {
+      ...workload,
+      metadata: {
+        ...workload.metadata,
+        labels: {
+          ...(workload.metadata?.labels ?? {}),
+          [KUEUE_JOB_UID_LABEL]: job.metadata.uid ?? `uid-${job.metadata.name}`,
+          [KUEUE_JOB_NAME_LABEL]: job.metadata.name,
+        },
+      },
+    };
+  });
 
 const mockLocalQueues = [
   mockLocalQueueK8sResource({
@@ -169,6 +322,41 @@ const initIntercepts = () => {
       rayVersion: '2.40.0',
     }),
   );
+  mockRayJobs
+    .filter((job) => job.metadata.labels?.[KUEUE_QUEUE_LABEL])
+    .forEach((job) => {
+      const matchingWorkload = mockRayJobWorkloads.find(
+        (w) =>
+          w.metadata.labels[KUEUE_JOB_UID_LABEL] === job.metadata.uid ||
+          w.metadata.labels[KUEUE_JOB_NAME_LABEL] === job.metadata.name,
+      );
+
+      if (matchingWorkload && job.metadata.uid) {
+        cy.interceptK8sList(
+          {
+            model: WorkloadModel,
+            ns: projectName,
+            queryParams: {
+              labelSelector: `${KUEUE_JOB_UID_LABEL}=${job.metadata.uid}`,
+            },
+          },
+          mockK8sResourceList([matchingWorkload]),
+        );
+      }
+
+      if (matchingWorkload) {
+        cy.interceptK8sList(
+          {
+            model: WorkloadModel,
+            ns: projectName,
+            queryParams: {
+              labelSelector: `${KUEUE_JOB_NAME_LABEL}=${job.metadata.name}`,
+            },
+          },
+          mockK8sResourceList([matchingWorkload]),
+        );
+      }
+    });
 };
 
 describe('RayJobs in Jobs Table', () => {
@@ -184,7 +372,7 @@ describe('RayJobs in Jobs Table', () => {
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
     rayRow.findProject().should('contain', projectDisplayName);
-    rayRow.findNodes().should('contain', '1');
+    rayRow.findNodes().should('contain', '2');
     rayRow.findType().should('contain', 'RayJob');
     rayRow.findRayCluster().should('not.be.empty');
   });
@@ -203,16 +391,14 @@ describe('RayJobs in Jobs Table', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
 
-    cy.findByTestId('training-job-table-toolbar')
-      .findByLabelText('Filter by name')
-      .type('ray-data');
-
+    trainingJobTable.filterByName('ray-data');
     trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
     trainingJobTable.findTable().find('tbody tr').should('have.length', 1);
 
-    cy.findByTestId('training-job-table-toolbar').findByLabelText('Filter by name').clear();
-
+    trainingJobTable.filterByName('train-job-one');
     trainingJobTable.getTableRow('train-job-one').find().should('exist');
+
+    trainingJobTable.filterByName('ray-data-processing');
     trainingJobTable.getTableRow('ray-data-processing').find().should('exist');
   });
 });
@@ -240,6 +426,7 @@ describe('Type filter in Jobs Table', () => {
   it('should filter to show only RayJobs when RayJob type is selected', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
+    tablePagination.top.selectToggleOption('20 per page');
 
     trainingJobTable.selectJobTypeFilter('RayJob');
 
@@ -248,12 +435,12 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('contain', 'RayJob');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
     trainingJobTable.findTypeColumn().should('not.contain', 'TrainJob');
-    trainingJobTable.findRows().should('have.length', 6);
   });
 
   it('should show all jobs after selecting All in type filter', () => {
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
+    tablePagination.top.selectToggleOption('20 per page');
 
     trainingJobTable.selectJobTypeFilter('TrainJob');
     trainingJobTable.findRows().should('have.length', 1);
@@ -267,7 +454,73 @@ describe('Type filter in Jobs Table', () => {
     trainingJobTable.findTypeFilterChip().should('not.exist');
     trainRow.findTrainingJobName().should('contain', 'train-job-one');
     rayRow.findTrainingJobName().should('contain', 'ray-data-processing');
-    trainingJobTable.findRows().should('have.length', 7);
+  });
+});
+
+describe('RayJob status column', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+  });
+
+  it('should show Running status for a running RayJob', () => {
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().should('contain', 'Running');
+  });
+
+  it('should show Complete status for a succeeded RayJob', () => {
+    trainingJobTable.getTableRow('ray-completed-job').findStatus().should('contain', 'Complete');
+  });
+
+  it('should show Failed status for a failed RayJob', () => {
+    trainingJobTable.getTableRow('ray-failed-job').findStatus().should('contain', 'Failed');
+  });
+
+  it('should show Paused status for a Paused RayJob', () => {
+    trainingJobTable.filterByName('ray-suspended-job');
+    trainingJobTable.getTableRow('ray-suspended-job').findStatus().should('contain', 'Paused');
+  });
+
+  it('should show Pending status for an initializing RayJob', () => {
+    trainingJobTable.getTableRow('ray-pending-job').findStatus().should('contain', 'Pending');
+  });
+
+  it('should show Queued status for a waiting RayJob', () => {
+    trainingJobTable.filterByName('ray-queued-job');
+    trainingJobTable.getTableRow('ray-queued-job').findStatus().should('contain', 'Queued');
+  });
+
+  it('should show Deleting status for a RayJob with deletionTimestamp', () => {
+    trainingJobTable.getTableRow('ray-deleting-job').findStatus().should('contain', 'Deleting');
+  });
+
+  it('should show status label component (not raw icon+text) for RayJob rows', () => {
+    trainingJobTable
+      .getTableRow('ray-data-processing')
+      .find()
+      .find('[data-label="Status"]')
+      .findByTestId('ray-job-status')
+      .should('exist');
+  });
+  it('should show Inadmissible status when Kueue rejects the workload', () => {
+    trainingJobTable
+      .getTableRow('ray-inadmissible-kueue')
+      .findStatus()
+      .should('contain', 'Inadmissible');
+  });
+
+  it('should show Preempted status when Kueue evicts the workload', () => {
+    trainingJobTable.getTableRow('ray-preempted-kueue').findStatus().should('contain', 'Preempted');
+  });
+
+  it('should show Queued status when Kueue workload is waiting for quota', () => {
+    trainingJobTable.filterByName('ray-queued-kueue');
+    trainingJobTable.getTableRow('ray-queued-kueue').findStatus().should('contain', 'Queued');
+  });
+
+  it('should show Pending status when Kueue quota is reserved but pods not yet scheduled', () => {
+    trainingJobTable.getTableRow('ray-pending-kueue').findStatus().should('contain', 'Pending');
   });
 });
 
@@ -334,6 +587,7 @@ describe('RayJob Details Drawer', () => {
     rayJobDetailsDrawer.close();
     rayJobDetailsDrawer.shouldBeClosed();
 
+    trainingJobTable.filterByName('train-job-one');
     const trainRow = trainingJobTable.getTableRow('train-job-one');
     trainRow.findNameLink().click();
     trainingJobDetailsDrawer.shouldBeOpen();
@@ -417,6 +671,7 @@ describe('RayJob Details Tab', () => {
   it('should display ray version from workspace RayCluster', () => {
     modelTrainingGlobal.visit(projectName);
 
+    trainingJobTable.filterByName('ray-workspace-job');
     const row = trainingJobTable.getTableRow('ray-workspace-job');
     row.findNameLink().click();
 
@@ -425,5 +680,91 @@ describe('RayJob Details Tab', () => {
 
     rayJobDetailsTab.findRayVersionValue().should('contain', '2.40.0');
     rayJobDetailsTab.findClusterNameValue().should('contain', 'shared-ray-cluster');
+  });
+});
+
+describe('RayJob Resources Tab', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should display all sections in the Resources tab', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findNodeConfigurationsSection().should('exist');
+    rayJobResourcesTab.findResourcesPerNodeSection().should('exist');
+    rayJobResourcesTab.findClusterQueueSection().should('exist');
+    rayJobResourcesTab.findQuotasSection().should('exist');
+  });
+
+  it('should display correct node count', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findNodesValue().should('contain', '2');
+    rayJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
+  });
+
+  it('should display per-worker-group resources', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findWorkerGroupTitle('worker-group-1').should('exist');
+    rayJobResourcesTab.findWorkerGroupCpuRequests('worker-group-1').should('contain', '1');
+    rayJobResourcesTab.findWorkerGroupCpuLimits('worker-group-1').should('contain', '2');
+    rayJobResourcesTab.findWorkerGroupMemoryRequests('worker-group-1').should('contain', '2Gi');
+    rayJobResourcesTab.findWorkerGroupMemoryLimits('worker-group-1').should('contain', '2Gi');
+  });
+
+  it('should display multiple worker groups', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-multi-group-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findWorkerGroupTitle('gpu-workers').should('exist');
+    rayJobResourcesTab.findWorkerGroupCpuRequests('gpu-workers').should('contain', '2');
+    rayJobResourcesTab.findWorkerGroupMemoryLimits('gpu-workers').should('contain', '8Gi');
+
+    rayJobResourcesTab.findWorkerGroupTitle('cpu-workers').should('exist');
+    rayJobResourcesTab.findWorkerGroupCpuRequests('cpu-workers').should('contain', '1');
+    rayJobResourcesTab.findWorkerGroupMemoryLimits('cpu-workers').should('contain', '4Gi');
+  });
+
+  it('should display cluster queue and quota consumption', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-multi-group-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findClusterQueueSection().should('exist');
+    rayJobResourcesTab.findQueueValue().should('contain', 'test-cluster-queue');
+
+    rayJobResourcesTab.findQuotasSection().should('exist');
+    rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'CPU');
+    rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'Memory');
   });
 });

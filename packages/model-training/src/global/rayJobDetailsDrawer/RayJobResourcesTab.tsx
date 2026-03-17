@@ -1,40 +1,75 @@
 import * as React from 'react';
 import {
+  Content,
+  ContentVariants,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
   Title,
-  Button,
   StackItem,
   Stack,
   Skeleton,
-  Content,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
-import { getAllConsumedResources } from './utils';
+import { getAllConsumedResources } from '../trainingJobDetailsDrawer/utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
-import { TrainJobKind } from '../../k8sTypes';
+import { RayJobKind, RayContainerResources, RayWorkerGroupSpec } from '../../k8sTypes';
+import { useRayClusterSpec } from '../../hooks/useRayClusterSpec';
 import { useModelTrainingContext } from '../ModelTrainingContext';
 import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 
-type TrainingJobResourcesTabProps = {
-  job: TrainJobKind;
-  nodesCount: number;
-  canScaleNodes?: boolean;
-  onScaleNodes?: () => void;
+type RayJobResourcesTabProps = {
+  job: RayJobKind;
+  nodeCount: number;
 };
 
-const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
-  job,
-  nodesCount,
-  canScaleNodes = false,
-  onScaleNodes,
-}) => {
-  const { project, projects } = useModelTrainingContext();
+const getWorkerResources = (group: RayWorkerGroupSpec): RayContainerResources => {
+  const containers = group.template.spec?.containers;
+  if (!containers || containers.length === 0) {
+    return {};
+  }
+  return containers[0].resources ?? {};
+};
 
-  // Use the selected project if available, otherwise find the project for this job's namespace
+const ResourceDisplay: React.FC<{
+  resources: RayContainerResources;
+  testIdPrefix: string;
+}> = ({ resources, testIdPrefix }) => (
+  <>
+    <DescriptionListGroup>
+      <DescriptionListTerm style={{ fontWeight: 'normal' }}>CPU requests</DescriptionListTerm>
+      <DescriptionListDescription data-testid={`${testIdPrefix}-cpu-requests`}>
+        {resources.requests?.cpu ?? '-'}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+    <DescriptionListGroup>
+      <DescriptionListTerm style={{ fontWeight: 'normal' }}>CPU limits</DescriptionListTerm>
+      <DescriptionListDescription data-testid={`${testIdPrefix}-cpu-limits`}>
+        {resources.limits?.cpu ?? '-'}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+    <DescriptionListGroup>
+      <DescriptionListTerm style={{ fontWeight: 'normal' }}>Memory requests</DescriptionListTerm>
+      <DescriptionListDescription data-testid={`${testIdPrefix}-memory-requests`}>
+        {resources.requests?.memory ?? '-'}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+    <DescriptionListGroup>
+      <DescriptionListTerm style={{ fontWeight: 'normal' }}>Memory limits</DescriptionListTerm>
+      <DescriptionListDescription data-testid={`${testIdPrefix}-memory-limits`}>
+        {resources.limits?.memory ?? '-'}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+  </>
+);
+
+const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({ job, nodeCount }) => {
+  const { project, projects } = useModelTrainingContext();
+  const { clusterSpec, loaded: clusterSpecLoaded } = useRayClusterSpec(job);
+  const workerGroupSpecs = clusterSpec?.workerGroupSpecs;
+  const numOfHosts = workerGroupSpecs?.[0]?.numOfHosts ?? 1;
+
   const jobProject = project ?? projects?.find((p) => p.metadata.name === job.metadata.namespace);
   const isProjectKueueEnabled = jobProject?.metadata.labels?.[KUEUE_MANAGED_LABEL] === 'true';
 
@@ -50,90 +85,77 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   const { clusterQueue, loaded: clusterQueueDataLoaded } = useClusterQueue(clusterQueueName);
 
   const quotaSource = clusterQueue?.spec.cohort || '-';
-
   const consumedResources = clusterQueue ? getAllConsumedResources(clusterQueue) : [];
 
   return (
     <Stack hasGutter>
       <StackItem className="pf-v6-u-mt-md">
         <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '20ch' }}>
-          <Title headingLevel="h6" size="md" data-testid="node-configurations-section">
+          <Title headingLevel="h3" size="md" data-testid="node-configurations-section">
             Node configurations
           </Title>
           <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes:</DescriptionListTerm>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
-              <Button
-                variant="link"
-                isInline
-                icon={<PencilAltIcon />}
-                iconPosition="end"
-                style={{ fontSize: 'inherit', padding: 0 }}
-                isDisabled={!canScaleNodes}
-                onClick={onScaleNodes}
-                data-testid="nodes-edit-button"
-              >
-                {nodesCount || '-'}
-              </Button>
+              {nodeCount || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Processes per node:
+              Processes per node
             </DescriptionListTerm>
-            <DescriptionListDescription data-testid="processes-per-node-value">
-              {job.spec.trainer?.numProcPerNode || '-'}
-            </DescriptionListDescription>
+            {clusterSpecLoaded ? (
+              <DescriptionListDescription data-testid="processes-per-node-value">
+                {numOfHosts}
+              </DescriptionListDescription>
+            ) : (
+              <Skeleton width="80px" />
+            )}
           </DescriptionListGroup>
         </DescriptionList>
       </StackItem>
+
       <StackItem className="pf-v6-u-mt-md">
-        <DescriptionList isHorizontal>
-          <Title headingLevel="h3" size="md" data-testid="resources-per-node-section">
-            Resources per node
-          </Title>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              CPU requests:
-            </DescriptionListTerm>
-            <DescriptionListDescription data-testid="cpu-requests-value">
-              {job.spec.trainer?.resourcesPerNode?.requests?.cpu || '-'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>CPU limits:</DescriptionListTerm>
-            <DescriptionListDescription data-testid="cpu-limits-value">
-              {job.spec.trainer?.resourcesPerNode?.limits?.cpu || '-'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Memory requests:
-            </DescriptionListTerm>
-            <DescriptionListDescription data-testid="memory-requests-value">
-              {job.spec.trainer?.resourcesPerNode?.requests?.memory || '-'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Memory limits:
-            </DescriptionListTerm>
-            <DescriptionListDescription data-testid="memory-limits-value">
-              {job.spec.trainer?.resourcesPerNode?.limits?.memory || '-'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
+        <Title headingLevel="h3" size="md" data-testid="resources-per-node-section">
+          Resources per node
+        </Title>
+        {!clusterSpecLoaded ? (
+          <Skeleton height="100px" className="pf-v6-u-mt-sm" />
+        ) : workerGroupSpecs && workerGroupSpecs.length > 0 ? (
+          workerGroupSpecs.map((group) => (
+            <StackItem key={group.groupName} className="pf-v6-u-mt-md">
+              <Content
+                component={ContentVariants.p}
+                style={{ fontWeight: 600 }}
+                data-testid={`worker-group-${group.groupName}-title`}
+              >
+                {group.groupName}
+              </Content>
+              <DescriptionList isHorizontal className="pf-v6-u-pl-md">
+                <ResourceDisplay
+                  resources={getWorkerResources(group)}
+                  testIdPrefix={`worker-group-${group.groupName}`}
+                />
+              </DescriptionList>
+            </StackItem>
+          ))
+        ) : (
+          <Content component={ContentVariants.p} className="pf-v6-u-mt-sm">
+            No worker groups configured.
+          </Content>
+        )}
       </StackItem>
+
       <StackItem className="pf-v6-u-mt-md">
         <DescriptionList isHorizontal>
           <Title headingLevel="h3" size="md" data-testid="cluster-queue-section">
             Cluster queue
           </Title>
           <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Queue:</DescriptionListTerm>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Queue</DescriptionListTerm>
             {clusterQueueLoaded ? (
               <DescriptionListDescription data-testid="queue-value">
-                {clusterQueueName}
+                {clusterQueueName || '-'}
               </DescriptionListDescription>
             ) : (
               <Skeleton width="100px" />
@@ -141,15 +163,14 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
           </DescriptionListGroup>
         </DescriptionList>
       </StackItem>
+
       <StackItem className="pf-v6-u-mt-md pf-v6-u-mb-md">
         <DescriptionList isHorizontal>
           <Title headingLevel="h3" size="md" data-testid="quotas-section">
             Quotas and consumption
           </Title>
           <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Quota source:
-            </DescriptionListTerm>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Quota source</DescriptionListTerm>
             {clusterQueueDataLoaded ? (
               <DescriptionListDescription data-testid="quota-source-value">
                 {error ? '-' : quotaSource}
@@ -199,4 +220,4 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   );
 };
 
-export default TrainingJobResourcesTab;
+export default RayJobResourcesTab;

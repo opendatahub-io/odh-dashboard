@@ -21,13 +21,13 @@ import TrainingJobStatusModal from './TrainingJobStatusModal';
 import StateActionToggle from './StateActionToggle';
 import { useTrainingJobPauseResume } from './hooks/useTrainingJobPauseResume';
 import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { JobDisplayState, TrainingJobState } from '../../types';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainJobTableRowProps = {
   job: TrainJobKind;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: TrainJobKind) => void;
