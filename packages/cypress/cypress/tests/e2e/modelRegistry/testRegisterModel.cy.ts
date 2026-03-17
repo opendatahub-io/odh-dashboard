@@ -30,6 +30,7 @@ describe('Verify models can be registered in a model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let objectStorageModelName: string;
+  let ociModelName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
@@ -40,6 +41,7 @@ describe('Verify models can be registered in a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
+      ociModelName = `${testData.ociModelName}-${uuid}`;
       deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
@@ -226,6 +228,116 @@ describe('Verify models can be registered in a model registry', () => {
     },
   );
 
+  it(
+    'Exercises the register and store UI flow with OCI destination',
+    {
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to Model Registry');
+      modelRegistry.visit();
+
+      cy.step('Select the created model registry');
+      modelRegistry.findSelectModelRegistry(registryName);
+
+      cy.step('Click Register Model button');
+      clickRegisterModelButton(30000);
+
+      cy.step('Verify registration mode toggle is visible');
+      registerModelPage.findRegistrationModeToggleGroup().should('be.visible');
+
+      cy.step('Toggle to Register and store mode');
+      registerModelPage.findRegisterAndStoreToggle().click();
+
+      cy.step('Verify namespace selector appears');
+      registerModelPage.findNamespaceSelector().should('be.visible');
+
+      cy.step('Select a namespace from the dropdown');
+      registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click({ force: true });
+      registerModelPage.findFirstNamespaceOption().then(($option) => {
+        const namespaceName = $option.text().trim();
+        cy.wrap($option).click();
+        cy.step(`Selected namespace: ${namespaceName}`);
+      });
+
+      cy.step('Verify origin and destination location sections appear');
+      registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });
+      registerModelPage.findDestinationLocationSection().should('be.visible');
+
+      cy.step('Fill in model details');
+      registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(ociModelName);
+      registerModelPage
+        .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
+        .type(testData.ociModelDescription);
+      registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
+      registerModelPage
+        .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
+        .type(testData.ociVersionDescription);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT)
+        .type(testData.ociModelFormat);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
+        .type(testData.ociModelFormatVersion);
+
+      cy.step('Fill in transfer job name');
+      registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(testData.ociJobName);
+
+      cy.step('Fill in origin S3 location and credentials');
+      registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_ENDPOINT)
+        .type(testData.ociSourceEndpoint);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_BUCKET)
+        .type(testData.ociSourceBucket);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_REGION)
+        .type(testData.ociSourceRegion);
+      registerModelPage.findFormField(FormFieldSelector.LOCATION_PATH).type(testData.ociSourcePath);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
+        .type(testData.ociSourceAccessKeyId);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_S3_SECRET_ACCESS_KEY)
+        .type(testData.ociSourceSecretAccessKey);
+
+      cy.step('Fill in OCI destination fields');
+      registerModelPage
+        .findFormField(FormFieldSelector.DESTINATION_OCI_REGISTRY)
+        .type(testData.ociDestinationRegistry);
+      registerModelPage
+        .findFormField(FormFieldSelector.DESTINATION_OCI_URI)
+        .type(testData.ociDestinationUri);
+      registerModelPage
+        .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
+        .type(testData.ociDestinationUsername);
+      registerModelPage
+        .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
+        .type(testData.ociDestinationPassword);
+
+      cy.step('Verify submit button is enabled');
+      registerModelPage.findSubmitButton().should('be.enabled');
+
+      cy.step('Submit the register and store form');
+      registerModelPage.findSubmitButton().click();
+
+      cy.step('Verify transfer job started notification appears');
+      cy.contains(/Model transfer job started/, { timeout: 15000 }).should('be.visible');
+
+      cy.step('Verify navigation away from the registration form');
+      cy.url().should('not.include', '/register');
+
+      // The transfer job will fail on PSI clusters due to lack of TLS support.
+      // We still verify the failure notification appears as part of the UI flow.
+      cy.step('Verify transfer job failure notification (expected due to no TLS on PSI)');
+      cy.contains(/Model transfer job failed/, { timeout: 60000 }).should('be.visible');
+    },
+  );
+
   after(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
@@ -235,7 +347,7 @@ describe('Verify models can be registered in a model registry', () => {
 
     cy.step('Clean up registered models from database');
     cleanupRegisteredModelsFromDatabase(
-      [objectStorageModelName, testData.uriModelName],
+      [objectStorageModelName, testData.uriModelName, ociModelName],
       databaseName,
     );
 
