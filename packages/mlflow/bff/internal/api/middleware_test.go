@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 // mockK8sFactory is a lightweight mock for KubernetesClientFactory used in middleware tests.
 type mockK8sFactory struct {
@@ -49,7 +51,7 @@ func (m *mockK8sFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) 
 func newTestAppWithFactory(factory mlflowpkg.MLflowClientFactory) *App {
 	return &App{
 		config:              config.EnvConfig{AuthMethod: config.AuthMethodUser},
-		logger:              slog.New(slog.NewTextHandler(os.Stderr, nil)),
+		logger:              discardLogger,
 		mlflowClientFactory: factory,
 	}
 }
@@ -57,7 +59,7 @@ func newTestAppWithFactory(factory mlflowpkg.MLflowClientFactory) *App {
 func newTestAppWithFactories(mlflowFactory mlflowpkg.MLflowClientFactory, k8sFactory k8s.KubernetesClientFactory) *App {
 	return &App{
 		config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
-		logger:                  slog.New(slog.NewTextHandler(os.Stderr, nil)),
+		logger:                  discardLogger,
 		mlflowClientFactory:     mlflowFactory,
 		kubernetesClientFactory: k8sFactory,
 	}
@@ -264,101 +266,86 @@ func TestAttachMLflowClientMissingIdentityReturns500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
-func TestAttachMLflowClientMLflowNotConfigured(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	app := newTestAppWithFactory(mockFactory)
+func TestAttachMLflowClientGetClientErrors(t *testing.T) {
+	tests := []struct {
+		name           string
+		token          string
+		workspace      string
+		err            error
+		expectedStatus int
+		expectedCode   string
+		messageContains string
+	}{
+		{
+			name:           "MLflow not configured returns 503",
+			token:          "some-token",
+			workspace:      "",
+			err:            mlflowpkg.ErrMLflowNotConfigured,
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedCode:   "service_unavailable",
+		},
+		{
+			name:           "unexpected factory error returns 500",
+			token:          "my-token",
+			workspace:      "ns",
+			err:            fmt.Errorf("some unexpected factory failure"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "ErrTokenRequired returns 401",
+			token:          "my-token",
+			workspace:      "ns",
+			err:            mlflowpkg.ErrTokenRequired,
+			expectedStatus: http.StatusUnauthorized,
+			expectedCode:   "authentication_required",
+		},
+		{
+			name:            "ErrNamespaceRequired returns 400",
+			token:           "my-token",
+			workspace:       "ns",
+			err:             mlflowpkg.ErrNamespaceRequired,
+			expectedStatus:  http.StatusBadRequest,
+			messageContains: "workspace namespace is required",
+		},
+	}
 
-	mockFactory.On("GetClient", mock.Anything, "some-token", "").
-		Return(nil, mlflowpkg.ErrMLflowNotConfigured)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFactory := &mlflowpkg.MockFactory{}
+			app := newTestAppWithFactory(mockFactory)
 
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called")
-	})
+			mockFactory.On("GetClient", mock.Anything, tc.token, tc.workspace).
+				Return(nil, tc.err)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("some-token")})
-	rr := httptest.NewRecorder()
+			handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+				t.Fatal("handler should not be called")
+			})
 
-	handler(rr, req, nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+			req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken(tc.token)})
+			if tc.workspace != "" {
+				req = withWorkspace(req, tc.workspace)
+			}
+			rr := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+			handler(rr, req, nil)
 
-	var errResp HTTPError
-	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
-	assert.Equal(t, "service_unavailable", errResp.Error.Code)
-	mockFactory.AssertExpectations(t)
-}
+			assert.Equal(t, tc.expectedStatus, rr.Code)
 
-func TestAttachMLflowClientFactoryError(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	app := newTestAppWithFactory(mockFactory)
+			if tc.expectedCode != "" || tc.messageContains != "" {
+				var errResp HTTPError
+				require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+				if tc.expectedCode != "" {
+					assert.Equal(t, tc.expectedCode, errResp.Error.Code)
+				}
+				if tc.messageContains != "" {
+					assert.Contains(t, errResp.Error.Message, tc.messageContains)
+				}
+			}
 
-	mockFactory.On("GetClient", mock.Anything, "my-token", "ns").
-		Return(nil, fmt.Errorf("some unexpected factory failure"))
-
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
-	req = withWorkspace(req, "ns")
-	rr := httptest.NewRecorder()
-
-	handler(rr, req, nil)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	mockFactory.AssertExpectations(t)
-}
-
-func TestAttachMLflowClientErrTokenRequired(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	app := newTestAppWithFactory(mockFactory)
-
-	mockFactory.On("GetClient", mock.Anything, "my-token", "ns").
-		Return(nil, mlflowpkg.ErrTokenRequired)
-
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
-	req = withWorkspace(req, "ns")
-	rr := httptest.NewRecorder()
-
-	handler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	var errResp HTTPError
-	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
-	assert.Equal(t, "authentication_required", errResp.Error.Code)
-	mockFactory.AssertExpectations(t)
-}
-
-func TestAttachMLflowClientErrNamespaceRequired(t *testing.T) {
-	mockFactory := &mlflowpkg.MockFactory{}
-	app := newTestAppWithFactory(mockFactory)
-
-	mockFactory.On("GetClient", mock.Anything, "my-token", "ns").
-		Return(nil, mlflowpkg.ErrNamespaceRequired)
-
-	handler := app.AttachMLflowClient(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
-	req = withWorkspace(req, "ns")
-	rr := httptest.NewRecorder()
-
-	handler(rr, req, nil)
-
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	var errResp HTTPError
-	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
-	assert.Contains(t, errResp.Error.Message, "workspace namespace is required")
-	mockFactory.AssertExpectations(t)
+			mockFactory.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAttachMLflowClientWorkspaceFromContext(t *testing.T) {
