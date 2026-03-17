@@ -1,0 +1,174 @@
+package s3
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+)
+
+// S3Credentials contains the credentials needed to connect to S3.
+type S3Credentials struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Region          string
+	EndpointURL     string
+	Bucket          string // Optional bucket name from secret (AWS_S3_BUCKET)
+}
+
+// ListObjectsOptions contains parameters for listing S3 objects.
+type ListObjectsOptions struct {
+	Path   string // Denotes the current "folder" we should be searching in
+	Search string // The value the user entered into the search bar
+	Next   string // The token value to use if the user wants the next page
+	Limit  int32  // Variable amount of max keys so we can paginate
+}
+
+// S3ClientInterface defines the interface for S3 operations.
+type S3ClientInterface interface {
+	GetObject(ctx context.Context, bucket, key string) (io.Reader, string, error)
+	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
+}
+
+// RealS3Client implements S3ClientInterface using the AWS SDK.
+type RealS3Client struct {
+	s3Client *awss3.Client
+}
+
+// NewRealS3Client creates a new S3 client from credentials.
+func NewRealS3Client(creds *S3Credentials) *RealS3Client {
+	cfg := aws.Config{
+		Region:      creds.Region,
+		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+
+	s3Client := awss3.NewFromConfig(cfg, func(o *awss3.Options) {
+		o.BaseEndpoint = aws.String(creds.EndpointURL)
+		// Enable path-style addressing for S3-compatible services like MinIO
+		o.UsePathStyle = true
+	})
+
+	return &RealS3Client{s3Client: s3Client}
+}
+
+// GetObject retrieves an object from S3 using transfer manager for optimized downloading
+// and returns a reader for the content. Uses concurrent multipart downloads for large files.
+func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Reader, string, error) {
+	// Create transfer manager for optimized downloads
+	transferClient := transfermanager.New(c.s3Client)
+
+	// Get the object using transfer manager
+	// This automatically handles multipart downloads for large files with concurrency
+	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}, func(o *transfermanager.Options) {
+		// Configure for optimal streaming performance
+		o.Concurrency = 10                  // 10 concurrent part downloads
+		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
+		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
+		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
+		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+	}
+
+	// Get content type, default to application/octet-stream if not specified
+	contentType := "application/octet-stream"
+	if result.ContentType != nil {
+		contentType = *result.ContentType
+	}
+
+	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
+	return result.Body, contentType, nil
+}
+
+// ListObjects retrieves a listing of objects from S3.
+func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	prefix := options.Search
+	if options.Path != "" {
+		path := options.Path
+		if !strings.HasSuffix(path, "/") {
+			path += "/"
+		}
+		prefix = path + options.Search
+	}
+
+	input := &awss3.ListObjectsV2Input{
+		Bucket:    aws.String(bucket),
+		Delimiter: aws.String("/"),
+		Prefix:    aws.String(prefix),
+		MaxKeys:   aws.Int32(options.Limit),
+	}
+
+	if options.Next != "" {
+		input.ContinuationToken = aws.String(options.Next)
+	}
+
+	output, err := c.s3Client.ListObjectsV2(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &models.S3ListObjectsResponse{}
+	if output.IsTruncated != nil {
+		result.IsTruncated = *output.IsTruncated
+	}
+	if output.KeyCount != nil {
+		result.KeyCount = *output.KeyCount
+	}
+	if output.MaxKeys != nil {
+		result.MaxKeys = *output.MaxKeys
+	}
+	if output.Name != nil {
+		result.Name = *output.Name
+	}
+	if output.Prefix != nil {
+		result.Prefix = *output.Prefix
+	}
+	if output.Delimiter != nil {
+		result.Delimiter = *output.Delimiter
+	}
+	if output.ContinuationToken != nil {
+		result.ContinuationToken = *output.ContinuationToken
+	}
+	if output.NextContinuationToken != nil {
+		result.NextContinuationToken = *output.NextContinuationToken
+	}
+
+	for _, cp := range output.CommonPrefixes {
+		p := ""
+		if cp.Prefix != nil {
+			p = *cp.Prefix
+		}
+		result.CommonPrefixes = append(result.CommonPrefixes, models.S3CommonPrefix{Prefix: p})
+	}
+
+	for _, obj := range output.Contents {
+		info := models.S3ObjectInfo{
+			Size: aws.ToInt64(obj.Size),
+		}
+		if obj.Key != nil {
+			info.Key = *obj.Key
+		}
+		if obj.LastModified != nil {
+			info.LastModified = obj.LastModified.Format("2006-01-02T15:04:05Z")
+		}
+		if obj.ETag != nil {
+			info.ETag = *obj.ETag
+		}
+		if obj.StorageClass != "" {
+			info.StorageClass = string(obj.StorageClass)
+		}
+		result.Contents = append(result.Contents, info)
+	}
+
+	return result, nil
+}

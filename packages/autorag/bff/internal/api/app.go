@@ -16,6 +16,8 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -47,6 +49,7 @@ type App struct {
 	kubernetesClientFactory     k8s.KubernetesClientFactory
 	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
+	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
@@ -140,12 +143,23 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelineServerClientFactory = ps.NewRealClientFactory()
 	}
 
+	// Initialize S3 client factory
+	var s3ClientFactory s3int.S3ClientFactory
+	if cfg.MockS3Client {
+		logger.Info("Using mock S3 client factory")
+		s3ClientFactory = s3mocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real S3 client factory")
+		s3ClientFactory = s3int.NewRealClientFactory()
+	}
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
+		s3ClientFactory:             s3ClientFactory,
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,

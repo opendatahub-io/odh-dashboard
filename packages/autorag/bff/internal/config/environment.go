@@ -80,6 +80,7 @@ type EnvConfig struct {
 	MockHTTPClient           bool
 	MockLSClient             bool
 	MockPipelineServerClient bool
+	MockS3Client             bool
 	PipelineServerURL        string
 	DevMode                  bool
 	DeploymentMode           DeploymentMode

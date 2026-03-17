@@ -15,11 +15,12 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type S3FilesEnvelope Envelope[repositories.S3ListObjectsResponse, None]
+type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
@@ -96,8 +97,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		bucket = creds.Bucket
 	}
 
-	// Retrieve the file from S3
-	objectReader, contentType, err := app.repositories.S3.GetS3Object(ctx, creds, bucket, key)
+	// Create S3 client and retrieve the file
+	s3Client := app.s3ClientFactory.CreateClient(creds)
+	objectReader, contentType, err := s3Client.GetObject(ctx, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
 		var noSuchKey *types.NoSuchKey
@@ -203,7 +205,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
-	result, err := app.repositories.S3.GetS3Objects(ctx, creds, bucket, repositories.GetS3ObjectsOptions{
+	// Create S3 client and list objects
+	s3Client := app.s3ClientFactory.CreateClient(creds)
+	result, err := s3Client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
 		Path:   parameters.Path,
 		Search: parameters.Search,
 		Next:   parameters.Next,
@@ -230,7 +234,7 @@ func (app *App) getS3CredentialsFromSecret(
 	namespace string,
 	secretName string,
 	identity *k8s.RequestIdentity,
-) (*repositories.S3Credentials, error) {
+) (*s3int.S3Credentials, error) {
 	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
@@ -268,7 +272,6 @@ func (app *App) getS3CredentialsFromSecret(
 		// TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
 		//   messages change wording, these checks silently break. Define typed/sentinel errors in the
 		//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
-		// Check if it's a secret not found or validation error
 		// Check if it's a secret not found or validation error
 		if strings.Contains(err.Error(), "not found") {
 			return nil, &integrations.HTTPError{
