@@ -19,7 +19,7 @@
 
 - Validate all user input on both frontend and backend
 - Sanitize inputs to prevent XSS in React components (avoid `dangerouslySetInnerHTML`)
-- Validate Kubernetes resource names follow RFC 1123 (lowercase, alphanumeric, hyphens)
+- Validate Kubernetes resource names follow RFC 1123: lowercase alphanumeric and hyphens only, max 63 chars, must start and end with alphanumeric
 - Backend route handlers must validate request body schemas
 
 ## Kubernetes API Security
@@ -35,7 +35,7 @@
 - Never render untrusted HTML; sanitize/validate any rich content before rendering
 - Avoid direct DOM manipulation
 - Use React's built-in escaping for dynamic content
-- Validate URLs before navigation or rendering links
+- Validate URLs before navigation: enforce http/https scheme allowlist, reject `javascript:` and `data:` protocols
 
 ## Proxy and Network
 

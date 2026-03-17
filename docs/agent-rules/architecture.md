@@ -48,7 +48,7 @@ Each feature package is a **Module Federation remote** that gets dynamically loa
 ## Package Boundaries (Critical)
 
 - Feature packages MUST NOT import directly from other feature packages' internal modules.
-- Feature packages should use exported APIs from `plugin-core` or `app-config` for shared functionality.
+- Feature packages MUST use exported APIs from `plugin-core` or `app-config` for shared functionality.
 - Changes to infrastructure packages (`eslint-config`, `jest-config`, `tsconfig`) affect ALL packages — review with extra care.
 
 ## BFF (Backend-for-Frontend) Architecture
