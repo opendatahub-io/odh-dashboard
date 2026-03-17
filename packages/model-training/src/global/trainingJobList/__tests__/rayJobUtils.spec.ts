@@ -3,7 +3,7 @@ import { mockRayJobK8sResource } from '../../../__mocks__/mockRayJobK8sResource'
 import { mockTrainJobK8sResource } from '../../../__mocks__/mockTrainJobK8sResource';
 import {
   TrainingJobState,
-  RayJobDisplayState,
+  RayJobState,
   RayJobDeploymentStatus,
   RayJobStatusValue,
 } from '../../../types';
@@ -51,7 +51,7 @@ describe('getRayJobStatus', () => {
   // ──────────────────────────────────────────────────────────────────
   it('P1 — should return DELETING when deletionTimestamp is set', async () => {
     const job = mockRayJobK8sResource({ isDeleting: true });
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.DELETING);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.DELETING);
     expect(mockGetWorkloadForJob).not.toHaveBeenCalled();
   });
 
@@ -63,29 +63,30 @@ describe('getRayJobStatus', () => {
       jobStatus: RayJobStatusValue.SUCCEEDED,
       jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
     });
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.SUCCEEDED);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.SUCCEEDED);
     expect(mockGetWorkloadForJob).not.toHaveBeenCalled();
   });
 
   it('P2 — SUCCEEDED when jobStatus STOPPED + jobDeploymentStatus Complete', async () => {
     const job = mockRayJobK8sResource({ jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE });
     if (job.status) job.status.jobStatus = 'STOPPED';
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.SUCCEEDED);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.SUCCEEDED);
   });
 
   // ──────────────────────────────────────────────────────────────────
-  // P4: FAILED (CR — early exit before workload fetch)
+  // P4: FAILED (non-Kueue: early exit; Kueue: checked after P3 Inadmissible)
   // ──────────────────────────────────────────────────────────────────
   it('P4 — FAILED when jobStatus FAILED', async () => {
     const job = mockRayJobK8sResource({ jobStatus: RayJobStatusValue.FAILED });
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.FAILED);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.FAILED);
     expect(mockGetWorkloadForJob).not.toHaveBeenCalled();
   });
 
   it('P4 — FAILED when jobDeploymentStatus ValidationFailed', async () => {
-    const job = mockRayJobK8sResource({});
-    if (job.status) job.status.jobDeploymentStatus = 'ValidationFailed';
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.FAILED);
+    const job = mockRayJobK8sResource({
+      jobDeploymentStatus: RayJobDeploymentStatus.VALIDATION_FAILED,
+    });
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.FAILED);
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -96,13 +97,13 @@ describe('getRayJobStatus', () => {
       jobStatus: RayJobStatusValue.RUNNING,
       jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
     });
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.RUNNING);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.RUNNING);
     expect(mockGetWorkloadForJob).not.toHaveBeenCalled();
   });
 
   it('non-Kueue — PAUSED when Suspended via sync fallback', async () => {
     const job = mockRayJobK8sResource({ jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED });
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.PAUSED);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.PAUSED);
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -120,7 +121,23 @@ describe('getRayJobStatus', () => {
         },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.INADMISSIBLE);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.INADMISSIBLE);
+  });
+
+  it('Kueue — P3 INADMISSIBLE wins over CR ValidationFailed (priority fix)', async () => {
+    mockGetWorkloadForJob.mockResolvedValue(
+      makeWorkload([
+        {
+          type: 'QuotaReserved',
+          status: 'False',
+          reason: 'Inadmissible',
+          message: 'No matching flavor',
+          lastTransitionTime: '',
+        },
+      ]),
+    );
+    const job = kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.VALIDATION_FAILED });
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.INADMISSIBLE);
   });
 
   it('Kueue — P5 FAILED via workload Finished condition with error message', async () => {
@@ -135,7 +152,7 @@ describe('getRayJobStatus', () => {
         },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.FAILED);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.FAILED);
   });
 
   it('Kueue — P6 SUCCEEDED via workload Finished condition with success message', async () => {
@@ -150,12 +167,12 @@ describe('getRayJobStatus', () => {
         },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.SUCCEEDED);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.SUCCEEDED);
   });
 
   it('Kueue — P7 PAUSED when workload.spec.active=false', async () => {
     mockGetWorkloadForJob.mockResolvedValue(makeWorkload([], false));
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.PAUSED);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.PAUSED);
   });
 
   it('Kueue — P7 PAUSED when jobDeploymentStatus Suspended', async () => {
@@ -163,7 +180,7 @@ describe('getRayJobStatus', () => {
     expect(
       (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED })))
         .status,
-    ).toBe(RayJobDisplayState.PAUSED);
+    ).toBe(RayJobState.PAUSED);
   });
 
   it('Kueue — P8 PREEMPTED when workload Evicted condition', async () => {
@@ -178,7 +195,7 @@ describe('getRayJobStatus', () => {
         },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.PREEMPTED);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.PREEMPTED);
   });
 
   it('Kueue — P9 RUNNING when workload PodsReady=True', async () => {
@@ -187,7 +204,7 @@ describe('getRayJobStatus', () => {
         { type: 'PodsReady', status: 'True', reason: '', message: '', lastTransitionTime: '' },
       ]),
     );
-    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobDisplayState.RUNNING);
+    expect((await getRayJobStatus(kueueJob())).status).toBe(RayJobState.RUNNING);
   });
 
   it('Kueue — P9 RUNNING when jobStatus RUNNING (no PodsReady)', async () => {
@@ -201,7 +218,7 @@ describe('getRayJobStatus', () => {
           }),
         )
       ).status,
-    ).toBe(RayJobDisplayState.RUNNING);
+    ).toBe(RayJobState.RUNNING);
   });
 
   it('Kueue — P10 PENDING when QuotaReserved=True', async () => {
@@ -219,7 +236,7 @@ describe('getRayJobStatus', () => {
     expect(
       (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.WAITING })))
         .status,
-    ).toBe(RayJobDisplayState.PENDING);
+    ).toBe(RayJobState.PENDING);
   });
 
   it('Kueue — P10 PENDING when jobDeploymentStatus Initializing (no workload conditions)', async () => {
@@ -230,7 +247,7 @@ describe('getRayJobStatus', () => {
           kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING }),
         )
       ).status,
-    ).toBe(RayJobDisplayState.PENDING);
+    ).toBe(RayJobState.PENDING);
   });
 
   it('Kueue — P11 QUEUED when no matching conditions', async () => {
@@ -238,7 +255,7 @@ describe('getRayJobStatus', () => {
     expect(
       (await getRayJobStatus(kueueJob({ jobDeploymentStatus: RayJobDeploymentStatus.WAITING })))
         .status,
-    ).toBe(RayJobDisplayState.QUEUED);
+    ).toBe(RayJobState.QUEUED);
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -246,9 +263,7 @@ describe('getRayJobStatus', () => {
   // ──────────────────────────────────────────────────────────────────
   it('Kueue, no workload — PAUSED when spec.suspend=true', async () => {
     mockGetWorkloadForJob.mockResolvedValue(null);
-    expect((await getRayJobStatus(kueueJob({ suspend: true }))).status).toBe(
-      RayJobDisplayState.PAUSED,
-    );
+    expect((await getRayJobStatus(kueueJob({ suspend: true }))).status).toBe(RayJobState.PAUSED);
   });
 
   it('Kueue, no workload — RUNNING via CR fields', async () => {
@@ -262,7 +277,7 @@ describe('getRayJobStatus', () => {
           }),
         )
       ).status,
-    ).toBe(RayJobDisplayState.RUNNING);
+    ).toBe(RayJobState.RUNNING);
   });
 
   it('Kueue, no workload — QUEUED as fallback', async () => {
@@ -272,7 +287,7 @@ describe('getRayJobStatus', () => {
       job.status.jobStatus = undefined;
       job.status.jobDeploymentStatus = undefined;
     }
-    expect((await getRayJobStatus(job)).status).toBe(RayJobDisplayState.QUEUED);
+    expect((await getRayJobStatus(job)).status).toBe(RayJobState.QUEUED);
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -285,7 +300,7 @@ describe('getRayJobStatus', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
     });
     const result = await getRayJobStatus(job);
-    expect(result.status).toBe(RayJobDisplayState.RUNNING);
+    expect(result.status).toBe(RayJobState.RUNNING);
     expect(result.error).toBeDefined();
   });
 });
@@ -293,7 +308,7 @@ describe('getRayJobStatus', () => {
 describe('getRayJobStatusSync', () => {
   it('should return DELETING when deletionTimestamp is set', () => {
     const job = mockRayJobK8sResource({ isDeleting: true });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.DELETING);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.DELETING);
   });
 
   it('should return SUCCEEDED when Complete + SUCCEEDED', () => {
@@ -301,7 +316,7 @@ describe('getRayJobStatusSync', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
       jobStatus: RayJobStatusValue.SUCCEEDED,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.SUCCEEDED);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.SUCCEEDED);
   });
 
   it('should return FAILED when deployment status is Failed', () => {
@@ -309,14 +324,14 @@ describe('getRayJobStatusSync', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.FAILED,
       jobStatus: RayJobStatusValue.FAILED,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.FAILED);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.FAILED);
   });
 
   it('should return PAUSED when Suspended', () => {
     const job = mockRayJobK8sResource({
       jobDeploymentStatus: RayJobDeploymentStatus.SUSPENDED,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.PAUSED);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.PAUSED);
   });
 
   it('should return RUNNING when job status is RUNNING', () => {
@@ -324,7 +339,7 @@ describe('getRayJobStatusSync', () => {
       jobStatus: RayJobStatusValue.RUNNING,
       jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.RUNNING);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.RUNNING);
   });
 
   it('should return PENDING when Initializing', () => {
@@ -332,7 +347,7 @@ describe('getRayJobStatusSync', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
       jobStatus: undefined,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.PENDING);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.PENDING);
   });
 
   it('should return QUEUED when Waiting', () => {
@@ -340,7 +355,7 @@ describe('getRayJobStatusSync', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.WAITING,
       jobStatus: undefined,
     });
-    expect(getRayJobStatusSync(job)).toBe(RayJobDisplayState.QUEUED);
+    expect(getRayJobStatusSync(job)).toBe(RayJobState.QUEUED);
   });
 });
 
@@ -431,7 +446,7 @@ describe('getUnifiedJobStatusSync', () => {
       jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
       jobStatus: RayJobStatusValue.SUCCEEDED,
     });
-    expect(getUnifiedJobStatusSync(job)).toBe(RayJobDisplayState.SUCCEEDED);
+    expect(getUnifiedJobStatusSync(job)).toBe(RayJobState.SUCCEEDED);
   });
 
   it('should use getTrainingJobStatusSync for TrainJobs', () => {

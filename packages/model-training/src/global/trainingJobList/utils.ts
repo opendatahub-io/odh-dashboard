@@ -17,7 +17,9 @@ import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
   TrainingJobState,
-  RayJobDisplayState,
+  RayJobState,
+  RayJobDeploymentStatus,
+  RayJobStatusValue,
   JobDisplayState,
   UnifiedJobKind,
   isRayJob,
@@ -909,47 +911,53 @@ export const getUnifiedJobNodeCount = (
  * This is a simplified synchronous version used for sorting and filtering.
  * For the full composite status (CR + Workload/Kueue), use getRayJobStatus.
  */
-export const getRayJobStatusSync = (job: RayJobKind): RayJobDisplayState => {
+export const getRayJobStatusSync = (job: RayJobKind): RayJobState => {
   if (job.metadata.deletionTimestamp) {
-    return RayJobDisplayState.DELETING;
+    return RayJobState.DELETING;
   }
 
   const { jobStatus, jobDeploymentStatus } = job.status ?? {};
 
   if (
-    jobDeploymentStatus === 'Complete' &&
-    (jobStatus === 'SUCCEEDED' || jobStatus === 'STOPPED')
+    jobDeploymentStatus === RayJobDeploymentStatus.COMPLETE &&
+    (jobStatus === RayJobStatusValue.SUCCEEDED || jobStatus === RayJobStatusValue.STOPPED)
   ) {
-    return RayJobDisplayState.SUCCEEDED;
+    return RayJobState.SUCCEEDED;
   }
   if (
-    jobDeploymentStatus === 'Failed' ||
-    jobDeploymentStatus === 'ValidationFailed' ||
-    jobStatus === 'FAILED'
+    jobDeploymentStatus === RayJobDeploymentStatus.FAILED ||
+    jobDeploymentStatus === RayJobDeploymentStatus.VALIDATION_FAILED ||
+    jobStatus === RayJobStatusValue.FAILED
   ) {
-    return RayJobDisplayState.FAILED;
+    return RayJobState.FAILED;
   }
   if (
-    jobDeploymentStatus === 'Suspended' ||
-    jobDeploymentStatus === 'Suspending' ||
+    jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDED ||
+    jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDING ||
     job.spec.suspend === true
   ) {
-    return RayJobDisplayState.PAUSED;
+    return RayJobState.PAUSED;
   }
-  if (jobStatus === 'RUNNING' || jobDeploymentStatus === 'Running') {
-    return RayJobDisplayState.RUNNING;
+  if (
+    jobStatus === RayJobStatusValue.RUNNING ||
+    jobDeploymentStatus === RayJobDeploymentStatus.RUNNING
+  ) {
+    return RayJobState.RUNNING;
   }
-  if (jobStatus === 'PENDING') {
-    return RayJobDisplayState.PENDING;
+  if (jobStatus === RayJobStatusValue.PENDING) {
+    return RayJobState.PENDING;
   }
-  if (jobDeploymentStatus === 'Initializing') {
-    return RayJobDisplayState.PENDING;
+  if (jobDeploymentStatus === RayJobDeploymentStatus.INITIALIZING) {
+    return RayJobState.PENDING;
   }
-  if (jobDeploymentStatus === 'Waiting' || jobDeploymentStatus === 'Retrying') {
-    return RayJobDisplayState.QUEUED;
+  if (
+    jobDeploymentStatus === RayJobDeploymentStatus.WAITING ||
+    jobDeploymentStatus === RayJobDeploymentStatus.RETRYING
+  ) {
+    return RayJobState.QUEUED;
   }
 
-  return RayJobDisplayState.UNKNOWN;
+  return RayJobState.UNKNOWN;
 };
 
 /**
@@ -960,7 +968,7 @@ export const getRayJobStatusSync = (job: RayJobKind): RayJobDisplayState => {
  * 1. Terminal: deletionTimestamp set → DELETING
  * 2. CR: jobStatus SUCCEEDED && jobDeploymentStatus Complete/STOPPED → SUCCEEDED
  * 3. Kueue (workload present): QuotaReserved=False + Inadmissible → INADMISSIBLE
- * 4. CR: jobStatus Failed || jobDeploymentStatus Failed/ValidationFailed → FAILED
+ * 4. CR: jobStatus Failed || jobDeploymentStatus Failed/ValidationFailed → FAILED (after Inadmissible for Kueue jobs)
  * 5. Kueue (workload present): Workload Finished + error/failed/rejected → FAILED
  * 6. Kueue (workload present): Workload Finished + success/succeeded → SUCCEEDED
  * 7. CR + Kueue: workload.spec.active=false || jobDeploymentStatus Suspended/Suspending || spec.suspend=true → PAUSED
@@ -974,36 +982,35 @@ export const getRayJobStatusSync = (job: RayJobKind): RayJobDisplayState => {
  */
 export const getRayJobStatus = async (
   job: RayJobKind,
-): Promise<{ status: RayJobDisplayState; isLoading: boolean; error?: string }> => {
+): Promise<{ status: RayJobState; isLoading: boolean; error?: string }> => {
   try {
     // P1: Terminal — being deleted
     if (job.metadata.deletionTimestamp) {
-      return { status: RayJobDisplayState.DELETING, isLoading: false };
+      return { status: RayJobState.DELETING, isLoading: false };
     }
 
     const { jobStatus, jobDeploymentStatus } = job.status ?? {};
 
     // P2: CR terminal success (checked before async workload call)
     if (
-      (jobStatus === 'SUCCEEDED' || jobStatus === 'STOPPED') &&
-      jobDeploymentStatus === 'Complete'
+      (jobStatus === RayJobStatusValue.SUCCEEDED || jobStatus === RayJobStatusValue.STOPPED) &&
+      jobDeploymentStatus === RayJobDeploymentStatus.COMPLETE
     ) {
-      return { status: RayJobDisplayState.SUCCEEDED, isLoading: false };
+      return { status: RayJobState.SUCCEEDED, isLoading: false };
     }
 
     // Check if job is Kueue-managed
     const hasQueueLabel = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
 
-    // P4 (non-Kueue path — no need to fetch workload first): CR terminal failure
-    if (
-      jobStatus === 'FAILED' ||
-      jobDeploymentStatus === 'Failed' ||
-      jobDeploymentStatus === 'ValidationFailed'
-    ) {
-      return { status: RayJobDisplayState.FAILED, isLoading: false };
-    }
-
     if (!hasQueueLabel) {
+      // P4: CR terminal failure (non-Kueue only — for Kueue jobs, checked after Inadmissible)
+      if (
+        jobStatus === RayJobStatusValue.FAILED ||
+        jobDeploymentStatus === RayJobDeploymentStatus.FAILED ||
+        jobDeploymentStatus === RayJobDeploymentStatus.VALIDATION_FAILED
+      ) {
+        return { status: RayJobState.FAILED, isLoading: false };
+      }
       // Non-Kueue: fall back to sync logic for remaining states
       return { status: getRayJobStatusSync(job), isLoading: false };
     }
@@ -1019,41 +1026,50 @@ export const getRayJobStatus = async (
 
       // P3: System rejection
       if (workloadConditionsMap.Inadmissible) {
-        return { status: RayJobDisplayState.INADMISSIBLE, isLoading: false };
+        return { status: RayJobState.INADMISSIBLE, isLoading: false };
+      }
+
+      // P4: CR terminal failure (checked after Inadmissible for Kueue jobs)
+      if (
+        jobStatus === RayJobStatusValue.FAILED ||
+        jobDeploymentStatus === RayJobDeploymentStatus.FAILED ||
+        jobDeploymentStatus === RayJobDeploymentStatus.VALIDATION_FAILED
+      ) {
+        return { status: RayJobState.FAILED, isLoading: false };
       }
 
       // P5: Workload-reported failure
       if (workloadConditionsMap.Failed) {
-        return { status: RayJobDisplayState.FAILED, isLoading: false };
+        return { status: RayJobState.FAILED, isLoading: false };
       }
 
       // P6: Workload-reported success
       if (workloadConditionsMap.Succeeded) {
-        return { status: RayJobDisplayState.SUCCEEDED, isLoading: false };
+        return { status: RayJobState.SUCCEEDED, isLoading: false };
       }
 
       // P7: Paused (user action)
       if (
         workload.spec.active === false ||
-        jobDeploymentStatus === 'Suspended' ||
-        jobDeploymentStatus === 'Suspending' ||
+        jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDED ||
+        jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDING ||
         job.spec.suspend === true
       ) {
-        return { status: RayJobDisplayState.PAUSED, isLoading: false };
+        return { status: RayJobState.PAUSED, isLoading: false };
       }
 
       // P8: Preempted
       if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
-        return { status: RayJobDisplayState.PREEMPTED, isLoading: false };
+        return { status: RayJobState.PREEMPTED, isLoading: false };
       }
 
       // P9: Running
       if (
         workloadConditionsMap.Running ||
-        jobStatus === 'RUNNING' ||
-        jobDeploymentStatus === 'Running'
+        jobStatus === RayJobStatusValue.RUNNING ||
+        jobDeploymentStatus === RayJobDeploymentStatus.RUNNING
       ) {
-        return { status: RayJobDisplayState.RUNNING, isLoading: false };
+        return { status: RayJobState.RUNNING, isLoading: false };
       }
 
       // P10: Pending
@@ -1062,38 +1078,44 @@ export const getRayJobStatus = async (
       );
       if (
         quotaReservedCondition ||
-        jobDeploymentStatus === 'Initializing' ||
-        jobStatus === 'PENDING'
+        jobDeploymentStatus === RayJobDeploymentStatus.INITIALIZING ||
+        jobStatus === RayJobStatusValue.PENDING
       ) {
-        return { status: RayJobDisplayState.PENDING, isLoading: false };
+        return { status: RayJobState.PENDING, isLoading: false };
       }
 
       // P11: Queued fallback
-      return { status: RayJobDisplayState.QUEUED, isLoading: false };
+      return { status: RayJobState.QUEUED, isLoading: false };
     }
 
     // Kueue-enabled but workload not yet created — use CR fields only
     // P7: Paused
     if (
-      jobDeploymentStatus === 'Suspended' ||
-      jobDeploymentStatus === 'Suspending' ||
+      jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDED ||
+      jobDeploymentStatus === RayJobDeploymentStatus.SUSPENDING ||
       job.spec.suspend === true
     ) {
-      return { status: RayJobDisplayState.PAUSED, isLoading: false };
+      return { status: RayJobState.PAUSED, isLoading: false };
     }
 
     // P9: Running
-    if (jobStatus === 'RUNNING' || jobDeploymentStatus === 'Running') {
-      return { status: RayJobDisplayState.RUNNING, isLoading: false };
+    if (
+      jobStatus === RayJobStatusValue.RUNNING ||
+      jobDeploymentStatus === RayJobDeploymentStatus.RUNNING
+    ) {
+      return { status: RayJobState.RUNNING, isLoading: false };
     }
 
     // P10: Pending
-    if (jobDeploymentStatus === 'Initializing' || jobStatus === 'PENDING') {
-      return { status: RayJobDisplayState.PENDING, isLoading: false };
+    if (
+      jobDeploymentStatus === RayJobDeploymentStatus.INITIALIZING ||
+      jobStatus === RayJobStatusValue.PENDING
+    ) {
+      return { status: RayJobState.PENDING, isLoading: false };
     }
 
     // P11: Queued — waiting for workload to be created
-    return { status: RayJobDisplayState.QUEUED, isLoading: false };
+    return { status: RayJobState.QUEUED, isLoading: false };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.warn(`Failed to get status for RayJob ${job.metadata.name}:`, errorMessage);
