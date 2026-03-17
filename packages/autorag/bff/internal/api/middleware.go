@@ -379,8 +379,8 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
 				return
 			}
-			if !foundAPIKey || apiKey == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
+			if !foundAPIKey {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: llama_stack_client_api_key", secretName))
 				return
 			}
 			if err := isValidLlamaStackURL(baseURL); err != nil {
