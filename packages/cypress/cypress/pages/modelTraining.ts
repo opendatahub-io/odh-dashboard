@@ -110,6 +110,16 @@ class TrainingJobTable {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
 
+  filterByName(name: string) {
+    this.findToolbar().findByLabelText('Filter by name').clear().type(name);
+    return this;
+  }
+
+  clearNameFilter() {
+    this.findToolbar().findByLabelText('Filter by name').clear();
+    return this;
+  }
+
   shouldHaveTrainingJobs(count: number) {
     this.findRows().should('have.length', count);
     return this;
@@ -174,9 +184,13 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findStatus() {
-    // Find the status label by testid (the clickable Label component)
-    // The entire Label is clickable, not just the icon
-    return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
+    return this.find()
+      .find('[data-label="Status"]')
+      .find('[data-testid="training-job-status"],[data-testid="ray-job-status"]');
+  }
+
+  findStatusLoading() {
+    return this.find().find('[data-label="Status"]').findByTestId('ray-job-status-loading');
   }
 
   findStatusProgressBar() {

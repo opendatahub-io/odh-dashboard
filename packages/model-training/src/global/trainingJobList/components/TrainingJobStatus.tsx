@@ -2,12 +2,12 @@ import React from 'react';
 import { Flex, FlexItem, Label, Progress, Skeleton } from '@patternfly/react-core';
 import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { TrainJobKind } from '../../../k8sTypes';
-import { TrainingJobState } from '../../../types';
+import { JobDisplayState, TrainingJobState } from '../../../types';
 import { getTrainerStatus } from '../../trainingJobDetailsDrawer/utils';
 
 type TrainingJobStatusProps = {
   job: TrainJobKind;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   onClick?: () => void;
   isCompact?: boolean;
   showProgressBar?: boolean;

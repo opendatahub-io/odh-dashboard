@@ -2,7 +2,7 @@ import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
-import { getWorkloadForTrainJob, patchWorkloadActiveState } from './workloads';
+import { getWorkloadForJob, patchWorkloadActiveState } from './workloads';
 import { TrainJobKind } from '../k8sTypes';
 
 /**
@@ -64,7 +64,7 @@ export const setTrainJobPauseState = async (
   error?: string;
 }> => {
   try {
-    const workload = await getWorkloadForTrainJob(job);
+    const workload = await getWorkloadForJob(job);
 
     if (workload) {
       // Kueue-enabled job - set workload.spec.active (active = !pause)
