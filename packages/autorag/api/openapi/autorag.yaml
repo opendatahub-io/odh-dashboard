@@ -246,7 +246,7 @@ paths:
           schema:
             type: string
           example: default
-        - name: secret_name
+        - name: secretName
           in: query
           required: true
           description: The name of the Kubernetes secret containing S3 credentials

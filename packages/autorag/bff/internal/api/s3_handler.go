@@ -43,10 +43,8 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	// TODO [ PR-Feedback: AI = Gustavo + Daniel ] Inconsistent naming: this handler uses "secretName" (camelCase)
-	//   but GetS3FilesHandler/validateParameters uses "secret_name" (snake_case). Pick one
-	//   convention for all S3 endpoints. Also: unlike the LSD models endpoint, there is no
-	//   DNS-1123 validation on the secret name here.
+	// TODO [ PR-Feedback: AI = Gustavo + Daniel ] unlike the LSD models endpoint, there is no DNS-1123 validation on the secret name here. See isValidDNS1123Subdomain
+
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
@@ -302,12 +300,12 @@ type getS3FilesParams struct {
 func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 	queryParams := r.URL.Query()
 
-	secretName := queryParams.Get("secret_name")
+	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		return nil, errors.New("query parameter 'secret_name' is required")
+		return nil, errors.New("query parameter 'secretName' is required")
 	}
 	if !isValidDNS1123Subdomain(secretName) {
-		return nil, errors.New("invalid secret_name: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
+		return nil, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 	}
 
 	bucket := queryParams.Get("bucket")
