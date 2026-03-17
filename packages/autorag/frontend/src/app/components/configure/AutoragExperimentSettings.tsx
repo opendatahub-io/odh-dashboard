@@ -169,7 +169,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       <ModalFooter>
         <Button
           variant="primary"
-          onClick={() => onClose()}
+          onClick={onClose}
           isDisabled={!isDirty || hasFieldErrors}
           data-testid="experiment-settings-save"
         >

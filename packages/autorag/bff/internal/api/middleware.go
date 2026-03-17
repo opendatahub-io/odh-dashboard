@@ -50,14 +50,24 @@ func isValidDNS1123Label(label string) bool {
 
 // getSecretDataCaseInsensitive performs a case-insensitive lookup in secret data.
 // Returns the value and true if found, empty string and false if not found.
-func getSecretDataCaseInsensitive(data map[string][]byte, key string) (string, bool) {
-	lowerKey := strings.ToLower(key)
+func getSecretDataCaseInsensitive(data map[string][]byte, key string) (string, bool, error) {
+	// Prefer exact key when present.
+	if v, ok := data[key]; ok {
+		return string(v), true, nil
+	}
+
+	var matched string
+	found := false
 	for k, v := range data {
-		if strings.ToLower(k) == lowerKey {
-			return string(v), true
+		if strings.EqualFold(k, key) {
+			if found {
+				return "", false, fmt.Errorf("ambiguous secret data: multiple keys match %q case-insensitively", key)
+			}
+			matched = string(v)
+			found = true
 		}
 	}
-	return "", false
+	return matched, found, nil
 }
 
 // isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
@@ -372,8 +382,16 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 			}
 
 			// Extract LlamaStack credentials from secret data using case-insensitive key lookups.
-			baseURL, foundBaseURL := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
-			apiKey, foundAPIKey := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
+			if err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
+				return
+			}
+			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			if err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
+				return
+			}
 
 			if !foundBaseURL || baseURL == "" {
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))

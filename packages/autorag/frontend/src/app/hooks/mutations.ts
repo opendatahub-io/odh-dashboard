@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { handleRestFailures, isModArchResponse, restCREATE } from 'mod-arch-core';
-import z from 'zod';
+import * as z from 'zod';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
