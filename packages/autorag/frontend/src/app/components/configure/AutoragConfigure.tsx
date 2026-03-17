@@ -67,9 +67,21 @@ function AutoragConfigure(): React.JSX.Element {
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue } = form;
 
-  const [llamaStackSecretName, inputDataBucketName, testDataBucketName] = useWatch({
+  const [
+    llamaStackSecretName,
+    inputDataSecretName,
+    inputDataBucketName,
+    testDataSecretName,
+    testDataBucketName,
+  ] = useWatch({
     control: form.control,
-    name: ['llama_stack_secret_name', 'input_data_bucket_name', 'test_data_bucket_name'],
+    name: [
+      'llama_stack_secret_name',
+      'input_data_secret_name',
+      'input_data_bucket_name',
+      'test_data_secret_name',
+      'test_data_bucket_name',
+    ],
   });
 
   const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), llamaStackSecretName);
@@ -94,18 +106,47 @@ function AutoragConfigure(): React.JSX.Element {
     }
   }, [allModelsData, getValues, reset]);
 
-  // Ensure test bucket and input bucket are always the same
+  // set bucket from selected secret
   useEffect(() => {
+    if (!selectedSecret) {
+      return;
+    }
+
+    const bucketKey = findKey(
+      selectedSecret.data,
+      (value, key) => key.toLowerCase() === 'aws_s3_bucket',
+    );
+    setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
+      shouldValidate: true,
+    });
+  }, [selectedSecret, setValue]);
+
+  // reset bucket if secret is removed
+  useEffect(() => {
+    if (inputDataSecretName === '') {
+      setValue('input_data_bucket_name', '', { shouldValidate: true });
+    }
+  }, [inputDataSecretName, setValue]);
+
+  // ensure input and test have the same secret and bucket
+  useEffect(() => {
+    if (inputDataSecretName !== testDataSecretName) {
+      setValue('test_data_secret_name', inputDataSecretName, { shouldValidate: true });
+    }
     if (inputDataBucketName !== testDataBucketName) {
       setValue('test_data_bucket_name', inputDataBucketName, { shouldValidate: true });
-      setValue('test_data_key', '', { shouldValidate: true });
     }
-  }, [inputDataBucketName, setValue, testDataBucketName]);
+  }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
-  // reset selected file values if bucket changes
+  // reset selected file values if input bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
   }, [inputDataBucketName, setValue]);
+
+  // reset selected file values if test bucket changes
+  useEffect(() => {
+    setValue('test_data_key', '', { shouldValidate: true });
+  }, [testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -144,17 +185,17 @@ function AutoragConfigure(): React.JSX.Element {
                               additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
                               value={selectedSecret?.uuid}
                               onChange={(secret) => {
-                                setSelectedSecret(secret);
-                                onChange(!secret || secret.invalid ? '' : secret.name);
-                                const bucketKey = findKey(
-                                  secret?.data ?? {},
-                                  (value, key) => key.toLowerCase() === 'aws_s3_bucket',
-                                );
-                                setValue(
-                                  'input_data_bucket_name',
-                                  secret && bucketKey ? secret.data[bucketKey] : '',
-                                  { shouldValidate: true },
-                                );
+                                if (!secret) {
+                                  setValue('input_data_secret_name', '', { shouldValidate: true });
+                                  return;
+                                }
+
+                                const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                const availableKeys = Object.keys(secret.data);
+                                const invalid =
+                                  getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+                                setSelectedSecret({ ...secret, invalid });
+                                onChange(invalid ? '' : secret.name, { shouldValidate: true });
                               }}
                               onRefreshReady={(refresh) => {
                                 secretsRefreshRef.current = refresh;
@@ -188,7 +229,6 @@ function AutoragConfigure(): React.JSX.Element {
                         onClose={() => {
                           setSelectedSecret(undefined);
                           setValue('input_data_secret_name', '', { shouldValidate: true });
-                          setValue('input_data_bucket_name', '', { shouldValidate: true });
                         }}
                         closeBtnAriaLabel="Clear selected connection"
                       >
@@ -362,20 +402,10 @@ function AutoragConfigure(): React.JSX.Element {
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(connection.stringData ?? {});
+              const availableKeys = Object.keys(secret.data);
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-              setSelectedSecret({
-                ...secret,
-                invalid,
-              });
+              setSelectedSecret({ ...secret, invalid });
               setValue('input_data_secret_name', invalid ? '' : secret.name, {
-                shouldValidate: true,
-              });
-              const bucketKey = findKey(
-                secret.data,
-                (value, key) => key.toLowerCase() === 'aws_s3_bucket',
-              );
-              setValue('input_data_bucket_name', bucketKey ? secret.data[bucketKey] : '', {
                 shouldValidate: true,
               });
             }
@@ -389,7 +419,8 @@ function AutoragConfigure(): React.JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onPrimary={(files) => {
           // TODO: replace with actual logic once implemented
-          setValue('input_data_key', 'key', { shouldValidate: true });
+          setValue('input_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+          setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
         }}
         onSelectSource={
           (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
