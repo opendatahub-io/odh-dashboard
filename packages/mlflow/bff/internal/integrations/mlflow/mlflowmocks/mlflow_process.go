@@ -89,7 +89,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 	dataDir := filepath.Join(cwd, ".mlflow")
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create MLflow data directory: %w", err)
 	}
 

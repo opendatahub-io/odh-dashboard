@@ -91,10 +91,6 @@ type seedRun struct {
 func seedData() []seedExperiment {
 	return []seedExperiment{
 		{
-			name: "env-local-mlflow",
-			tags: map[string]string{"source": "go-seeder", "description": "Identifies this as the local MLflow (uv/Python) environment"},
-		},
-		{
 			name: "fraud-detection-classifier",
 			tags: map[string]string{"team": "ml-platform", "project": "fraud-detection", "priority": "high"},
 			runs: []seedRun{
@@ -256,6 +252,18 @@ func seedData() []seedExperiment {
 						{Key: "epochs", Value: "10"},
 						{Key: "optimizer", Value: "adam"},
 					},
+				},
+			},
+		},
+		{
+			name: "env-local-mlflow",
+			tags: map[string]string{"source": "go-seeder", "description": "Identifies this as the local MLflow (uv/Python) environment"},
+			runs: []seedRun{
+				{
+					name:    "marker-run",
+					tags:    map[string]string{"mlflow.runName": "marker-run"},
+					metrics: []tracking.Metric{{Key: "seeded", Value: 1, Step: 1}},
+					params:  []tracking.Param{{Key: "purpose", Value: "env-marker"}},
 				},
 			},
 		},

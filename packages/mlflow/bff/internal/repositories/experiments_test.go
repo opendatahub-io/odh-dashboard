@@ -169,7 +169,7 @@ func TestListExperimentsClientError(t *testing.T) {
 	result, err := repo.ListExperiments(ctx, "", 0, "")
 
 	assert.Nil(t, result)
-	assert.EqualError(t, err, "connection refused")
+	assert.EqualError(t, err, "searching experiments: connection refused")
 	mockClient.AssertExpectations(t)
 }
 

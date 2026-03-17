@@ -33,6 +33,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		return empty, nil, err
 	}
 
+	// mlflowClientFactory is intentionally nil: this helper only supports user/namespaces/healthcheck handlers.
 	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodDisabled}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories()}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)

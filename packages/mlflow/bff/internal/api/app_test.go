@@ -97,6 +97,7 @@ func TestInitMLflowFactory_MockWithExternalURL(t *testing.T) {
 	cfg := config.EnvConfig{
 		MockHTTPClient: true,
 		MLflowURL:      "http://127.0.0.1:5001",
+		DevMode:        true,
 	}
 
 	factory, state, err := initMLflowFactory(cfg, testLogger(), nil)
@@ -104,6 +105,16 @@ func TestInitMLflowFactory_MockWithExternalURL(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, state)
 	assert.IsType(t, &mlflowmocks.MockClientFactory{}, factory)
+}
+
+func TestInitMLflowFactory_StaticMockFlag(t *testing.T) {
+	cfg := config.EnvConfig{MockHTTPClient: true, StaticMLflowMock: true}
+
+	factory, state, err := initMLflowFactory(cfg, testLogger(), nil)
+
+	require.NoError(t, err)
+	assert.Nil(t, state)
+	assert.IsType(t, &mlflowmocks.StaticMockClientFactory{}, factory)
 }
 
 func TestInitMLflowFactory_MockWithoutURL_SetupMLflowSucceeds(t *testing.T) {

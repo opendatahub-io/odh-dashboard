@@ -11,8 +11,9 @@ For development setup, prerequisites, and environment configuration, see the [ML
 **Quick Start:**
 ```bash
 cd packages/mlflow
-make dev-start-mock          # Full development with all mocks (fastest)
-make dev-start-mock-local    # Mocked K8s + real local MLflow with sample data
+make dev-start-mock-static   # Static in-memory mocks, no external dependencies (fastest)
+make dev-start-mock          # Mocked K8s + local MLflow via uv with sample data
+make dev-start-mock-local    # Mocked K8s + external local MLflow (start first with make dev-mlflow-up)
 make dev-start               # Full development with a remote MLflow instance
 ```
 
@@ -20,22 +21,32 @@ make dev-start               # Full development with a remote MLflow instance
 
 | Command | Description |
 |---------|-------------|
-| `make dev-start-mock` | Run frontend + BFF with all mocks (K8s + MLflow) |
-| `make dev-start-mock-local` | Run frontend + BFF with mocked K8s + local MLflow (started and seeded automatically) |
+| `make dev-start-mock-static` | Run frontend + BFF with static in-memory mock data (no uv, no mlflow.db) |
+| `make dev-start-mock` | Run frontend + BFF with mocked K8s + local MLflow via uv (falls back to static) |
+| `make dev-start-mock-local` | Run frontend + BFF with mocked K8s + external local MLflow (start first with `make dev-mlflow-up`) |
 | `make dev-start` | Run frontend + BFF connecting to a remote MLflow instance |
-| `make dev-bff-mock` | Run only the BFF with all mocks |
-| `make dev-bff-mock-local` | Run only the BFF with mocked K8s + local MLflow (requires MLflow to be running) |
+| `make dev-bff-mock-static` | Run only the BFF with static in-memory mock data |
+| `make dev-bff-mock` | Run only the BFF with mocked K8s + local MLflow via uv (falls back to static) |
+| `make dev-bff-mock-local` | Run only the BFF with mocked K8s + external local MLflow |
 | `make dev-bff` | Run only the BFF with remote MLflow (requires `.env.local`) |
 | `make dev-frontend` | Run only the frontend |
 | `make dev-mlflow-up` | Start a local MLflow tracking server |
 | `make dev-install-dependencies` | Install frontend dependencies |
+
+### Static Mock Mode (fastest, no dependencies)
+
+This mode uses hardcoded in-memory data. No uv, no MLflow server, no `mlflow.db` file created. Ideal for frontend-only work or CI.
+
+```bash
+make dev-start-mock-static
+```
 
 ### Local MLflow Mode (recommended for development)
 
 This mode runs the BFF with mocked K8s auth and a real local MLflow server. The BFF automatically starts the local MLflow instance via `uv` and seeds it with sample experiments and runs. No cluster needed.
 
 ```bash
-make dev-start-mock-local
+make dev-start-mock
 ```
 
 You can also start the MLflow server independently if you want to use the native MLflow UI:
@@ -149,7 +160,7 @@ MLflow reviewers check for:
 
 ## Commit Message Convention
 
-```
+```text
 <type>(<scope>): <short summary (max 72 chars)>
 
 <optional detailed description>
@@ -161,7 +172,7 @@ Related to <JIRA-ISSUE-KEY>
 **Scope:** `mlflow`
 
 **Example:**
-```
+```text
 feat(mlflow): add pagination to ListExperiments endpoint
 
 Add pageToken and maxResults query parameters to the experiments

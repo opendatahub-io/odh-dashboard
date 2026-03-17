@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"maps"
 
 	"github.com/opendatahub-io/mlflow-go/mlflow/tracking"
@@ -38,7 +39,7 @@ func (r *ExperimentsRepository) ListExperiments(ctx context.Context, pageToken s
 
 	result, err := client.SearchExperiments(ctx, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("searching experiments: %w", err)
 	}
 
 	experiments := make([]models.Experiment, 0, len(result.Experiments))

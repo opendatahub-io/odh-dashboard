@@ -83,6 +83,7 @@ The following environment variables are used to configure the deployment and dev
 - **Default Value**: `false`
 - **Possible Values**: `true`, `false`
 - **Example**: `INSECURE_SKIP_VERIFY=true`
+- **Warning**: Do not enable in production. Disabling TLS verification exposes the connection to man-in-the-middle attacks.
 
 ### Example `.env.local` File
 

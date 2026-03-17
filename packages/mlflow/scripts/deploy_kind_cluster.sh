@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # Check for required tools
 command -v docker >/dev/null 2>&1 || { echo >&2 "Docker is required but it's not installed. Aborting."; exit 1; }
@@ -19,16 +20,19 @@ else
     # Verify cluster creation
     echo "Verifying cluster..."
     kubectl cluster-info
+fi
 
-    # Step 2: Create mlflow namespace
+# Ensure mlflow namespace exists (idempotent)
+if ! kubectl get namespace mlflow >/dev/null 2>&1; then
     echo "Creating mlflow namespace..."
     kubectl create namespace mlflow
 fi
+
 # Step 4: Deploy MLflow UI
 echo "Editing kustomize image..."
 pushd ./manifests/base > /dev/null || { echo "Error: manifests/base directory not found"; exit 1; }
 kustomize edit set image mlflow-ui=${IMG_UI_STANDALONE}
-popd > /dev/null
+popd > /dev/null || { echo "Error: popd failed"; exit 1; }
 
 pushd ./manifests/overlays/standalone > /dev/null || { echo "Error: manifests/overlays/standalone directory not found"; exit 1; }
 
@@ -39,7 +43,7 @@ kubectl apply -n mlflow -k .
 # Wait for deployment to be available
 echo "Waiting MLflow UI to be available..."
 kubectl wait --for=condition=available -n mlflow deployment/mlflow-ui --timeout=1m
-popd > /dev/null
+popd > /dev/null || { echo "Error: popd failed"; exit 1; }
 
 # Step 5: Port-forward the service
 echo "Port-forwarding MLflow UI..."

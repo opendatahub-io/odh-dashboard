@@ -61,8 +61,8 @@ paths:
           schema:
             type: integer
             default: 100
+            minimum: 1
           description: Maximum number of experiments to return (must be a positive integer).
-          minimum: 1
         - name: filter
           in: query
           required: false
@@ -76,10 +76,18 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: listMLflowExperiments
       summary: List MLflow Experiments
       description: Returns a paginated list of experiments from the MLflow tracking server.
@@ -252,12 +260,12 @@ components:
       properties:
         code:
           type: string
-          example: "400"
-          description: HTTP status code
+          example: bad_request
+          description: Application error code (e.g. bad_request, unauthorized, forbidden, not_found, conflict, service_unavailable, mlflow_error).
         message:
           type: string
           example: "Bad request"
-          description: Human-readable error message
+          description: Human-readable error message.
 
     ErrorEnvelope:
       type: object
@@ -347,18 +355,30 @@ components:
             required:
               - data
       description: A response containing a paginated list of MLflow experiments.
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Forbidden - insufficient permissions
+    Conflict:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Conflict - resource already exists
+    BadGateway:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Bad gateway - unexpected error from the MLflow tracking server
     ServiceUnavailable:
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Service unavailable - MLflow server is not configured or reachable
-    ConflictResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
-      description: Conflict - Role Binding with the same name already exists
 
   parameters:
     id:

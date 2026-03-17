@@ -26,7 +26,7 @@ func (app *App) MLflowListExperimentsHandler(w http.ResponseWriter, r *http.Requ
 			app.badRequestResponse(w, r, err)
 			return
 		}
-		if val < 0 {
+		if val <= 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("maxResults must be a positive integer, got %d", val))
 			return
 		}

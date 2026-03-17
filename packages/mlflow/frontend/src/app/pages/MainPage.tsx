@@ -57,11 +57,13 @@ const MainPage: React.FC = () => {
     if (!workspace) {
       return;
     }
+    const controller = new AbortController();
     setLoaded(false);
     setLoadError(undefined);
 
     fetch(
       `${URL_PREFIX}/api/${BFF_API_VERSION}/experiments?${WORKSPACE_PARAM}=${encodeURIComponent(workspace)}`,
+      { signal: controller.signal },
     )
       .then((res) => {
         if (!res.ok) {
@@ -74,9 +76,14 @@ const MainPage: React.FC = () => {
         setLoaded(true);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
         setLoadError(err instanceof Error ? err : new Error(String(err)));
         setLoaded(true);
       });
+
+    return () => controller.abort();
   }, [workspace]);
 
   const onProjectSelect = (

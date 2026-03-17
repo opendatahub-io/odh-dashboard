@@ -5,7 +5,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -115,11 +117,8 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 
 func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, *envtest.Environment, error) {
 	if cfg.MockK8Client {
-		ctx, cancel := context.WithCancel(context.Background())
 		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
+			Ctx: context.Background(),
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to setup envtest: %w", err)
@@ -140,8 +139,22 @@ func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesCl
 
 func initMLflowFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
 	if cfg.MockHTTPClient && cfg.MLflowURL != "" {
+		parsed, err := url.Parse(cfg.MLflowURL)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid MLflow URL: %w", err)
+		}
+		host := parsed.Hostname()
+		ip := net.ParseIP(host)
+		if !cfg.DevMode || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
+			return nil, nil, fmt.Errorf("external no-auth MLflow is only allowed in dev mode for loopback hosts")
+		}
 		logger.Info("Using external MLflow (no auth)", slog.String("url", cfg.MLflowURL))
 		return mlflowmocks.NewMockClientFactory(cfg.MLflowURL), nil, nil
+	}
+
+	if cfg.MockHTTPClient && cfg.StaticMLflowMock {
+		logger.Info("Using static in-memory MLflow mock data")
+		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
 	}
 
 	if cfg.MockHTTPClient {

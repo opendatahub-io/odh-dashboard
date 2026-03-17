@@ -31,8 +31,12 @@ dev-install-dependencies: ## Install dependencies for frontend
 	cd frontend && npm install
 
 .PHONY: dev-bff-mock
-dev-bff-mock: ## Run BFF with all mocks enabled (K8s + MLflow)
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s + MLflow via uv, falls back to static)
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+
+.PHONY: dev-bff-mock-static
+dev-bff-mock-static: ## Run BFF with static in-memory mock data (no uv, no mlflow.db, no external server)
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true STATIC_MLFLOW_MOCK=true AUTH_METHOD=disabled DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF connecting to a real MLflow instance (requires .env.local with MLFLOW_URL)
@@ -54,6 +58,11 @@ dev-bff-mock-local: ## Run BFF with mocked K8s but real local MLflow
 dev-start-mock: ## Run frontend and BFF (all mocks) in development mode
 	@trap 'exit 0' INT; \
 	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start-mock-static
+dev-start-mock-static: ## Run frontend and BFF with static in-memory mock data (no uv, no mlflow.db)
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-mock-static dev-frontend
 
 .PHONY: dev-start-mock-local
 dev-start-mock-local: ## Run frontend and BFF with mocked K8s + local MLflow (started and seeded automatically by the BFF)

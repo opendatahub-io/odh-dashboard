@@ -44,6 +44,7 @@ func main() {
 
 	// MLflow configuration
 	flag.StringVar(&cfg.MLflowURL, "mlflow-url", getEnvAsString("MLFLOW_URL", ""), "MLflow tracking server URL")
+	flag.BoolVar(&cfg.StaticMLflowMock, "static-mlflow-mock", getEnvAsBool("STATIC_MLFLOW_MOCK", false), "Use static in-memory MLflow mock data (no local or remote server)")
 
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")

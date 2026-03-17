@@ -3,7 +3,6 @@ package k8mocks
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -52,10 +51,8 @@ type TestUser struct {
 
 // TestEnvInput bundles the inputs needed by SetupEnvTest.
 type TestEnvInput struct {
-	Users  []TestUser
-	Logger *slog.Logger
-	Ctx    context.Context
-	Cancel context.CancelFunc
+	Users []TestUser
+	Ctx   context.Context
 }
 
 // SetupEnvTest creates a controller-runtime envtest environment, bootstraps

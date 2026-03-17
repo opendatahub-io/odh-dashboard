@@ -51,12 +51,13 @@ make run LOG_LEVEL=DEBUG
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
 | `-mock-http-client` | `MOCK_HTTP_CLIENT` | Use mock MLflow client (static data or local MLflow) |
+| `-static-mlflow-mock` | `STATIC_MLFLOW_MOCK` | Force static in-memory mock data (skip uv/local MLflow startup) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
 | `-auth-method` | `AUTH_METHOD` | `disabled` or `user_token` (default `user_token`) |
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read bearer token from (default `Authorization`) |
-| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default `Bearer `) |
+| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default `"Bearer "`, note trailing space) |
 | `-mlflow-url` | `MLFLOW_URL` | MLflow tracking server URL |
 | `-cert-file` | | TLS certificate path (enables TLS when paired with key) |
 | `-key-file` | | TLS key path |

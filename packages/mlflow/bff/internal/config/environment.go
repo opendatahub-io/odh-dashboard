@@ -92,7 +92,8 @@ type EnvConfig struct {
 
 	// ─── MLFLOW ──────────────────────────────────────────────────
 	// MLflowURL is the base URL of the MLflow tracking server.
-	MLflowURL string
+	MLflowURL        string
+	StaticMLflowMock bool
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

@@ -33,11 +33,12 @@ func (app *App) handleMLflowClientError(w http.ResponseWriter, r *http.Request, 
 
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
+		app.LogError(r, urlErr)
 		httpError := &HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			Error: ErrorPayload{
 				Code:    "service_unavailable",
-				Message: fmt.Sprintf("MLflow server is not reachable: %s", urlErr.Err),
+				Message: "MLflow server is not reachable",
 			},
 		}
 		app.errorResponse(w, r, httpError)
@@ -70,10 +71,12 @@ func (app *App) mapMLflowAPIErrorToHTTPError(apiErr *sdkmlflow.APIError) *HTTPEr
 		message = apiErr.Message
 	} else if statusCode >= 500 {
 		code = "service_unavailable"
-		message = fmt.Sprintf("MLflow server error: %s", apiErr.Message)
+		app.logger.Error("MLflow upstream error", "statusCode", statusCode, "error", apiErr.Message)
+		message = "MLflow server error"
 	} else {
 		code = "mlflow_error"
-		message = fmt.Sprintf("MLflow error (HTTP %d): %s", statusCode, apiErr.Message)
+		app.logger.Error("MLflow unexpected status", "statusCode", statusCode, "error", apiErr.Message)
+		message = fmt.Sprintf("MLflow request failed (HTTP %d)", statusCode)
 		statusCode = http.StatusBadGateway
 	}
 

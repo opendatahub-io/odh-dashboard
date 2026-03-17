@@ -132,7 +132,7 @@ func TestRequireValidIdentitySuccess(t *testing.T) {
 	k8sMock := &mockK8sFactory{}
 	app := newTestAppWithFactories(nil, k8sMock)
 
-	identity := &k8s.RequestIdentity{Token: "my-token"}
+	identity := &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")}
 	k8sMock.On("ValidateRequestIdentity", identity).Return(nil)
 
 	var called bool
@@ -212,7 +212,7 @@ func TestAttachMLflowClientWithIdentityToken(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
 	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
@@ -276,7 +276,7 @@ func TestAttachMLflowClientMLflowNotConfigured(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: "some-token"})
+	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("some-token")})
 	rr := httptest.NewRecorder()
 
 	handler(rr, req, nil)
@@ -301,7 +301,7 @@ func TestAttachMLflowClientFactoryError(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
 	req = withWorkspace(req, "ns")
 	rr := httptest.NewRecorder()
 
@@ -324,7 +324,7 @@ func TestAttachMLflowClientWorkspaceFromContext(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
-	req = withIdentity(req, &k8s.RequestIdentity{Token: "my-token"})
+	req = withIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("my-token")})
 	req = withWorkspace(req, "workspace-from-ctx")
 	rr := httptest.NewRecorder()
 

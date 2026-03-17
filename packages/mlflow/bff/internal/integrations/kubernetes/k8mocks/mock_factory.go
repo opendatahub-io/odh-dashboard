@@ -75,7 +75,7 @@ func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header
 		if len(DefaultTestUsers) > 0 {
 			token = DefaultTestUsers[0].Token
 		}
-		return &k8s.RequestIdentity{Token: token}, nil
+		return &k8s.RequestIdentity{Token: k8s.NewBearerToken(token)}, nil
 	}
 	return id, nil
 }
@@ -93,19 +93,19 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	}
 
 	identity, ok := val.(*k8s.RequestIdentity)
-	if !ok || identity.Token == "" {
+	if !ok || identity.Token.Raw() == "" {
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
 	f.initLock.Lock()
 	defer f.initLock.Unlock()
 
-	if client, exists := f.clients[identity.Token]; exists {
+	if client, exists := f.clients[identity.Token.Raw()]; exists {
 		return client, nil
 	}
 
 	// Map token to test user identity
-	user := findTestUserByToken(identity.Token)
+	user := findTestUserByToken(identity.Token.Raw())
 	if user == nil {
 		return nil, fmt.Errorf("unknown test token: %s", identity.Token)
 	}
@@ -124,7 +124,7 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	}
 
 	client := newMockedTokenKubernetesClientFromClientset(clientset, f.logger)
-	f.clients[identity.Token] = client
+	f.clients[identity.Token.Raw()] = client
 	return client, nil
 }
 

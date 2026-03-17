@@ -162,6 +162,22 @@ func TestListExperimentsHandlerNegativeMaxResults(t *testing.T) {
 	assert.Contains(t, errResp.Error.Message, "maxResults must be a positive integer")
 }
 
+func TestListExperimentsHandlerZeroMaxResults(t *testing.T) {
+	app := newTestAppWithRepos()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments?maxResults=0", nil)
+	req = requestWithMLflowClient(req, &mlflowpkg.MockClient{})
+	rr := httptest.NewRecorder()
+
+	app.MLflowListExperimentsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Contains(t, errResp.Error.Message, "maxResults must be a positive integer")
+}
+
 func TestListExperimentsHandlerClientError(t *testing.T) {
 	app := newTestAppWithRepos()
 	mockClient := &mlflowpkg.MockClient{}

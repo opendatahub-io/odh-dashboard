@@ -63,11 +63,16 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		return next
 	}
 
+	allowedHeaders := []string{"Content-Type", "Authorization", "X-Forwarded-Access-Token"}
+	if h := app.config.AuthTokenHeader; h != "" && h != "Authorization" && h != "X-Forwarded-Access-Token" {
+		allowedHeaders = append(allowedHeaders, h)
+	}
+
 	c := cors.New(cors.Options{
 		AllowedOrigins:     app.config.AllowedOrigins,
 		AllowCredentials:   true,
 		AllowedMethods:     []string{"GET", "PUT", "POST", "PATCH", "DELETE"},
-		AllowedHeaders:     []string{"Authorization", "X-Forwarded-Access-Token"},
+		AllowedHeaders:     allowedHeaders,
 		Debug:              app.config.LogLevel == slog.LevelDebug,
 		OptionsPassthrough: false,
 	})
@@ -143,7 +148,7 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 				return
 			}
-			token = identity.Token
+			token = identity.Token.Raw()
 		}
 
 		workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)

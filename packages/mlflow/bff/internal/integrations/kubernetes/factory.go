@@ -66,7 +66,7 @@ func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*Re
 	}
 
 	return &RequestIdentity{
-		Token: strings.TrimSpace(token),
+		Token: NewBearerToken(strings.TrimSpace(token)),
 	}, nil
 }
 
@@ -76,7 +76,7 @@ func (f *TokenClientFactory) ValidateRequestIdentity(identity *RequestIdentity) 
 		return errors.New("missing identity")
 	}
 
-	if identity.Token == "" {
+	if identity.Token.Raw() == "" {
 		return errors.New("token is required for token-based authentication")
 	}
 
@@ -90,9 +90,9 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 	}
 
 	identity, ok := identityVal.(*RequestIdentity)
-	if !ok || identity.Token == "" {
+	if !ok || identity.Token.Raw() == "" {
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
-	return f.NewTokenKubernetesClientFn(identity.Token, f.Logger)
+	return f.NewTokenKubernetesClientFn(identity.Token.Raw(), f.Logger)
 }
