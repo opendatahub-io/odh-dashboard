@@ -21,4 +21,9 @@ const (
 	SubscriptionCreatePath   = ApiPathPrefix + "/new-subscription"
 	SubscriptionUpdatePath   = ApiPathPrefix + "/update-subscription/:name"
 	SubscriptionDeletePath   = ApiPathPrefix + "/subscription/:name"
+
+	// MaaSModelRef routes
+	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
+	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:name"
+	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:name"
 )

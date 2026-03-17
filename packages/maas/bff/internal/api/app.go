@@ -180,6 +180,7 @@ func (app *App) Routes() http.Handler {
 	attachTierHandlers(apiRouter, app)
 	attachAPIKeyHandlers(apiRouter, app)
 	attachSubscriptionHandlers(apiRouter, app)
+	attachMaaSModelRefHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
