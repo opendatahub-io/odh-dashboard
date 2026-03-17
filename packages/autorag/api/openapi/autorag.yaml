@@ -232,6 +232,8 @@ paths:
     get:
       operationId: getS3Files
       summary: Get files from S3
+      # TODO [ PR-Feedback: AI ] The second sentence below is copy-pasted from /s3/file — this
+      #   endpoint lists files, it doesn't "retrieve an arbitrary file". Remove the contradictory line.
       description: >-
         Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
         Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.

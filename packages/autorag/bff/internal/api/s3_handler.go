@@ -43,6 +43,10 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// TODO [ PR-Feedback: AI ] Inconsistent naming: this handler uses "secretName" (camelCase)
+	//   but GetS3FilesHandler/validateParameters uses "secret_name" (snake_case). Pick one
+	//   convention for all S3 endpoints. Also: unlike the LSD models endpoint, there is no
+	//   DNS-1123 validation on the secret name here.
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
@@ -89,6 +93,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			}
 		}
 
+		// TODO [ PR-Feedback: AI ] strings.Contains on err.Error() is fragile — if upstream error
+	//   messages change wording, these checks silently break. Define typed/sentinel errors in the
+	//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
 		// Check if it's a secret not found or validation error
 		if strings.Contains(err.Error(), "not found") {
 			httpError := &integrations.HTTPError{
@@ -193,6 +200,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
+	// TODO [ PR-Feedback: AI ] No DNS-1123 validation on secret_name. The LSD models endpoint
+	//   validates secretName with isValidDNS1123Label — the S3 endpoints should do the same,
+	//   otherwise K8s returns ugly API errors instead of a clean 400.
 	secretName := parameters.SecretName
 	bucket := parameters.Bucket
 

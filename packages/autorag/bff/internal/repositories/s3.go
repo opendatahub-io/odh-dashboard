@@ -216,11 +216,18 @@ func (r *S3Repository) GetS3Objects(
 	if err != nil {
 		var noBucket *types.NoSuchBucket
 		if errors.As(err, &noBucket) {
+			// TODO [ PR-Feedback: AI ] Use the app's structured slog.Logger instead of log.Printf.
+			//   S3Repository doesn't have a logger — either inject one via NewS3Repository or
+			//   return the error and let the handler log it. log.Printf produces unstructured output.
 			log.Printf("Bucket %s does not exist.\n", bucket)
 			err = noBucket
 		}
 		return nil, err
 	}
+
+	// TODO [ PR-Feedback: AI ] IsTruncated, KeyCount, MaxKeys are dereferenced without nil checks,
+	//   but all other pointer fields below have nil guards. Either be consistent (add nil checks
+	//   here too) or drop the nil checks on the others since the SDK populates them.
 
 	// Map SDK output to our own response type
 	result := &S3ListObjectsResponse{
