@@ -2,10 +2,10 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for multiple AutoML pipeline types. The API supports both **tabular classification** and **timeseries forecasting** pipelines, each with their own parameter schemas. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace.
+The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for multiple AutoML pipeline types. The API supports both **tabular (binary, multiclass, regression)** and **timeseries forecasting** pipelines, each with their own parameter schemas. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace.
 
 **Key Features:**
-- **Multi-Pipeline Support:** Unified API for both tabular (classification) and timeseries (forecasting) AutoML pipelines
+- **Multi-Pipeline Support:** Unified API for both tabular (binary, multiclass, regression) and timeseries (forecasting) AutoML pipelines
 - **Auto-Discovery:** Automatically discovers and manages multiple pipeline types in a namespace
 - **Type-Safe Schemas:** Discriminated union request bodies based on `pipelineType` query parameter
 - **Merged Results:** List endpoint returns runs from all discovered pipeline types, sorted by creation time
@@ -29,8 +29,8 @@ The API provides three endpoints:
 
 The API supports two types of AutoML pipelines:
 
-### Tabular Classification & Regression (`pipelineType=tabular`)
-Used for classification and regression tasks on tabular/structured data.
+### Tabular (Binary, Multiclass, Regression) (`pipelineType=tabular`)
+Used for binary classification, multiclass classification, and regression tasks on tabular/structured data.
 
 **Use Cases:**
 - Binary classification (e.g., credit default prediction, fraud detection)
@@ -392,7 +392,7 @@ The request body schema varies based on the `pipelineType` query parameter. The 
 
 #### Tabular Pipeline Fields (`pipelineType=tabular`)
 
-Additional required fields for tabular classification and regression pipelines:
+Additional required fields for tabular (binary, multiclass, regression) pipelines:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -420,20 +420,38 @@ Additional required fields for timeseries forecasting pipelines:
 
 ### Request Examples
 
-#### Tabular Classification Pipeline
+#### Tabular Binary Classification Pipeline
 
 ```bash
 curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=tabular" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "display_name": "Credit Risk Classification",
+    "display_name": "Credit Risk Binary Classification",
     "description": "Binary classification for credit default prediction",
     "train_data_secret_name": "s3-credentials",
     "train_data_bucket_name": "ml-datasets",
     "train_data_file_key": "credit/train.csv",
     "label_column": "default",
     "task_type": "binary",
+    "top_n": 5
+  }'
+```
+
+#### Tabular Multiclass Classification Pipeline
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace&pipelineType=tabular" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "Customer Segmentation",
+    "description": "Multiclass classification for customer categorization",
+    "train_data_secret_name": "s3-credentials",
+    "train_data_bucket_name": "ml-datasets",
+    "train_data_file_key": "customers/train.csv",
+    "label_column": "segment",
+    "task_type": "multiclass",
     "top_n": 5
   }'
 ```
@@ -652,7 +670,7 @@ Mock mode returns 4 sample pipeline runs covering both pipeline types:
    - Data Validation (SUCCEEDED)
    - Data Fetch (FAILED)
 
-4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed classification/regression run with 1 task:
+4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed binary/multiclass/regression run with 1 task:
    - Data Preprocessing (SUCCEEDED)
 
 Each task includes detailed information such as:
@@ -734,7 +752,7 @@ async function fetchPipelineRun(namespace, runId, token) {
   return data.data;
 }
 
-// Create a tabular classification pipeline run
+// Create a tabular pipeline run (binary, multiclass, or regression)
 async function createTabularRun(namespace, token, config) {
   const params = new URLSearchParams({
     namespace,
@@ -749,7 +767,7 @@ async function createTabularRun(namespace, token, config) {
     train_data_bucket_name: config.bucketName,
     train_data_file_key: config.fileKey,
     label_column: config.labelColumn,
-    task_type: config.taskType,  // 'binary' or 'multiclass'
+    task_type: config.taskType,  // 'binary', 'multiclass', or 'regression'
     top_n: config.topN
   };
   /* eslint-enable camelcase */

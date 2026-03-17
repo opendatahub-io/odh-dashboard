@@ -207,16 +207,27 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateAutoMLRunRequest"
             examples:
-              tabular-classification:
-                summary: Tabular classification pipeline request
+              tabular-binary:
+                summary: Tabular binary classification pipeline request
                 value:
-                  display_name: "Credit Risk Classification"
+                  display_name: "Credit Risk Binary Classification"
                   description: "Binary classification for credit default prediction"
                   train_data_secret_name: "s3-credentials"
                   train_data_bucket_name: "ml-datasets"
                   train_data_file_key: "credit/train.csv"
                   label_column: "default"
                   task_type: "binary"
+                  top_n: 5
+              tabular-multiclass:
+                summary: Tabular multiclass classification pipeline request
+                value:
+                  display_name: "Customer Segmentation"
+                  description: "Multiclass classification for customer categorization"
+                  train_data_secret_name: "s3-credentials"
+                  train_data_bucket_name: "ml-datasets"
+                  train_data_file_key: "customers/train.csv"
+                  label_column: "segment"
+                  task_type: "multiclass"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
@@ -451,7 +462,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/CreateAutoMLRunRequestBase'
         - type: object
-          description: Request body for creating a tabular AutoML pipeline run (classification or regression)
+          description: Request body for creating a tabular AutoML pipeline run (binary, multiclass, or regression)
           required:
             - label_column
             - task_type
@@ -466,7 +477,7 @@ components:
                 - binary
                 - multiclass
                 - regression
-              description: Type of task (classification or regression)
+              description: Type of task (binary classification, multiclass classification, or regression)
               example: "binary"
 
     CreateTimeSeriesRunRequest:
@@ -507,7 +518,7 @@ components:
       description: >-
         Request body for creating an AutoML pipeline run. The schema varies based on the
         pipelineType query parameter:
-        - tabular: Uses CreateTabularRunRequest schema for classification and regression tasks
+        - tabular: Uses CreateTabularRunRequest schema for binary, multiclass, and regression tasks
         - timeseries: Uses CreateTimeSeriesRunRequest schema for forecasting tasks
       oneOf:
         - $ref: '#/components/schemas/CreateTabularRunRequest'
@@ -591,7 +602,7 @@ components:
             - tabular
           description: >-
             Type of the AutoML pipeline that produced this run. Identifies whether
-            this is a time-series or tabular (classification/regression) pipeline run.
+            this is a time-series or tabular (binary/multiclass/regression) pipeline run.
           example: "timeseries"
 
     PipelineVersionReference:
