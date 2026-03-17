@@ -95,6 +95,9 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 	dspaStorage *models.DSPAObjectStorage,
 	identity *k8s.RequestIdentity,
 ) (*S3Credentials, error) {
+	if dspaStorage.SecretName == "" {
+		return nil, fmt.Errorf("DSPA spec missing secret name: SecretName is required")
+	}
 	if dspaStorage.EndpointURL == "" {
 		return nil, fmt.Errorf("DSPA spec missing a valid endpoint (scheme + host are required)")
 	}

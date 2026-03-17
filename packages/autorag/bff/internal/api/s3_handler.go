@@ -69,11 +69,14 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 	// Fetch credentials using the appropriate path
 	var credsErr error
+	var dspaStorage *models.DSPAObjectStorage
 	if secretName != "" {
 		// Explicit override: use conventional AWS_* field names
 		creds, credsErr = app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
-	} else if dspaStorage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && dspaStorage != nil {
+	} else if storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && storage != nil {
 		// Primary production path: use field names and endpoint from DSPA spec
+		dspaStorage = storage
+		secretName = dspaStorage.SecretName
 		creds, credsErr = app.repositories.S3.GetS3CredentialsFromDSPA(client, ctx, namespace, dspaStorage, identity)
 	} else {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required when no DSPA object storage config is available"))
@@ -127,8 +130,14 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Determine bucket: use query param if provided, otherwise use bucket from secret
+	// Determine bucket: use query param if provided, otherwise use bucket from credentials.
+	// On the DSPA path, reject any caller-supplied bucket that differs from the configured
+	// DSPA bucket to prevent bucket substitution attacks.
 	bucket := queryParams.Get("bucket")
+	if dspaStorage != nil && bucket != "" && dspaStorage.Bucket != "" && bucket != dspaStorage.Bucket {
+		app.badRequestResponse(w, r, fmt.Errorf("bucket parameter does not match the configured DSPA bucket"))
+		return
+	}
 	if bucket == "" {
 		if creds.Bucket == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
