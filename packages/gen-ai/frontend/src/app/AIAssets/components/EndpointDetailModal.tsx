@@ -18,6 +18,7 @@ import {
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { genRandomChars } from 'mod-arch-shared';
 import { AIModel } from '~/app/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 import { copyToClipboardWithTracking } from '~/app/utilities/utils';
@@ -33,7 +34,9 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
   const hasInternal = !!model.internalEndpoint;
   const isMaaS = model.model_source_type === 'maas';
 
-  const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken();
+  const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken(
+    `maas-token-${genRandomChars()}`,
+  );
 
   const handleEndpointCopy = (endpoint: string, endpointType: 'external' | 'internal') =>
     copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {

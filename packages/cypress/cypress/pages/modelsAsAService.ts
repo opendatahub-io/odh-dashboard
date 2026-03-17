@@ -452,6 +452,10 @@ class RevokeAPIKeyModal extends Modal {
     super('Revoke API key?');
   }
 
+  findRevokeAllButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Revoke keys' });
+  }
+
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('button', { name: 'Revoke' });
   }
