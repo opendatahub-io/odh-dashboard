@@ -51,6 +51,11 @@ func (m *MockS3Client) ListObjects(_ context.Context, bucket string, options s3c
 		end = totalObjects
 	}
 
+	// TODO [ PR-Feedback: AI ] M2 - Gustavo:
+	//   When totalObjects==0, pagedObjects remains nil, causing JSON serialization
+	//   to produce "Contents": null instead of "Contents": []. The real client
+	//   initializes empty slices. Initialize here to match:
+	//     pagedObjects := make([]models.S3ObjectInfo, 0)
 	var pagedObjects []models.S3ObjectInfo
 	if start < totalObjects {
 		pagedObjects = allObjects[start:end]

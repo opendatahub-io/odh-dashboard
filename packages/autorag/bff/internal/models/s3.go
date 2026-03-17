@@ -1,5 +1,12 @@
 package models
 
+// TODO [ PR-Feedback: AI ] A2 - Gustavo:
+//   JSON tags use PascalCase ("Key", "CommonPrefixes") while the rest of the BFF models use
+//   snake_case ("run_id", "display_name"). This creates an inconsistent API surface for frontend
+//   consumers. Since these are BFF-owned types (decoupled from AWS SDK), consider aligning with
+//   the project convention: "key", "last_modified", "common_prefixes", etc.
+//   This will require updating the OpenAPI spec, contract tests, and mock client accordingly.
+
 // S3ObjectInfo represents a single S3 object in the listing response.
 type S3ObjectInfo struct {
 	Key          string `json:"Key"`

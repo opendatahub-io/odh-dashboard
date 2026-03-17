@@ -385,6 +385,12 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 	}
 }
 
+// TODO [ PR-Feedback: AI ] T4 - Gustavo:
+//   Repository tests (TestS3Repository_*) below are testing repositories.S3Repository but live in
+//   the api/ package test file. In Go convention, tests should live next to the code they test.
+//   Move these to internal/repositories/s3_test.go. This also avoids the api test package
+//   importing repository internals just for testing.
+
 func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 	mockSecrets := []corev1.Secret{
 		{
@@ -1042,6 +1048,12 @@ func TestGetS3FilesHandler_NoSuchBucket(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, envelope.Error.Message, "does not exist")
 }
+
+// TODO [ PR-Feedback: AI ] T3 - Gustavo:
+//   Missing test for AccessDenied error path in GetS3FilesHandler (handler lines 227-229).
+//   Create an accessDeniedS3Client mock (similar to noSuchBucketS3Client) that returns
+//   an error implementing ErrorCode() == "AccessDenied" from ListObjects, and assert
+//   the response is 403 with a sanitized message. This is a security-relevant path.
 
 func TestGetS3FilesHandler_S3Error(t *testing.T) {
 	secret := validS3Secret("aws-secret-1", "test-namespace")

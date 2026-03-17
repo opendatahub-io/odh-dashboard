@@ -22,6 +22,14 @@ import (
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
+// TODO [ PR-Feedback: AI ] B2 - Gustavo:
+//   GetS3FileHandler and GetS3FilesHandler duplicate ~40 lines of credential resolution
+//   (identity check, namespace check, secretName validation, k8s client, getS3CredentialsFromSecret,
+//   bucket fallback). Consider extracting a helper like:
+//     func (app *App) resolveS3Client(w, r) (s3Client, bucket string, ok bool)
+//   that returns false if it already wrote an error response. This eliminates the duplication
+//   and ensures bug fixes apply to both handlers.
+
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
@@ -48,6 +56,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// TODO [ PR-Feedback: AI ] G3 - Gustavo:
+	//   Use errors.New() instead of fmt.Errorf() for static error messages (no format verbs).
+	//   fmt.Errorf is for interpolated messages. Same pattern repeated for 'key' below.
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
@@ -116,7 +127,11 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		// Check for access denied errors
+		// TODO [ PR-Feedback: AI ] G4 - Gustavo:
+		//   Use `smithy.APIError` from "github.com/aws/smithy-go" instead of ad-hoc interface
+		//   assertion `interface{ ErrorCode() string }`. This is the official AWS SDK pattern
+		//   and won't silently break if the SDK changes error wrapping. Same in GetS3FilesHandler.
+		//   Example: var apiErr smithy.APIError; errors.As(err, &apiErr) && apiErr.ErrorCode() == "AccessDenied"
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", bucket, key))
@@ -220,6 +235,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	if err != nil {
 		var noBucket *types.NoSuchBucket
 		if errors.As(err, &noBucket) {
+			// TODO [ PR-Feedback: AI ] B3 - Gustavo:
+			//   err.Error() leaks the raw AWS SDK error (may contain account IDs, endpoint URLs).
+			//   Use a sanitized message like: fmt.Sprintf("bucket '%s' does not exist", bucket)
 			app.notFoundResponseWithMessage(w, r, err.Error())
 			return
 		}
@@ -243,6 +261,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
+// TODO [ PR-Feedback: AI ] B1 - Gustavo:
+//   Mixed spaces/tabs indentation in function signature. Go requires tabs.
+//   Run `gofmt -w` on this file to fix. Same issue in repositories/s3.go:25-30.
 func (app *App) getS3CredentialsFromSecret(
   ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -264,6 +285,11 @@ func (app *App) getS3CredentialsFromSecret(
 					},
 				}
 			}
+			// TODO [ PR-Feedback: AI ] S1 - Gustavo:
+			//   err.Error() passes the raw K8s error message to the client, which may contain
+			//   internal cluster details (service account names, API server URLs, etc.).
+			//   Use a sanitized message like:
+			//     fmt.Sprintf("access to secret '%s' in namespace '%s' is forbidden", secretName, namespace)
 			if apierrors.IsForbidden(statusErr) {
 				return nil, &integrations.HTTPError{
 					StatusCode: http.StatusForbidden,
@@ -337,6 +363,9 @@ func validateParameters(r *http.Request) (*s3FilesParams, error) {
 		return nil, errors.New("query parameter 'path' must be a non-empty string if provided")
 	}
 
+	// TODO [ PR-Feedback: AI ] S2 - Gustavo:
+	//   No max length validation on 'search' or 'path' query params. Very long strings
+	//   are passed directly to S3 as prefix. Consider a max length check (e.g., 1024 chars).
 	search := queryParams.Get("search")
 	if search != "" && strings.Contains(search, "/") {
 		return nil, errors.New("query parameter 'search' must not contain '/' characters")

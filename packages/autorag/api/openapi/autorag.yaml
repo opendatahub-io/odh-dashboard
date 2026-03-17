@@ -235,7 +235,8 @@ paths:
       summary: Get files from S3
       description: >-
         Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
-        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key, aws_region_name, endpoint_url).
+        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        # TODO [ PR-Feedback: AI ] O1 - Gustavo: Original key names were wrong (aws_region_name, endpoint_url). Updated to match actual code.
         Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
       tags:
         - S3Operation

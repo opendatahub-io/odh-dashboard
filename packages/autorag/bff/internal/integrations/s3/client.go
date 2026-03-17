@@ -63,6 +63,13 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	// Create transfer manager for optimized downloads
 	transferClient := transfermanager.New(c.s3Client)
 
+	// TODO [ PR-Feedback: AI ] A1 - Gustavo:
+	//   Transfer manager tuning is hardcoded. 10 concurrency * 64MB parts = up to 640MB memory
+	//   per download. With multiple concurrent requests, this could cause memory pressure.
+	//   Consider lower defaults (e.g., Concurrency=3, PartSizeBytes=8MB) or making them configurable.
+	//   Also consider whether transfer manager is needed at all — for streaming to HTTP responses,
+	//   a simple s3Client.GetObject() may be simpler and use less memory.
+
 	// Get the object using transfer manager
 	// This automatically handles multipart downloads for large files with concurrency
 	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
@@ -117,6 +124,12 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 		return nil, err
 	}
 
+	// TODO [ PR-Feedback: AI ] G5 - Gustavo:
+	//   Use aws.ToString/aws.ToBool/aws.ToInt32 helpers instead of manual nil checks.
+	//   You already use aws.ToInt64(obj.Size) below — be consistent. Example:
+	//     result.Name = aws.ToString(output.Name)
+	//     result.IsTruncated = aws.ToBool(output.IsTruncated)
+	//     result.MaxKeys = aws.ToInt32(output.MaxKeys)
 	result := &models.S3ListObjectsResponse{
 		CommonPrefixes: []models.S3CommonPrefix{},
 		Contents:       []models.S3ObjectInfo{},
@@ -162,6 +175,9 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 			info.Key = *obj.Key
 		}
 		if obj.LastModified != nil {
+			// TODO [ PR-Feedback: AI ] G6 - Gustavo:
+			//   Use time.RFC3339 instead of hardcoded format string — they are equivalent
+			//   and time.RFC3339 is self-documenting.
 			info.LastModified = obj.LastModified.Format("2006-01-02T15:04:05Z")
 		}
 		if obj.ETag != nil {
