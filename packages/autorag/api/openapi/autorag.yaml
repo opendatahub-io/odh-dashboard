@@ -267,7 +267,7 @@ paths:
           description: the S3-like folder path to search within.
           schema:
             type: string
-          example: /folder1/folder2/folder3
+          example: folder1/folder2/folder3
         - name: search
           in: query
           required: false
