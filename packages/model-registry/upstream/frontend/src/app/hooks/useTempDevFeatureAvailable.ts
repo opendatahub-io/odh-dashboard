@@ -4,7 +4,6 @@
  * This hook provides a browser storage-backed feature flag that can be toggled
  * via the browser console using:
  *     window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable(true/false);
- *     window.setTempDevRegistryStorageFeatureAvailable(true/false);
  * The state persists across page reloads using browser storage.
  *
  * Each TempDevFeature and corresponding window.set* here should be removed once that feature is ready.
@@ -20,13 +19,11 @@ import { useOdhDevFeatureFlagOverrides } from '~/odh/extension-points';
 declare global {
   interface Window {
     setTempDevCatalogHuggingFaceApiKeyFeatureAvailable?: (enabled: boolean) => void;
-    setTempDevRegistryStorageFeatureAvailable?: (enabled: boolean) => void;
   }
 }
 
 export enum TempDevFeature {
   CatalogHuggingFaceApiKey = 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  RegistryStorage = 'tempDevRegistryStorageFeatureAvailable',
 }
 
 export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => {
@@ -36,16 +33,8 @@ export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => 
   const overrides = useOdhDevFeatureFlagOverrides();
   const contextOverride = overrides?.[feature];
 
-  // Expose setter to window for easy toggling via browser console
   React.useEffect(() => {
-    switch (feature) {
-      case TempDevFeature.CatalogHuggingFaceApiKey:
-        window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable = setIsAvailable;
-        break;
-      case TempDevFeature.RegistryStorage:
-        window.setTempDevRegistryStorageFeatureAvailable = setIsAvailable;
-        break;
-    }
+    window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable = setIsAvailable;
   }, [feature, setIsAvailable]);
 
   // Context override takes precedence, then localStorage
