@@ -487,6 +487,7 @@ describe('RayJob status column', () => {
   });
 
   it('should show Queued status for a waiting RayJob', () => {
+    trainingJobTable.filterByName('ray-queued-job');
     trainingJobTable.getTableRow('ray-queued-job').findStatus().should('contain', 'Queued');
   });
 
