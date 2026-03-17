@@ -95,7 +95,8 @@ When a hostname is provided (not an IP address), the endpoint validator:
 
 1. **Resolves the hostname** to its IP addresses using `net.LookupIP`
 2. **Validates all resolved IPs** against the blocked ranges
-3. **Allows unresolvable hostnames** with a warning (they may resolve in a different network at runtime)
+3. **Rejects unresolvable hostnames** for security (fail-closed approach)
+4. **Revalidates on every request** to prevent DNS rebinding attacks
 
 **Example**:
 ```
@@ -104,14 +105,35 @@ Resolves to: 192.168.1.10
 Result: ❌ Blocked - resolves to private IP
 ```
 
-**Error Message**: `endpoint hostname '<hostname>' resolves to blocked IP <ip>: <error>`
+**Error Messages**:
+- `endpoint hostname '<hostname>' resolves to blocked IP <ip>: <error>`
+- `endpoint hostname '<hostname>' cannot be resolved: <error> (this may indicate a DNS rebinding attempt or misconfiguration)`
 
-**Warning Log**: If a hostname cannot be resolved at validation time, a warning is logged:
+**Production Mode (Default)**: If a hostname cannot be resolved at validation time, an error is logged and the request is rejected:
 ```
-Unable to resolve S3 endpoint hostname, allowing it to proceed
+Production mode: treat DNS resolution failure as a security error
 ```
 
-This allows for environments where DNS resolution may differ between validation and runtime.
+**Testing/Development Mode**: Set the environment variable `ALLOW_UNRESOLVED_S3_ENDPOINTS=true` to permit unresolvable hostnames with a warning:
+```
+Unable to resolve S3 endpoint hostname, allowing it to proceed (ALLOW_UNRESOLVED_S3_ENDPOINTS=true)
+```
+
+**⚠️ Security Warning**: The `ALLOW_UNRESOLVED_S3_ENDPOINTS` environment variable should **NEVER** be enabled in production environments. It exists solely for testing scenarios where DNS may not be available during development.
+
+This fail-closed approach ensures that DNS resolution failures do not bypass SSRF protection by default. Endpoints are revalidated on every S3 operation to protect against DNS rebinding attacks where a hostname's IP address changes between validation and use.
+
+### Mock S3 Client Production Guard
+
+The mock S3 client (`MockS3Repository`) intentionally skips SSRF validation for testing purposes. To prevent accidental use in production:
+
+**Production Guard**: The server validates during startup that `MockS3Client` can only be enabled when running in development mode (`-dev-mode` flag). Attempting to enable `MockS3Client` without `-dev-mode` will cause the server to abort with an error:
+
+```
+mock-s3-client can only be enabled in development mode (set -dev-mode flag)
+```
+
+This ensures that SSRF protections cannot be bypassed in production deployments, while still allowing tests to use the mock implementation.
 
 ## Implementation Details
 
@@ -132,14 +154,24 @@ func validateIPAddress(ip net.IP) error
 
 ### Where Validation Occurs
 
-The validation is applied in:
+The validation is applied at multiple points for defense in depth:
 
 1. **`GetS3Credentials()`** in `s3.go`
    - Called when retrieving credentials from Kubernetes secrets
    - Validates and normalizes the `AWS_S3_ENDPOINT` value
    - Returns error if endpoint is invalid
 
-2. **`GetS3Credentials()`** in `s3_mock.go`
+2. **`GetS3Object()`** in `s3.go`
+   - Revalidates the endpoint before each S3 download operation
+   - Protects against DNS rebinding attacks
+   - Returns error if endpoint validation fails
+
+3. **`GetS3CSVSchema()`** in `s3.go`
+   - Revalidates the endpoint before each CSV schema inspection
+   - Protects against DNS rebinding attacks
+   - Returns error if endpoint validation fails
+
+4. **`GetS3Credentials()`** in `s3_mock.go`
    - Mock implementation skips SSRF validation
    - Stores endpoint as-is for test fixtures
    - Tests can verify validation in the real implementation
@@ -148,11 +180,17 @@ The validation is applied in:
 
 When validation fails, the error is wrapped with context:
 
+**At secret retrieval**:
 ```
 secret '<secret-name>' has invalid AWS_S3_ENDPOINT: <validation-error>
 ```
 
-This provides clear feedback about which secret has an invalid endpoint and what the specific validation failure is.
+**At per-request validation**:
+```
+endpoint validation failed: <validation-error>
+```
+
+This provides clear feedback about which secret has an invalid endpoint and what the specific validation failure is. Per-request validation ensures endpoints are revalidated even if DNS records change after initial secret validation.
 
 ## Secret Requirements
 
@@ -194,10 +232,10 @@ https://objects.cloud-provider.com
 ### Important Notes
 
 - ✅ **Always use HTTPS** - HTTP endpoints are rejected
-- ✅ **Use public hostnames or IPs** - Private/internal IPs are blocked
+- ✅ **Use externally resolvable hostnames** - Hostnames that resolve to public IPs or use secure access patterns (VPN, VPC peering, Private Link, Service Mesh)
 - ✅ **Include port if non-standard** - e.g., `:9000` for MinIO
-- ❌ **Never use private IPs** - Even for internal MinIO/S3 services
-- ❌ **Never use localhost** - Use external hostname instead
+- ⚠️ **Private IPs are blocked by SSRF protection** - For internal MinIO/S3 services, use Service Mesh/Network Policies, VPN, VPC peering, Private Link, or a secured API gateway (see Migration Guide)
+- ❌ **Never use localhost or loopback addresses** - These are always blocked
 
 ## Security Rationale
 
@@ -262,16 +300,25 @@ kubectl patch secret my-s3-secret -n my-namespace \
 
 **Problem**: Endpoint uses a private IP address.
 
-**Solution**: Use a public hostname or IP. For internal MinIO/S3 services, ensure they're accessible via a public hostname or configure network routing appropriately.
+**Solution**: Do NOT expose internal S3 services publicly. Instead, implement secure access:
+- **For cluster-internal services**: Use Service Mesh or Network Policies to allow BFF pods to access specific internal S3 endpoints
+- **For external services**: Use VPN, VPC peering, or Private Link for secure connectivity
+- **If a gateway is required**: Deploy a secured API gateway/bastion with strict authentication, IP allowlists, TLS, and RBAC
+- See Migration Guide for detailed alternatives
 
 ### "endpoint hostname resolves to blocked IP"
 
 **Problem**: Hostname resolves to a private/blocked IP address.
 
-**Solution**: The hostname DNS record points to an internal IP. Either:
-- Use a different hostname that resolves to a public IP
-- Update DNS to point to a public IP
-- Deploy S3 service with a publicly accessible endpoint
+**Solution**: The hostname DNS record points to an internal IP. Use secure access patterns:
+- **For cluster-internal services**: Configure Service Mesh or Network Policies to allow BFF pods to access the internal S3 service
+- **For external services**: Implement VPN, VPC peering, or Private Link (AWS PrivateLink, Azure Private Link) for secure private connectivity
+- **If a gateway is required**: Deploy a secured API gateway/bastion with:
+  - Strong authentication (mutual TLS, OAuth2, API keys)
+  - IP allowlists restricting access to known clients
+  - TLS encryption and credential rotation
+  - RBAC and request validation
+- See Migration Guide for detailed secure alternatives
 
 ### "invalid endpoint URL format"
 
@@ -287,15 +334,33 @@ kubectl patch secret my-s3-secret -n my-namespace \
 If you have existing secrets with endpoints that are now blocked:
 
 1. **Internal MinIO/S3 Services**:
-   - Expose via a public hostname or IP
-   - Update ingress/routing to make service publicly accessible
-   - Update secret with new public endpoint URL
+
+   ⚠️ **Do not expose internal services publicly to bypass SSRF protection.**
+
+   Instead, use one of these safer alternatives:
+
+   - **Service Mesh / Network Policy Exceptions** (Recommended for production):
+     - Configure service mesh or network policies to allow BFF pods to access specific internal S3 endpoints
+     - Maintain SSRF protection while allowing trusted cluster-internal communication
+     - Example: Create NetworkPolicy allowing traffic from automl-bff namespace to minio-service namespace
+
+   - **Cluster-Local Validation Mode** (If implementing custom validation):
+     - Add an opt-in flag to allow RFC-1918 addresses only for specific namespaces
+     - Require additional validation (e.g., TLS certificate verification, namespace-scoped allowlists)
+     - Document the security trade-offs clearly
+
+   - **Known Limitation** (Current state):
+     - Cluster-internal S3 services using private IPs are blocked by design
+     - This is an intentional security measure to prevent SSRF attacks
+     - For cluster-internal deployments, this represents a trade-off between SSRF protection and internal service accessibility
+     - Consider using external object storage or implementing one of the safer alternatives above
 
 2. **AWS S3**:
    - Should already use `https://` and public endpoints
    - No changes needed
 
 3. **Testing/Development**:
-   - Use public cloud storage services
-   - Deploy MinIO with public access
-   - Avoid localhost/private IP configurations
+   - **Recommended**: Use public cloud storage services (AWS S3, Google Cloud Storage, Azure Blob Storage)
+   - **For internal testing**: Use VPN or port forwarding to securely access internal MinIO instances, or configure Service Mesh for cluster-internal access
+   - **Never** deploy MinIO with unrestricted public access - always enforce authentication, TLS, and network controls
+   - Avoid localhost/private IP configurations in production secrets
