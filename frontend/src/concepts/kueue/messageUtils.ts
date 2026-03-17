@@ -33,10 +33,7 @@ export const getHumanReadableKueueMessage = (
 };
 
 const getQueuedMessage = (rawMessage: string | undefined, queue: string): string => {
-  if (!rawMessage) {
-    return `Waiting for quota in ${queue}`;
-  }
-  if (QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage)) {
+  if (!rawMessage || QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage)) {
     return `Waiting for quota in ${queue}`;
   }
   return `Waiting for available resources`;
@@ -77,8 +74,10 @@ const getInadmissibleMessage = (rawMessage: string | undefined, queue: string): 
 export const getPreemptionToastBody = (workbenchName: string, timestamp?: string): string => {
   if (timestamp) {
     const date = new Date(timestamp);
-    const formatted = date.toLocaleString();
-    return `Workbench ${workbenchName} was preempted at ${formatted} by a higher-priority job and has been re-queued.`;
+    if (!Number.isNaN(date.getTime())) {
+      const formatted = date.toLocaleString();
+      return `Workbench ${workbenchName} was preempted at ${formatted} by a higher-priority job and has been re-queued.`;
+    }
   }
   return `Workbench ${workbenchName} was preempted by a higher-priority job and has been re-queued.`;
 };

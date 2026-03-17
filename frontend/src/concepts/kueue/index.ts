@@ -13,6 +13,8 @@ import {
   type KueueWorkloadStatusWithMessage,
 } from './types';
 
+export const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
+
 const CONDITION_STATUS = { True: 'True', False: 'False' } as const;
 const CONDITION_TYPE = {
   Finished: 'Finished',

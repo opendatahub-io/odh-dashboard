@@ -3,7 +3,7 @@ import { ProjectKind } from '#~/k8sTypes';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import { buildWorkloadMapForNotebooks, useWatchWorkloads } from '#~/api/k8s/workloads';
-import { getKueueWorkloadStatusWithMessage } from '#~/concepts/kueue/index';
+import { getKueueWorkloadStatusWithMessage, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { NotebookState } from './types';
 
 export type KueueStatusForNotebooksResult = {
@@ -31,11 +31,12 @@ export const useKueueStatusForNotebooks = (
 
   const [workloads, loaded, watchError] = useWatchWorkloads(useKueue ? namespace : undefined);
 
-  const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
-
   const kueueStatusByNotebookName = React.useMemo(() => {
     if (!useKueue) return {};
     const workloadMap = buildWorkloadMapForNotebooks(workloads, notebooks);
+    const notebookByName = new Map(
+      notebooks.filter((nb) => nb.metadata.name).map((nb) => [nb.metadata.name, nb]),
+    );
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
     for (const [name, workload] of Object.entries(workloadMap)) {
       if (!workload) {
@@ -43,7 +44,7 @@ export const useKueueStatusForNotebooks = (
         continue;
       }
       const statusWithMessage = getKueueWorkloadStatusWithMessage(workload);
-      const notebook = notebooks.find((nb) => nb.metadata.name === name);
+      const notebook = notebookByName.get(name);
       statusMap[name] = {
         ...statusWithMessage,
         queueName: notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL],
