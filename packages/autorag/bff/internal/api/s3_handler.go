@@ -13,6 +13,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
+	// TODO [ PR-Feedback: AI ] Duplicate import — "kubernetes" is imported twice (bare + aliased as k8s). Pick one.
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
@@ -49,6 +50,8 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// TODO [ PR-Feedback: AI ] S2: Inconsistent error message — this says "is required and cannot be empty"
+	//   but validateParameters (line 329) says just "is required". Consolidate for a uniform API surface.
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
@@ -206,6 +209,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
+	// TODO [ PR-Feedback: AI ] A new AWS S3 client is created on every request. The AWS SDK client
+	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
+	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	// Create S3 client and list objects
 	s3Client := app.s3ClientFactory.CreateClient(creds)
 	result, err := s3Client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
@@ -221,6 +227,10 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 			return
 		}
 
+		// TODO [ PR-Feedback: AI ] Missing AccessDenied handling for ListObjects — GetS3FileHandler
+		//   checks for AccessDenied on GetObject (line 121), but ListObjects doesn't. If S3 creds
+		//   lack ListBucket permission, user gets a generic 500 instead of 403.
+
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -234,6 +244,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
+// TODO [ PR-Feedback: AI ] ctx context.Context must be the first parameter per Go convention.
+//   Change signature to: (ctx context.Context, client k8s.KubernetesClientInterface, namespace string, ...)
+//   Same issue in repositories/s3.go GetS3Credentials.
 func (app *App) getS3CredentialsFromSecret(
 	client k8s.KubernetesClientInterface,
 	ctx context.Context,
@@ -301,6 +314,8 @@ func (app *App) getS3CredentialsFromSecret(
 	return creds, nil
 }
 
+// TODO [ PR-Feedback: AI ] S3: Struct name starts with a verb ("get") which Go convention
+//   reserves for functions. Consider renaming to s3FilesParams or listS3FilesParams.
 type getS3FilesParams struct {
 	SecretName string
 	Bucket     string
@@ -338,6 +353,8 @@ func validateParameters(r *http.Request) (*getS3FilesParams, error) {
 		return nil, errors.New("query parameter 'next' must be a non-empty string if provided")
 	}
 
+	// TODO [ PR-Feedback: AI ] S6: Magic number 1000 appears here and in the range check below.
+	//   Extract to a named constant (e.g. const defaultS3ListLimit int32 = 1000).
 	var limit int32 = 1000
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		parsed, err := strconv.ParseInt(limitStr, 10, 32)

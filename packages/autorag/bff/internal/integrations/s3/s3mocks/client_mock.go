@@ -167,14 +167,16 @@ func applySearch(
 	}
 	fullPrefix := path + search
 
-	var filteredObjects []models.S3ObjectInfo
+	// TODO [ PR-Feedback: AI ] Initialize as empty slices so JSON serializes to [] instead of null
+	filteredObjects := make([]models.S3ObjectInfo, 0)
 	for _, obj := range objects {
 		if strings.HasPrefix(obj.Key, fullPrefix) {
 			filteredObjects = append(filteredObjects, obj)
 		}
 	}
 
-	var filteredPrefixes []models.S3CommonPrefix
+	// TODO [ PR-Feedback: AI ] Initialize as empty slices so JSON serializes to [] instead of null
+	filteredPrefixes := make([]models.S3CommonPrefix, 0)
 	for _, p := range prefixes {
 		if strings.HasPrefix(p.Prefix, fullPrefix) {
 			filteredPrefixes = append(filteredPrefixes, p)

@@ -675,6 +675,11 @@ func TestGetS3FilesHandler_MissingBucket(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
+// TODO [ PR-Feedback: AI ] T1: Error-path tests only assert status codes, never the response body/message.
+//   If a test gets 400 for a *different* reason than expected (e.g. secretName missing instead of
+//   path empty), the test still passes. Add assert.Contains(t, body.Message, "path") or similar
+//   to pin down the specific validation being exercised. Applies to all error tests in this file.
+
 func TestGetS3FilesHandler_EmptyPath(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
@@ -999,6 +1004,10 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 		assert.Contains(t, body.Contents[0].Key, "run-001")
 	})
 }
+
+// TODO [ PR-Feedback: AI ] T3: No test for the NoSuchBucket error path. GetS3FilesHandler handles
+//   NoSuchBucket (errors.As) and returns 404, but there's no unit test covering it.
+//   Add a test with a mock S3 client that returns &types.NoSuchBucket{} and assert 404.
 
 func TestGetS3FilesHandler_S3Error(t *testing.T) {
 	secret := validS3Secret("aws-secret-1", "test-namespace")
