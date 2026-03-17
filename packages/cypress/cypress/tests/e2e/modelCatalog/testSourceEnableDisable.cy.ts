@@ -56,11 +56,14 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       cy.step(`Disable the ${testData.sourceName} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
 
+      cy.step('Verify first source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+
       cy.step(`Disable the ${testData.sourceName2} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
 
-      cy.step('Verify configmap shows source as disabled');
-      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+      cy.step('Verify second source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
 
       cy.step('Navigate to catalog');
       modelCatalog.visit();
