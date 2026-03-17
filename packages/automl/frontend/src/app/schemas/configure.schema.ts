@@ -9,21 +9,34 @@ export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
 export const TASK_TYPE_BINARY = 'binary';
 export const TASK_TYPE_MULTICLASS = 'multiclass';
 export const TASK_TYPE_REGRESSION = 'regression';
+export const TASK_TYPE_TIMESERIES = 'timeseries';
 
-const TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
+const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
+export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;
 
 function getBaseSchema() {
   return z.object({
+    // Common fields
+    task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
     train_data_secret_name: z.string().min(1).default(''),
     train_data_bucket_name: z.string().min(1).default(''),
     train_data_file_key: z.string().min(1).default(''),
-    task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
-    label_column: z.string().min(1).default(''),
     top_n: z
       .number()
       .min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`)
       .max(MAX_TOP_N, `Maximum number of top models is ${MAX_TOP_N}`)
       .default(3),
+
+    // Tabular-specific fields (optional at base level, validated conditionally)
+    label_column: z.string().default('').optional(),
+
+    // Timeseries-specific fields (optional at base level, validated conditionally)
+    // task_type will be deleted by transformer before submission for timeseries
+    target: z.string().default('').optional(),
+    id_column: z.string().default('').optional(),
+    timestamp_column: z.string().default('').optional(),
+    prediction_length: z.number().min(1).default(1).optional(),
+    known_covariates_names: z.array(z.string()).default([]).optional(),
   });
 }
 
@@ -31,10 +44,11 @@ function getBaseSchema() {
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createConfigureSchema() {
   return getBaseSchema()
-    .superRefine((data, { addIssue }) => {
+    .superRefine((data, ctx) => {
+      // Apply other validators
       for (const validate of VALIDATORS) {
         for (const issue of validate(data)) {
-          addIssue(issue);
+          ctx.addIssue(issue);
         }
       }
     })
@@ -53,6 +67,25 @@ type Transformer = (data: ConfigureSchema) => void;
 
 const VALIDATORS: Array<Validator> = [];
 
-const TRANSFORMERS: Array<Transformer> = [];
+const TRANSFORMERS: Array<Transformer> = [
+  (payload) => {
+    // Remove the task_type when POSTing a timeseries run
+    if (payload.task_type === TASK_TYPE_TIMESERIES) {
+      // Type assertion needed because task_type is required in the schema but deleted before API submission
+      // when creating a time series run
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions, no-param-reassign
+      delete (payload as any).task_type;
+    }
+  },
+];
+
+/**
+ * Get default values for the configure form.
+ * Automatically applies all schema defaults.
+ */
+export function getDefaultValues(): ConfigureSchema {
+  const schema = createConfigureSchema();
+  return schema.parse({});
+}
 
 export default createConfigureSchema;

@@ -37,6 +37,8 @@ import createConfigureSchema, {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+  getDefaultValues,
 } from '~/app/schemas/configure.schema';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
@@ -67,6 +69,12 @@ const PREDICTION_TYPES: {
     description:
       'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
   },
+  {
+    value: TASK_TYPE_TIMESERIES,
+    label: 'Time series forecasting',
+    description:
+      'Predict future activity over a specified date/time range. Data must be structured and sequential.',
+  },
 ];
 
 const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
@@ -85,7 +93,7 @@ function AutomlConfigure(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+    defaultValues: getDefaultValues(),
   });
 
   const {
@@ -98,6 +106,8 @@ function AutomlConfigure(): React.JSX.Element {
   const trainDataSecretName = watch('train_data_secret_name');
   const trainDataBucketName = watch('train_data_bucket_name');
   const trainDataFileKey = watch('train_data_file_key');
+  const taskType = watch('task_type');
+  const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -110,7 +120,7 @@ function AutomlConfigure(): React.JSX.Element {
 
   // reset selected file values if bucket changes
   useEffect(() => {
-    setValue('train_data_file_key', undefined);
+    setValue('train_data_file_key', '');
   }, [trainDataBucketName, setValue]);
 
   return (
@@ -153,7 +163,7 @@ function AutomlConfigure(): React.JSX.Element {
                                       );
                                       setValue(
                                         'train_data_bucket_name',
-                                        bucketKey ? secret?.data[bucketKey] : undefined,
+                                        bucketKey ? secret?.data[bucketKey] || '' : '',
                                       );
                                     }}
                                     onRefreshReady={(refresh) => {
@@ -188,8 +198,8 @@ function AutomlConfigure(): React.JSX.Element {
                             <Label
                               onClose={() => {
                                 setSelectedSecret(undefined);
-                                setValue('train_data_secret_name', undefined);
-                                setValue('train_data_bucket_name', undefined);
+                                setValue('train_data_secret_name', '');
+                                setValue('train_data_bucket_name', '');
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
@@ -269,17 +279,17 @@ function AutomlConfigure(): React.JSX.Element {
 
                       <StackItem>
                         <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                          Label column
+                          {isTimeseries ? 'Target column' : 'Label column'}
                           <span className="pf-v6-u-text-color-required" aria-hidden="true">
                             {' *'}
                           </span>
                         </div>
                         <Controller
                           control={form.control}
-                          name="label_column"
+                          name={isTimeseries ? 'target' : 'label_column'}
                           render={({ field }) => (
                             <Select
-                              id="label-column-select"
+                              id={`${isTimeseries ? 'target' : 'label-column'}-select`}
                               isOpen={isLabelColumnOpen}
                               onOpenChange={setIsLabelColumnOpen}
                               onSelect={(_event, value) => {
@@ -294,7 +304,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   isExpanded={isLabelColumnOpen}
                                   isDisabled={!isFileSelected || columns.length === 0}
                                   isFullWidth
-                                  data-testid="label-column-select"
+                                  data-testid={`${isTimeseries ? 'target' : 'label_column'}-select`}
                                 >
                                   {field.value || 'Select a column'}
                                 </MenuToggle>
