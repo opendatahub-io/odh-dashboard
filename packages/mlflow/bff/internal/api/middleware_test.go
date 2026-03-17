@@ -268,12 +268,12 @@ func TestAttachMLflowClientMissingIdentityReturns500(t *testing.T) {
 
 func TestAttachMLflowClientGetClientErrors(t *testing.T) {
 	tests := []struct {
-		name           string
-		token          string
-		workspace      string
-		err            error
-		expectedStatus int
-		expectedCode   string
+		name            string
+		token           string
+		workspace       string
+		err             error
+		expectedStatus  int
+		expectedCode    string
 		messageContains string
 	}{
 		{

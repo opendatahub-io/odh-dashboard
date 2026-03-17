@@ -76,4 +76,3 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 	}
 	app.errorResponse(w, r, httpError)
 }
-
