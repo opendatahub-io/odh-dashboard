@@ -80,7 +80,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if err := repositories.ValidateCreateAutoMLRunRequest(req); err != nil {
+	if err := repositories.ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}

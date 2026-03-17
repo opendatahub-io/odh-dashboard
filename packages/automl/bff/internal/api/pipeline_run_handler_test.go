@@ -27,27 +27,51 @@ func newMinimalTestApp() *App {
 	}
 }
 
-func validCreateRequest() models.CreateAutoMLRunRequest {
+func validTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
+	labelColumn := "target"
+	taskType := "binary"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		Description:         "a test run",
 		TrainDataSecretName: "minio-secret",
 		TrainDataBucketName: "automl-bucket",
 		TrainDataFileKey:    "data/train.csv",
-		LabelColumn:         "target",
-		TaskType:            "binary",
+		LabelColumn:         &labelColumn,
+		TaskType:            &taskType,
 		TopN:                &topN,
 	}
 }
 
-func newCreateRequest(t *testing.T, body interface{}) *http.Request {
+func validTimeseriesRequest() models.CreateAutoMLRunRequest {
+	topN := 3
+	target := "temperature"
+	idColumn := "series_id"
+	timestampColumn := "timestamp"
+	predictionLength := 24
+	return models.CreateAutoMLRunRequest{
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TrainDataSecretName: "minio-secret",
+		TrainDataBucketName: "automl-bucket",
+		TrainDataFileKey:    "data/train.csv",
+		Target:              &target,
+		IDColumn:            &idColumn,
+		TimestampColumn:     &timestampColumn,
+		PredictionLength:    &predictionLength,
+		TopN:                &topN,
+	}
+}
+
+func newCreateRequest(t *testing.T, body interface{}, pipelineType string) *http.Request {
 	t.Helper()
 	b, err := json.Marshal(body)
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost,
-		"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
-		bytes.NewReader(b))
+	url := "/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa"
+	if pipelineType != "" {
+		url += "&pipelineType=" + pipelineType
+	}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	return req
@@ -80,9 +104,9 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 	app := newMinimalTestApp()
 	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 
-	t.Run("should create run with all required fields", func(t *testing.T) {
+	t.Run("should create tabular run with all required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest(), "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -99,11 +123,32 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "binary", response.Data.RuntimeConfig.Parameters["task_type"])
 	})
 
+	t.Run("should create timeseries run with all required fields", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest(), "timeseries"), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data)
+		assert.NotEmpty(t, response.Data.RunID)
+		assert.Equal(t, "test-run", response.Data.DisplayName)
+		assert.Equal(t, "PENDING", response.Data.State)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		assert.Equal(t, "temperature", response.Data.RuntimeConfig.Parameters["target"])
+		assert.Equal(t, "series_id", response.Data.RuntimeConfig.Parameters["id_column"])
+		assert.Equal(t, "timestamp", response.Data.RuntimeConfig.Parameters["timestamp_column"])
+	})
+
 	t.Run("should default top_n to 3 when not provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		body.TopN = nil
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -119,9 +164,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should accept multiclass task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "multiclass"
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		body := validTabularRequest()
+		taskType := "multiclass"
+		body.TaskType = &taskType
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -130,9 +176,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should accept regression task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "regression"
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		body := validTabularRequest()
+		taskType := "regression"
+		body.TaskType = &taskType
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -141,10 +188,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should use custom top_n when provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		topN := 5
 		body.TopN = &topN
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -165,7 +212,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	t.Run("should reject empty body", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineType=tabular",
 			bytes.NewReader([]byte("")))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -179,7 +226,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	t.Run("should reject missing required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := models.CreateAutoMLRunRequest{DisplayName: "only-name"}
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -189,9 +236,10 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject invalid task_type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "invalid_type"
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		body := validTabularRequest()
+		taskType := "invalid_type"
+		body.TaskType = &taskType
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -203,7 +251,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 		rr := httptest.NewRecorder()
 		raw := `{"display_name":"test","unknown_field":"bad"}`
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineType=tabular",
 			bytes.NewReader([]byte(raw)))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -218,7 +266,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 	t.Run("should reject malformed JSON", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineType=tabular",
 			bytes.NewReader([]byte("{invalid")))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
@@ -231,9 +279,9 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject missing display_name", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		body.DisplayName = ""
-		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+		req := withPipelineClient(newCreateRequest(t, body, "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -247,7 +295,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := newCreateRequest(t, validCreateRequest())
+		req := newCreateRequest(t, validTabularRequest(), "tabular")
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
 
@@ -259,7 +307,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		failClient := &failingPipelineServerClient{}
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), failClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest(), "tabular"), failClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -273,7 +321,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 	t.Run("should return envelope with data field", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest(), "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -289,7 +337,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 	t.Run("should include run_id, display_name, state, created_at in response", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest(), "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -302,9 +350,9 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.NotEmpty(t, response.Data.CreatedAt)
 	})
 
-	t.Run("should include runtime_config with submitted parameters", func(t *testing.T) {
+	t.Run("should include runtime_config with submitted tabular parameters", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest(), "tabular"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -320,9 +368,29 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "binary", params["task_type"])
 	})
 
-	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
+	t.Run("should include runtime_config with submitted timeseries parameters", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest(), "timeseries"), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		params := response.Data.RuntimeConfig.Parameters
+		assert.Equal(t, "minio-secret", params["train_data_secret_name"])
+		assert.Equal(t, "automl-bucket", params["train_data_bucket_name"])
+		assert.Equal(t, "data/train.csv", params["train_data_file_key"])
+		assert.Equal(t, "temperature", params["target"])
+		assert.Equal(t, "series_id", params["id_column"])
+		assert.Equal(t, "timestamp", params["timestamp_column"])
+		assert.Equal(t, float64(24), params["prediction_length"])
+	})
+
+	t.Run("should include pipeline_version_reference from discovered pipeline ID", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest(), "timeseries"), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 

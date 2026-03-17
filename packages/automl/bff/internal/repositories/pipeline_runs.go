@@ -145,9 +145,20 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 }
 
 // ValidateCreateAutoMLRunRequest checks that all required fields are present
-// and that optional enum fields have valid values.
-func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
+// and that optional enum fields have valid values based on the pipeline type.
+//
+// Common required fields (all pipeline types):
+//   - display_name, train_data_secret_name, train_data_bucket_name, train_data_file_key
+//
+// Tabular-specific required fields (pipelineType=tabular):
+//   - label_column, task_type
+//
+// Timeseries-specific required fields (pipelineType=timeseries):
+//   - target, id_column, timestamp_column
+func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) error {
 	var missing []string
+
+	// Validate common required fields
 	if req.DisplayName == "" {
 		missing = append(missing, "display_name")
 	}
@@ -160,22 +171,48 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
 	if req.TrainDataFileKey == "" {
 		missing = append(missing, "train_data_file_key")
 	}
-	if req.LabelColumn == "" {
-		missing = append(missing, "label_column")
+
+	// Validate pipeline-specific required fields
+	switch pipelineType {
+	case constants.PipelineTypeTabular:
+		if req.LabelColumn == nil || *req.LabelColumn == "" {
+			missing = append(missing, "label_column")
+		}
+		if req.TaskType == nil || *req.TaskType == "" {
+			missing = append(missing, "task_type")
+		}
+	case constants.PipelineTypeTimeSeries:
+		if req.Target == nil || *req.Target == "" {
+			missing = append(missing, "target")
+		}
+		if req.IDColumn == nil || *req.IDColumn == "" {
+			missing = append(missing, "id_column")
+		}
+		if req.TimestampColumn == nil || *req.TimestampColumn == "" {
+			missing = append(missing, "timestamp_column")
+		}
+	default:
+		return fmt.Errorf("unsupported pipeline type: %s", pipelineType)
 	}
-	if req.TaskType == "" {
-		missing = append(missing, "task_type")
-	}
+
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required fields: %v", missing)
 	}
 
-	if !constants.ValidTaskTypes[req.TaskType] {
-		return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", req.TaskType)
+	// Validate enum values
+	if pipelineType == constants.PipelineTypeTabular && req.TaskType != nil {
+		if !constants.ValidTaskTypes[*req.TaskType] {
+			return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType)
+		}
 	}
 
+	// Validate optional fields
 	if req.TopN != nil && *req.TopN <= 0 {
 		return fmt.Errorf("invalid top_n: must be a positive integer")
+	}
+
+	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
+		return fmt.Errorf("invalid prediction_length: must be a positive integer")
 	}
 
 	return nil
@@ -183,15 +220,44 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
 
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
 // pipelineID and pipelineVersionID are injected by the caller (from discovery or hardcoded fallback).
-func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
+// The parameters map is built based on the pipelineType (tabular or timeseries).
+func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID, pipelineType string) models.CreatePipelineRunKFRequest {
+	// Common parameters for all pipeline types
 	params := map[string]interface{}{
 		"train_data_secret_name": req.TrainDataSecretName,
 		"train_data_bucket_name": req.TrainDataBucketName,
 		"train_data_file_key":    req.TrainDataFileKey,
-		"label_column":           req.LabelColumn,
-		"task_type":              req.TaskType,
 	}
 
+	// Add pipeline-specific parameters
+	switch pipelineType {
+	case constants.PipelineTypeTabular:
+		if req.LabelColumn != nil {
+			params["label_column"] = *req.LabelColumn
+		}
+		if req.TaskType != nil {
+			params["task_type"] = *req.TaskType
+		}
+	case constants.PipelineTypeTimeSeries:
+		if req.Target != nil {
+			params["target"] = *req.Target
+		}
+		if req.IDColumn != nil {
+			params["id_column"] = *req.IDColumn
+		}
+		if req.TimestampColumn != nil {
+			params["timestamp_column"] = *req.TimestampColumn
+		}
+		// Optional timeseries parameters
+		if req.PredictionLength != nil {
+			params["prediction_length"] = *req.PredictionLength
+		}
+		if req.KnownCovariatesNames != nil {
+			params["known_covariates_names"] = *req.KnownCovariatesNames
+		}
+	}
+
+	// Add optional common parameter
 	topN := constants.DefaultTopN
 	if req.TopN != nil {
 		topN = *req.TopN
@@ -225,7 +291,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
-	if err := ValidateCreateAutoMLRunRequest(req); err != nil {
+	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
 		return nil, err
 	}
 
@@ -236,7 +302,7 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("pipelineVersionID is required")
 	}
 
-	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
+	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID, pipelineType)
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {
