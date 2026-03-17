@@ -35,7 +35,15 @@ type S3Credentials struct {
 
 type S3Repository struct{}
 
-func NewS3Repository() *S3Repository {
+func NewS3Repository(devMode bool) *S3Repository {
+	// Production guard: prevent ALLOW_UNRESOLVED_S3_ENDPOINTS from being enabled in production
+	// This environment variable weakens SSRF protections by allowing DNS resolution failures to "fail open"
+	if !devMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		slog.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is enabled but not in development mode",
+			"error", "This environment variable bypasses critical SSRF protections and must not be used in production. "+
+				"To use this variable for local testing, set -dev-mode flag.")
+		os.Exit(1)
+	}
 	return &S3Repository{}
 }
 

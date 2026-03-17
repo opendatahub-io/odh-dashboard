@@ -18,6 +18,7 @@ type Repositories struct {
 // RepositoryConfig contains configuration for repository initialization
 type RepositoryConfig struct {
 	MockS3Client bool
+	DevMode      bool // Pass through DevMode for security checks in repositories
 }
 
 // NewRepositories creates a new Repositories instance.
@@ -33,7 +34,7 @@ func NewRepositories(_ *slog.Logger, configs ...RepositoryConfig) *Repositories 
 	if config.MockS3Client {
 		s3Repo = NewMockS3Repository()
 	} else {
-		s3Repo = NewS3Repository()
+		s3Repo = NewS3Repository(config.DevMode)
 	}
 
 	return &Repositories{
