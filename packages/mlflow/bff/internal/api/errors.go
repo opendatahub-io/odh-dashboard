@@ -28,9 +28,10 @@ func (app *App) LogError(r *http.Request, err error) {
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Warn("Unauthorized access attempt", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
 	httpError := &HTTPError{
 		StatusCode: http.StatusUnauthorized,
-		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusUnauthorized), Message: err.Error()},
+		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusUnauthorized), Message: "Access unauthorized"},
 	}
 	app.errorResponse(w, r, httpError)
 }

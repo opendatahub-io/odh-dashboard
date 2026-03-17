@@ -192,7 +192,7 @@ func TestRequireValidIdentityValidationFails(t *testing.T) {
 
 	var errResp HTTPError
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
-	assert.Contains(t, errResp.Error.Message, "token is required")
+	assert.Equal(t, "Access unauthorized", errResp.Error.Message)
 	k8sMock.AssertExpectations(t)
 }
 
