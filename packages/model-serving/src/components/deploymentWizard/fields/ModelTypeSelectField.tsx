@@ -99,6 +99,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
           label="Deploy this model in legacy mode using a serving runtime and inference server"
           isChecked={modelType.legacyVLLM}
           onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
+          isDisabled={isEditing || isDisabled}
         />
       )}
     </>

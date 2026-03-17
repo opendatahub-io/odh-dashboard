@@ -18,7 +18,6 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
   ModelLocationType,
@@ -41,16 +40,6 @@ import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
   return '/ai-hub/deployments/deploy';
-};
-
-export const getModelTypeFromDeployment = (
-  deployment: Deployment,
-): ModelTypeFieldData | undefined => {
-  const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
-  if (modelType && isValidModelType(modelType)) {
-    return { type: modelType, legacyVLLM: false };
-  }
-  return undefined;
 };
 
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
