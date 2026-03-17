@@ -218,6 +218,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		var noBucket *types.NoSuchBucket
 		if errors.As(err, &noBucket) {
 			app.notFoundResponseWithMessage(w, r, err.Error())
+			return
 		}
 
 		app.serverErrorResponse(w, r, err)
