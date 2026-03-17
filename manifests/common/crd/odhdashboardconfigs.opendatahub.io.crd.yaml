@@ -89,8 +89,6 @@ spec:
                       type: boolean
                     disableModelRegistrySecureDB:
                       type: boolean
-                    registryOciStorage:
-                      type: boolean
                     disableServingRuntimeParams:
                       type: boolean
                     disableStorageClasses:
