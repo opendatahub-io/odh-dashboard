@@ -843,6 +843,89 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
     });
+
+    describe('Success Cases', () => {
+      it('should retrieve files list with bucket from secret', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files list with explicit bucket parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&bucket=my-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return response with expected S3 list objects structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+        expect(result.success).toBe(true);
+      });
+
+      it('should retrieve files with path parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&path=folder/subfolder',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with search parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&search=myfile',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with limit parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&limit=10',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with next (continuation token) parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&next=some-token',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with combined path, search, and limit parameters', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&path=documents&search=report&limit=5',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+    });
   });
 
   describe('Pipeline Runs Endpoints', () => {
