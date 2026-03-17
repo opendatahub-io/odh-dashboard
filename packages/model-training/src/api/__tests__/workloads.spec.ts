@@ -2,7 +2,7 @@ import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
-import { getWorkloadForTrainJob, patchWorkloadActiveState } from '../workloads';
+import { getWorkloadForJob, patchWorkloadActiveState } from '../workloads';
 import { mockTrainJobK8sResource } from '../../__mocks__/mockTrainJobK8sResource';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils');
@@ -21,7 +21,7 @@ describe('Workload API', () => {
     jest.restoreAllMocks();
   });
 
-  describe('getWorkloadForTrainJob', () => {
+  describe('getWorkloadForJob', () => {
     const mockJob = mockTrainJobK8sResource({
       name: 'test-job',
       namespace: 'test-namespace',
@@ -36,7 +36,7 @@ describe('Workload API', () => {
     it('should find workload by job UID', async () => {
       mockListWorkloads.mockResolvedValueOnce([mockWorkload]);
 
-      const result = await getWorkloadForTrainJob(mockJob);
+      const result = await getWorkloadForJob(mockJob);
 
       expect(mockListWorkloads).toHaveBeenCalledWith(
         'test-namespace',
@@ -50,7 +50,7 @@ describe('Workload API', () => {
         .mockResolvedValueOnce([]) // First call (by UID) returns empty
         .mockResolvedValueOnce([mockWorkload]); // Second call (by name) returns workload
 
-      const result = await getWorkloadForTrainJob(mockJob);
+      const result = await getWorkloadForJob(mockJob);
 
       expect(mockListWorkloads).toHaveBeenCalledTimes(2);
       expect(mockListWorkloads).toHaveBeenNthCalledWith(
@@ -69,7 +69,7 @@ describe('Workload API', () => {
     it('should return null if no workload found', async () => {
       mockListWorkloads.mockResolvedValue([]);
 
-      const result = await getWorkloadForTrainJob(mockJob);
+      const result = await getWorkloadForJob(mockJob);
 
       expect(result).toBeNull();
     });
@@ -77,11 +77,11 @@ describe('Workload API', () => {
     it('should handle API errors gracefully', async () => {
       mockListWorkloads.mockRejectedValue(new Error('API error'));
 
-      const result = await getWorkloadForTrainJob(mockJob);
+      const result = await getWorkloadForJob(mockJob);
 
       expect(result).toBeNull();
       expect(console.warn).toHaveBeenCalledWith(
-        'Failed to fetch workload for TrainJob:',
+        'Failed to fetch workload for job:',
         expect.any(Error),
       );
     });

@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
-import { getTrainingJobStatus, getRayJobStatusSync } from '../utils';
-import { TrainingJobState, UnifiedJobKind, isRayJob } from '../../../types';
+import { getTrainingJobStatus, getRayJobStatus } from '../utils';
+import { JobDisplayState, UnifiedJobKind, isRayJob } from '../../../types';
 
 export const useJobStatuses = (
   jobs: UnifiedJobKind[],
 ): {
-  jobStatuses: Map<string, TrainingJobState>;
+  jobStatuses: Map<string, JobDisplayState>;
   isLoading: boolean;
-  updateJobStatus: (jobId: string, newStatus: TrainingJobState) => void;
-  getJobStatus: (job: UnifiedJobKind) => TrainingJobState | undefined;
+  updateJobStatus: (jobId: string, newStatus: JobDisplayState) => void;
+  getJobStatus: (job: UnifiedJobKind) => JobDisplayState | undefined;
   refreshStatuses: () => void;
 } => {
-  const [jobStatuses, setJobStatuses] = React.useState<Map<string, TrainingJobState>>(new Map());
+  const [jobStatuses, setJobStatuses] = React.useState<Map<string, JobDisplayState>>(new Map());
   const [isLoading, setIsLoading] = React.useState(false);
 
   const updateAllStatuses = React.useCallback(async () => {
@@ -22,13 +22,14 @@ export const useJobStatuses = (
     }
 
     setIsLoading(true);
-    const statusMap = new Map<string, TrainingJobState>();
+    const statusMap = new Map<string, JobDisplayState>();
 
     try {
       const statusPromises = jobs.map(async (job) => {
         const jobId = job.metadata.uid || job.metadata.name;
         if (isRayJob(job)) {
-          return { jobId, status: getRayJobStatusSync(job) };
+          const result = await getRayJobStatus(job);
+          return { jobId, status: result.status };
         }
         const result = await getTrainingJobStatus(job);
         return { jobId, status: result.status };
@@ -47,7 +48,7 @@ export const useJobStatuses = (
     }
   }, [jobs]);
 
-  const updateJobStatus = React.useCallback((jobId: string, newStatus: TrainingJobState) => {
+  const updateJobStatus = React.useCallback((jobId: string, newStatus: JobDisplayState) => {
     setJobStatuses((prev) => {
       const updated = new Map(prev);
       updated.set(jobId, newStatus);
@@ -56,7 +57,7 @@ export const useJobStatuses = (
   }, []);
 
   const getJobStatus = React.useCallback(
-    (job: UnifiedJobKind): TrainingJobState | undefined => {
+    (job: UnifiedJobKind): JobDisplayState | undefined => {
       const jobId = job.metadata.uid || job.metadata.name;
       return jobStatuses.get(jobId);
     },
