@@ -61,7 +61,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	version := mlflowVersion()
 
 	if uri := os.Getenv("MLFLOW_TRACKING_URI"); uri != "" {
-		logger.Info("MLFLOW_TRACKING_URI already set, assuming externally managed", slog.String("uri", uri))
+		logger.Info("MLFLOW_TRACKING_URI already set, assuming externally managed", slog.Bool("tracking_uri_set", true))
 		return &MLflowState{TrackingURI: uri}, nil
 	}
 
