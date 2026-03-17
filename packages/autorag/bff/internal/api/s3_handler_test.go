@@ -429,7 +429,7 @@ func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.Contains(t, err.Error(), "not found")
+	assert.ErrorIs(t, err, repositories.ErrSecretNotFound)
 }
 
 func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {

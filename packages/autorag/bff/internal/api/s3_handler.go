@@ -17,6 +17,7 @@ import (
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -269,11 +270,7 @@ func (app *App) getS3CredentialsFromSecret(
 			}
 		}
 
-		// TODO [ PR-Feedback: AI = Gustavo + Daniel ] strings.Contains on err.Error() is fragile — if upstream error
-		//   messages change wording, these checks silently break. Define typed/sentinel errors in the
-		//   repository layer instead (e.g. var ErrSecretNotFound, ErrMissingRequiredField).
-		// Check if it's a secret not found or validation error
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrSecretNotFound) {
 			return nil, &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
 				ErrorResponse: integrations.ErrorResponse{
@@ -283,7 +280,7 @@ func (app *App) getS3CredentialsFromSecret(
 			}
 		}
 
-		if strings.Contains(err.Error(), "missing required field") {
+		if errors.Is(err, repositories.ErrMissingRequiredField) {
 			return nil, &integrations.HTTPError{
 				StatusCode: http.StatusBadRequest,
 				ErrorResponse: integrations.ErrorResponse{

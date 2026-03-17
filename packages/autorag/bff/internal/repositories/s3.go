@@ -2,11 +2,17 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	s3client "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+)
+
+var (
+	ErrSecretNotFound     = errors.New("secret not found")
+	ErrMissingRequiredField = errors.New("missing required field")
 )
 
 type S3Repository struct{}
@@ -55,16 +61,16 @@ func (r *S3Repository) GetS3Credentials(
 
 	// Validate that all required fields are present
 	if creds.AccessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_ACCESS_KEY_ID", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_ACCESS_KEY_ID", secretName, ErrMissingRequiredField)
 	}
 	if creds.SecretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_SECRET_ACCESS_KEY", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_SECRET_ACCESS_KEY", secretName, ErrMissingRequiredField)
 	}
 	if creds.Region == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_DEFAULT_REGION", secretName, ErrMissingRequiredField)
 	}
 	if creds.EndpointURL == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_S3_ENDPOINT", secretName, ErrMissingRequiredField)
 	}
 
 	return creds, nil
