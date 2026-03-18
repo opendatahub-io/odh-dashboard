@@ -479,6 +479,100 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: deleteExternalModel
 
+  /gen-ai/api/v1/models/external/verify:
+    summary: Verify external model endpoint
+    description: >-
+      Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
+      Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      This is a stateless operation that does not create any resources.
+    post:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      requestBody:
+        required: true
+        description: External model verification request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyExternalModelRequest'
+            example:
+              model_id: 'gpt-4o'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-test-key'
+              model_type: 'llm'
+      responses:
+        '200':
+          description: External model verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyExternalModelResponse'
+              example:
+                data:
+                  success: true
+                  message: 'External model verified successfully'
+                  response_time_ms: 523
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials - API key is incorrect or unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'UNAUTHORIZED'
+                      message:
+                        type: string
+                        example: 'API key is invalid or unauthorized'
+        '408':
+          description: Request timeout - endpoint did not respond in time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'TIMEOUT'
+                      message:
+                        type: string
+                        example: 'Request timed out connecting to external model'
+        '503':
+          description: Connection failed - could not reach the endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'CONNECTION_FAILED'
+                      message:
+                        type: string
+                        example: 'Request to https://api.example.com/v1/chat/completions returned HTTP 404. The endpoint may not exist or the base URL may be incorrect.'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: verifyExternalModel
+      summary: Verify External Model
+      description: Tests external model endpoint connectivity, authentication, and OpenAI compatibility.
+
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS
   # =============================================================================
@@ -2023,6 +2117,7 @@ components:
             - 'remote::openai'
             - 'remote::anthropic'
             - 'remote::vllm'
+            - 'remote::passthrough'
           example: 'remote::gemini'
           description: Provider type for the external model
         use_cases:
@@ -2036,6 +2131,91 @@ components:
             - 'embedding'
           example: 'llm'
           description: Type of model (LLM or embedding)
+        embedding_dimension:
+          type: integer
+          example: 1536
+          description: Output vector size for embedding models (required for embedding models)
+
+    # Verify External Model Request Schema
+    # Uses oneOf to enforce conditional requirements based on model_type
+    VerifyExternalModelRequest:
+      oneOf:
+        # LLM model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - secret_value
+            - model_type
+          properties:
+            model_id:
+              type: string
+              example: 'gpt-4o'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'llm'
+              description: Type of model to verify (LLM models use /chat/completions endpoint)
+        # Embedding model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - secret_value
+            - model_type
+            - embedding_dimension
+          properties:
+            model_id:
+              type: string
+              example: 'text-embedding-3-small'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'embedding'
+              description: Type of model to verify (embedding models use /embeddings endpoint)
+            embedding_dimension:
+              type: integer
+              minimum: 1
+              example: 1536
+              description: Output vector size for embedding models (must be positive integer)
+
+    # Verify External Model Response Schema
+    VerifyExternalModelResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+          description: Whether verification succeeded
+        message:
+          type: string
+          example: 'External model verified successfully'
+          description: Human-readable verification result message
+        response_time_ms:
+          type: integer
+          example: 523
+          description: Time taken for verification request in milliseconds
 
     # AI Assets Model Schema
     AAModel:

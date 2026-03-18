@@ -12,6 +12,22 @@ type ExternalModelRequest struct {
 	EmbeddingDimension *int             `json:"embedding_dimension,omitempty"`
 }
 
+// VerifyExternalModelRequest represents a request to verify an external model
+type VerifyExternalModelRequest struct {
+	ModelID            string        `json:"model_id"`
+	BaseURL            string        `json:"base_url"`
+	SecretValue        string        `json:"secret_value"`
+	ModelType          ModelTypeEnum `json:"model_type"`
+	EmbeddingDimension *int          `json:"embedding_dimension,omitempty"`
+}
+
+// VerifyExternalModelResponse represents the verification result
+type VerifyExternalModelResponse struct {
+	Success      bool   `json:"success"`
+	Message      string `json:"message"`
+	ResponseTime int    `json:"response_time_ms,omitempty"` // Optional: time taken
+}
+
 // ProviderTypeEnum represents supported provider types
 type ProviderTypeEnum string
 

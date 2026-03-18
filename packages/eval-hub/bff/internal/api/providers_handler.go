@@ -26,6 +26,8 @@ func (app *App) ProvidersHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
+	namespace := r.URL.Query().Get("namespace")
+
 	// Parse pagination query parameters, matching the official eval-hub API spec.
 	limit := defaultProvidersLimit
 	offset := 0
@@ -48,7 +50,7 @@ func (app *App) ProvidersHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		offset = parsed
 	}
 
-	result, err := client.ListProviders(ctx, limit, offset)
+	result, err := client.ListProviders(ctx, namespace, limit, offset)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list providers: %w", err))
 		return

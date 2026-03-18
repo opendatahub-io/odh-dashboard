@@ -72,7 +72,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	var dspaStorage *models.DSPAObjectStorage
 	if secretName != "" {
 		// Explicit override: use conventional AWS_* field names
-		creds, credsErr = app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+		creds, credsErr = app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
 	} else if storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && storage != nil {
 		// Primary production path: use field names and endpoint from DSPA spec
 		dspaStorage = storage
