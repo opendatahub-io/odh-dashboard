@@ -73,11 +73,14 @@ func CloneBody(r *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read request body: %w", err)
 	}
-	if len(buf) > maxBodyLogSize {
-		buf = buf[:maxBodyLogSize]
+	// Restore full stream for downstream handlers: bytes read for logging + unread tail.
+	r.Body = io.NopCloser(io.MultiReader(bytes.NewReader(buf), r.Body))
+
+	logBuf := buf
+	if len(logBuf) > maxBodyLogSize {
+		logBuf = logBuf[:maxBodyLogSize]
 	}
-	r.Body = io.NopCloser(bytes.NewBuffer(buf))
-	return buf, nil
+	return logBuf, nil
 }
 
 type RequestLogValuer struct {
@@ -85,14 +88,14 @@ type RequestLogValuer struct {
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := ""
+	body := "[REDACTED]"
 
 	if r.Request.Body != nil {
 		cloneBody, err := CloneBody(r.Request)
 		if err != nil {
 			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
+		} else if len(cloneBody) == 0 {
+			body = ""
 		}
 	}
 
