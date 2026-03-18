@@ -1,0 +1,100 @@
+import * as React from 'react';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Content,
+  Flex,
+  FlexItem,
+  Icon,
+  Label,
+} from '@patternfly/react-core';
+import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
+import { EvaluationJob } from '~/app/types';
+import { getBenchmarkDisplayName } from '~/app/utilities/evaluationUtils';
+
+type BenchmarkResultCardProps = {
+  benchmarkId: string;
+  job: EvaluationJob;
+  isSelected?: boolean;
+  onClick?: () => void;
+};
+
+const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
+  benchmarkId,
+  job,
+  isSelected,
+  onClick,
+}) => {
+  const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
+  const passStatus = result?.test?.pass;
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const cardStyle = {
+    minWidth: 200,
+    '--pf-v6-c-card--m-selectable--m-selected--BorderColor':
+      'var(--pf-t--global--border--color--default)',
+    '--pf-v6-c-card--m-selectable--m-selected--BorderWidth':
+      'var(--pf-t--global--border--width--box--default)',
+    '--pf-v6-c-card--m-selectable--m-selected--focus--BorderColor':
+      'var(--pf-t--global--border--color--default)',
+    '--pf-v6-c-card--m-selectable--m-selected--focus--BorderWidth':
+      'var(--pf-t--global--border--width--box--default)',
+  } as React.CSSProperties;
+
+  return (
+    <Card
+      isSelectable={!!onClick}
+      isCompact
+      data-testid={`benchmark-result-card-${benchmarkId}`}
+      style={cardStyle}
+    >
+      <CardHeader
+        selectableActions={
+          onClick
+            ? {
+                selectableActionId: `benchmark-select-${benchmarkId}`,
+                selectableActionAriaLabelledby: `benchmark-label-${benchmarkId}`,
+                name: 'benchmark-selection',
+                variant: 'single',
+                isChecked: isSelected,
+                onChange: onClick,
+              }
+            : undefined
+        }
+      >
+        <CardTitle id={`benchmark-label-${benchmarkId}`}>
+          <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <Content component="p" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                {getBenchmarkDisplayName(benchmarkId)}
+              </Content>
+            </FlexItem>
+            <FlexItem>
+              <Content
+                component="small"
+                style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+              >
+                {benchmarkId}
+              </Content>
+            </FlexItem>
+          </Flex>
+        </CardTitle>
+      </CardHeader>
+      <CardBody>
+        {passStatus != null && (
+          <Label
+            color={passStatus ? 'green' : 'red'}
+            icon={<Icon isInline>{passStatus ? <CheckCircleIcon /> : <TimesCircleIcon />}</Icon>}
+            data-testid={`benchmark-pass-label-${benchmarkId}`}
+          >
+            {passStatus ? 'Pass' : 'Fail'}
+          </Label>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
+export default BenchmarkResultCard;
