@@ -193,64 +193,99 @@ declare global {
   }
 }
 
-Cypress.Commands.addQuery(
+Cypress.Commands.add(
   'findAppNavItem',
-  (args: { name: string; rootSection?: string; subSection?: string }) => {
+  { prevSubject: ['element'] },
+  function findAppNavItem(
+    subject,
+    args: { name: string; rootSection?: string; subSection?: string },
+  ) {
+    const rootSection = args.rootSection ?? '';
+    const subSection = args.subSection ?? '';
+    const { name } = args;
+
     Cypress.log({
       displayName: 'findAppNavItem',
-      message: `name: ${args.name}, rootSection: ${args.rootSection ?? 'none'}, subSection: ${
-        args.subSection ?? 'none'
+      message: `name: ${name}, rootSection: ${rootSection || 'none'}, subSection: ${
+        subSection || 'none'
       }`,
     });
 
-    return (subject) => {
-      Cypress.ensure.isElement(subject, 'findAppNavItem', cy);
-      const $el: JQuery<HTMLElement> = subject;
+    // Handle root section expansion if needed
+    if (rootSection) {
+      cy.wrap(subject).then(($el) => {
+        const $rootSectionElement = $el.find(`:contains('${rootSection}')`).closest('button');
 
-      let $parent = $el;
-
-      if (args.rootSection) {
-        const $rootSectionElement = $parent
-          .find(`:contains('${args.rootSection}')`)
-          .closest('button');
-        if ($rootSectionElement.length) {
-          // Expand the root section if it's collapsed
-          if ($rootSectionElement.attr('aria-expanded') === 'false') {
-            $rootSectionElement.trigger('click');
-          }
-          // Move to the expanded root section's content area
-          $parent = $rootSectionElement.parent();
-        } else {
+        if (!$rootSectionElement.length) {
           Cypress.log({
             displayName: 'findAppNavItem',
-            message: `Root section '${args.rootSection}' not found`,
+            message: `Root section '${rootSection}' not found`,
           });
-          return $parent.find('__non_existent_selector__');
+          // Return a failed assertion to trigger Cypress retry mechanism
+          return cy.wrap(subject).find('__non_existent_selector__');
         }
-      }
 
-      if (args.subSection && args.rootSection) {
-        const $subSectionElement = $parent
-          .find(`:contains('${args.subSection}')`)
-          .closest('button');
-        if ($subSectionElement.length) {
-          // Expand the sub-section if it's collapsed
-          if ($subSectionElement.attr('aria-expanded') === 'false') {
-            $subSectionElement.trigger('click');
-          }
-          // Move to the expanded sub-section's content area
-          $parent = $subSectionElement.parent();
-        } else {
+        const isExpanded = $rootSectionElement.attr('aria-expanded') === 'true';
+        if (!isExpanded) {
+          // Re-query and expand the root section
+          cy.wrap(subject).find(`:contains('${rootSection}')`).closest('button').click();
+          return cy
+            .wrap(subject)
+            .find(`:contains('${rootSection}')`)
+            .closest('button')
+            .should('have.attr', 'aria-expanded', 'true');
+        }
+        return cy.wrap(null);
+      });
+    }
+
+    // Handle sub-section expansion if needed
+    if (subSection && rootSection) {
+      cy.wrap(subject).then(($el) => {
+        const $rootParent = $el.find(`:contains('${rootSection}')`).closest('button').parent();
+        const $subSectionElement = $rootParent.find(`:contains('${subSection}')`).closest('button');
+
+        if (!$subSectionElement.length) {
           Cypress.log({
             displayName: 'findAppNavItem',
-            message: `Sub-section '${args.subSection}' not found in root section '${args.rootSection}'`,
+            message: `Sub-section '${subSection}' not found in root section '${rootSection}'`,
           });
-          return $parent.find('__non_existent_selector__');
+          return cy.wrap(subject).find('__non_existent_selector__');
         }
-      }
 
-      return $parent.find(`:contains('${args.name}')`).closest('a');
-    };
+        const isExpanded = $subSectionElement.attr('aria-expanded') === 'true';
+        if (!isExpanded) {
+          cy.wrap($rootParent).find(`:contains('${subSection}')`).closest('button').click();
+          return cy
+            .wrap($rootParent)
+            .find(`:contains('${subSection}')`)
+            .closest('button')
+            .should('have.attr', 'aria-expanded', 'true');
+        }
+        return cy.wrap(null);
+      });
+    }
+
+    // Find the final nav item
+    if (rootSection && subSection) {
+      return cy.wrap(subject).then(($el) => {
+        const $parent = $el
+          .find(`:contains('${rootSection}')`)
+          .closest('button')
+          .parent()
+          .find(`:contains('${subSection}')`)
+          .closest('button')
+          .parent();
+        return cy.wrap($parent).find(`:contains('${name}')`).closest('a');
+      });
+    }
+    if (rootSection) {
+      return cy.wrap(subject).then(($el) => {
+        const $parent = $el.find(`:contains('${rootSection}')`).closest('button').parent();
+        return cy.wrap($parent).find(`:contains('${name}')`).closest('a');
+      });
+    }
+    return cy.wrap(subject).find(`:contains('${name}')`).closest('a');
   },
 );
 
