@@ -211,7 +211,7 @@ export type EvaluationJob = {
   tags?: string[];
   model: JobModel;
   pass_criteria?: JobPassCriteria;
-  benchmarks: JobBenchmark[];
+  benchmarks: JobBenchmark[] | null;
   collection?: JobCollection;
   experiment?: JobExperiment;
   custom?: Record<string, unknown>;

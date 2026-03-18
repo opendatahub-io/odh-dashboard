@@ -262,6 +262,18 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
+func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
+	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
+	for i := range jobs {
+		if jobs[i].Resource.ID == id {
+			return &jobs[i], nil
+		}
+	}
+	return nil, nil
+}
+
+func ptr(f float64) *float64 { return &f }
+
 func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
 	benchmarks := req.Benchmarks
 	if benchmarks == nil {
@@ -288,77 +300,143 @@ func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ s
 }
 
 func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
+	pass := true
+	fail := false
+
 	return []evalhub.EvaluationJob{
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-001",
 				Tenant:    "GPT-4 Safety Assessment",
-				CreatedAt: "2020-01-07T23:33:00Z",
-				UpdatedAt: "2020-01-07T23:33:00Z",
+				CreatedAt: "2026-03-01T09:00:00Z",
+				UpdatedAt: "2026-03-01T09:00:00Z",
 			},
+			Name:   "GPT-4 Safety Assessment",
 			Status: evalhub.JobStatus{State: "running"},
 			Model:  evalhub.JobModel{Name: "gpt-4-turbo"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "Open LLM Leaderboard v2", ProviderID: "lm_evaluation_harness"},
+				{ID: "toxigen", ProviderID: "safety_eval_suite"},
 			},
 		},
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-002",
 				Tenant:    "Healthcare Compliance Suite",
-				CreatedAt: "2020-01-07T23:33:00Z",
-				UpdatedAt: "2020-01-07T23:33:00Z",
+				CreatedAt: "2026-02-28T14:00:00Z",
+				UpdatedAt: "2026-02-28T14:00:00Z",
 			},
+			Name:   "Healthcare Compliance Suite",
 			Status: evalhub.JobStatus{State: "stopping"},
 			Model:  evalhub.JobModel{Name: "llama-3-70b"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "Safety and Fairness", ProviderID: "lm_evaluation_harness"},
+				{ID: "med_safety", ProviderID: "safety_eval_suite"},
 			},
 		},
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-003",
 				Tenant:    "MMLU Comprehensive",
-				CreatedAt: "2020-01-07T23:33:00Z",
-				UpdatedAt: "2020-01-07T23:33:00Z",
+				CreatedAt: "2026-02-25T11:00:00Z",
+				UpdatedAt: "2026-02-25T11:30:00Z",
 			},
+			Name:   "MMLU Comprehensive",
 			Status: evalhub.JobStatus{State: "failed"},
 			Model:  evalhub.JobModel{Name: "claude-3-opus"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "MMLU Finance Subtasks", ProviderID: "lm_evaluation_harness"},
+				{ID: "mmlu", ProviderID: "lm_evaluation_harness"},
 			},
 		},
+		// Single benchmark – completed (result: fail)
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-004",
-				Tenant:    "Toxicity detection",
-				CreatedAt: "2020-01-07T23:33:00Z",
-				UpdatedAt: "2020-01-07T23:33:00Z",
+				CreatedAt: "2026-03-05T10:20:00Z",
+				UpdatedAt: "2026-03-05T11:30:00Z",
+				Owner:     "user@example.com",
 			},
+			Name:   "ToxicityDetect_Eval_Claude",
+			Tags:   []string{"Safety"},
 			Status: evalhub.JobStatus{State: "completed"},
 			Results: evalhub.JobResults{
 				TotalEvaluations: 1,
 				Benchmarks: []evalhub.BenchmarkResult{
-					{ID: "toxicity", Metrics: map[string]float64{"score": 0.46}},
+					{
+						ID:         "harmful_request_refusal",
+						ProviderID: "safety_eval_suite",
+						Metrics:    map[string]float64{"refusal_rate": 0.30},
+						Test:       &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.30), Threshold: ptr(0.5), Pass: &fail},
+					},
+				},
+				Test: &evalhub.ResultTest{
+					Score:     ptr(0.30),
+					Threshold: ptr(0.5),
+					Pass:      &fail,
 				},
 			},
-			Model: evalhub.JobModel{Name: "Dataset [TBD]"},
+			Model: evalhub.JobModel{
+				Name: "claude-3-opus",
+				URL:  "https://api.example.com/v1/models/serving-endpoint01",
+			},
+			PassCriteria: &evalhub.JobPassCriteria{Threshold: 0.5},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "Toxicity detection", ProviderID: "lm_evaluation_harness"},
+				{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "asr_score_subset", LowerIsBetter: false}},
 			},
 		},
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-005",
 				Tenant:    "Telco Compliance Assessment",
-				CreatedAt: "2020-01-07T23:33:00Z",
-				UpdatedAt: "2020-01-07T23:33:00Z",
+				CreatedAt: "2026-02-20T08:00:00Z",
+				UpdatedAt: "2026-02-20T08:00:00Z",
 			},
+			Name:   "Telco Compliance Assessment",
 			Status: evalhub.JobStatus{State: "stopped"},
 			Model:  evalhub.JobModel{Name: "claude-3-opus"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "Free Open-Telco LLM Benc...", ProviderID: "lm_evaluation_harness"},
+				{ID: "teleqna", ProviderID: "lm_evaluation_harness"},
 			},
+		},
+		// Collection – completed
+		{
+			Resource: evalhub.JobResource{
+				ID:        "eval-job-006",
+				CreatedAt: "2026-03-10T14:30:00Z",
+				UpdatedAt: "2026-03-10T15:45:00Z",
+				Owner:     "user@example.com",
+			},
+			Name:   "ToxicityDet_Claude",
+			Tags:   []string{"Safety"},
+			Status: evalhub.JobStatus{State: "completed"},
+			Results: evalhub.JobResults{
+				TotalEvaluations: 8,
+				Benchmarks: []evalhub.BenchmarkResult{
+					{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"refusal_rate": 0.95, "false_positive_rate": 0.02}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.95), Threshold: ptr(0.8), Pass: &pass}},
+					{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"accuracy": 0.68, "calibration": 0.72}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.68), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "toxigen", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"toxicity_score": 0.12, "false_negative_rate": 0.08}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.88), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "toxicity_risk", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"risk_score": 0.45}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.55), Threshold: ptr(0.6), Pass: &fail}},
+					{ID: "ethical_alignment", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"alignment_score": 0.81}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.81), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "winobias", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"bias_score": 0.73}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.73), Threshold: ptr(0.8), Pass: &fail}},
+					{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"robustness": 0.62}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.62), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"truthfulness": 0.59}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.59), Threshold: ptr(0.5), Pass: &pass}},
+				},
+				Test: &evalhub.ResultTest{Score: ptr(0.72), Threshold: ptr(0.3), Pass: &pass},
+			},
+			Model: evalhub.JobModel{
+				Name: "claude-3-opus",
+				URL:  "https://api.example.com/v1/models/serving-endpoint01",
+			},
+			PassCriteria: &evalhub.JobPassCriteria{Threshold: 0.3},
+			Benchmarks: []evalhub.JobBenchmark{
+				{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "asr_score_subset", LowerIsBetter: false}},
+				{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "accuracy", LowerIsBetter: false}},
+				{ID: "toxigen", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "toxicity_score", LowerIsBetter: true}},
+				{ID: "toxicity_risk", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "risk_score", LowerIsBetter: true}},
+				{ID: "ethical_alignment", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "alignment_score", LowerIsBetter: false}},
+				{ID: "winobias", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "bias_score", LowerIsBetter: true}},
+				{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "robustness", LowerIsBetter: false}},
+				{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", PrimaryScore: &evalhub.JobPrimaryScore{Metric: "truthfulness", LowerIsBetter: false}},
+			},
+			Collection: &evalhub.JobCollectionID{ID: "collection-002"},
 		},
 	}, nil
 }
