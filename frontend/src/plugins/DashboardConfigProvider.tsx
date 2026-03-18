@@ -16,9 +16,11 @@ export const DashboardConfigProvider: React.FC = () => {
   const genAiStudioConfig = useDeepCompareMemoize(dashboardConfig.spec.genAiStudioConfig);
 
   React.useEffect(() => {
-    // Find the dashboard config extension
+    // Find the dashboard config extension by ID
     const extensions = pluginStore.getExtensions();
-    const configExtension = extensions.find(isDashboardConfigExtension);
+    const configExtension = extensions
+      .filter(isDashboardConfigExtension)
+      .find((ext) => ext.properties.id === 'genai-config');
 
     if (configExtension && genAiStudioConfig) {
       // Update the extension with the current config
