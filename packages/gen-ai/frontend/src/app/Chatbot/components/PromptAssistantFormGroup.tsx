@@ -1,11 +1,9 @@
 import * as React from 'react';
+import { get } from 'lodash';
 import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import {
-  convertDateToSimpleDateString,
-  convertDateToTimeString,
-} from '@odh-dashboard/internal/utilities/time';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
+import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '../const';
 
 type PromptAssistantFormGroupProps = {
@@ -18,7 +16,7 @@ export default function PromptAssistantFormGroup({
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
   const [editMode, setEditMode] = React.useState(false);
-  const { activePrompt, setActivePrompt } = usePlaygroundStore();
+  const { activePrompt, setActivePrompt, openModal } = usePlaygroundStore();
   const purePrompt =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
@@ -30,21 +28,37 @@ export default function PromptAssistantFormGroup({
   }
 
   function handleNewPrompt() {
+    const promptStub = { ...buildPromptStub(), template: 'You are a helpful AI assistant.' };
+    setActivePrompt(promptStub);
+    onSystemInstructionChange(promptStub.template);
+    setEditMode(true);
+  }
+
+  function handleSaveClicked() {
+    const newPrompt: MLflowPromptVersion = activePrompt
+      ? { ...activePrompt, template: systemInstruction }
+      : { ...buildPromptStub(), template: systemInstruction };
+    openModal('create', newPrompt);
+  }
+
+  function buildPromptStub(): MLflowPromptVersion {
     const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const month = now.toLocaleString('en', { month: 'short' });
+    const date = [month, pad(now.getDate()), now.getFullYear()].join('.');
+    const time = [pad(now.getHours()), pad(now.getMinutes())].join('.');
+    const name = `${date}_${time}`;
     /* eslint-disable camelcase */
-    const promptStub = {
-      name: `${convertDateToSimpleDateString(now)} ${convertDateToTimeString(now)} prompt`,
+    return {
+      name,
       version: 0,
-      template: 'You are a helpful AI assistant.',
-      commit_message: 'Initial version',
+      template: '',
+      commit_message: '',
       tags: {},
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
     /* eslint-enable camelcase */
-    setActivePrompt(promptStub);
-    onSystemInstructionChange(promptStub.template || '');
-    setEditMode(true);
   }
 
   return (
@@ -64,7 +78,7 @@ export default function PromptAssistantFormGroup({
         }}
       >
         <Flex>
-          <Title headingLevel="h6">{`${activePrompt?.name}` || 'New Prompt'}</Title>
+          <Title headingLevel="h6">{get(activePrompt, 'name', 'New Prompt')}</Title>
           {!!activePrompt?.version && (
             <Label
               isCompact
@@ -104,7 +118,7 @@ export default function PromptAssistantFormGroup({
         )}
         {isEdited && (
           <Flex>
-            <Button variant="primary" onClick={() => onSystemInstructionChange(purePrompt)}>
+            <Button variant="primary" onClick={handleSaveClicked}>
               Save
             </Button>
             <Button variant="link" onClick={handleRevert}>

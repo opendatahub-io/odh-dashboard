@@ -16,7 +16,7 @@ function PromptTabContent({
   systemInstruction,
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
-  const { setIsPromptManagementModalOpen } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
   const [promptManagementEnabled] = useFeatureFlag('promptManagement');
 
   function buildHeaderActions() {
@@ -28,7 +28,7 @@ function PromptTabContent({
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
         onClick={() => {
-          setIsPromptManagementModalOpen(true);
+          openModal('allPrompts');
         }}
       >
         Load Prompt

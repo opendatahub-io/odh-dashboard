@@ -6,6 +6,7 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   Drawer,
+  DrawerCloseButton,
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
@@ -40,14 +41,14 @@ export default function PromptDrawer({
   children: React.ReactNode;
 }): React.ReactNode {
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
-  const isExpanded = !!selectedPrompt;
+  const isExpanded = !!selectedPrompt || isLoadingDetails;
 
   function buildContent() {
     if (isLoadingDetails) {
       return (
         <DrawerPanelContent>
           <DrawerHead>
-            <Title headingLevel="h2">Loading Prompt Details...</Title>
+            <Title headingLevel="h3">Loading Prompt Details...</Title>
             <DrawerActions>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>

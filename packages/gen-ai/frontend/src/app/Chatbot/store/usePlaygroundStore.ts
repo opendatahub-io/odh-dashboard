@@ -6,11 +6,15 @@ import { MLflowPromptVersion } from '~/app/types';
 interface PlaygroundState {
   isPromptManagementModalOpen: boolean;
   activePrompt: MLflowPromptVersion | null;
+  modalMode: 'allPrompts' | 'create' | 'edit';
+  dirtyPrompt: MLflowPromptVersion | null;
 }
 
 interface PlaygroundActions {
   setIsPromptManagementModalOpen: (isOpen: boolean) => void;
   setActivePrompt: (prompt: MLflowPromptVersion) => void;
+  setDirtyPrompt: (prompt: MLflowPromptVersion) => void;
+  openModal: (mode: 'allPrompts' | 'create' | 'edit', prompt?: MLflowPromptVersion) => void;
 }
 
 type PlaygroundStore = PlaygroundState & PlaygroundActions;
@@ -18,6 +22,8 @@ type PlaygroundStore = PlaygroundState & PlaygroundActions;
 const initialState: PlaygroundState = {
   isPromptManagementModalOpen: false,
   activePrompt: null,
+  modalMode: 'allPrompts',
+  dirtyPrompt: null,
 };
 
 export const usePlaygroundStore = create<PlaygroundStore>()(
@@ -44,6 +50,22 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
           false,
           'setIsPromptManagementModalOpen',
         );
+      },
+
+      openModal: (mode: 'allPrompts' | 'create' | 'edit', prompt?: MLflowPromptVersion) => {
+        set((state) => {
+          state.modalMode = mode;
+          state.isPromptManagementModalOpen = true;
+          if (prompt) {
+            state.dirtyPrompt = prompt;
+          }
+        });
+      },
+
+      setDirtyPrompt: (prompt: MLflowPromptVersion) => {
+        set((state) => {
+          state.dirtyPrompt = prompt;
+        });
       },
     })),
     {
