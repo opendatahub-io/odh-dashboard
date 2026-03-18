@@ -36,7 +36,7 @@ declare global {
         name: string;
         rootSection?: string;
         subSection?: string;
-      }) => Cypress.Chainable<JQuery>;
+      }) => Cypress.Chainable<JQuery<HTMLElement>>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -276,16 +276,25 @@ Cypress.Commands.add(
           .find(`:contains('${subSection}')`)
           .closest('button')
           .parent();
-        return cy.wrap($parent).find(`:contains('${name}')`).closest('a');
+        return cy
+          .wrap($parent)
+          .find(`:contains('${name}')`)
+          .closest('a') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
       });
     }
     if (rootSection) {
       return cy.wrap(subject).then(($el) => {
         const $parent = $el.find(`:contains('${rootSection}')`).closest('button').parent();
-        return cy.wrap($parent).find(`:contains('${name}')`).closest('a');
+        return cy
+          .wrap($parent)
+          .find(`:contains('${name}')`)
+          .closest('a') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
       });
     }
-    return cy.wrap(subject).find(`:contains('${name}')`).closest('a');
+    return cy
+      .wrap(subject)
+      .find(`:contains('${name}')`)
+      .closest('a') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   },
 );
 
