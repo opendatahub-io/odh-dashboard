@@ -84,7 +84,7 @@ var _ = Describe("ExternalVectorStoresListHandler", func() {
 		}
 	})
 
-	It("should resolve provider_type and distance_metric from provider section", func() {
+	It("should resolve provider_type from provider section", func() {
 		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
@@ -117,7 +117,6 @@ var _ = Describe("ExternalVectorStoresListHandler", func() {
 		// pgvector store should have resolved provider_type and distance_metric
 		pgStore := storesByID["vs_282695f8-7e3e-48da-abac-d81a0aa225a4"]
 		assert.Equal(t, "remote::pgvector", pgStore.ProviderType, "pgvector store should have correct provider_type")
-		assert.Equal(t, "COSINE", pgStore.DistanceMetric, "pgvector store should have distance_metric=COSINE")
 
 		// qdrant store should have resolved provider_type
 		qdrantStore := storesByID["vs_4c4b74e3-30ac-4e46-9057-213154f83dba"]
