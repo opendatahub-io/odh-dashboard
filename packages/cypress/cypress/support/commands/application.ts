@@ -425,13 +425,18 @@ Cypress.Commands.add(
   (subject, name, isDropdownToggle) => {
     Cypress.log({ displayName: 'findKebabAction', message: name });
 
-    // First, find and click the kebab if needed
-    // We break this into a separate chain to avoid holding a reference to a potentially stale element
+    // Expand the kebab menu if it's not already expanded
+    // We need to check and click in separate steps to avoid stale element references
     cy.wrap(subject)
       .findKebab(isDropdownToggle)
-      .then(($el) => {
-        if ($el.attr('aria-expanded') === 'false') {
-          cy.wrap($el).click();
+      .should('exist')
+      .then(($kebab) => {
+        const isExpanded = $kebab.attr('aria-expanded') === 'true';
+        if (!isExpanded) {
+          // Re-query from subject to avoid stale element reference during React re-renders
+          cy.wrap(subject).findKebab(isDropdownToggle).click();
+          // Wait for menu to open
+          cy.wrap(subject).findKebab(isDropdownToggle).should('have.attr', 'aria-expanded', 'true');
         }
       });
 
@@ -444,8 +449,11 @@ Cypress.Commands.add(
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+    const isExpanded = $el.attr('aria-expanded') === 'true';
+    if (!isExpanded) {
+      // Re-query to avoid stale element reference during React re-renders
+      cy.wrap(subject).click();
+      cy.wrap(subject).should('have.attr', 'aria-expanded', 'true');
     }
     return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
   });
@@ -454,8 +462,11 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findMenuItem', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+    const isExpanded = $el.attr('aria-expanded') === 'true';
+    if (!isExpanded) {
+      // Re-query to avoid stale element reference during React re-renders
+      cy.wrap(subject).click();
+      cy.wrap(subject).should('have.attr', 'aria-expanded', 'true');
     }
     return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
   });
@@ -464,18 +475,24 @@ Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name)
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+    const isExpanded = $el.attr('aria-expanded') === 'true';
+    if (!isExpanded) {
+      // Re-query to avoid stale element reference during React re-renders
+      cy.wrap(subject).click();
+      cy.wrap(subject).should('have.attr', 'aria-expanded', 'true');
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    return cy.wrap(subject).parent().findByTestId(testId);
   });
 });
 
 Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findSelectOption', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+    const isExpanded = $el.attr('aria-expanded') === 'true';
+    if (!isExpanded) {
+      // Re-query to avoid stale element reference during React re-renders
+      cy.wrap(subject).click();
+      cy.wrap(subject).should('have.attr', 'aria-expanded', 'true');
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
@@ -506,10 +523,13 @@ Cypress.Commands.add('findCheckboxLabelNumberByTestId', (testId) => {
 Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+    const isExpanded = $el.attr('aria-expanded') === 'true';
+    if (!isExpanded) {
+      // Re-query to avoid stale element reference during React re-renders
+      cy.wrap(subject).click();
+      cy.wrap(subject).should('have.attr', 'aria-expanded', 'true');
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    return cy.wrap(subject).parent().findByTestId(testId);
   });
 });
 
