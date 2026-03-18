@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -529,6 +529,111 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
 }
 
+// Tests for GetS3FileSchemaHandler
+
+func TestGetS3FileSchemaHandler_MissingNamespace(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		"/api/v1/s3/file/schema?secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FileSchemaHandler_MissingSecretName(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=test-namespace&bucket=my-bucket&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FileSchemaHandler_MissingKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FileSchemaHandler_SecretNotFound(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{}}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+func TestGetS3FileSchemaHandler_MissingBucket(t *testing.T) {
+	// Secret without AWS_S3_BUCKET, and no bucket query param provided
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
 // Tests for SSRF protection in S3 endpoint validation
 
 func TestS3Repository_GetS3Credentials_RejectsHTTP(t *testing.T) {
@@ -921,4 +1026,60 @@ func TestS3Repository_GetS3Credentials_AcceptsValidHTTPSURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, creds)
 	assert.Equal(t, "https://s3.us-east-1.amazonaws.com", creds.EndpointURL)
+}
+
+func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
+	// Create a mock secret with valid S3 credentials
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: "default",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	// Make request to get CSV schema
+	result, res, err := setupApiTest[map[string]interface{}](
+		"GET",
+		"/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=data.csv",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify response structure includes parse_warnings
+	assert.NotNil(t, result)
+	data, ok := result["data"].(map[string]interface{})
+	assert.True(t, ok, "Response should have 'data' field")
+	assert.NotNil(t, data)
+
+	// Verify parse_warnings field exists
+	parseWarnings, ok := data["parse_warnings"]
+	assert.True(t, ok, "Response data should have 'parse_warnings' field")
+	assert.NotNil(t, parseWarnings)
+
+	// For mock data, parse_warnings should be 0
+	parseWarningsFloat, ok := parseWarnings.(float64)
+	assert.True(t, ok, "parse_warnings should be a number")
+	assert.Equal(t, float64(0), parseWarningsFloat, "Mock data should have 0 parse warnings")
+
+	// Verify columns field still exists
+	columns, ok := data["columns"]
+	assert.True(t, ok, "Response data should have 'columns' field")
+	assert.NotNil(t, columns)
 }
