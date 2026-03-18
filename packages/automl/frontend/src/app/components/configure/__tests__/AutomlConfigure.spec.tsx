@@ -97,6 +97,11 @@ jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
   default: () => null,
 }));
 
+// Mock DashboardPopupIconButton
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: () => null,
+}));
+
 const mockUseFilesQuery = jest.mocked(useFilesQuery);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);

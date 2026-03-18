@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,11 +88,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if err := repositories.ValidateCreateAutoRAGRunRequest(req); err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(
 		client,
 		ctx,
@@ -101,6 +97,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		pipelineType,
 	)
 	if err != nil {
+		// Check if this is a validation error (client error - 400) vs server error (500)
+		var validationErr *repositories.ValidationError
+		if errors.As(err, &validationErr) {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create pipeline run: %w", err))
 		return
 	}

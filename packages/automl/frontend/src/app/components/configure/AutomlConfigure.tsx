@@ -11,28 +11,26 @@ import {
   HelperText,
   HelperTextItem,
   Label,
-  MenuToggle,
   NumberInput,
   Panel,
   PanelMain,
   PanelMainBody,
   PanelFooter,
+  Popover,
   Content,
   Gallery,
-  Select,
-  SelectList,
-  SelectOption,
-  Skeleton,
   Split,
   SplitItem,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React, { useEffect, useState, useRef } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
@@ -50,13 +48,15 @@ import createConfigureSchema, {
   TASK_TYPE_TIMESERIES,
   getDefaultValues,
 } from '~/app/schemas/configure.schema';
-import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { useFilesQuery } from '~/app/hooks/queries';
+import { useFilesQuery, useCreatePipelineRun } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+import ConfigureTabularForm from './ConfigureTabularForm';
+import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 
 function getBucketFromSecretData(data: Record<string, string> | undefined): string {
   if (!data) {
@@ -99,23 +99,6 @@ const PREDICTION_TYPES: {
 
 const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
-const getTypeAcronym = (type: string): string => {
-  switch (type) {
-    case 'bool':
-      return 'BOOL';
-    case 'integer':
-      return 'INT';
-    case 'double':
-      return 'DBL';
-    case 'timestamp':
-      return 'TMSTP';
-    case 'string':
-      return 'STR';
-    default:
-      return 'STR';
-  }
-};
-
 const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
@@ -138,8 +121,11 @@ function AutomlConfigure(): React.JSX.Element {
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
-  const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const previousFileKeyRef = useRef<string | undefined>();
+
+  const createPipelineRun = useCreatePipelineRun();
 
   const form = useForm({
     mode: 'onChange',
@@ -151,6 +137,7 @@ function AutomlConfigure(): React.JSX.Element {
     control,
     setValue,
     watch,
+    handleSubmit,
     formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
   } = form;
 
@@ -165,23 +152,34 @@ function AutomlConfigure(): React.JSX.Element {
 
   const canSelectLearningType = isFileSelected;
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
-  const formDisabled = !formIsValid || formIsSubmitting;
-
-  if (!namespace) {
-    return <Navigate to={automlExperimentsPathname} replace />;
-  }
+  const formDisabled = !formIsValid || formIsSubmitting || createPipelineRun.isPending;
 
   const {
     data: columns = [],
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
-  } = useFilesQuery(namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey);
+  } = useFilesQuery(namespace ?? '', trainDataSecretName, trainDataBucketName, trainDataFileKey);
 
   // reset selected file values if bucket changes
   useEffect(() => {
     setValue('train_data_file_key', '');
   }, [trainDataBucketName, setValue]);
+
+  // reset all column-related form fields when file selection changes
+  useEffect(() => {
+    if (trainDataFileKey && trainDataFileKey !== previousFileKeyRef.current) {
+      // Reset tabular form fields
+      setValue('label_column', undefined);
+
+      // Reset timeseries form fields
+      setValue('target', undefined);
+      setValue('timestamp_column', undefined);
+      setValue('id_column', undefined);
+      setValue('known_covariates_names', undefined);
+    }
+    previousFileKeyRef.current = trainDataFileKey;
+  }, [trainDataFileKey, setValue]);
 
   // reset columns query cache and label column when connection data is cleared
   useEffect(() => {
@@ -200,6 +198,45 @@ function AutomlConfigure(): React.JSX.Element {
     queryClient,
     setValue,
   ]);
+
+  // Initialize timeseries-specific fields when switching to timeseries mode
+  useEffect(() => {
+    if (taskType === TASK_TYPE_TIMESERIES) {
+      // Only set default values if the fields are undefined
+      if (watch('prediction_length') === undefined) {
+        setValue('prediction_length', 1);
+      }
+      if (watch('known_covariates_names') === undefined) {
+        setValue('known_covariates_names', []);
+      }
+    }
+  }, [taskType, watch, setValue]);
+
+  const onSubmit = handleSubmit(async (data) => {
+    if (!namespace) {
+      return;
+    }
+
+    setSubmitError(undefined);
+
+    try {
+      await createPipelineRun.mutateAsync({
+        namespace,
+        data,
+      });
+
+      // TODO Redirect to the experiments page on success for now until we hook
+      // up the results screen.
+      navigate(`${automlExperimentsPathname}/${namespace}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create pipeline run';
+      setSubmitError(errorMessage);
+    }
+  });
+
+  if (!namespace) {
+    return <Navigate to={automlExperimentsPathname} replace />;
+  }
 
   return (
     <FormProvider {...form}>
@@ -363,85 +400,39 @@ function AutomlConfigure(): React.JSX.Element {
                         />
                       </StackItem>
 
-                      <StackItem>
-                        <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                          {isTimeseries ? 'Target column' : 'Label column'}
-                          <span className="pf-v6-u-text-color-required" aria-hidden="true">
-                            {' *'}
-                          </span>
-                        </div>
-                        {isLoadingColumns || isFetchingColumns ? (
-                          <Skeleton shape="square" width="100%" height="36px" />
-                        ) : (
-                          <>
-                            <Controller
-                              control={form.control}
-                              name={isTimeseries ? 'target' : 'label_column'}
-                              render={({ field }) => (
-                                <Select
-                                  id={`${isTimeseries ? 'target' : 'label-column'}-select`}
-                                  isOpen={isLabelColumnOpen}
-                                  onOpenChange={setIsLabelColumnOpen}
-                                  onSelect={(_event, value) => {
-                                    field.onChange(value);
-                                    setIsLabelColumnOpen(false);
-                                  }}
-                                  selected={field.value}
-                                  maxMenuHeight="200px"
-                                  toggle={(toggleRef) => (
-                                    <MenuToggle
-                                      ref={toggleRef}
-                                      onClick={() => setIsLabelColumnOpen((prev) => !prev)}
-                                      isExpanded={isLabelColumnOpen}
-                                      isDisabled={
-                                        !isFileSelected || columns.length === 0 || !!columnsError
-                                      }
-                                      isFullWidth
-                                      data-testid={`${isTimeseries ? 'target' : 'label_column'}-select`}
-                                      status={columnsError ? 'danger' : undefined}
-                                    >
-                                      {field.value || 'Select a column'}
-                                    </MenuToggle>
-                                  )}
-                                >
-                                  <SelectList>
-                                    {columns.map((column) => (
-                                      <SelectOption key={column.name} value={column.name}>
-                                        <span
-                                          style={{
-                                            fontFamily: 'monospace',
-                                            fontWeight: 700,
-                                            fontSize: '0.75rem',
-                                            display: 'inline-block',
-                                            width: '4rem',
-                                            marginRight: '0.5rem',
-                                          }}
-                                        >
-                                          {getTypeAcronym(column.type)}
-                                        </span>
-                                        {column.name}
-                                      </SelectOption>
-                                    ))}
-                                  </SelectList>
-                                </Select>
-                              )}
-                            />
-                            {columnsError && (
-                              <FormHelperText>
-                                <HelperText>
-                                  <HelperTextItem variant="error">
-                                    {columnsError.message}
-                                  </HelperTextItem>
-                                </HelperText>
-                              </FormHelperText>
-                            )}
-                          </>
-                        )}
-                      </StackItem>
+                      {isTimeseries ? (
+                        <ConfigureTimeseriesForm
+                          columns={columns}
+                          isLoadingColumns={isLoadingColumns}
+                          isFetchingColumns={isFetchingColumns}
+                          columnsError={columnsError}
+                          isFileSelected={isFileSelected}
+                          formIsSubmitting={formIsSubmitting}
+                        />
+                      ) : (
+                        <ConfigureTabularForm
+                          columns={columns}
+                          isLoadingColumns={isLoadingColumns}
+                          isFetchingColumns={isFetchingColumns}
+                          columnsError={columnsError}
+                          isFileSelected={isFileSelected}
+                          formIsSubmitting={formIsSubmitting}
+                        />
+                      )}
 
                       <StackItem>
                         <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
                           Top models to consider
+                          <Popover
+                            aria-label="Top models to consider help"
+                            headerContent="Top models to consider"
+                            bodyContent="Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training."
+                          >
+                            <DashboardPopupIconButton
+                              icon={<OutlinedQuestionCircleIcon />}
+                              aria-label="More info for top models to consider"
+                            />
+                          </Popover>
                         </div>
                         <Controller
                           control={form.control}
@@ -453,6 +444,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 value={field.value}
                                 min={MIN_TOP_N}
                                 max={MAX_TOP_N}
+                                isDisabled={formIsSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(Number(field.value) - 1)}
                                 onPlus={() => field.onChange(Number(field.value) + 1)}
@@ -485,15 +477,20 @@ function AutomlConfigure(): React.JSX.Element {
           </PanelMainBody>
         </PanelMain>
         <PanelFooter>
-          <Button
-            variant="primary"
-            isDisabled={formDisabled}
-            onClick={() => {
-              navigate(`${automlResultsPathname}/FAKE_RUN_ID`);
-            }}
-          >
-            Run experiment
-          </Button>
+          <Stack hasGutter>
+            {submitError && (
+              <StackItem>
+                <Alert variant="danger" isInline title="Failed to create experiment">
+                  {submitError}
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Button variant="primary" isDisabled={formDisabled} onClick={onSubmit}>
+                Run experiment
+              </Button>
+            </StackItem>
+          </Stack>
         </PanelFooter>
       </Panel>
 

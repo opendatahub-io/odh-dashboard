@@ -17,6 +17,9 @@ export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const
 function getBaseSchema() {
   return z.object({
     // Common fields
+    // TODO update the name and description to read from the form
+    display_name: z.string().default(String(Date.now())).optional(),
+    description: z.string().default('').optional(),
     task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
     train_data_secret_name: z.string().min(1).default(''),
     train_data_bucket_name: z.string().min(1).default(''),

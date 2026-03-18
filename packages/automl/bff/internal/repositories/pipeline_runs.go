@@ -18,6 +18,20 @@ import (
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
 
+// ValidationError represents a client-side validation error (should result in 400 Bad Request)
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+// NewValidationError creates a new validation error
+func NewValidationError(message string) error {
+	return &ValidationError{Message: message}
+}
+
 // maxRunsPerPipeline caps the total number of runs fetched across all pages for a single pipeline
 // to prevent unbounded memory accumulation when paginating through large result sets.
 const maxRunsPerPipeline = 10000
@@ -226,7 +240,7 @@ func DeterminePipelineType(taskType string) (string, error) {
 	case constants.PipelineTypeTimeSeries:
 		return constants.PipelineTypeTimeSeries, nil
 	default:
-		return "", fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression, timeseries", taskType)
+		return "", NewValidationError(fmt.Sprintf("invalid task_type %q: must be one of binary, multiclass, regression, timeseries", taskType))
 	}
 }
 
@@ -261,7 +275,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
+		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
 	// Reject any set pipeline-specific field that's not allowed for this pipeline type
@@ -274,7 +288,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 
 	if len(unexpected) > 0 {
 		sort.Strings(unexpected)
-		return fmt.Errorf("unexpected fields for %s pipeline: %s", pipelineType, strings.Join(unexpected, ", "))
+		return NewValidationError(fmt.Sprintf("unexpected fields for %s pipeline: %s", pipelineType, strings.Join(unexpected, ", ")))
 	}
 
 	// Validate enum values and consistency with pipeline type
@@ -282,22 +296,22 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		switch pipelineType {
 		case constants.PipelineTypeTabular:
 			if !constants.ValidTaskTypes[*req.TaskType] {
-				return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType)
+				return NewValidationError(fmt.Sprintf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType))
 			}
 		case constants.PipelineTypeTimeSeries:
 			if *req.TaskType != constants.PipelineTypeTimeSeries {
-				return fmt.Errorf("invalid task_type %q for timeseries pipeline: must be \"timeseries\"", *req.TaskType)
+				return NewValidationError(fmt.Sprintf("invalid task_type %q for timeseries pipeline: must be \"timeseries\"", *req.TaskType))
 			}
 		}
 	}
 
 	// Validate optional field ranges
 	if req.TopN != nil && *req.TopN <= 0 {
-		return fmt.Errorf("invalid top_n: must be a positive integer")
+		return NewValidationError("invalid top_n: must be a positive integer")
 	}
 
 	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
-		return fmt.Errorf("invalid prediction_length: must be a positive integer")
+		return NewValidationError("invalid prediction_length: must be a positive integer")
 	}
 
 	return nil
