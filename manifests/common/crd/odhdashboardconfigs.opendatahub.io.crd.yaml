@@ -123,8 +123,6 @@ spec:
                       type: boolean
                     disableLLMd:
                       type: boolean
-                    externalVectorStores:
-                      type: boolean
                     deploymentWizardYAMLViewer:
                       type: boolean
                   x-kubernetes-validations:
