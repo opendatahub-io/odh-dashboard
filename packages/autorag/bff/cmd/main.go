@@ -65,6 +65,13 @@ func main() {
 		Level: cfg.LogLevel,
 	}))
 
+	// Warn operators when DevMode + ALLOW_UNRESOLVED_S3_ENDPOINTS weakens SSRF protections
+	if cfg.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
+			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
+			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
+
 	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
 	if cfg.MockS3Client && !cfg.DevMode {
 		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")

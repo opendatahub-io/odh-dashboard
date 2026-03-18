@@ -215,7 +215,8 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 			// Only honor ALLOW_UNRESOLVED_S3_ENDPOINTS in dev mode to prevent
 			// weakening SSRF protections in production.
 			if c.options.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
-				slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed (dev mode, ALLOW_UNRESOLVED_S3_ENDPOINTS=true)",
+				slog.Warn("SECURITY: Bypassing DNS resolution check for S3 endpoint (dev mode). "+
+					"This weakens SSRF protection and introduces TOCTOU risk. Do NOT use in production.",
 					"hostname", hostname,
 					"error", err.Error())
 			} else {
