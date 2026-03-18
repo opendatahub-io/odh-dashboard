@@ -1,6 +1,6 @@
 ---
 name: model-registry-upstream-sync
-description: Sync upstream changes from kubeflow/model-registry and open a PR. Assist user with conflicts and document their nature in the PR.
+description: Sync upstream changes from kubeflow/model-registry and open a PR. Assist user with conflicts and document their nature in the PR. Optionally pass a PR URL to do a temporary test sync.
 ---
 
 # Model Registry Sync
@@ -8,6 +8,10 @@ description: Sync upstream changes from kubeflow/model-registry and open a PR. A
 Sync upstream changes from kubeflow/model-registry and open a PR.
 
 This command orchestrates the entire sync process: branch creation, running the update-subtree script, resolving conflicts, running tests, and opening a PR.
+
+## PR Test Mode
+
+If the user passes a PR URL as an argument (e.g. `/model-registry-upstream-sync https://github.com/kubeflow/model-registry/pull/1234`), this is a **temporary test sync** to validate an upstream PR's changes in odh-dashboard before the upstream PR merges. The differences from a normal sync are noted inline below with **[PR Test Mode]** markers.
 
 ## Workflow
 
@@ -18,16 +22,18 @@ First, check the current branch state:
 1. Run `git branch --show-current` to get the current branch name
 2. Run `git status` to check for uncommitted changes or unresolved conflicts
 
-**If on an `mr-sync-*` branch:**
+**If on an `mr-sync-*` or `tmp-sync-pr-*` branch:**
 - Continue with the existing branch (supports resuming a sync in progress)
 - If there are unresolved conflicts (files in "Unmerged paths"), proceed to Phase 3
 - If there are staged changes ready to continue, proceed to Phase 2 with `--continue`
 
 **If on `main`:**
 - Ensure working directory is clean (no uncommitted changes)
-- Generate branch name: `mr-sync-YYYY-MM-DD` (use today's date)
-- Check if this branch already exists with `git branch --list mr-sync-YYYY-MM-DD`
-  - If it exists, ask user if they want to create `mr-sync-YYYY-MM-DD-2` (or find next available suffix)
+- Run `git pull` to ensure main is up to date before starting the sync
+- **[PR Test Mode]** Generate branch name: `tmp-sync-pr-<number>` (extract the PR number from the URL)
+- **[Normal Mode]** Generate branch name: `mr-sync-YYYY-MM-DD` (use today's date)
+- Check if this branch already exists with `git branch --list <branch-name>`
+  - If it exists, ask user if they want to create `<branch-name>-2` (or find next available suffix)
 - Create and switch to the branch: `git checkout -b <branch-name>`
 
 **If on any other branch:**
@@ -39,6 +45,11 @@ Run the update-subtree script from the `packages/model-registry` directory:
 
 ```bash
 cd packages/model-registry && npm run update-subtree
+```
+
+**[PR Test Mode]** Pass the `--pr` flag with the PR URL:
+```bash
+cd packages/model-registry && npm run update-subtree -- --pr=<pr-url>
 ```
 
 Or if continuing after conflict resolution:
@@ -110,14 +121,30 @@ Ask the user if they're ready to open a PR. If not, exit gracefully.
 
 First, read the PR template at `.github/pull_request_template.md` to get the current structure and "Request review criteria" checklist. The PR body should follow this template's structure.
 
-Title format:
+**[Normal Mode]** Title format:
 ```
 Sync from kubeflow/model-registry <7-char-sha>
 ```
 
+**[PR Test Mode]** Title format:
+```
+[DO NOT MERGE] Test sync for kubeflow/model-registry#<pr-number>
+```
+
 Body sections (following the PR template structure):
 
-**Description section:**
+**[PR Test Mode] Description section:**
+```markdown
+## Description
+
+**This is a temporary test sync and should not be merged.**
+
+This PR syncs the changes from [kubeflow/model-registry#<pr-number>](https://github.com/kubeflow/model-registry/pull/<pr-number>) into odh-dashboard so they can be tested before the upstream PR merges. The branch is available for local testing or CI validation.
+```
+
+Then include the "Conflicts Resolved" subsection (if any), "How Has This Been Tested?", "Test Impact", and "Request review criteria" sections as normal.
+
+**[Normal Mode] Description section:**
 ```markdown
 ## Description
 
@@ -178,3 +205,8 @@ Copy the "Request review criteria" section exactly as it appears in `.github/pul
    gh pr create --title "<title>" --body "<body>"
    ```
 4. Report the PR URL to the user
+5. **Only if in PR Test Mode** (the user passed a PR URL argument — the branch name starts with `tmp-sync-pr-`): immediately close the PR after creating it, since it exists only to share the branch and trigger CI:
+   ```bash
+   gh pr close <pr-number>
+   ```
+   **Do NOT close the PR in normal mode.** Normal sync PRs are meant to be reviewed and merged.
