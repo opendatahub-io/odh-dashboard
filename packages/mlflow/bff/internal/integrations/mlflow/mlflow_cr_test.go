@@ -62,7 +62,19 @@ func TestParseAddressURL(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "has no status.address.url",
+			wantErr: "has empty status.address.url",
+		},
+		{
+			name: "whitespace-only url",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"address": map[string]any{
+						"url": "   ",
+					},
+				},
+			},
+			wantErr: "has empty status.address.url",
 		},
 		{
 			name: "status is not a map",
@@ -93,6 +105,42 @@ func TestParseAddressURL(t *testing.T) {
 				},
 			},
 			wantErr: "has no status.address.url",
+		},
+		{
+			name: "malformed url",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"address": map[string]any{
+						"url": "not-a-url",
+					},
+				},
+			},
+			wantErr: "has invalid status.address.url",
+		},
+		{
+			name: "url with unsupported scheme",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"address": map[string]any{
+						"url": "ftp://mlflow.example.com",
+					},
+				},
+			},
+			wantErr: "has invalid status.address.url",
+		},
+		{
+			name: "url with embedded credentials",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"address": map[string]any{
+						"url": "https://user:pass@mlflow.example.com",
+					},
+				},
+			},
+			wantErr: "must not include credentials",
 		},
 	}
 

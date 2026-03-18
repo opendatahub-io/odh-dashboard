@@ -191,7 +191,7 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	if cfg.AuthMethod == config.AuthMethodDisabled {
 		return ""
 	}
-	discoveredURL, err := mlflowpkg.DiscoverMLflowURL(logger)
+	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
 	if err != nil {
 		logger.Debug("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
 		return ""
