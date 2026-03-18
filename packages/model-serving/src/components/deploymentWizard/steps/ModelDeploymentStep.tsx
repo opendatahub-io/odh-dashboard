@@ -55,7 +55,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         )}
         {vLLMDeploymentOnMaaS ? (
           <GenericFieldRenderer
-            fieldId="modelServerTemplate"
+            fieldId="modelServer"
             wizardState={wizardState}
             externalData={externalData}
             isEditing={wizardState.initialData?.isEditing}

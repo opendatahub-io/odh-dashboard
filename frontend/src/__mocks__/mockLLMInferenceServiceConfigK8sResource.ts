@@ -1,5 +1,4 @@
 import { type LLMInferenceServiceConfigKind } from '@odh-dashboard/llmd-serving/types';
-import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
@@ -37,7 +36,6 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
     labels: {
       'opendatahub.io/config-type': configType,
     },
-    uid: genUID('llm-config'),
   },
   spec: {
     model: {

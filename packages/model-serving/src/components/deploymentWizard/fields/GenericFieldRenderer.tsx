@@ -4,12 +4,13 @@ import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { getFieldDependencies } from '../dynamicFormUtils';
 
-type GenericFieldRendererProps = {
+type CommonProps = {
   wizardState: UseModelDeploymentWizardState;
-  parentId?: string;
-  fieldId?: string;
   externalData?: ExternalDataMap;
 } & GenericFieldProps;
+
+type GenericFieldRendererProps = CommonProps &
+  ({ parentId: string; fieldId?: never } | { fieldId: string; parentId?: never });
 
 export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   parentId,
@@ -19,7 +20,10 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   isEditing,
 }) => {
   const fields: WizardField<unknown>[] = React.useMemo(() => {
-    return wizardState.fields.filter((f) => f.parentId === parentId || f.id === fieldId);
+    if (fieldId) {
+      return wizardState.fields.filter((f) => f.id === fieldId);
+    }
+    return wizardState.fields.filter((f) => f.parentId === parentId);
   }, [parentId, fieldId, wizardState.fields]);
 
   if (!fields.length) {
