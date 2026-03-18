@@ -326,7 +326,7 @@ func validateGetS3FilesHandlerParameters(r *http.Request) (*s3FilesParams, error
 	}
 
 	const maxS3ListLimit int32 = 1000
-	var limit int32 = maxS3ListLimit
+	var limit = maxS3ListLimit
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		parsed, err := strconv.ParseInt(limitStr, 10, 32)
 		if err != nil || parsed < 1 || parsed > int64(maxS3ListLimit) {
