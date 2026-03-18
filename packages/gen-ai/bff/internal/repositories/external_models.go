@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -110,9 +111,12 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }
 
-// isLocalhost checks if a URL points to localhost
+// isLocalhost checks if a URL points to localhost by parsing the hostname.
 func isLocalhost(baseURL string) bool {
-	return strings.Contains(baseURL, "127.0.0.1") ||
-		strings.Contains(baseURL, "localhost") ||
-		strings.Contains(baseURL, "[::1]")
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	hostname := u.Hostname()
+	return hostname == "localhost" || hostname == "::1" || strings.HasPrefix(hostname, "127.")
 }

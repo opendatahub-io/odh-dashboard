@@ -485,7 +485,6 @@ paths:
       Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
       Tests the connection by sending a minimal request to the endpoint and validating the response format.
       This is a stateless operation that does not create any resources.
-      Does not require namespace parameter as it only tests external connectivity.
     post:
       tags:
         - ExternalModels
@@ -502,7 +501,6 @@ paths:
               model_id: 'gpt-4o'
               base_url: 'https://api.openai.com/v1'
               secret_value: 'sk-test-key'
-              provider_type: 'remote::openai'
               model_type: 'llm'
       responses:
         '200':
