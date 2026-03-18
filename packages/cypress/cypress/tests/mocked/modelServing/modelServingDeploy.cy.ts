@@ -58,9 +58,11 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 const initIntercepts = ({
   modelType,
   rejectAddSupportServingPlatformProject = false,
+  vLLMDeploymentOnMaaS = false,
 }: {
   modelType?: ServingRuntimeModelType;
   rejectAddSupportServingPlatformProject?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -76,6 +78,7 @@ const initIntercepts = ({
       disableNIMModelServing: true,
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
+      vLLMDeploymentOnMaaS,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -337,7 +340,7 @@ describe('Model Serving Deploy Wizard', () => {
   });
 
   it('Create a new generative deployment and submit', () => {
-    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE, vLLMDeploymentOnMaaS: true });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -365,8 +368,16 @@ describe('Model Serving Deploy Wizard', () => {
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
       .click();
-
     modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
+
+    modelServingWizard.findLegacyModeCheckbox().should('exist');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard
+      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+      .should('exist');
+    modelServingWizard.findBackButton().click();
+    modelServingWizard.findLegacyModeCheckbox().click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -381,8 +392,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
-
+    modelServingWizard
+      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+      .should('not.exist');
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
     modelServingWizard.findNumReplicasMinusButton().should('be.disabled');
