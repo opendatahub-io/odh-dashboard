@@ -264,9 +264,10 @@ paths:
         - name: path
           in: query
           required: false
-          description: the S3-like folder path to search within. Maximum 1024 characters.
+          description: (Optional) S3-like folder path to search within (if omitted, lists bucket root). When provided, must be non-empty and not exceed 1024 characters.
           schema:
             type: string
+            minLength: 1
             maxLength: 1024
           example: folder1/folder2/folder3
         - name: search
