@@ -16,9 +16,9 @@ type MockS3Client struct{}
 
 // GetObject returns a placeholder text response.
 // Binary file streaming is not yet mocked.
-func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.Reader, string, error) {
+func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.ReadCloser, string, error) {
 	content := fmt.Sprintf("[mock] contents of s3://%s/%s", bucket, key)
-	return bytes.NewReader([]byte(content)), "text/plain", nil
+	return io.NopCloser(bytes.NewReader([]byte(content))), "text/plain", nil
 }
 
 // ListObjects returns a realistic mock listing of S3 objects.

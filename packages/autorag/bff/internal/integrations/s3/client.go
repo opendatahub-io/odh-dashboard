@@ -37,7 +37,7 @@ type ListObjectsOptions struct {
 
 // S3ClientInterface defines the interface for S3 operations.
 type S3ClientInterface interface {
-	GetObject(ctx context.Context, bucket, key string) (io.Reader, string, error)
+	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
 	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
 }
 
@@ -72,7 +72,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 
 // GetObject retrieves an object from S3 using transfer manager for optimized downloading
 // and returns a reader for the content. Uses concurrent multipart downloads for large files.
-func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Reader, string, error) {
+func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
 	// Create transfer manager for optimized downloads
 	transferClient := transfermanager.New(c.s3Client)
 
@@ -106,8 +106,14 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 		contentType = *result.ContentType
 	}
 
-	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
-	return result.Body, contentType, nil
+	// The transfer manager returns io.Reader; promote to io.ReadCloser so
+	// callers can unconditionally Close the stream.
+	body, ok := result.Body.(io.ReadCloser)
+	if !ok {
+		body = io.NopCloser(result.Body)
+	}
+
+	return body, contentType, nil
 }
 
 // ListObjects retrieves a listing of objects from S3.

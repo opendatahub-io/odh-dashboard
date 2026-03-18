@@ -150,10 +150,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Ensure cleanup of the reader
-	if closer, ok := objectReader.(io.Closer); ok {
-		defer closer.Close()
-	}
+	defer objectReader.Close()
 
 	w.Header().Set("Content-Type", contentType)
 

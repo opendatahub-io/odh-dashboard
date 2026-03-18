@@ -33,7 +33,7 @@ type failingS3Client struct {
 	s3mocks.MockS3Client
 }
 
-func (f *failingS3Client) GetObject(_ context.Context, _, _ string) (io.Reader, string, error) {
+func (f *failingS3Client) GetObject(_ context.Context, _, _ string) (io.ReadCloser, string, error) {
 	return nil, "", fmt.Errorf("connection refused")
 }
 
