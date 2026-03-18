@@ -748,20 +748,20 @@ describe('AutoRAG API Contract Tests', () => {
         const result = await apiClient.get(
           '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
         );
-        // Should not return 400 since bucket is provided via secret
-        if (!result.success) {
-          expect(result.error.status).not.toBe(400);
-        }
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
       }, 8000);
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
           '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
         );
-        // Should not return 400 since both bucket sources are valid
-        if (!result.success) {
-          expect(result.error.status).not.toBe(400);
-        }
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
       }, 8000);
     });
     describe('Search parameters handling', () => {
@@ -771,9 +771,10 @@ describe('AutoRAG API Contract Tests', () => {
       describe('path parameter', () => {
         it('should accept request with valid path parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&path=folder/subfolder`);
-          if (!result.success) {
-            expect(result.error.status).not.toBe(400);
-          }
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
         }, 8000);
 
         it('should return 400 when path is provided but empty', async () => {
@@ -788,9 +789,10 @@ describe('AutoRAG API Contract Tests', () => {
       describe('search parameter', () => {
         it('should accept request with valid search parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&search=myfile`);
-          if (!result.success) {
-            expect(result.error.status).not.toBe(400);
-          }
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
         }, 8000);
 
         it('should return 400 when search contains slash characters', async () => {
@@ -805,9 +807,10 @@ describe('AutoRAG API Contract Tests', () => {
       describe('next parameter', () => {
         it('should accept request with valid next parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&next=some-continuation-token`);
-          if (!result.success) {
-            expect(result.error.status).not.toBe(400);
-          }
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
         }, 8000);
 
         it('should return 400 when next is provided but empty', async () => {
@@ -822,9 +825,10 @@ describe('AutoRAG API Contract Tests', () => {
       describe('limit parameter', () => {
         it('should accept request with valid limit parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&limit=20`);
-          if (!result.success) {
-            expect(result.error.status).not.toBe(400);
-          }
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
         }, 8000);
 
         it('should return 400 when limit is zero', async () => {
