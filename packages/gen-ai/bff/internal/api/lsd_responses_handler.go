@@ -790,11 +790,24 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
+	// Compute cache TTL from the key's actual expiry, with a safety buffer
+	cacheTTL := constants.MaaSTokenTTLDuration
+	ttlSource := "default"
+	if tokenResponse.ExpiresAt != "" {
+		if expiresAt, parseErr := time.Parse(time.RFC3339, tokenResponse.ExpiresAt); parseErr == nil {
+			const safetyBuffer = 30 * time.Second
+			computed := time.Until(expiresAt) - safetyBuffer
+			if computed > 0 && computed <= 24*time.Hour {
+				cacheTTL = computed
+				ttlSource = "expiresAt"
+			}
+		}
+	}
+
 	// Cache the new API key
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Key, constants.MaaSTokenTTLDuration); err != nil {
+	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Key, cacheTTL); err != nil {
 		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
-	} else {
-		app.logger.Debug("Cached new MaaS API key", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
 	}
 
 	return tokenResponse.Key
