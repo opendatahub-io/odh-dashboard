@@ -61,20 +61,20 @@ func main() {
 
 	flag.Parse()
 
-  logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-    Level: cfg.LogLevel,
-  }))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
 
-  // Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
-  if cfg.MockS3Client && !cfg.DevMode {
-    logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
-    os.Exit(1)
-  }
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
 
 	// Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
 	// a mock Kubernetes client for GetS3Credentials and s3_handler.go
 	if cfg.MockS3Client && !cfg.MockK8Client {
-    logger.Warn("mock-s3-client depends on mock-k8s-client=true. Enabling to true as it was found to be mock-k8s-client=false")
+		logger.Warn("mock-s3-client depends on mock-k8s-client=true. Enabling to true as it was found to be mock-k8s-client=false")
 		cfg.MockK8Client = true
 	}
 

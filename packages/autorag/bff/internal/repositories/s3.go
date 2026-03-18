@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/url"
@@ -209,62 +208,4 @@ func (r *S3Repository) GetS3Credentials(
 	creds.EndpointURL = validatedEndpoint
 
 	return creds, nil
-}
-
-// TODO [ Gustavo:S3-MERGE ] Incorporate these change from Nick into the new client way
-// GetS3Object retrieves an object from S3 using transfer manager for optimized downloading
-// and returns a reader for the content. Uses concurrent multipart downloads for large files.
-func (r *S3Repository) GetS3ObjectNICK(
-	ctx context.Context,
-	creds *S3Credentials,
-	bucket string,
-	key string,
-) (io.Reader, string, error) {
-	// Revalidate the endpoint on each request to ensure SSRF protection
-	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
-	if err != nil {
-		return nil, "", fmt.Errorf("endpoint validation failed: %w", err)
-	}
-
-	// Create AWS config with credentials
-	cfg := aws.Config{
-		Region:      creds.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
-	}
-
-	// Create S3 client
-	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(validatedEndpoint)
-		// Enable path-style addressing for S3-compatible services like MinIO
-		o.UsePathStyle = true
-	})
-
-	// Create transfer manager for optimized downloads
-	transferClient := transfermanager.New(s3Client)
-
-	// Get the object using transfer manager
-	// This automatically handles multipart downloads for large files with concurrency
-	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	}, func(o *transfermanager.Options) {
-		// Configure for optimal streaming performance
-		o.Concurrency = 10                  // 10 concurrent part downloads
-		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
-		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
-		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
-		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
-	})
-	if err != nil {
-		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
-	}
-
-	// Get content type, default to application/octet-stream if not specified
-	contentType := "application/octet-stream"
-	if result.ContentType != nil {
-		contentType = *result.ContentType
-	}
-
-	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
-	return result.Body, contentType, nil
 }

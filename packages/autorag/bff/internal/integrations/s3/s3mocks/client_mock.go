@@ -208,9 +208,9 @@ func (f *MockClientFactory) SetMockClient(client s3client.S3ClientInterface) {
 }
 
 // CreateClient returns a mock S3 client, ignoring credentials.
-func (f *MockClientFactory) CreateClient(_ *s3client.S3Credentials) s3client.S3ClientInterface {
+func (f *MockClientFactory) CreateClient(_ *s3client.S3Credentials) (s3client.S3ClientInterface, error) {
 	if f.mockClient != nil {
-		return f.mockClient
+		return f.mockClient, nil
 	}
-	return &MockS3Client{}
+	return &MockS3Client{}, nil
 }

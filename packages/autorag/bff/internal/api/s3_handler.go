@@ -109,7 +109,11 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	// Create S3 client and retrieve the file
-	s3Client := app.s3ClientFactory.CreateClient(creds)
+	s3Client, err := app.s3ClientFactory.CreateClient(creds)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
+		return
+	}
 	objectReader, contentType, err := s3Client.GetObject(ctx, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
@@ -225,7 +229,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	// Create S3 client and list objects
-	s3Client := app.s3ClientFactory.CreateClient(creds)
+	s3Client, err := app.s3ClientFactory.CreateClient(creds)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
+		return
+	}
 	result, err := s3Client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
 		Path:   parameters.Path,
 		Search: parameters.Search,
