@@ -78,6 +78,7 @@ type EnvConfig struct {
 	Port                     int
 	MockK8Client             bool
 	MockHTTPClient           bool
+	MockS3Client             bool
 	MockPipelineServerClient bool
 	PipelineServerURL        string
 	DevMode                  bool
@@ -105,6 +106,20 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// ─── PIPELINE DISCOVERY ─────────────────────────────────────
+	// AutoMLTimeSeriesPipelineNamePrefix is the prefix used to identify AutoML time-series
+	// managed pipelines during automatic pipeline discovery. The discovery process searches
+	// for pipelines with display names starting with this prefix (case-insensitive).
+	// Default: "automl-timeseries"
+	AutoMLTimeSeriesPipelineNamePrefix string
+
+	// AutoMLTabularPipelineNamePrefix is the prefix used to identify AutoML tabular
+	// managed pipelines (classification + regression) during automatic pipeline discovery.
+	// The discovery process searches for pipelines with display names starting with this
+	// prefix (case-insensitive).
+	// Default: "automl-tabular"
+	AutoMLTabularPipelineNamePrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

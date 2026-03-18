@@ -7,11 +7,11 @@ import {
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
 import { type APIKey } from '../types/api-key';
-import { getApiKeys } from '../api/api-keys';
+import { searchApiKeys } from '../api/api-keys';
 
 export const useFetchApiKeys = (): FetchState<APIKey[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<APIKey[]>>(
-    (opts: APIOptions) => getApiKeys()(opts),
+    (opts: APIOptions) => searchApiKeys()(opts).then((response) => response.data),
     [],
   );
 

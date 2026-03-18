@@ -17,7 +17,7 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  is_maas_model: boolean;
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
   max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
@@ -364,7 +364,7 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
-  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider';
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
   model_type?: 'llm' | 'embedding';
 }
 
@@ -372,11 +372,6 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  // Flag to identify if this is a MaaS model
-  isMaaSModel?: boolean;
-  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
-  maasModelId?: string;
-  modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
 export type ExternalModelRequest = {
@@ -396,6 +391,28 @@ export type ExternalModelRequest = {
 };
 
 export type ExternalModelResponse = AAModelResponse;
+
+export type VerifyExternalModelRequest = {
+  model_id: string;
+  base_url: string;
+  secret_value: string;
+  model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
+};
+
+export type VerifyExternalModelResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+// Error response structure (matches BFF)
+export type ExternalModelVerificationError = {
+  code: 'CONNECTION_FAILED' | 'TIMEOUT' | 'UNAUTHORIZED' | 'NOT_OPENAI_COMPATIBLE';
+  message: string;
+  base_url?: string;
+  model_id?: string;
+};
 
 export type {
   MCPServerFromAPI,
@@ -511,6 +528,7 @@ export type GenAiAPIs = {
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
+  verifyExternalModel: VerifyExternalModel;
 };
 
 export interface MaaSModel {
@@ -583,3 +601,7 @@ type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegiste
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
 type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;
+type VerifyExternalModel = ModArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>;

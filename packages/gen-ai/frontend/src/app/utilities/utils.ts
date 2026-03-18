@@ -134,7 +134,7 @@ export const getModelTypeLabel = (modelType?: string): string =>
   MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
 
 export const getSourceLabel = (model: AIModel): string => {
-  const source = model.modelSource || 'namespace';
+  const source = model.model_source_type;
   const label = SOURCE_LABELS[source];
   if (!label) {
     // eslint-disable-next-line no-console
@@ -174,11 +174,9 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token_name: '',
     token: '',
   },
+  model_source_type: 'maas',
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
-  isMaaSModel: true,
-  maasModelId: maasModel.id,
-  modelSource: 'maas',
   model_type: maasModel.model_type,
 });
 

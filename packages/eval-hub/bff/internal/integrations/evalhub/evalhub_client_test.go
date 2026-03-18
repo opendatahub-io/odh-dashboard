@@ -65,19 +65,30 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
-	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
+	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "my-ns"})
 
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "job-1", result[0].Resource.ID)
 	assert.Equal(t, "completed", result[0].Status.State)
 	assert.Equal(t, "test-model", result[0].Model.Name)
+}
+
+func TestEvalHubClient_ListEvaluationJobs_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
 }
 
 func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
@@ -95,7 +106,7 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
-		assert.Equal(t, "my-ns", r.URL.Query().Get("namespace"))
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "10", r.URL.Query().Get("limit"))
 		assert.Equal(t, "5", r.URL.Query().Get("offset"))
 		assert.Equal(t, "completed", r.URL.Query().Get("status"))
@@ -123,13 +134,14 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 
 func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_, _ = w.Write([]byte("service unavailable"))
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
+	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "test-ns"})
 
 	require.Error(t, err)
 	var ehErr *EvalHubError
@@ -150,6 +162,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -158,7 +171,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "test-namespace")
 
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
@@ -168,6 +181,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 
 func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write([]byte(`{}`)); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -176,15 +190,28 @@ func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "test-ns")
 
 	require.NoError(t, err)
 	assert.NotNil(t, result.Items, "Items should be an empty slice, not nil")
 	assert.Empty(t, result.Items)
 }
 
+func TestEvalHubClient_ListCollections_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background(), "")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+	assert.NotNil(t, result.Items, "Items should be an empty slice even on error")
+	assert.Empty(t, result.Items)
+}
+
 func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, err := w.Write([]byte("internal error")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -193,9 +220,12 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background())
+	result, err := client.ListCollections(context.Background(), "test-ns")
 
 	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInternalError, ehErr.Code)
 	assert.NotNil(t, result.Items, "Items should be an empty slice even on error")
 	assert.Empty(t, result.Items)
 }
@@ -212,13 +242,14 @@ func TestEvalHubClient_ConnectionError(t *testing.T) {
 
 func TestEvalHubClient_NotFoundError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("not found"))
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
+	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "test-ns"})
 
 	require.Error(t, err)
 	var ehErr *EvalHubError
@@ -228,13 +259,14 @@ func TestEvalHubClient_NotFoundError(t *testing.T) {
 
 func TestEvalHubClient_UnauthorizedError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte("unauthorized"))
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
+	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "test-ns"})
 
 	require.Error(t, err)
 	var ehErr *EvalHubError

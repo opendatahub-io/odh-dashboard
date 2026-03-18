@@ -184,8 +184,8 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
-				{"model_name": "granite-embedding-125m", "is_maas_model": true},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace"},
+				{"model_name": "granite-embedding-125m", "model_source_type": "maas"},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -266,7 +266,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace"},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -304,7 +304,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace"},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -370,8 +370,8 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-2-7b-chat", "is_maas_model": true},
-				{"model_name": "granite-7b-code", "is_maas_model": true},
+				{"model_name": "llama-2-7b-chat", "model_source_type": "maas"},
+				{"model_name": "granite-7b-code", "model_source_type": "maas"},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -425,7 +425,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "not-ready-model", "is_maas_model": true},
+				{"model_name": "not-ready-model", "model_source_type": "maas"},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -475,7 +475,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 127},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace", "max_tokens": 127},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -513,7 +513,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 128001},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace", "max_tokens": 128001},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -554,8 +554,8 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 8192},
-				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 4096},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace", "max_tokens": 8192},
+				{"model_name": "granite-embedding-125m", "model_source_type": "maas", "max_tokens": 4096},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -605,8 +605,8 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 128},
-				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 128000},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace", "max_tokens": 128},
+				{"model_name": "granite-embedding-125m", "model_source_type": "maas", "max_tokens": 128000},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -641,8 +641,8 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
-				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 4096},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace"},
+				{"model_name": "granite-embedding-125m", "model_source_type": "maas", "max_tokens": 4096},
 			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
@@ -693,7 +693,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		testNamespace := fmt.Sprintf("delete-test-namespace-%d", time.Now().UnixNano())
 		installRequestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
-				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace"},
 			},
 		}
 		installJsonBody, err := json.Marshal(installRequestBody)
