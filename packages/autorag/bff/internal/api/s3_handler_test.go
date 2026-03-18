@@ -699,7 +699,6 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 		params.Set("namespace", "test-namespace")
 		params.Set("secretName", "aws-secret-1")
 		params.Set("bucket", "my-bucket")
-		params.Set("path", "root")
 		uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
 
 		rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
@@ -713,6 +712,13 @@ func TestGetS3FilesHandler_Success(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "my-bucket", body.Name)
 		assert.Equal(t, "/", body.Delimiter)
+		assert.Len(t, body.CommonPrefixes, 3)
+		assert.Equal(t, "datasets/", body.CommonPrefixes[0].Prefix)
+		assert.Equal(t, "results/", body.CommonPrefixes[1].Prefix)
+		assert.Equal(t, "configs/", body.CommonPrefixes[2].Prefix)
+		assert.Len(t, body.Contents, 2)
+		assert.Equal(t, "README.md", body.Contents[0].Key)
+		assert.Equal(t, "config.yaml", body.Contents[1].Key)
 	})
 
 	t.Run("should return objects for known path", func(t *testing.T) {
