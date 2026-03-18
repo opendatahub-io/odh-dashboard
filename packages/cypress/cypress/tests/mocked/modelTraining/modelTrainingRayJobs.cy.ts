@@ -82,6 +82,8 @@ const mockRayJobs = mockRayJobK8sResourceList([
     jobStatus: RayJobStatusValue.FAILED,
     jobDeploymentStatus: RayJobDeploymentStatus.FAILED,
     failed: 1,
+    reason: 'AppFailed',
+    message: 'Ray job failed due to application error.',
   },
   {
     name: 'ray-suspended-job',
