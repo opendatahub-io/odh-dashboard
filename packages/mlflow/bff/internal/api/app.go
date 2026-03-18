@@ -138,47 +138,77 @@ func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesCl
 }
 
 func initMLflowFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
-	if cfg.MockHTTPClient && cfg.MLflowURL != "" {
-		parsed, err := url.Parse(cfg.MLflowURL)
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid MLflow URL: %w", err)
-		}
-		host := parsed.Hostname()
-		ip := net.ParseIP(host)
-		if !cfg.DevMode || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
-			return nil, nil, fmt.Errorf("external no-auth MLflow is only allowed in dev mode for loopback hosts")
+	if cfg.MockHTTPClient {
+		return initMockMLflowFactory(cfg, logger)
+	}
+
+	trackingURL := resolveMLflowURL(cfg, logger)
+	if trackingURL == "" {
+		return mlflowpkg.NewUnavailableClientFactory(), nil, nil
+	}
+	return newRealClientFactory(trackingURL, rootCAs, cfg.InsecureSkipVerify, logger), nil, nil
+}
+
+func initMockMLflowFactory(cfg config.EnvConfig, logger *slog.Logger) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
+	if cfg.MLflowURL != "" {
+		if err := validateLoopbackURL(cfg.MLflowURL, cfg.DevMode); err != nil {
+			return nil, nil, err
 		}
 		logger.Info("Using external MLflow (no auth)", slog.String("url", cfg.MLflowURL))
 		return mlflowmocks.NewMockClientFactory(cfg.MLflowURL), nil, nil
 	}
 
-	if cfg.MockHTTPClient && cfg.StaticMLflowMock {
+	if cfg.StaticMLflowMock {
 		logger.Info("Using static in-memory MLflow mock data")
 		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
 	}
 
-	if cfg.MockHTTPClient {
-		// Try starting a real local MLflow via uv (provides seeded data).
-		// If uv is not available (e.g. CI), fall back to static canned data.
-		state, err := mlflowmocks.SetupMLflow(logger)
-		if err != nil {
-			logger.Info("MLflow mock server not available, using static mock data", "error", err)
-			return mlflowmocks.NewStaticMockClientFactory(), nil, nil
-		}
-		return mlflowmocks.NewMockClientFactory(state.TrackingURI), state, nil
+	state, err := mlflowmocks.SetupMLflow(logger)
+	if err != nil {
+		logger.Info("MLflow mock server not available, using static mock data", slog.Any("error", err))
+		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
 	}
+	return mlflowmocks.NewMockClientFactory(state.TrackingURI), state, nil
+}
 
+func validateLoopbackURL(rawURL string, devMode bool) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid MLflow URL: %w", err)
+	}
+	host := parsed.Hostname()
+	ip := net.ParseIP(host)
+	if !devMode || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
+		return fmt.Errorf("external no-auth MLflow is only allowed in dev mode for loopback hosts")
+	}
+	return nil
+}
+
+func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	if cfg.MLflowURL != "" {
-		factory := mlflowpkg.NewRealClientFactory(mlflowpkg.RealClientFactoryConfig{
-			TrackingURL:        cfg.MLflowURL,
-			RootCAs:            rootCAs,
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			Logger:             logger,
-		})
-		return factory, nil, nil
+		return cfg.MLflowURL
 	}
+	if cfg.AuthMethod == config.AuthMethodDisabled {
+		return ""
+	}
+	discoveredURL, err := mlflowpkg.DiscoverMLflowURL(logger)
+	if err != nil {
+		logger.Debug("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
+		return ""
+	}
+	if discoveredURL != "" {
+		logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
+	}
+	return discoveredURL
+}
 
-	return mlflowpkg.NewUnavailableClientFactory(), nil, nil
+func newRealClientFactory(trackingURL string, rootCAs *x509.CertPool, insecureSkipVerify bool, logger *slog.Logger) mlflowpkg.MLflowClientFactory {
+	return mlflowpkg.NewRealClientFactory(mlflowpkg.RealClientFactoryConfig{
+		TrackingURL:        trackingURL,
+		RootCAs:            rootCAs,
+		InsecureSkipVerify: insecureSkipVerify,
+		Logger:             logger,
+	})
 }
 
 func (app *App) Shutdown() error {
