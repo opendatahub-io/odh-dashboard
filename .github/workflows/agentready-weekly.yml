@@ -30,8 +30,12 @@ jobs:
       - name: Run AgentReady Assessment
         id: assessment
         run: |
-          agentready assess . --format json > agentready-results.json
-          SCORE=$(jq -r '.score' agentready-results.json)
+          # Exclude assessors that don't apply to this monorepo structure:
+          # - type_annotations: Uses project references, no root tsconfig.json
+          # - precommit_hooks: Uses Husky, not Python pre-commit framework
+          agentready assess . -e type_annotations -e precommit_hooks > assessment-output.txt
+          cat assessment-output.txt
+          SCORE=$(grep "Overall Score:" assessment-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
           echo "score=$SCORE" >> $GITHUB_OUTPUT
           echo "## AgentReady Assessment Results" >> $GITHUB_STEP_SUMMARY
           echo "**Score:** $SCORE/100" >> $GITHUB_STEP_SUMMARY
