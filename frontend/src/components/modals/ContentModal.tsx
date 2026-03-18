@@ -12,6 +12,9 @@ import {
   Alert,
   Stack,
   StackItem,
+  ActionList,
+  ActionListGroup,
+  ActionListItem,
 } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -109,18 +112,23 @@ const ContentModal: React.FC<ContentModalProps> = ({
             )}
             {buttonActions && buttonActions.length > 0 && (
               <StackItem>
-                {buttonActions.map((action, index) => (
-                  <Button
-                    key={`${action.label}-${index}`}
-                    variant={action.variant}
-                    onClick={action.onClick}
-                    data-testid={action.dataTestId}
-                    isLoading={action.isLoading}
-                    isDisabled={action.isDisabled}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
+                <ActionList>
+                  <ActionListGroup>
+                    {buttonActions.map((action, index) => (
+                      <ActionListItem key={`${action.label}-${index}`}>
+                        <Button
+                          variant={action.variant}
+                          onClick={action.onClick}
+                          data-testid={action.dataTestId}
+                          isLoading={action.isLoading}
+                          isDisabled={action.isDisabled}
+                        >
+                          {action.label}
+                        </Button>
+                      </ActionListItem>
+                    ))}
+                  </ActionListGroup>
+                </ActionList>
               </StackItem>
             )}
           </Stack>

@@ -30,6 +30,7 @@ import {
   rayJobDetailsDrawer,
   rayJobDetailsTab,
   rayJobResourcesTab,
+  editRayJobNodeCountModal,
 } from '../../../pages/modelTraining';
 import { tablePagination } from '../../../pages/components/Pagination';
 import { ProjectModel } from '../../../utils/models';
@@ -766,5 +767,162 @@ describe('RayJob Resources Tab', () => {
     rayJobResourcesTab.findQuotasSection().should('exist');
     rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'CPU');
     rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'Memory');
+  });
+});
+
+describe('Edit node count modal for RayJobs', () => {
+  const lifecycleJobWithGroups = mockRayJobK8sResourceList([
+    {
+      name: 'ray-multi-group-job',
+      namespace: projectName,
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+      workerGroupSpecs: [
+        { groupName: 'worker-group-1', replicas: 1, template: {} },
+        { groupName: 'worker-group-2', replicas: 1, template: {} },
+      ],
+    },
+    {
+      name: 'ray-workspace-job',
+      namespace: projectName,
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+      clusterSelector: { 'ray.io/cluster': 'shared-ray-cluster' },
+      rayClusterName: 'shared-ray-cluster',
+    },
+  ]);
+
+  const initEditIntercepts = () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+          enableKueue: true,
+        }),
+      ]),
+    );
+
+    cy.interceptK8sList({ model: TrainJobModel, ns: projectName }, mockK8sResourceList([]));
+
+    cy.interceptK8sList(
+      { model: RayJobModel, ns: projectName },
+      mockK8sResourceList(lifecycleJobWithGroups),
+    );
+
+    cy.interceptK8sList({ model: LocalQueueModel, ns: projectName }, mockK8sResourceList([]));
+  };
+
+  beforeEach(() => {
+    asClusterAdminUser();
+    initEditIntercepts();
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+  });
+
+  it('should show the edit icon only for lifecycle RayJobs, not workspace-cluster jobs', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().should('exist');
+    trainingJobTable.getTableRow('ray-workspace-job').findEditNodeCountButton().should('not.exist');
+  });
+
+  it('should open the modal with correct initial state: head node disabled, Save disabled', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
+
+    editRayJobNodeCountModal.shouldBeOpen();
+    editRayJobNodeCountModal.findHeadNodeInput().should('have.value', '1');
+    editRayJobNodeCountModal.findHeadNodeInput().should('be.disabled');
+    editRayJobNodeCountModal.findWorkerGroupInput('worker-group-1').should('have.value', '1');
+    editRayJobNodeCountModal.findWorkerGroupInput('worker-group-2').should('have.value', '1');
+    editRayJobNodeCountModal.findSaveButton().should('be.disabled');
+  });
+
+  it('should enable Save after a change and disable it again when reverted', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
+
+    editRayJobNodeCountModal.shouldBeOpen();
+    editRayJobNodeCountModal.findSaveButton().should('be.disabled');
+
+    editRayJobNodeCountModal.findWorkerGroupPlusButton('worker-group-1').click();
+    editRayJobNodeCountModal.findWorkerGroupInput('worker-group-1').should('have.value', '2');
+    editRayJobNodeCountModal.findWorkerGroupInput('worker-group-2').should('have.value', '1');
+    editRayJobNodeCountModal.findSaveButton().should('be.enabled');
+
+    editRayJobNodeCountModal.findWorkerGroupMinusButton('worker-group-1').click();
+    editRayJobNodeCountModal.findWorkerGroupInput('worker-group-1').should('have.value', '1');
+    editRayJobNodeCountModal.findSaveButton().should('be.disabled');
+  });
+
+  it('should disable the minus button for a worker group already at 0 replicas', () => {
+    const jobWithZeroGroup = mockRayJobK8sResourceList([
+      {
+        name: 'ray-zero-group-job',
+        namespace: projectName,
+        jobStatus: RayJobStatusValue.RUNNING,
+        jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+        workerGroupSpecs: [{ groupName: 'worker-group-1', replicas: 0, template: {} }],
+      },
+    ]);
+
+    cy.interceptK8sList(
+      { model: RayJobModel, ns: projectName },
+      mockK8sResourceList(jobWithZeroGroup),
+    );
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.getTableRow('ray-zero-group-job').findEditNodeCountButton().click();
+
+    editRayJobNodeCountModal.shouldBeOpen();
+    editRayJobNodeCountModal.findWorkerGroupMinusButton('worker-group-1').should('be.disabled');
+  });
+
+  it('should close the modal when Cancel is clicked', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
+
+    editRayJobNodeCountModal.shouldBeOpen();
+    editRayJobNodeCountModal.findCancelButton().click();
+    editRayJobNodeCountModal.shouldBeClosed();
+  });
+
+  it('should patch the RayJob with only the changed groups and close the modal on Save', () => {
+    cy.interceptK8s(
+      'PATCH',
+      { model: RayJobModel, ns: projectName, name: 'ray-multi-group-job' },
+      lifecycleJobWithGroups[0],
+    ).as('patchRayJob');
+
+    trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
+
+    editRayJobNodeCountModal.shouldBeOpen();
+
+    editRayJobNodeCountModal.findWorkerGroupPlusButton('worker-group-1').click();
+    editRayJobNodeCountModal.findWorkerGroupPlusButton('worker-group-2').click();
+    editRayJobNodeCountModal.findWorkerGroupPlusButton('worker-group-2').click();
+
+    editRayJobNodeCountModal.findSaveButton().click();
+
+    cy.wait('@patchRayJob').then((interception) => {
+      expect(interception.request.body).to.deep.equal([
+        {
+          op: 'replace',
+          path: '/spec/rayClusterSpec/workerGroupSpecs/0/replicas',
+          value: 2,
+        },
+        {
+          op: 'replace',
+          path: '/spec/rayClusterSpec/workerGroupSpecs/1/replicas',
+          value: 3,
+        },
+      ]);
+    });
+    editRayJobNodeCountModal.shouldBeClosed();
   });
 });
