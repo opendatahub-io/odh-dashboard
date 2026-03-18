@@ -22,13 +22,72 @@ import (
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
-// TODO [ PR-Feedback: AI ] B2 - Gustavo:
-//   GetS3FileHandler and GetS3FilesHandler duplicate ~40 lines of credential resolution
-//   (identity check, namespace check, secretName validation, k8s client, getS3CredentialsFromSecret,
-//   bucket fallback). Consider extracting a helper like:
-//     func (app *App) resolveS3Client(w, r) (s3Client, bucket string, ok bool)
-//   that returns false if it already wrote an error response. This eliminates the duplication
-//   and ensures bug fixes apply to both handlers.
+// resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
+type resolvedS3 struct {
+  client s3int.S3ClientInterface
+  bucket string
+}
+
+// resolveS3Client extracts identity and namespace from the request context,
+// fetches S3 credentials from the named Kubernetes secret, resolves the bucket
+// (query param with secret fallback), and returns a ready-to-use S3 client.
+// Returns false if an error response was already written to w.
+func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (*resolvedS3, bool) {
+  ctx := r.Context()
+  identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+  if !ok || identity == nil {
+    app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+    return nil, false
+  }
+
+  namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+  if !ok || namespace == "" {
+    app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+    return nil, false
+  }
+
+  client, err := app.kubernetesClientFactory.GetClient(ctx)
+  if err != nil {
+    app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+    return nil, false
+  }
+
+  creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
+  if err != nil {
+    var httpErr *integrations.HTTPError
+    if errors.As(err, &httpErr) {
+      if httpErr.StatusCode == http.StatusUnauthorized {
+        app.unauthorizedResponse(w, r, httpErr.Message)
+        return nil, false
+      }
+      app.errorResponse(w, r, httpErr)
+      return nil, false
+    }
+    app.serverErrorResponse(w, r, err)
+    return nil, false
+  }
+
+  bucket := bucketOverride
+  if bucket == "" {
+    if creds.Bucket == "" {
+      app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+      return nil, false
+    }
+    bucket = creds.Bucket
+  }
+
+  // TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
+  //   A new AWS S3 client is created on every request. The AWS SDK client
+  //   is designed for reuse (connection pooling, TLS session caching). Consider caching
+  //   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
+  s3Client, err := app.s3ClientFactory.CreateClient(creds)
+  if err != nil {
+    app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
+    return nil, false
+  }
+
+  return &resolvedS3{client: s3Client, bucket: bucket}, true
+}
 
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
@@ -39,21 +98,6 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
-	// Get namespace from context (set by AttachNamespace middleware)
-	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return
-	}
-
-	// Parse query parameters
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -72,46 +116,14 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Get Kubernetes client
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	if !ok {
 		return
 	}
 
-	// Get S3 credentials from the secret
-	creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
-	if err != nil {
-		var httpErr *integrations.HTTPError
-		if errors.As(err, &httpErr) {
-			if httpErr.StatusCode == http.StatusUnauthorized {
-				app.unauthorizedResponse(w, r, httpErr.Message)
-				return
-			}
-			app.errorResponse(w, r, httpErr)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	// Determine bucket: use query param if provided, otherwise use bucket from secret
-	bucket := queryParams.Get("bucket")
-	if bucket == "" {
-		if creds.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
-			return
-		}
-		bucket = creds.Bucket
-	}
-
-	// Create S3 client and retrieve the file
-	s3Client, err := app.s3ClientFactory.CreateClient(creds)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
-		return
-	}
-	objectReader, contentType, err := s3Client.GetObject(ctx, bucket, key)
+	ctx := r.Context()
+	bucket := s3.bucket
+	objectReader, contentType, err := s3.client.GetObject(ctx, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
 		var noSuchKey *types.NoSuchKey
@@ -160,20 +172,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
 func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
-	// Get namespace from context (Note: namespace is provided via the AttachNamespace middleware)
-	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return
-	}
-
 	// Validate parameters
 	parameters, err := validateGetS3FilesHandlerParameters(r)
 	if err != nil {
@@ -181,52 +179,14 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	secretName := parameters.SecretName
-	bucket := parameters.Bucket
-
-	// Get Kubernetes client
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+	s3, ok := app.resolveS3Client(w, r, parameters.SecretName, parameters.Bucket)
+	if !ok {
 		return
 	}
 
-	// Get S3 credentials from the secret
-	creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
-	if err != nil {
-		var httpErr *integrations.HTTPError
-		if errors.As(err, &httpErr) {
-			if httpErr.StatusCode == http.StatusUnauthorized {
-				app.unauthorizedResponse(w, r, httpErr.Message)
-				return
-			}
-			app.errorResponse(w, r, httpErr)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	// Determine bucket: use query param if provided, otherwise fall back to bucket from secret
-	if bucket == "" {
-		if creds.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
-			return
-		}
-		bucket = creds.Bucket
-	}
-
-	// TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
-	//    A new AWS S3 client is created on every request. The AWS SDK client
-	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
-	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
-	// Create S3 client and list objects
-	s3Client, err := app.s3ClientFactory.CreateClient(creds)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
-		return
-	}
-	result, err := s3Client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
+	ctx := r.Context()
+	bucket := s3.bucket
+	result, err := s3.client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
 		Path:   parameters.Path,
 		Search: parameters.Search,
 		Next:   parameters.Next,
