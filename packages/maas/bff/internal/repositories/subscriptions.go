@@ -79,7 +79,6 @@ func (r *SubscriptionsRepository) CreateSubscription(_ context.Context, request 
 			ModelRefs: modelRefs,
 			Subjects: models.SubjectSpec{
 				Groups: request.Owner.Groups,
-				Users:  request.Owner.Users,
 			},
 			MeteringMetadata: request.TokenMetadata,
 		},
@@ -130,7 +129,6 @@ func (r *SubscriptionsRepository) UpdateSubscription(_ context.Context, name str
 			ModelRefs: modelRefs,
 			Subjects: models.SubjectSpec{
 				Groups: request.Owner.Groups,
-				Users:  request.Owner.Users,
 			},
 			MeteringMetadata: request.TokenMetadata,
 		},

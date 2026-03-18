@@ -464,7 +464,6 @@ paths:
                     owner:
                       groups:
                         - name: premium-users
-                      users: []
                     modelRefs:
                       - name: llama-2-7b-chat
                         namespace: maas-models
@@ -518,7 +517,6 @@ paths:
                   owner:
                     groups:
                       - name: premium-users
-                    users: []
                   modelRefs:
                     - name: llama-2-7b-chat
                       namespace: maas-models
@@ -547,7 +545,6 @@ paths:
                     subjects:
                       groups:
                         - name: premium-users
-                      users: []
         '401':
           description: Unauthorized
         '403':
@@ -640,7 +637,6 @@ paths:
                   owner:
                     groups:
                       - name: team-alpha
-                    users: []
                   modelRefs:
                     - name: llama-2-7b-chat
                       namespace: maas-models
@@ -656,8 +652,6 @@ paths:
                   owner:
                     groups:
                       - name: premium-users
-                    users:
-                      - alice
                   modelRefs:
                     - name: llama-2-7b-chat
                       namespace: maas-models
@@ -689,8 +683,6 @@ paths:
                   owner:
                     groups:
                       - name: premium-users
-                    users:
-                      - alice
                   modelRefs:
                     - name: llama-2-7b-chat
                       namespace: maas-models
@@ -708,8 +700,6 @@ paths:
                   subjects:
                     groups:
                       - name: premium-users
-                    users:
-                      - alice
         '400':
           description: Bad Request. Invalid subscription specification.
           content:
@@ -772,9 +762,6 @@ paths:
                 groups:
                   - name: premium-users
                   - name: beta-testers
-                users:
-                  - alice
-                  - bob
               modelRefs:
                 - name: llama-2-7b-chat
                   namespace: maas-models
@@ -807,9 +794,6 @@ paths:
                     groups:
                       - name: premium-users
                       - name: beta-testers
-                    users:
-                      - alice
-                      - bob
                   modelRefs:
                     - name: llama-2-7b-chat
                       namespace: maas-models
@@ -835,9 +819,6 @@ paths:
                     groups:
                       - name: premium-users
                       - name: beta-testers
-                    users:
-                      - alice
-                      - bob
         '400':
           description: Bad Request. Invalid update specification.
           content:
@@ -980,7 +961,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/maasmodel/{name}:
+  /api/v1/maasmodel/{namespace}/{name}:
     put:
       tags:
         - maasmodelrefs
@@ -989,8 +970,14 @@ paths:
       description: >
         Updates an existing MaaSModelRef Kubernetes custom resource.
 
-        K8s calls: PUT /k8s/v1/maasmodelref/:name
+        K8s calls: PUT /k8s/v1/maasmodelref/:namespace/:name
       parameters:
+        - in: path
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Namespace of the MaaSModelRef
         - in: path
           name: name
           schema:
@@ -1051,10 +1038,16 @@ paths:
       summary: Delete a MaaSModelRef
       operationId: deleteMaaSModelRef
       description: >
-        Deletes a MaaSModelRef Kubernetes custom resource by name.
+        Deletes a MaaSModelRef Kubernetes custom resource by namespace and name.
 
-        K8s calls: DELETE /k8s/v1/maasmodelref/:name
+        K8s calls: DELETE /k8s/v1/maasmodelref/:namespace/:name
       parameters:
+        - in: path
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Namespace of the MaaSModelRef
         - in: path
           name: name
           schema:
@@ -1277,16 +1270,9 @@ components:
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names that own this subscription
-        users:
-          type: array
-          items:
-            type: string
-          description: Kubernetes user names that own this subscription
       example:
         groups:
           - name: premium-users
-        users:
-          - alice
 
     TokenRateLimit:
       type: object
@@ -1406,18 +1392,13 @@ components:
 
     SubjectSpec:
       type: object
-      description: Defines subjects (groups and users) that have access
+      description: Defines subjects (groups) that have access
       properties:
         groups:
           type: array
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names
-        users:
-          type: array
-          items:
-            type: string
-          description: Kubernetes user names
 
     ModelRef:
       type: object

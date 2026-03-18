@@ -24,6 +24,6 @@ const (
 
 	// MaaSModelRef routes
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
-	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:name"
-	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:name"
+	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 )

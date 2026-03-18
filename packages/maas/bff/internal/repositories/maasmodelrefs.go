@@ -23,7 +23,7 @@ func NewMaaSModelRefsRepository(logger *slog.Logger) *MaaSModelRefsRepository {
 
 // CreateMaaSModelRef creates a MaaSModelRef resource.
 //
-// TODO: Replace with real k8s dynamic client call:
+// TODO: Replace with real k8s dynamic client call when MOCK_K8S_CLIENT is false:
 //
 //	POST maasmodelrefs.maas.opendatahub.io
 func (r *MaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, request models.CreateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
@@ -48,14 +48,14 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, request 
 
 // UpdateMaaSModelRef updates a MaaSModelRef resource.
 //
-// TODO: Replace with real k8s dynamic client call:
+// TODO: Replace with real k8s dynamic client call when MOCK_K8S_CLIENT is false:
 //
-//	PUT maasmodelrefs.maas.opendatahub.io/:name
-func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
-	r.logger.Debug("Updating MaaSModelRef (mock)", slog.String("name", name))
+//	PUT maasmodelrefs.maas.opendatahub.io/:namespace/:name
+func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Updating MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name))
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
-		if ref.Name == name {
+		if ref.Name == name && ref.Namespace == namespace {
 			endpoint := ref.Endpoint
 			if request.EndpointOverride != "" {
 				endpoint = request.EndpointOverride
@@ -72,16 +72,16 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, name str
 	return nil, nil
 }
 
-// DeleteMaaSModelRef deletes a MaaSModelRef resource by name.
+// DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name.
 //
-// TODO: Replace with real k8s dynamic client call:
+// TODO: Replace with real k8s dynamic client call when MOCK_K8S_CLIENT is false:
 //
-//	DELETE maasmodelrefs.maas.opendatahub.io/:name
-func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, name string) error {
-	r.logger.Debug("Deleting MaaSModelRef (mock)", slog.String("name", name))
+//	DELETE maasmodelrefs.maas.opendatahub.io/:namespace/:name
+func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, namespace, name string) error {
+	r.logger.Debug("Deleting MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name))
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
-		if ref.Name == name {
+		if ref.Name == name && ref.Namespace == namespace {
 			return nil
 		}
 	}

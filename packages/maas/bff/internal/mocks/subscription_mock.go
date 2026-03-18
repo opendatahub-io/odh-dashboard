@@ -22,7 +22,6 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
 				},
-				Users: []string{},
 			},
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
@@ -55,7 +54,6 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
 				},
-				Users: []string{},
 			},
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
@@ -86,7 +84,6 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
 				},
-				Users: []string{},
 			},
 			MeteringMetadata: &models.TokenMetadata{
 				OrganizationID: "org-123",
@@ -104,7 +101,6 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
 				},
-				Users: []string{},
 			},
 		},
 	}

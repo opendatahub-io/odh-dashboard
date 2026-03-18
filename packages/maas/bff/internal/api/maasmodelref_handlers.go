@@ -62,11 +62,16 @@ func CreateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 	}
 }
 
-// UpdateMaaSModelRefHandler handles PUT /api/v1/maasmodel/:name
-// K8s calls: PUT /k8s/v1/maasmodelref/:name
+// UpdateMaaSModelRefHandler handles PUT /api/v1/maasmodel/:namespace/:name
+// K8s calls: PUT /k8s/v1/maasmodelref/:namespace/:name
 func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
+	namespace := params.ByName("namespace")
 	name := params.ByName("name")
+	if namespace == "" {
+		app.badRequestResponse(w, r, errors.New("MaaSModelRef namespace is required"))
+		return
+	}
 	if name == "" {
 		app.badRequestResponse(w, r, errors.New("MaaSModelRef name is required"))
 		return
@@ -83,7 +88,7 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, name, request)
+	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -101,17 +106,22 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 	}
 }
 
-// DeleteMaaSModelRefHandler handles DELETE /api/v1/maasmodel/:name
-// K8s calls: DELETE /k8s/v1/maasmodelref/:name
+// DeleteMaaSModelRefHandler handles DELETE /api/v1/maasmodel/:namespace/:name
+// K8s calls: DELETE /k8s/v1/maasmodelref/:namespace/:name
 func DeleteMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
+	namespace := params.ByName("namespace")
 	name := params.ByName("name")
+	if namespace == "" {
+		app.badRequestResponse(w, r, errors.New("MaaSModelRef namespace is required"))
+		return
+	}
 	if name == "" {
 		app.badRequestResponse(w, r, errors.New("MaaSModelRef name is required"))
 		return
 	}
 
-	if err := app.repositories.MaaSModelRefs.DeleteMaaSModelRef(ctx, name); err != nil {
+	if err := app.repositories.MaaSModelRefs.DeleteMaaSModelRef(ctx, namespace, name); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
