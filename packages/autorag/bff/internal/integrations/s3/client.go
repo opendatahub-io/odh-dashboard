@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -75,7 +76,7 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	// Create transfer manager for optimized downloads
 	transferClient := transfermanager.New(c.s3Client)
 
-	// TODO [ PR-Feedback: AI ] A1 - Gustavo:
+  // TODO [ PR-Feedback: AI ] A1 - Gustavo + Daniel:
 	//   Transfer manager tuning is hardcoded. 10 concurrency * 64MB parts = up to 640MB memory
 	//   per download. With multiple concurrent requests, this could cause memory pressure.
 	//   Consider lower defaults (e.g., Concurrency=3, PartSizeBytes=8MB) or making them configurable.
@@ -136,67 +137,32 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 		return nil, err
 	}
 
-	// TODO [ PR-Feedback: AI ] G5 - Gustavo:
-	//   Use aws.ToString/aws.ToBool/aws.ToInt32 helpers instead of manual nil checks.
-	//   You already use aws.ToInt64(obj.Size) below — be consistent. Example:
-	//     result.Name = aws.ToString(output.Name)
-	//     result.IsTruncated = aws.ToBool(output.IsTruncated)
-	//     result.MaxKeys = aws.ToInt32(output.MaxKeys)
 	result := &models.S3ListObjectsResponse{
-		CommonPrefixes: []models.S3CommonPrefix{},
-		Contents:       []models.S3ObjectInfo{},
-	}
-	if output.IsTruncated != nil {
-		result.IsTruncated = *output.IsTruncated
-	}
-	if output.KeyCount != nil {
-		result.KeyCount = *output.KeyCount
-	}
-	if output.MaxKeys != nil {
-		result.MaxKeys = *output.MaxKeys
-	}
-	if output.Name != nil {
-		result.Name = *output.Name
-	}
-	if output.Prefix != nil {
-		result.Prefix = *output.Prefix
-	}
-	if output.Delimiter != nil {
-		result.Delimiter = *output.Delimiter
-	}
-	if output.ContinuationToken != nil {
-		result.ContinuationToken = *output.ContinuationToken
-	}
-	if output.NextContinuationToken != nil {
-		result.NextContinuationToken = *output.NextContinuationToken
+		IsTruncated:           aws.ToBool(output.IsTruncated),
+		KeyCount:              aws.ToInt32(output.KeyCount),
+		MaxKeys:               aws.ToInt32(output.MaxKeys),
+		Name:                  aws.ToString(output.Name),
+		Prefix:                aws.ToString(output.Prefix),
+		Delimiter:             aws.ToString(output.Delimiter),
+		ContinuationToken:     aws.ToString(output.ContinuationToken),
+		NextContinuationToken: aws.ToString(output.NextContinuationToken),
+		CommonPrefixes:        []models.S3CommonPrefix{},
+		Contents:              []models.S3ObjectInfo{},
 	}
 
 	for _, cp := range output.CommonPrefixes {
-		p := ""
-		if cp.Prefix != nil {
-			p = *cp.Prefix
-		}
-		result.CommonPrefixes = append(result.CommonPrefixes, models.S3CommonPrefix{Prefix: p})
+		result.CommonPrefixes = append(result.CommonPrefixes, models.S3CommonPrefix{Prefix: aws.ToString(cp.Prefix)})
 	}
 
 	for _, obj := range output.Contents {
 		info := models.S3ObjectInfo{
-			Size: aws.ToInt64(obj.Size),
-		}
-		if obj.Key != nil {
-			info.Key = *obj.Key
+			Key:          aws.ToString(obj.Key),
+			Size:         aws.ToInt64(obj.Size),
+			ETag:         aws.ToString(obj.ETag),
+			StorageClass: string(obj.StorageClass),
 		}
 		if obj.LastModified != nil {
-			// TODO [ PR-Feedback: AI ] G6 - Gustavo:
-			//   Use time.RFC3339 instead of hardcoded format string — they are equivalent
-			//   and time.RFC3339 is self-documenting.
-			info.LastModified = obj.LastModified.Format("2006-01-02T15:04:05Z")
-		}
-		if obj.ETag != nil {
-			info.ETag = *obj.ETag
-		}
-		if obj.StorageClass != "" {
-			info.StorageClass = string(obj.StorageClass)
+			info.LastModified = obj.LastModified.Format(time.RFC3339)
 		}
 		result.Contents = append(result.Contents, info)
 	}

@@ -50,6 +50,22 @@ func (n *noSuchBucketS3Client) ListObjects(_ context.Context, _ string, _ s3int.
 	return nil, &s3types.NoSuchBucket{Message: aws.String("The specified bucket does not exist")}
 }
 
+// accessDeniedError implements the ErrorCode() string interface that the handler checks for.
+type accessDeniedError struct{}
+
+func (e *accessDeniedError) Error() string     { return "Access Denied" }
+func (e *accessDeniedError) ErrorCode() string  { return "AccessDenied" }
+func (e *accessDeniedError) ErrorMessage() string { return "Access Denied" }
+
+// accessDeniedS3Client returns an AccessDenied error from ListObjects.
+type accessDeniedS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (a *accessDeniedS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	return nil, &accessDeniedError{}
+}
+
 // newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
 // for testing S3 handler logic in isolation.
 func newS3HandlerTestApp(k8Factory kubernetes.KubernetesClientFactory, s3Factory s3int.S3ClientFactory) *App {
@@ -1451,11 +1467,30 @@ func TestGetS3FilesHandler_NoSuchBucket(t *testing.T) {
 	assert.Contains(t, envelope.Error.Message, "does not exist")
 }
 
-// TODO [ PR-Feedback: AI ] T3 - Gustavo:
-//   Missing test for AccessDenied error path in GetS3FilesHandler (handler lines 227-229).
-//   Create an accessDeniedS3Client mock (similar to noSuchBucketS3Client) that returns
-//   an error implementing ErrorCode() == "AccessDenied" from ListObjects, and assert
-//   the response is 403 with a sanitized message. This is a security-relevant path.
+func TestGetS3FilesHandler_AccessDenied(t *testing.T) {
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&accessDeniedS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	params := url.Values{}
+	params.Set("namespace", "test-namespace")
+	params.Set("secretName", "aws-secret-1")
+	params.Set("bucket", "restricted-bucket")
+	params.Set("path", "data")
+	uri := url.URL{Path: "/api/v1/s3/files", RawQuery: params.Encode()}
+
+	rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+
+	var envelope ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	assert.Contains(t, envelope.Error.Message, "access denied")
+}
 
 func TestGetS3FilesHandler_S3Error(t *testing.T) {
 	secret := validS3Secret("aws-secret-1", "test-namespace")
