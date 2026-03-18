@@ -100,6 +100,10 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
 	url := fmt.Sprintf("%s/v1/api-keys", c.baseURL)
 
+	if request.ExpiresIn == "" {
+		request.ExpiresIn = "4h"
+	}
+
 	requestBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
