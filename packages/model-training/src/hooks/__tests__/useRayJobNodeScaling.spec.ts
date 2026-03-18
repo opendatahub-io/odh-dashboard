@@ -128,6 +128,46 @@ describe('useRayJobNodeScaling', () => {
 
       expect(result.current.canEditNodes).toBe(false);
     });
+
+    it('should be false when the job has SUCCEEDED (terminal state)', () => {
+      const { result } = renderHook(() =>
+        useRayJobNodeScaling(jobWithWorkerGroups, TrainingJobState.SUCCEEDED),
+      );
+
+      expect(result.current.canEditNodes).toBe(false);
+    });
+
+    it('should be false when the job has FAILED (terminal state)', () => {
+      const { result } = renderHook(() =>
+        useRayJobNodeScaling(jobWithWorkerGroups, TrainingJobState.FAILED),
+      );
+
+      expect(result.current.canEditNodes).toBe(false);
+    });
+
+    it('should be false when the job is DELETING', () => {
+      const { result } = renderHook(() =>
+        useRayJobNodeScaling(jobWithWorkerGroups, TrainingJobState.DELETING),
+      );
+
+      expect(result.current.canEditNodes).toBe(false);
+    });
+
+    it('should be true for a SUSPENDED (non-terminal) job', () => {
+      const { result } = renderHook(() =>
+        useRayJobNodeScaling(jobWithWorkerGroups, TrainingJobState.SUSPENDED),
+      );
+
+      expect(result.current.canEditNodes).toBe(true);
+    });
+
+    it('should be true for a QUEUED (non-terminal) job', () => {
+      const { result } = renderHook(() =>
+        useRayJobNodeScaling(jobWithWorkerGroups, TrainingJobState.QUEUED),
+      );
+
+      expect(result.current.canEditNodes).toBe(true);
+    });
   });
 
   describe('hasChanges', () => {

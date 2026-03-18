@@ -3,8 +3,9 @@ import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import { RayJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { updateRayJobNumNodes } from '../api';
+import { getStatusFlags, getRayJobStatusSync } from '../global/trainingJobList/utils';
 import { RayJobKind } from '../k8sTypes';
-import { TrainingJobState } from '../types';
+import { JobDisplayState } from '../types';
 
 export type WorkerGroupReplicaState = {
   groupName: string;
@@ -30,7 +31,7 @@ type UseRayJobNodeScalingReturn = {
  */
 export const useRayJobNodeScaling = (
   job: RayJobKind | undefined,
-  jobStatus?: TrainingJobState,
+  jobStatus?: JobDisplayState,
 ): UseRayJobNodeScalingReturn => {
   const notification = useNotification();
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -72,11 +73,18 @@ export const useRayJobNodeScaling = (
     job !== undefined,
   );
 
-  // Only lifecycle RayJobs (with inline rayClusterSpec) are editable,
-  // and only when the user has patch permission on the RayJob resource.
-  // Workspace-cluster jobs use clusterSelector and their cluster may be shared.
+  const status = job && jobStatus ? jobStatus : job ? getRayJobStatusSync(job) : undefined;
+  const { isFailed, isComplete, isDeleting } = status
+    ? getStatusFlags(status)
+    : { isFailed: false, isComplete: false, isDeleting: false };
+
   const canEditNodes =
-    job !== undefined && !!job.spec.rayClusterSpec && jobStatus !== undefined && canPatch;
+    !!job?.spec.rayClusterSpec &&
+    !!jobStatus &&
+    !isFailed &&
+    !isComplete &&
+    !isDeleting &&
+    canPatch;
 
   const handleSave = React.useCallback(async () => {
     if (!job) {
