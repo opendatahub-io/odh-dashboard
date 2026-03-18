@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -155,6 +156,10 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		defer closer.Close()
 	}
 
+	if contentType == "text/html" {
+		w.Header().Set("Content-Disposition", "attachment")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	w.Header().Set("Content-Type", contentType)
 
 	// Stream the file content to the response
@@ -298,10 +303,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	contentType := filePart.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	contentType := sanitizeUploadContentType(filePart.Header.Get("Content-Type"))
 
 	maxFilePartBytes := s3MaxUploadFileBytes
 	if app.s3PostMaxFilePartBytes > 0 {
@@ -342,4 +344,42 @@ func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter
 		}
 		next(w, r, ps)
 	}
+}
+
+// allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
+// Anything else is stored as application/octet-stream so GET cannot echo arbitrary
+// caller-controlled MIME types (e.g. image/svg+xml, application/javascript) under the dashboard origin.
+var allowedS3UploadMediaTypes = map[string]struct{}{
+	"application/json":     {},
+	"application/markdown": {}, // some clients use this for .md
+	"application/pdf":      {},
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {}, // .pptx
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {}, // .docx
+	// "application/x-yaml":   {},
+	// "application/xml":      {},
+	// "application/yaml":     {},
+	"text/html":           {},
+	"text/markdown":       {},
+	"text/plain":          {},
+	"text/x-web-markdown": {},
+	"text/x-markdown":     {},
+	// "text/x-yaml":        {},
+	// "text/xml":           {},
+	// "text/yaml":          {},
+}
+
+func sanitizeUploadContentType(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(v)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	if _, ok := allowedS3UploadMediaTypes[mediaType]; ok {
+		return mediaType
+	}
+	return "application/octet-stream"
 }

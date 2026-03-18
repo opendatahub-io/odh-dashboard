@@ -1260,3 +1260,35 @@ func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
 }
+
+func TestSanitizeUploadContentType(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"empty", "", "application/octet-stream"},
+		{"whitespace only", "   ", "application/octet-stream"},
+		{"pdf", "application/pdf", "application/pdf"},
+		{"pdf with charset", "application/pdf; charset=binary", "application/pdf"},
+		{"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+		{"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+		{"markdown text", "text/markdown", "text/markdown"},
+		{"markdown app", "application/markdown", "application/markdown"},
+		{"html", "text/html", "text/html"},
+		{"html charset", "text/html; charset=utf-8", "text/html"},
+		{"plain", "text/plain", "text/plain"},
+		{"json", "application/json", "application/json"},
+		{"json uppercase", "APPLICATION/JSON", "application/json"},
+		{"svg xss vector", "image/svg+xml", "application/octet-stream"},
+		{"arbitrary", "text/html<script>", "application/octet-stream"},
+		{"invalid", "not a mime type", "application/octet-stream"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, sanitizeUploadContentType(tt.in))
+		})
+	}
+}
