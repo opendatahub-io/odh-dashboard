@@ -49,6 +49,10 @@ type RealS3Client struct {
 
 // NewRealS3Client creates a new S3 client from credentials.
 func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
+	if creds == nil {
+		return nil, fmt.Errorf("S3Credentials must not be nil")
+	}
+
 	c := &RealS3Client{options: opts}
 
 	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
