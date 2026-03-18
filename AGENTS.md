@@ -110,7 +110,7 @@ See [docs/testing.md](docs/testing.md) for details.
 
 ### File Organization
 
-```
+```text
 packages/example/
 ├── frontend/
 │   ├── src/

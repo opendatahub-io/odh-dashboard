@@ -14,7 +14,7 @@ Key architectural decisions for the ODH Dashboard monorepo. For formal ADRs, see
 
 **Trade-offs**:
 - Larger repository size
-- More complex CI/CD (mitigated by Turbo caching)
+- More complex CI/CD (partially mitigated by Turbo caching; note: some tasks like `build` and Cypress have caching disabled in turbo.jsonc)
 
 ## Why Module Federation?
 
