@@ -29,10 +29,21 @@ describe('getBenchmarkName', () => {
     expect(getBenchmarkName(job)).toBe('MMLU Finance');
   });
 
-  it('should return dash when there are no benchmarks', () => {
+  it('should return dash when benchmarks is an empty array', () => {
     const job = mockEvaluationJob();
     job.benchmarks = [];
     expect(getBenchmarkName(job)).toBe('-');
+  });
+
+  it('should return dash when benchmarks is null and no collection', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = null;
+    expect(getBenchmarkName(job)).toBe('-');
+  });
+
+  it('should return collection id when benchmarks is null and collection is set', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    expect(getBenchmarkName(job)).toBe('my-collection');
   });
 });
 

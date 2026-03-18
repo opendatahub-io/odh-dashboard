@@ -72,22 +72,6 @@ const buildEvaluationRequest = ({
       ...(hasParams ? { parameters: benchmarkParams } : {}),
       ...prerecordedDataRef,
     });
-  } else if (collection?.benchmarks) {
-    collection.benchmarks.forEach((b) => {
-      const merged = hasParams ? { ...b.parameters, ...benchmarkParams } : b.parameters;
-      benchmarks.push({
-        id: b.id,
-        // eslint-disable-next-line camelcase
-        provider_id: b.provider_id,
-        weight: b.weight,
-        // eslint-disable-next-line camelcase
-        primary_score: b.primary_score,
-        // eslint-disable-next-line camelcase
-        pass_criteria: b.pass_criteria,
-        ...(merged && Object.keys(merged).length > 0 ? { parameters: merged } : {}),
-        ...prerecordedDataRef,
-      });
-    });
   }
 
   const resolvedModelName = inputMode === 'inference' ? modelName.trim() : sourceName.trim();
