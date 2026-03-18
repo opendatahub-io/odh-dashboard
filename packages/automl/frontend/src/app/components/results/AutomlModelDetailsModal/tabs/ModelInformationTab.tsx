@@ -6,10 +6,10 @@ import {
   DescriptionListTerm,
   Title,
 } from '@patternfly/react-core';
-import type { TabContentProps } from '../tabConfig';
+import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
 
-const ModelInformationTab: React.FC<TabContentProps> = ({ artifact }) => {
-  const { context, created_at: createdAt } = artifact;
+const ModelInformationTab: React.FC<TabContentProps> = ({ model }) => {
+  const { context, created_at: createdAt } = model;
 
   return (
     <>
@@ -23,7 +23,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ artifact }) => {
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Algorithm</DescriptionListTerm>
-          <DescriptionListDescription>{artifact.display_name}</DescriptionListDescription>
+          <DescriptionListDescription>{model.display_name}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Evaluation metric</DescriptionListTerm>

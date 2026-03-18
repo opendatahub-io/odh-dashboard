@@ -5,17 +5,16 @@ import type { ModelArtifact } from '~/app/types';
 import './AutomlModelDetailsModal.css';
 
 type AutomlModelDetailsModalHeaderProps = {
-  artifact: ModelArtifact;
+  model: ModelArtifact;
   rank: number;
 };
 
-/** Derive the optimized metric name and value from the artifact context. */
-function getOptimizedMetric(artifact: ModelArtifact): { name: string; value: number } | undefined {
-  const evalMetric = artifact.context.model_config.eval_metric;
+function getOptimizedMetric(model: ModelArtifact): { name: string; value: number } | undefined {
+  const evalMetric = model.context.model_config.eval_metric;
   if (typeof evalMetric !== 'string') {
     return undefined;
   }
-  const metrics = artifact.context.metrics.test_data;
+  const metrics = model.context.metrics.test_data;
   if (!(evalMetric in metrics)) {
     return undefined;
   }
@@ -28,10 +27,10 @@ function formatMetricName(key: string): string {
 }
 
 const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps> = ({
-  artifact,
+  model,
   rank,
 }) => {
-  const optimizedMetric = getOptimizedMetric(artifact);
+  const optimizedMetric = getOptimizedMetric(model);
 
   const handleDownload = () => {
     window.print();
@@ -55,7 +54,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
       )}
       <div className="automl-model-details-header-item">
         <span className="automl-model-details-header-label">Algorithm</span>
-        <span className="automl-model-details-header-value">{artifact.display_name}</span>
+        <span className="automl-model-details-header-value">{model.display_name}</span>
       </div>
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
         <Button

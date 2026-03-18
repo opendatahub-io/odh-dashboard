@@ -21,7 +21,7 @@ import './AutomlModelDetailsModal.css';
 type AutomlModelDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  artifact: ModelArtifact;
+  model: ModelArtifact;
   rank: number;
 };
 
@@ -39,21 +39,21 @@ function groupTabsBySection(tabs: TabDefinition[]): Map<string, TabDefinition[]>
 const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   isOpen,
   onClose,
-  artifact,
+  model,
   rank,
 }) => {
   const visibleTabs = React.useMemo(
-    () => getVisibleTabs(artifact.context.task_type),
-    [artifact.context.task_type],
+    () => getVisibleTabs(model.context.task_type),
+    [model.context.task_type],
   );
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
   const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
 
-  // TODO: Replace with real S3 fetch using artifact.context.location
+  // TODO: Replace with real S3 fetch using model.context.location
   const [featureImportance] = React.useState<FeatureImportanceData | undefined>(undefined);
   const [confusionMatrix] = React.useState<ConfusionMatrixData | undefined>(undefined);
 
-  // Reset active tab when artifact changes
+  // Reset active tab when model changes
   React.useEffect(() => {
     setActiveTabKey(visibleTabs[0]?.key ?? '');
   }, [visibleTabs]);
@@ -69,9 +69,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
       aria-labelledby="automl-model-details-title"
       data-testid="automl-model-details-modal"
     >
-      <ModalHeader title={artifact.display_name} labelId="automl-model-details-title" />
+      <ModalHeader title={model.display_name} labelId="automl-model-details-title" />
       <ModalBody>
-        <AutomlModelDetailsModalHeader artifact={artifact} rank={rank} />
+        <AutomlModelDetailsModalHeader model={model} rank={rank} />
         <Grid hasGutter>
           <GridItem span={3} className="automl-model-details-sidebar">
             {[...groupedTabs.entries()].map(([section, tabs]) => (
@@ -110,7 +110,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                 </div>
                 {ActiveComponent && (
                   <ActiveComponent
-                    artifact={artifact}
+                    model={model}
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}
                   />

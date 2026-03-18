@@ -1,13 +1,9 @@
 import React from 'react';
-import { Bullseye, Title } from '@patternfly/react-core';
+import { Skeleton } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '../tabConfig';
-import '../AutomlModelDetailsModal.css';
+import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
+import '~/app/components/results/AutomlModelDetailsModal/AutomlModelDetailsModal.css';
 
-/**
- * Compute a background color for a confusion matrix cell.
- * Correct predictions (diagonal) get green; off-diagonal get blue-gray.
- */
 function getCellStyle(
   rowLabel: string,
   colLabel: string,
@@ -28,9 +24,34 @@ function getCellStyle(
 const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
   if (!confusionMatrix) {
     return (
-      <Bullseye>
-        <Title headingLevel="h3">Loading confusion matrix data...</Title>
-      </Bullseye>
+      <Table aria-label="Confusion matrix loading" variant="compact">
+        <Thead>
+          <Tr>
+            <Th>Observed</Th>
+            <Th textCenter>Class 1</Th>
+            <Th textCenter>Class 2</Th>
+            <Th textCenter>Percent correct</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {Array.from({ length: 3 }, (_, i) => (
+            <Tr key={i}>
+              <Td>
+                <Skeleton width="50%" />
+              </Td>
+              <Td>
+                <Skeleton width="30%" />
+              </Td>
+              <Td>
+                <Skeleton width="30%" />
+              </Td>
+              <Td>
+                <Skeleton width="40%" />
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
     );
   }
 

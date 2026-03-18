@@ -1,23 +1,43 @@
 import React from 'react';
 import {
-  Bullseye,
   SearchInput,
+  Skeleton,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
-  Title,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '../tabConfig';
+import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
 
 const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => {
   const [searchValue, setSearchValue] = React.useState('');
 
   if (!featureImportance) {
     return (
-      <Bullseye>
-        <Title headingLevel="h3">Loading feature importance data...</Title>
-      </Bullseye>
+      <Table aria-label="Feature importance loading" variant="compact">
+        <Thead>
+          <Tr>
+            <Th>Feature name</Th>
+            <Th>Importance</Th>
+            <Th />
+          </Tr>
+        </Thead>
+        <Tbody>
+          {Array.from({ length: 5 }, (_, i) => (
+            <Tr key={i}>
+              <Td>
+                <Skeleton width="60%" />
+              </Td>
+              <Td>
+                <Skeleton width="40%" />
+              </Td>
+              <Td>
+                <Skeleton width="80%" height="12px" />
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
     );
   }
 

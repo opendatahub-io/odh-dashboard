@@ -1,7 +1,7 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '../tabConfig';
+import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
 
 /** Format metric keys from snake_case to Title Case. */
 function formatMetricName(key: string): string {
@@ -13,8 +13,8 @@ function formatMetricValue(value: number): string {
   return Math.abs(value).toFixed(3);
 }
 
-const ModelEvaluationTab: React.FC<TabContentProps> = ({ artifact }) => {
-  const metrics = artifact.context.metrics.test_data;
+const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
+  const metrics = model.context.metrics.test_data;
   const entries = Object.entries(metrics);
 
   return (

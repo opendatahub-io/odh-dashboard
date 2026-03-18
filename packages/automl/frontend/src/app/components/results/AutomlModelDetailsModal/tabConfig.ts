@@ -16,7 +16,7 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 
 export type TabContentProps = {
-  artifact: ModelArtifact;
+  model: ModelArtifact;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
 };
@@ -26,20 +26,17 @@ export type TabDefinition = {
   label: string;
   tooltip: string;
   section: 'Model viewer' | 'Evaluation';
-  visibleFor: ReadonlySet<TaskType>;
+  visibleFor: readonly TaskType[];
   component: React.ComponentType<TabContentProps>;
 };
 
-const ALL_TABULAR_TYPES: ReadonlySet<TaskType> = new Set([
+const ALL_TABULAR_TYPES: readonly TaskType[] = [
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
-]);
+];
 
-const CLASSIFICATION_TYPES: ReadonlySet<TaskType> = new Set([
-  TASK_TYPE_BINARY,
-  TASK_TYPE_MULTICLASS,
-]);
+const CLASSIFICATION_TYPES: readonly TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
 
 export const TAB_DEFINITIONS: TabDefinition[] = [
   {
@@ -77,5 +74,5 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
 ];
 
 export function getVisibleTabs(taskType: TaskType): TabDefinition[] {
-  return TAB_DEFINITIONS.filter((tab) => tab.visibleFor.has(taskType));
+  return TAB_DEFINITIONS.filter((tab) => tab.visibleFor.includes(taskType));
 }
