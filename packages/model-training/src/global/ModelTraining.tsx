@@ -144,8 +144,11 @@ const ModelTraining = (): React.ReactElement => {
       job={selectedRayJob}
       displayName={selectedJobDisplayName}
       nodeCount={selectedJobNodeCount}
+      jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
+      onTogglingChange={(isToggling) => setTogglingJobId(isToggling ? selectedJobId : undefined)}
     />
   ) : (
     <TrainingJobDetailsDrawer
