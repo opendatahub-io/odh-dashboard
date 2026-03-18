@@ -45,7 +45,6 @@ export default function PromptManagementModal(): React.ReactNode {
           <PromptTable onClose={handleClose} onClickLoad={handleClickLoad} />
         )}
         {modalMode === 'create' && <CreatePrompt onClose={handleClose} />}
-        {/* {modalMode === 'edit' && <PromptEdit onClose={handleClose} onClickLoad={handleClickLoad} />} */}
       </ModalBody>
     </Modal>
   );
