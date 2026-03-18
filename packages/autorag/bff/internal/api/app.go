@@ -159,8 +159,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		s3ClientFactory:             s3ClientFactory,
-		repositories:                repositories.NewRepositories(logger),
+    s3ClientFactory: s3ClientFactory,
+    // TODO [ Gustavo:S3-MERGE ] This should be aligned to the new style I have
+    repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
+      MockS3Client: cfg.MockS3Client,
+      DevMode:      cfg.DevMode,
+    }),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
 	}

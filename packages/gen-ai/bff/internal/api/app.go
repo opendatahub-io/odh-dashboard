@@ -326,6 +326,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
+	// External model verification (requires namespace for authorization)
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
+
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
 

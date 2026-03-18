@@ -2,11 +2,7 @@ import React from 'react';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { type InitialWizardFormData } from './types';
-import {
-  getModelTypeFromDeployment,
-  getExternalRouteFromDeployment,
-  getTokenAuthenticationFromDeployment,
-} from './utils';
+import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import {
   type Deployment,
@@ -129,8 +125,10 @@ export const useExtractFormDataFromDeployment = (
     }
 
     return {
-      // Extract model type information from deployment metadata
-      modelTypeField: getModelTypeFromDeployment(deployment),
+      modelTypeField:
+        typeof formDataExtension?.properties.extractModelType === 'function'
+          ? formDataExtension.properties.extractModelType(deployment) ?? undefined
+          : undefined,
 
       // Setup K8s name and description fields with deployment model data
       k8sNameDesc: setupDefaults({ initialData: deployment.model }),

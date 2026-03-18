@@ -6,7 +6,7 @@ export const modelServerField: ModelServerTemplateField = {
   id: 'modelServerTemplate',
   type: 'modifier',
   isActive: (wizardFormData) => {
-    return wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE;
+    return wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE;
   },
   extraOptions: [LLMD_OPTION],
   suggestion: (modelServingClusterSettings) => {
