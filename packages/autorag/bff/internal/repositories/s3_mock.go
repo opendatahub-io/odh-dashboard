@@ -21,8 +21,8 @@ func NewMockS3Repository() S3RepositoryInterface {
 
 // GetS3Credentials returns mock S3 credentials from a Kubernetes secret
 func (r *MockS3Repository) GetS3Credentials(
-	client k8s.KubernetesClientInterface,
 	ctx context.Context,
+	client k8s.KubernetesClientInterface,
 	namespace string,
 	secretName string,
 	identity *k8s.RequestIdentity,

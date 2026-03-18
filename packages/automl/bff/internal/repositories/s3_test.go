@@ -1,6 +1,10 @@
 package repositories
 
 import (
+	"context"
+	"encoding/csv"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -508,4 +512,53 @@ func TestAllValuesMatchType(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestMockCSVContentMeetsProductionRequirements verifies that mockCSVContent has
+// at least 100 data rows to match the production GetS3CSVSchema validation requirement.
+// This test prevents mock/production divergence by ensuring the mock CSV fixture
+// meets the same validation rules as the real S3Repository implementation.
+func TestMockCSVContentMeetsProductionRequirements(t *testing.T) {
+	// Parse the mock CSV
+	reader := csv.NewReader(strings.NewReader(mockCSVContent))
+	reader.TrimLeadingSpace = true
+	reader.LazyQuotes = true
+
+	// Read header
+	header, err := reader.Read()
+	assert.NoError(t, err, "should have valid header")
+	assert.NotEmpty(t, header, "header should not be empty")
+
+	// Count data rows
+	rowCount := 0
+	for {
+		_, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		assert.NoError(t, err, "should parse all rows without error")
+		rowCount++
+	}
+
+	// Verify minimum row count matches production requirement (s3.go:508-510)
+	assert.GreaterOrEqual(t, rowCount, 100,
+		"mockCSVContent must have at least 100 data rows to match production GetS3CSVSchema validation")
+}
+
+// TestMockS3Repository_GetS3CSVSchema_ValidatesRowCount verifies that the mock
+// repository actually validates the CSV has 100+ rows when calling GetS3CSVSchema.
+// This ensures the mock behaves like production and will fail if mockCSVContent is invalid.
+func TestMockS3Repository_GetS3CSVSchema_ValidatesRowCount(t *testing.T) {
+	mock := NewMockS3Repository()
+	ctx := context.Background()
+
+	// Test with valid CSV key
+	result, err := mock.GetS3CSVSchema(ctx, &S3Credentials{}, "test-bucket", "data.csv")
+
+	// Should succeed because mockCSVContent has 100+ rows
+	assert.NoError(t, err, "GetS3CSVSchema should succeed with 100+ row mockCSVContent")
+	assert.NotNil(t, result.Columns)
+	assert.Len(t, result.Columns, 5, "should return 5 columns")
+	assert.Equal(t, "id", result.Columns[0].Name)
+	assert.Equal(t, "integer", result.Columns[0].Type)
 }
