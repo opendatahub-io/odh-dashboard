@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 )
 
 // MLflow CRD constants for Kubernetes CR auto-discovery.
@@ -49,13 +49,12 @@ func DiscoverMLflowURL() (string, error) {
 		return "", fmt.Errorf("cannot determine pod namespace: %w", err)
 	}
 
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	kubeconfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{}).ClientConfig()
+	restCfg, err := rest.InClusterConfig()
 	if err != nil {
-		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
+		return "", fmt.Errorf("failed to get in-cluster config: %w", err)
 	}
 
-	dynClient, err := dynamic.NewForConfig(kubeconfig)
+	dynClient, err := dynamic.NewForConfig(restCfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to create dynamic client: %w", err)
 	}
