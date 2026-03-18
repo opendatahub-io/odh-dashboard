@@ -40,12 +40,15 @@ func (m *MockS3Client) ListObjects(_ context.Context, bucket string, options s3c
 	start := int32(0)
 	if options.Next != "" {
 		var parsed int32
-		if _, err := fmt.Sscanf(options.Next, "%d", &parsed); err == nil {
+		if _, err := fmt.Sscanf(options.Next, "%d", &parsed); err == nil && parsed > 0 {
 			start = parsed
 		}
 	}
 
 	totalObjects := int32(len(allObjects))
+	if start > totalObjects {
+		start = totalObjects
+	}
 	end := start + limit
 	if end > totalObjects {
 		end = totalObjects
