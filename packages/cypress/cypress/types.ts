@@ -516,6 +516,8 @@ export type ModelRegistryTestData = {
   ociSourceBucket: string;
   ociSourceRegion: string;
   ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
   ociDestinationRegistry: string;
   ociDestinationUri: string;
 };
