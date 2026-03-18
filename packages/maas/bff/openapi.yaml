@@ -431,6 +431,659 @@ paths:
         '500':
           description: Internal Server Error
 
+  # ── Subscription Management ──────────────────────────────────────────
+
+  /api/v1/all-subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List all subscriptions
+      operationId: listAllSubscriptions
+      description: >
+        Returns all MaaSSubscription resources across the cluster.
+
+        K8s calls: GET /k8s/v1/maassubscription
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaaSSubscription'
+              example:
+                data:
+                  - name: premium-team-sub
+                    namespace: maas-system
+                    phase: Active
+                    priority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+                    creationTimestamp: "2025-03-01T10:00:00Z"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden. Insufficient permissions to list subscriptions.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/subscription-info/{name}:
+    get:
+      tags:
+        - subscriptions
+      summary: Get subscription details
+      operationId: getSubscriptionInfo
+      description: >
+        Returns detailed information about a specific subscription, including
+        the MaaSSubscription resource, related MaaSModelRef resources, and
+        associated MaaSAuthPolicy resources.
+
+        K8s calls: GET /k8s/v1/maassubscription/:name, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSSubscription resource
+      responses:
+        '200':
+          description: Subscription details with related resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionInfoResponse'
+              example:
+                subscription:
+                  name: premium-team-sub
+                  namespace: maas-system
+                  phase: Active
+                  priority: 10
+                  owner:
+                    groups:
+                      - name: premium-users
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 100000
+                          window: 24h
+                  tokenMetadata:
+                    organizationId: org-123
+                    costCenter: engineering
+                  creationTimestamp: "2025-03-01T10:00:00Z"
+                modelRefs:
+                  - name: llama-2-7b-chat
+                    namespace: maas-models
+                    modelRef:
+                      kind: LLMInferenceService
+                      name: llama-2-7b-chat
+                    phase: Ready
+                    endpoint: https://llama-2-7b-chat.example.com
+                authPolicies:
+                  - name: premium-team-sub-policy
+                    namespace: maas-system
+                    phase: Active
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                    subjects:
+                      groups:
+                        - name: premium-users
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSSubscription 'unknown-sub' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/new-subscription:
+    get:
+      tags:
+        - subscriptions
+      summary: Get subscription creation form data
+      operationId: getNewSubscriptionFormData
+      description: >
+        Returns the data needed to populate a subscription creation form,
+        including available Kubernetes groups and MaaSModelRef resources.
+
+        K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
+      responses:
+        '200':
+          description: Form data for creating a new subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionFormDataResponse'
+              example:
+                groups:
+                  - system:authenticated
+                  - premium-users
+                  - enterprise-users
+                  - beta-testers
+                modelRefs:
+                  - name: llama-2-7b-chat
+                    namespace: maas-models
+                    modelRef:
+                      kind: LLMInferenceService
+                      name: llama-2-7b-chat
+                    phase: Ready
+                    endpoint: https://llama-2-7b-chat.example.com
+                  - name: mistral-7b-instruct
+                    namespace: maas-models
+                    modelRef:
+                      kind: LLMInferenceService
+                      name: mistral-7b-instruct
+                    phase: Ready
+                    endpoint: https://mistral-7b-instruct.example.com
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - subscriptions
+      summary: Create a new subscription
+      operationId: createSubscription
+      description: >
+        Creates a new MaaSSubscription and its associated MaaSAuthPolicy.
+
+        K8s calls: CREATE /k8s/v1/maassubscription, CREATE /k8s/v1/maasauthpolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+            examples:
+              basic_subscription:
+                summary: Basic subscription with one model
+                value:
+                  name: team-alpha-sub
+                  namespace: maas-system
+                  owner:
+                    groups:
+                      - name: team-alpha
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 50000
+                          window: 24h
+                  priority: 0
+              premium_subscription:
+                summary: Premium subscription with metadata
+                value:
+                  name: premium-team-sub
+                  namespace: maas-system
+                  owner:
+                    groups:
+                      - name: premium-users
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 100000
+                          window: 24h
+                    - name: mistral-7b-instruct
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 200000
+                          window: 24h
+                  tokenMetadata:
+                    organizationId: org-123
+                    costCenter: engineering
+                  priority: 10
+      responses:
+        '201':
+          description: Subscription and auth policy created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSubscriptionResponse'
+              example:
+                subscription:
+                  name: premium-team-sub
+                  namespace: maas-system
+                  phase: Pending
+                  priority: 10
+                  owner:
+                    groups:
+                      - name: premium-users
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 100000
+                          window: 24h
+                  creationTimestamp: "2025-03-16T10:00:00Z"
+                authPolicy:
+                  name: premium-team-sub-policy
+                  namespace: maas-system
+                  phase: Pending
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                  subjects:
+                    groups:
+                      - name: premium-users
+        '400':
+          description: Bad Request. Invalid subscription specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_name:
+                  summary: Missing subscription name
+                  value:
+                    error: "name is required"
+                empty_model_refs:
+                  summary: No model refs provided
+                  value:
+                    error: "at least one modelRef is required"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '409':
+          description: Conflict. Subscription with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSSubscription 'premium-team-sub' already exists"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/update-subscription/{name}:
+    put:
+      tags:
+        - subscriptions
+      summary: Update an existing subscription
+      operationId: updateSubscription
+      description: >
+        Updates an existing MaaSSubscription and its associated MaaSAuthPolicy.
+
+        K8s calls: PUT /k8s/v1/maassubscription/:name, PUT /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSSubscription to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionRequest'
+            example:
+              owner:
+                groups:
+                  - name: premium-users
+                  - name: beta-testers
+              modelRefs:
+                - name: llama-2-7b-chat
+                  namespace: maas-models
+                  tokenRateLimits:
+                    - limit: 200000
+                      window: 24h
+                - name: mistral-7b-instruct
+                  namespace: maas-models
+                  tokenRateLimits:
+                    - limit: 300000
+                      window: 24h
+              tokenMetadata:
+                organizationId: org-123
+                costCenter: engineering-v2
+              priority: 20
+      responses:
+        '200':
+          description: Subscription and auth policy updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSubscriptionResponse'
+              example:
+                subscription:
+                  name: premium-team-sub
+                  namespace: maas-system
+                  phase: Active
+                  priority: 20
+                  owner:
+                    groups:
+                      - name: premium-users
+                      - name: beta-testers
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 200000
+                          window: 24h
+                    - name: mistral-7b-instruct
+                      namespace: maas-models
+                      tokenRateLimits:
+                        - limit: 300000
+                          window: 24h
+                  creationTimestamp: "2025-03-01T10:00:00Z"
+                authPolicy:
+                  name: premium-team-sub-policy
+                  namespace: maas-system
+                  phase: Active
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                    - name: mistral-7b-instruct
+                      namespace: maas-models
+                  subjects:
+                    groups:
+                      - name: premium-users
+                      - name: beta-testers
+        '400':
+          description: Bad Request. Invalid update specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSSubscription 'unknown-sub' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/subscription/{name}:
+    delete:
+      tags:
+        - subscriptions
+      summary: Delete a subscription
+      operationId: deleteSubscription
+      description: >
+        Deletes a MaaSSubscription resource by name. The associated
+        MaaSAuthPolicy is expected to be garbage-collected via owner references.
+
+        K8s calls: DELETE /k8s/v1/maassubscription/:name
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSSubscription to delete
+      responses:
+        '200':
+          description: Subscription deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+              example:
+                message: "MaaSSubscription 'premium-team-sub' deleted successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden. Insufficient permissions to delete subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSSubscription 'unknown-sub' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── MaaSModelRef Endpoints ────────────────────────────────────────────
+
+  /api/v1/maasmodel:
+    post:
+      tags:
+        - maasmodelrefs
+      summary: Create a MaaSModelRef
+      operationId: createMaaSModelRef
+      description: >
+        Creates a new MaaSModelRef Kubernetes custom resource.
+
+        K8s calls: POST /k8s/v1/maasmodelref
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMaaSModelRefRequest'
+            example:
+              name: granite-3-8b-instruct
+              namespace: maas-models
+              modelRef:
+                kind: LLMInferenceService
+                name: granite-3-8b-instruct
+              endpointOverride: ""
+      responses:
+        '201':
+          description: MaaSModelRef created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSModelRefSummary'
+              example:
+                name: granite-3-8b-instruct
+                namespace: maas-models
+                modelRef:
+                  kind: LLMInferenceService
+                  name: granite-3-8b-instruct
+                phase: Pending
+                endpoint: ""
+        '400':
+          description: Bad Request. Missing or invalid fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '409':
+          description: MaaSModelRef already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSModelRef 'granite-3-8b-instruct' already exists"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/maasmodel/{namespace}/{name}:
+    put:
+      tags:
+        - maasmodelrefs
+      summary: Update a MaaSModelRef
+      operationId: updateMaaSModelRef
+      description: >
+        Updates an existing MaaSModelRef Kubernetes custom resource.
+
+        K8s calls: PUT /k8s/v1/maasmodelref/:namespace/:name
+      parameters:
+        - in: path
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Namespace of the MaaSModelRef
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSModelRef to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMaaSModelRefRequest'
+            example:
+              modelRef:
+                kind: LLMInferenceService
+                name: granite-3-8b-instruct
+              endpointOverride: "https://custom-endpoint.example.com"
+      responses:
+        '200':
+          description: MaaSModelRef updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSModelRefSummary'
+              example:
+                name: granite-3-8b-instruct
+                namespace: maas-models
+                modelRef:
+                  kind: LLMInferenceService
+                  name: granite-3-8b-instruct
+                phase: Ready
+                endpoint: "https://custom-endpoint.example.com"
+        '400':
+          description: Bad Request. Invalid update specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: MaaSModelRef not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSModelRef 'unknown-model' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - maasmodelrefs
+      summary: Delete a MaaSModelRef
+      operationId: deleteMaaSModelRef
+      description: >
+        Deletes a MaaSModelRef Kubernetes custom resource by namespace and name.
+
+        K8s calls: DELETE /k8s/v1/maasmodelref/:namespace/:name
+      parameters:
+        - in: path
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Namespace of the MaaSModelRef
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSModelRef to delete
+      responses:
+        '200':
+          description: MaaSModelRef deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+              example:
+                message: "MaaSModelRef 'granite-3-8b-instruct' deleted successfully"
+        '401':
+          description: Unauthorized
+        '404':
+          description: MaaSModelRef not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSModelRef 'unknown-model' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -594,3 +1247,398 @@ components:
         - object
         - data
         - has_more
+
+    # ── Subscription Schemas ──────────────────────────────────────────
+
+    GroupReference:
+      type: object
+      description: Reference to a Kubernetes group
+      properties:
+        name:
+          type: string
+          description: Name of the Kubernetes group
+          example: premium-users
+      required:
+        - name
+
+    OwnerSpec:
+      type: object
+      description: Defines who owns a subscription
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupReference'
+          description: Kubernetes group names that own this subscription
+      example:
+        groups:
+          - name: premium-users
+
+    TokenRateLimit:
+      type: object
+      description: Token-based rate limit for a model
+      properties:
+        limit:
+          type: integer
+          format: int64
+          description: Maximum number of tokens allowed
+          example: 100000
+        window:
+          type: string
+          description: Time window (e.g., "1m", "1h", "24h")
+          pattern: '^(\d+)(s|m|h|d)$'
+          example: 24h
+      required:
+        - limit
+        - window
+
+    BillingRate:
+      type: object
+      description: Billing information for a model
+      properties:
+        perToken:
+          type: string
+          description: Cost per token
+          example: "0.0001"
+      required:
+        - perToken
+
+    ModelSubscriptionRef:
+      type: object
+      description: Reference to a model with rate limits within a subscription
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSModelRef
+          example: llama-2-7b-chat
+        namespace:
+          type: string
+          description: Namespace where the MaaSModelRef lives
+          example: maas-models
+        tokenRateLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TokenRateLimit'
+          description: Token-based rate limits for this model
+        tokenRateLimitRef:
+          type: string
+          description: Reference to an existing TokenRateLimit resource
+        billingRate:
+          $ref: '#/components/schemas/BillingRate'
+      required:
+        - name
+        - namespace
+
+    TokenMetadata:
+      type: object
+      description: Metadata for token usage attribution and metering
+      properties:
+        organizationId:
+          type: string
+          description: Organization identifier for metering and billing
+          example: org-123
+        costCenter:
+          type: string
+          description: Cost center for usage attribution
+          example: engineering
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional labels for tracking and metrics
+
+    MaaSSubscription:
+      type: object
+      description: BFF representation of a MaaSSubscription Kubernetes custom resource
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSSubscription resource (metadata.name)
+          example: premium-team-sub
+        namespace:
+          type: string
+          description: Namespace of the MaaSSubscription resource
+          example: maas-system
+        phase:
+          type: string
+          enum: [Pending, Active, Failed]
+          description: Current phase of the subscription (from status)
+          example: Active
+        priority:
+          type: integer
+          format: int32
+          description: Subscription priority (higher = higher priority)
+          default: 0
+          example: 10
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelSubscriptionRef'
+          description: Models included in this subscription with per-model rate limits
+          minItems: 1
+        tokenMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+        creationTimestamp:
+          type: string
+          format: date-time
+          description: When the resource was created
+      required:
+        - name
+        - namespace
+        - owner
+        - modelRefs
+
+    SubjectSpec:
+      type: object
+      description: Defines subjects (groups) that have access
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupReference'
+          description: Kubernetes group names
+
+    ModelRef:
+      type: object
+      description: Simple reference to a MaaSModelRef by name and namespace
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSModelRef
+          example: llama-2-7b-chat
+        namespace:
+          type: string
+          description: Namespace where the MaaSModelRef lives
+          example: maas-models
+      required:
+        - name
+        - namespace
+
+    MaaSAuthPolicy:
+      type: object
+      description: BFF representation of a MaaSAuthPolicy Kubernetes custom resource
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSAuthPolicy resource
+          example: premium-team-sub-policy
+        namespace:
+          type: string
+          description: Namespace of the MaaSAuthPolicy resource
+          example: maas-system
+        phase:
+          type: string
+          enum: [Pending, Active, Failed]
+          description: Current phase of the auth policy (from status)
+          example: Active
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelRef'
+          description: Models this policy grants access to
+        subjects:
+          $ref: '#/components/schemas/SubjectSpec'
+        meteringMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+      required:
+        - name
+        - namespace
+        - modelRefs
+        - subjects
+
+    ModelReference:
+      type: object
+      description: Reference to a model endpoint
+      properties:
+        kind:
+          type: string
+          enum: [LLMInferenceService, ExternalModel]
+          description: Kind of the model resource
+          example: LLMInferenceService
+        name:
+          type: string
+          description: Name of the model resource
+          example: llama-2-7b-chat
+      required:
+        - kind
+        - name
+
+    MaaSModelRefSummary:
+      type: object
+      description: BFF representation of a MaaSModelRef Kubernetes custom resource
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSModelRef resource
+          example: llama-2-7b-chat
+        namespace:
+          type: string
+          description: Namespace of the MaaSModelRef resource
+          example: maas-models
+        modelRef:
+          $ref: '#/components/schemas/ModelReference'
+        phase:
+          type: string
+          enum: [Pending, Ready, Unhealthy, Failed]
+          description: Current phase of the model (from status)
+          example: Ready
+        endpoint:
+          type: string
+          description: Endpoint URL for the model (from status)
+          example: https://llama-2-7b-chat.example.com
+      required:
+        - name
+        - namespace
+        - modelRef
+
+    # ── Subscription Request/Response Schemas ─────────────────────────
+
+    CreateSubscriptionRequest:
+      type: object
+      description: Request body for creating a new subscription (creates both MaaSSubscription and MaaSAuthPolicy)
+      properties:
+        name:
+          type: string
+          description: Name for the MaaSSubscription resource
+          example: premium-team-sub
+        namespace:
+          type: string
+          description: Namespace for the resources
+          example: maas-system
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelSubscriptionRef'
+          description: Models to include in this subscription
+          minItems: 1
+        tokenMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+        priority:
+          type: integer
+          format: int32
+          description: Subscription priority (higher = higher priority)
+          default: 0
+      required:
+        - name
+        - namespace
+        - owner
+        - modelRefs
+
+    UpdateSubscriptionRequest:
+      type: object
+      description: Request body for updating an existing subscription (updates both MaaSSubscription and MaaSAuthPolicy)
+      properties:
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelSubscriptionRef'
+          description: Updated models for this subscription
+          minItems: 1
+        tokenMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+        priority:
+          type: integer
+          format: int32
+          description: Updated subscription priority
+      required:
+        - owner
+        - modelRefs
+
+    CreateSubscriptionResponse:
+      type: object
+      description: Response after creating or updating a subscription
+      properties:
+        subscription:
+          $ref: '#/components/schemas/MaaSSubscription'
+        authPolicy:
+          $ref: '#/components/schemas/MaaSAuthPolicy'
+      required:
+        - subscription
+        - authPolicy
+
+    SubscriptionInfoResponse:
+      type: object
+      description: Detailed subscription information with related resources
+      properties:
+        subscription:
+          $ref: '#/components/schemas/MaaSSubscription'
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSModelRefSummary'
+          description: MaaSModelRef resources referenced by this subscription
+        authPolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSAuthPolicy'
+          description: MaaSAuthPolicy resources associated with this subscription
+      required:
+        - subscription
+        - modelRefs
+        - authPolicies
+
+    SubscriptionFormDataResponse:
+      type: object
+      description: Data needed to populate a subscription creation/edit form
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+          description: Available Kubernetes groups
+          example:
+            - system:authenticated
+            - premium-users
+            - enterprise-users
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSModelRefSummary'
+          description: Available MaaSModelRef resources that can be added to a subscription
+      required:
+        - groups
+        - modelRefs
+
+    # ── MaaSModelRef Request Schemas ──────────────────────────────────
+
+    CreateMaaSModelRefRequest:
+      type: object
+      description: Request body for creating a new MaaSModelRef resource
+      properties:
+        name:
+          type: string
+          description: Name for the MaaSModelRef resource
+          example: granite-3-8b-instruct
+        namespace:
+          type: string
+          description: Namespace for the MaaSModelRef resource
+          example: maas-models
+        modelRef:
+          $ref: '#/components/schemas/ModelReference'
+        endpointOverride:
+          type: string
+          description: Optional endpoint URL override
+          example: ""
+      required:
+        - name
+        - namespace
+        - modelRef
+
+    UpdateMaaSModelRefRequest:
+      type: object
+      description: Request body for updating an existing MaaSModelRef resource
+      properties:
+        modelRef:
+          $ref: '#/components/schemas/ModelReference'
+        endpointOverride:
+          type: string
+          description: Optional endpoint URL override
+          example: ""
+      required:
+        - modelRef
