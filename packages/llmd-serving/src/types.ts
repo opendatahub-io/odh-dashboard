@@ -6,8 +6,14 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
-import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 import { LLMD_SERVING_ID } from '../extensions/extensions';
+
+export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
+export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
+export const MAAS_DEFAULT_GATEWAY = {
+  name: 'maas-default-gateway',
+  namespace: 'openshift-ingress',
+} as const;
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
@@ -54,6 +60,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
+      [MAAS_ENDPOINT_LABEL]?: 'true';
     };
   };
   spec: LLMInferenceServiceSpec;

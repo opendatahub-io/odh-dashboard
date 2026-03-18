@@ -1,10 +1,9 @@
-import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
+import {
+  type LLMdDeployment,
+  MAAS_DEFAULT_GATEWAY,
+  MAAS_ENDPOINT_LABEL,
+} from '@odh-dashboard/llmd-serving/types';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
-
-const MAAS_DEFAULT_GATEWAY = {
-  name: 'maas-default-gateway',
-  namespace: 'openshift-ingress',
-};
 
 const isMaaSGateway = (ref: { name?: string; namespace?: string }): boolean =>
   ref.name === MAAS_DEFAULT_GATEWAY.name && ref.namespace === MAAS_DEFAULT_GATEWAY.namespace;
@@ -25,7 +24,6 @@ export const applyMaaSEndpointData = (
   const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
   if (fieldData.isChecked) {
-    // Add the MaaS gateway
     const newRefs = [...filteredRefs, MAAS_DEFAULT_GATEWAY];
     result.model.spec.router = {
       ...result.model.spec.router,
@@ -33,6 +31,10 @@ export const applyMaaSEndpointData = (
         ...result.model.spec.router?.gateway,
         refs: newRefs,
       },
+    };
+    result.model.metadata.labels = {
+      ...result.model.metadata.labels,
+      [MAAS_ENDPOINT_LABEL]: 'true',
     };
   } else if (filteredRefs.length > 0) {
     // Keep other gateways if they exist
@@ -44,8 +46,11 @@ export const applyMaaSEndpointData = (
       },
     };
   } else if (result.model.spec.router?.gateway?.refs !== undefined) {
-    // Remove empty refs array
     delete result.model.spec.router.gateway.refs;
+  }
+
+  if (!fieldData.isChecked) {
+    delete result.model.metadata.labels?.[MAAS_ENDPOINT_LABEL];
   }
 
   return result;

@@ -33,27 +33,20 @@ export const useWizardFieldApply = (
 
   const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
 
-  // Get the set of active field IDs
-  const activeFieldIds = React.useMemo(() => {
-    return new Set(
-      fieldExtensions
-        .filter((ext) => ext.properties.field.isActive(wizardState))
-        .map((ext) => ext.properties.field.id),
-    );
-  }, [fieldExtensions, wizardState]);
-
-  // Filter apply extensions to only those whose associated field is active
-  const activeApplyExtensions = React.useMemo((): ResolvedApplyExtension[] => {
-    return applyExtensions.filter((ext) => activeFieldIds.has(ext.properties.fieldId));
-  }, [applyExtensions, activeFieldIds]);
-
-  const fieldMap = React.useMemo((): Map<string, WizardField> => {
+  const activeFields = React.useMemo((): Map<string, WizardField> => {
     const map = new Map<string, WizardField>();
     for (const ext of fieldExtensions) {
-      map.set(ext.properties.field.id, ext.properties.field);
+      const { field } = ext.properties;
+      if (field.isActive(wizardState)) {
+        map.set(field.id, field);
+      }
     }
     return map;
-  }, [fieldExtensions]);
+  }, [fieldExtensions, wizardState]);
+
+  const activeApplyExtensions = React.useMemo((): ResolvedApplyExtension[] => {
+    return applyExtensions.filter((ext) => activeFields.has(ext.properties.fieldId));
+  }, [applyExtensions, activeFields]);
 
   const applyFieldData = React.useCallback(
     (deployment: Deployment): Deployment => {
@@ -62,7 +55,7 @@ export const useWizardFieldApply = (
       for (const applyExt of activeApplyExtensions) {
         const { fieldId } = applyExt.properties;
         const rawFieldData: unknown = wizardState[fieldId];
-        const field = fieldMap.get(fieldId);
+        const field = activeFields.get(fieldId);
         const fieldData: unknown = field?.reducerFunctions.getFieldData
           ? field.reducerFunctions.getFieldData(rawFieldData, wizardState)
           : rawFieldData;
@@ -88,7 +81,7 @@ export const useWizardFieldApply = (
 
       return result;
     },
-    [activeApplyExtensions, fieldMap, wizardState, navSourceMetadata],
+    [activeApplyExtensions, activeFields, wizardState, navSourceMetadata],
   );
 
   return React.useMemo(

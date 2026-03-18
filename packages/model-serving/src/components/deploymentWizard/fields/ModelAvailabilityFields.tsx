@@ -136,14 +136,11 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             </div>
           </StackItem>
         )}
-        <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
-          <GenericFieldRenderer
-            parentId="model-playground-availability"
-            wizardState={wizardState}
-            externalData={externalData}
-            isDisabled={!data.saveAsAiAsset}
-          />
-        </div>
+        <GenericFieldRenderer
+          parentId="model-playground-availability"
+          wizardState={wizardState}
+          externalData={externalData}
+        />
       </Stack>
     </StackItem>
   );

@@ -72,12 +72,6 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     wizardFormData.modelServer?.data?.selection?.name === LLMD_SERVING_ID,
   reducerFunctions: {
     setFieldData: setMaaSFieldData,
-    getFieldData: (storedValue, wizardState) => {
-      if (!wizardState.modelAvailability.data.saveAsAiAsset) {
-        return { isChecked: false };
-      }
-      return storedValue;
-    },
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
     getFieldOverrides: (fieldValue) => ({

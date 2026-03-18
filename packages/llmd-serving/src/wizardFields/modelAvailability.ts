@@ -3,16 +3,9 @@ import type {
   ModelAvailabilityField,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
+import { MAAS_DEFAULT_GATEWAY, MAAS_ENDPOINT_LABEL, MAAS_TIERS_ANNOTATION } from '../types';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 import { LLMD_OPTION } from '../deployments/server';
-
-/**
- * Annotation key for MaaS tiers configuration.
- * Note: MaaS-specific functionality is now handled by the maas package via
- * WizardFieldTransformerExtension and WizardFieldExtractorExtension.
- * This constant is kept for type definitions and backwards compatibility.
- */
-export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
 
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
@@ -30,18 +23,18 @@ export const modelAvailabilityField: ModelAvailabilityField = {
 
 export const extractModelAvailabilityData = (
   deployment: LLMdDeployment,
-): WizardFormData['state']['modelAvailability']['data'] => {
-  const hasMaaSGateway =
-    deployment.model.spec.router?.gateway?.refs?.some(
-      (ref) => ref.name === 'maas-default-gateway' && ref.namespace === 'openshift-ingress',
-    ) ?? false;
-
-  return {
-    saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
-    saveAsMaaS: hasMaaSGateway || !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
-    useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
-  };
-};
+): WizardFormData['state']['modelAvailability']['data'] => ({
+  saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
+  saveAsMaaS:
+    deployment.model.metadata.labels?.[MAAS_ENDPOINT_LABEL] === 'true' ||
+    !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION] ||
+    (deployment.model.spec.router?.gateway?.refs?.some(
+      (ref) =>
+        ref.name === MAAS_DEFAULT_GATEWAY.name && ref.namespace === MAAS_DEFAULT_GATEWAY.namespace,
+    ) ??
+      false),
+  useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
+});
 
 /**
  * Applies model availability data (AI Asset settings) to the deployment.
