@@ -27,7 +27,7 @@ type ListEvaluationJobsParams struct {
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
-	GetEvaluationJob(ctx context.Context, id string) (*EvaluationJob, error)
+	GetEvaluationJob(ctx context.Context, id string, namespace string) (*EvaluationJob, error)
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, namespace string) (CollectionsResponse, error)
@@ -424,9 +424,16 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 }
 
 // GetEvaluationJob retrieves a single evaluation job by ID.
-func (c *EvalHubClient) GetEvaluationJob(ctx context.Context, id string) (*EvaluationJob, error) {
+// The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
+func (c *EvalHubClient) GetEvaluationJob(ctx context.Context, id string, namespace string) (*EvaluationJob, error) {
 	path := fmt.Sprintf("/evaluations/jobs/%s", url.PathEscape(id))
-	resp, err := get[EvaluationJob](c, ctx, path, nil)
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[EvaluationJob](c, ctx, path, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "GetEvaluationJob")
 	}

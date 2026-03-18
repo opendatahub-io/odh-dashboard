@@ -72,7 +72,9 @@ func (app *App) GetEvaluationJobHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	job, err := client.GetEvaluationJob(ctx, id)
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	job, err := client.GetEvaluationJob(ctx, id, namespace)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to get evaluation job")
 		return
