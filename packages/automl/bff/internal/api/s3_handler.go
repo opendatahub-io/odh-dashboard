@@ -106,7 +106,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponse(w, r, err)
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
 		return
 	}
 
@@ -145,7 +145,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponse(w, r, fmt.Errorf("error retrieving file from S3: %w", err))
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving file from S3: %s", err.Error()))
 		return
 	}
 
@@ -259,7 +259,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 			return
 		}
 
-		app.serverErrorResponse(w, r, err)
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
 		return
 	}
 
@@ -306,12 +306,14 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 			strings.Contains(errMsg, "CSV file has no columns") ||
 			strings.Contains(errMsg, "does not appear to be a valid text/CSV file") ||
 			strings.Contains(errMsg, "must contain at least 100 data rows") ||
-			strings.Contains(errMsg, "100 or more lines are supported") {
+			strings.Contains(errMsg, "100 or more lines are supported") ||
+			strings.Contains(errMsg, "only CSV files are supported") ||
+			strings.Contains(errMsg, "endpoint validation failed") {
 			app.badRequestResponse(w, r, err)
 			return
 		}
 
-		app.serverErrorResponse(w, r, fmt.Errorf("error retrieving CSV schema from S3: %w", err))
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving CSV schema from S3: %s", err.Error()))
 		return
 	}
 

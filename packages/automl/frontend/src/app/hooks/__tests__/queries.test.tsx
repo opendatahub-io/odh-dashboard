@@ -189,6 +189,57 @@ describe('useFilesQuery', () => {
     expect(result.current.error?.message).toContain('Failed to fetch file schema');
   });
 
+  it('should extract error message from API response', async () => {
+    const mockErrorResponse = {
+      error: {
+        code: '400',
+        message: 'only CSV files are supported (must have .csv extension)',
+      },
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      statusText: 'Bad Request',
+      json: async () => mockErrorResponse,
+    });
+
+    const { result } = renderHook(
+      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.txt'),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
+
+    expect(result.current.error?.message).toBe(
+      'Failed to fetch file schema: only CSV files are supported (must have .csv extension)',
+    );
+  });
+
+  it('should fall back to statusText when error response cannot be parsed', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      statusText: 'Internal Server Error',
+      json: async () => {
+        throw new Error('Invalid JSON');
+      },
+    });
+
+    const { result } = renderHook(
+      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
+
+    expect(result.current.error?.message).toBe(
+      'Failed to fetch file schema: Internal Server Error',
+    );
+  });
+
   it('should handle network errors', async () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 

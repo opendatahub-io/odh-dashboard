@@ -54,7 +54,16 @@ export function useFilesQuery(
       const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch file schema: ${response.statusText}`);
+        let errorMessage = response.statusText;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error?.message) {
+            errorMessage = errorData.error.message;
+          }
+        } catch {
+          // If parsing fails, fall back to statusText
+        }
+        throw new Error(`Failed to fetch file schema: ${errorMessage}`);
       }
 
       const data = await response.json();
@@ -62,7 +71,7 @@ export function useFilesQuery(
       if (!Array.isArray(columns)) {
         return [];
       }
-      return columns as ColumnSchema[];
+      return columns;
     },
     enabled: Boolean(namespace && secretName && key),
     retry: false,
