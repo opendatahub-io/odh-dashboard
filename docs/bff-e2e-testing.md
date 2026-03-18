@@ -142,7 +142,7 @@ Currently, the following packages have BFF E2E support:
 
 | Package | Frontend Port | BFF Port | CI Tag |
 |---------|---------------|----------|--------|
-| automl | 9106 | 4001 | @AutoMLCI |
+| automl | 9108 | 4003 | @AutoMLCI |
 | autorag | 9107 | 4001 | @AutoRAGCI |
 | eval-hub | 9105 | 4002 | @EvalHubCI |
 | gen-ai | 9102 | 8080 | @GenAICI |
@@ -160,7 +160,7 @@ Currently, the following packages have BFF E2E support:
 
 ### Port Conflicts
 
-The CI pipeline uses dynamic port allocation based on `github.run_id`. If you encounter conflicts:
+The CI pipeline uses dynamic port allocation based on the GitHub `run_id`. If you encounter conflicts:
 
 1. The workflow will attempt to find an alternative port
 2. Check `/tmp/gha-bff/` for port allocation files
@@ -174,7 +174,7 @@ The CI pipeline uses dynamic port allocation based on `github.run_id`. If you en
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                           GitHub Actions Runner                               │
 ├──────────────────────────────────────────────────────────────────────────────┤
