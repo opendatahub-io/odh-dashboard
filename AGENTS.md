@@ -173,7 +173,17 @@ Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, an
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
-**Important**: Always read the relevant rule file before starting the task to ensure you follow the project's conventions and patterns.
+## Agent Skills
+
+Skills provide multi-step workflows. They are available in `.claude/skills/` (canonical), `.cursor/skills/`, and `.gemini/skills/`.
+
+| Skill                              | Directory                              | Use when                                                                       |
+| ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **Model Registry Sync Status**    | `skills/model-registry-sync-status/`   | Checking whether the local model-registry upstream copy is up to date          |
+| **Model Registry Upstream Sync**  | `skills/model-registry-upstream-sync/` | Syncing upstream changes from kubeflow/model-registry and opening a PR         |
+
+**Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
 
 ## Git Workflow
 
