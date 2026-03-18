@@ -1,3 +1,9 @@
+---
+description: Contract test guidelines for ODH Dashboard modules with BFF API validation
+globs: "**/contract-tests/**"
+alwaysApply: false
+---
+
 # Contract Test Rules
 
 Comprehensive guidelines for creating and maintaining contract tests for ODH Dashboard modules.

@@ -1,0 +1,1 @@
+../../.claude/rules/cypress-mock.md

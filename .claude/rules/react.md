@@ -1,12 +1,7 @@
 ---
-name: react
-description: >-
-  Guide for writing React components, hooks, and pages in the ODH Dashboard
-  codebase. Covers component structure, TypeScript typing, state management,
-  performance optimization, async patterns, re-render prevention, accessibility,
-  testing, and code review. Use when creating or modifying React components,
-  custom hooks, context providers, pages, or when reviewing React code for best
-  practices.
+description: React component, hook, and page development conventions for ODH Dashboard
+globs: "**/*.tsx,**/*.ts"
+alwaysApply: false
 ---
 
 # React Development — ODH Dashboard
@@ -39,6 +34,7 @@ export default MyComponent;
 | Convention | Detail |
 |---|---|
 | Import alias | `#~/` maps to `frontend/src/` (main app), `~/` maps to `src/` within each package's frontend |
+| Cross-package imports | Use `@odh-dashboard/<package>` scoped imports (e.g., `@odh-dashboard/plugin-core/extension-points`). Avoid importing from `@odh-dashboard/internal` when possible — prefer dedicated package exports |
 | Props | Defined as `type` above the component, destructured in signature |
 | Exports | Default export for components, named exports for hooks/utils |
 | Test IDs | Add `data-testid` on interactive and testable elements |
@@ -337,7 +333,7 @@ Use accessibility selectors as a secondary strategy after `data-testid`:
 
 ## Testing
 
-See [unit-tests rules](../../../docs/agent-rules/unit-tests.md) for full details.
+See [unit-tests rules](./unit-tests.md) for full details.
 
 ### Quick reference
 

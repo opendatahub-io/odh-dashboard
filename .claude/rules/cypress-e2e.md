@@ -1,3 +1,9 @@
+---
+description: Cypress E2E test creation and maintenance guidelines for live cluster testing
+globs: "packages/cypress/cypress/tests/e2e/**"
+alwaysApply: false
+---
+
 # Cypress E2E Test Rules
 
 Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing.

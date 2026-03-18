@@ -1,1 +1,0 @@
-../../../.claude/skills/react/SKILL.md

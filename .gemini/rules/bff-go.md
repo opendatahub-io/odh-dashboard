@@ -1,0 +1,1 @@
+../../.claude/rules/bff-go.md

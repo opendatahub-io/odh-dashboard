@@ -1,0 +1,1 @@
+../../.claude/rules/modular-architecture.md

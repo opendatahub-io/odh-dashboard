@@ -1,0 +1,1 @@
+../../.claude/rules/contract-tests.md

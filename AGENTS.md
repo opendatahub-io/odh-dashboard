@@ -155,19 +155,23 @@ cd packages/gen-ai && npm run build
 
 ## Specialized Agent Rules
 
-Before performing certain tasks, read and follow the corresponding specialized rules:
+Before performing certain tasks, read and follow the corresponding specialized rules.
 
-| Task                  | Rule File                                                                    | Trigger                                                                      |
-| --------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Jira Creation**     | [docs/agent-rules/jira-creation.md](docs/agent-rules/jira-creation.md)       | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics    |
-| **Contract Tests**    | [docs/agent-rules/contract-tests.md](docs/agent-rules/contract-tests.md)     | When working on contract tests or BFF API validation                         |
-| **Cypress E2E Tests** | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md)           | When creating or modifying E2E tests, Robot Framework migrations             |
-| **Cypress Mock Tests**| [docs/agent-rules/cypress-mock.md](docs/agent-rules/cypress-mock.md)         | When creating or modifying mock/component tests                              |
-| **Unit Tests**        | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md)             | When creating or modifying Jest unit tests for utilities, hooks, or components |
-| **Architecture**      | [docs/agent-rules/architecture.md](docs/agent-rules/architecture.md)         | When making structural changes, adding packages, or modifying package boundaries |
-| **Conventions**       | [docs/agent-rules/conventions.md](docs/agent-rules/conventions.md)           | When writing or reviewing TypeScript, React, or backend code                  |
-| **Testing Standards** | [docs/agent-rules/testing-standards.md](docs/agent-rules/testing-standards.md) | When working across multiple test types or choosing a testing strategy        |
-| **Security**          | [docs/agent-rules/security.md](docs/agent-rules/security.md)                 | When working on auth, secrets, input validation, or K8s API interactions      |
+Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, and `.gemini/rules/`. The `.cursor` and `.gemini` directories are symlinks to `.claude/`.
+
+| Rule                        | File                          | Trigger                                                                        |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/`                               |
+| **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
+| **CSS & PatternFly**        | `css-patternfly.md`           | When writing or modifying styles, SCSS, or PatternFly components               |
+| **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
+| **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
+| **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
+| **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
+| **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
+| **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
+| **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
 **Important**: Always read the relevant rule file before starting the task to ensure you follow the project's conventions and patterns.
 
