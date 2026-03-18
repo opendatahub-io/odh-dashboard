@@ -113,15 +113,7 @@ class RegisterModelPage {
   }
 
   findNamespaceOption(name: string) {
-    return cy.findByRole('option', { name });
-  }
-
-  findNamespaceListbox() {
-    return cy.findByRole('listbox');
-  }
-
-  findFirstNamespaceOption() {
-    return this.findNamespaceListbox().findAllByRole('option').first();
+    return this.findNamespaceSelector().findByRole('option', { name });
   }
 
   findOriginLocationSection() {
