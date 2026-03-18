@@ -33,12 +33,7 @@ func (r *S3Repository) GetS3Credentials(
 	// Fetch the specific secret
 	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
 	if err != nil {
-		// TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
-		//   This wrapping leaks internal details into user-facing responses.
-		//   The handler uses err.Error() in HTTP responses, so the full wrapped message
-		//   ("error fetching secret 'foo' from namespace bar: <k8s error>") is exposed to clients.
-		//   Either don't wrap here (just `return nil, err`) or use the unwrapped error for responses.
-		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
+		return nil, err
 	}
 
 	// Extract S3 credentials from secret data (case-insensitive key matching)
