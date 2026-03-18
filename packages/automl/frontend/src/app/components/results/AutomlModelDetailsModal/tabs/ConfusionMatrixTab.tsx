@@ -1,0 +1,129 @@
+import React from 'react';
+import { Bullseye, Title } from '@patternfly/react-core';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import type { TabContentProps } from '../tabConfig';
+import '../AutomlModelDetailsModal.css';
+
+/**
+ * Compute a background color for a confusion matrix cell.
+ * Correct predictions (diagonal) get green; off-diagonal get blue-gray.
+ */
+function getCellStyle(
+  rowLabel: string,
+  colLabel: string,
+  value: number,
+  maxValue: number,
+): React.CSSProperties {
+  const isDiagonal = rowLabel === colLabel;
+  const intensity = maxValue > 0 ? value / maxValue : 0;
+  const alpha = 0.15 + intensity * 0.45;
+
+  return {
+    backgroundColor: isDiagonal ? `rgba(56, 142, 60, ${alpha})` : `rgba(144, 164, 174, ${alpha})`,
+    textAlign: 'center',
+    fontWeight: isDiagonal ? 600 : 400,
+  };
+}
+
+const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
+  if (!confusionMatrix) {
+    return (
+      <Bullseye>
+        <Title headingLevel="h3">Loading confusion matrix data...</Title>
+      </Bullseye>
+    );
+  }
+
+  const labels = Object.keys(confusionMatrix);
+
+  // Find max value for color scaling
+  const allValues = labels.flatMap((row) => labels.map((col) => confusionMatrix[row][col]));
+  const maxValue = Math.max(...allValues);
+
+  // Compute per-row totals
+  const rowTotals = labels.map((row) =>
+    labels.reduce((sum, col) => sum + confusionMatrix[row][col], 0),
+  );
+
+  // Compute per-column totals
+  const colTotals = labels.map((col) =>
+    labels.reduce((sum, row) => sum + confusionMatrix[row][col], 0),
+  );
+
+  return (
+    <>
+      <Table aria-label="Confusion matrix" variant="compact" className="automl-confusion-matrix">
+        <Thead>
+          <Tr>
+            <Th>Observed</Th>
+            {labels.map((label) => (
+              <Th key={label} textCenter>
+                {label}
+              </Th>
+            ))}
+            <Th textCenter>Percent correct</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {labels.map((rowLabel, rowIdx) => {
+            const rowCorrect = confusionMatrix[rowLabel][rowLabel];
+            const rowTotal = rowTotals[rowIdx];
+            const pct = rowTotal > 0 ? ((rowCorrect / rowTotal) * 100).toFixed(1) : '0.0';
+
+            return (
+              <Tr key={rowLabel}>
+                <Td dataLabel="Observed">
+                  <strong>{rowLabel}</strong>
+                </Td>
+                {labels.map((colLabel) => {
+                  const val = confusionMatrix[rowLabel][colLabel];
+                  return (
+                    <Td
+                      key={colLabel}
+                      style={getCellStyle(rowLabel, colLabel, val, maxValue)}
+                      textCenter
+                    >
+                      {val}
+                    </Td>
+                  );
+                })}
+                <Td textCenter>{pct}%</Td>
+              </Tr>
+            );
+          })}
+          <Tr>
+            <Td>
+              <strong>Percent correct</strong>
+            </Td>
+            {labels.map((colLabel, colIdx) => {
+              const colCorrect = confusionMatrix[colLabel][colLabel];
+              const colTotal = colTotals[colIdx];
+              const pct = colTotal > 0 ? ((colCorrect / colTotal) * 100).toFixed(1) : '0.0';
+              return (
+                <Td key={colLabel} textCenter>
+                  {pct}%
+                </Td>
+              );
+            })}
+            <Td textCenter>
+              {(() => {
+                const totalCorrect = labels.reduce(
+                  (sum, label) => sum + confusionMatrix[label][label],
+                  0,
+                );
+                const total = rowTotals.reduce((sum, t) => sum + t, 0);
+                return total > 0 ? `${((totalCorrect / total) * 100).toFixed(1)}%` : '0.0%';
+              })()}
+            </Td>
+          </Tr>
+        </Tbody>
+      </Table>
+      <div className="automl-confusion-gradient">
+        <span>Less correct</span>
+        <span>More correct</span>
+      </div>
+    </>
+  );
+};
+
+export default ConfusionMatrixTab;

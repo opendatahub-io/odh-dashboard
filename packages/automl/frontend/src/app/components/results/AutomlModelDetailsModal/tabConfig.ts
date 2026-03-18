@@ -1,0 +1,81 @@
+import type React from 'react';
+import type {
+  ModelArtifact,
+  TaskType,
+  FeatureImportanceData,
+  ConfusionMatrixData,
+} from '~/app/types';
+import {
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+} from '~/app/schemas/configure.schema';
+import ModelInformationTab from './tabs/ModelInformationTab';
+import FeatureSummaryTab from './tabs/FeatureSummaryTab';
+import ModelEvaluationTab from './tabs/ModelEvaluationTab';
+import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
+
+export type TabContentProps = {
+  artifact: ModelArtifact;
+  featureImportance?: FeatureImportanceData;
+  confusionMatrix?: ConfusionMatrixData;
+};
+
+export type TabDefinition = {
+  key: string;
+  label: string;
+  tooltip: string;
+  section: 'Model viewer' | 'Evaluation';
+  visibleFor: ReadonlySet<TaskType>;
+  component: React.ComponentType<TabContentProps>;
+};
+
+const ALL_TABULAR_TYPES: ReadonlySet<TaskType> = new Set([
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+]);
+
+const CLASSIFICATION_TYPES: ReadonlySet<TaskType> = new Set([
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+]);
+
+export const TAB_DEFINITIONS: TabDefinition[] = [
+  {
+    key: 'model-information',
+    label: 'Model information',
+    tooltip: "Overview of the model's experiment parameters and configuration",
+    section: 'Model viewer',
+    visibleFor: ALL_TABULAR_TYPES,
+    component: ModelInformationTab,
+  },
+  {
+    key: 'feature-summary',
+    label: 'Feature summary',
+    tooltip: 'Feature importance rankings based on permutation importance testing',
+    section: 'Model viewer',
+    visibleFor: ALL_TABULAR_TYPES,
+    component: FeatureSummaryTab,
+  },
+  {
+    key: 'model-evaluation',
+    label: 'Model evaluation',
+    tooltip: 'Performance metrics measured on holdout test data',
+    section: 'Evaluation',
+    visibleFor: ALL_TABULAR_TYPES,
+    component: ModelEvaluationTab,
+  },
+  {
+    key: 'confusion-matrix',
+    label: 'Confusion matrix',
+    tooltip: 'Comparison of predicted vs. actual class labels',
+    section: 'Evaluation',
+    visibleFor: CLASSIFICATION_TYPES,
+    component: ConfusionMatrixTab,
+  },
+];
+
+export function getVisibleTabs(taskType: TaskType): TabDefinition[] {
+  return TAB_DEFINITIONS.filter((tab) => tab.visibleFor.has(taskType));
+}

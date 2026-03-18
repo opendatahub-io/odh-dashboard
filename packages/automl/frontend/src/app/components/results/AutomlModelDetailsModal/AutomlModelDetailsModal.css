@@ -1,0 +1,80 @@
+.automl-model-details-sidebar-section {
+  font-size: var(--pf-t--global--font--size--xs);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+}
+
+.automl-model-details-tab-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+/* Confusion matrix gradient bar */
+.automl-confusion-gradient {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--xs) 0;
+  background: linear-gradient(to right, rgba(144, 164, 174, 0.5), rgba(56, 142, 60, 0.5));
+  border-radius: 4px;
+  font-size: var(--pf-t--global--font--size--xs);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.automl-confusion-gradient span {
+  padding: 0 var(--pf-t--global--spacer--sm);
+}
+
+/* Header row styling */
+.automl-model-details-header {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--lg);
+  padding-bottom: var(--pf-t--global--spacer--md);
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+.automl-model-details-header-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.automl-model-details-header-label {
+  font-size: var(--pf-t--global--font--size--xs);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.automl-model-details-header-value {
+  font-size: var(--pf-t--global--font--size--md);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* Print styles for PDF download */
+@media print {
+  /* Hide modal backdrop and non-content elements */
+  .pf-v6-c-backdrop {
+    background: none !important;
+  }
+
+  .pf-v6-c-modal-box__close,
+  .automl-model-details-sidebar,
+  .automl-model-details-header button {
+    display: none !important;
+  }
+
+  .pf-v6-c-modal-box {
+    box-shadow: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .pf-v6-c-modal-box__body {
+    overflow: visible !important;
+  }
+}
