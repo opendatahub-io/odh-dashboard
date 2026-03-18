@@ -236,7 +236,6 @@ paths:
       description: >-
         Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
-        # TODO [ PR-Feedback: AI ] O1 - Gustavo: Original key names were wrong (aws_region_name, endpoint_url). Updated to match actual code.
         Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
       tags:
         - S3Operation
@@ -265,16 +264,18 @@ paths:
         - name: path
           in: query
           required: false
-          description: the S3-like folder path to search within.
+          description: the S3-like folder path to search within. Maximum 1024 characters.
           schema:
             type: string
+            maxLength: 1024
           example: folder1/folder2/folder3
         - name: search
           in: query
           required: false
-          description: The search term to filter results by. S3 only allows searching by leading values
+          description: The search term to filter results by. S3 only allows searching by leading values. Maximum 1024 characters.
           schema:
             type: string
+            maxLength: 1024
           example: my-search-query
         - name: next
           in: query
