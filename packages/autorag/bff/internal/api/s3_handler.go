@@ -259,16 +259,6 @@ func (app *App) getS3CredentialsFromSecret(
 			}
 		}
 
-		if errors.Is(err, repositories.ErrSecretNotFound) {
-			return nil, &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			}
-		}
-
 		if errors.Is(err, repositories.ErrMissingRequiredField) {
 			return nil, &integrations.HTTPError{
 				StatusCode: http.StatusBadRequest,

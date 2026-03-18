@@ -14,10 +14,7 @@ import (
 // re-exported so the interface can reference it without a package qualifier.
 type S3Credentials = s3client.S3Credentials
 
-var (
-	ErrSecretNotFound       = errors.New("secret not found")
-	ErrMissingRequiredField = errors.New("missing required field")
-)
+var ErrMissingRequiredField = errors.New("missing required field")
 
 type S3Repository struct{}
 

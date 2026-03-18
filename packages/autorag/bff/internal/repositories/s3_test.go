@@ -8,7 +8,9 @@ import (
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
@@ -39,7 +41,7 @@ func (m *mockK8sClient) GetSecret(_ context.Context, namespace, secretName strin
 			return &m.secrets[i], nil
 		}
 	}
-	return nil, fmt.Errorf("secret '%s' in namespace '%s': %w", secretName, namespace, ErrSecretNotFound)
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, secretName)
 }
 
 func (m *mockK8sClient) IsClusterAdmin(_ *k8s.RequestIdentity) (bool, error) { return false, nil }
@@ -100,7 +102,7 @@ func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)
-	assert.ErrorIs(t, err, ErrSecretNotFound)
+	assert.True(t, apierrors.IsNotFound(err))
 }
 
 func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
