@@ -52,6 +52,14 @@ func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
 
 // ListModels retrieves all available models from the MaaS API
 func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+	// Exchange the OpenShift user token for a MaaS API key
+	apiKeyResponse, err := c.IssueToken(ctx, models.MaaSTokenRequest{
+		Name: "odh-dashboard-list-models",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain MaaS API key: %w", err)
+	}
+
 	url := fmt.Sprintf("%s/v1/models", c.baseURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -59,7 +67,7 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	c.setAuthHeaders(req)
+	req.Header.Set("Authorization", "Bearer "+apiKeyResponse.Key)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -88,14 +96,9 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 	return response.Data, nil
 }
 
-// IssueToken creates a new ephemeral token with specified TTL
+// IssueToken creates a new API key via the MaaS API
 func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
-	url := fmt.Sprintf("%s/v1/tokens", c.baseURL)
-
-	// Set default TTL if not provided
-	if request.TTL == "" {
-		request.TTL = "4h"
-	}
+	url := fmt.Sprintf("%s/v1/api-keys", c.baseURL)
 
 	requestBody, err := json.Marshal(request)
 	if err != nil {

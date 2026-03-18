@@ -783,19 +783,20 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		TTL: constants.MaaSTokenTTLString,
+		Name:      fmt.Sprintf("odh-dashboard-%s", username),
+		ExpiresIn: constants.MaaSTokenTTLString,
 	})
 	if err != nil {
-		app.logger.Warn("Failed to issue MaaS token", "model", modelID, "error", err)
+		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
 		return ""
 	}
 
-	// Cache the new token
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Token, constants.MaaSTokenTTLDuration); err != nil {
-		app.logger.Warn("Failed to cache MaaS token", "model", modelID, "error", err)
+	// Cache the new API key
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Key, constants.MaaSTokenTTLDuration); err != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
 	} else {
-		app.logger.Debug("Cached new MaaS token", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
+		app.logger.Debug("Cached new MaaS API key", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
 	}
 
-	return tokenResponse.Token
+	return tokenResponse.Key
 }
