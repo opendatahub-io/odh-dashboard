@@ -212,7 +212,8 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
   }
 
 	response := S3FilesEnvelope{
-		Data: *result,
+		Data:     *result,
+		Metadata: &struct{}{},
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
