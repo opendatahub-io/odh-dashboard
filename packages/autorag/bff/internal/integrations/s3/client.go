@@ -245,6 +245,7 @@ func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 	}{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
 		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
+    {"100.64.0.0/10", "Carrier-Grade NAT range (RFC 6598)"},
 		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
 		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
