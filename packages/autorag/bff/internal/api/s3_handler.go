@@ -319,8 +319,8 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
 			return
 		}
-		errStr := err.Error()
-		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
 			return
 		}
