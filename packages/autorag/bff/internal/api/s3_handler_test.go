@@ -53,8 +53,8 @@ func (n *noSuchBucketS3Client) ListObjects(_ context.Context, _ string, _ s3int.
 // accessDeniedError implements the ErrorCode() string interface that the handler checks for.
 type accessDeniedError struct{}
 
-func (e *accessDeniedError) Error() string     { return "Access Denied" }
-func (e *accessDeniedError) ErrorCode() string  { return "AccessDenied" }
+func (e *accessDeniedError) Error() string        { return "Access Denied" }
+func (e *accessDeniedError) ErrorCode() string    { return "AccessDenied" }
 func (e *accessDeniedError) ErrorMessage() string { return "Access Denied" }
 
 // accessDeniedS3Client returns an AccessDenied error from ListObjects.

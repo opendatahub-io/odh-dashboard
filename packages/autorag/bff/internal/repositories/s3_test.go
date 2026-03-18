@@ -42,10 +42,10 @@ func (m *mockK8sClient) GetSecret(_ context.Context, namespace, secretName strin
 	return nil, fmt.Errorf("secret '%s' in namespace '%s': %w", secretName, namespace, ErrSecretNotFound)
 }
 
-func (m *mockK8sClient) IsClusterAdmin(_ *k8s.RequestIdentity) (bool, error)  { return false, nil }
-func (m *mockK8sClient) GetUser(_ *k8s.RequestIdentity) (string, error)       { return "test-user", nil }
-func (m *mockK8sClient) GetClientset() interface{}                             { return nil }
-func (m *mockK8sClient) GetRestConfig() *rest.Config                          { return nil }
+func (m *mockK8sClient) IsClusterAdmin(_ *k8s.RequestIdentity) (bool, error) { return false, nil }
+func (m *mockK8sClient) GetUser(_ *k8s.RequestIdentity) (string, error)      { return "test-user", nil }
+func (m *mockK8sClient) GetClientset() interface{}                           { return nil }
+func (m *mockK8sClient) GetRestConfig() *rest.Config                         { return nil }
 func (m *mockK8sClient) CanListDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
@@ -204,4 +204,3 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
 	assert.Equal(t, "", creds.Bucket)
 }
-

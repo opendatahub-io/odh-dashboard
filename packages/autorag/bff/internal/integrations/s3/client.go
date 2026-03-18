@@ -76,7 +76,7 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	// Create transfer manager for optimized downloads
 	transferClient := transfermanager.New(c.s3Client)
 
-  // TODO [ PR-Feedback: AI ] A1 - Gustavo + Daniel:
+	// TODO [ PR-Feedback: AI ] A1 - Gustavo + Daniel:
 	//   Transfer manager tuning is hardcoded. 10 concurrency * 64MB parts = up to 640MB memory
 	//   per download. With multiple concurrent requests, this could cause memory pressure.
 	//   Consider lower defaults (e.g., Concurrency=3, PartSizeBytes=8MB) or making them configurable.
