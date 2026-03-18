@@ -754,3 +754,123 @@ func TestPostS3FileHandler_NamespaceNotFound(t *testing.T) {
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
+
+// TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413 uses a small max + upload stub so we do not
+// send ~1 GiB in tests (same MaxBytesReader behavior as production’s 1 GiB cap).
+func TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413(t *testing.T) {
+	t.Parallel()
+	const testMax int64 = 64
+	filePayload := bytes.Repeat([]byte("x"), int(testMax+10))
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	part, err := mw.CreateFormFile("file", "blob.bin")
+	assert.NoError(t, err)
+	_, err = part.Write(filePayload)
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.bin", &buf)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  logger,
+		kubernetesClientFactory: factory,
+		repositories:            repositories.NewRepositories(logger),
+		s3PostMaxFilePartBytes:  testMax,
+		s3PostUploadFunc: func(_ context.Context, _ *repositories.S3Credentials, _, _ string, body io.Reader, _ string) error {
+			_, copyErr := io.Copy(io.Discard, body)
+			return copyErr
+		},
+	}
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+}
+
+func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
+	t.Parallel()
+	const testMax int64 = 256
+	filePayload := bytes.Repeat([]byte("y"), 100)
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	part, err := mw.CreateFormFile("file", "small.bin")
+	assert.NoError(t, err)
+	_, err = part.Write(filePayload)
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=small.bin", &buf)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  logger,
+		kubernetesClientFactory: factory,
+		repositories:            repositories.NewRepositories(logger),
+		s3PostMaxFilePartBytes:  testMax,
+		s3PostUploadFunc: func(_ context.Context, _ *repositories.S3Credentials, _, _ string, body io.Reader, _ string) error {
+			_, copyErr := io.Copy(io.Discard, body)
+			return copyErr
+		},
+	}
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -47,6 +48,9 @@ type App struct {
 	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes and s3PostUploadFunc are for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	s3PostUploadFunc       func(context.Context, *repositories.S3Credentials, string, string, io.Reader, string) error
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -178,7 +182,7 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
-	apiRouter.POST(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.PostS3FileHandler)))
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
 	// LSD Models
 	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))

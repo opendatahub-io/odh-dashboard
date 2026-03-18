@@ -283,6 +283,13 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "413":
+          description: >-
+            Declared Content-Length too large, or file part exceeds 1 GiB (http.MaxBytesReader).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: uploadS3File
@@ -292,6 +299,9 @@ paths:
         The request must include a multipart form with a file part (e.g. "file").
         The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key,
         aws_default_region, aws_s3_endpoint).
+        Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
+        1 GiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
+        The file part is streamed via http.MaxBytesReader (1 GiB max); larger file parts fail with 413.
 
   # =============================================================================
   # LSD ENDPOINTS

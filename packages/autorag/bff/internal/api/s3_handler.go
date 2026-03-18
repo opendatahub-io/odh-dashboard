@@ -303,7 +303,26 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		contentType = "application/octet-stream"
 	}
 
-	if err := app.repositories.S3.UploadS3Object(ctx, creds, bucket, key, filePart, contentType); err != nil {
+	maxFilePartBytes := s3MaxUploadFileBytes
+	if app.s3PostMaxFilePartBytes > 0 {
+		maxFilePartBytes = app.s3PostMaxFilePartBytes
+	}
+	// MaxBytesReader’s first arg is the ResponseWriter used by net/http.Server to force-close the
+	// connection when the limit is exceeded. We pass nil because this reader is used for an S3 upload
+	// body, not an inbound server request body—only the read-limit and *MaxBytesError behavior matter.
+	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
+	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
+	defer limitedFile.Close()
+	upload := app.repositories.S3.UploadS3Object
+	if app.s3PostUploadFunc != nil {
+		upload = app.s3PostUploadFunc
+	}
+	if err := upload(ctx, creds, bucket, key, limitedFile, contentType); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
+			return
+		}
 		errStr := err.Error()
 		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
@@ -315,4 +334,16 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	body := map[string]bool{"uploaded": true}
 	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
+}
+
+// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds the maximum
+// declared body size. Chunked or unknown length is allowed; the file part is limited by MaxBytesReader.
+func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if s3PostDeclaredBodyExceedsLimit(r) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			return
+		}
+		next(w, r, ps)
+	}
 }
