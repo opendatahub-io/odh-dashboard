@@ -34,10 +34,6 @@ const (
 
 	// defaultPipelineNamePrefix is the default prefix used when none is configured
 	// TODO: Replace name-based identification with pipeline attribute/metadata
-	// Managed pipelines should have an attribute (label, annotation, or field) that explicitly
-	// marks them as AutoRAG managed pipelines. This would be more robust than name matching.
-	// Example: pipeline.metadata.labels["odh.io/managed-pipeline"] = "autorag"
-	// or pipeline.spec.pipelineType = "autorag"
 	defaultPipelineNamePrefix = "autorag"
 )
 
@@ -50,15 +46,16 @@ type DiscoveredPipeline struct {
 	DiscoveredAt      time.Time
 }
 
-// pipelineCacheEntry wraps discovered pipeline with expiration and LRU tracking
+// pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
+// The map key is the pipeline type (e.g. "autorag").
 type pipelineCacheEntry struct {
-	pipeline     *DiscoveredPipeline
+	pipelines    map[string]*DiscoveredPipeline
 	expiresAt    time.Time
 	lastAccessed time.Time
 }
 
 // pipelineCache is a simple in-memory cache for discovered pipelines
-// Key: namespace, Value: discovered pipeline info
+// Key: composite "pipelineServerBaseURL:namespace", Value: map of discovered pipeline info by type
 type pipelineCache struct {
 	mu      sync.RWMutex
 	entries map[string]*pipelineCacheEntry
@@ -70,57 +67,56 @@ var globalPipelineCache = &pipelineCache{
 	entries: make(map[string]*pipelineCacheEntry),
 }
 
-// get retrieves a cached pipeline for a namespace if still valid
-// Updates the last accessed time for LRU eviction
-func (c *pipelineCache) get(namespace string) *DiscoveredPipeline {
+// get retrieves cached pipelines for a namespace if still valid.
+// Updates the last accessed time for LRU eviction.
+func (c *pipelineCache) get(key string) map[string]*DiscoveredPipeline {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	entry, exists := c.entries[namespace]
+	entry, exists := c.entries[key]
 	if !exists {
 		return nil
 	}
 
 	// Check if entry has expired
 	if time.Now().After(entry.expiresAt) {
-		// Clean up expired entry
-		delete(c.entries, namespace)
+		delete(c.entries, key)
 		return nil
 	}
 
 	// Update last accessed time for LRU tracking
 	entry.lastAccessed = time.Now()
 
-	return entry.pipeline
+	return entry.pipelines
 }
 
-// set stores a discovered pipeline in the cache
-// Evicts the least recently accessed entry if cache is at capacity
-func (c *pipelineCache) set(namespace string, pipeline *DiscoveredPipeline) {
+// set stores discovered pipelines in the cache.
+// Evicts the least recently accessed entry if cache is at capacity.
+func (c *pipelineCache) set(key string, pipelines map[string]*DiscoveredPipeline) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	// If at capacity and this is a new entry (not an update), evict oldest
 	if len(c.entries) >= maxCacheEntries {
-		if _, exists := c.entries[namespace]; !exists {
+		if _, exists := c.entries[key]; !exists {
 			c.evictOldest()
 		}
 	}
 
 	now := time.Now()
-	c.entries[namespace] = &pipelineCacheEntry{
-		pipeline:     pipeline,
+	c.entries[key] = &pipelineCacheEntry{
+		pipelines:    pipelines,
 		expiresAt:    now.Add(pipelineCacheTTL),
 		lastAccessed: now,
 	}
 }
 
-// invalidate removes a cached entry for a namespace
-func (c *pipelineCache) invalidate(namespace string) {
+// invalidate removes a cached entry for a key
+func (c *pipelineCache) invalidate(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	delete(c.entries, namespace)
+	delete(c.entries, key)
 }
 
 // evictOldest removes the least recently accessed entry from the cache
@@ -129,7 +125,6 @@ func (c *pipelineCache) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
 
-	// Find the entry with the oldest lastAccessed time
 	for key, entry := range c.entries {
 		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
 			oldestKey = key
@@ -137,7 +132,6 @@ func (c *pipelineCache) evictOldest() {
 		}
 	}
 
-	// Evict the oldest entry
 	if oldestKey != "" {
 		delete(c.entries, oldestKey)
 	}
@@ -151,36 +145,32 @@ func NewPipelineRepository() *PipelineRepository {
 	return &PipelineRepository{}
 }
 
-// DiscoverAutoRAGPipeline finds the AutoRAG managed pipeline in the given namespace.
+// DiscoverNamedPipelines discovers multiple managed pipelines in the given namespace,
+// one per entry in the definitions map (pipeline type key → name prefix).
 //
-// This method automatically discovers the AutoRAG pipeline by:
-//  1. Checking the in-memory cache (5-minute TTL) for previously discovered pipelines
-//  2. If not cached, listing all pipelines from the Pipeline Server
-//  3. Finding the pipeline with name starting with the specified prefix (case-insensitive)
-//  4. Retrieving the first version of the discovered pipeline
-//  5. Caching the result for future requests
+// This method:
+//  1. Checks the in-memory cache (5-minute TTL) for a previously discovered result
+//  2. For each definition, calls discoverOnePipeline
+//  3. Builds a partial result map — missing keys mean the pipeline was not found
+//  4. Caches the partial result for future requests
 //
 // Parameters:
 //   - client: Pipeline Server client interface
 //   - ctx: Request context
 //   - namespace: Kubernetes namespace to search in
-//   - pipelineServerBaseURL: Base URL of the pipeline server, used with namespace to form a
-//     unique cache key and prevent cross-tenant cache leakage
-//   - pipelineNamePrefix: Prefix to identify managed pipelines (e.g., "autorag")
+//   - pipelineServerBaseURL: Base URL of the pipeline server (used in cache key)
+//   - definitions: map from pipeline type key to name prefix (e.g. {"autorag": "autorag"})
 //
 // Returns:
-//   - *DiscoveredPipeline: The discovered pipeline with IDs and metadata
-//   - error: If no pipeline matching the prefix is found or an error occurs during discovery
-//
-// Note: Currently uses name-based matching. Future versions will use pipeline metadata/attributes
-// to identify managed pipelines more reliably.
-func (r *PipelineRepository) DiscoverAutoRAGPipeline(
+//   - map[string]*DiscoveredPipeline: partial map; missing key means pipeline not found
+//   - error: non-nil only on API failure (hard error)
+func (r *PipelineRepository) DiscoverNamedPipelines(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	namespace string,
 	pipelineServerBaseURL string,
-	pipelineNamePrefix string,
-) (*DiscoveredPipeline, error) {
+	definitions map[string]string,
+) (map[string]*DiscoveredPipeline, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
@@ -189,13 +179,7 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 		return nil, fmt.Errorf("namespace is required for pipeline discovery")
 	}
 
-	// Use default prefix if none provided
-	if pipelineNamePrefix == "" {
-		pipelineNamePrefix = defaultPipelineNamePrefix
-	}
-
-	// Build a composite cache key to prevent cross-tenant leakage when multiple pipeline
-	// servers or namespaces share the same BFF instance.
+	// Build a composite cache key to prevent cross-tenant leakage
 	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
 
 	// Check cache first
@@ -203,68 +187,101 @@ func (r *PipelineRepository) DiscoverAutoRAGPipeline(
 		return cached, nil
 	}
 
+	result := make(map[string]*DiscoveredPipeline)
+
+	for pipelineType, namePrefix := range definitions {
+		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
+		}
+		if discovered != nil {
+			result[pipelineType] = discovered
+		}
+	}
+
+	// Cache the result (even if partial or empty)
+	globalPipelineCache.set(cacheKey, result)
+
+	return result, nil
+}
+
+// discoverOnePipeline finds a single managed pipeline by name prefix in the given namespace.
+//
+// Returns:
+//   - (*DiscoveredPipeline, nil): pipeline found
+//   - (nil, nil): no pipeline matching the prefix (soft miss — not an error)
+//   - (nil, err): API failure (hard error)
+func (r *PipelineRepository) discoverOnePipeline(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	namespace string,
+	namePrefix string,
+) (*DiscoveredPipeline, error) {
+	if namePrefix == "" {
+		namePrefix = defaultPipelineNamePrefix
+	}
+
 	// Build a server-side filter to reduce the result set. The Go-side HasPrefix check
 	// below remains the authoritative gate for correctness.
-	nameFilter := buildPipelineNameFilter(pipelineNamePrefix)
+	nameFilter := buildPipelineNameFilter(namePrefix)
 
-	// Call pipeline server to list pipelines
 	pipelinesResp, err := client.ListPipelines(ctx, nameFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pipelines: %w", err)
 	}
 
 	if pipelinesResp == nil || len(pipelinesResp.Pipelines) == 0 {
-		return nil, fmt.Errorf("no pipelines found in namespace %s", namespace)
+		// No pipelines at all — soft miss
+		return nil, nil
 	}
 
-	// Find AutoRAG pipeline by name (case-insensitive prefix match)
+	// Find matching pipeline by namespace and name (case-insensitive prefix match).
+	// Namespace guard is a defence-in-depth measure: the KFP API is already scoped to
+	// the DSPA in this namespace, but an empty or cross-namespace response could otherwise
+	// leak pipelines from other tenants.
 	// TODO: Replace with attribute-based lookup once managed pipeline metadata is available
-	var autoragPipeline *models.KFPipeline
+	var matchedPipeline *models.KFPipeline
 	for i := range pipelinesResp.Pipelines {
 		pipeline := &pipelinesResp.Pipelines[i]
-		if strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(pipelineNamePrefix)) {
-			autoragPipeline = pipeline
+		if (pipeline.Namespace == "" || pipeline.Namespace == namespace) &&
+			strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(namePrefix)) {
+			matchedPipeline = pipeline
 			break
 		}
 	}
 
-	if autoragPipeline == nil {
-		return nil, fmt.Errorf("AutoRAG pipeline not found in namespace %s (searched for pipelines starting with %q)",
-			namespace, pipelineNamePrefix)
+	if matchedPipeline == nil {
+		// No pipeline matches the prefix — soft miss
+		return nil, nil
 	}
 
-	// Get pipeline versions for the AutoRAG pipeline
-	versionsResp, err := client.ListPipelineVersions(ctx, autoragPipeline.PipelineID)
+	// Get pipeline versions
+	versionsResp, err := client.ListPipelineVersions(ctx, matchedPipeline.PipelineID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list versions for pipeline %s: %w", autoragPipeline.PipelineID, err)
+		return nil, fmt.Errorf("failed to list versions for pipeline %s: %w", matchedPipeline.PipelineID, err)
 	}
 
 	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
-		return nil, fmt.Errorf("no versions found for AutoRAG pipeline %s", autoragPipeline.PipelineID)
+		// No versions yet — treat as soft miss so other pipelines can still be discovered
+		return nil, nil
 	}
 
-	// Use the first version, which is the most recently created because the pipeline server
-	// client requests versions sorted by created_at desc.
+	// Use the first version (most recently created, as client requests sorted by created_at desc)
 	version := versionsResp.PipelineVersions[0]
 
-	discovered := &DiscoveredPipeline{
-		PipelineID:        autoragPipeline.PipelineID,
+	return &DiscoveredPipeline{
+		PipelineID:        matchedPipeline.PipelineID,
 		PipelineVersionID: version.PipelineVersionID,
-		PipelineName:      autoragPipeline.DisplayName,
+		PipelineName:      matchedPipeline.DisplayName,
 		Namespace:         namespace,
 		DiscoveredAt:      time.Now(),
-	}
-
-	// Cache the result
-	globalPipelineCache.set(cacheKey, discovered)
-
-	return discovered, nil
+	}, nil
 }
 
 // buildPipelineNameFilter builds a KFP predicate JSON filter that restricts ListPipelines
 // results to pipelines whose display_name contains the given prefix (IS_SUBSTRING).
 // Returns an empty string if namePrefix is empty, which signals the client to omit the filter.
-// The Go-side HasPrefix check in DiscoverAutoRAGPipeline is the authoritative gate.
+// The Go-side HasPrefix check in discoverOnePipeline is the authoritative gate.
 func buildPipelineNameFilter(namePrefix string) string {
 	if namePrefix == "" {
 		return ""
