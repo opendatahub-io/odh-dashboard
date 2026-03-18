@@ -1887,9 +1887,9 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findSubmitButton().should('be.disabled');
 
       const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-      // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(1000);
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.waitForReady();
+
       // Enter invalid YAML – error appears after submit
       yamlEditor.setValue('invalid: yaml:');
       modelServingWizard.findSubmitButton().click();

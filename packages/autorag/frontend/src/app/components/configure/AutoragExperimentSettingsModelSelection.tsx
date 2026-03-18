@@ -1,5 +1,6 @@
 import {
   Checkbox,
+  Label,
   Spinner,
   Tab,
   TabContentBody,
@@ -10,6 +11,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { useController, useFormContext } from 'react-hook-form';
+import { useParams } from 'react-router';
 import { LlamaStackModelType } from '~/app/types';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
@@ -27,11 +29,21 @@ const MODEL_TABS: ModelTab[] = [
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
   const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
+  const { namespace = '' } = useParams();
 
   const { control } = useFormContext<ConfigureSchema>();
-  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery('llm');
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } =
-    useLlamaStackModelsQuery('embedding');
+  // TODO: secretName should come from a react-hook-form field. Once it's implemented,
+  // add secretName as a parameter into useLlamaStackModelsQuery
+  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery(
+    namespace,
+    undefined,
+    'llm',
+  );
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useLlamaStackModelsQuery(
+    namespace,
+    undefined,
+    'embedding',
+  );
 
   const isLoading = isLlmLoading || isEmbeddingLoading;
 
@@ -73,6 +85,9 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
           {MODEL_TABS.map(({ modelType, label, testId }) => {
             const { field, models } = tabData[modelType];
             const selectedModels = field.value;
+            const selectedCount = selectedModels.filter((id) =>
+              models.some((model) => model.id === id),
+            ).length;
             const allSelected =
               models.length > 0 &&
               models.every((model) =>
@@ -98,7 +113,19 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
               <Tab
                 key={modelType}
                 eventKey={modelType}
-                title={<TabTitleText>{label}</TabTitleText>}
+                title={
+                  <TabTitleText>
+                    {label}{' '}
+                    <Label
+                      variant="outline"
+                      color="blue"
+                      isCompact
+                      data-testid={`${modelType}-selected-count`}
+                    >
+                      {selectedCount}
+                    </Label>
+                  </TabTitleText>
+                }
                 data-testid={testId}
               >
                 <TabContentBody className="pf-v6-u-pt-md">

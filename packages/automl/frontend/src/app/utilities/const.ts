@@ -11,6 +11,7 @@ const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
 const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 const URL_PREFIX = '/automl';
 const BFF_API_VERSION = 'v1';
+const DEFAULT_PAGE_SIZE = 20;
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
 
 export {
@@ -23,6 +24,7 @@ export {
   URL_PREFIX,
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
+  DEFAULT_PAGE_SIZE,
   MANDATORY_NAMESPACE,
   COMPANY_URI,
 };

@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { z } from 'zod';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+
 import {
   createConnectionDataSchema,
   CreateConnectionInputFields,
@@ -75,8 +76,9 @@ describe('CreateConnectionInputFields', () => {
       const { result } = renderHook(() =>
         useCreateConnectionData(undefined, undefined, mockModelLocationData),
       );
-      const { data } = result.current;
-      expect(data).toEqual({ saveConnection: true });
+      expect(result.current.data).toEqual({
+        saveConnection: true,
+      });
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
@@ -96,11 +98,13 @@ describe('CreateConnectionInputFields', () => {
       const { result } = renderHook(() =>
         useCreateConnectionData(undefined, undefined, mockModelLocationData),
       );
-      const { data, setData } = result.current;
       act(() => {
-        setData({ saveConnection: true });
+        result.current.setData({
+          ...result.current.data,
+          saveConnection: false,
+        });
       });
-      expect(data).toEqual({ saveConnection: true });
+      expect(result.current.data.saveConnection).toBe(false);
     });
     it('should update the connection data with existing data', () => {
       const { result } = renderHook(() =>
@@ -113,9 +117,12 @@ describe('CreateConnectionInputFields', () => {
         ),
       );
       act(() => {
-        result.current.setData({ saveConnection: true });
+        result.current.setData({
+          saveConnection: true,
+          nameDesc: result.current.data.nameDesc,
+        });
       });
-      expect(result.current.data).toEqual({ saveConnection: true });
+      expect(result.current.data.saveConnection).toBe(true);
     });
   });
   describe('Component', () => {
@@ -188,7 +195,7 @@ describe('CreateConnectionInputFields', () => {
       });
       expect(mockSetCreateConnectionData).toHaveBeenCalledWith({
         saveConnection: false,
-        nameDesc: undefined,
+        nameDesc: mockK8sNameDescriptionFieldData(),
       });
     });
     it('should call setCreateConnectionData with the correct data when name and description are changed', async () => {

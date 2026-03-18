@@ -21,7 +21,13 @@ export type ModelRegistry = {
   displayName: string;
   description: string;
   serverAddress?: string;
+  /** True if the registry's Service Endpoints have ready addresses; false when starting or misconfigured. */
+  isAvailable?: boolean;
 };
+
+/** True when the registry is explicitly unavailable (isAvailable === false). Undefined/legacy BFF is treated as available. */
+export const isRegistryUnavailable = (mr: ModelRegistry | undefined): boolean =>
+  mr?.isAvailable === false;
 
 export type ModelRegistryPayload = {
   modelRegistry: {
@@ -233,6 +239,12 @@ export type DeleteModelTransferJob = (
   jobNamespace: string,
 ) => Promise<void>;
 
+export type GetModelTransferJobByName = (
+  opts: APIOptions,
+  namespace: string,
+  jobName: string,
+) => Promise<ModelTransferJob>;
+
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersionForRegisteredModel: CreateModelVersionForRegisteredModel;
@@ -247,6 +259,7 @@ export type ModelRegistryAPIs = {
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;
   listModelTransferJobs: GetListModelTransferJobs;
+  getModelTransferJobByName: GetModelTransferJobByName;
   createModelTransferJob: CreateModelTransferJob;
   updateModelTransferJob: UpdateModelTransferJob;
   deleteModelTransferJob: DeleteModelTransferJob;

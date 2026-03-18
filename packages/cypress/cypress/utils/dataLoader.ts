@@ -11,6 +11,7 @@ import type {
   ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
+  ModifyHardwareProfileTestData,
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
@@ -20,6 +21,7 @@ import type {
   TiersTestData,
   ResourcesFiltersTestData,
   WorkloadMetricsTestData,
+  KueueWorkbenchTestData,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -108,6 +110,15 @@ export const loadWBTolerationsFixture = (
     return data;
   });
 
+export const loadModifyHardwareProfileFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ModifyHardwareProfileTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModifyHardwareProfileTestData;
+
+    return data;
+  });
+
 export const loadWBImagesFixture = (fixturePath: string): Cypress.Chainable<WBImagesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBImagesTestData;
@@ -179,6 +190,15 @@ export const loadWorkloadMetricsFixture = (
 ): Cypress.Chainable<WorkloadMetricsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WorkloadMetricsTestData;
+
+    return data;
+  });
+
+export const loadKueueWorkbenchFixture = (
+  fixturePath: string,
+): Cypress.Chainable<KueueWorkbenchTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as KueueWorkbenchTestData;
 
     return data;
   });

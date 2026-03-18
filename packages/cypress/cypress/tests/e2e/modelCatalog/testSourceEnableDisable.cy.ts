@@ -11,7 +11,7 @@ import {
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('[Product Bug: RHOAIENG-52179] Verify Model Catalog Source Enable/Disable', () => {
+describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disable', () => {
   let testData: ModelCatalogSourceTestData;
 
   retryableBefore(() => {
@@ -36,13 +36,13 @@ describe('[Product Bug: RHOAIENG-52179] Verify Model Catalog Source Enable/Disab
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI catalog sources');
-      modelCatalogSettings.navigate();
+      modelCatalogSettings.visit();
 
       cy.step('Verify configmap shows source as enabled');
       verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
 
       cy.step('Navigate to catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();
@@ -51,7 +51,7 @@ describe('[Product Bug: RHOAIENG-52179] Verify Model Catalog Source Enable/Disab
       modelCatalog.findModelCatalogCards().should('exist');
 
       cy.step('Navigate back to AI catalog sources');
-      modelCatalogSettings.navigate();
+      modelCatalogSettings.visit();
 
       cy.step(`Disable the ${testData.sourceName} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
@@ -63,7 +63,7 @@ describe('[Product Bug: RHOAIENG-52179] Verify Model Catalog Source Enable/Disab
       verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
 
       cy.step('Navigate to catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog to show empty state');
       waitForModelCatalogEmptyState();

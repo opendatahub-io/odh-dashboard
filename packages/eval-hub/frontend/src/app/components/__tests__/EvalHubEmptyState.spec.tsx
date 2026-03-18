@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import EvalHubEmptyState from '../EvalHubEmptyState';
+import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
 
 const renderWithRouter = () =>
   render(

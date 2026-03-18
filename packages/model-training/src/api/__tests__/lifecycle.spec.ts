@@ -3,13 +3,13 @@ import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { setTrainJobPauseState, patchTrainJobSuspension } from '../lifecycle';
 import { mockTrainJobK8sResource } from '../../__mocks__/mockTrainJobK8sResource';
-import { getWorkloadForTrainJob, patchWorkloadActiveState } from '../workloads';
+import { getWorkloadForJob, patchWorkloadActiveState } from '../workloads';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils');
 jest.mock('../workloads');
 
 const mockK8sPatchResource = jest.mocked(k8sPatchResource);
-const mockGetWorkloadForTrainJob = jest.mocked(getWorkloadForTrainJob);
+const mockGetWorkloadForJob = jest.mocked(getWorkloadForJob);
 const mockPatchWorkloadActiveState = jest.mocked(patchWorkloadActiveState);
 
 describe('Lifecycle API', () => {
@@ -91,14 +91,14 @@ describe('Lifecycle API', () => {
     describe('pause (pause=true)', () => {
       it('should pause Kueue-enabled job via workload', async () => {
         const mockWorkload = mockWorkloadK8sResource({ k8sName: 'test-workload' });
-        mockGetWorkloadForTrainJob.mockResolvedValue(mockWorkload);
+        mockGetWorkloadForJob.mockResolvedValue(mockWorkload);
         const updatedWorkload = mockWorkloadK8sResource({ k8sName: 'test-workload' });
         updatedWorkload.spec.active = false;
         mockPatchWorkloadActiveState.mockResolvedValue(updatedWorkload);
 
         const result = await setTrainJobPauseState(mockJob, true);
 
-        expect(mockGetWorkloadForTrainJob).toHaveBeenCalledWith(mockJob);
+        expect(mockGetWorkloadForJob).toHaveBeenCalledWith(mockJob);
         expect(mockPatchWorkloadActiveState).toHaveBeenCalledWith(mockWorkload, true, undefined);
         expect(result).toEqual({
           success: true,
@@ -107,7 +107,7 @@ describe('Lifecycle API', () => {
       });
 
       it('should pause non-Kueue job via spec.suspend', async () => {
-        mockGetWorkloadForTrainJob.mockResolvedValue(null);
+        mockGetWorkloadForJob.mockResolvedValue(null);
         const updatedJob = { ...mockJob, spec: { ...mockJob.spec, suspend: true } };
         mockK8sPatchResource.mockResolvedValue(updatedJob);
 
@@ -125,7 +125,7 @@ describe('Lifecycle API', () => {
       });
 
       it('should return error result on failure', async () => {
-        mockGetWorkloadForTrainJob.mockRejectedValue(new Error('Workload fetch failed'));
+        mockGetWorkloadForJob.mockRejectedValue(new Error('Workload fetch failed'));
 
         const result = await setTrainJobPauseState(mockJob, true);
 
@@ -140,13 +140,13 @@ describe('Lifecycle API', () => {
       it('should resume Kueue-enabled job via workload', async () => {
         const mockWorkload = mockWorkloadK8sResource({ k8sName: 'test-workload' });
         mockWorkload.spec.active = false;
-        mockGetWorkloadForTrainJob.mockResolvedValue(mockWorkload);
+        mockGetWorkloadForJob.mockResolvedValue(mockWorkload);
         const updatedWorkload = mockWorkloadK8sResource({ k8sName: 'test-workload' });
         mockPatchWorkloadActiveState.mockResolvedValue(updatedWorkload);
 
         const result = await setTrainJobPauseState(mockJob, false);
 
-        expect(mockGetWorkloadForTrainJob).toHaveBeenCalledWith(mockJob);
+        expect(mockGetWorkloadForJob).toHaveBeenCalledWith(mockJob);
         expect(mockPatchWorkloadActiveState).toHaveBeenCalledWith(mockWorkload, false, undefined);
         expect(result).toEqual({
           success: true,
@@ -155,7 +155,7 @@ describe('Lifecycle API', () => {
       });
 
       it('should resume non-Kueue job via spec.suspend', async () => {
-        mockGetWorkloadForTrainJob.mockResolvedValue(null);
+        mockGetWorkloadForJob.mockResolvedValue(null);
         const updatedJob = { ...mockJob, spec: { ...mockJob.spec, suspend: false } };
         mockK8sPatchResource.mockResolvedValue(updatedJob);
 
@@ -173,7 +173,7 @@ describe('Lifecycle API', () => {
       });
 
       it('should return error result on failure', async () => {
-        mockGetWorkloadForTrainJob.mockRejectedValue(new Error('Workload fetch failed'));
+        mockGetWorkloadForJob.mockRejectedValue(new Error('Workload fetch failed'));
 
         const result = await setTrainJobPauseState(mockJob, false);
 

@@ -1,5 +1,5 @@
 import type { McpCatalogFiltersState } from '~/app/pages/mcpCatalog/types/mcpCatalogFilterOptions';
-import { MCP_FILTER_KEYS } from '~/app/pages/mcpCatalog/constants/mcpCatalogFilterChipNames';
+import { MCP_FILTER_KEYS } from '~/app/pages/mcpCatalog/const';
 import type {
   McpSecurityIndicator,
   McpServer,
@@ -137,7 +137,7 @@ export function filterMcpServersByFilters(
     license: licenseFilter,
     labels: labelsFilter,
     supportedTransports: transportsFilter,
-    securityVerification: securityFilter,
+    securityIndicators: securityFilter,
   } = filters;
   return items.filter((server) => {
     if (deploymentModeFilter?.length && !matchesDeploymentMode(server, deploymentModeFilter)) {

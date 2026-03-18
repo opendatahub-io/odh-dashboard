@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
+
+type LSDModelsEnvelope Envelope[*models.LSDModelsData, None]
 
 // LlamaStackModelsHandler handles GET /api/v1/lsd/models
 // Returns all available models from LlamaStack Distribution.
@@ -20,7 +23,11 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, modelsData, nil)
+	lsdModelsEnvelope := LSDModelsEnvelope{
+		Data: modelsData,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, lsdModelsEnvelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -15,6 +15,7 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
+import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
@@ -55,11 +56,18 @@ export const getStatusSubtitle = ({
   notebookStatus,
   kueueStatus,
 }: GetStatusSubtitleParams): string | null => {
+  if (notebookStatus?.currentStatus === EventStatus.ERROR) {
+    return notebookStatus.currentEvent || null;
+  }
   if (isStopping) {
     return null;
   }
   if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
-    return kueueStatus.message?.trim() || kueueStatus.status;
+    return getHumanReadableKueueMessage(
+      kueueStatus.status,
+      kueueStatus.message,
+      kueueStatus.queueName,
+    );
   }
   if (isStarting) {
     return notebookStatus?.currentEvent || 'Waiting for server request to start...';

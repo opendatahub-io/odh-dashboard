@@ -3,16 +3,16 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
-import { TrainJobKind } from '../k8sTypes';
+import { UnifiedJobKind } from '../types';
 
 /**
- * Get the Workload associated with a TrainJob
+ * Get the Workload associated with a job (TrainJob or RayJob)
  * Tries to find by job UID first, then falls back to job name
  *
- * @param job - The TrainJob to find the workload for
+ * @param job - The job (TrainJob or RayJob) to find the workload for
  * @returns Promise with the Workload or null if not found
  */
-export const getWorkloadForTrainJob = async (job: TrainJobKind): Promise<WorkloadKind | null> => {
+export const getWorkloadForJob = async (job: UnifiedJobKind): Promise<WorkloadKind | null> => {
   try {
     // Try to find workload by job UID (most reliable)
     const workloadsByUID = await listWorkloads(
@@ -34,7 +34,7 @@ export const getWorkloadForTrainJob = async (job: TrainJobKind): Promise<Workloa
 
     return null;
   } catch (error) {
-    console.warn('Failed to fetch workload for TrainJob:', error);
+    console.warn('Failed to fetch workload for job:', error);
     return null;
   }
 };

@@ -9,7 +9,7 @@ import {
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('[Product Bug: RHOAIENG-52179] Verifies that Model Catalog is available for different users', () => {
+describe('Verifies that Model Catalog is available for different users', () => {
   let testData: ModelCatalogSourceTestData;
 
   retryableBefore(() => {
@@ -28,13 +28,13 @@ describe('[Product Bug: RHOAIENG-52179] Verifies that Model Catalog is available
 
   it(
     'Verifies that Model Catalog is available for an admin user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
     () => {
       cy.step('Login as admin user');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();
@@ -46,13 +46,13 @@ describe('[Product Bug: RHOAIENG-52179] Verifies that Model Catalog is available
 
   it(
     'Verifies that Model Catalog is available for a regular user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
     () => {
       cy.step('Login as LDAP user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to Model Catalog');
-      modelCatalog.navigate();
+      modelCatalog.visit();
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();

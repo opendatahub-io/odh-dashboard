@@ -18,12 +18,12 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context) (*evalhub.HealthRespo
 }
 
 // ListCollections returns all mock benchmark collections.
-func (m *MockEvalHubClient) ListCollections(_ context.Context) (evalhub.CollectionsResponse, error) {
+func (m *MockEvalHubClient) ListCollections(_ context.Context, _ string) (evalhub.CollectionsResponse, error) {
 	return evalhub.CollectionsResponse{Items: mockCollections()}, nil
 }
 
 // ListProviders returns all mock evaluation providers with their benchmark catalogues.
-func (m *MockEvalHubClient) ListProviders(_ context.Context, _, _ int) (evalhub.ProvidersResponse, error) {
+func (m *MockEvalHubClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	providers := mockProviders()
 	return evalhub.ProvidersResponse{Items: providers, TotalCount: countBenchmarks(providers)}, nil
 }
@@ -262,7 +262,28 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
-func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ bool) error {
+func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
+	benchmarks := req.Benchmarks
+	if benchmarks == nil {
+		benchmarks = []evalhub.JobBenchmark{}
+	}
+
+	return &evalhub.EvaluationJob{
+		Resource: evalhub.JobResource{
+			ID:        "eval-job-mock-new",
+			CreatedAt: "2026-03-09T12:00:00Z",
+			UpdatedAt: "2026-03-09T12:00:00Z",
+		},
+		Status:      evalhub.JobStatus{State: "pending"},
+		Name:        req.Name,
+		Description: req.Description,
+		Tags:        req.Tags,
+		Model:       req.Model,
+		Benchmarks:  benchmarks,
+	}, nil
+}
+
+func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ string, _ bool) error {
 	return nil
 }
 

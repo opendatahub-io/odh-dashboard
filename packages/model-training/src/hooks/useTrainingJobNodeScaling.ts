@@ -4,7 +4,7 @@ import useClusterTrainingRuntime from './useClusterTrainingRuntime';
 import { scaleNodes } from '../api';
 import { getStatusFlags, getTrainingJobStatusSync } from '../global/trainingJobList/utils';
 import { TrainJobKind } from '../k8sTypes';
-import { TrainingJobState } from '../types';
+import { JobDisplayState } from '../types';
 
 type UseTrainingJobNodeScalingReturn = {
   nodesCount: number;
@@ -31,7 +31,7 @@ type UseTrainingJobNodeScalingReturn = {
  */
 export const useTrainingJobNodeScaling = (
   job: TrainJobKind | undefined,
-  jobStatus?: TrainingJobState,
+  jobStatus?: JobDisplayState,
 ): UseTrainingJobNodeScalingReturn => {
   const notification = useNotification();
   const [scaleNodesModalOpen, setScaleNodesModalOpen] = React.useState(false);

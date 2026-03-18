@@ -1,17 +1,16 @@
 import * as React from 'react';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import JobsTable from './JobsTable';
 import JobsToolbar from './JobsToolbar';
 import { initialJobsFilterData, JobsFilterDataType } from './const';
-import { getStatusInfo, getUnifiedJobStatusSync } from './utils';
-import { UnifiedJobKind, TrainingJobState } from '../../types';
-import { KUEUE_QUEUE_LABEL } from '../../const';
+import { filterJob } from './utils';
+import { UnifiedJobKind, JobDisplayState } from '../../types';
 
 type JobsListViewProps = {
   jobs: UnifiedJobKind[];
-  jobStatuses: Map<string, TrainingJobState>;
+  jobStatuses: Map<string, JobDisplayState>;
+  isLoadingStatus?: boolean;
   nodeCountMap: Map<string, number>;
-  onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
+  onStatusUpdate: (jobId: string, newStatus: JobDisplayState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
   onDelete: (job: UnifiedJobKind) => void;
   togglingJobId?: string;
@@ -20,6 +19,7 @@ type JobsListViewProps = {
 const JobsListView: React.FC<JobsListViewProps> = ({
   jobs: unfilteredJobs,
   jobStatuses,
+  isLoadingStatus,
   nodeCountMap,
   onStatusUpdate,
   onSelectJob,
@@ -34,36 +34,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
   );
 
   const filteredJobs = React.useMemo(
-    () =>
-      unfilteredJobs.filter((job) => {
-        const nameFilter = filterData.Name?.toLowerCase();
-        const statusFilter = filterData.Status?.toLowerCase();
-        const clusterQueueFilter = filterData['Cluster queue']?.toLowerCase();
-
-        if (nameFilter && !getDisplayNameFromK8sResource(job).toLowerCase().includes(nameFilter)) {
-          return false;
-        }
-
-        if (statusFilter) {
-          const jobId = job.metadata.uid || job.metadata.name;
-          const jobStatus = jobStatuses.get(jobId) || getUnifiedJobStatusSync(job);
-          const statusLabel = getStatusInfo(jobStatus).label;
-          if (!statusLabel.toLowerCase().includes(statusFilter)) {
-            return false;
-          }
-        }
-
-        if (
-          clusterQueueFilter &&
-          !(job.metadata.labels?.[KUEUE_QUEUE_LABEL] || '')
-            .toLowerCase()
-            .includes(clusterQueueFilter)
-        ) {
-          return false;
-        }
-
-        return true;
-      }),
+    () => unfilteredJobs.filter((job) => filterJob(job, filterData, jobStatuses)),
     [filterData, unfilteredJobs, jobStatuses],
   );
 
@@ -77,6 +48,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
     <JobsTable
       jobs={filteredJobs}
       jobStatuses={jobStatuses}
+      isLoadingStatus={isLoadingStatus}
       nodeCountMap={nodeCountMap}
       onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}

@@ -9,6 +9,9 @@ import {
   DropdownList,
   DropdownItem,
   SearchInput,
+  Select,
+  SelectOption,
+  SelectList,
   Flex,
   FlexItem,
   Button,
@@ -17,11 +20,12 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, CloseIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AssetsFilterColors } from '~/app/AIAssets/data/filterOptions';
+import { AssetsFilterColors, assetsFilterSelectOptions } from '~/app/AIAssets/data/filterOptions';
+import { FilterData } from '~/app/AIAssets/hooks/useAIModelsFilter';
 
 type ModelsListToolbarProps = {
-  onFilterUpdate: (filterType: string, value?: string) => void;
-  filterData: Record<string, string | undefined>;
+  onFilterUpdate: (filterType: string, value?: string | string[]) => void;
+  filterData: FilterData;
   filterOptions: Record<string, string>;
   filterColors?: Record<string, AssetsFilterColors>;
   infoPopover?: React.ReactNode;
@@ -46,6 +50,19 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
     return keys[0];
   });
   const [searchValue, setSearchValue] = React.useState('');
+  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
+
+  const isSelectFilter = currentFilterType in assetsFilterSelectOptions;
+
+  // Sync search input with external filter state (e.g., when "Clear all" resets filterData)
+  React.useEffect(() => {
+    const currentValue = filterData[currentFilterType];
+    if (!isSelectFilter && typeof currentValue !== 'string') {
+      setSearchValue('');
+    } else if (!isSelectFilter && typeof currentValue === 'string') {
+      setSearchValue(currentValue);
+    }
+  }, [filterData, currentFilterType, isSelectFilter]);
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
@@ -59,16 +76,45 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
     setSearchValue(value);
   };
 
-  const handleRemoveFilter = (filterType: string) => {
-    onFilterUpdate(filterType, '');
+  const handleSelectToggle = (option: string) => {
+    onFilterUpdate(currentFilterType, option);
+    fireMiscTrackingEvent('Available Endpoints Filter Performed', {
+      filterType: currentFilterType,
+      resultsCount: resultsCount ?? 0,
+    });
   };
 
-  // Get active filters for display
-  const activeFilters = Object.entries(filterData).filter(([, value]) => value && value !== '');
+  const handleRemoveFilter = (filterType: string, value?: string) => {
+    const current = filterData[filterType];
+    if (Array.isArray(current) && value) {
+      const updated = current.filter((v) => v !== value);
+      onFilterUpdate(filterType, updated.length > 0 ? updated : undefined);
+    } else {
+      onFilterUpdate(filterType, undefined);
+    }
+  };
 
-  // Get label color based on filter type
   const getLabelColor = (filterType: string): AssetsFilterColors =>
     filterColors?.[filterType] ?? AssetsFilterColors.NAME;
+
+  const activeFilters = React.useMemo(() => {
+    const filters: { filterType: string; value: string }[] = [];
+    Object.entries(filterData).forEach(([filterType, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          filters.push({ filterType, value: v });
+        });
+      } else if (value && value !== '') {
+        filters.push({ filterType, value });
+      }
+    });
+    return filters;
+  }, [filterData]);
+
+  const currentFilterValue = filterData[currentFilterType];
+  const selectedSelectValues = Array.isArray(currentFilterValue) ? currentFilterValue : [];
+  const currentSelectOptions: string[] =
+    Object.entries(assetsFilterSelectOptions).find(([key]) => key === currentFilterType)?.[1] ?? [];
 
   return (
     <Toolbar data-testid="models-table-toolbar">
@@ -100,6 +146,8 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                     onClick={() => {
                       setIsFilterDropdownOpen(false);
                       setCurrentFilterType(key);
+                      setSearchValue('');
+                      setIsSelectOpen(false);
                     }}
                   >
                     {label}
@@ -109,12 +157,50 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
             </Dropdown>
           </ToolbarItem>
           <ToolbarItem>
-            <SearchInput
-              placeholder={`Filter by ${filterOptions[currentFilterType].toLowerCase()}...`}
-              value={searchValue}
-              onChange={(_event, value) => handleSearchChange(value || '')}
-              onSearch={handleSearch}
-            />
+            {isSelectFilter ? (
+              <Select
+                role="menu"
+                aria-label={`Filter by ${filterOptions[currentFilterType].toLowerCase()}`}
+                isOpen={isSelectOpen}
+                onOpenChange={setIsSelectOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsSelectOpen(!isSelectOpen)}
+                    isExpanded={isSelectOpen}
+                    style={{ minWidth: '200px' }}
+                  >
+                    {`Filter by ${filterOptions[currentFilterType].toLowerCase()}`}
+                    {selectedSelectValues.length > 0 && <>{` (${selectedSelectValues.length})`}</>}
+                  </MenuToggle>
+                )}
+                onSelect={(_event, value) => {
+                  if (typeof value === 'string') {
+                    handleSelectToggle(value);
+                  }
+                }}
+              >
+                <SelectList>
+                  {currentSelectOptions.map((option) => (
+                    <SelectOption
+                      key={option}
+                      value={option}
+                      hasCheckbox
+                      isSelected={selectedSelectValues.includes(option)}
+                    >
+                      {option}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            ) : (
+              <SearchInput
+                placeholder={`Filter by ${filterOptions[currentFilterType].toLowerCase()}...`}
+                value={searchValue}
+                onChange={(_event, value) => handleSearchChange(value || '')}
+                onSearch={handleSearch}
+              />
+            )}
           </ToolbarItem>
         </ToolbarGroup>
 
@@ -145,22 +231,19 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
             </ToolbarItem>
             <ToolbarItem>
               <Flex gap={{ default: 'gapSm' }} wrap="wrap">
-                {activeFilters.map(([filterType, value]) => {
-                  const displayValue = String(value || '');
-                  return (
-                    <FlexItem key={filterType}>
-                      <Label
-                        color={getLabelColor(filterType)}
-                        onClose={() => handleRemoveFilter(filterType)}
-                        closeBtnProps={{
-                          'aria-label': `Remove ${filterOptions[filterType]} filter`,
-                        }}
-                      >
-                        {filterOptions[filterType]}: {displayValue}
-                      </Label>
-                    </FlexItem>
-                  );
-                })}
+                {activeFilters.map(({ filterType, value }) => (
+                  <FlexItem key={`${filterType}-${value}`}>
+                    <Label
+                      color={getLabelColor(filterType)}
+                      onClose={() => handleRemoveFilter(filterType, value)}
+                      closeBtnProps={{
+                        'aria-label': `Remove ${filterOptions[filterType]} filter: ${value}`,
+                      }}
+                    >
+                      {filterOptions[filterType]}: {value}
+                    </Label>
+                  </FlexItem>
+                ))}
                 <FlexItem>
                   <Button
                     variant={ButtonVariant.link}

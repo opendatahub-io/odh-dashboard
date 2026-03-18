@@ -242,6 +242,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
     const textWidth = textSize?.width || 0;
     const textHeight = textSize?.height || 0;
+    const scale = element.getGraph().getScale();
 
     // Memoize dimension calculation to avoid recalculation when inputs haven't changed
     const dimensions = useMemo(() => {
@@ -288,14 +289,10 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       taskIcon,
       taskIconPadding,
       statusIconSize,
-      detailsLevel,
-      element.getGraph().getScale(),
     ]);
 
     // Store dimensions immediately after calculation (synchronous)
     storePillDimensions(element, dimensions);
-
-    const scale = element.getGraph().getScale();
 
     // Calculate scaling for hover effect like PatternFly TaskNode
     const nodeScale = scaleNode && isHover ? 2.0 : 1.0;

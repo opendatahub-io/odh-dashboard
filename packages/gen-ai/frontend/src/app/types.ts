@@ -1,5 +1,4 @@
 import { APIOptions } from 'mod-arch-core';
-import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -18,7 +17,7 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  is_maas_model: boolean;
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
   max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
@@ -365,16 +364,14 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
+  model_type?: 'llm' | 'embedding';
 }
 
 export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  // Flag to identify if this is a MaaS model
-  isMaaSModel?: boolean;
-  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
-  maasModelId?: string;
 }
 
 export type ExternalModelRequest = {
@@ -394,6 +391,28 @@ export type ExternalModelRequest = {
 };
 
 export type ExternalModelResponse = AAModelResponse;
+
+export type VerifyExternalModelRequest = {
+  model_id: string;
+  base_url: string;
+  secret_value: string;
+  model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
+};
+
+export type VerifyExternalModelResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+// Error response structure (matches BFF)
+export type ExternalModelVerificationError = {
+  code: 'CONNECTION_FAILED' | 'TIMEOUT' | 'UNAUTHORIZED' | 'NOT_OPENAI_COMPATIBLE';
+  message: string;
+  base_url?: string;
+  model_id?: string;
+};
 
 export type {
   MCPServerFromAPI,
@@ -415,6 +434,59 @@ export type {
 } from './types/mcp';
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+
+/** MLflow Prompt Registry Types */
+export type MLflowPrompt = {
+  name: string;
+  description: string;
+  latest_version: number;
+  tags?: Record<string, string>;
+  creation_timestamp: string;
+};
+
+export type MLflowPromptsResponse = {
+  prompts: MLflowPrompt[];
+  next_page_token?: string;
+};
+
+export type MLflowMessage = {
+  role: string;
+  content: string;
+};
+
+export type MLflowRegisterPromptRequest = {
+  name: string;
+  messages?: MLflowMessage[];
+  template?: string;
+  commit_message?: string;
+  tags?: Record<string, string>;
+};
+
+export type MLflowPromptVersion = {
+  name: string;
+  version: number;
+  template?: string;
+  messages?: MLflowMessage[];
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionMeta = {
+  version: number;
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionsResponse = {
+  versions: MLflowPromptVersionMeta[];
+  next_page_token?: string;
+};
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
@@ -451,8 +523,38 @@ export type GenAiAPIs = {
   getBFFConfig: GetBFFConfig;
   getGuardrailsStatus: GetGuardrailsStatus;
   getSafetyConfig: GetSafetyConfig;
+  listMLflowPrompts: ListMLflowPrompts;
+  registerMLflowPrompt: RegisterMLflowPrompt;
+  getMLflowPrompt: GetMLflowPrompt;
+  listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
+  verifyExternalModel: VerifyExternalModel;
 };
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url?: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
+  model_type?: 'llm' | 'embedding';
+}
+
+export type MaaSTokenRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string; // Optional - only present when expiration is provided
+};
+export interface MaaSTokenResponse {
+  token: string;
+  expiresAt: number;
+}
 
 export type ModArchRestGET<T> = (
   queryParams?: Record<string, unknown>,
@@ -494,4 +596,12 @@ type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
 type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
 type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
+type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
+type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
+type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
+type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
 type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;
+type VerifyExternalModel = ModArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>;

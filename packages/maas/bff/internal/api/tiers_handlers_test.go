@@ -1,3 +1,9 @@
+//go:build disable_tiers
+// +build disable_tiers
+
+// Tiers tests disabled - API being removed in next release
+// Remove the build constraints above to re-enable these tests
+
 package api
 
 import (

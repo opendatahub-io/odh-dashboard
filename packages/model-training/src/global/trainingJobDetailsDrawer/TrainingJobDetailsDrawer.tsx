@@ -29,13 +29,13 @@ import PauseTrainingJobModal from '../trainingJobList/PauseTrainingJobModal';
 import { useTrainingJobPauseResume } from '../trainingJobList/hooks/useTrainingJobPauseResume';
 import { getStatusFlags } from '../trainingJobList/utils';
 import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { JobDisplayState, TrainingJobState } from '../../types';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainingJobDetailsDrawerProps = {
   job: TrainJobKind | undefined;
   displayName: string;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   onClose: () => void;
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
@@ -194,14 +194,10 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_event, tabIndex) => setActiveTabKey(tabIndex)}
-          aria-label="Training job details tabs"
+          aria-label="Job details tabs"
           role="region"
         >
-          <Tab
-            eventKey={0}
-            title={<TabTitleText>Training job details</TabTitleText>}
-            aria-label="Training job details"
-          >
+          <Tab eventKey={0} title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
             <TrainingJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
