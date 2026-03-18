@@ -4,6 +4,7 @@ ARG BUILD_MODE=ODH
 
 # Use ubi9/nodejs-22 as default base image
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
+ARG MINIMAL_IMAGE="registry.access.redhat.com/ubi9/nodejs-22-minimal:latest"
 
 FROM ${BASE_IMAGE} as builder
 
@@ -53,7 +54,7 @@ RUN node scripts/prepare-production-manifest.js \
 # These Go binaries are NOT needed at runtime and are NOT FIPS compliant
 RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 
-FROM ${BASE_IMAGE} as runtime
+FROM ${MINIMAL_IMAGE} as runtime
 
 WORKDIR /usr/src/app
 
