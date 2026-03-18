@@ -273,10 +273,11 @@ paths:
         - name: search
           in: query
           required: false
-          description: The search term to filter results by. S3 only allows searching by leading values. Maximum 1024 characters.
+          description: The search term to filter results by. S3 only allows searching by leading values. Must not contain '/' characters. Maximum 1024 characters.
           schema:
             type: string
             maxLength: 1024
+            pattern: "^[^/]*$"
           example: my-search-query
         - name: next
           in: query
