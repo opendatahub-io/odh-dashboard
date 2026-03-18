@@ -39,7 +39,15 @@ Used for binary classification, multiclass classification, and regression tasks 
 
 **Required Parameters:**
 - `task_type`: Type of task (`binary`, `multiclass`, or `regression`)
+- `display_name`: Human-readable name for the run
+- `train_data_secret_name`: Name of the K8s secret containing S3 credentials
+- `train_data_bucket_name`: S3 bucket name containing the training data
+- `train_data_file_key`: S3 object key for the training data file
 - `label_column`: Target column name in the training data
+
+**Optional Parameters:**
+- `description`: Description of the run
+- `top_n`: Number of top models to consider (default: 3)
 
 ### Timeseries Forecasting (`task_type`: `timeseries`)
 Used for forecasting future values in time series data.
@@ -52,11 +60,19 @@ Used for forecasting future values in time series data.
 
 **Required Parameters:**
 - `task_type`: Must be `timeseries`
+- `display_name`: Human-readable name for the run
+- `train_data_secret_name`: Name of the K8s secret containing S3 credentials
+- `train_data_bucket_name`: S3 bucket name containing the training data
+- `train_data_file_key`: S3 object key for the training data file
 - `target`: Target column to forecast
 - `id_column`: Column identifying each time series
 - `timestamp_column`: Timestamp/datetime column
-- `prediction_length` (optional): Number of timesteps to forecast (default: 1)
-- `known_covariates_names` (optional): List of covariate columns that are known in the future
+
+**Optional Parameters:**
+- `description`: Description of the run
+- `top_n`: Number of top models to consider (default: 3)
+- `prediction_length`: Number of timesteps to forecast (default: 1)
+- `known_covariates_names`: List of covariate columns that are known in the future
 
 ## Authentication
 
