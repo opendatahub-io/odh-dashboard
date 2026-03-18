@@ -1,0 +1,405 @@
+package repositories
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+)
+
+// mockK8sClient is a minimal mock of KubernetesClientInterface for S3 repository tests.
+type mockK8sClient struct {
+	secrets []corev1.Secret
+	err     error
+}
+
+func (m *mockK8sClient) GetNamespaces(_ context.Context, _ *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, nil
+}
+
+func (m *mockK8sClient) GetSecrets(_ context.Context, _ string, _ *k8s.RequestIdentity) ([]corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.secrets, nil
+}
+
+func (m *mockK8sClient) GetSecret(_ context.Context, namespace, secretName string, _ *k8s.RequestIdentity) (*corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	for i := range m.secrets {
+		if m.secrets[i].Name == secretName && m.secrets[i].Namespace == namespace {
+			return &m.secrets[i], nil
+		}
+	}
+	return nil, fmt.Errorf("secret '%s' in namespace '%s': %w", secretName, namespace, ErrSecretNotFound)
+}
+
+func (m *mockK8sClient) IsClusterAdmin(_ *k8s.RequestIdentity) (bool, error)  { return false, nil }
+func (m *mockK8sClient) GetUser(_ *k8s.RequestIdentity) (string, error)       { return "test-user", nil }
+func (m *mockK8sClient) GetClientset() interface{}                             { return nil }
+func (m *mockK8sClient) GetRestConfig() *rest.Config                          { return nil }
+func (m *mockK8sClient) CanListDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
+// helper to build a secret with the given data keys.
+func makeSecret(name, namespace string, data map[string][]byte) corev1.Secret {
+	return corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			UID:       types.UID("uid-" + name),
+		},
+		Data: data,
+	}
+}
+
+// fullS3Data returns a complete set of S3 credential fields.
+func fullS3Data() map[string][]byte {
+	return map[string][]byte{
+		"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+		"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+		"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+		"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+		"AWS_S3_BUCKET":         []byte("my-bucket"),
+	}
+}
+
+func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("aws-secret-1", "test-namespace", fullS3Data())}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "aws-secret-1", identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "AKIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+	assert.Equal(t, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
+	assert.Equal(t, "us-east-1", creds.Region)
+	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
+	assert.Equal(t, "my-bucket", creds.Bucket)
+}
+
+func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
+	client := &mockK8sClient{secrets: []corev1.Secret{
+		makeSecret("other-secret", "test-namespace", map[string][]byte{"key": []byte("value")}),
+	}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "non-existent", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.ErrorIs(t, err, ErrSecretNotFound)
+}
+
+func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
+	data := map[string][]byte{
+		"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+		"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+		"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("incomplete-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "incomplete-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "AWS_ACCESS_KEY_ID")
+}
+
+func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
+	data := map[string][]byte{
+		"AWS_ACCESS_KEY_ID":  []byte("AKIAIOSFODNN7EXAMPLE"),
+		"AWS_DEFAULT_REGION": []byte("us-east-1"),
+		"AWS_S3_ENDPOINT":    []byte("https://s3.amazonaws.com"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("incomplete-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "incomplete-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "AWS_SECRET_ACCESS_KEY")
+}
+
+func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
+	data := map[string][]byte{
+		"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+		"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+		"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("incomplete-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "incomplete-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "AWS_DEFAULT_REGION")
+}
+
+func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
+	data := map[string][]byte{
+		"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+		"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+		"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("incomplete-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "incomplete-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "AWS_S3_ENDPOINT")
+}
+
+func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
+	client := &mockK8sClient{err: fmt.Errorf("kubernetes error: unable to list secrets")}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "aws-secret-1", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "kubernetes error")
+}
+
+func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
+	data := map[string][]byte{
+		"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+		"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+		"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+		"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("aws-secret-no-bucket", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "aws-secret-no-bucket", identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "AKIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+	assert.Equal(t, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
+	assert.Equal(t, "us-east-1", creds.Region)
+	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
+	assert.Equal(t, "", creds.Bucket)
+}
+
+// Tests for SSRF protection in S3 endpoint validation
+
+func TestS3Repository_GetS3Credentials_RejectsHTTP(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("http://s3.amazonaws.com") // HTTP not HTTPS
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("insecure-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "insecure-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "HTTPS")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsPrivateIP_10(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://10.0.0.1:9000") // Private IP (RFC-1918)
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("private-ip-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "private-ip-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsPrivateIP_172(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://172.16.0.1:9000") // Private IP (RFC-1918)
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("private-ip-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "private-ip-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsPrivateIP_192(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://192.168.1.1:9000") // Private IP (RFC-1918)
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("private-ip-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "private-ip-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsLoopback(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://127.0.0.1:9000") // Loopback address
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("loopback-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "loopback-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "loopback")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsLinkLocal(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://169.254.169.254") // AWS metadata service (link-local)
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("linklocal-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "linklocal-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "link-local")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsInvalidURL(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("not-a-url") // Invalid URL
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("invalid-url-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "invalid-url-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "invalid AWS_S3_ENDPOINT")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_0(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://0.0.0.0:9000") // 0.0.0.0/8 "This Network"
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("this-network-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "this-network-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "this network")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_1(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://0.0.0.1:9000") // 0.0.0.0/8 "This Network"
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("this-network-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "this-network-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "this network")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsReservedFutureUse(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://240.0.0.1:9000") // 240.0.0.0/4 reserved for future use
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("reserved-future-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "reserved-future-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "reserved for future use")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6Loopback(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://[::1]:9000") // IPv6 loopback
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("ipv6-loopback-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "ipv6-loopback-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 loopback")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6LinkLocal(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://[fe80::1]:9000") // IPv6 link-local
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("ipv6-linklocal-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "ipv6-linklocal-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 link-local")
+}
+
+func TestS3Repository_GetS3Credentials_RejectsIPv6UniqueLocal(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://[fc00::1]:9000") // IPv6 unique local addresses
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("ipv6-ula-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "ipv6-ula-secret", identity)
+
+	assert.Error(t, err)
+	assert.Nil(t, creds)
+	assert.Contains(t, err.Error(), "IPv6 unique local")
+}
+
+func TestS3Repository_GetS3Credentials_AcceptsValidHTTPSURL(t *testing.T) {
+	data := fullS3Data()
+	data["AWS_S3_ENDPOINT"] = []byte("https://s3.us-east-1.amazonaws.com")
+	delete(data, "AWS_S3_BUCKET")
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("valid-secret", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	s3Repo := NewS3Repository()
+
+	creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", "valid-secret", identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "https://s3.us-east-1.amazonaws.com", creds.EndpointURL)
+}
