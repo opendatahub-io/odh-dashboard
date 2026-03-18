@@ -56,8 +56,8 @@ describe('Verify that users can provide contributor project permissions to non-a
       cy.step('Assign contributor user Project Permissions');
       assignRoleViaProjectRbac(projectRbacPermissions, {
         subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
-        subjectKind: 'user',
-        roleName: 'Contributor',
+        subjectKind: testData.userSubjectKind as 'user' | 'group',
+        roleName: testData.contributorRoleName,
       });
 
       cy.step(

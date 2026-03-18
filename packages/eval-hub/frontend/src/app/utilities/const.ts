@@ -5,6 +5,8 @@ const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
 const DEV_MODE = process.env.APP_ENV === 'development';
 const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
+const STATUS_REFRESH_INTERVAL = 3000;
+const NO_REFRESH_INTERVAL = 0;
 const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
 const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
@@ -16,6 +18,8 @@ const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
 export {
   STYLE_THEME,
   POLL_INTERVAL,
+  STATUS_REFRESH_INTERVAL,
+  NO_REFRESH_INTERVAL,
   DEV_MODE,
   KUBEFLOW_USERNAME,
   IMAGE_DIR,

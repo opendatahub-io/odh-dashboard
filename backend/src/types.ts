@@ -55,12 +55,14 @@ export type DashboardConfig = K8sResourceCommon & {
       autorag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
-      aiAssetExternalModels: boolean;
+      mcpCatalog: boolean;
+      aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
       maasApiKeys: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
+      vLLMDeploymentOnMaaS: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -81,7 +83,7 @@ export type DashboardConfig = K8sResourceCommon & {
       isLLMdDefault?: boolean;
     };
     genAiStudioConfig?: {
-      aiAssetExternalModels?: {
+      aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };

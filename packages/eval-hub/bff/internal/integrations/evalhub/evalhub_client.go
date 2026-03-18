@@ -1,6 +1,7 @@
 package evalhub
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -26,6 +27,7 @@ type ListEvaluationJobsParams struct {
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
+	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, hardDelete bool) error
 	ListCollections(ctx context.Context) (CollectionsResponse, error)
 	ListProviders(ctx context.Context, limit, offset int) (ProvidersResponse, error)
@@ -45,22 +47,30 @@ type EvaluationJobsResponse struct {
 
 // EvaluationJob represents an evaluation job from eval-hub.
 type EvaluationJob struct {
-	Resource    JobResource    `json:"resource"`
-	Status      JobStatus      `json:"status"`
-	Results     JobResults     `json:"results"`
-	Name        string         `json:"name,omitempty"`
-	Description string         `json:"description,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Model       JobModel       `json:"model"`
-	Benchmarks  []JobBenchmark `json:"benchmarks"`
+	Resource     JobResource      `json:"resource"`
+	Status       JobStatus        `json:"status"`
+	Results      JobResults       `json:"results"`
+	Name         string           `json:"name,omitempty"`
+	Description  string           `json:"description,omitempty"`
+	Tags         []string         `json:"tags,omitempty"`
+	Model        JobModel         `json:"model"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks"`
+	Collection   *JobCollectionID `json:"collection,omitempty"`
+	Experiment   *JobExperiment   `json:"experiment,omitempty"`
+	Custom       map[string]any   `json:"custom,omitempty"`
+	Exports      *JobExports      `json:"exports,omitempty"`
 }
 
 type JobResource struct {
-	ID        string     `json:"id"`
-	Tenant    string     `json:"tenant,omitempty"`
-	CreatedAt string     `json:"created_at,omitempty"`
-	UpdatedAt string     `json:"updated_at,omitempty"`
-	Message   JobMessage `json:"message,omitempty"`
+	ID                 string     `json:"id"`
+	Tenant             string     `json:"tenant,omitempty"`
+	CreatedAt          string     `json:"created_at,omitempty"`
+	UpdatedAt          string     `json:"updated_at,omitempty"`
+	ReadOnly           bool       `json:"read_only,omitempty"`
+	Owner              string     `json:"owner,omitempty"`
+	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
+	Message            JobMessage `json:"message,omitempty"`
 }
 
 type JobMessage struct {
@@ -75,23 +85,43 @@ type JobStatus struct {
 }
 
 type BenchmarkState struct {
-	ID           string     `json:"id"`
-	ProviderID   string     `json:"provider_id,omitempty"`
-	Status       string     `json:"status"`
-	CompletedAt  string     `json:"completed_at,omitempty"`
-	ErrorMessage JobMessage `json:"error_message,omitempty"`
+	ID             string     `json:"id"`
+	ProviderID     string     `json:"provider_id,omitempty"`
+	BenchmarkIndex *int       `json:"benchmark_index,omitempty"`
+	Status         string     `json:"status"`
+	StartedAt      string     `json:"started_at,omitempty"`
+	CompletedAt    string     `json:"completed_at,omitempty"`
+	ErrorMessage   JobMessage `json:"error_message,omitempty"`
 }
 
 type JobResults struct {
-	TotalEvaluations int               `json:"total_evaluations"`
-	Benchmarks       []BenchmarkResult `json:"benchmarks,omitempty"`
+	TotalEvaluations    int               `json:"total_evaluations"`
+	Benchmarks          []BenchmarkResult `json:"benchmarks,omitempty"`
+	MlflowExperimentURL string            `json:"mlflow_experiment_url,omitempty"`
+	Test                *ResultTest       `json:"test,omitempty"`
+}
+
+type ResultTest struct {
+	Score     *float64 `json:"score,omitempty"`
+	Threshold *float64 `json:"threshold,omitempty"`
+	Pass      *bool    `json:"pass,omitempty"`
+}
+
+type BenchmarkResultTest struct {
+	PrimaryScore *float64 `json:"primary_score,omitempty"`
+	Threshold    *float64 `json:"threshold,omitempty"`
+	Pass         *bool    `json:"pass,omitempty"`
 }
 
 type BenchmarkResult struct {
-	ID         string             `json:"id"`
-	ProviderID string             `json:"provider_id,omitempty"`
-	Metrics    map[string]float64 `json:"metrics,omitempty"`
-	Artifacts  *BenchmarkArtifact `json:"artifacts,omitempty"`
+	ID             string               `json:"id"`
+	ProviderID     string               `json:"provider_id,omitempty"`
+	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
+	Metrics        map[string]float64   `json:"metrics,omitempty"`
+	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
+	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
+	LogsPath       string               `json:"logs_path,omitempty"`
+	Test           *BenchmarkResultTest `json:"test,omitempty"`
 }
 
 type BenchmarkArtifact struct {
@@ -101,14 +131,43 @@ type BenchmarkArtifact struct {
 }
 
 type JobModel struct {
-	URL  string `json:"url,omitempty"`
-	Name string `json:"name"`
+	URL        string         `json:"url,omitempty"`
+	Name       string         `json:"name"`
+	Parameters map[string]any `json:"parameters,omitempty"`
+	Auth       *ModelAuth     `json:"auth,omitempty"`
+}
+
+type ModelAuth struct {
+	SecretRef string `json:"secret_ref,omitempty"`
+}
+
+type JobPrimaryScore struct {
+	Metric        string `json:"metric"`
+	LowerIsBetter bool   `json:"lower_is_better"`
+}
+
+type JobPassCriteria struct {
+	Threshold float64 `json:"threshold"`
+}
+
+type S3DataRef struct {
+	Bucket    string `json:"bucket,omitempty"`
+	Key       string `json:"key,omitempty"`
+	SecretRef string `json:"secret_ref,omitempty"`
+}
+
+type TestDataRef struct {
+	S3 *S3DataRef `json:"s3,omitempty"`
 }
 
 type JobBenchmark struct {
-	ID         string         `json:"id"`
-	ProviderID string         `json:"provider_id,omitempty"`
-	Parameters map[string]any `json:"parameters,omitempty"`
+	ID           string           `json:"id"`
+	ProviderID   string           `json:"provider_id,omitempty"`
+	Weight       float64          `json:"weight,omitempty"`
+	PrimaryScore *JobPrimaryScore `json:"primary_score,omitempty"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Parameters   map[string]any   `json:"parameters,omitempty"`
+	TestDataRef  *TestDataRef     `json:"test_data_ref,omitempty"`
 }
 
 // CollectionsResponse is the response from the EvalHub API.
@@ -240,6 +299,56 @@ type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
 }
 
+// CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
+type CreateEvaluationJobRequest struct {
+	Name         string           `json:"name"`
+	Description  string           `json:"description,omitempty"`
+	Tags         []string         `json:"tags,omitempty"`
+	Model        JobModel         `json:"model"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks"`
+	Collection   *JobCollectionID `json:"collection,omitempty"`
+	Experiment   *JobExperiment   `json:"experiment,omitempty"`
+	Custom       map[string]any   `json:"custom,omitempty"`
+	Exports      *JobExports      `json:"exports,omitempty"`
+}
+
+type JobCollectionID struct {
+	ID string `json:"id"`
+}
+
+type JobExperiment struct {
+	Name             string          `json:"name,omitempty"`
+	Tags             []ExperimentTag `json:"tags,omitempty"`
+	ArtifactLocation string          `json:"artifact_location,omitempty"`
+}
+
+type ExperimentTag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type JobExports struct {
+	OCI *OCIExport `json:"oci,omitempty"`
+}
+
+type OCIExport struct {
+	Coordinates *OCICoordinates `json:"coordinates,omitempty"`
+	K8s         *OCIK8s         `json:"k8s,omitempty"`
+}
+
+type OCICoordinates struct {
+	OCIHost       string            `json:"oci_host,omitempty"`
+	OCIRepository string            `json:"oci_repository,omitempty"`
+	OCITag        string            `json:"oci_tag,omitempty"`
+	OCISubject    string            `json:"oci_subject,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
+}
+
+type OCIK8s struct {
+	Connection string `json:"connection,omitempty"`
+}
+
 type EvalHubClient struct {
 	httpClient *http.Client
 	baseURL    string
@@ -325,11 +434,27 @@ func (c *EvalHubClient) CancelEvaluationJob(ctx context.Context, id string, hard
 	return nil
 }
 
+// CreateEvaluationJob submits a new evaluation run to the EvalHub API.
+func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error) {
+	path := "/evaluations/jobs"
+	if namespace != "" {
+		path = fmt.Sprintf("%s?namespace=%s", path, url.QueryEscape(namespace))
+	}
+	resp, err := post[EvaluationJob](c, ctx, path, req)
+	if err != nil {
+		return nil, wrapClientError(err, "CreateEvaluationJob")
+	}
+	return resp, nil
+}
+
 // ListCollections retrieves all benchmark collections from EvalHub.
 func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
 	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
 	if err != nil {
-		return CollectionsResponse{}, wrapClientError(err, "ListCollections")
+		return CollectionsResponse{Items: []Collection{}}, wrapClientError(err, "ListCollections")
+	}
+	if resp.Items == nil {
+		resp.Items = []Collection{}
 	}
 	return *resp, nil
 }
@@ -381,6 +506,48 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 
 	var result T
 	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// post performs a typed POST request against the EvalHub API.
+func post[T any](c *EvalHubClient, ctx context.Context, path string, body any) (*T, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	var result T
+	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

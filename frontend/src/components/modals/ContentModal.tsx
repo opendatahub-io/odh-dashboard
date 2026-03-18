@@ -9,6 +9,12 @@ import {
   ButtonProps,
   ModalProps,
   ModalHeaderProps,
+  Alert,
+  Stack,
+  StackItem,
+  ActionList,
+  ActionListGroup,
+  ActionListItem,
 } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -26,7 +32,6 @@ type ContentModalProps = {
   contents: React.ReactNode;
   title: string | React.ReactNode;
   buttonActions?: ButtonAction[];
-  footerContent?: React.ReactNode;
   description?: React.ReactNode;
   disableFocusTrap?: boolean;
   dataTestId?: string;
@@ -34,6 +39,9 @@ type ContentModalProps = {
   variant?: ModalProps['variant'];
   bodyLabel?: string;
   titleIconVariant?: ModalHeaderProps['titleIconVariant'];
+  error?: Error | React.ReactNode;
+  alertTitle?: string;
+  alertLinks?: React.ReactNode;
 };
 
 // all buttons are always 'on'/enabled in this modal
@@ -52,7 +60,6 @@ const ContentModal: React.FC<ContentModalProps> = ({
   contents,
   title,
   buttonActions,
-  footerContent,
   description,
   disableFocusTrap,
   dataTestId = 'content-modal',
@@ -60,6 +67,9 @@ const ContentModal: React.FC<ContentModalProps> = ({
   variant = 'medium',
   bodyLabel,
   titleIconVariant,
+  error,
+  alertTitle,
+  alertLinks,
 }) => {
   const headingId = useId(); // used for aria-labelledby (a11y)
   const descriptionId = useId(); // used for aria-describedby (a11y)
@@ -84,21 +94,46 @@ const ContentModal: React.FC<ContentModalProps> = ({
       <ModalBody className={bodyClassName} aria-label={bodyLabel}>
         {contents}
       </ModalBody>
-      <ModalFooter>
-        {footerContent ??
-          buttonActions?.map((action, index) => (
-            <Button
-              key={`${action.label}-${index}`}
-              variant={action.variant}
-              onClick={action.onClick}
-              data-testid={action.dataTestId}
-              isDisabled={action.isDisabled}
-              isLoading={action.isLoading}
-            >
-              {action.label}
-            </Button>
-          ))}
-      </ModalFooter>
+      {(error || (buttonActions && buttonActions.length > 0)) && (
+        <ModalFooter>
+          <Stack hasGutter style={{ flex: 'auto' }}>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="error-message-alert"
+                  variant="danger"
+                  isInline
+                  title={alertTitle}
+                  actionLinks={alertLinks}
+                >
+                  {error instanceof Error ? error.message : error}
+                </Alert>
+              </StackItem>
+            )}
+            {buttonActions && buttonActions.length > 0 && (
+              <StackItem>
+                <ActionList>
+                  <ActionListGroup>
+                    {buttonActions.map((action, index) => (
+                      <ActionListItem key={`${action.label}-${index}`}>
+                        <Button
+                          variant={action.variant}
+                          onClick={action.onClick}
+                          data-testid={action.dataTestId}
+                          isLoading={action.isLoading}
+                          isDisabled={action.isDisabled}
+                        >
+                          {action.label}
+                        </Button>
+                      </ActionListItem>
+                    ))}
+                  </ActionListGroup>
+                </ActionList>
+              </StackItem>
+            )}
+          </Stack>
+        </ModalFooter>
+      )}
     </Modal>
   );
 };

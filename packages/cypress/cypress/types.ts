@@ -84,6 +84,7 @@ export type PVCReplacements = {
   PVC_DISPLAY_NAME: string;
   PVC_SIZE: string;
   STORAGE_CLASS: string;
+  notebookImage?: string;
 };
 
 export type PVCLoaderPodReplacements = {
@@ -104,11 +105,27 @@ export type WBEditTestData = {
   editedTestDescription: string;
   pvcEditDisplayName: string;
   pvcStorageName: string;
+  connectionDescription: string;
+  notebookImage: string;
+};
+
+export type KueueWorkbenchTestData = {
+  projectName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  hardwareProfileName: string;
+  hardwareProfileDisplayName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  sectionTab: string;
+  notebookImage: string;
 };
 
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
+  notebookImage: string;
 };
 
 export type WBVariablesTestData = {
@@ -124,6 +141,7 @@ export type WBVariablesTestData = {
   FAKE_SECRET_VALUE: string;
   FAKE_CM_KEY: string;
   FAKE_CM_VALUE: string;
+  notebookImage: string;
 };
 
 export type WBTolerationsTestData = {
@@ -135,11 +153,35 @@ export type WBTolerationsTestData = {
   hardwareProfileName: string;
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
+  hardwareProfileDisplayName?: string;
+  hardwareProfileDescription?: string;
+  deleteModalMessage?: string;
+  deletedStatusBadge: string;
+};
+
+export type ModifyHardwareProfileTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDisplayNameA: string;
+  hardwareProfileDisplayNameB: string;
+  tolerationValueA: string;
+  tolerationValueB: string;
+  tolerationKeyA: string;
+  tolerationKeyB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
 };
 
 export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
+  notebookImage: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -151,6 +193,7 @@ export type WBStorageClassesTestData = {
   workbenchMultiAccessB: string;
   storageRWO: string;
   storageMultiAccess: string;
+  notebookImage: string;
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
@@ -172,10 +215,16 @@ export type WBNegativeTestsData = {
   hardwareProfileName: string;
   resourceYamlPath: string;
   invalidResourceNames: string[];
+  notebookImage: string;
 };
 
 export type WBImagesTestData = {
   wbImagesTestNamespace: string;
+};
+
+export type StandaloneNotebookTestData = {
+  notebookImage: string;
+  notebookPodPrefix: string;
 };
 
 export type CommandLineResult = {
@@ -236,6 +285,14 @@ export type DataScienceProjectData = {
   hardwareProfileName: string;
   resourceType: string;
   Image: string;
+  serviceAccountName1: string;
+  serviceAccountName2: string;
+  connectionNameSuffix: string;
+  adminRoleName: string;
+  contributorRoleName: string;
+  connectionDescription: string;
+  userSubjectKind: string;
+  groupSubjectKind: string;
 };
 
 export type NotebookImageData = {
@@ -299,6 +356,15 @@ export type HardwareProfilesData = {
   hardwareProfileName: string;
   hardwareProfileDescription: string;
   hardwareProfileEditedDescription: string;
+  updatedHardwareProfileName: string;
+  projectNamespace: string;
+  projectDescription: string;
+  workbenchName: string;
+  hardwareProfileDeploymentSize: string;
+  workbenchRunningStatus: string;
+  notebookImageName: string;
+  editWorkbenchAction: string;
+  settingsHardwareProfilesUrl: string;
 };
 
 export type NamespaceConfig = {
@@ -336,7 +402,7 @@ export type WorkloadMetricsTestData = {
   localQueue: string;
   cpuQuota: number;
   memoryQuota: number;
-  refreshIntervals: number[];
+  refreshIntervals: string[];
 };
 
 export type DeployOCIModelData = {
@@ -475,6 +541,16 @@ export type SCAccessMode = {
   ReadWriteOncePod?: boolean;
 };
 
+export type ResourcesFiltersTestData = {
+  enabledFilterId: string;
+  notEnabledFilterId: string;
+  resourceTypeFilters: string[];
+  providerTypeFilter: string;
+  multiFilterIds: string[];
+  multiFilterCountId: string;
+  rhoaiProviderFilters: string[];
+};
+
 export type FeatureStoreTestData = {
   projectName: string;
   feastInstanceName: string;
@@ -502,6 +578,7 @@ export type GenAiTestData = {
   hardwareProfileDeploymentSize: string;
   configMapName: string;
   playgroundServiceName: string;
+  servingRuntimesPath: string;
 };
 
 export type ModelCatalogSourceTestData = {

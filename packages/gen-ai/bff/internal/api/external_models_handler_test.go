@@ -100,7 +100,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		endpoints, ok := dataMap["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 1)
-		assert.Equal(t, "https://generativelanguage.googleapis.com/v1beta/openai/", endpoints[0])
+		assert.Equal(t, "external: https://generativelanguage.googleapis.com/v1beta/openai/", endpoints[0])
 	})
 
 	It("should support all provider types", func() {
@@ -153,13 +153,15 @@ var _ = Describe("CreateExternalModelHandler", func() {
 	It("should successfully create an external model without optional use_cases field", func() {
 		t := GinkgoT()
 
+		embeddingDimension := 1536
 		requestBody := models.ExternalModelRequest{
-			ModelID:          "text-embedding-3-small",
-			ModelDisplayName: "OpenAI Text Embedding 3 Small",
-			BaseURL:          "https://api.openai.com/v1",
-			SecretValue:      "sk-test-key-abc123",
-			ProviderType:     models.ProviderTypeOpenAI,
-			ModelType:        models.ModelTypeEmbedding,
+			ModelID:            "text-embedding-3-small",
+			ModelDisplayName:   "OpenAI Text Embedding 3 Small",
+			BaseURL:            "https://api.openai.com/v1",
+			SecretValue:        "sk-test-key-abc123",
+			ProviderType:       models.ProviderTypeOpenAI,
+			ModelType:          models.ModelTypeEmbedding,
+			EmbeddingDimension: &embeddingDimension,
 		}
 
 		bodyBytes, err := json.Marshal(requestBody)

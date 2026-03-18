@@ -80,7 +80,7 @@ export const useDeploymentAuthTokens = (
   } = useDeploymentSecrets(deployment?.model.metadata.namespace);
 
   const deploymentSecrets = React.useMemo(() => {
-    if (!deployment || !deployment.model.metadata.name || !deployment.model.metadata.namespace) {
+    if (!deployment?.model.metadata.name || !deployment.model.metadata.namespace) {
       return [];
     }
 

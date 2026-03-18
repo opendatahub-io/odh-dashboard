@@ -98,6 +98,45 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const nodeSelector = node?.nodeSelector;
   const tolerations = node?.tolerations;
 
+  const editKebabItems = useKebabAccessAllowed(
+    [
+      {
+        title: <span data-testid="edit-hardware-profile-action">Edit</span>,
+        onClick: () =>
+          navigate(
+            `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
+          ),
+      },
+    ],
+    verbModelAccess('update', HardwareProfileModel),
+  );
+  const duplicateKebabItems = useKebabAccessAllowed(
+    [
+      {
+        title: <span data-testid="duplicate-hardware-profile-action">Duplicate</span>,
+        onClick: () =>
+          navigate(
+            `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
+          ),
+      },
+    ],
+    verbModelAccess('create', HardwareProfileModel),
+  );
+  const separatorKebabItems = useKebabAccessAllowed(
+    [],
+    verbModelAccess('create', HardwareProfileModel),
+  );
+  const deleteKebabItems = useKebabAccessAllowed(
+    [
+      { isSeparator: true },
+      {
+        title: <span data-testid="delete-hardware-profile-action">Delete</span>,
+        onClick: () => handleDelete(hardwareProfile),
+      },
+    ],
+    verbModelAccess('delete', HardwareProfileModel),
+  );
+
   return (
     <>
       <Tr
@@ -180,45 +219,10 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         <Td isActionCell>
           <ActionsColumn
             items={[
-              ...useKebabAccessAllowed(
-                [
-                  {
-                    title: <span data-testid="edit-hardware-profile-action">Edit</span>,
-                    onClick: () =>
-                      navigate(
-                        `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
-                      ),
-                  },
-                ],
-                verbModelAccess('update', HardwareProfileModel),
-              ),
-              ...useKebabAccessAllowed(
-                [
-                  {
-                    title: <span data-testid="duplicate-hardware-profile-action">Duplicate</span>,
-                    onClick: () =>
-                      navigate(
-                        `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
-                      ),
-                  },
-                ],
-                verbModelAccess('create', HardwareProfileModel),
-              ),
-              ...useKebabAccessAllowed([], verbModelAccess('create', HardwareProfileModel)),
-              ...(!isDefaultHardwareProfile(hardwareProfile)
-                ? [
-                    ...useKebabAccessAllowed(
-                      [
-                        { isSeparator: true },
-                        {
-                          title: <span data-testid="delete-hardware-profile-action">Delete</span>,
-                          onClick: () => handleDelete(hardwareProfile),
-                        },
-                      ],
-                      verbModelAccess('delete', HardwareProfileModel),
-                    ),
-                  ]
-                : []),
+              ...editKebabItems,
+              ...duplicateKebabItems,
+              ...separatorKebabItems,
+              ...(!isDefaultHardwareProfile(hardwareProfile) ? [...deleteKebabItems] : []),
             ]}
           />
         </Td>

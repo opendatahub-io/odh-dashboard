@@ -74,8 +74,8 @@ class WorkbenchPage {
     cy.testA11y();
   }
 
-  private findNotebookTable() {
-    return cy.findByTestId('notebook-table');
+  findNotebookTable(timeout?: number) {
+    return cy.findByTestId('notebook-table', ...(timeout != null ? [{ timeout }] : []));
   }
 
   findNotebookTableHeaderButton(name: string) {
@@ -88,8 +88,8 @@ class WorkbenchPage {
     );
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-state-title');
+  findEmptyState(timeout?: number) {
+    return cy.findByTestId('empty-state-title', timeout !== undefined ? { timeout } : {});
   }
 
   findCreateButton() {
@@ -138,12 +138,28 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
       .click();
   }
 
+  selectEnvDataTypeByTestId(testId: string) {
+    this.find()
+      .findByTestId('env-data-type-field')
+      .findByRole('button', { name: 'Options menu' })
+      .click();
+    cy.findByTestId(testId).click();
+  }
+
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
       .findByRole('button', { name: 'Options menu' })
       .findSelectOption(name)
       .click();
+  }
+
+  selectEnvironmentVariableTypeByTestId(testId: string) {
+    this.find()
+      .findByTestId('environment-variable-type-select')
+      .findByRole('button', { name: 'Options menu' })
+      .click();
+    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -537,6 +553,19 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  handleConflictIfPresent() {
+    // Wait for the submit API call to complete: the button is disabled while
+    // the request is in-flight, then either removed (success) or re-enabled (error).
+    this.findSubmitButton().should('be.disabled');
+    cy.get('[data-testid="submit-button"]:disabled', { timeout: 30000 }).should('not.exist');
+
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="force-update-button"]').length) {
+        cy.findByTestId('force-update-button').click();
+      }
+    });
+  }
+
   findCancelButton() {
     return cy.findByTestId('cancel-button');
   }
@@ -904,6 +933,15 @@ class WorkbenchStatusModal extends Modal {
 }
 
 export const workbenchPage = new WorkbenchPage();
+
+export const workbenchActions = {
+  findEditWorkbenchAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-workbench-action');
+  },
+  findDeleteWorkbenchAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-workbench-action');
+  },
+};
 export const createSpawnerPage = new CreateSpawnerPage();
 export const notebookConfirmModal = new NotebookConfirmModal();
 export const notebookDeleteModal = new NotebookDeleteModal();

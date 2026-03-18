@@ -12,7 +12,7 @@ class ModelCatalog {
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' }).click();
     this.wait();
   }
 
@@ -27,12 +27,16 @@ class ModelCatalog {
   }
 
   tabEnabled() {
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
+    appChrome
+      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
+    appChrome
+      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
+      .should('not.exist');
     return this;
   }
 

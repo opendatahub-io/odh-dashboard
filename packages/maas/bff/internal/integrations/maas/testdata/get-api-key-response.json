@@ -1,8 +1,11 @@
 {
-  "id":             "key-prod-backend-001",
-  "name":           "production-backend",
-  "description":    "Production API key for backend service",
-  "creationDate":   "2025-11-01T00:00:00.000Z",
-  "expirationDate": "2125-11-01T00:00:00.000Z",
-  "status":         "active"
+  "id": "key_prod_backend_001",
+  "name": "production-backend",
+  "description": "Production API key for backend service",
+  "username": "admin-user",
+  "groups": ["system:authenticated", "premium-users"],
+  "creationDate": "2025-12-01T00:00:00Z",
+  "expirationDate": "2125-12-01T00:00:00Z",
+  "status": "active",
+  "lastUsedAt": "2026-03-10T14:30:00Z"
 }

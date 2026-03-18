@@ -19,6 +19,12 @@ export const autoragRunsColumns: SortableData<PipelineRun>[] = [
     width: 25,
   },
   {
+    label: 'Started',
+    field: 'created_at',
+    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    width: 20,
+  },
+  {
     label: 'Status',
     field: 'state',
     sortable: (a, b) =>

@@ -20,7 +20,7 @@ class ModelTrainingGlobal {
 
     appChrome
       .findNavItem({
-        name: 'Training jobs',
+        name: 'Jobs',
         rootSection: 'Develop & train',
       })
       .click();
@@ -34,7 +34,7 @@ class ModelTrainingGlobal {
   }
 
   findNavItem() {
-    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+    return appChrome.findNavItem({ name: 'Jobs', rootSection: 'Develop & train' });
   }
 
   shouldNotFoundPage() {
@@ -102,8 +102,22 @@ class TrainingJobTable {
     return this.findTable().find('tbody tr');
   }
 
+  findTypeColumn() {
+    return this.findRows().find('[data-label="Type"]');
+  }
+
   findEmptyResults() {
     return this.findTable().find('[data-testid="no-result-found-title"]');
+  }
+
+  filterByName(name: string) {
+    this.findToolbar().findByLabelText('Filter by name').clear().type(name);
+    return this;
+  }
+
+  clearNameFilter() {
+    this.findToolbar().findByLabelText('Filter by name').clear();
+    return this;
   }
 
   shouldHaveTrainingJobs(count: number) {
@@ -118,6 +132,33 @@ class TrainingJobTable {
 
   findEmptyState() {
     return cy.findByTestId('empty-state-body');
+  }
+
+  findToolbar() {
+    return cy.findByTestId('training-job-table-toolbar');
+  }
+
+  findFilterTypeDropdownToggle() {
+    return cy.findByTestId('training-job-table-toolbar-dropdown');
+  }
+
+  selectFilterType(filterType: string) {
+    this.findFilterTypeDropdownToggle().click();
+    cy.findByRole('menuitem', { name: filterType }).click();
+  }
+
+  findTypeFilterSelectToggle() {
+    return cy.findByTestId('training-job-type-filter-select');
+  }
+
+  selectJobTypeFilter(jobType: string) {
+    this.selectFilterType('Type');
+    this.findTypeFilterSelectToggle().should('be.visible').click();
+    cy.findByRole('option', { name: jobType }).click();
+  }
+
+  findTypeFilterChip() {
+    return cy.findByTestId('Type-filter-chip');
   }
 }
 
@@ -143,9 +184,13 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findStatus() {
-    // Find the status label by testid (the clickable Label component)
-    // The entire Label is clickable, not just the icon
-    return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
+    return this.find()
+      .find('[data-label="Status"]')
+      .find('[data-testid="training-job-status"],[data-testid="ray-job-status"]');
+  }
+
+  findStatusLoading() {
+    return this.find().find('[data-label="Status"]').findByTestId('ray-job-status-loading');
   }
 
   findStatusProgressBar() {
@@ -156,8 +201,72 @@ class TrainingJobTableRow extends TableRow {
     return this.findTrainingJobName().find('button');
   }
 
+  findType() {
+    return this.find().find('[data-label="Type"]');
+  }
+
+  findRayCluster() {
+    return this.find().find('[data-label="Ray cluster"]');
+  }
+
   findPauseResumeToggle() {
     return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusCell() {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findKebabButton() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findEditNodeCountButton() {
+    return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
+  }
+}
+
+class ScaleRayJobNodesModal {
+  find() {
+    return cy.findByTestId('edit-ray-job-node-count-modal');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('edit-ray-job-node-count-modal').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByRole('heading', { name: 'Edit node count' });
+  }
+
+  findHeadNodeInput() {
+    return this.find().findByTestId('head-node-count-input');
+  }
+
+  findWorkerGroupInput(groupName: string) {
+    return this.find().findByTestId(`worker-group-input-${groupName}`);
+  }
+
+  findWorkerGroupMinusButton(groupName: string) {
+    return this.find().findByLabelText(`Decrease ${groupName} node count`);
+  }
+
+  findWorkerGroupPlusButton(groupName: string) {
+    return this.find().findByLabelText(`Increase ${groupName} node count`);
+  }
+
+  findSaveButton() {
+    return this.find().findByRole('button', { name: 'Save' });
+  }
+
+  findCancelButton() {
+    return this.find().findByRole('button', { name: 'Cancel' });
   }
 }
 
@@ -215,6 +324,10 @@ class TrainingJobDetailsDrawer {
 
   findKebabMenuItem(itemName: string) {
     return cy.findByRole('menuitem', { name: itemName });
+  }
+
+  findEditNodeCountAction() {
+    return cy.findByTestId('edit-node-count-action');
   }
 }
 
@@ -427,8 +540,12 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('retry-job-button');
   }
 
-  findPauseResumeButton() {
-    return cy.findByTestId('pause-resume-job-button');
+  findResumeJobButton() {
+    return cy.findByTestId('resume-job-button');
+  }
+
+  findPauseJobButton() {
+    return cy.findByTestId('pause-job-button');
   }
 
   findDeleteButton() {
@@ -628,9 +745,151 @@ class TrainingJobDetailsTab {
   }
 }
 
+class RayJobDetailsDrawer {
+  find() {
+    return cy.findByTestId('ray-job-details-drawer');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('ray-job-details-drawer').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByTestId('ray-job-drawer-title');
+  }
+
+  findCloseButton() {
+    return this.find().findByLabelText('Close drawer panel');
+  }
+
+  findKebabMenu() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTab(tabName: string) {
+    return this.find().findByRole('tab', { name: tabName });
+  }
+
+  selectTab(tabName: string) {
+    this.findTab(tabName).click();
+    return this;
+  }
+
+  close() {
+    this.findCloseButton().click();
+  }
+
+  clickKebabMenu() {
+    this.findKebabMenu().click();
+  }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
+}
+
+class RayJobDetailsTab {
+  findJobSummarySection() {
+    return cy.findByTestId('job-summary-section');
+  }
+
+  findRayVersionValue() {
+    return cy.findByTestId('ray-version-value');
+  }
+
+  findExecutionsSection() {
+    return cy.findByTestId('executions-section');
+  }
+
+  findEntrypointCommandValue() {
+    return cy.findByTestId('entrypoint-command-value');
+  }
+
+  findSubmissionModeValue() {
+    return cy.findByTestId('submission-mode-value');
+  }
+
+  findManagementSection() {
+    return cy.findByTestId('management-section');
+  }
+
+  findShutdownPolicyValue() {
+    return cy.findByTestId('shutdown-policy-value');
+  }
+
+  findClusterNameValue() {
+    return cy.findByTestId('cluster-name-value');
+  }
+}
+
+class RayJobResourcesTab {
+  findNodeConfigurationsSection() {
+    return cy.findByTestId('node-configurations-section');
+  }
+
+  findNodesValue() {
+    return cy.findByTestId('nodes-value');
+  }
+
+  findProcessesPerNodeValue() {
+    return cy.findByTestId('processes-per-node-value');
+  }
+
+  findResourcesPerNodeSection() {
+    return cy.findByTestId('resources-per-node-section');
+  }
+
+  findWorkerGroupTitle(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-title`);
+  }
+
+  findWorkerGroupCpuRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-requests`);
+  }
+
+  findWorkerGroupCpuLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-limits`);
+  }
+
+  findWorkerGroupMemoryRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-requests`);
+  }
+
+  findWorkerGroupMemoryLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-limits`);
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
+export const rayJobDetailsDrawer = new RayJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
@@ -638,3 +897,6 @@ export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
+export const rayJobDetailsTab = new RayJobDetailsTab();
+export const rayJobResourcesTab = new RayJobResourcesTab();
+export const editRayJobNodeCountModal = new ScaleRayJobNodesModal();

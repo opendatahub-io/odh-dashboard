@@ -11,6 +11,10 @@ import AutoragExperimentSettingsModelSelection from '~/app/components/configure/
 import { LlamaStackModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: () => ({ namespace: 'test-namespace' }),
+}));
 
 const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
 
@@ -30,7 +34,11 @@ const MOCK_MODELS = [
   },
 ];
 
-const mockModelsImplementation = (modelType?: LlamaStackModelType) =>
+const mockModelsImplementation = (
+  _namespace: string,
+  _secretName?: string,
+  modelType?: LlamaStackModelType,
+) =>
   ({
     data: {
       models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,
@@ -46,12 +54,8 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     resolver: zodResolver(configureSchema),
     defaultValues: {
       ...configureSchema.parse({}),
-      generation_constraints: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => ({
-        model: m.id,
-      })),
-      embeddings_constraints: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => ({
-        model: m.id,
-      })),
+      generation_models: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => m.id),
+      embeddings_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
     },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
@@ -102,6 +106,12 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       renderComponent();
       expect(screen.getByTestId('select-all-llm')).toBeInTheDocument();
     });
+
+    it('should display selected model counts in tab badges', () => {
+      renderComponent();
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
+      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1');
+    });
   });
 
   describe('Tab switching', () => {
@@ -109,7 +119,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       const user = userEvent.setup();
       renderComponent();
 
-      await user.click(screen.getByText('Embedding Models'));
+      await user.click(screen.getByText('Embedding Models', { exact: false }));
       expect(screen.getByTestId('embedding-models-table')).toBeInTheDocument();
       expect(screen.getByTestId('model-row-minilm-v2')).toBeInTheDocument();
     });
@@ -134,6 +144,19 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
       await user.click(checkbox!);
       expect(checkbox).not.toBeChecked();
+    });
+
+    it('should update the badge count when a model is deselected', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
+
+      const row = screen.getByTestId('model-row-llama-8b');
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      await user.click(checkbox!);
+
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1');
     });
 
     it('should reselect a model when its checkbox is clicked again', async () => {

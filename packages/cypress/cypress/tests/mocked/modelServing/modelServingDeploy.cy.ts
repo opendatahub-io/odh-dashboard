@@ -1887,9 +1887,9 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findSubmitButton().should('be.disabled');
 
       const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-      // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(1000);
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.waitForReady();
+
       // Enter invalid YAML – error appears after submit
       yamlEditor.setValue('invalid: yaml:');
       modelServingWizard.findSubmitButton().click();
@@ -1945,6 +1945,52 @@ describe('Model Serving Deploy Wizard', () => {
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(0);
       });
+    });
+
+    it('should auto-fallback to YAML edit mode if the form data extraction fails', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      const unparseableDeployment = mockLLMInferenceServiceK8sResource({
+        name: 'unparseable-model',
+        displayName: 'Unparseable Model',
+        modelUri: 's3://my-bucket/my-model',
+      });
+      delete unparseableDeployment.metadata.annotations?.['opendatahub.io/model-type'];
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([unparseableDeployment]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'unparseable-model' },
+        unparseableDeployment,
+      );
+      cy.interceptK8s(
+        'PUT',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'unparseable-model' },
+        {
+          statusCode: 200,
+          body: unparseableDeployment,
+        },
+      ).as('updateLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Unparseable Model').findKebabAction('Edit').click();
+      modelServingWizard.findYAMLViewerToggle('YAML').should('have.attr', 'aria-pressed', 'true');
+      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+
+      cy.findByTestId('yaml-fallback-alert').should('exist');
+      cy.findByTestId('yaml-fallback-alert').should(
+        'contain.text',
+        'This deployment contains custom configuration that cannot be displayed in the form',
+      );
     });
   });
 

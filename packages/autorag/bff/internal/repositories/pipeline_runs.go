@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
@@ -23,13 +24,15 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID.
+// pipelineType is set on each returned run to identify the owning pipeline (e.g. "autorag").
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
 	pageSize int32,
 	pageToken string,
+	pipelineType string,
 ) (*models.PipelineRunsData, error) {
 	// Guard against nil client to prevent panic
 	if client == nil {
@@ -63,7 +66,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		runs = append(runs, toPipelineRun(&kfRun))
+		runs = append(runs, toPipelineRun(&kfRun, pipelineType))
 	}
 
 	return &models.PipelineRunsData{
@@ -114,14 +117,16 @@ func buildFilter(pipelineVersionID string) string {
 	return string(filterJSON)
 }
 
-// toPipelineRun transforms a Kubeflow pipeline run to our stable API format
-func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
+// toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
+// pipelineType identifies the owning pipeline (e.g. "autorag").
+func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
 		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
+		RuntimeConfig:            kfRun.RuntimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -131,7 +136,146 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
+		PipelineType:             pipelineType,
 	}
+}
+
+// ValidateCreateAutoRAGRunRequest checks that all required fields are present
+// and that optional enum fields have valid values.
+func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
+	var missing []string
+	if req.DisplayName == "" {
+		missing = append(missing, "display_name")
+	}
+	if req.TestDataSecretName == "" {
+		missing = append(missing, "test_data_secret_name")
+	}
+	if req.TestDataBucketName == "" {
+		missing = append(missing, "test_data_bucket_name")
+	}
+	if req.TestDataKey == "" {
+		missing = append(missing, "test_data_key")
+	}
+	if req.InputDataSecretName == "" {
+		missing = append(missing, "input_data_secret_name")
+	}
+	if req.InputDataBucketName == "" {
+		missing = append(missing, "input_data_bucket_name")
+	}
+	if req.InputDataKey == "" {
+		missing = append(missing, "input_data_key")
+	}
+	if req.LlamaStackSecretName == "" {
+		missing = append(missing, "llama_stack_secret_name")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %v", missing)
+	}
+
+	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
+		return fmt.Errorf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric)
+	}
+
+	return nil
+}
+
+// BuildKFPRunRequest maps AutoRAG parameters to a KFP v2beta1 create-run request.
+//
+// This function transforms the BFF's AutoRAG-specific request format into the Kubeflow Pipelines
+// v2beta1 runtime config format. It injects the provided pipeline and version IDs, which are
+// typically obtained from automatic pipeline discovery.
+//
+// Parameters:
+//   - req: AutoRAG-specific run parameters (secrets, data locations, models, etc.)
+//   - pipelineID: ID of the discovered AutoRAG pipeline
+//   - pipelineVersionID: Version ID of the discovered AutoRAG pipeline
+//
+// Returns:
+//   - models.CreatePipelineRunKFRequest: KFP v2beta1 formatted request ready for submission
+func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
+	params := map[string]interface{}{
+		"test_data_secret_name":   req.TestDataSecretName,
+		"test_data_bucket_name":   req.TestDataBucketName,
+		"test_data_key":           req.TestDataKey,
+		"input_data_secret_name":  req.InputDataSecretName,
+		"input_data_bucket_name":  req.InputDataBucketName,
+		"input_data_key":          req.InputDataKey,
+		"llama_stack_secret_name": req.LlamaStackSecretName,
+	}
+
+	if len(req.EmbeddingsModels) > 0 {
+		params["embeddings_models"] = req.EmbeddingsModels
+	}
+	if len(req.GenerationModels) > 0 {
+		params["generation_models"] = req.GenerationModels
+	}
+
+	metric := req.OptimizationMetric
+	if metric == "" {
+		metric = constants.DefaultOptimizationMetric
+	}
+	params["optimization_metric"] = metric
+
+	if req.LlamaStackVectorDatabaseID != "" {
+		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	}
+
+	return models.CreatePipelineRunKFRequest{
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+		PipelineVersionReference: models.PipelineVersionReference{
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
+		},
+		RuntimeConfig: models.RuntimeConfig{
+			Parameters: params,
+		},
+	}
+}
+
+// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+//
+// This method orchestrates the creation of a new AutoRAG pipeline run by:
+//  1. Validating all required fields in the request
+//  2. Building a KFP v2beta1 runtime config with the provided pipeline IDs
+//  3. Submitting the run to the Pipeline Server
+//  4. Transforming the response to the stable API format
+//
+// Parameters:
+//   - client: Pipeline Server client interface
+//   - ctx: Request context
+//   - req: AutoRAG-specific run parameters
+//   - pipelineID: ID of the AutoRAG pipeline (from discovery)
+//   - pipelineVersionID: Version ID of the AutoRAG pipeline (from discovery)
+//   - pipelineType: Pipeline type to set on the returned run (e.g. "autorag")
+//
+// Returns:
+//   - *models.PipelineRun: The created run in stable API format
+//   - error: If validation fails or the Pipeline Server returns an error
+func (r *PipelineRunsRepository) CreatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	req models.CreateAutoRAGRunRequest,
+	pipelineID, pipelineVersionID string,
+	pipelineType string,
+) (*models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
+		return nil, err
+	}
+
+	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
+
+	kfRun, err := client.CreateRun(ctx, kfpRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
+	}
+
+	run := toPipelineRun(kfRun, pipelineType)
+	return &run, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID
@@ -160,7 +304,8 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 		return nil, ErrPipelineRunNotFound
 	}
 
-	// Transform Kubeflow format to our stable API format
-	run := toPipelineRun(kfRun)
+	// Transform Kubeflow format to our stable API format.
+	// pipeline_type is not set here; the handler sets it after ownership validation.
+	run := toPipelineRun(kfRun, "")
 	return &run, nil
 }

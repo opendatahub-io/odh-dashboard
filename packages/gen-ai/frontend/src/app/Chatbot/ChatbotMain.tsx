@@ -24,6 +24,8 @@ import {
   selectSelectedModel,
   DEFAULT_CONFIG_ID,
 } from './store';
+import { usePlaygroundStore } from './store/usePlaygroundStore';
+import PromptManagementModal from './components/promptManagementModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -48,6 +50,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = React.useState(false);
   const [isCompareChatModalOpen, setIsCompareChatModalOpen] = React.useState(false);
+  const { isPromptManagementModalOpen } = usePlaygroundStore();
   // Track which pane's settings are active in compare mode
   const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
 
@@ -257,6 +260,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         onConfirm={handleCompareConfirm}
         variant="compare"
       />
+      {isPromptManagementModalOpen && <PromptManagementModal />}
     </>
   );
 };

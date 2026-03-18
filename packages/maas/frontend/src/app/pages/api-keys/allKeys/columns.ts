@@ -26,6 +26,6 @@ export const apiKeyColumns: SortableData<APIKey>[] = [
     label: 'Expiration date',
     width: 20,
     sortable: (a: APIKey, b: APIKey): number =>
-      new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime(),
+      new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime(),
   },
 ];

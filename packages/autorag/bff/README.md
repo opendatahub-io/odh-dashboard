@@ -15,6 +15,7 @@ This service exposes the following endpoints:
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/pipeline-runs` – query pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
+- POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
 
 ## Development
 
@@ -53,6 +54,7 @@ make run LOG_LEVEL=DEBUG
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls |
 | `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`) |
+| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
@@ -100,8 +102,9 @@ The following JSON endpoints are available plus static asset serving (index.html
 GET /healthcheck
 GET /api/v1/user
 GET /api/v1/namespaces             (dev / mock mode only)
-GET /api/v1/pipeline-runs          (requires namespace parameter)
-GET /api/v1/pipeline-runs/:runId   (requires namespace parameter)
+GET  /api/v1/pipeline-runs          (requires namespace parameter)
+GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
+POST /api/v1/pipeline-runs          (requires namespace parameter)
 ```
 
 ### Authentication modes
@@ -123,6 +126,11 @@ curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
 curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace"
 curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace"
+
+# Create a pipeline run
+curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
+  "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
+  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","llama_stack_secret_name":"s"}'
 ```
 
 For detailed API documentation, see:

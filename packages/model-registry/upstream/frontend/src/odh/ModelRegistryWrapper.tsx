@@ -19,6 +19,7 @@ import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFl
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
+
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -34,7 +35,7 @@ const ModelRegistryWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <OdhDevFeatureFlagOverridesProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>

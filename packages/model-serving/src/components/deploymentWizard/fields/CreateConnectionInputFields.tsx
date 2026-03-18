@@ -27,29 +27,41 @@ export const useCreateConnectionData = (
   existingData?: CreateConnectionData,
   modelLocationData?: ModelLocationData,
 ): CreateConnectionDataField => {
-  const [createConnectionData, setCreateConnectionData] = React.useState<CreateConnectionData>(
-    existingData ?? { saveConnection: true },
+  const [createConnectionData, setCreateConnectionData] = React.useState<CreateConnectionData>(() =>
+    existingData ? { ...existingData, nameDesc: existingData.nameDesc } : {},
   );
 
-  const connectionData = React.useMemo(() => {
-    if (
-      modelLocationData?.type === ModelLocationType.EXISTING ||
-      modelLocationData?.type === ModelLocationType.PVC
-    ) {
-      return {
-        ...createConnectionData,
-        saveConnection: false,
-      };
+  // Tracks the user's explicit checkbox choice. Undefined means the user hasn't touched it
+  const [userSaveConnection, setUserSaveConnection] = React.useState<boolean | undefined>(
+    existingData?.saveConnection,
+  );
+
+  const defaultSaveConnection =
+    modelLocationData?.type !== ModelLocationType.EXISTING &&
+    modelLocationData?.type !== ModelLocationType.PVC &&
+    !(
+      modelLocationData?.type === ModelLocationType.NEW &&
+      !!modelLocationData.connection &&
+      isGeneratedSecretName(modelLocationData.connection)
+    );
+
+  const saveConnection = userSaveConnection ?? defaultSaveConnection;
+
+  const connectionData = React.useMemo(
+    () => ({ ...createConnectionData, saveConnection }),
+    [createConnectionData, saveConnection],
+  );
+
+  const setData = React.useCallback((data: CreateConnectionData) => {
+    if (data.saveConnection !== undefined) {
+      setUserSaveConnection(data.saveConnection);
     }
-    return {
-      ...createConnectionData,
-      saveConnection: createConnectionData.saveConnection,
-    };
-  }, [modelLocationData?.type, createConnectionData]);
+    setCreateConnectionData(data);
+  }, []);
 
   return {
     data: connectionData,
-    setData: setCreateConnectionData,
+    setData,
     projectName,
   };
 };
@@ -75,6 +87,7 @@ type CreateConnectionInputFieldsProps = {
   setCreateConnectionData: (data: CreateConnectionData) => void;
   projectName?: string;
   modelLocationData: ModelLocationData | undefined;
+  setModelLocationData?: (data: ModelLocationData | undefined) => void;
 };
 
 export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsProps> = ({
@@ -82,6 +95,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   setCreateConnectionData,
   projectName,
   modelLocationData,
+  setModelLocationData,
 }) => {
   const internalNameDesc = React.useMemo(() => {
     const isGeneratedSecret = isGeneratedSecretName(createConnectionData.nameDesc?.name || '');
@@ -111,7 +125,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   const resetNameDesc = React.useCallback(
     (checked: boolean) => {
       setCreateConnectionData({
-        nameDesc: undefined,
+        ...createConnectionData,
         saveConnection: checked,
       });
       setKserveNameDesc('name', '');
@@ -132,11 +146,6 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
                 label="Create a connection to this location"
                 isChecked={createConnectionData.saveConnection}
                 onChange={(_ev, checked) => {
-                  setCreateConnectionData({
-                    ...createConnectionData,
-                    nameDesc: undefined,
-                    saveConnection: checked,
-                  });
                   resetNameDesc(checked);
                 }}
               />
@@ -188,6 +197,12 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
                     ...createConnectionData,
                     nameDesc: nextNameDesc,
                   });
+                  if (modelLocationData && setModelLocationData) {
+                    setModelLocationData({
+                      ...modelLocationData,
+                      connection: k8sValue || undefined,
+                    });
+                  }
                 } else if (key === 'description') {
                   const nextNameDesc = {
                     ...kServeNameDesc,
