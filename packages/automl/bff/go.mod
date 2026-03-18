@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.0
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/kubeflow/model-registry/pkg/openapi v0.3.2
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.0
 	k8s.io/api v0.34.1
@@ -16,6 +17,8 @@ require (
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.3
 )
+
+replace github.com/kubeflow/model-registry/pkg/openapi => ../../../../model-registry/pkg/openapi
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect

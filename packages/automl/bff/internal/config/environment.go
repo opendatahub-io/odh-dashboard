@@ -121,6 +121,12 @@ type EnvConfig struct {
 	// Default: "automl-tabular"
 	AutoMLTabularPipelineNamePrefix string
 
+	// ─── MODEL REGISTRY ──────────────────────────────────────────
+	// ModelRegistryBaseURL is the base URL for the Model Registry REST API
+	// (e.g., http://model-registry.kubeflow.svc:8080/api/model_registry/v1alpha3).
+	// When empty, model registration endpoints return 500.
+	ModelRegistryBaseURL string
+
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)

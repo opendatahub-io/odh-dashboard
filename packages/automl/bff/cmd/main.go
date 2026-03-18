@@ -32,6 +32,7 @@ func main() {
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "automl-timeseries"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: automl-timeseries)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "automl-tabular"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: automl-tabular)")
+	flag.StringVar(&cfg.ModelRegistryBaseURL, "model-registry-base-url", getEnvAsString("MODEL_REGISTRY_BASE_URL", ""), "Base URL for Model Registry API (e.g., http://model-registry:8080/api/model_registry/v1alpha3)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 

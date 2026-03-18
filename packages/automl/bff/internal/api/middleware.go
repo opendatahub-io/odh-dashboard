@@ -17,6 +17,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -198,6 +199,41 @@ func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *h
 		logger.Debug("User authorized to access pipeline servers in namespace", "namespace", namespace)
 
 		next(w, r, ps)
+	}
+}
+
+// AttachModelRegistryClient creates an HTTP client for the Model Registry API and attaches it to context.
+// When ModelRegistryBaseURL is configured, the client is created and passed to the handler.
+// When not configured, no client is attached; handlers should return an appropriate error.
+func (app *App) AttachModelRegistryClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		baseURL := strings.TrimSpace(app.config.ModelRegistryBaseURL)
+		if baseURL == "" {
+			next(w, r, ps)
+			return
+		}
+
+		// Ensure base URL has no trailing slash for path joining
+		baseURL = strings.TrimSuffix(baseURL, "/")
+
+		logger := helper.GetContextLoggerFromReq(r)
+		headers := http.Header{}
+
+		// Forward authorization header when using user token auth
+		if app.config.AuthMethod == config.AuthMethodUser {
+			if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
+				headers.Set("Authorization", "Bearer "+identity.Token)
+			}
+		}
+
+		client, err := modelregistry.NewHTTPClient(logger, baseURL, headers, app.config.InsecureSkipVerify, app.rootCAs)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to create Model Registry HTTP client: %w", err))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.ModelRegistryHttpClientKey, client)
+		next(w, r.WithContext(ctx), ps)
 	}
 }
 

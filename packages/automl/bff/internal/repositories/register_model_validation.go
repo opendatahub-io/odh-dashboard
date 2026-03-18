@@ -1,0 +1,30 @@
+package repositories
+
+import (
+	"errors"
+	"regexp"
+	"strings"
+
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
+)
+
+// S3 path pattern: s3://bucket-name/path or s3a://bucket/path (must have bucket and path)
+var s3PathRegex = regexp.MustCompile(`^s3[a]?://[^/]+/.+`)
+
+// ValidateRegisterModelRequest validates the RegisterModelRequest.
+// Returns an error if S3 path or model metadata are invalid.
+func ValidateRegisterModelRequest(req models.RegisterModelRequest) error {
+	if strings.TrimSpace(req.S3Path) == "" {
+		return errors.New("s3_path is required and cannot be empty")
+	}
+	if !s3PathRegex.MatchString(strings.TrimSpace(req.S3Path)) {
+		return errors.New("s3_path must be a valid S3 URI (e.g., s3://bucket-name/path/to/model)")
+	}
+	if strings.TrimSpace(req.ModelName) == "" {
+		return errors.New("model_name is required and cannot be empty")
+	}
+	if strings.TrimSpace(req.VersionName) == "" {
+		return errors.New("version_name is required and cannot be empty")
+	}
+	return nil
+}
