@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -173,4 +174,89 @@ func (app *App) DeleteExternalModelHandler(w http.ResponseWriter, r *http.Reques
 
 	// Return 204 No Content on successful deletion
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type VerifyExternalModelEnvelope = Envelope[models.VerifyExternalModelResponse, None]
+
+// VerifyExternalModelHandler handles POST /api/v1/models/external/verify
+func (app *App) VerifyExternalModelHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+	_ httprouter.Params,
+) {
+	ctx := r.Context()
+
+	// 1. Parse request
+	var req models.VerifyExternalModelRequest
+	if err := app.ReadJSON(w, r, &req); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// 2. Validate required fields
+	if req.ModelID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model_id is required"))
+		return
+	}
+	if req.BaseURL == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("base_url is required"))
+		return
+	}
+	if req.SecretValue == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
+		return
+	}
+	if req.ModelType == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
+		return
+	}
+
+	// Validate model type
+	validModelTypes := map[models.ModelTypeEnum]bool{
+		models.ModelTypeEmbedding: true,
+		models.ModelTypeLLM:       true,
+	}
+	if !validModelTypes[req.ModelType] {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid model_type: %s", req.ModelType))
+		return
+	}
+
+	// Validate embedding_dimension for embedding models
+	if req.ModelType == models.ModelTypeEmbedding {
+		if req.EmbeddingDimension == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension is required for embedding models"))
+			return
+		}
+		if *req.EmbeddingDimension <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
+			return
+		}
+	}
+
+	// 3. Call repository
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req)
+	if err != nil {
+		// Handle custom error types
+		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
+			httpError := &integrations.HTTPError{
+				StatusCode: extErr.StatusCode,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    extErr.Code,
+					Message: extErr.Message,
+				},
+			}
+			app.errorResponse(w, r, httpError)
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// 4. Return success
+	envelope := VerifyExternalModelEnvelope{
+		Data: *response,
+	}
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
