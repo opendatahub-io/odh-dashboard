@@ -18,7 +18,9 @@ var (
 	// Middleware uses this to return 503 instead of 500.
 	ErrMLflowNotConfigured = errors.New("MLflow is not configured: set --mlflow-url")
 
-	// ErrTokenRequired is returned when the auth token is empty or whitespace-only.
+	// ErrTokenRequired may be returned by factory implementations that require auth.
+	// RealClientFactory allows empty tokens (for AUTH_METHOD=disabled) and omits
+	// the Authorization header in that case.
 	ErrTokenRequired = errors.New("mlflow auth token is required")
 
 	// ErrNamespaceRequired is returned when the workspace namespace is empty or whitespace-only.
@@ -81,13 +83,11 @@ func NewRealClientFactory(cfg RealClientFactoryConfig) MLflowClientFactory {
 }
 
 // GetClient creates a per-request MLflow client with the caller's auth token and workspace namespace.
+// When token is empty (e.g. AUTH_METHOD=disabled), the Authorization header is omitted.
 func (f *RealClientFactory) GetClient(_ context.Context, token, namespace string) (ClientInterface, error) {
 	token = strings.TrimSpace(token)
 	namespace = strings.TrimSpace(namespace)
 
-	if token == "" {
-		return nil, ErrTokenRequired
-	}
 	if namespace == "" {
 		return nil, ErrNamespaceRequired
 	}
@@ -98,8 +98,10 @@ func (f *RealClientFactory) GetClient(_ context.Context, token, namespace string
 	}
 
 	headers := map[string]string{
-		"Authorization":      "Bearer " + token,
 		"X-MLFLOW-WORKSPACE": namespace,
+	}
+	if token != "" {
+		headers["Authorization"] = "Bearer " + token
 	}
 
 	opts := []sdkmlflow.Option{

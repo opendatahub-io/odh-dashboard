@@ -69,15 +69,7 @@ func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Conf
 }
 
 func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	id, err := f.realK8sFactory.ExtractRequestIdentity(httpHeader)
-	if err != nil {
-		token := "FAKE_BEARER_TOKEN"
-		if len(DefaultTestUsers) > 0 {
-			token = DefaultTestUsers[0].Token
-		}
-		return &k8s.RequestIdentity{Token: k8s.NewBearerToken(token)}, nil
-	}
-	return id, nil
+	return f.realK8sFactory.ExtractRequestIdentity(httpHeader)
 }
 
 func (f *MockedTokenClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {

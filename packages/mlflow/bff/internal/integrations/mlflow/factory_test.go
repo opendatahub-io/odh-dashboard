@@ -27,8 +27,8 @@ func TestRealClientFactoryGetClientEmptyToken(t *testing.T) {
 
 	client, err := factory.GetClient(context.Background(), "", "namespace")
 
-	assert.Nil(t, client)
-	assert.ErrorIs(t, err, ErrTokenRequired)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
 func TestRealClientFactoryGetClientWhitespaceOnlyToken(t *testing.T) {
@@ -39,8 +39,8 @@ func TestRealClientFactoryGetClientWhitespaceOnlyToken(t *testing.T) {
 
 	client, err := factory.GetClient(context.Background(), "   ", "namespace")
 
-	assert.Nil(t, client)
-	assert.ErrorIs(t, err, ErrTokenRequired)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
 func TestRealClientFactoryGetClientEmptyNamespace(t *testing.T) {

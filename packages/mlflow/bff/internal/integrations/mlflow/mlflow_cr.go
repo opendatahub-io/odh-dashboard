@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -31,24 +30,20 @@ var MLflowGVR = schema.GroupVersionResource{
 	Resource: MLflowCRDResource,
 }
 
-const (
-	crDiscoveryTimeout          = 10 * time.Second
-	serviceAccountNamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-)
+const crDiscoveryTimeout = 10 * time.Second
 
-// DiscoverMLflowURL attempts to find the MLflow tracking URL by reading the
-// MLflow CR status in the pod's own namespace. Returns the in-cluster service
-// URL (status.address.url) when exactly one MLflow CR exists, or an error if
+// DiscoverMLflowURL attempts to find the MLflow tracking URL by listing
+// cluster-scoped MLflow CRs and reading status.address.url. Returns the
+// in-cluster service URL when exactly one MLflow CR exists, or an error if
 // zero or multiple CRs are found. This is a best-effort startup discovery.
 //
-// The pod's service account must have RBAC permission to list mlflows.mlflow.opendatahub.io
-// in its own namespace for auto-discovery to succeed.
+// The MLflow CRD (mlflows.mlflow.opendatahub.io) is cluster-scoped, so the
+// list is performed without a namespace filter.
+//
+// The pod's service account must have RBAC permission to list
+// mlflows.mlflow.opendatahub.io at the cluster scope for auto-discovery
+// to succeed.
 func DiscoverMLflowURL() (string, error) {
-	namespace, err := getPodNamespace()
-	if err != nil {
-		return "", fmt.Errorf("cannot determine pod namespace: %w", err)
-	}
-
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
 		return "", fmt.Errorf("failed to get in-cluster config: %w", err)
@@ -62,17 +57,17 @@ func DiscoverMLflowURL() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
 	defer cancel()
 
-	list, err := dynClient.Resource(MLflowGVR).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 2})
+	list, err := dynClient.Resource(MLflowGVR).List(ctx, metav1.ListOptions{Limit: 2})
 	if err != nil {
-		return "", fmt.Errorf("failed to list MLflow CRs in namespace %q: %w", namespace, err)
+		return "", fmt.Errorf("failed to list MLflow CRs: %w", err)
 	}
 
 	if len(list.Items) == 0 {
-		return "", fmt.Errorf("no MLflow CR found in namespace %q", namespace)
+		return "", fmt.Errorf("no MLflow CR found in the cluster")
 	}
 
 	if len(list.Items) > 1 || list.GetContinue() != "" {
-		return "", fmt.Errorf("multiple MLflow CRs found in namespace %q; set MLFLOW_URL explicitly or narrow discovery criteria", namespace)
+		return "", fmt.Errorf("multiple MLflow CRs found; set MLFLOW_URL explicitly or narrow discovery criteria")
 	}
 
 	return parseAddressURL(&list.Items[0])
@@ -108,16 +103,4 @@ func parseAddressURL(item *unstructured.Unstructured) (string, error) {
 	}
 
 	return serviceURL, nil
-}
-
-func getPodNamespace() (string, error) {
-	data, err := os.ReadFile(serviceAccountNamespaceFile)
-	if err != nil {
-		return "", err
-	}
-	ns := strings.TrimSpace(string(data))
-	if ns == "" {
-		return "", fmt.Errorf("service account namespace file is empty")
-	}
-	return ns, nil
 }

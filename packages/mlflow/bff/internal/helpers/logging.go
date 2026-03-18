@@ -32,6 +32,7 @@ var sensitiveHeaders = []string{
 	"Cookie",
 	"Set-Cookie",
 	"Proxy-Authorization",
+	"X-Forwarded-Access-Token",
 }
 
 func isSensitiveHeader(h string) bool {
@@ -62,13 +63,18 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
+const maxBodyLogSize = 1 << 20 // 1 MiB
+
 func CloneBody(r *http.Request) ([]byte, error) {
 	if r.Body == nil {
 		return nil, fmt.Errorf("no body provided")
 	}
-	buf, err := io.ReadAll(r.Body)
+	buf, err := io.ReadAll(io.LimitReader(r.Body, int64(maxBodyLogSize+1)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read request body: %w", err)
+	}
+	if len(buf) > maxBodyLogSize {
+		buf = buf[:maxBodyLogSize]
 	}
 	r.Body = io.NopCloser(bytes.NewBuffer(buf))
 	return buf, nil
