@@ -50,14 +50,9 @@ func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
 	}
 }
 
-// ListModels retrieves all available models from the MaaS API
-func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
-	// Exchange the OpenShift user token for a MaaS API key
-	apiKeyResponse, err := c.IssueToken(ctx, models.MaaSTokenRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to obtain MaaS API key: %w", err)
-	}
-
+// ListModels retrieves all available models from the MaaS API.
+// apiKey must be a valid MaaS API key obtained via IssueToken.
+func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
 	url := fmt.Sprintf("%s/v1/models", c.baseURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -65,7 +60,7 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+apiKeyResponse.Key)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

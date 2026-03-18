@@ -18,7 +18,7 @@ func NewMockMaaSClient() *MockMaaSClient {
 }
 
 // ListModels returns mock MaaS model data
-func (m *MockMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
 	// Create timestamp for consistent mock data
 	created := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 

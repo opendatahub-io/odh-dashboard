@@ -1461,8 +1461,14 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 
 		if hasMaaSModels {
+			// Obtain a MaaS API key to authenticate the ListModels request
+			apiKeyResp, err := maasClient.IssueToken(ctx, models.MaaSTokenRequest{})
+			if err != nil {
+				kc.Logger.Error("failed to obtain MaaS API key for model listing", "error", err)
+				return "", fmt.Errorf("failed to obtain MaaS API key: %w", err)
+			}
 			// Get all MaaS models once
-			maasModels, err := maasClient.ListModels(ctx)
+			maasModels, err := maasClient.ListModels(ctx, apiKeyResp.Key)
 			if err != nil {
 				kc.Logger.Error("failed to list MaaS models", "error", err)
 				return "", fmt.Errorf("failed to list MaaS models: %w", err)
