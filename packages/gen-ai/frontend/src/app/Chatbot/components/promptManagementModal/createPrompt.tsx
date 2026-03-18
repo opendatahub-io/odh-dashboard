@@ -1,7 +1,7 @@
 import React from 'react';
 import { Flex, Button, TextInput, TextArea, Title } from '@patternfly/react-core';
+import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt } from './usePromptQueries';
-import { usePlaygroundStore } from '../../store/usePlaygroundStore';
 
 export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
   const { dirtyPrompt, setActivePrompt, setDirtyPrompt } = usePlaygroundStore();

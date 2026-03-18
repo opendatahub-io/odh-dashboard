@@ -4,7 +4,7 @@ import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
-import { DEFAULT_SYSTEM_INSTRUCTIONS } from '../const';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 type PromptAssistantFormGroupProps = {
   systemInstruction: string;
