@@ -39,7 +39,6 @@ describe('useSearchHandlers', () => {
       isSmallScreen: false,
       searchInputRef: { current: document.createElement('input') },
       searchMenuRef: { current: document.createElement('div') },
-      timeoutRef: { current: undefined },
       setSearchValue: jest.fn(),
       setIsSearchOpen: jest.fn(),
       setIsSearching: jest.fn(),

@@ -82,6 +82,7 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   display_name: 'Test Model',
   internalEndpoint: 'http://internal',
   externalEndpoint: 'http://external',
+  model_source_type: 'namespace',
   sa_token: {
     name: 'token-name',
     token_name: 'token',
@@ -161,7 +162,7 @@ describe('AIModelTableRow', () => {
   });
 
   it('should render View button for MaaS models', () => {
-    const model = createMockAIModel({ isMaaSModel: true });
+    const model = createMockAIModel({ model_source_type: 'maas' });
     render(
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
@@ -355,7 +356,7 @@ describe('AIModelTableRow', () => {
 
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
-      const model = createMockAIModel({ model_id: 'maas-model-id', isMaaSModel: true });
+      const model = createMockAIModel({ model_id: 'maas-model-id', model_source_type: 'maas' });
       const playgroundModel = createMockPlaygroundModel('maas-model-id');
 
       render(
@@ -373,7 +374,7 @@ describe('AIModelTableRow', () => {
     });
 
     it('should track assetType as model for non-MaaS models on playground launch', () => {
-      const model = createMockAIModel({ model_id: 'ns-model-id', isMaaSModel: false });
+      const model = createMockAIModel({ model_id: 'ns-model-id', model_source_type: 'namespace' });
       const playgroundModel = createMockPlaygroundModel('ns-model-id');
 
       render(
@@ -388,6 +389,111 @@ describe('AIModelTableRow', () => {
         'Available Endpoints Playground Launched',
         { assetType: 'model', assetId: 'ns-model-id' },
       );
+    });
+  });
+
+  describe('External models', () => {
+    it('should show "Add to playground" button for external_provider models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
+    });
+
+    it('should show "Add to playground" button for external_cluster models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_cluster',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
+    });
+
+    it('should open configuration modal when clicking "Add to playground" for external models', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      const addButton = screen.getByText('Add to playground');
+      fireEvent.click(addButton);
+
+      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+    });
+
+    it('should handle external models already in playground', () => {
+      const model = createMockAIModel({
+        model_id: 'external-model-id',
+        model_source_type: 'external_provider',
+        status: 'Running',
+      });
+      const playgroundModel = createMockPlaygroundModel('external-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
+    });
+
+    it('should navigate to playground when clicking "Try in playground" for external models', () => {
+      const model = createMockAIModel({
+        model_id: 'external-model-id',
+        model_source_type: 'external_cluster',
+        status: 'Running',
+      });
+      const playgroundModel = createMockPlaygroundModel('external-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+        </TestWrapper>,
+      );
+
+      const tryButton = screen.getByText('Try in playground');
+      fireEvent.click(tryButton);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/gen-ai-studio/playground/test-namespace', {
+        state: {
+          model: 'provider/external-model-id',
+        },
+      });
+    });
+
+    it('should disable "Add to playground" button for external models that are not Running', () => {
+      const model = createMockAIModel({
+        model_source_type: 'external_provider',
+        status: 'Stop',
+      });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      const button = screen.getByText('Add to playground');
+      expect(button.closest('button')).toBeDisabled();
     });
   });
 });

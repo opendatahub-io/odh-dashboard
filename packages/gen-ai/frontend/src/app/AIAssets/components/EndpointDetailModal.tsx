@@ -31,7 +31,7 @@ type EndpointDetailModalProps = {
 const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClose }) => {
   const hasExternal = !!model.externalEndpoint;
   const hasInternal = !!model.internalEndpoint;
-  const isMaaS = model.modelSource === 'maas' || !!model.isMaaSModel;
+  const isMaaS = model.model_source_type === 'maas';
 
   const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken();
 

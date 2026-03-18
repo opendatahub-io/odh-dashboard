@@ -73,11 +73,22 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
+				app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
 				return
 			}
 			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
+				app.unauthorizedResponse(w, r, "access unauthorized")
+				return
+			}
+			if apierrors.IsBadRequest(statusErr) || apierrors.IsInvalid(statusErr) {
+				httpError := &integrations.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusBadRequest),
+						Message: fmt.Sprintf("invalid request for namespace '%s'", namespace),
+					},
+				}
+				app.errorResponse(w, r, httpError)
 				return
 			}
 		}

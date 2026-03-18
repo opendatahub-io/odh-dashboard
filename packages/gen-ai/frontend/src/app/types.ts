@@ -17,7 +17,7 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  is_maas_model: boolean;
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
   max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
@@ -364,7 +364,7 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
-  model_source_type?: 'namespace' | 'external_cluster' | 'external_provider';
+  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
   model_type?: 'llm' | 'embedding';
 }
 
@@ -372,11 +372,6 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  // Flag to identify if this is a MaaS model
-  isMaaSModel?: boolean;
-  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
-  maasModelId?: string;
-  modelSource?: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
 }
 
 export type ExternalModelRequest = {

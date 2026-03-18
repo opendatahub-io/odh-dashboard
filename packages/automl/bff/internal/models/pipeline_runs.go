@@ -8,6 +8,7 @@ type PipelineRun struct {
 	Description              string                    `json:"description,omitempty"`
 	ExperimentID             string                    `json:"experiment_id,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
 	State                    string                    `json:"state"`
 	StorageState             string                    `json:"storage_state,omitempty"`
 	ServiceAccount           string                    `json:"service_account,omitempty"`
@@ -17,6 +18,7 @@ type PipelineRun struct {
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
+	PipelineType             string                    `json:"pipeline_type,omitempty"`
 }
 
 // PipelineVersionReference contains pipeline and version IDs
@@ -100,4 +102,60 @@ type TaskDetail struct {
 // ChildTask represents a child task reference
 type ChildTask struct {
 	PodName string `json:"pod_name,omitempty"`
+}
+
+// CreateAutoMLRunRequest is the BFF-level input for creating an AutoML pipeline run.
+type CreateAutoMLRunRequest struct {
+	DisplayName         string `json:"display_name"`
+	Description         string `json:"description,omitempty"`
+	TrainDataSecretName string `json:"train_data_secret_name"`
+	TrainDataBucketName string `json:"train_data_bucket_name"`
+	TrainDataFileKey    string `json:"train_data_file_key"`
+	LabelColumn         string `json:"label_column"`
+	TaskType            string `json:"task_type"`
+	TopN                *int   `json:"top_n,omitempty"`
+}
+
+// CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.
+type CreatePipelineRunKFRequest struct {
+	DisplayName              string                   `json:"display_name"`
+	Description              string                   `json:"description,omitempty"`
+	PipelineVersionReference PipelineVersionReference `json:"pipeline_version_reference"`
+	RuntimeConfig            RuntimeConfig            `json:"runtime_config"`
+}
+
+// KFPipeline represents a pipeline definition from the KFP v2beta1 API.
+// Used by pipeline discovery to identify managed AutoML pipelines in a namespace.
+type KFPipeline struct {
+	PipelineID  string `json:"pipeline_id"`  // Unique pipeline identifier
+	DisplayName string `json:"display_name"` // Human-readable pipeline name (used for discovery matching)
+	Description string `json:"description,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"` // ISO 8601 timestamp
+	Namespace   string `json:"namespace,omitempty"`
+}
+
+// KFPipelineVersion represents a version of a pipeline from the KFP v2beta1 API.
+// Used to retrieve the version ID of a discovered pipeline for run creation.
+type KFPipelineVersion struct {
+	PipelineID        string `json:"pipeline_id"`         // ID of the parent pipeline
+	PipelineVersionID string `json:"pipeline_version_id"` // Unique version identifier
+	DisplayName       string `json:"display_name"`        // Human-readable version name (e.g., "v1.0.0")
+	Description       string `json:"description,omitempty"`
+	CreatedAt         string `json:"created_at,omitempty"` // ISO 8601 timestamp
+}
+
+// KFPipelinesResponse represents the response from GET /apis/v2beta1/pipelines.
+// Returned by PipelineServerClient.ListPipelines() for pipeline discovery.
+type KFPipelinesResponse struct {
+	Pipelines     []KFPipeline `json:"pipelines,omitempty"`       // List of pipeline definitions
+	TotalSize     int32        `json:"total_size,omitempty"`      // Total number of pipelines available
+	NextPageToken string       `json:"next_page_token,omitempty"` // Pagination token for next page
+}
+
+// KFPipelineVersionsResponse represents the response from GET /apis/v2beta1/pipelines/{id}/versions.
+// Returned by PipelineServerClient.ListPipelineVersions() for version discovery.
+type KFPipelineVersionsResponse struct {
+	PipelineVersions []KFPipelineVersion `json:"pipeline_versions,omitempty"` // List of versions for a pipeline
+	TotalSize        int32               `json:"total_size,omitempty"`        // Total number of versions available
+	NextPageToken    string              `json:"next_page_token,omitempty"`   // Pagination token for next page
 }

@@ -187,6 +187,29 @@ var storageTypeRequiredKeys = map[string][]string{
 
 To add a new storage type, simply add an entry to this map with the required keys. No changes to the API or handler code are needed.
 
+### Allowed Keys Configuration
+
+The allowed keys configuration (keys whose values are not redacted) is defined in `internal/constants/secrets.go`:
+
+```go
+// allowedSecretKeys is unexported to prevent external modification
+var allowedSecretKeys = []string{
+    AllowedSecretKey_AWS_S3_Bucket, // "aws_s3_bucket"
+}
+
+// IsAllowedSecretKey checks if a given key is in the allowed list
+func IsAllowedSecretKey(key string) bool {
+    // Implementation handles case-insensitive matching
+}
+```
+
+To allow a new key to be exposed to clients:
+1. Add a constant in `internal/constants/secrets.go` (e.g., `AllowedSecretKey_MyNewKey`)
+2. Add it to the `allowedSecretKeys` slice
+3. The key will automatically return its actual value instead of `"[REDACTED]"`
+
+Key matching is case-insensitive via the `IsAllowedSecretKey()` function, so `aws_s3_bucket`, `AWS_S3_BUCKET`, and `Aws_S3_Bucket` will all match.
+
 ### Security
 
 - The endpoint requires authentication via the InjectRequestIdentity middleware

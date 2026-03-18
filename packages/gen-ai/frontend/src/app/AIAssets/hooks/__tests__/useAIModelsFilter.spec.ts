@@ -21,6 +21,7 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
     token_name: 'token',
     token: 'test-token',
   },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
@@ -103,8 +104,8 @@ describe('useAIModelsFilter', () => {
   describe('Filter by source', () => {
     it('should filter models by source (select filter)', () => {
       const models = [
-        createMockAIModel({ model_id: 'model-1', modelSource: 'namespace' }),
-        createMockAIModel({ model_id: 'model-2', modelSource: 'maas', isMaaSModel: true }),
+        createMockAIModel({ model_id: 'model-1', model_source_type: 'namespace' }),
+        createMockAIModel({ model_id: 'model-2', model_source_type: 'maas' }),
       ];
 
       const { result } = testHook(useAIModelsFilter)(models);

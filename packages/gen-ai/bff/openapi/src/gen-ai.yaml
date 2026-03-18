@@ -290,9 +290,9 @@ paths:
             example:
               models:
                 - model_name: 'llama-3-2-3b-instruct'
-                  is_maas_model: false
+                  model_source_type: 'namespace'
                 - model_name: 'granite-embedding-125m'
-                  is_maas_model: false
+                  model_source_type: 'maas'
       responses:
         '200':
           $ref: '#/components/responses/LlamaStackDistributionInstallResponse'
@@ -3297,9 +3297,9 @@ components:
           description: List of models to include in the LSD installation
           example:
             - model_name: 'llama-3-2-3b-instruct'
-              is_maas_model: false
+              model_source_type: 'namespace'
             - model_name: 'facebook/opt-125m'
-              is_maas_model: true
+              model_source_type: 'maas'
           minItems: 1
         enable_guardrails:
           type: boolean
@@ -3314,18 +3314,29 @@ components:
       type: object
       required:
         - model_name
-        - is_maas_model
+        - model_source_type
       properties:
         model_name:
           type: string
           description: |
             Name of the model to install. For MaaS models, this must be the exact MaaS model ID
-            (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
+            (e.g., 'facebook/opt-125m'). For namespace models, this is the Kubernetes resource name.
+            For external models, this is the model identifier from the external provider.
           example: 'llama-3-2-3b-instruct'
-        is_maas_model:
-          type: boolean
-          description: Whether this is a MaaS (Model as a Service) model
-          example: false
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - external_cluster
+            - external_provider
+            - maas
+          description: |
+            Source type of the model (required):
+            - namespace: Model deployed in the same Kubernetes namespace
+            - external_cluster: Model deployed in a different namespace or cluster
+            - external_provider: Model from external AI provider (OpenAI, Anthropic, etc.)
+            - maas: Model from Model as a Service (MaaS) platform
+          example: 'namespace'
         max_tokens:
           type: integer
           description: |

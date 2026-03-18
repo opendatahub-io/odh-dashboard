@@ -58,7 +58,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	// Validate MaaS client is available if any MaaS models are requested
 	hasMaaSModels := false
 	for _, model := range installRequest.Models {
-		if model.IsMaaSModel {
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
 			hasMaaSModels = true
 			break
 		}

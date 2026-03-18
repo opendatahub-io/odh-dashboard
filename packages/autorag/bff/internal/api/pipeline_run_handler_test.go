@@ -62,14 +62,15 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-	// Add discovered pipeline to context (normally set by middleware)
+	// Add discovered pipeline map to context (normally set by middleware)
 	discovered := &repositories.DiscoveredPipeline{
 		PipelineID:        ids.PipelineID,
 		PipelineVersionID: ids.LatestVersionID,
 		PipelineName:      "autorag-pipeline",
 		Namespace:         "test-namespace",
 	}
-	ctx = context.WithValue(ctx, constants.DiscoveredPipelineKey, discovered)
+	pipelines := map[string]*repositories.DiscoveredPipeline{"autorag": discovered}
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
 	return req.WithContext(ctx)
 }
 
@@ -257,7 +258,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {

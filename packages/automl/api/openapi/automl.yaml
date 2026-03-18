@@ -25,6 +25,27 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
+  /api/v1/user:
+    summary: Path used to retrieve a user associated with the token.
+    description: >-
+      The REST endpoint/path used to get the configuration object.
+    get:
+      tags:
+        - K8SOperation
+      security:
+        - Bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/ConfigResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getUser
+      summary: Get User
+      description: Get User endpoint.
   /api/v1/namespaces:
     summary: Path used to get available namespaces.
     description: >-
@@ -53,26 +74,195 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getNamespaces
       summary: Get Available Namespaces
-      description: Returns available namespaces in the cluster.
-  /api/v1/user:
-    summary: Path used to Retrieve a user based on the header.
+      description: Get Available Namespaces endpoint.
+  /api/v1/secrets:
+    summary: Path used to retrieve and filter secrets from a namespace.
     description: >-
-      The REST endpoint/path used pass all the config information needed for the UI.
+      The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
     get:
       tags:
         - K8SOperation
       parameters:
-        - $ref: "#/components/parameters/kubeflowUserId"
+        - name: namespace
+          in: query
+          required: true
+          description: The namespace name to query secrets from
+          schema:
+            type: string
+          example: default
+        - name: type
+          in: query
+          required: false
+          description: >-
+            Secret type filter:
+            - 'storage': Filters for storage secrets (e.g., S3 secrets)
+            - Omit for all secrets
+
+            Type detection uses:
+            1. The 'opendatahub.io/connection-type' annotation value if present
+            2. Otherwise, key-based classification (case-insensitive):
+               - S3 requires: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint
+
+            The 'data' field in the response contains all secret keys. Use it to validate additional requirements
+            for your use case (e.g., checking for aws_s3_bucket). Allowed keys show actual values; others show "[REDACTED]".
+          schema:
+            type: string
+            enum:
+              - storage
+          example: storage
       responses:
         "200":
-          $ref: "#/components/responses/ConfigResponse"
+          $ref: "#/components/responses/SecretsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-      operationId: getConfig
-      summary: Get configuration info
-      description: Gets the configuration information needed for the UI [TBD]
+      operationId: getSecrets
+      summary: Get filtered secrets
+      description: >-
+        Retrieves secrets from a specified namespace with optional filtering by type.
+        All key matching is case-insensitive.
+
+        Secret Type Detection:
+        1. First checks for the 'opendatahub.io/connection-type' annotation. If present, its value is used as the type.
+        2. Otherwise, performs key-based classification using required classification keys:
+           - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+
+        Type Filtering:
+        - 'storage': Returns only secrets classified as storage types (currently: s3)
+        - No type: Returns all secrets with their detected type classification
+
+        Data Security:
+        The 'data' field contains all secret keys with redacted or actual values:
+        - Allowed keys (currently: aws_s3_bucket) return actual values
+        - All other keys return "[REDACTED]"
+        Key matching for allowed keys is case-insensitive.
+
+        Metadata:
+        - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
+        - 'description': Extracted from 'openshift.io/description' annotation if present
+
+  /api/v1/pipeline-runs:
+    summary: Pipeline run operations
+    description: >-
+      Endpoints for listing pipeline runs from the Pipeline Server
+      in the specified namespace. The Pipeline Server (DSPipelineApplication)
+      and AutoML managed pipeline are automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/page"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRuns
+      summary: Get Pipeline Runs
+      description: >-
+        Returns merged pipeline runs from all auto-discovered AutoML pipelines (time-series
+        and tabular). Runs are sorted by creation time descending and paginated using
+        page/pageSize. Returns 500 if no managed AutoML pipelines are found in the namespace.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - timeseries
+              - tabular
+            default: timeseries
+          description: Type of AutoML pipeline to use for run creation (defaults to timeseries)
+          example: "timeseries"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutoMLRunRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: createPipelineRun
+      summary: Create Pipeline Run
+      description: >-
+        Creates a new AutoML pipeline run using the auto-discovered pipeline for the
+        requested pipeline type. The pipelineType query parameter selects which discovered
+        pipeline to use; when omitted it defaults to "timeseries".
+
+  /api/v1/pipeline-runs/{runId}:
+    summary: Get a single pipeline run by ID
+    description: >-
+      Retrieves a single pipeline run by its unique identifier from the
+      Pipeline Server in the specified namespace. The Pipeline Server
+      (DSPipelineApplication) and AutoML managed pipeline are automatically discovered.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getPipelineRunById
+      summary: Get Pipeline Run by ID
+      description: Returns a single pipeline run by its unique identifier
+
 components:
   schemas:
     Config:
@@ -87,110 +277,384 @@ components:
         clusterAdmin:
           type: boolean
           example: true
-    BaseResource:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceCreate"
-        - type: object
-          properties:
-            id:
-              format: int64
-              description: Output only. The unique server generated id of the resource.
-              type: string
-              readOnly: true
-            createTimeSinceEpoch:
-              format: int64
-              description: Output only. Create time of the resource in millisecond since epoch.
-              type: string
-              readOnly: true
-            lastUpdateTimeSinceEpoch:
-              format: int64
-              description: |-
-                Output only. Last update time of the resource since epoch in millisecond
-                since epoch.
-              type: string
-              readOnly: true
-    BaseResourceCreate:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceUpdate"
-        - type: object
-          properties:
-            name:
-              description: |-
-                The client provided name of the artifact. This field is optional. If set,
-                it must be unique among all the artifacts of the same artifact type within
-                a database instance and cannot be changed once set.
-              type: string
-    BaseResourceUpdate:
+
+    # Secret Schemas
+    SecretTypeSchema:
+      description: >-
+        Schema defining the classification keys for a secret type.
+        Type detection first checks the 'opendatahub.io/connection-type' annotation.
+        If not present, classification keys are used to identify the secret type through key-based detection.
+        Common optional keys are included in the 'data' field but not required for type classification.
       type: object
       properties:
-        customProperties:
-          description: User provided custom properties which are not defined by its type.
+        classificationKeys:
+          type: array
+          items:
+            type: string
+          description: Keys required for BFF to classify a secret as this type via key-based detection (case-insensitive matching)
+        commonOptionalKeys:
+          type: array
+          items:
+            type: string
+          description: >-
+            Common optional keys that may be required for specific use cases but not for type classification.
+            These appear in the 'data' field when present.
+
+    SecretTypeSchemas:
+      description: Reference documentation for secret type schemas
+      type: object
+      properties:
+        s3:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                commonOptionalKeys:
+                  example: ["aws_s3_bucket"]
+
+    SecretListItem:
+      description: A Kubernetes secret with its UUID, name, type classification, data keys with values/redaction, and metadata
+      required:
+        - uuid
+        - name
+        - type
+        - data
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The Kubernetes UID of the secret
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: The name of the secret
+          example: aws-secret-1
+        type:
+          type: string
+          enum: ["s3", ""]
+          description: >-
+            The type of the secret determined by:
+            1. First, the 'opendatahub.io/connection-type' annotation if present
+            2. Otherwise, key-based detection using classification keys (see SecretTypeSchemas):
+               - 's3': S3 storage secret (has all required S3 classification keys)
+               - '': Empty string if the secret doesn't match any recognized type
+          example: s3
+        data:
           type: object
           additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
+            type: string
+          description: >-
+            Map of all keys in the secret with their values. Security redaction applies:
+            - Keys in the allowed list (currently: aws_s3_bucket) return their actual values
+            - All other keys return the value "[REDACTED]"
+            Key matching for allowed keys is case-insensitive.
+          example:
+            aws_access_key_id: "[REDACTED]"
+            aws_default_region: "[REDACTED]"
+            aws_s3_endpoint: "[REDACTED]"
+            aws_secret_access_key: "[REDACTED]"
+            aws_s3_bucket: "my-bucket-name"
+        displayName:
+          type: string
+          description: Display name from the 'openshift.io/display-name' annotation (if present)
+          example: "My AWS S3 Connection"
         description:
-          description: |-
-            An optional description about the resource.
           type: string
-        externalId:
-          description: |-
-            The external id that come from the clients' system. This field is optional.
-            If set, it must be unique among all resources within a database instance.
-          type: string
+          description: Description from the 'openshift.io/description' annotation (if present)
+          example: "S3 bucket for training data storage"
 
-    Error:
-      description: Error code and message.
-      required:
-        - code
-        - message
+    # Pipeline Run Schemas
+    CreateAutoMLRunRequest:
       type: object
+      description: Request body for creating an AutoML pipeline run
+      required:
+        - display_name
+        - train_data_secret_name
+        - train_data_bucket_name
+        - train_data_file_key
+        - label_column
+        - task_type
+      properties:
+        display_name:
+          type: string
+          description: Human-readable name for the run
+          example: "AutoML Optimization Run 1"
+        description:
+          type: string
+          description: Optional run description
+          example: "Test optimization run"
+        train_data_secret_name:
+          type: string
+          description: Name of the Kubernetes secret containing S3 credentials
+          example: "minio-secret"
+        train_data_bucket_name:
+          type: string
+          description: S3 bucket name containing the training data
+          example: "automl-bucket"
+        train_data_file_key:
+          type: string
+          description: S3 object key for the training data file
+          example: "data/train.csv"
+        label_column:
+          type: string
+          description: Name of the target column in the training data
+          example: "target"
+        task_type:
+          type: string
+          enum:
+            - binary
+            - multiclass
+          description: Type of classification task
+          example: "binary"
+        top_n:
+          type: integer
+          description: Number of top models to consider (optional)
+          example: 5
+
+    PipelineRun:
+      type: object
+      description: A Kubeflow Pipeline run
+      required:
+        - run_id
+        - display_name
+        - state
+        - created_at
+      properties:
+        run_id:
+          type: string
+          description: Unique run identifier
+          example: "run-abc123-def456"
+        display_name:
+          type: string
+          description: Human-readable run name
+          example: "AutoML Optimization Run 1"
+        description:
+          type: string
+          description: Optional run description
+          example: "Test optimization run"
+        experiment_id:
+          type: string
+          description: ID of the experiment this run belongs to
+          example: "exp-123"
+        pipeline_version_reference:
+          $ref: "#/components/schemas/PipelineVersionReference"
+        state:
+          type: string
+          enum:
+            - PENDING
+            - RUNNING
+            - SUCCEEDED
+            - FAILED
+            - CANCELED
+            - PAUSED
+            - CANCELING
+          description: Current state of the pipeline run
+          example: "SUCCEEDED"
+        storage_state:
+          type: string
+          description: Storage state of the run
+          example: "AVAILABLE"
+        service_account:
+          type: string
+          description: Service account used by the run
+          example: "pipeline-runner-dspa"
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run was created
+          example: "2026-02-24T10:30:00Z"
+        scheduled_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run was scheduled
+          example: "2026-02-24T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the run finished
+          example: "2026-02-24T11:15:00Z"
+        state_history:
+          type: array
+          description: History of state transitions
+          items:
+            $ref: "#/components/schemas/RuntimeStatus"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+        run_details:
+          $ref: "#/components/schemas/RunDetails"
+        pipeline_type:
+          type: string
+          enum:
+            - timeseries
+            - tabular
+          description: >-
+            Type of the AutoML pipeline that produced this run. Identifies whether
+            this is a time-series or tabular (classification/regression) pipeline run.
+          example: "timeseries"
+
+    PipelineVersionReference:
+      type: object
+      description: Reference to a pipeline version
+      properties:
+        pipeline_id:
+          type: string
+          description: ID of the pipeline
+          example: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+        pipeline_version_id:
+          type: string
+          description: ID of the pipeline version
+          example: "22e57c06-030f-4c63-900d-0a808d577899"
+
+    RuntimeStatus:
+      type: object
+      description: Runtime status entry in state history
+      properties:
+        update_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the status update
+          example: "2026-02-24T10:30:00Z"
+        state:
+          type: string
+          description: State at this point in history
+          example: "RUNNING"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+
+    ErrorInfo:
+      type: object
+      description: Error information for failed runs or tasks
       properties:
         code:
+          type: integer
           description: Error code
-          type: string
+          example: 500
         message:
-          description: Error message
           type: string
-    SortOrder:
-      description: Supported sort direction for ordering result entities.
-      enum:
-        - ASC
-        - DESC
-      type: string
-    OrderByField:
-      description: Supported fields for ordering result entities.
-      enum:
-        - CREATE_TIME
-        - LAST_UPDATE_TIME
-        - Id
-      type: string
+          description: Error message
+          example: "Pipeline execution failed: unable to connect to data source"
+
+    RunDetails:
+      type: object
+      description: Detailed information about a run's execution
+      properties:
+        task_details:
+          type: array
+          description: Details of individual tasks in the run
+          items:
+            $ref: "#/components/schemas/TaskDetail"
+
+    TaskDetail:
+      type: object
+      description: Details of a single task within a pipeline run
+      required:
+        - task_id
+      properties:
+        run_id:
+          type: string
+          description: ID of the parent run
+          example: "run-abc123-def456"
+        task_id:
+          type: string
+          description: Unique task identifier
+          example: "task-data-preprocessing"
+        display_name:
+          type: string
+          description: Human-readable task name
+          example: "Data Preprocessing"
+        create_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task creation
+          example: "2026-02-24T10:30:00Z"
+        start_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task start
+          example: "2026-02-24T10:30:05Z"
+        end_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task completion
+          example: "2026-02-24T10:35:00Z"
+        state:
+          type: string
+          description: Current state of the task
+          example: "SUCCEEDED"
+        error:
+          $ref: "#/components/schemas/ErrorInfo"
+        state_history:
+          type: array
+          description: History of state transitions for this task
+          items:
+            $ref: "#/components/schemas/RuntimeStatus"
+        child_tasks:
+          type: array
+          description: Child tasks or pods
+          items:
+            $ref: "#/components/schemas/ChildTask"
+
+    ChildTask:
+      type: object
+      description: Child task or pod reference
+      properties:
+        pod_name:
+          type: string
+          description: Name of the pod executing the task
+          example: "data-preprocessing-pod-abc123"
+
+    PipelineRunsData:
+      type: object
+      description: Container for pipeline runs list response data
+      required:
+        - runs
+        - total_size
+      properties:
+        runs:
+          type: array
+          description: List of pipeline runs
+          items:
+            $ref: "#/components/schemas/PipelineRun"
+        total_size:
+          type: integer
+          description: Total number of runs across all discovered pipelines
+          example: 10
+
+  parameters:
+    namespace:
+      name: namespace
+      in: query
+      required: true
+      schema:
+        type: string
+      description: Kubernetes namespace
+      example: "default"
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Number of items to return per page
+      example: 20
+    page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number to retrieve, 1-indexed (default 1)
+      example: 1
 
   responses:
-    NotFound:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: The specified resource was not found
-    BadRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Bad Request parameters
-    Unauthorized:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Unauthorized
-    InternalServerError:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-      description: Unexpected internal server error
-    ConfigResponse:
+    SecretsResponse:
       content:
         application/json:
           schema:
@@ -200,116 +664,175 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: "#/components/schemas/Config"
-      description: A response containing a list of Config entities.
-    ConflictResponse:
+                type: array
+                description: List of filtered secrets
+                items:
+                  $ref: "#/components/schemas/SecretListItem"
+      description: A response containing a list of filtered secret items
+
+    Forbidden:
+      description: Forbidden
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
-      description: Conflict - Role Binding with the same name already exists
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "403"
+                  message:
+                    type: string
+                    example: "Forbidden"
 
-  parameters:
-    kubeflowUserId:
-      in: header
-      name: kubeflow-userid
-      schema:
-        type: string
-      required: true
-    id:
-      name: id
-      description: The ID of resource.
-      schema:
-        type: string
-      in: path
-      required: true
-    name:
-      examples:
-        name:
-          value: entity-name
-      name: name
-      description: Name of entity to search.
-      schema:
-        type: string
-      in: query
-      required: false
-    externalId:
-      examples:
-        externalId:
-          value: "10"
-      name: externalId
-      description: External ID of entity to search.
-      schema:
-        type: string
-      in: query
-      required: false
-    parentResourceId:
-      examples:
-        parentResourceId:
-          value: "10"
-      name: parentResourceId
-      description: ID of the parent resource to use for search.
-      schema:
-        type: string
-      in: query
-      required: false
-    pageSize:
-      examples:
-        pageSize:
-          value: "100"
-      name: pageSize
-      description: Number of entities in each page.
-      schema:
-        type: string
-      in: query
-      required: false
-    nextPageToken:
-      name: nextPageToken
-      description: Token to use to retrieve next page of results.
-      schema:
-        type: string
-      in: query
-      required: false
-    orderBy:
-      style: form
-      explode: true
-      examples:
-        orderBy:
-          value: Id
-      name: orderBy
-      description: Specifies the order by criteria for listing entities.
-      schema:
-        $ref: "#/components/schemas/OrderByField"
-      in: query
-      required: false
-    sortOrder:
-      style: form
-      explode: true
-      examples:
-        sortOrder:
-          value: DESC
-      name: sortOrder
-      description: "Specifies the sort order for listing entities, defaults to ASC."
-      schema:
-        $ref: "#/components/schemas/SortOrder"
-      in: query
-      required: false
-    namespace:
-      name: namespace
-      description: The namespace to filter resources by.
-      schema:
-        type: string
-      in: query
-      required: false
+    ConfigResponse:
+      description: User configuration response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/Config"
+
+    PipelineRunsResponse:
+      description: List of pipeline runs
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRunsData"
+
+    PipelineRunResponse:
+      description: Single pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRun"
+
+    CreatePipelineRunResponse:
+      description: Created pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineRun"
+
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "400"
+                  message:
+                    type: string
+                    example: "Invalid request parameters"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "401"
+                  message:
+                    type: string
+                    example: "Authentication required"
+
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "404"
+                  message:
+                    type: string
+                    example: "Resource not found"
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "500"
+                  message:
+                    type: string
+                    example: "Internal server error"
+
+    ServiceUnavailable:
+      description: Service Unavailable
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "503"
+                  message:
+                    type: string
+                    example: "Service temporarily unavailable"
 
   securitySchemes:
     Bearer:
+      type: http
       scheme: bearer
       bearerFormat: JWT
-      type: http
-      description: Bearer JWT scheme
-security:
-  - Bearer: []
-tags:
-  - name: K8SOperation
-    description: Operation performed in Kubernetes
+      description: JWT bearer token authentication

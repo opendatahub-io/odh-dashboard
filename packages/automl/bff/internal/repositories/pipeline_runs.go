@@ -8,12 +8,17 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
+
+// maxRunsPerPipeline caps the total number of runs fetched across all pages for a single pipeline
+// to prevent unbounded memory accumulation when paginating through large result sets.
+const maxRunsPerPipeline = 10000
 
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
@@ -23,13 +28,15 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID.
+// pipelineType is set on each returned run to identify the owning pipeline type (e.g. "timeseries", "tabular").
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
 	pageSize int32,
 	pageToken string,
+	pipelineType string,
 ) (*models.PipelineRunsData, error) {
 	// Guard against nil client to prevent panic
 	if client == nil {
@@ -63,7 +70,7 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		runs = append(runs, toPipelineRun(&kfRun))
+		runs = append(runs, toPipelineRun(&kfRun, pipelineType))
 	}
 
 	return &models.PipelineRunsData{
@@ -114,14 +121,16 @@ func buildFilter(pipelineVersionID string) string {
 	return string(filterJSON)
 }
 
-// toPipelineRun transforms a Kubeflow pipeline run to our stable API format
-func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
+// toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
+// pipelineType identifies which discovered pipeline produced this run (e.g. "timeseries", "tabular").
+func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
 		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
+		RuntimeConfig:            kfRun.RuntimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -131,7 +140,171 @@ func toPipelineRun(kfRun *models.KFPipelineRun) models.PipelineRun {
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
+		PipelineType:             pipelineType,
 	}
+}
+
+// ValidateCreateAutoMLRunRequest checks that all required fields are present
+// and that optional enum fields have valid values.
+func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) error {
+	var missing []string
+	if req.DisplayName == "" {
+		missing = append(missing, "display_name")
+	}
+	if req.TrainDataSecretName == "" {
+		missing = append(missing, "train_data_secret_name")
+	}
+	if req.TrainDataBucketName == "" {
+		missing = append(missing, "train_data_bucket_name")
+	}
+	if req.TrainDataFileKey == "" {
+		missing = append(missing, "train_data_file_key")
+	}
+	if req.LabelColumn == "" {
+		missing = append(missing, "label_column")
+	}
+	if req.TaskType == "" {
+		missing = append(missing, "task_type")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %v", missing)
+	}
+
+	if !constants.ValidTaskTypes[req.TaskType] {
+		return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", req.TaskType)
+	}
+
+	if req.TopN != nil && *req.TopN <= 0 {
+		return fmt.Errorf("invalid top_n: must be a positive integer")
+	}
+
+	return nil
+}
+
+// BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
+// pipelineID and pipelineVersionID are injected by the caller (from discovery or hardcoded fallback).
+func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
+	params := map[string]interface{}{
+		"train_data_secret_name": req.TrainDataSecretName,
+		"train_data_bucket_name": req.TrainDataBucketName,
+		"train_data_file_key":    req.TrainDataFileKey,
+		"label_column":           req.LabelColumn,
+		"task_type":              req.TaskType,
+	}
+
+	topN := constants.DefaultTopN
+	if req.TopN != nil {
+		topN = *req.TopN
+	}
+	params["top_n"] = topN
+
+	return models.CreatePipelineRunKFRequest{
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+		PipelineVersionReference: models.PipelineVersionReference{
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
+		},
+		RuntimeConfig: models.RuntimeConfig{
+			Parameters: params,
+		},
+	}
+}
+
+// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+// pipelineID and pipelineVersionID are provided by the caller (from dynamic discovery).
+// pipelineType is set on the returned run to identify the pipeline type (e.g. "timeseries", "tabular").
+func (r *PipelineRunsRepository) CreatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	req models.CreateAutoMLRunRequest,
+	pipelineID, pipelineVersionID string,
+	pipelineType string,
+) (*models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := ValidateCreateAutoMLRunRequest(req); err != nil {
+		return nil, err
+	}
+
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipelineID is required")
+	}
+	if pipelineVersionID == "" {
+		return nil, fmt.Errorf("pipelineVersionID is required")
+	}
+
+	kfpRequest := BuildKFPRunRequest(req, pipelineID, pipelineVersionID)
+
+	kfRun, err := client.CreateRun(ctx, kfpRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
+	}
+
+	if kfRun == nil {
+		return nil, fmt.Errorf("pipeline server returned nil run")
+	}
+
+	run := toPipelineRun(kfRun, pipelineType)
+	return &run, nil
+}
+
+// GetAllPipelineRuns fetches all pages of runs for a single pipeline version ID.
+// It auto-paginates through the pipeline server's pages and returns the complete list.
+// pipelineType is set on each returned run to identify the owning pipeline type (e.g. "timeseries", "tabular").
+// This is used by the multi-pipeline runs handler to merge runs from multiple pipelines.
+func (r *PipelineRunsRepository) GetAllPipelineRuns(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	pipelineVersionID string,
+	pipelineType string,
+) ([]models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	var allRuns []models.PipelineRun
+	pageToken := ""
+
+	for {
+		filter := buildFilter(pipelineVersionID)
+		params := &ps.ListRunsParams{
+			PageSize:  100, // max page size to minimize round trips
+			PageToken: pageToken,
+			SortBy:    "created_at desc",
+			Filter:    filter,
+		}
+
+		kfResponse, err := client.ListRuns(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching pipeline runs: %w", err)
+		}
+
+		if kfResponse == nil || len(kfResponse.Runs) == 0 {
+			break
+		}
+
+		remaining := maxRunsPerPipeline - len(allRuns)
+		for i := range kfResponse.Runs {
+			if i >= remaining {
+				break
+			}
+			allRuns = append(allRuns, toPipelineRun(&kfResponse.Runs[i], pipelineType))
+		}
+
+		if len(allRuns) >= maxRunsPerPipeline {
+			break
+		}
+
+		if kfResponse.NextPageToken == "" {
+			break
+		}
+		pageToken = kfResponse.NextPageToken
+	}
+
+	return allRuns, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID
@@ -160,7 +333,8 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 		return nil, ErrPipelineRunNotFound
 	}
 
-	// Transform Kubeflow format to our stable API format
-	run := toPipelineRun(kfRun)
+	// Transform Kubeflow format to our stable API format.
+	// pipeline_type is not set here; the handler sets it after ownership validation.
+	run := toPipelineRun(kfRun, "")
 	return &run, nil
 }

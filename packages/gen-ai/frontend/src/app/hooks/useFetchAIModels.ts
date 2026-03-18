@@ -25,7 +25,6 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         ...item,
         internalEndpoint: parseEndpointByPrefix(item.endpoints, 'internal'),
         externalEndpoint: parseEndpointByPrefix(item.endpoints, 'external'),
-        modelSource: item.model_source_type || 'namespace',
       }));
     },
     [api, apiAvailable],

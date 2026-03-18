@@ -29,6 +29,7 @@ const createMockAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token_name: 'token',
     token: 'test-token',
   },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
