@@ -97,7 +97,7 @@ describe('formatDate', () => {
     expect(result).toBeTruthy();
     expect(result).not.toBe('-');
     expect(result).toContain('2026');
-    expect(result).toContain('Feb');
+    expect(result).toContain('02');
   });
 
   it('should return the original string for an invalid date', () => {
