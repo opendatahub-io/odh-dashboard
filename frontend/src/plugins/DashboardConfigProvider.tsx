@@ -22,11 +22,9 @@ export const DashboardConfigProvider: React.FC = () => {
       .filter(isDashboardConfigExtension)
       .find((ext) => ext.properties.id === 'genai-config');
 
-    if (configExtension && genAiStudioConfig) {
-      // Update the extension with the current config
-      configExtension.properties.config = {
-        genAiStudioConfig,
-      };
+    if (configExtension) {
+      // Update the extension with the current config, or clear if undefined
+      configExtension.properties.config = genAiStudioConfig ? { genAiStudioConfig } : {};
     }
   }, [genAiStudioConfig, pluginStore]);
 
