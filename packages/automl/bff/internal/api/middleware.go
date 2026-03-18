@@ -341,13 +341,23 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				ext := dspa.Spec.ObjectStorage.ExternalStorage
 				cred := ext.S3CredentialsSecret
 
+				// Construct the endpoint URL from scheme, host, and optional port.
+				// Only "http" and "https" schemes are accepted; any other value is
+				// logged as a warning and the endpoint URL is left empty so that
+				// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
 				endpointURL := ""
-				if ext.Scheme != "" && ext.Host != "" {
+				scheme := strings.ToLower(ext.Scheme)
+				if ext.Host != "" && (scheme == "http" || scheme == "https") {
 					if ext.Port != "" {
-						endpointURL = fmt.Sprintf("%s://%s:%s", ext.Scheme, ext.Host, ext.Port)
+						endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
 					} else {
-						endpointURL = fmt.Sprintf("%s://%s", ext.Scheme, ext.Host)
+						endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
 					}
+				} else if ext.Scheme != "" && ext.Host != "" {
+					logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+						"scheme", ext.Scheme,
+						"namespace", namespace,
+					)
 				}
 
 				accessKeyField := cred.AccessKey

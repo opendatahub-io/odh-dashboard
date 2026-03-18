@@ -130,15 +130,21 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Determine bucket: use query param if provided, otherwise use bucket from credentials.
-	// On the DSPA path, reject any caller-supplied bucket that differs from the configured
-	// DSPA bucket to prevent bucket substitution attacks.
+	// Determine bucket.
+	// On the DSPA path, always use the DSPA-configured bucket and ignore any
+	// caller-supplied value. This eliminates both bucket substitution (the DSPA
+	// bucket wins by design) and oracle enumeration (no differential 400 response
+	// reveals whether a particular bucket name is configured).
+	// On the explicit secretName path, use the query param or fall back to the
+	// AWS_S3_BUCKET field in the secret.
 	bucket := queryParams.Get("bucket")
-	if dspaStorage != nil && bucket != "" && dspaStorage.Bucket != "" && bucket != dspaStorage.Bucket {
-		app.badRequestResponse(w, r, fmt.Errorf("bucket parameter does not match the configured DSPA bucket"))
-		return
-	}
-	if bucket == "" {
+	if dspaStorage != nil {
+		if dspaStorage.Bucket == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("DSPA object storage configuration does not specify a bucket; contact your administrator"))
+			return
+		}
+		bucket = dspaStorage.Bucket
+	} else if bucket == "" {
 		if creds.Bucket == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
 			return
