@@ -28,6 +28,7 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock LlamaStack client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "autorag"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: autorag)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
@@ -59,9 +60,15 @@ func main() {
 
 	flag.Parse()
 
+	// Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
+	// a mock Kubernetes client for GetS3Credentials and s3_handler.go
+	if cfg.MockS3Client {
+		cfg.MockK8Client = true
+	}
+
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient) && cfg.AuthMethod == "user_token" {
+	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient || cfg.MockS3Client) && cfg.AuthMethod == "user_token" {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
@@ -83,6 +90,12 @@ func main() {
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
 	}
 

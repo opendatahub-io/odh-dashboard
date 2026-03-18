@@ -22,6 +22,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Split,
   SplitItem,
   Stack,
@@ -31,6 +32,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
@@ -97,11 +99,29 @@ const PREDICTION_TYPES: {
 
 const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
+const getTypeAcronym = (type: string): string => {
+  switch (type) {
+    case 'bool':
+      return 'BOOL';
+    case 'integer':
+      return 'INT';
+    case 'double':
+      return 'DBL';
+    case 'timestamp':
+      return 'TMSTP';
+    case 'string':
+      return 'STR';
+    default:
+      return 'STR';
+  }
+};
+
 const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -147,16 +167,39 @@ function AutomlConfigure(): React.JSX.Element {
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
   const formDisabled = !formIsValid || formIsSubmitting;
 
-  const { data: columns = [] } = useFilesQuery();
+  if (!namespace) {
+    return <Navigate to={automlExperimentsPathname} replace />;
+  }
+
+  const {
+    data: columns = [],
+    isLoading: isLoadingColumns,
+    isFetching: isFetchingColumns,
+    error: columnsError,
+  } = useFilesQuery(namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey);
 
   // reset selected file values if bucket changes
   useEffect(() => {
     setValue('train_data_file_key', '');
   }, [trainDataBucketName, setValue]);
 
-  if (!namespace) {
-    return <Navigate to={automlExperimentsPathname} replace />;
-  }
+  // reset columns query cache and label column when connection data is cleared
+  useEffect(() => {
+    if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
+      queryClient.setQueryData(
+        ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
+        [],
+      );
+      setValue('label_column', undefined);
+    }
+  }, [
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+    namespace,
+    queryClient,
+    setValue,
+  ]);
 
   return (
     <FormProvider {...form}>
@@ -239,8 +282,10 @@ function AutomlConfigure(): React.JSX.Element {
                             <Label
                               onClose={() => {
                                 setSelectedSecret(undefined);
-                                setValue('train_data_secret_name', '');
-                                setValue('train_data_bucket_name', '');
+                                // Clear selections
+                                setValue('train_data_secret_name', undefined);
+                                setValue('train_data_bucket_name', undefined);
+                                setValue('train_data_file_key', undefined);
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
@@ -325,42 +370,73 @@ function AutomlConfigure(): React.JSX.Element {
                             {' *'}
                           </span>
                         </div>
-                        <Controller
-                          control={form.control}
-                          name={isTimeseries ? 'target' : 'label_column'}
-                          render={({ field }) => (
-                            <Select
-                              id={`${isTimeseries ? 'target' : 'label-column'}-select`}
-                              isOpen={isLabelColumnOpen}
-                              onOpenChange={setIsLabelColumnOpen}
-                              onSelect={(_event, value) => {
-                                field.onChange(value);
-                                setIsLabelColumnOpen(false);
-                              }}
-                              selected={field.value}
-                              toggle={(toggleRef) => (
-                                <MenuToggle
-                                  ref={toggleRef}
-                                  onClick={() => setIsLabelColumnOpen((prev) => !prev)}
-                                  isExpanded={isLabelColumnOpen}
-                                  isDisabled={!isFileSelected || columns.length === 0}
-                                  isFullWidth
-                                  data-testid={`${isTimeseries ? 'target' : 'label_column'}-select`}
+                        {isLoadingColumns || isFetchingColumns ? (
+                          <Skeleton shape="square" width="100%" height="36px" />
+                        ) : (
+                          <>
+                            <Controller
+                              control={form.control}
+                              name={isTimeseries ? 'target' : 'label_column'}
+                              render={({ field }) => (
+                                <Select
+                                  id={`${isTimeseries ? 'target' : 'label-column'}-select`}
+                                  isOpen={isLabelColumnOpen}
+                                  onOpenChange={setIsLabelColumnOpen}
+                                  onSelect={(_event, value) => {
+                                    field.onChange(value);
+                                    setIsLabelColumnOpen(false);
+                                  }}
+                                  selected={field.value}
+                                  maxMenuHeight="200px"
+                                  toggle={(toggleRef) => (
+                                    <MenuToggle
+                                      ref={toggleRef}
+                                      onClick={() => setIsLabelColumnOpen((prev) => !prev)}
+                                      isExpanded={isLabelColumnOpen}
+                                      isDisabled={
+                                        !isFileSelected || columns.length === 0 || !!columnsError
+                                      }
+                                      isFullWidth
+                                      data-testid={`${isTimeseries ? 'target' : 'label_column'}-select`}
+                                      status={columnsError ? 'danger' : undefined}
+                                    >
+                                      {field.value || 'Select a column'}
+                                    </MenuToggle>
+                                  )}
                                 >
-                                  {field.value || 'Select a column'}
-                                </MenuToggle>
+                                  <SelectList>
+                                    {columns.map((column) => (
+                                      <SelectOption key={column.name} value={column.name}>
+                                        <span
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: 700,
+                                            fontSize: '0.75rem',
+                                            display: 'inline-block',
+                                            width: '4rem',
+                                            marginRight: '0.5rem',
+                                          }}
+                                        >
+                                          {getTypeAcronym(column.type)}
+                                        </span>
+                                        {column.name}
+                                      </SelectOption>
+                                    ))}
+                                  </SelectList>
+                                </Select>
                               )}
-                            >
-                              <SelectList>
-                                {columns.map((column) => (
-                                  <SelectOption key={column} value={column}>
-                                    {column}
-                                  </SelectOption>
-                                ))}
-                              </SelectList>
-                            </Select>
-                          )}
-                        />
+                            />
+                            {columnsError && (
+                              <FormHelperText>
+                                <HelperText>
+                                  <HelperTextItem variant="error">
+                                    {columnsError.message}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </FormHelperText>
+                            )}
+                          </>
+                        )}
                       </StackItem>
 
                       <StackItem>
@@ -459,7 +535,11 @@ function AutomlConfigure(): React.JSX.Element {
         id="AutoMlConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelect={(files) => {
+          if (Array.isArray(files) && files.length > 0) {
+            setValue('train_data_file_key', files[0].name);
+          }
+        }}
       />
     </FormProvider>
   );
