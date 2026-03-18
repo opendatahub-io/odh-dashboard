@@ -1,0 +1,48 @@
+class EvaluationResultsPage {
+  visit(namespace: string, jobId: string) {
+    cy.visit(`/evaluation/${namespace}/results/${jobId}`);
+    this.waitForLoad();
+  }
+
+  private waitForLoad() {
+    cy.findByTestId('evaluation-results-content').should('exist');
+  }
+
+  findTitle() {
+    return cy.findByTestId('evaluation-results-title');
+  }
+
+  findScoreValue() {
+    return cy.findByTestId('evaluation-score-value');
+  }
+
+  findMetadata() {
+    return cy.findByTestId('evaluation-metadata');
+  }
+
+  findBenchmarksGrid() {
+    return cy.findByTestId('benchmarks-grid');
+  }
+
+  findBenchmarkCard(benchmarkId: string) {
+    return cy.findByTestId(`benchmark-result-card-${benchmarkId}`);
+  }
+
+  findBenchmarkPassLabel(benchmarkId: string) {
+    return cy.findByTestId(`benchmark-pass-label-${benchmarkId}`);
+  }
+
+  findViewMoreButton() {
+    return cy.findByTestId('view-more-benchmarks');
+  }
+
+  findBenchmarkDetails(benchmarkId: string) {
+    return cy.findByTestId(`benchmark-details-${benchmarkId}`);
+  }
+
+  findBenchmarkDetailsInfo() {
+    return cy.findByTestId('benchmark-details-info');
+  }
+}
+
+export const evaluationResultsPage = new EvaluationResultsPage();
