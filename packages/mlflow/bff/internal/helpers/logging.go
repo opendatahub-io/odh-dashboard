@@ -1,10 +1,7 @@
 package helper
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -63,40 +60,15 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
-const maxBodyLogSize = 1 << 20 // 1 MiB
-
-func CloneBody(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, fmt.Errorf("no body provided")
-	}
-	buf, err := io.ReadAll(io.LimitReader(r.Body, int64(maxBodyLogSize+1)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read request body: %w", err)
-	}
-	// Restore full stream for downstream handlers: bytes read for logging + unread tail.
-	r.Body = io.NopCloser(io.MultiReader(bytes.NewReader(buf), r.Body))
-
-	logBuf := buf
-	if len(logBuf) > maxBodyLogSize {
-		logBuf = logBuf[:maxBodyLogSize]
-	}
-	return logBuf, nil
-}
-
 type RequestLogValuer struct {
 	Request *http.Request
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := "[REDACTED]"
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else if len(cloneBody) == 0 {
-			body = ""
-		}
+	body := ""
+	if r.Request.Body != nil &&
+		(r.Request.ContentLength != 0 || len(r.Request.TransferEncoding) > 0) {
+		body = "[REDACTED]"
 	}
 
 	return slog.GroupValue(
