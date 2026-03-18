@@ -123,4 +123,12 @@ func (m *MockHTTPClient) AssertRegisterModelFlow(t interface {
 			t.Errorf("first POST body name: got %q, want %q", n, regModelName)
 		}
 	}
+	if len(m.LastPostBodies) >= 3 {
+		var artifactBody map[string]interface{}
+		if err := json.Unmarshal([]byte(m.LastPostBodies[2]), &artifactBody); err == nil {
+			if at, ok := artifactBody["artifactType"].(string); !ok || at != "model-artifact" {
+				t.Errorf("artifact POST body must include artifactType: model-artifact, got %v", artifactBody["artifactType"])
+			}
+		}
+	}
 }

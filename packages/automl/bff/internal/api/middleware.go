@@ -221,8 +221,31 @@ func (app *App) AttachModelRegistryClient(next func(http.ResponseWriter, *http.R
 
 		// Forward authorization header when using user token auth
 		if app.config.AuthMethod == config.AuthMethodUser {
-			if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
-				headers.Set("Authorization", "Bearer "+identity.Token)
+			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			tokenToForward := ""
+			if ok && identity != nil && identity.Token != "" {
+				tokenToForward = identity.Token
+			}
+			// Fallback: if token from configured header is suspiciously short (< 20 chars, e.g. "Bearer" or "sha256")
+			// but Authorization header has a longer value, use Authorization (strip "Bearer " if present)
+			if len(tokenToForward) < 20 {
+				if authHeaderValue := r.Header.Get("Authorization"); authHeaderValue != "" {
+					fallbackToken := strings.TrimSpace(authHeaderValue)
+					if strings.HasPrefix(fallbackToken, "Bearer ") {
+						fallbackToken = strings.TrimSpace(strings.TrimPrefix(fallbackToken, "Bearer "))
+					}
+					if len(fallbackToken) > len(tokenToForward) {
+						tokenToForward = fallbackToken
+					}
+				}
+			}
+			if tokenToForward != "" {
+				headers.Set("Authorization", "Bearer "+tokenToForward)
+			} else {
+				logger.Warn("Model Registry: no token to forward - identity missing or empty",
+					"auth_method", app.config.AuthMethod,
+					"has_identity", ok && identity != nil,
+					"has_token", ok && identity != nil && identity.Token != "")
 			}
 		}
 

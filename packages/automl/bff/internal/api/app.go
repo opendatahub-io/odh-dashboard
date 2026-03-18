@@ -26,16 +26,17 @@ import (
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/automl"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version            = "1.0.0"
+	PathPrefix         = "/automl"
+	ApiPathPrefix      = "/api/v1"
+	HealthCheckPath    = "/healthcheck"
+	UserPath           = ApiPathPrefix + "/user"
+	NamespacePath      = ApiPathPrefix + "/namespaces"
+	SecretsPath        = ApiPathPrefix + "/secrets"
+	S3FilePath         = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath   = ApiPathPrefix + "/s3/file/schema"
+	PipelineRunsPath   = ApiPathPrefix + "/pipeline-runs"
+	ModelsRegisterPath = ApiPathPrefix + "/models/register"
 )
 
 type App struct {

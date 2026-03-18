@@ -105,9 +105,11 @@ func (m *ModelRegistryRepository) RegisterModel(
 		artifactName = req.VersionName
 	}
 
+	artifactType := "model-artifact"
 	artifactCreate := openapi.ModelArtifactCreate{
-		Name: &artifactName,
-		Uri:  &req.S3Path,
+		Name:         &artifactName,
+		Uri:          &req.S3Path,
+		ArtifactType: &artifactType,
 	}
 	if req.ArtifactDescription != "" {
 		artifactCreate.Description = &req.ArtifactDescription

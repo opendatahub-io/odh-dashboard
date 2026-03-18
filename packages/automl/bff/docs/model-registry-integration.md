@@ -13,13 +13,14 @@ The AutoML BFF provides a **Register Model** endpoint that allows clients to reg
    - **ModelVersion** – version under that model (e.g., "v1")
    - **ModelArtifact** – artifact pointing to the S3 URI
 
-The Model Registry stores **metadata** only; the actual model binary remains in S3. The `uri` field on the ModelArtifact holds the S3 location (e.g., `s3://bucket/path/model.bin`).
+The Model Registry stores **metadata** only; the actual model binary remains in S3. The `uri` field on the ModelArtifact holds the S3 location (e.g., `s3://bucket/path/model.bin`). The BFF automatically sets `artifactType: "model-artifact"` when creating the artifact, as required by the Model Registry API.
 
 ## Configuration
 
 ### Required: `MODEL_REGISTRY_BASE_URL`
 
 The Model Registry integration is **disabled** unless `MODEL_REGISTRY_BASE_URL` is set. When empty, `POST /api/v1/models/register` returns `500` with a message indicating the Model Registry is not configured.
+
 
 **Environment variable:** `MODEL_REGISTRY_BASE_URL`  
 **CLI flag:** `--model-registry-base-url`
