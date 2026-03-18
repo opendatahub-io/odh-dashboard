@@ -30,25 +30,13 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
   const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
   const passStatus = result?.test?.pass;
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const cardStyle = {
-    minWidth: 200,
-    '--pf-v6-c-card--m-selectable--m-selected--BorderColor':
-      'var(--pf-t--global--border--color--default)',
-    '--pf-v6-c-card--m-selectable--m-selected--BorderWidth':
-      'var(--pf-t--global--border--width--box--default)',
-    '--pf-v6-c-card--m-selectable--m-selected--focus--BorderColor':
-      'var(--pf-t--global--border--color--default)',
-    '--pf-v6-c-card--m-selectable--m-selected--focus--BorderWidth':
-      'var(--pf-t--global--border--width--box--default)',
-  } as React.CSSProperties;
-
   return (
     <Card
       isSelectable={!!onClick}
+      isSelected={isSelected}
       isCompact
       data-testid={`benchmark-result-card-${benchmarkId}`}
-      style={cardStyle}
+      style={{ minWidth: 200 }}
     >
       <CardHeader
         selectableActions={

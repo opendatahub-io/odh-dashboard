@@ -74,7 +74,7 @@ func (app *App) GetEvaluationJobHandler(w http.ResponseWriter, r *http.Request, 
 
 	job, err := client.GetEvaluationJob(ctx, id)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get evaluation job: %w", err))
+		app.evalHubErrorResponse(w, r, err, "failed to get evaluation job")
 		return
 	}
 	if job == nil {
