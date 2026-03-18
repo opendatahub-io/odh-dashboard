@@ -224,6 +224,10 @@ class TrainingJobTableRow extends TableRow {
   findEditNodeCountButton() {
     return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
   }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
 }
 
 class ScaleRayJobNodesModal {
@@ -707,6 +711,47 @@ class PauseTrainingJobModal extends Modal {
   }
 }
 
+class PauseRayJobModal extends Modal {
+  constructor() {
+    super('Pause RayJob?');
+  }
+
+  find() {
+    return cy.findByTestId('pause-ray-job-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findDontShowAgainCheckbox() {
+    return cy.findByTestId('dont-show-again-checkbox');
+  }
+
+  findPauseButton() {
+    return cy.findByTestId('pause-ray-job-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('cancel-pause-ray-job-button');
+  }
+
+  pause() {
+    this.findPauseButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 class TrainingJobDetailsTab {
   findProgressSection() {
     return cy.findByTestId('progress-section');
@@ -896,6 +941,7 @@ export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
+export const pauseRayJobModal = new PauseRayJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
 export const rayJobDetailsTab = new RayJobDetailsTab();
 export const rayJobResourcesTab = new RayJobResourcesTab();
