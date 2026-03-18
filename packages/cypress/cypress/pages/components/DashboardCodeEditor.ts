@@ -82,4 +82,18 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
         model.setValue(model.getValue().replace(oldText, newText));
       });
   }
+
+  copyToClipboard(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // PatternFly CodeEditor default aria-label is 'Copy code to clipboard'
+    return this.find().findByRole('button', { name: /copy/i });
+  }
+
+  upload(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: 'Upload' });
+  }
+
+  download(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // PatternFly CodeEditor download button
+    return this.find().findByRole('button', { name: /download/i });
+  }
 }

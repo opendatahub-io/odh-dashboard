@@ -293,6 +293,7 @@ export type DataScienceProjectData = {
   connectionDescription: string;
   userSubjectKind: string;
   groupSubjectKind: string;
+  yamlEditorModelName: string;
 };
 
 export type NotebookImageData = {
