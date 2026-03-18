@@ -542,7 +542,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 {
   "error": {
     "code": "400",
-    "message": "missing required field: label_column"
+    "message": "missing required fields: label_column, task_type"
   }
 }
 ```
@@ -552,7 +552,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 {
   "error": {
     "code": "400",
-    "message": "missing required field: target"
+    "message": "missing required fields: target, id_column, timestamp_column"
   }
 }
 ```

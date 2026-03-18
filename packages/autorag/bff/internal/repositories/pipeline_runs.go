@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
@@ -169,7 +170,7 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		missing = append(missing, "llama_stack_secret_name")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required fields: %v", missing)
+		return fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
 	}
 
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {

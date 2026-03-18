@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
@@ -259,7 +261,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required fields: %v", missing)
+		return fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
 	}
 
 	// Reject any set pipeline-specific field that's not allowed for this pipeline type
@@ -271,7 +273,8 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	if len(unexpected) > 0 {
-		return fmt.Errorf("unexpected fields for %s pipeline: %v", pipelineType, unexpected)
+		sort.Strings(unexpected)
+		return fmt.Errorf("unexpected fields for %s pipeline: %s", pipelineType, strings.Join(unexpected, ", "))
 	}
 
 	// Validate enum values and consistency with pipeline type
