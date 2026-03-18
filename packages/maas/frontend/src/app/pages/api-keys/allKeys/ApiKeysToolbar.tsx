@@ -32,24 +32,29 @@ export const initialApiKeyFilterData: ApiKeyFilterDataType = {
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
   filterData: ApiKeyFilterDataType;
+  localUsername: string;
+  setLocalUsername: (value: string) => void;
   onUsernameChange: (value: string) => void;
   onStatusToggle: (status: APIKeyStatus) => void;
   onStatusClear: (status: APIKeyStatus) => void;
   activeApiKeys: APIKey[];
   refresh: () => void;
+  onClearFilters: () => void;
 };
 
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   setIsModalOpen,
   filterData,
+  localUsername,
+  setLocalUsername,
   onUsernameChange,
   onStatusToggle,
   onStatusClear,
   activeApiKeys,
   refresh,
+  onClearFilters,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
-  const [localUsername, setLocalUsername] = React.useState('');
 
   return (
     <Toolbar
@@ -57,6 +62,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
         setLocalUsername('');
         onUsernameChange('');
         STATUS_OPTIONS.forEach(onStatusClear);
+        onClearFilters();
       }}
     >
       <ToolbarContent>

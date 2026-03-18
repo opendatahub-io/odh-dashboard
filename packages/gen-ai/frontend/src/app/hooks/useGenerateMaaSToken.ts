@@ -13,14 +13,14 @@ type UseGenerateMaaSTokenReturn = {
   resetToken: () => void;
 };
 
-const useGenerateMaaSToken = (name: string): UseGenerateMaaSTokenReturn => {
+const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [tokenData, setTokenData] = React.useState<MaaSTokenResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
 
   const generateToken = React.useCallback(
-    async (expiresIn?: string) => {
+    async (expiration?: string) => {
       setIsGenerating(true);
       setError(null);
       setTokenData(null);
@@ -60,7 +60,7 @@ const useGenerateMaaSToken = (name: string): UseGenerateMaaSTokenReturn => {
         setIsGenerating(false);
       }
     },
-    [api, apiAvailable, name],
+    [api, apiAvailable],
   );
 
   const resetToken = React.useCallback(() => {

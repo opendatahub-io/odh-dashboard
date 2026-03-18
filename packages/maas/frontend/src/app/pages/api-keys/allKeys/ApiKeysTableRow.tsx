@@ -37,8 +37,12 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onRevokeApiKe
         {capitalize(apiKey.status)}
       </Label>
     </Td>
-    <Td dataLabel={apiKeyColumns[2].label}>{formatDate(apiKey.creationDate)}</Td>
-    <Td dataLabel={apiKeyColumns[3].label}>
+    <Td dataLabel={apiKeyColumns[2].label}>{apiKey.username ?? '—'}</Td>
+    <Td dataLabel={apiKeyColumns[3].label}>{formatDate(apiKey.creationDate)}</Td>
+    <Td dataLabel={apiKeyColumns[4].label}>
+      {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : 'Never'}
+    </Td>
+    <Td dataLabel={apiKeyColumns[5].label}>
       {apiKey.expirationDate ? formatDate(apiKey.expirationDate) : 'Never'}
     </Td>
     <Td isActionCell>

@@ -1,5 +1,6 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import type { APIKey } from '@odh-dashboard/maas/types/api-key';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   apiKeysPage,
@@ -9,6 +10,15 @@ import {
   createApiKeyModal,
 } from '../../../pages/modelsAsAService';
 import { mockAPIKeys, mockCreateAPIKeyResponse } from '../../../utils/maasUtils';
+
+const mockSearchResponse = (keys: APIKey[]) => ({
+  data: {
+    object: 'list',
+    data: keys,
+    // eslint-disable-next-line camelcase
+    has_more: false,
+  },
+});
 
 describe('API Keys Page', () => {
   beforeEach(() => {
@@ -33,16 +43,11 @@ describe('API Keys Page', () => {
         },
       }),
     );
-
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', {
-      data: {
-        object: 'list',
-        data: mockAPIKeys(),
-        // eslint-disable-next-line camelcase
-        has_more: false,
-      },
-    });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'initialSearch',
+    );
     apiKeysPage.visit();
+    cy.wait('@initialSearch');
   });
 
   it('should display the API keys table page', () => {
@@ -60,25 +65,161 @@ describe('API Keys Page', () => {
     const ciPipelineRow = apiKeysPage.getRow('ci-pipeline');
     ciPipelineRow.findName().should('contain.text', 'ci-pipeline');
     ciPipelineRow.findDescription().should('contain.text', 'API key for CI/CD pipeline automation');
-    ciPipelineRow.findStatus().should('contain.text', 'Active');
+    ciPipelineRow.findStatus().should('contain.text', 'Revoked');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
   });
 
   it('should filter api keys by username', () => {
+    const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
+      'searchByUsername',
+    );
+
     apiKeysPage.findFilterInput().type('alice');
     apiKeysPage.findFilterSearchButton().click();
-    apiKeysPage.findTable().should('have.length', 1);
+
+    cy.wait('@searchByUsername').then((interception) => {
+      expect(interception.request.body.data.filters.username).to.eq('alice');
+    });
+
     apiKeysPage.findRows().should('have.length', 1);
-    apiKeysPage.findRows().should('contain.text', 'alice');
+    apiKeysPage
+      .getRow('production-backend')
+      .findName()
+      .should('contain.text', 'production-backend');
   });
 
   it('should filter api keys by status', () => {
+    const nonActiveKeys = mockAPIKeys().filter((k) => k.status !== 'active');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(nonActiveKeys)).as(
+      'filterByStatus',
+    );
+
     apiKeysPage.findStatusFilterToggle().click();
-    apiKeysPage.findStatusFilterOption('revoked').click();
-    apiKeysPage.findTable().should('have.length', 1);
-    apiKeysPage.findRows().should('have.length', 1);
-    apiKeysPage.findRows().should('contain.text', 'revoked');
+    apiKeysPage.findStatusFilterOption('Active').click();
+
+    cy.wait('@filterByStatus').then((interception) => {
+      expect(interception.request.body.data.filters.status).to.deep.equal(['expired', 'revoked']);
+    });
+
+    apiKeysPage.findRows().should('have.length', 2);
+  });
+
+  it('should sort api keys by name', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortNameAsc',
+    );
+    apiKeysPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'name',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([...keys].reverse()),
+    ).as('sortNameDesc');
+    apiKeysPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'name',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by creation date', () => {
+    const keys = mockAPIKeys();
+
+    // Creation date is the default active sort (desc). First click toggles to asc.
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortCreationDateAsc',
+    );
+    apiKeysPage.findColumnSortButton('Creation date').click();
+
+    cy.wait('@sortCreationDateAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'created_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortCreationDateDesc',
+    );
+    apiKeysPage.findColumnSortButton('Creation date').click();
+
+    cy.wait('@sortCreationDateDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'created_at',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by expiration date', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortExpirationAsc',
+    );
+    apiKeysPage.findColumnSortButton('Expiration date').click();
+
+    cy.wait('@sortExpirationAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'expires_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortExpirationDesc',
+    );
+    apiKeysPage.findColumnSortButton('Expiration date').click();
+
+    cy.wait('@sortExpirationDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'expires_at',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by last used', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortLastUsedAsc',
+    );
+    apiKeysPage.findColumnSortButton('Last used').click();
+
+    cy.wait('@sortLastUsedAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'last_used_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortLastUsedDesc',
+    );
+    apiKeysPage.findColumnSortButton('Last used').click();
+
+    cy.wait('@sortLastUsedDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'last_used_at',
+        order: 'desc',
+      });
+    });
   });
 
   it('should revoke all my API keys', () => {
@@ -137,6 +278,7 @@ describe('API Keys Page', () => {
     cy.wait('@deleteApiKey').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
     });
+    cy.wait('@getApiKeysAfterDelete');
   });
 
   it('should create a new API key with the default 30 days expiration', () => {

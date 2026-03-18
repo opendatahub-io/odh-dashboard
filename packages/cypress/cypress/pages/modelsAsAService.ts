@@ -415,7 +415,11 @@ class APIKeysPage {
   }
 
   findStatusFilterOption(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findStatusFilterToggle().findByRole('option', { name: status });
+    return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
+  }
+
+  findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {

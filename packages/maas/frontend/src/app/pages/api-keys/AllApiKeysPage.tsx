@@ -3,7 +3,8 @@ import { PageSection } from '@patternfly/react-core';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
-import { APIKey, APIKeyStatus } from '~/app/types/api-key';
+import { APIKeyStatus, APIKeySearchRequest, APIKey } from '~/app/types/api-key';
+import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
@@ -13,22 +14,13 @@ import ApiKeysToolbar, {
   initialApiKeyFilterData,
 } from './allKeys/ApiKeysToolbar';
 
-const applyFilters = (apiKeys: APIKey[], filterData: ApiKeyFilterDataType): APIKey[] =>
-  apiKeys.filter((key) => {
-    if (
-      filterData.username &&
-      !key.username?.toLowerCase().includes(filterData.username.toLowerCase())
-    ) {
-      return false;
-    }
-    if (filterData.statuses.length > 0 && !filterData.statuses.includes(key.status)) {
-      return false;
-    }
-    return true;
-  });
+type SortDirection = 'asc' | 'desc';
+
+const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+const DEFAULT_PER_PAGE = 50;
 
 const AllApiKeysPage: React.FC = () => {
-  const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
@@ -38,9 +30,31 @@ const AllApiKeysPage: React.FC = () => {
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
   const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [sortField, setSortField] = React.useState<ApiKeySortField>(DEFAULT_SORT_FIELD);
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>(DEFAULT_SORT_DIRECTION);
+
+  const searchRequest: APIKeySearchRequest = React.useMemo(
+    () => ({
+      filters: {
+        ...(filterData.username && { username: filterData.username }),
+        ...(filterData.statuses.length > 0 && { status: filterData.statuses }),
+      },
+      sort: { by: sortField, order: sortDirection },
+      pagination: { limit: perPage, offset: (page - 1) * perPage },
+    }),
+    [filterData, sortField, sortDirection, page, perPage],
+  );
+
+  const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+  const apiKeys = response.data;
+  const hasMore = response.has_more;
+  const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
   const onUsernameChange = React.useCallback((value: string) => {
     setFilterData((prev) => ({ ...prev, username: value }));
+    setPage(1);
   }, []);
 
   const onStatusToggle = React.useCallback((status: APIKeyStatus) => {
@@ -50,6 +64,7 @@ const AllApiKeysPage: React.FC = () => {
         ? prev.statuses.filter((s) => s !== status)
         : [...prev.statuses, status],
     }));
+    setPage(1);
   }, []);
 
   const onStatusClear = React.useCallback((status: APIKeyStatus) => {
@@ -57,15 +72,37 @@ const AllApiKeysPage: React.FC = () => {
       ...prev,
       statuses: prev.statuses.filter((s) => s !== status),
     }));
+    setPage(1);
   }, []);
 
-  const filteredApiKeys = applyFilters(apiKeys, filterData);
+  const onSort = React.useCallback((field: ApiKeySortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+    setPage(1);
+  }, []);
+
+  const onSetPage = React.useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  const onPerPageSelect = React.useCallback((newPerPage: number, newPage: number) => {
+    setPerPage(newPerPage);
+    setPage(newPage);
+  }, []);
+  const hasActiveFilters = filterData.username !== '' || filterData.statuses.length > 0;
+  const [localUsername, setLocalUsername] = React.useState('');
+
+  const onClearFilters = React.useCallback(() => {
+    setFilterData(initialApiKeyFilterData);
+    setPage(1);
+    setLocalUsername('');
+  }, []);
 
   return (
     <ApplicationsPage
       title="API Keys"
       description="Manage personal API keys that can be used to access AI asset endpoints."
-      empty={loaded && !error && apiKeys.length === 0}
+      empty={loaded && !error && apiKeys.length === 0 && page === 1 && !hasActiveFilters}
       loaded={loaded}
       loadError={error}
       emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
@@ -83,16 +120,28 @@ const AllApiKeysPage: React.FC = () => {
         <PageSection isFilled>
           <ApiKeysTable
             onRevokeApiKey={setRevokeApiKey}
-            apiKeys={filteredApiKeys}
+            apiKeys={apiKeys}
+            hasMore={hasMore}
+            page={page}
+            perPage={perPage}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSetPage={onSetPage}
+            onPerPageSelect={onPerPageSelect}
+            onSort={onSort}
+            onClearFilters={onClearFilters}
             toolbarContent={
               <ApiKeysToolbar
                 setIsModalOpen={setIsModalOpen}
                 filterData={filterData}
+                localUsername={localUsername}
+                setLocalUsername={setLocalUsername}
                 onUsernameChange={onUsernameChange}
                 onStatusToggle={onStatusToggle}
                 onStatusClear={onStatusClear}
                 activeApiKeys={activeApiKeys}
                 refresh={refresh}
+                onClearFilters={onClearFilters}
               />
             }
           />
@@ -112,4 +161,5 @@ const AllApiKeysPage: React.FC = () => {
     </ApplicationsPage>
   );
 };
+
 export default AllApiKeysPage;
