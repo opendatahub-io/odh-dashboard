@@ -224,7 +224,9 @@ describe('Archiving version', () => {
   });
 
   it('Cannot archive version that has a deployment from versions table', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.interceptK8sList(
       InferenceServiceModel,
       mockK8sResourceList([
@@ -235,31 +237,34 @@ describe('Archiving version', () => {
           },
         }),
       ]),
-    );
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
+
+    // Wait for API calls to complete before interacting with the table
+    cy.wait('@getProjects');
+    cy.wait('@getInferenceServices');
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
     modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
   });
 
   it('Cannot archive model that has versions with a deployment', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.interceptK8sList(
       InferenceServiceModel,
-      mockK8sResourceList([
-        mockInferenceServiceK8sResource({
-          additionalLabels: {
-            [KnownLabels.REGISTERED_MODEL_ID]: '1',
-            [KnownLabels.MODEL_VERSION_ID]: '3',
-          },
-        }),
-      ]),
-    );
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
+
+    // Wait for API calls to complete before interacting with the page
+    cy.wait('@getProjects');
+    cy.wait('@getInferenceServices');
 
     modelRegistry
       .findModelVersionsHeaderAction()
