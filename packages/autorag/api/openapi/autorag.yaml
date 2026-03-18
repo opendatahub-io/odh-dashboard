@@ -178,9 +178,10 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: The S3 bucket name. Leading and trailing whitespace is trimmed.
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: key
           in: query
@@ -257,9 +258,10 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: The S3 bucket name. Leading and trailing whitespace is trimmed.
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: path
           in: query

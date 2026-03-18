@@ -67,13 +67,13 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 		return nil, false
 	}
 
-	bucket := bucketOverride
+	bucket := strings.TrimSpace(bucketOverride)
 	if bucket == "" {
-		if creds.Bucket == "" {
+		bucket = strings.TrimSpace(creds.Bucket)
+		if bucket == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
 			return nil, false
 		}
-		bucket = creds.Bucket
 	}
 
 	// TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
