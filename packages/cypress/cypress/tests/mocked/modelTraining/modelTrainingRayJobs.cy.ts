@@ -456,6 +456,61 @@ const initPauseResumeIntercepts = () => {
   );
 };
 
+const createWorkloadForRayJob = (
+  job: (typeof mockRayJobs)[number],
+  overrides: { active?: boolean } = {},
+) => {
+  const workload = mockWorkloadK8sResource({
+    k8sName: `workload-${job.metadata.name}`,
+    namespace: projectName,
+    mockStatus: WorkloadStatusType.Running,
+  });
+  workload.spec = {
+    ...workload.spec,
+    ...('active' in overrides ? { active: overrides.active } : {}),
+  };
+  if (workload.metadata) {
+    workload.metadata.labels = {
+      ...(workload.metadata.labels || {}),
+      'kueue.x-k8s.io/job-uid': job.metadata.uid || `uid-${job.metadata.name}`,
+      'kueue.x-k8s.io/job-name': job.metadata.name,
+    };
+  }
+  return workload;
+};
+
+const runningWorkload = createWorkloadForRayJob(mockRayJobs[0]);
+const suspendedWorkload = createWorkloadForRayJob(mockRayJobs[3], { active: false });
+const runningJobUid = mockRayJobs[0].metadata.uid ?? '';
+const suspendedJobUid = mockRayJobs[3].metadata.uid ?? '';
+
+const initPauseResumeIntercepts = () => {
+  initIntercepts();
+
+  cy.interceptK8sList(
+    { model: WorkloadModel, ns: projectName },
+    mockK8sResourceList([runningWorkload, suspendedWorkload]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: WorkloadModel,
+      ns: projectName,
+      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${runningJobUid}` },
+    },
+    mockK8sResourceList([runningWorkload]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: WorkloadModel,
+      ns: projectName,
+      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${suspendedJobUid}` },
+    },
+    mockK8sResourceList([suspendedWorkload]),
+  );
+};
+
 describe('RayJobs in Jobs Table', () => {
   beforeEach(() => {
     asClusterAdminUser();
