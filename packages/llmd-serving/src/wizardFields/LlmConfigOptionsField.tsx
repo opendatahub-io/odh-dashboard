@@ -7,9 +7,9 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { HardwareProfileKind } from '@odh-dashboard/internal/k8sTypes';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
+import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/concepts/useModelServingClusterSettings';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
-import { useModelServingClusterSettings } from '../../../model-serving/src/concepts/useModelServingClusterSettings';
 import { LLMD_OPTION } from '../deployments/server';
 import { isLLMdActive } from '../utilts';
 
