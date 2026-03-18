@@ -32,7 +32,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
     it('should fire tracking event when token is generated successfully', async () => {
       const mockResponse = {
         key: 'generated-token-123',
-        expiresIn: '2024-12-31',
+        expiresAt: '2024-12-31',
       };
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
@@ -57,7 +57,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
     it('should track token generation with custom expiration', async () => {
       const mockResponse = {
         key: 'generated-token-456',
-        expiresIn: '2025-06-30',
+        expiresAt: '2025-06-30',
       };
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
@@ -82,7 +82,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
     it('should call tracking exactly once per generation', async () => {
       const mockResponse = {
         key: 'token-abc',
-        expiresIn: '2024-12-31',
+        expiresAt: '2024-12-31',
       };
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
@@ -190,7 +190,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
     it('should track each generation attempt independently', async () => {
       const mockResponse = {
         key: 'token-xyz',
-        expiresIn: '2024-12-31',
+        expiresAt: '2024-12-31',
       };
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
@@ -249,7 +249,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       // Second attempt - success
       mockGenerateMaaSToken.mockResolvedValueOnce({
         key: 'success-token',
-        expiresIn: '2024-12-31',
+        expiresAt: '2024-12-31',
       });
 
       result.current.resetToken();
