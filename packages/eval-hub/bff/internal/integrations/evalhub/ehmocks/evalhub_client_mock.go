@@ -263,7 +263,7 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string) (*evalhub.EvaluationJob, error) {
-	jobs, _ := m.ListEvaluationJobs(nil, evalhub.ListEvaluationJobsParams{})
+	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
 	for i := range jobs {
 		if jobs[i].Resource.ID == id {
 			return &jobs[i], nil
