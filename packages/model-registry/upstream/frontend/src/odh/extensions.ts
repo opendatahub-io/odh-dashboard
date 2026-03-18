@@ -12,6 +12,7 @@ import {
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
+export const REGISTRY_OCI_STORAGE = 'registry-oci-storage';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
@@ -22,8 +23,16 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       devFlags: [
         'Model Registry Plugin (unreleased pages)',
         'KF MR Upstream: Catalog HuggingFace API Key',
-        'KF MR Upstream: Registry OCI Storage',
       ],
+    },
+  },
+  {
+    type: 'app.area',
+    flags: {
+      required: [SupportedArea.REGISTRY_OCI_STORAGE],
+    },
+    properties: {
+      id: REGISTRY_OCI_STORAGE,
     },
   },
   {
@@ -35,7 +44,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'modelCatalog',
       title: 'Catalog',
       href: '/ai-hub/catalog',
-      section: 'ai-hub',
+      section: 'models',
       path: '/ai-hub/catalog/*',
       group: '1_aihub',
     },
@@ -49,7 +58,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'modelRegistry',
       title: 'Registry',
       href: '/ai-hub/registry',
-      section: 'ai-hub',
+      section: 'models',
       path: '/ai-hub/registry/*',
       group: '1_aihub',
     },
@@ -63,7 +72,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'modelRegistry-kf',
       title: 'Model registry (KF)',
       href: '/ai-hub/registry',
-      section: 'ai-hub',
+      section: 'models',
       path: '/ai-hub/registry/*',
     },
   },
@@ -119,11 +128,10 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'mcpCatalog',
-      title: 'MCP Catalog',
+      title: 'Catalog',
       href: '/ai-hub/mcp-catalog',
-      section: 'ai-hub',
+      section: 'mcp-servers',
       path: '/ai-hub/mcp-catalog/*',
-      group: '1_aihub',
     },
   },
   {

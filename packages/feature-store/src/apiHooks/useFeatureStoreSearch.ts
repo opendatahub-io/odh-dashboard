@@ -130,6 +130,7 @@ export const useFeatureStoreSearch = (): {
       search,
       apiAvailable,
       hasAvailableProjects,
+      featureStoreProjects.projects,
       currentSearchQuery,
       isSearching,
       currentAbortController,
@@ -178,6 +179,8 @@ export const useFeatureStoreSearch = (): {
     hasAvailableProjects,
     currentPage,
     search,
+    featureStoreProjects.projects,
+    currentAbortController?.signal,
   ]);
 
   const clearSearch = useCallback(() => {

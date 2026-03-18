@@ -24,7 +24,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Get pipeline server client from context (added by middleware)
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
 		return
 	}
 
@@ -87,7 +87,7 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	// Get pipeline server client from context (added by middleware)
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
 		return
 	}
 

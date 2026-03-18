@@ -28,7 +28,9 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).click();
+    appChrome
+      .findNavItem({ name: 'Deployments', rootSection: 'AI hub', subSection: 'Models' })
+      .click();
     this.wait();
   }
 
@@ -1348,11 +1350,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    const editor = new DashboardCodeEditor(() =>
-      cy.findByTestId('yaml-editor').find('.monaco-editor'),
-    );
-    editor.waitForReady();
-    return editor;
+    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor'));
   }
 
   findYAMLEditorEmptyState() {

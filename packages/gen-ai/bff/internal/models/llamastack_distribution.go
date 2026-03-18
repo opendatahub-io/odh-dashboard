@@ -27,9 +27,9 @@ type LlamaStackDistributionInstallRequest struct {
 
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
 type installModelJSON struct {
-	ModelName   string      `json:"model_name"`
-	IsMaaSModel bool        `json:"is_maas_model"`
-	MaxTokens   interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
+	ModelName       string      `json:"model_name"`
+	ModelSourceType string      `json:"model_source_type"`    // Source type as string for unmarshaling (required)
+	MaxTokens       interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for InstallModel to handle max_tokens
@@ -46,7 +46,22 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 	}
 
 	im.ModelName = raw.ModelName
-	im.IsMaaSModel = raw.IsMaaSModel
+
+	// Validate and set ModelSourceType (now required)
+	switch raw.ModelSourceType {
+	case string(ModelSourceTypeNamespace):
+		im.ModelSourceType = ModelSourceTypeNamespace
+	case string(ModelSourceTypeExternalCluster):
+		im.ModelSourceType = ModelSourceTypeExternalCluster
+	case string(ModelSourceTypeExternalProvider):
+		im.ModelSourceType = ModelSourceTypeExternalProvider
+	case string(ModelSourceTypeMaaS):
+		im.ModelSourceType = ModelSourceTypeMaaS
+	case "":
+		return fmt.Errorf("model_source_type is required")
+	default:
+		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, external_cluster, external_provider, maas", raw.ModelSourceType)
+	}
 
 	// Handle max_tokens conversion from interface{} to *int
 	if raw.MaxTokens != nil {
@@ -79,9 +94,9 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 }
 
 type InstallModel struct {
-	ModelName   string `json:"model_name"`
-	IsMaaSModel bool   `json:"is_maas_model"`
-	MaxTokens   *int   `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
+	ModelName       string              `json:"model_name"`
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`    // Source type of the model (required: namespace, external_cluster, external_provider, maas)
+	MaxTokens       *int                `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
 }
 
 type LlamaStackDistributionInstallModel struct {

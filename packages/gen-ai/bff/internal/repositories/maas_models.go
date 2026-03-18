@@ -26,8 +26,6 @@ func (r *MaaSModelsRepository) ListModels(ctx context.Context) ([]models.MaaSMod
 		return nil, err
 	}
 
-	// Repository layer can add transformation logic here if needed
-	// For now, direct passthrough from client to handler
 	return client.ListModels(ctx)
 }
 

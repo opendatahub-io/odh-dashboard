@@ -56,6 +56,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
       state: {
         mcpServers: selectedServerIds,
         mcpServerStatuses: Object.fromEntries(serverStatuses),
+        openSettingsToTab: 'mcp',
       },
     });
   }, [selectedServerIds, namespace, navigate, serverStatuses]);
