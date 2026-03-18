@@ -32,7 +32,7 @@ func main() {
 
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "autorag"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: autorag)")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
