@@ -20,6 +20,7 @@ describe('NoPipelineServer', () => {
         'No Data Science Pipelines (DSPipelineApplication) was found. Install Data Science Pipelines in your project to use AutoML experiments.',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/or select a different project/)).not.toBeInTheDocument();
   });
 
   it('should render body text with namespace when namespace is provided', () => {
@@ -34,5 +35,6 @@ describe('NoPipelineServer', () => {
     expect(
       screen.getByText(/Install Data Science Pipelines in your project to use AutoML experiments/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/or select a different project/)).toBeInTheDocument();
   });
 });

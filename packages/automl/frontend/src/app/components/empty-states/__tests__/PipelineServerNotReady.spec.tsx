@@ -20,6 +20,7 @@ describe('PipelineServerNotReady', () => {
         'Data Science Pipelines exists but is not ready yet. Check that the APIServer component is running in your project.',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/or select a different project/)).not.toBeInTheDocument();
   });
 
   it('should render body text with namespace when namespace is provided', () => {
@@ -28,5 +29,6 @@ describe('PipelineServerNotReady', () => {
     expect(screen.getByText(/Data Science Pipelines exists in namespace/)).toBeInTheDocument();
     expect(screen.getByText('my-project')).toBeInTheDocument();
     expect(screen.getByText(/Check that the APIServer component is running/)).toBeInTheDocument();
+    expect(screen.getByText(/or select a different project/)).toBeInTheDocument();
   });
 });

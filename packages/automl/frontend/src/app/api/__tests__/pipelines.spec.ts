@@ -32,7 +32,6 @@ const mockRuns: PipelineRun[] = [
 describe('getPipelineRunsFromBFF', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
   });
 
   it('should return runs, total_size, and next_page_token when response is valid', async () => {
@@ -153,6 +152,14 @@ describe('getPipelineRunsFromBFF', () => {
       '/automl/api/v1/pipeline-runs',
       expect.any(Object),
       opts,
+    );
+  });
+
+  it('should propagate errors thrown by handleRestFailures', async () => {
+    (handleRestFailures as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+    await expect(getPipelineRunsFromBFF('', { namespace: 'my-ns' })).rejects.toThrow(
+      'Network error',
     );
   });
 });
