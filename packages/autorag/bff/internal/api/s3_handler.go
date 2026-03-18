@@ -206,10 +206,10 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-  if result == nil {
-    app.serverErrorResponse(w, r, errors.New("unexpected nil response from S3 ListObjects"))
-    return
-  }
+	if result == nil {
+		app.serverErrorResponse(w, r, errors.New("unexpected nil response from S3 ListObjects"))
+		return
+	}
 
 	response := S3FilesEnvelope{
 		Data:     *result,
