@@ -1,3 +1,4 @@
+/* eslint-disable @odh-dashboard/no-restricted-imports */
 import * as React from 'react';
 import {
   Alert,
@@ -52,11 +53,12 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
+import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
+import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
-const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
 const RESOURCES_TAB = 'Resources';
@@ -184,7 +186,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         color = RegularColor.var;
     }
 
-    const kueueTitle = showKueueMessage ? kueueStatus.message?.trim() || kueueStatus.status : null;
+    const kueueTitle = showKueueMessage
+      ? getHumanReadableKueueMessage(kueueStatus.status, kueueStatus.message, kueueStatus.queueName)
+      : null;
     const workbenchTitle =
       notebookStatus?.currentEvent ||
       (isStarting

@@ -88,6 +88,15 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   ),
 }));
 
+jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+  useWatchConnectionTypes: () => [[]],
+}));
+
+jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 const mockUseFilesQuery = jest.mocked(useFilesQuery);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);

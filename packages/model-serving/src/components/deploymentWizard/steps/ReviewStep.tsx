@@ -65,7 +65,7 @@ const getStatusSections = (
           key: 'modelType',
           label: 'Model type',
           comp: (state) =>
-            state.modelType.data === ServingRuntimeModelType.PREDICTIVE
+            state.modelType.data?.type === ServingRuntimeModelType.PREDICTIVE
               ? ModelTypeLabel.PREDICTIVE
               : ModelTypeLabel.GENERATIVE,
         },
