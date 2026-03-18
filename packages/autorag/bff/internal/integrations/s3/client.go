@@ -43,11 +43,14 @@ type S3ClientInterface interface {
 // RealS3Client implements S3ClientInterface using the AWS SDK.
 type RealS3Client struct {
 	s3Client *awss3.Client
+	options  S3ClientOptions
 }
 
 // NewRealS3Client creates a new S3 client from credentials.
-func NewRealS3Client(creds *S3Credentials) (*RealS3Client, error) {
-	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
+func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
+	c := &RealS3Client{options: opts}
+
+	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
 		return nil, fmt.Errorf("endpoint validation failed: %w", err)
 	}
@@ -57,13 +60,13 @@ func NewRealS3Client(creds *S3Credentials) (*RealS3Client, error) {
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
 	}
 
-	s3Client := awss3.NewFromConfig(cfg, func(o *awss3.Options) {
+	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
 		o.BaseEndpoint = aws.String(validatedEndpoint)
 		// Enable path-style addressing for S3-compatible services like MinIO
 		o.UsePathStyle = true
 	})
 
-	return &RealS3Client{s3Client: s3Client}, nil
+	return c, nil
 }
 
 // GetObject retrieves an object from S3 using transfer manager for optimized downloading
@@ -204,7 +207,7 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 // It ensures the URL uses HTTPS, is properly formatted, and does not target private IP ranges.
 // Returns the normalized URL string or an error if validation fails.
-func validateAndNormalizeEndpoint(endpoint string) (string, error) {
+func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
 	}
@@ -230,29 +233,26 @@ func validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	ip := net.ParseIP(hostname)
 	if ip != nil {
 		// Direct IP address - validate it
-		if err := validateIPAddress(ip); err != nil {
+		if err := c.validateIPAddress(ip); err != nil {
 			return "", err
 		}
 	} else {
 		// Hostname - resolve it and validate all IPs
 		ips, err := net.LookupIP(hostname)
 		if err != nil {
-			// Check if permissive mode is enabled for unresolvable hostnames
-			allowUnresolved := os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true"
-
-			if allowUnresolved {
-				// Non-production/testing mode: allow with warning
-				slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed (ALLOW_UNRESOLVED_S3_ENDPOINTS=true)",
+			// Only honor ALLOW_UNRESOLVED_S3_ENDPOINTS in dev mode to prevent
+			// weakening SSRF protections in production.
+			if c.options.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+				slog.Warn("Unable to resolve S3 endpoint hostname, allowing it to proceed (dev mode, ALLOW_UNRESOLVED_S3_ENDPOINTS=true)",
 					"hostname", hostname,
 					"error", err.Error())
 			} else {
-				// Production mode: treat DNS resolution failure as a security error
 				return "", fmt.Errorf("endpoint hostname '%s' cannot be resolved: %w (this may indicate a DNS rebinding attempt or misconfiguration)", hostname, err)
 			}
 		} else {
 			// Validate all resolved IPs
 			for _, resolvedIP := range ips {
-				if err := validateIPAddress(resolvedIP); err != nil {
+				if err := c.validateIPAddress(resolvedIP); err != nil {
 					return "", fmt.Errorf("endpoint hostname '%s' resolves to blocked IP %s: %w", hostname, resolvedIP, err)
 				}
 			}
@@ -265,8 +265,7 @@ func validateAndNormalizeEndpoint(endpoint string) (string, error) {
 
 // validateIPAddress checks if an IP address is in a blocked range (private or link-local).
 // Returns an error if the IP is blocked, nil otherwise.
-func validateIPAddress(ip net.IP) error {
-	// Define blocked IP ranges
+func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 	blockedRanges := []struct {
 		cidr        string
 		description string

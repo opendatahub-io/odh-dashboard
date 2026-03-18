@@ -150,7 +150,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientFactory = s3mocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real S3 client factory")
-		s3ClientFactory = s3int.NewRealClientFactory()
+    s3ClientOptions := s3int.S3ClientOptions{DevMode: cfg.DevMode}
+    s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
 	}
 
 	app := &App{
@@ -160,11 +161,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
-		// TODO [ Gustavo:S3-MERGE ] This should be aligned to the new style I have
-		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
-			MockS3Client: cfg.MockS3Client,
-			DevMode:      cfg.DevMode,
-		}),
+		repositories: repositories.NewRepositories(logger),
 		testEnv: testEnv,
 		rootCAs: rootCAs,
 	}

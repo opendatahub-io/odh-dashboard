@@ -369,8 +369,7 @@ func TestGetS3FileHandler_CaseInsensitiveCredentials(t *testing.T) {
 
 			// Since we can't easily mock S3, just test that we get credentials properly
 			// The actual S3 call would fail, but we can verify credentials extraction works
-			// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-			s3Repo := repositories.NewS3Repository(true)
+			s3Repo := repositories.NewS3Repository()
 			client, _ := factory.GetClient(context.Background())
 
 			creds, err := s3Repo.GetS3Credentials(context.Background(), client, "test-namespace", tc.secret.Name, identity)
@@ -412,8 +411,8 @@ func TestS3Repository_GetS3Credentials_Success(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-1", identity)
 
@@ -442,8 +441,8 @@ func TestS3Repository_GetS3Credentials_SecretNotFound(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "non-existent", identity)
 
@@ -470,8 +469,8 @@ func TestS3Repository_GetS3Credentials_MissingAccessKeyID(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
@@ -498,8 +497,8 @@ func TestS3Repository_GetS3Credentials_MissingSecretAccessKey(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
@@ -526,8 +525,8 @@ func TestS3Repository_GetS3Credentials_MissingRegion(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
@@ -554,8 +553,8 @@ func TestS3Repository_GetS3Credentials_MissingEndpointURL(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "incomplete-secret", identity)
 
@@ -569,8 +568,8 @@ func TestS3Repository_GetS3Credentials_KubernetesError(t *testing.T) {
 		err: fmt.Errorf("kubernetes error: unable to list secrets"),
 	}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-1", identity)
 
@@ -600,8 +599,8 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	// TODO [ Gustavo:S3-MERGE ] This new boolean value has to be checked
-	s3Repo := repositories.NewS3Repository(true)
+
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "aws-secret-no-bucket", identity)
 
@@ -635,7 +634,7 @@ func TestS3Repository_GetS3Credentials_RejectsHTTP(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "insecure-secret", identity)
 
@@ -663,7 +662,7 @@ func TestS3Repository_GetS3Credentials_RejectsPrivateIP_10(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "private-ip-secret", identity)
 
@@ -691,7 +690,7 @@ func TestS3Repository_GetS3Credentials_RejectsPrivateIP_172(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "private-ip-secret", identity)
 
@@ -719,7 +718,7 @@ func TestS3Repository_GetS3Credentials_RejectsPrivateIP_192(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "private-ip-secret", identity)
 
@@ -747,7 +746,7 @@ func TestS3Repository_GetS3Credentials_RejectsLoopback(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "loopback-secret", identity)
 
@@ -775,7 +774,7 @@ func TestS3Repository_GetS3Credentials_RejectsLinkLocal(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "linklocal-secret", identity)
 
@@ -803,7 +802,7 @@ func TestS3Repository_GetS3Credentials_RejectsInvalidURL(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "invalid-url-secret", identity)
 
@@ -831,7 +830,7 @@ func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_0(t *testing.T) 
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "this-network-secret", identity)
 
@@ -859,7 +858,7 @@ func TestS3Repository_GetS3Credentials_RejectsThisNetwork_0_0_0_1(t *testing.T) 
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "this-network-secret", identity)
 
@@ -887,7 +886,7 @@ func TestS3Repository_GetS3Credentials_RejectsReservedFutureUse(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "reserved-future-secret", identity)
 
@@ -915,7 +914,7 @@ func TestS3Repository_GetS3Credentials_RejectsIPv6Loopback(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "ipv6-loopback-secret", identity)
 
@@ -943,7 +942,7 @@ func TestS3Repository_GetS3Credentials_RejectsIPv6LinkLocal(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "ipv6-linklocal-secret", identity)
 
@@ -971,7 +970,7 @@ func TestS3Repository_GetS3Credentials_RejectsIPv6UniqueLocal(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "ipv6-ula-secret", identity)
 
@@ -999,7 +998,7 @@ func TestS3Repository_GetS3Credentials_AcceptsValidHTTPSURL(t *testing.T) {
 
 	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-	s3Repo := repositories.NewS3Repository(true)
+	s3Repo := repositories.NewS3Repository()
 
 	creds, err := s3Repo.GetS3Credentials(context.Background(), mockClient, "test-namespace", "valid-secret", identity)
 

@@ -71,8 +71,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
-	// a mock Kubernetes client for GetS3Credentials and s3_handler.go
+	// Ensure MockS3Client always uses MockK8Client since GetS3Credentials needs
+	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
 	if cfg.MockS3Client && !cfg.MockK8Client {
 		logger.Warn("mock-s3-client depends on mock-k8s-client=true. Enabling to true as it was found to be mock-k8s-client=false")
 		cfg.MockK8Client = true
