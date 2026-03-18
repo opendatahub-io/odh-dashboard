@@ -290,6 +290,16 @@ func (r *S3Repository) UploadS3Object(
 		Key:         aws.String(key),
 		Body:        body,
 		ContentType: aws.String(contentType),
+	}, func(o *transfermanager.Options) {
+		// Concurrency: number of parts uploaded in parallel. Default is 5; 10 improves throughput
+		// for large files (same as GetS3Object) without excessive memory (PartSize × Concurrency).
+		o.Concurrency = 10
+		// PartSizeBytes: size of each multipart chunk. Default 8 MiB; 64 MiB reduces UploadPart
+		// API count and overhead for files up to our 1 GiB cap, matching GetS3Object part size.
+		o.PartSizeBytes = 64 * 1024 * 1024
+		// MultipartUploadThreshold: use single PutObject below this size, multipart above. Set to
+		// PartSize so objects under 64 MiB use one PutObject; larger files use multipart with 64 MiB parts.
+		o.MultipartUploadThreshold = 64 * 1024 * 1024
 	})
 	if err != nil {
 		return fmt.Errorf("error uploading object to S3: %w", err)

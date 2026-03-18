@@ -20,21 +20,22 @@ import (
 
 func TestS3PostDeclaredBodyExceedsLimit(t *testing.T) {
 	t.Parallel()
+	app := &App{}
 	unknown := httptest.NewRequest(http.MethodPost, "/", nil)
 	unknown.ContentLength = -1
-	assert.False(t, s3PostDeclaredBodyExceedsLimit(unknown))
+	assert.False(t, app.s3PostDeclaredBodyExceedsLimit(unknown))
 
 	zero := httptest.NewRequest(http.MethodPost, "/", nil)
 	zero.ContentLength = 0
-	assert.False(t, s3PostDeclaredBodyExceedsLimit(zero))
+	assert.False(t, app.s3PostDeclaredBodyExceedsLimit(zero))
 
 	ok := httptest.NewRequest(http.MethodPost, "/", nil)
 	ok.ContentLength = s3MaxUploadFileBytes + s3MultipartMaxEnvelopeBytes
-	assert.False(t, s3PostDeclaredBodyExceedsLimit(ok))
+	assert.False(t, app.s3PostDeclaredBodyExceedsLimit(ok))
 
 	big := httptest.NewRequest(http.MethodPost, "/", nil)
 	big.ContentLength = s3MaxUploadFileBytes + s3MultipartMaxEnvelopeBytes + 1
-	assert.True(t, s3PostDeclaredBodyExceedsLimit(big))
+	assert.True(t, app.s3PostDeclaredBodyExceedsLimit(big))
 }
 
 type panicKubernetesClientFactory struct{}

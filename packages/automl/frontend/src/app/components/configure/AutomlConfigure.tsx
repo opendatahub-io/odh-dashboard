@@ -171,6 +171,9 @@ function AutomlConfigure(): React.JSX.Element {
 
   // reset columns query cache and label column when connection data is cleared
   useEffect(() => {
+    if (!namespace) {
+      return;
+    }
     if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
       queryClient.setQueryData(
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],

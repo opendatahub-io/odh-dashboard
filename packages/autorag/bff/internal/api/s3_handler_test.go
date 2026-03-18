@@ -1261,6 +1261,74 @@ func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
 }
 
+// TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413 ensures the body-wide MaxBytesReader
+// (same cap as rejectDeclaredOversizedS3Post) stops streaming when discarding a large non-file part
+// under unknown Content-Length (chunked-style), so the scanner cannot read unbounded.
+func TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413(t *testing.T) {
+	t.Parallel()
+	const maxBody int64 = 4096
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	junk, err := mw.CreateFormField("junk")
+	assert.NoError(t, err)
+	_, err = junk.Write(bytes.Repeat([]byte("z"), 10000))
+	assert.NoError(t, err)
+	fp, err := mw.CreateFormFile("file", "late.bin")
+	assert.NoError(t, err)
+	_, err = fp.Write([]byte("ok"))
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=late.bin",
+		bytes.NewReader(buf.Bytes()),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.ContentLength = -1
+	req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	app := &App{
+		config:                    config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                    logger,
+		kubernetesClientFactory:   factory,
+		repositories:              repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+		s3PostMaxRequestBodyBytes: maxBody,
+	}
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+}
+
 func TestSanitizeUploadContentType(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -1289,6 +1357,35 @@ func TestSanitizeUploadContentType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.want, sanitizeUploadContentType(tt.in))
+		})
+	}
+}
+
+func TestS3ObjectContentTypeNeedsForcedDownload(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"empty", "", false},
+		{"whitespace", "   ", false},
+		{"html", "text/html", true},
+		{"html charset", "text/html; charset=utf-8", true},
+		{"html upper", "TEXT/HTML; Charset=UTF-8", true},
+		{"xhtml", "application/xhtml+xml", true},
+		{"xhtml with param", "application/xhtml+xml; profile=...", true},
+		{"svg", "image/svg+xml", true},
+		{"svg charset", "image/svg+xml; charset=utf-8", true},
+		{"plain", "text/plain", false},
+		{"pdf", "application/pdf", false},
+		{"json", "application/json", false},
+		{"invalid mime", "not a mime", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isInlineDangerousContentType(tt.in), tt.in)
 		})
 	}
 }

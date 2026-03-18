@@ -156,11 +156,12 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		defer closer.Close()
 	}
 
-	if contentType == "text/html" {
+	if isInlineDangerousContentType(contentType) {
 		w.Header().Set("Content-Disposition", "attachment")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
-	w.Header().Set("Content-Type", contentType)
+	// Same normalization as POST uploads so GET cannot echo arbitrary S3 metadata types.
+	w.Header().Set("Content-Type", sanitizeUploadContentType(contentType))
 
 	// Stream the file content to the response
 	w.WriteHeader(http.StatusOK)
@@ -269,9 +270,19 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
+	maxUploadSize := app.s3PostMaxTotalBodyBytes()
+	// Cap the entire request body so chunked/unknown-length clients cannot force the multipart
+	// scanner (including io.Copy discard of non-file parts) to read without bound. Same limit as
+	// rejectDeclaredOversizedS3Post for declared Content-Length.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
 	// Stream multipart body: do not buffer the entire file.
 	mr, err := r.MultipartReader()
 	if err != nil {
+		if isS3PostRequestBodyTooLarge(err) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
 		return
 	}
@@ -287,6 +298,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			break
 		}
 		if nextErr != nil {
+			if isS3PostRequestBodyTooLarge(nextErr) {
+				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				return
+			}
 			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
 			return
 		}
@@ -294,8 +309,15 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			filePart = part
 			break
 		}
-		// Consume and discard non-file parts so the stream advances
-		_, _ = io.Copy(io.Discard, part)
+		_, copyErr := io.Copy(io.Discard, part)
+		if copyErr != nil {
+			if isS3PostRequestBodyTooLarge(copyErr) {
+				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				return
+			}
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
+			return
+		}
 	}
 
 	if filePart == nil {
@@ -334,16 +356,42 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
 }
 
-// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds the maximum
-// declared body size. Chunked or unknown length is allowed; the file part is limited by MaxBytesReader.
+// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds
+// s3PostMaxTotalBodyBytes. Chunked or unknown length passes here; PostS3FileHandler still wraps
+// r.Body with http.MaxBytesReader before MultipartReader so total bytes read are capped.
 func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if s3PostDeclaredBodyExceedsLimit(r) {
+		if app.s3PostDeclaredBodyExceedsLimit(r) {
 			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
 			return
 		}
 		next(w, r, ps)
 	}
+}
+
+func isS3PostRequestBodyTooLarge(err error) bool {
+	var maxBytesErr *http.MaxBytesError
+	return err != nil && errors.As(err, &maxBytesErr)
+}
+
+// dangerousS3GetMediaTypes are served with Content-Disposition: attachment and nosniff so the
+// dashboard origin cannot be used as an XSS/SVG script vector when objects declare these types
+// (including parameterized forms, e.g. text/html; charset=utf-8).
+var dangerousS3GetMediaTypes = map[string]struct{}{
+	"text/html":             {},
+	"application/xhtml+xml": {},
+	"image/svg+xml":         {},
+}
+
+func isInlineDangerousContentType(v string) bool {
+	raw := strings.TrimSpace(v)
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return false
+	}
+	mediaType = strings.ToLower(mediaType)
+	_, ok := dangerousS3GetMediaTypes[mediaType]
+	return ok
 }
 
 // allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
