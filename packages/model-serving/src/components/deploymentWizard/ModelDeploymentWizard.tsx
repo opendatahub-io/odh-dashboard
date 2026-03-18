@@ -195,6 +195,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               <ModelDeploymentStepContent
                 projectName={currentProjectName}
                 wizardState={wizardFormData}
+                externalData={externalData}
               />
             </WizardStep>
             <WizardStep
