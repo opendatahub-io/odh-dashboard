@@ -53,9 +53,7 @@ func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
 // ListModels retrieves all available models from the MaaS API
 func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
 	// Exchange the OpenShift user token for a MaaS API key
-	apiKeyResponse, err := c.IssueToken(ctx, models.MaaSTokenRequest{
-		Name: "odh-dashboard-list-models",
-	})
+	apiKeyResponse, err := c.IssueToken(ctx, models.MaaSTokenRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain MaaS API key: %w", err)
 	}
@@ -100,6 +98,9 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
 	url := fmt.Sprintf("%s/v1/api-keys", c.baseURL)
 
+	if request.Name == "" {
+		request.Name = fmt.Sprintf("odh-dashboard-api-key-%d", time.Now().Unix())
+	}
 	if request.ExpiresIn == "" {
 		request.ExpiresIn = "4h"
 	}

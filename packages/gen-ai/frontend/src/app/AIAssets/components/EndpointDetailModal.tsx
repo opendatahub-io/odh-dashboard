@@ -187,7 +187,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                           aria-label="Generated MaaS API key"
                           onCopy={() =>
                             copyToClipboardWithTracking(
-                              tokenData.token,
+                              tokenData.key,
                               'Available Endpoints Service Token Copied',
                               {
                                 assetType: 'maas_model',
@@ -196,7 +196,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                             )
                           }
                         >
-                          {tokenData.token}
+                          {tokenData.key}
                         </ClipboardCopy>
                       </FlexItem>
                     </Flex>

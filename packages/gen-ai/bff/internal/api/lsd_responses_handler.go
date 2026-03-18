@@ -783,7 +783,6 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		Name:      fmt.Sprintf("odh-dashboard-%s", username),
 		ExpiresIn: constants.MaaSTokenTTLString,
 	})
 	if err != nil {
