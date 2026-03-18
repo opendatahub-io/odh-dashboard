@@ -1,23 +1,23 @@
 package api
 
 import (
-  "context"
-  "errors"
-  "fmt"
-  "io"
-  "net/http"
-  "strconv"
-  "strings"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
 
-  "github.com/aws/aws-sdk-go-v2/service/s3/types"
-  "github.com/julienschmidt/httprouter"
-  "github.com/opendatahub-io/autorag-library/bff/internal/constants"
-  "github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-  "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-  s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
-  "github.com/opendatahub-io/autorag-library/bff/internal/models"
-  "github.com/opendatahub-io/autorag-library/bff/internal/repositories"
-  apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
@@ -221,7 +221,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
-  //    A new AWS S3 client is created on every request. The AWS SDK client
+	//    A new AWS S3 client is created on every request. The AWS SDK client
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	// Create S3 client and list objects
@@ -262,10 +262,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 }
 
 // TODO [ PR-Feedback: AI ] B1 - Gustavo:
-//   Mixed spaces/tabs indentation in function signature. Go requires tabs.
-//   Run `gofmt -w` on this file to fix. Same issue in repositories/s3.go:25-30.
+//
+//	Mixed spaces/tabs indentation in function signature. Go requires tabs.
+//	Run `gofmt -w` on this file to fix. Same issue in repositories/s3.go:25-30.
 func (app *App) getS3CredentialsFromSecret(
-  ctx context.Context,
+	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
 	namespace string,
 	secretName string,

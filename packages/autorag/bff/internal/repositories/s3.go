@@ -1,17 +1,17 @@
 package repositories
 
 import (
-  "context"
-  "errors"
-  "fmt"
-  "io"
-  "strings"
-  "log/slog"
-  "net"
-  "net/url"
-  "os"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/url"
+	"os"
+	"strings"
 
-  k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	s3client "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
 )
 
@@ -24,15 +24,15 @@ type S3Repository struct{}
 
 // TODO [ Gustavo:S3-MERGE ] s
 func NewS3RepositoryNICK(devMode bool) *S3Repository {
-  // Production guard: prevent ALLOW_UNRESOLVED_S3_ENDPOINTS from being enabled in production
-  // This environment variable weakens SSRF protections by allowing DNS resolution failures to "fail open"
-  if !devMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
-    slog.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is enabled but not in development mode",
-      "error", "This environment variable bypasses critical SSRF protections and must not be used in production. "+
-        "To use this variable for local testing, set -dev-mode flag.")
-    os.Exit(1)
-  }
-  return &S3Repository{}
+	// Production guard: prevent ALLOW_UNRESOLVED_S3_ENDPOINTS from being enabled in production
+	// This environment variable weakens SSRF protections by allowing DNS resolution failures to "fail open"
+	if !devMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		slog.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is enabled but not in development mode",
+			"error", "This environment variable bypasses critical SSRF protections and must not be used in production. "+
+				"To use this variable for local testing, set -dev-mode flag.")
+		os.Exit(1)
+	}
+	return &S3Repository{}
 }
 
 func NewS3Repository() *S3Repository {
@@ -139,8 +139,8 @@ func validateIPAddress(ip net.IP) error {
 
 // GetS3Credentials retrieves S3 credentials from a Kubernetes secret
 func (r *S3Repository) GetS3Credentials(
-  ctx context.Context,
-  client k8s.KubernetesClientInterface,
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
 	namespace string,
 	secretName string,
 	identity *k8s.RequestIdentity,
@@ -149,7 +149,7 @@ func (r *S3Repository) GetS3Credentials(
 	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
 	if err != nil {
 		// TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
-    //   This wrapping leaks internal details into user-facing responses.
+		//   This wrapping leaks internal details into user-facing responses.
 		//   The handler uses err.Error() in HTTP responses, so the full wrapped message
 		//   ("error fetching secret 'foo' from namespace bar: <k8s error>") is exposed to clients.
 		//   Either don't wrap here (just `return nil, err`) or use the unwrapped error for responses.
@@ -160,8 +160,8 @@ func (r *S3Repository) GetS3Credentials(
 	creds := &s3client.S3Credentials{}
 	secretData := secret.Data
 
-  // TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
-  //   Replace O(n*m) closure with a pre-built normalized map.
+	// TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
+	//   Replace O(n*m) closure with a pre-built normalized map.
 	//   Current approach iterates all secret keys for each lookup and has non-deterministic
 	//   behavior with duplicate keys. Simpler and faster:
 	//     normalizedData := make(map[string]string, len(secretData))
@@ -197,11 +197,11 @@ func (r *S3Repository) GetS3Credentials(
 	if creds.Region == "" {
 		return nil, fmt.Errorf("secret '%s' %w: AWS_DEFAULT_REGION", secretName, ErrMissingRequiredField)
 	}
-  if rawEndpoint == "" {
-    return nil, fmt.Errorf("secret '%s' %w: AWS_S3_ENDPOINT", secretName, ErrMissingRequiredField)
-  }
+	if rawEndpoint == "" {
+		return nil, fmt.Errorf("secret '%s' %w: AWS_S3_ENDPOINT", secretName, ErrMissingRequiredField)
+	}
 
-  // Validate and normalize the endpoint URL to prevent SSRF attacks
+	// Validate and normalize the endpoint URL to prevent SSRF attacks
 	validatedEndpoint, err := validateAndNormalizeEndpoint(rawEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("secret '%s' has invalid AWS_S3_ENDPOINT: %w", secretName, err)
@@ -215,56 +215,56 @@ func (r *S3Repository) GetS3Credentials(
 // GetS3Object retrieves an object from S3 using transfer manager for optimized downloading
 // and returns a reader for the content. Uses concurrent multipart downloads for large files.
 func (r *S3Repository) GetS3ObjectNICK(
-  ctx context.Context,
-  creds *S3Credentials,
-  bucket string,
-  key string,
+	ctx context.Context,
+	creds *S3Credentials,
+	bucket string,
+	key string,
 ) (io.Reader, string, error) {
-  // Revalidate the endpoint on each request to ensure SSRF protection
-  validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
-  if err != nil {
-    return nil, "", fmt.Errorf("endpoint validation failed: %w", err)
-  }
+	// Revalidate the endpoint on each request to ensure SSRF protection
+	validatedEndpoint, err := validateAndNormalizeEndpoint(creds.EndpointURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("endpoint validation failed: %w", err)
+	}
 
-  // Create AWS config with credentials
-  cfg := aws.Config{
-    Region:      creds.Region,
-    Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
-  }
+	// Create AWS config with credentials
+	cfg := aws.Config{
+		Region:      creds.Region,
+		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
 
-  // Create S3 client
-  s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-    o.BaseEndpoint = aws.String(validatedEndpoint)
-    // Enable path-style addressing for S3-compatible services like MinIO
-    o.UsePathStyle = true
-  })
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(validatedEndpoint)
+		// Enable path-style addressing for S3-compatible services like MinIO
+		o.UsePathStyle = true
+	})
 
-  // Create transfer manager for optimized downloads
-  transferClient := transfermanager.New(s3Client)
+	// Create transfer manager for optimized downloads
+	transferClient := transfermanager.New(s3Client)
 
-  // Get the object using transfer manager
-  // This automatically handles multipart downloads for large files with concurrency
-  result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
-    Bucket: aws.String(bucket),
-    Key:    aws.String(key),
-  }, func(o *transfermanager.Options) {
-    // Configure for optimal streaming performance
-    o.Concurrency = 10                  // 10 concurrent part downloads
-    o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
-    o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
-    o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
-    o.DisableChecksumValidation = false // Enable checksum validation for data integrity
-  })
-  if err != nil {
-    return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
-  }
+	// Get the object using transfer manager
+	// This automatically handles multipart downloads for large files with concurrency
+	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}, func(o *transfermanager.Options) {
+		// Configure for optimal streaming performance
+		o.Concurrency = 10                  // 10 concurrent part downloads
+		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
+		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
+		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
+		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+	}
 
-  // Get content type, default to application/octet-stream if not specified
-  contentType := "application/octet-stream"
-  if result.ContentType != nil {
-    contentType = *result.ContentType
-  }
+	// Get content type, default to application/octet-stream if not specified
+	contentType := "application/octet-stream"
+	if result.ContentType != nil {
+		contentType = *result.ContentType
+	}
 
-  // Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
-  return result.Body, contentType, nil
+	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
+	return result.Body, contentType, nil
 }

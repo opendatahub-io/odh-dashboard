@@ -29,8 +29,8 @@ func main() {
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 
-  // TODO [ Gustavo:S3-MERGE ] There are 2 of them now
-  flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
+	// TODO [ Gustavo:S3-MERGE ] There are 2 of them now
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
@@ -64,8 +64,8 @@ func main() {
 
 	flag.Parse()
 
-  // TODO [ Gustavo:S3-MERGE ] This is Nicks code
-  // Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
+	// TODO [ Gustavo:S3-MERGE ] This is Nicks code
+	// Ensure MockS3Client always uses MockK8Client since MockS3Repository needs
 	// a mock Kubernetes client for GetS3Credentials and s3_handler.go
 	if cfg.MockS3Client {
 		cfg.MockK8Client = true
@@ -98,8 +98,8 @@ func main() {
 		os.Exit(1)
 	}
 
-  // TODO [ Gustavo:S3-MERGE ] Nicks code
-  // Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	// TODO [ Gustavo:S3-MERGE ] Nicks code
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
 	if cfg.MockS3Client && !cfg.DevMode {
 		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
