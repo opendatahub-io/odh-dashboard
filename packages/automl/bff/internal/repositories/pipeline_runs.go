@@ -276,11 +276,12 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 
 	// Validate enum values and consistency with pipeline type
 	if req.TaskType != nil {
-		if pipelineType == constants.PipelineTypeTabular {
+		switch pipelineType {
+		case constants.PipelineTypeTabular:
 			if !constants.ValidTaskTypes[*req.TaskType] {
 				return fmt.Errorf("invalid task_type %q: must be one of binary, multiclass, regression", *req.TaskType)
 			}
-		} else if pipelineType == constants.PipelineTypeTimeSeries {
+		case constants.PipelineTypeTimeSeries:
 			if *req.TaskType != constants.PipelineTypeTimeSeries {
 				return fmt.Errorf("invalid task_type %q for timeseries pipeline: must be \"timeseries\"", *req.TaskType)
 			}
