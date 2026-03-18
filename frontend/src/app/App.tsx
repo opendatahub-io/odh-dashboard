@@ -29,6 +29,7 @@ import { AccessReviewProvider } from '#~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
+import { DashboardConfigProvider } from '#~/plugins/DashboardConfigProvider';
 import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
@@ -149,6 +150,7 @@ const App: React.FC = () => {
     <AppContext.Provider value={contextValue}>
       <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
         <PluginStoreAreaFlagsProvider />
+        <DashboardConfigProvider />
         <AccessReviewProvider>
           <Page
             className="odh-dashboard"
