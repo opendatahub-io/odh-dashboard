@@ -266,11 +266,12 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	// Stream multipart body: do not buffer the entire file.
 	mr, err := r.MultipartReader()
-	if err != nil || mr == nil {
-		if err == nil {
-			err = fmt.Errorf("request must be multipart/form-data with a boundary")
-		}
-		app.badRequestResponse(w, r, fmt.Errorf("request must be multipart/form-data with a boundary: %w", err))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
+		return
+	}
+	if mr == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("request must be multipart/form-data with a boundary"))
 		return
 	}
 
