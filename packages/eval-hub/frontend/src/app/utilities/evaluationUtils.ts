@@ -4,7 +4,7 @@ export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
 export const getBenchmarkName = (job: EvaluationJob): string =>
-  job.benchmarks.length > 0 ? job.benchmarks[0].id : '-';
+  job.benchmarks && job.benchmarks.length > 0 ? job.benchmarks[0].id : '-';
 
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

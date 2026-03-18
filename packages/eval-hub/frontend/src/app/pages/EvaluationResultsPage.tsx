@@ -41,7 +41,7 @@ const EvaluationResultsPage: React.FC = () => {
 
   const isCollection = !!job?.collection?.id;
   const benchmarkIds = React.useMemo(
-    () => job?.benchmarks.map((b) => b.id) ?? [],
+    () => job?.benchmarks?.map((b) => b.id) ?? [],
     [job?.benchmarks],
   );
 
@@ -111,7 +111,7 @@ const EvaluationResultsPage: React.FC = () => {
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
           {job.collection?.id
-            ? `${job.collection.id} (${job.benchmarks.length} benchmarks)`
+            ? `${job.collection.id} (${job.benchmarks?.length ?? 0} benchmarks)`
             : getBenchmarkName(job)}
         </Content>
       </FlexItem>

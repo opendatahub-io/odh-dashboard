@@ -22,7 +22,7 @@ type BenchmarkResultDetailsProps = {
 
 const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchmarkId, job }) => {
   const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
-  const benchmarkConfig = job.benchmarks.find((b) => b.id === benchmarkId);
+  const benchmarkConfig = job.benchmarks?.find((b) => b.id === benchmarkId);
 
   if (!result) {
     return null;

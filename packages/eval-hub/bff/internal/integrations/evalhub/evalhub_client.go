@@ -426,7 +426,7 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 // GetEvaluationJob retrieves a single evaluation job by ID.
 func (c *EvalHubClient) GetEvaluationJob(ctx context.Context, id string) (*EvaluationJob, error) {
 	path := fmt.Sprintf("/evaluations/jobs/%s", url.PathEscape(id))
-	resp, err := get[EvaluationJob](c, ctx, path)
+	resp, err := get[EvaluationJob](c, ctx, path, nil)
 	if err != nil {
 		return nil, wrapClientError(err, "GetEvaluationJob")
 	}
