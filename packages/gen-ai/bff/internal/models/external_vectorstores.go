@@ -15,9 +15,8 @@ type ProvidersSection struct {
 // VectorIOProvider describes a single vector database provider including its connection config.
 // Credentials are stored in referenced Kubernetes Secrets under config.custom_gen_ai.credentials.
 type VectorIOProvider struct {
-	ProviderID   string                 `yaml:"provider_id"`
-	ProviderType string                 `yaml:"provider_type"`
-	Config       map[string]interface{} `yaml:"config"`
+	ProviderID   string `yaml:"provider_id"`
+	ProviderType string `yaml:"provider_type"`
 }
 
 // RegisteredResourcesSection holds the list of registered vector store collections.
@@ -37,13 +36,7 @@ type RegisteredVectorStore struct {
 
 // VectorStoreMetadata holds descriptive metadata for a registered vector store.
 type VectorStoreMetadata struct {
-	Description string                 `yaml:"description"`
-	CustomGenAI VectorStoreCustomGenAI `yaml:"custom_gen_ai"`
-}
-
-// VectorStoreCustomGenAI holds gen-ai-specific metadata fields.
-type VectorStoreCustomGenAI struct {
-	Tags map[string]string `yaml:"tags"`
+	Description string `yaml:"description"`
 }
 
 // ExternalVectorStoreSummary is the frontend-safe summary of a single vector store.
@@ -51,15 +44,13 @@ type VectorStoreCustomGenAI struct {
 // Embedding model status (not_available / available / registered) is computed client-side by the
 // frontend using the already-loaded merged models data, mirroring the Add/Try in Playground pattern.
 type ExternalVectorStoreSummary struct {
-	VectorStoreID      string            `json:"vector_store_id"`
-	VectorStoreName    string            `json:"vector_store_name"`
-	ProviderID         string            `json:"provider_id"`
-	ProviderType       string            `json:"provider_type"`
-	EmbeddingModel     string            `json:"embedding_model"`
-	EmbeddingDimension int               `json:"embedding_dimension"`
-	DistanceMetric     string            `json:"distance_metric,omitempty"`
-	Description        string            `json:"description,omitempty"`
-	Tags               map[string]string `json:"tags,omitempty"`
+	VectorStoreID      string `json:"vector_store_id"`
+	VectorStoreName    string `json:"vector_store_name"`
+	ProviderID         string `json:"provider_id"`
+	ProviderType       string `json:"provider_type"`
+	EmbeddingModel     string `json:"embedding_model"`
+	EmbeddingDimension int    `json:"embedding_dimension"`
+	Description        string `json:"description,omitempty"`
 }
 
 // ExternalVectorStoresListData is the data payload for the list response.

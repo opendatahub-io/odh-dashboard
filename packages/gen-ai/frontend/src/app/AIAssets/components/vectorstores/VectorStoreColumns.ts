@@ -24,12 +24,6 @@ const VectorStoreColumns: SortableData<ExternalVectorStoreSummary>[] = [
     width: 10,
   },
   {
-    field: 'tags',
-    label: 'Tags',
-    sortable: false,
-    width: 20,
-  },
-  {
     field: 'playground',
     label: 'Playground',
     sortable: false,

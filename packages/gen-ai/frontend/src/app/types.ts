@@ -400,9 +400,7 @@ export type ExternalVectorStoreSummary = {
   provider_type: string;
   embedding_model: string;
   embedding_dimension: number;
-  distance_metric?: string;
   description?: string;
-  tags?: Record<string, string>;
 };
 
 /** ConfigMap metadata included in the detailed vector stores list response. */

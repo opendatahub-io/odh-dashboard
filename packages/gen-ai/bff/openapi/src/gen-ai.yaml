@@ -3812,23 +3812,11 @@ components:
           type: integer
           example: 768
           description: Embedding vector dimension
-        distance_metric:
-          type: string
-          example: 'COSINE'
-          description: Distance metric used by the provider (e.g., COSINE, L2). Sourced from the provider config.
         description:
           type: string
           example: 'Vector store for product documentation'
           description: Description of the vector store purpose
-        tags:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            owner: platform-team
-            domain: rag
-            env: production
-          description: Generic key-value tags from custom_gen_ai metadata
+
 
     ExternalVectorStoresListData:
       type: object
@@ -4014,10 +4002,7 @@ components:
                 provider_type: 'remote::pgvector'
                 embedding_model: 'ibm-granite/granite-embedding-125m-english'
                 embedding_dimension: 768
-                distance_metric: 'COSINE'
                 description: 'Vector store for product documentation'
-                owner: 'platform-team'
-                domain: 'rag'
 
     ExternalVectorStoresListResponse:
       description: List of external vector stores with ConfigMap metadata
@@ -4041,10 +4026,7 @@ components:
                       provider_type: 'remote::pgvector'
                       embedding_model: 'ibm-granite/granite-embedding-125m-english'
                       embedding_dimension: 768
-                      distance_metric: 'COSINE'
                       description: 'Vector store for product documentation'
-                      owner: 'platform-team'
-                      domain: 'rag'
                   total_count: 1
                   config_map_info:
                     name: 'gen-ai-aa-vector-stores'

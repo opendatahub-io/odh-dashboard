@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  ButtonVariant,
-  Label,
-  LabelGroup,
-  Truncate,
-  Icon,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, ButtonVariant, Truncate, Icon, Tooltip } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   OutlinedQuestionCircleIcon,
@@ -100,19 +92,6 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
         </span>
       </Td>
       <Td dataLabel="Dimensions">{store.embedding_dimension}</Td>
-      <Td dataLabel="Tags">
-        {store.tags && Object.keys(store.tags).length > 0 ? (
-          <LabelGroup>
-            {Object.entries(store.tags).map(([key, value]) => (
-              <Label key={key} isCompact title={key}>
-                {key}: {value}
-              </Label>
-            ))}
-          </LabelGroup>
-        ) : (
-          '—'
-        )}
-      </Td>
       <Td dataLabel="Playground">
         {status === 'registered' ? (
           <Button

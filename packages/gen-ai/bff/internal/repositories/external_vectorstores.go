@@ -56,8 +56,7 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 		return nil, fmt.Errorf("failed to parse %s: %w", constants.VectorStoresYAMLKey, err)
 	}
 
-	// Build a lookup map from provider_id to VectorIOProvider for resolving
-	// provider_type and distance_metric per registered store.
+	// Build a lookup map from provider_id to VectorIOProvider for resolving provider_type per registered store.
 	providerByID := make(map[string]models.VectorIOProvider, len(doc.Providers.VectorIO))
 	for _, p := range doc.Providers.VectorIO {
 		providerByID[p.ProviderID] = p
@@ -74,9 +73,7 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 			ProviderType:       provider.ProviderType,
 			EmbeddingModel:     store.EmbeddingModel,
 			EmbeddingDimension: store.EmbeddingDimension,
-			DistanceMetric:     resolveDistanceMetric(provider.Config),
 			Description:        store.Metadata.Description,
-			Tags:               store.Metadata.CustomGenAI.Tags,
 		})
 	}
 
@@ -94,16 +91,3 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 	return result, nil
 }
 
-// resolveDistanceMetric extracts the distance_metric string from a provider's config map.
-// Returns an empty string if not present.
-func resolveDistanceMetric(config map[string]interface{}) string {
-	if config == nil {
-		return ""
-	}
-	if v, ok := config["distance_metric"]; ok {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
-}
