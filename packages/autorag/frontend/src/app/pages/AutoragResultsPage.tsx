@@ -10,9 +10,7 @@ import InvalidProject from '../components/empty-states/InvalidProject';
 import { autoragExperimentsPathname } from '../utilities/routes';
 
 function AutoragResultsPage(): React.JSX.Element {
-  const { runId } = useParams();
-
-  const { namespace } = useParams();
+  const { namespace, runId } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;

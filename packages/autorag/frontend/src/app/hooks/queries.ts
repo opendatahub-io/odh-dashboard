@@ -9,8 +9,8 @@ export function useLlamaStackModelsQuery(
   modelType?: LlamaStackModelType,
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
-    queryKey: ['models', namespace, secretName, modelType],
     enabled: !!namespace && !!secretName,
+    queryKey: ['models', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackModels('')(namespace, secretName)({});

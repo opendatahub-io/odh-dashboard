@@ -195,7 +195,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 const invalid =
                                   getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
                                 setSelectedSecret({ ...secret, invalid });
-                                onChange(invalid ? '' : secret.name, { shouldValidate: true });
+                                onChange(invalid ? '' : secret.name);
                               }}
                               onRefreshReady={(refresh) => {
                                 secretsRefreshRef.current = refresh;
