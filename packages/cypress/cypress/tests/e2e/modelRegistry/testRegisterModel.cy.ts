@@ -26,6 +26,12 @@ import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
 
+const namespaceName = Cypress.env('APPLICATIONS_NAMESPACE') as string;
+const sourceAccessKeyId = Cypress.env('OCI_SOURCE_ACCESS_KEY_ID') as string;
+const sourceSecretAccessKey = Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY') as string;
+const destinationUsername = Cypress.env('OCI_DESTINATION_USERNAME') as string;
+const destinationPassword = Cypress.env('OCI_DESTINATION_PASSWORD') as string;
+
 describe('Verify models can be registered in a model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
@@ -62,6 +68,29 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Wait for model registry to be in Available state');
       checkModelRegistryAvailable(registryName).should('be.true');
     });
+  });
+
+  after(() => {
+    cy.clearCookies();
+    cy.clearLocalStorage();
+
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
+    cy.step('Clean up registered models from database');
+    cleanupRegisteredModelsFromDatabase(
+      [objectStorageModelName, testData.uriModelName, ociModelName],
+      databaseName,
+    );
+
+    cy.step('Delete the model registry');
+    deleteModelRegistry(registryName);
+
+    cy.step('Verify model registry is removed from the backend');
+    checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 
   retryableBeforeEach(() => {
@@ -231,7 +260,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Exercises the register and store UI flow with OCI destination',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent'],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -256,7 +285,6 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findNamespaceSelector().should('be.visible');
 
       cy.step('Select a namespace from the dropdown');
-      const namespaceName = Cypress.env('APPLICATIONS_NAMESPACE') as string;
       registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
       registerModelPage.findNamespaceOption(namespaceName).click();
       cy.step(`Selected namespace: ${namespaceName}`);
@@ -297,11 +325,6 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociSourceRegion);
       registerModelPage.findFormField(FormFieldSelector.LOCATION_PATH).type(testData.ociSourcePath);
 
-      const sourceAccessKeyId = Cypress.env('OCI_SOURCE_ACCESS_KEY_ID') as string;
-      const sourceSecretAccessKey = Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY') as string;
-      const destinationUsername = Cypress.env('OCI_DESTINATION_USERNAME') as string;
-      const destinationPassword = Cypress.env('OCI_DESTINATION_PASSWORD') as string;
-
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
         .type(sourceAccessKeyId, { log: false });
@@ -330,36 +353,17 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().click();
 
       cy.step('Verify transfer job started notification appears');
-      cy.contains(/Model transfer job started/, { timeout: 15000 }).should('be.visible');
+      cy.contains(testData.ociTransferJobStartedNotification, { timeout: 15000 }).should(
+        'be.visible',
+      );
 
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
 
-      // Terminal state of the transfer job (success/failure) is environment-dependent
-      // and not validated here. A dedicated test with a controlled backend is more appropriate.
+      cy.step('Verify transfer job failure notification (expected on PSI due to no TLS)');
+      cy.contains(testData.ociTransferJobFailedNotification, { timeout: 60000 }).should(
+        'be.visible',
+      );
     },
   );
-
-  after(() => {
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
-    cy.step('Navigate away from model registry before cleanup');
-    cy.visit('/');
-
-    cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase(
-      [objectStorageModelName, testData.uriModelName, ociModelName],
-      databaseName,
-    );
-
-    cy.step('Delete the model registry');
-    deleteModelRegistry(registryName);
-
-    cy.step('Verify model registry is removed from the backend');
-    checkModelRegistry(registryName).should('be.false');
-
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
-  });
 });
