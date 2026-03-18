@@ -38,8 +38,8 @@ const (
 
 // DiscoverMLflowURL attempts to find the MLflow tracking URL by reading the
 // MLflow CR status in the pod's own namespace. Returns the in-cluster service
-// URL (status.address.url) from the first CR found, or an error if discovery
-// fails. This is a best-effort operation intended for startup.
+// URL (status.address.url) when exactly one MLflow CR exists, or an error if
+// zero or multiple CRs are found. This is a best-effort startup discovery.
 //
 // The pod's service account must have RBAC permission to list mlflows.mlflow.opendatahub.io
 // in its own namespace for auto-discovery to succeed.
@@ -71,7 +71,7 @@ func DiscoverMLflowURL() (string, error) {
 		return "", fmt.Errorf("no MLflow CR found in namespace %q", namespace)
 	}
 
-	if len(list.Items) > 1 {
+	if len(list.Items) > 1 || list.GetContinue() != "" {
 		return "", fmt.Errorf("multiple MLflow CRs found in namespace %q; set MLFLOW_URL explicitly or narrow discovery criteria", namespace)
 	}
 
