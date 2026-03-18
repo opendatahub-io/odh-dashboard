@@ -35,7 +35,7 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
             },
           ]
         : [],
-    test: options.score != null ? { score: options.score } : undefined,
+    test: options.score != null ? { score: options.score, pass: true } : undefined,
   },
   name: options.name,
   model: {
