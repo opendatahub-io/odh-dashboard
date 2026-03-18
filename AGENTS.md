@@ -50,17 +50,7 @@ odh-dashboard/
 
 ## Development Patterns
 
-### 1. Workspace-based Organization
-
-**Pattern**: Code organized by workspace, not by type
-```
-✅ Good: packages/gen-ai/src/
-❌ Bad:  src/gen-ai/
-```
-
-**Reason**: Each workspace is independently buildable and deployable
-
-### 2. Shared Configuration
+### 1. Shared Configuration
 
 **Pattern**: TypeScript config shared via `packages/tsconfig`
 ```json
@@ -69,9 +59,7 @@ odh-dashboard/
 }
 ```
 
-**Reason**: Consistent type-checking across all packages
-
-### 3. Module Federation Remotes
+### 2. Module Federation Remotes
 
 **Pattern**: Packages with UI expose remotes via `package.json` config
 ```json
@@ -83,9 +71,7 @@ odh-dashboard/
 }
 ```
 
-**Reason**: Host discovers and loads remotes automatically
-
-### 4. Backend-for-Frontend (BFF) Pattern
+### 3. Backend-for-Frontend (BFF) Pattern
 
 **Pattern**: Some packages include Go BFF services
 ```
@@ -95,11 +81,6 @@ packages/gen-ai/
 ```
 
 **Examples**: gen-ai, model-registry, maas
-
-**Reason**:
-- Isolate API complexity from frontend
-- Custom business logic per feature
-- Type-safe API contracts
 
 ## Coding Conventions
 
@@ -190,12 +171,9 @@ Before performing certain tasks, read and follow the corresponding specialized r
 
 1. **Create feature branch** from main
 2. **Make changes** following conventions above
-3. **Run tests** locally (`npm run test`)
-4. **Run linting** (`npm run lint`)
-5. **Commit** with conventional commit format (see pre-commit hooks)
-6. **Push** and create PR
-7. **CI checks** must pass (tests, lint, type-check)
-8. **Review** by code owners (see OWNERS files)
+3. **Run linting** (`npm run lint`)
+4. **Commit** with conventional commit format (see pre-commit hooks)
+5. **Push** and create PR
 
 ## Pre-commit Hooks
 
@@ -234,10 +212,6 @@ See [docs/pr-review-guidelines.md](docs/pr-review-guidelines.md) for review proc
 ### ❌ Don't: Bypass pre-commit hooks regularly
 **Why**: Catches issues before CI, maintains consistency
 **Do**: Fix linting issues locally, only bypass for WIP commits
-
-### ❌ Don't: Create large PRs without discussion
-**Why**: Harder to review, more likely to conflict
-**Do**: Break into smaller PRs, use feature flags if needed
 
 ## Getting Help
 

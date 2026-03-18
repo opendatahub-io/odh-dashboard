@@ -45,8 +45,8 @@ jobs:
             .agentready/
           retention-days: 90
 
-      - name: Create Issue if Score Drops
-        if: steps.assessment.outputs.score < 55
+      - name: Create Issue if Score Drops Below Gold
+        if: steps.assessment.outputs.score < 75
         uses: actions/github-script@v7
         with:
           script: |
@@ -54,7 +54,7 @@ jobs:
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `AgentReady score dropped to ${score}%`,
-              body: `The weekly AgentReady assessment shows the score has dropped to ${score}%.\n\nPlease review the assessment results in the workflow artifacts.`,
+              title: `AgentReady score dropped below Gold (75%) to ${score}%`,
+              body: `The weekly AgentReady assessment shows the score has dropped below the Gold threshold (75%) to ${score}%.\n\nPlease review the assessment results in the workflow artifacts.`,
               labels: ['agentready', 'quality']
             });
