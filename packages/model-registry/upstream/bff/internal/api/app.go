@@ -92,6 +92,11 @@ const (
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
+
+	// MCPServer deployment endpoints (downstream-only implementations)
+	McpDeploymentName     = "mcp_deployment_name"
+	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
+	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
 )
 
 const (
@@ -104,6 +109,10 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
+
+	// MCPServer deployment handlers - downstream-only
+	handlerMcpDeploymentListID   HandlerID = "mcpDeployment:list"
+	handlerMcpDeploymentDeleteID HandlerID = "mcpDeployment:delete"
 )
 
 type App struct {
@@ -344,6 +353,20 @@ func (app *App) Routes() http.Handler {
 			}),
 		)
 
+		// MCPServer deployment endpoints - downstream-only implementations
+		apiRouter.GET(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentListID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployments list"))
+			}),
+		)
+		apiRouter.DELETE(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentDeleteID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
+			}),
+		)
+
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.GetCertificatesHandler))
 
@@ -413,4 +436,3 @@ func (app *App) Routes() http.Handler {
 
 	return combinedMux
 }
-
