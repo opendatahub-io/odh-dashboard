@@ -26,6 +26,9 @@ export const isLLMdDeployActive = (
     model?: ModelResourceType;
   },
 ): boolean => {
+  if (wizardData.modelType.data?.legacyVLLM) {
+    return false;
+  }
   return (
     wizardData.modelServer.data?.name === LLMD_SERVING_ID ||
     resources?.model?.kind === 'LLMInferenceService'
