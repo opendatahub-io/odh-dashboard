@@ -4,6 +4,12 @@ import (
 	"log/slog"
 )
 
+// RepositoryConfig holds configuration for repository initialization
+type RepositoryConfig struct {
+	MockS3Client bool
+	DevMode      bool // Pass through DevMode for security checks in repositories
+}
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
 	HealthCheck  *HealthCheckRepository
@@ -11,21 +17,33 @@ type Repositories struct {
 	Namespace    *NamespaceRepository
 	LSDModels    *LSDModelsRepository
 	Secret       *SecretRepository
-	S3           *S3Repository
+	S3           S3RepositoryInterface
 	Pipeline     *PipelineRepository
 	PipelineRuns *PipelineRunsRepository
 }
 
-func NewRepositories(logger *slog.Logger) *Repositories {
-	// logger parameter is reserved for future use when repository constructors need logging
-	_ = logger
+func NewRepositories(_ *slog.Logger, configs ...RepositoryConfig) *Repositories {
+	// Extract config if provided, otherwise use zero value (all mocks disabled)
+	var config RepositoryConfig
+	if len(configs) > 0 {
+		config = configs[0]
+	}
+
+	// Initialize S3 repository based on configuration
+	var s3Repo S3RepositoryInterface
+	if config.MockS3Client {
+		s3Repo = NewMockS3Repository()
+	} else {
+		s3Repo = NewS3Repository(config.DevMode)
+	}
+
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),
 		Namespace:    NewNamespaceRepository(),
 		LSDModels:    NewLSDModelsRepository(),
 		Secret:       NewSecretRepository(),
-		S3:           NewS3Repository(),
+		S3:           s3Repo,
 		Pipeline:     NewPipelineRepository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}

@@ -50,7 +50,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -149,7 +149,7 @@ func setupApiTestPostMultipart(
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
 	}
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)

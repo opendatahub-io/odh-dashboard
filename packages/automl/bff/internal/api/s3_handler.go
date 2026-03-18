@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -107,7 +106,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponse(w, r, err)
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
 		return
 	}
 
@@ -146,7 +145,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponse(w, r, fmt.Errorf("error retrieving file from S3: %w", err))
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving file from S3: %s", err.Error()))
 		return
 	}
 
@@ -170,12 +169,15 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 }
 
-// PostS3FileHandler uploads a file to S3 storage using credentials from a Kubernetes secret.
-// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
-// Request body: multipart/form-data with a file part named "file". Streams the file to S3 without buffering.
+// GetS3FileSchemaHandler retrieves the schema (column names) from a CSV file in S3 storage.
+// Query parameters:
+//   - namespace (required): The Kubernetes namespace containing the secret
+//   - secretName (required): The name of the Kubernetes secret containing S3 credentials
+//   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
+//   - key (required): The S3 object key to retrieve
 //
 // Note: namespace is provided via the AttachNamespace middleware
-func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
 	if !ok || identity == nil {
@@ -190,6 +192,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
+	// Parse query parameters
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -204,15 +207,17 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Resolve credentials before reading the body so we fail fast without consuming large uploads.
+	// Get Kubernetes client
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
 		return
 	}
 
+	// Get S3 credentials from the secret
 	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
 	if err != nil {
+		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
 		if errors.As(err, &statusErr) {
 			if apierrors.IsNotFound(statusErr) {
@@ -235,6 +240,8 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 		}
+
+		// Check if it's a secret not found or validation error
 		if strings.Contains(err.Error(), "not found") {
 			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusNotFound,
@@ -246,11 +253,13 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			app.errorResponse(w, r, httpError)
 			return
 		}
+
 		if strings.Contains(err.Error(), "missing required field") {
 			app.badRequestResponse(w, r, err)
 			return
 		}
-		app.serverErrorResponse(w, r, err)
+
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
 		return
 	}
 
@@ -264,82 +273,60 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		bucket = creds.Bucket
 	}
 
-	// Stream multipart body: do not buffer the entire file.
-	mr, err := r.MultipartReader()
+	// Retrieve the CSV schema from S3
+	schemaResult, err := app.repositories.S3.GetS3CSVSchema(ctx, creds, bucket, key)
 	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
-		return
-	}
-	if mr == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("request must be multipart/form-data with a boundary"))
-		return
-	}
-
-	var filePart *multipart.Part
-	for {
-		part, nextErr := mr.NextPart()
-		if nextErr == io.EOF {
-			break
-		}
-		if nextErr != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
+		// Check if it's an S3 error (e.g., object not found, access denied)
+		var noSuchKey *types.NoSuchKey
+		var notFound *types.NotFound
+		if errors.As(err, &noSuchKey) || errors.As(err, &notFound) {
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: fmt.Sprintf("object '%s' not found in bucket '%s'", key, bucket),
+				},
+			}
+			app.errorResponse(w, r, httpError)
 			return
 		}
-		if part.FormName() == "file" {
-			filePart = part
-			break
-		}
-		// Consume and discard non-file parts so the stream advances
-		_, _ = io.Copy(io.Discard, part)
-	}
 
-	if filePart == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing 'file' part in multipart form"))
-		return
-	}
-
-	contentType := filePart.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	maxFilePartBytes := s3MaxUploadFileBytes
-	if app.s3PostMaxFilePartBytes > 0 {
-		maxFilePartBytes = app.s3PostMaxFilePartBytes
-	}
-	// MaxBytesReader’s first arg is the ResponseWriter used by net/http.Server to force-close the
-	// connection when the limit is exceeded. We pass nil because this reader is used for an S3 upload
-	// body, not an inbound server request body—only the read-limit and *MaxBytesError behavior matter.
-	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
-	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
-	defer limitedFile.Close()
-	if err := app.repositories.S3.UploadS3Object(ctx, creds, bucket, key, limitedFile, contentType); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
+		// Check for access denied errors
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", bucket, key))
 			return
 		}
-		errStr := err.Error()
-		if strings.Contains(errStr, "AccessDenied") || strings.Contains(errStr, "Forbidden") {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
+
+		// Check for CSV validation errors (content/format issues)
+		// These are specific error messages from CSV parsing that indicate bad file content
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "CSV file must contain at least one complete line") ||
+			strings.Contains(errMsg, "CSV file is empty") ||
+			strings.Contains(errMsg, "CSV file has no columns") ||
+			strings.Contains(errMsg, "does not appear to be a valid text/CSV file") ||
+			strings.Contains(errMsg, "must contain at least 100 data rows") ||
+			strings.Contains(errMsg, "100 or more lines are supported") ||
+			strings.Contains(errMsg, "only CSV files are supported") ||
+			strings.Contains(errMsg, "endpoint validation failed") {
+			app.badRequestResponse(w, r, err)
 			return
 		}
-		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
+
+		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving CSV schema from S3: %s", err.Error()))
 		return
 	}
 
-	body := map[string]bool{"uploaded": true}
-	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
-}
+	// Return the columns and parse warnings in the standard response format
+	response := map[string]interface{}{
+		"data": map[string]interface{}{
+			"columns":        schemaResult.Columns,
+			"parse_warnings": schemaResult.ParseWarnings,
+		},
+	}
 
-// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds the maximum
-// declared body size. Chunked or unknown length is allowed; the file part is limited by MaxBytesReader.
-func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if s3PostDeclaredBodyExceedsLimit(r) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
-			return
-		}
-		next(w, r, ps)
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.logger.Error("error writing JSON response", "error", err)
 	}
 }

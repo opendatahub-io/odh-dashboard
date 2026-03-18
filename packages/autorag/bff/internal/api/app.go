@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -48,9 +47,8 @@ type App struct {
 	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	repositories                *repositories.Repositories
-	// s3PostMaxFilePartBytes and s3PostUploadFunc are for package api tests only (see PostS3FileHandler).
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
-	s3PostUploadFunc       func(context.Context, *repositories.S3Credentials, string, string, io.Reader, string) error
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -149,9 +147,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
+		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
+			MockS3Client: cfg.MockS3Client,
+			DevMode:      cfg.DevMode,
+		}),
+		testEnv: testEnv,
+		rootCAs: rootCAs,
 	}
 	return app, nil
 }
