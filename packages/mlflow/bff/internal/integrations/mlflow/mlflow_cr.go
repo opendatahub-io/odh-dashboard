@@ -63,7 +63,7 @@ func DiscoverMLflowURL() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
 	defer cancel()
 
-	list, err := dynClient.Resource(MLflowGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := dynClient.Resource(MLflowGVR).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 2})
 	if err != nil {
 		return "", fmt.Errorf("failed to list MLflow CRs in namespace %q: %w", namespace, err)
 	}
