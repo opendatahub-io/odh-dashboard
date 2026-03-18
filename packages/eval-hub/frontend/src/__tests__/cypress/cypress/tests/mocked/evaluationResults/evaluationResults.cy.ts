@@ -105,7 +105,7 @@ describe('Evaluation Results Page - Collection', () => {
   it('should show view more button when benchmarks exceed default visible count', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findViewMoreButton().should('exist');
-    evaluationResultsPage.findViewMoreButton().should('contain.text', 'View more (8)');
+    evaluationResultsPage.findViewMoreButton().should('contain.text', 'View more (4)');
   });
 
   it('should expand to show all benchmarks when clicking view more', () => {

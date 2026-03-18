@@ -78,7 +78,7 @@ describe('EvaluationsTableRow', () => {
   });
 
   it('should render result percentage when score exists', () => {
-    renderRow({ score: 0.85 });
+    renderRow({ score: 0.85, scorePass: true });
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('85%');
   });
 

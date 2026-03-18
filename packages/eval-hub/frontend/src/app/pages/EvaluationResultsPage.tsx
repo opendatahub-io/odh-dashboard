@@ -26,7 +26,6 @@ import {
   formatDuration,
   getBenchmarkName,
   getEvaluationName,
-  getResultPass,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
@@ -62,10 +61,7 @@ const EvaluationResultsPage: React.FC = () => {
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
-  const scoreDisplay = React.useMemo(
-    () => (!job || getResultPass(job) === false ? '-' : getResultScore(job)),
-    [job],
-  );
+  const scoreDisplay = React.useMemo(() => (!job ? '-' : getResultScore(job)), [job]);
 
   const metadataRow = job ? (
     <Flex
