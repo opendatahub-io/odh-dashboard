@@ -920,47 +920,47 @@ components:
       type: object
       description: A listing of S3 objects and virtual folders within a bucket prefix.
       properties:
-        CommonPrefixes:
+        common_prefixes:
           type: array
           items:
             type: object
             properties:
-              Prefix:
+              prefix:
                 type: string
-        Contents:
+        contents:
           type: array
           items:
             type: object
             properties:
-              Key:
+              key:
                 type: string
-              LastModified:
+              last_modified:
                 type: string
                 format: date-time
-              ETag:
+              etag:
                 type: string
-              Size:
+              size:
                 type: integer
                 format: int64
-              StorageClass:
+              storage_class:
                 type: string
-        ContinuationToken:
+        continuation_token:
           type: string
-        Delimiter:
+        delimiter:
           type: string
-        IsTruncated:
+        is_truncated:
           type: boolean
-        KeyCount:
+        key_count:
           type: integer
           format: int32
-        MaxKeys:
+        max_keys:
           type: integer
           format: int32
-        Name:
+        name:
           type: string
-        NextContinuationToken:
+        next_continuation_token:
           type: string
-        Prefix:
+        prefix:
           type: string
 
     BaseResource:
