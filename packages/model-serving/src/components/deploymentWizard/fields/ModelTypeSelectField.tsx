@@ -1,15 +1,16 @@
 import React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { Checkbox, FormGroup } from '@patternfly/react-core';
 import { z, type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ModelTypeLabel } from '../types';
 
 // Schema
 
-export const modelTypeSelectFieldSchema = z.enum(
+const modelTypeValueSchema = z.enum(
   [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
   {
     // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
@@ -17,8 +18,15 @@ export const modelTypeSelectFieldSchema = z.enum(
   },
 );
 
+export type ModelTypeValue = z.infer<typeof modelTypeValueSchema>;
+
+export const modelTypeSelectFieldSchema = z.object({
+  type: modelTypeValueSchema,
+  legacyVLLM: z.boolean(),
+});
+
 export type ModelTypeFieldData = z.infer<typeof modelTypeSelectFieldSchema>;
-export const isValidModelType = (value: string): value is ModelTypeFieldData =>
+export const isValidModelType = (value: string): value is ModelTypeValue =>
   value === ServingRuntimeModelType.PREDICTIVE || value === ServingRuntimeModelType.GENERATIVE;
 
 // Hooks
@@ -53,31 +61,47 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   validationProps,
   validationIssues = [],
   isEditing,
-}) => (
-  <FormGroup fieldId="model-type-select" label="Model type" isRequired>
-    <SimpleSelect
-      options={[
-        {
-          key: ServingRuntimeModelType.PREDICTIVE,
-          label: ModelTypeLabel.PREDICTIVE,
-        },
-        {
-          key: ServingRuntimeModelType.GENERATIVE,
-          label: ModelTypeLabel.GENERATIVE,
-        },
-      ]}
-      onChange={(key) => {
-        if (isValidModelType(key)) {
-          setModelType?.(key);
-        }
-      }}
-      onBlur={validationProps?.onBlur}
-      placeholder="Select model type"
-      value={modelType}
-      toggleProps={{ style: { minWidth: '300px' } }}
-      dataTestId="model-type-select"
-      isDisabled={isEditing || isDisabled}
-    />
-    <ZodErrorHelperText zodIssue={validationIssues} />
-  </FormGroup>
-);
+}) => {
+  const isVLLMOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  return (
+    <>
+      <FormGroup fieldId="model-type-select" label="Model type" isRequired>
+        <SimpleSelect
+          options={[
+            {
+              key: ServingRuntimeModelType.PREDICTIVE,
+              label: ModelTypeLabel.PREDICTIVE,
+            },
+            {
+              key: ServingRuntimeModelType.GENERATIVE,
+              label: ModelTypeLabel.GENERATIVE,
+            },
+          ]}
+          onChange={(key) => {
+            if (isValidModelType(key)) {
+              setModelType?.({ type: key, legacyVLLM: false });
+            }
+          }}
+          onBlur={validationProps?.onBlur}
+          placeholder="Select model type"
+          value={modelType?.type}
+          toggleProps={{ style: { minWidth: '300px' } }}
+          dataTestId="model-type-select"
+          isDisabled={isEditing || isDisabled}
+        />
+        <ZodErrorHelperText zodIssue={validationIssues} />
+      </FormGroup>
+      {isVLLMOnMaaSEnabled && modelType?.type === ServingRuntimeModelType.GENERATIVE && (
+        <Checkbox
+          id="legacy-mode-checkbox"
+          data-testid="legacy-mode-checkbox"
+          label="Deploy this model in legacy mode using a serving runtime and inference server"
+          isChecked={modelType.legacyVLLM}
+          onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
+          isDisabled={isEditing || isDisabled}
+        />
+      )}
+    </>
+  );
+};

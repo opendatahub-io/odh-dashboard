@@ -28,7 +28,7 @@ export const deployKServeDeployment = async (
     description: wizardData.k8sNameDesc.data.description,
     modelLocationData: wizardData.modelLocationData.data,
     createConnectionData: wizardData.createConnectionData.data,
-    modelType: wizardData.modelType.data,
+    modelType: wizardData.modelType.data?.type,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
     externalRoute: wizardData.externalRoute.data,
