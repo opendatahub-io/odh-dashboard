@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -27,9 +28,16 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import createConfigureSchema, {
   ConfigureSchema,
   MIN_TOP_N,
@@ -40,11 +48,21 @@ import createConfigureSchema, {
   TASK_TYPE_TIMESERIES,
   getDefaultValues,
 } from '~/app/schemas/configure.schema';
-import { automlResultsPathname } from '~/app/utilities/routes';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useFilesQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
+import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+
+function getBucketFromSecretData(data: Record<string, string> | undefined): string {
+  if (!data) {
+    return '';
+  }
+  const key = Object.keys(data).find((k) => k.toLowerCase() === 'aws_s3_bucket');
+  return key ? data[key] : '';
+}
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -84,11 +102,24 @@ const configureSchema = createConfigureSchema();
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const automlConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
-
   const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
   const form = useForm({
     mode: 'onChange',
@@ -123,6 +154,10 @@ function AutomlConfigure(): React.JSX.Element {
     setValue('train_data_file_key', '');
   }, [trainDataBucketName, setValue]);
 
+  if (!namespace) {
+    return <Navigate to={automlExperimentsPathname} replace />;
+  }
+
   return (
     <FormProvider {...form}>
       <Panel isScrollable={false}>
@@ -156,14 +191,12 @@ function AutomlConfigure(): React.JSX.Element {
                                     additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
                                     value={selectedSecret?.uuid}
                                     onChange={(secret) => {
+                                      setNewConnectionNotLoaded(false);
                                       setSelectedSecret(secret);
                                       onChange(secret?.invalid ? undefined : secret?.name);
-                                      const bucketKey = Object.keys(secret?.data ?? {}).find(
-                                        (key) => key.toLowerCase() === 'aws_s3_bucket',
-                                      );
                                       setValue(
                                         'train_data_bucket_name',
-                                        bucketKey ? secret?.data[bucketKey] || '' : '',
+                                        getBucketFromSecretData(secret?.data),
                                       );
                                     }}
                                     onRefreshReady={(refresh) => {
@@ -182,13 +215,21 @@ function AutomlConfigure(): React.JSX.Element {
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {newConnectionNotLoaded && (
+                        <StackItem className="pf-v6-u-mt-md">
+                          <Alert variant="warning" isInline title="Connection added">
+                            The connection was created but could not be loaded. Please refresh the
+                            page to see it.
+                          </Alert>
+                        </StackItem>
+                      )}
                       {Boolean(selectedSecret?.uuid) && (
                         <>
                           <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
@@ -380,6 +421,40 @@ function AutomlConfigure(): React.JSX.Element {
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutomlConnectionModal
+          connectionTypes={automlConnectionTypes}
+          project={namespace}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              setNewConnectionNotLoaded(false);
+              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const availableKeys = Object.keys(secret.data ?? connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                ...secret,
+                invalid,
+              });
+              setValue('train_data_secret_name', invalid ? undefined : secret.name);
+              setValue(
+                'train_data_bucket_name',
+                invalid ? undefined : getBucketFromSecretData(secret.data ?? connection.stringData),
+              );
+            } else {
+              setNewConnectionNotLoaded(true);
+            }
+          }}
+        />
+      )}
       <FileExplorer
         id="AutoMlConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}

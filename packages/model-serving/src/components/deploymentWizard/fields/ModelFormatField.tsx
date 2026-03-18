@@ -67,7 +67,7 @@ export const useModelFormatField = (
         return true;
       }
       const templateModelTypes = getModelTypesFromTemplate(template);
-      if (templateModelTypes.includes(modelType)) {
+      if (templateModelTypes.includes(modelType.type)) {
         return true;
       }
       return false;
@@ -94,7 +94,7 @@ export const useModelFormatField = (
   );
 
   const modelFormat = React.useMemo(() => {
-    if (modelType === ServingRuntimeModelType.GENERATIVE) {
+    if (modelType?.type === ServingRuntimeModelType.GENERATIVE) {
       return {
         name: 'vLLM',
       };
@@ -111,7 +111,7 @@ export const useModelFormatField = (
     modelFormatOptions,
     modelFormat,
     setModelFormat: handleSetModelFormat,
-    isVisible: modelType === ServingRuntimeModelType.PREDICTIVE,
+    isVisible: modelType?.type === ServingRuntimeModelType.PREDICTIVE,
     error: servingRuntimeTemplatesError || projectTemplatesError,
     loaded: servingRuntimeTemplatesLoaded && projectTemplatesLoaded,
     templatesFilteredForModelType,

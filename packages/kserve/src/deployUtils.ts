@@ -39,7 +39,11 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import {
+  isValidModelType,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
@@ -362,6 +366,19 @@ export const applyDashboardResourceLabel = (
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
   return result;
+};
+
+export const extractModelType = (deployment: {
+  model: InferenceServiceKind;
+}): ModelTypeFieldData | null => {
+  const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
+  if (modelType && isValidModelType(modelType)) {
+    return {
+      type: modelType,
+      legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
+    };
+  }
+  return null;
 };
 
 export const applyModelType = (
