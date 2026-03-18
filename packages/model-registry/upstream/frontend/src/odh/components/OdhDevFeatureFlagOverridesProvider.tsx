@@ -7,7 +7,6 @@ const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
 // Mapping from ODH session storage keys (display names) to upstream technical keys
 const DEV_FLAG_MAPPINGS: Record<string, string> = {
   'KF MR Upstream: Catalog HuggingFace API Key': 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  registryOciStorage: 'tempDevRegistryStorageFeatureAvailable',
 };
 
 type OdhDevFeatureFlagOverridesProviderProps = {

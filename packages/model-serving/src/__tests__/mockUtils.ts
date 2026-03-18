@@ -136,7 +136,7 @@ export const mockDeploymentWizardState = (
           setProjectName: jest.fn(),
         },
         modelType: {
-          data: ServingRuntimeModelType.GENERATIVE,
+          data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           setData: jest.fn(),
         },
         modelLocationData: {

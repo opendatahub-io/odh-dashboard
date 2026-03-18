@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -21,15 +22,24 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Split,
   SplitItem,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import createConfigureSchema, {
   ConfigureSchema,
   MIN_TOP_N,
@@ -38,11 +48,21 @@ import createConfigureSchema, {
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
 } from '~/app/schemas/configure.schema';
-import { automlResultsPathname } from '~/app/utilities/routes';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useFilesQuery } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
+import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+
+function getBucketFromSecretData(data: Record<string, string> | undefined): string | undefined {
+  if (!data) {
+    return undefined;
+  }
+  const key = Object.keys(data).find((k) => k.toLowerCase() === 'aws_s3_bucket');
+  return key ? data[key] : undefined;
+}
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -71,16 +91,47 @@ const PREDICTION_TYPES: {
 
 const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
+const getTypeAcronym = (type: string): string => {
+  switch (type) {
+    case 'bool':
+      return 'BOOL';
+    case 'integer':
+      return 'INT';
+    case 'double':
+      return 'DBL';
+    case 'timestamp':
+      return 'TMSTP';
+    case 'string':
+      return 'STR';
+    default:
+      return 'STR';
+  }
+};
+
 const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const queryClient = useQueryClient();
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const automlConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
-
   const [isLabelColumnOpen, setIsLabelColumnOpen] = useState(false);
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
   const form = useForm({
     mode: 'onChange',
@@ -106,12 +157,39 @@ function AutomlConfigure(): React.JSX.Element {
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
   const formDisabled = !formIsValid || formIsSubmitting;
 
-  const { data: columns = [] } = useFilesQuery();
+  if (!namespace) {
+    return <Navigate to={automlExperimentsPathname} replace />;
+  }
+
+  const {
+    data: columns = [],
+    isLoading: isLoadingColumns,
+    isFetching: isFetchingColumns,
+    error: columnsError,
+  } = useFilesQuery(namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey);
 
   // reset selected file values if bucket changes
   useEffect(() => {
     setValue('train_data_file_key', undefined);
   }, [trainDataBucketName, setValue]);
+
+  // reset columns query cache and label column when connection data is cleared
+  useEffect(() => {
+    if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
+      queryClient.setQueryData(
+        ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
+        [],
+      );
+      setValue('label_column', undefined);
+    }
+  }, [
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+    namespace,
+    queryClient,
+    setValue,
+  ]);
 
   return (
     <FormProvider {...form}>
@@ -135,50 +213,54 @@ function AutomlConfigure(): React.JSX.Element {
                           }}
                         >
                           <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
-                            {Boolean(namespace) && (
-                              <Controller
-                                control={control}
-                                name="train_data_secret_name"
-                                render={({ field: { onChange } }) => (
-                                  <SecretSelector
-                                    namespace={String(namespace)}
-                                    type="storage"
-                                    additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
-                                    value={selectedSecret?.uuid}
-                                    onChange={(secret) => {
-                                      setSelectedSecret(secret);
-                                      onChange(secret?.invalid ? undefined : secret?.name);
-                                      const bucketKey = Object.keys(secret?.data ?? {}).find(
-                                        (key) => key.toLowerCase() === 'aws_s3_bucket',
-                                      );
-                                      setValue(
-                                        'train_data_bucket_name',
-                                        bucketKey ? secret?.data[bucketKey] : undefined,
-                                      );
-                                    }}
-                                    onRefreshReady={(refresh) => {
-                                      secretsRefreshRef.current = refresh;
-                                    }}
-                                    label="S3 connection"
-                                    placeholder="Select connection"
-                                    toggleWidth="16rem"
-                                    dataTestId="aws-secret-selector"
-                                  />
-                                )}
-                              />
-                            )}
+                            <Controller
+                              control={control}
+                              name="train_data_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={String(namespace)}
+                                  type="storage"
+                                  additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  value={selectedSecret?.uuid}
+                                  onChange={(secret) => {
+                                    setNewConnectionNotLoaded(false);
+                                    setSelectedSecret(secret);
+                                    onChange(secret?.invalid ? undefined : secret?.name);
+                                    setValue(
+                                      'train_data_bucket_name',
+                                      getBucketFromSecretData(secret?.data),
+                                    );
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    secretsRefreshRef.current = refresh;
+                                  }}
+                                  label="S3 connection"
+                                  placeholder="Select connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="aws-secret-selector"
+                                />
+                              )}
+                            />
                           </SplitItem>
                           <SplitItem>
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {newConnectionNotLoaded && (
+                        <StackItem className="pf-v6-u-mt-md">
+                          <Alert variant="warning" isInline title="Connection added">
+                            The connection was created but could not be loaded. Please refresh the
+                            page to see it.
+                          </Alert>
+                        </StackItem>
+                      )}
                       {Boolean(selectedSecret?.uuid) && (
                         <>
                           <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
@@ -188,8 +270,10 @@ function AutomlConfigure(): React.JSX.Element {
                             <Label
                               onClose={() => {
                                 setSelectedSecret(undefined);
+                                // Clear selections
                                 setValue('train_data_secret_name', undefined);
                                 setValue('train_data_bucket_name', undefined);
+                                setValue('train_data_file_key', undefined);
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
@@ -274,42 +358,73 @@ function AutomlConfigure(): React.JSX.Element {
                             {' *'}
                           </span>
                         </div>
-                        <Controller
-                          control={form.control}
-                          name="label_column"
-                          render={({ field }) => (
-                            <Select
-                              id="label-column-select"
-                              isOpen={isLabelColumnOpen}
-                              onOpenChange={setIsLabelColumnOpen}
-                              onSelect={(_event, value) => {
-                                field.onChange(value);
-                                setIsLabelColumnOpen(false);
-                              }}
-                              selected={field.value}
-                              toggle={(toggleRef) => (
-                                <MenuToggle
-                                  ref={toggleRef}
-                                  onClick={() => setIsLabelColumnOpen((prev) => !prev)}
-                                  isExpanded={isLabelColumnOpen}
-                                  isDisabled={!isFileSelected || columns.length === 0}
-                                  isFullWidth
-                                  data-testid="label-column-select"
+                        {isLoadingColumns || isFetchingColumns ? (
+                          <Skeleton shape="square" width="100%" height="36px" />
+                        ) : (
+                          <>
+                            <Controller
+                              control={form.control}
+                              name="label_column"
+                              render={({ field }) => (
+                                <Select
+                                  id="label-column-select"
+                                  isOpen={isLabelColumnOpen}
+                                  onOpenChange={setIsLabelColumnOpen}
+                                  onSelect={(_event, value) => {
+                                    field.onChange(value);
+                                    setIsLabelColumnOpen(false);
+                                  }}
+                                  selected={field.value}
+                                  maxMenuHeight="200px"
+                                  toggle={(toggleRef) => (
+                                    <MenuToggle
+                                      ref={toggleRef}
+                                      onClick={() => setIsLabelColumnOpen((prev) => !prev)}
+                                      isExpanded={isLabelColumnOpen}
+                                      isDisabled={
+                                        !isFileSelected || columns.length === 0 || !!columnsError
+                                      }
+                                      isFullWidth
+                                      data-testid="label-column-select"
+                                      status={columnsError ? 'danger' : undefined}
+                                    >
+                                      {field.value || 'Select a column'}
+                                    </MenuToggle>
+                                  )}
                                 >
-                                  {field.value || 'Select a column'}
-                                </MenuToggle>
+                                  <SelectList>
+                                    {columns.map((column) => (
+                                      <SelectOption key={column.name} value={column.name}>
+                                        <span
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: 700,
+                                            fontSize: '0.75rem',
+                                            display: 'inline-block',
+                                            width: '4rem',
+                                            marginRight: '0.5rem',
+                                          }}
+                                        >
+                                          {getTypeAcronym(column.type)}
+                                        </span>
+                                        {column.name}
+                                      </SelectOption>
+                                    ))}
+                                  </SelectList>
+                                </Select>
                               )}
-                            >
-                              <SelectList>
-                                {columns.map((column) => (
-                                  <SelectOption key={column} value={column}>
-                                    {column}
-                                  </SelectOption>
-                                ))}
-                              </SelectList>
-                            </Select>
-                          )}
-                        />
+                            />
+                            {columnsError && (
+                              <FormHelperText>
+                                <HelperText>
+                                  <HelperTextItem variant="error">
+                                    {columnsError.message}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </FormHelperText>
+                            )}
+                          </>
+                        )}
                       </StackItem>
 
                       <StackItem>
@@ -370,11 +485,49 @@ function AutomlConfigure(): React.JSX.Element {
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutomlConnectionModal
+          connectionTypes={automlConnectionTypes}
+          project={namespace}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              setNewConnectionNotLoaded(false);
+              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const availableKeys = Object.keys(secret.data ?? connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                ...secret,
+                invalid,
+              });
+              setValue('train_data_secret_name', invalid ? undefined : secret.name);
+              setValue(
+                'train_data_bucket_name',
+                invalid ? undefined : getBucketFromSecretData(secret.data ?? connection.stringData),
+              );
+            } else {
+              setNewConnectionNotLoaded(true);
+            }
+          }}
+        />
+      )}
       <FileExplorer
         id="AutoMlConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelect={(files) => {
+          if (Array.isArray(files) && files.length > 0) {
+            setValue('train_data_file_key', files[0].name);
+          }
+        }}
       />
     </FormProvider>
   );

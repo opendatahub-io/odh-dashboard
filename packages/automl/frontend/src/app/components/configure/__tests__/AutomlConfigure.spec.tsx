@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useFilesQuery } from '~/app/hooks/queries';
 
@@ -87,13 +88,37 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   ),
 }));
 
+jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+  useWatchConnectionTypes: () => [[]],
+}));
+
+jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 const mockUseFilesQuery = jest.mocked(useFilesQuery);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
 const MOCK_COLUMNS = ['approval_status', 'credit_score', 'income', 'loan_amount', 'risk_category'];
 
-const renderComponent = () => render(<AutomlConfigure />);
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = 'TestQueryClientProvider';
+  return Wrapper;
+};
+
+const renderComponent = () => render(<AutomlConfigure />, { wrapper: createWrapper() });
 
 describe('AutomlConfigure', () => {
   beforeEach(() => {
@@ -108,19 +133,19 @@ describe('AutomlConfigure', () => {
 
   describe('initial state - no secret selected', () => {
     it('should NOT display the "Selected connection" section when no secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Selected files" section when no secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Select files" button when no secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       expect(screen.queryByText('Select files')).not.toBeInTheDocument();
     });
@@ -128,7 +153,7 @@ describe('AutomlConfigure', () => {
 
   describe('secret selection', () => {
     it('should display "Selected connection" section when a secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -139,7 +164,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display the selected secret name as a Label when a secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -150,7 +175,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display "Selected files" section when a secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -161,7 +186,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display the "Select files" button when a secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -172,7 +197,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display different secret name when selecting a different secret', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select first secret
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -187,7 +212,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should extract bucket name from secret data when a secret is selected', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select first secret with bucket data
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -210,7 +235,7 @@ describe('AutomlConfigure', () => {
 
   describe('clearing selected secret', () => {
     it('should clear the selected secret when clicking the X on the Label', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -237,7 +262,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should hide the selected connection and files sections after clearing', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -261,7 +286,7 @@ describe('AutomlConfigure', () => {
 
   describe('invalid secret selection', () => {
     it('should disable "Select files" button when selected secret is invalid', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -273,7 +298,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should disable "Run experiment" button when selected secret is invalid', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -285,7 +310,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should enable "Select files" button when selected secret is valid', () => {
-      render(<AutomlConfigure />);
+      render(<AutomlConfigure />, { wrapper: createWrapper() });
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');

@@ -220,6 +220,54 @@ class TrainingJobTableRow extends TableRow {
   findKebabButton() {
     return this.find().findByLabelText('Kebab toggle');
   }
+
+  findEditNodeCountButton() {
+    return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
+  }
+}
+
+class ScaleRayJobNodesModal {
+  find() {
+    return cy.findByTestId('edit-ray-job-node-count-modal');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('edit-ray-job-node-count-modal').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByRole('heading', { name: 'Edit node count' });
+  }
+
+  findHeadNodeInput() {
+    return this.find().findByTestId('head-node-count-input');
+  }
+
+  findWorkerGroupInput(groupName: string) {
+    return this.find().findByTestId(`worker-group-input-${groupName}`);
+  }
+
+  findWorkerGroupMinusButton(groupName: string) {
+    return this.find().findByLabelText(`Decrease ${groupName} node count`);
+  }
+
+  findWorkerGroupPlusButton(groupName: string) {
+    return this.find().findByLabelText(`Increase ${groupName} node count`);
+  }
+
+  findSaveButton() {
+    return this.find().findByRole('button', { name: 'Save' });
+  }
+
+  findCancelButton() {
+    return this.find().findByRole('button', { name: 'Cancel' });
+  }
 }
 
 class TrainingJobDetailsDrawer {
@@ -851,3 +899,4 @@ export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
 export const rayJobDetailsTab = new RayJobDetailsTab();
 export const rayJobResourcesTab = new RayJobResourcesTab();
+export const editRayJobNodeCountModal = new ScaleRayJobNodesModal();
