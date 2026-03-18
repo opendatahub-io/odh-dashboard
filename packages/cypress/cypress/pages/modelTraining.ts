@@ -110,6 +110,16 @@ class TrainingJobTable {
     return this.findTable().find('[data-testid="no-result-found-title"]');
   }
 
+  filterByName(name: string) {
+    this.findToolbar().findByLabelText('Filter by name').clear().type(name);
+    return this;
+  }
+
+  clearNameFilter() {
+    this.findToolbar().findByLabelText('Filter by name').clear();
+    return this;
+  }
+
   shouldHaveTrainingJobs(count: number) {
     this.findRows().should('have.length', count);
     return this;
@@ -174,9 +184,13 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findStatus() {
-    // Find the status label by testid (the clickable Label component)
-    // The entire Label is clickable, not just the icon
-    return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
+    return this.find()
+      .find('[data-label="Status"]')
+      .find('[data-testid="training-job-status"],[data-testid="ray-job-status"]');
+  }
+
+  findStatusLoading() {
+    return this.find().find('[data-label="Status"]').findByTestId('ray-job-status-loading');
   }
 
   findStatusProgressBar() {
@@ -205,6 +219,54 @@ class TrainingJobTableRow extends TableRow {
 
   findKebabButton() {
     return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findEditNodeCountButton() {
+    return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
+  }
+}
+
+class ScaleRayJobNodesModal {
+  find() {
+    return cy.findByTestId('edit-ray-job-node-count-modal');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('edit-ray-job-node-count-modal').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().findByRole('heading', { name: 'Edit node count' });
+  }
+
+  findHeadNodeInput() {
+    return this.find().findByTestId('head-node-count-input');
+  }
+
+  findWorkerGroupInput(groupName: string) {
+    return this.find().findByTestId(`worker-group-input-${groupName}`);
+  }
+
+  findWorkerGroupMinusButton(groupName: string) {
+    return this.find().findByLabelText(`Decrease ${groupName} node count`);
+  }
+
+  findWorkerGroupPlusButton(groupName: string) {
+    return this.find().findByLabelText(`Increase ${groupName} node count`);
+  }
+
+  findSaveButton() {
+    return this.find().findByRole('button', { name: 'Save' });
+  }
+
+  findCancelButton() {
+    return this.find().findByRole('button', { name: 'Cancel' });
   }
 }
 
@@ -766,6 +828,64 @@ class RayJobDetailsTab {
   }
 }
 
+class RayJobResourcesTab {
+  findNodeConfigurationsSection() {
+    return cy.findByTestId('node-configurations-section');
+  }
+
+  findNodesValue() {
+    return cy.findByTestId('nodes-value');
+  }
+
+  findProcessesPerNodeValue() {
+    return cy.findByTestId('processes-per-node-value');
+  }
+
+  findResourcesPerNodeSection() {
+    return cy.findByTestId('resources-per-node-section');
+  }
+
+  findWorkerGroupTitle(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-title`);
+  }
+
+  findWorkerGroupCpuRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-requests`);
+  }
+
+  findWorkerGroupCpuLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-cpu-limits`);
+  }
+
+  findWorkerGroupMemoryRequests(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-requests`);
+  }
+
+  findWorkerGroupMemoryLimits(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}-memory-limits`);
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -778,3 +898,5 @@ export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
 export const rayJobDetailsTab = new RayJobDetailsTab();
+export const rayJobResourcesTab = new RayJobResourcesTab();
+export const editRayJobNodeCountModal = new ScaleRayJobNodesModal();

@@ -91,7 +91,12 @@ import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockN
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { APIKey, CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
+import type {
+  APIKey,
+  APIKeyListResponse,
+  BulkRevokeResponse,
+  CreateAPIKeyResponse,
+} from '@odh-dashboard/maas/types/api-key';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1109,15 +1114,25 @@ declare global {
           response: { data: OdhResponse<Tier> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/api-keys',
-          response: { data: OdhResponse<APIKey[]> },
+          type: 'POST /maas/api/v1/api-keys/search',
+          response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'DELETE /maas/api/v1/api-keys',
-          response: { data: null },
+          type: 'POST /maas/api/v1/api-keys/search',
+          options: { query?: { page?: string; limit?: string } },
+          response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /maas/api/v1/api-key',
+          type: 'POST /maas/api/v1/api-keys/bulk-revoke',
+          response: { data: OdhResponse<BulkRevokeResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/api-keys/:id',
+          options: { path: { id: string } },
+          response: { data: OdhResponse<APIKey> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/api-keys',
           response: { data: OdhResponse<CreateAPIKeyResponse> },
         ) => Cypress.Chainable<null>);
     }

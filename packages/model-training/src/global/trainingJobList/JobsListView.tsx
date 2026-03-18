@@ -3,13 +3,14 @@ import JobsTable from './JobsTable';
 import JobsToolbar from './JobsToolbar';
 import { initialJobsFilterData, JobsFilterDataType } from './const';
 import { filterJob } from './utils';
-import { UnifiedJobKind, TrainingJobState } from '../../types';
+import { UnifiedJobKind, JobDisplayState } from '../../types';
 
 type JobsListViewProps = {
   jobs: UnifiedJobKind[];
-  jobStatuses: Map<string, TrainingJobState>;
+  jobStatuses: Map<string, JobDisplayState>;
+  isLoadingStatus?: boolean;
   nodeCountMap: Map<string, number>;
-  onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
+  onStatusUpdate: (jobId: string, newStatus: JobDisplayState) => void;
   onSelectJob: (job: UnifiedJobKind) => void;
   onDelete: (job: UnifiedJobKind) => void;
   togglingJobId?: string;
@@ -18,6 +19,7 @@ type JobsListViewProps = {
 const JobsListView: React.FC<JobsListViewProps> = ({
   jobs: unfilteredJobs,
   jobStatuses,
+  isLoadingStatus,
   nodeCountMap,
   onStatusUpdate,
   onSelectJob,
@@ -46,6 +48,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
     <JobsTable
       jobs={filteredJobs}
       jobStatuses={jobStatuses}
+      isLoadingStatus={isLoadingStatus}
       nodeCountMap={nodeCountMap}
       onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}

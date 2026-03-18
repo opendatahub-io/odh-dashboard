@@ -9,7 +9,7 @@ import useMergedModels from '~/app/hooks/useMergedModels';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { ExternalModelRequest } from '~/app/types';
+import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
 import useAiAssetExternalModelsEnabled from '~/app/hooks/useAiAssetExternalModelsEnabled';
 
 const AIAssetsModelsTab: React.FC = () => {
@@ -40,6 +40,17 @@ const AIAssetsModelsTab: React.FC = () => {
   const handleCreationSuccess = React.useCallback(() => {
     refresh();
   }, [refresh]);
+
+  // Verify handler for validating external endpoint
+  const handleVerifyExternalEndpoint = React.useCallback(
+    async (request: VerifyExternalModelRequest) => {
+      if (!apiAvailable) {
+        throw new Error('API not available');
+      }
+      return api.verifyExternalModel(request);
+    },
+    [api, apiAvailable],
+  );
 
   if (!loaded) {
     return (
@@ -144,6 +155,7 @@ const AIAssetsModelsTab: React.FC = () => {
               onClose={() => setIsCreateEndpointModalOpen(false)}
               onSuccess={handleCreationSuccess}
               onSubmit={handleCreateExternalEndpoint}
+              onVerify={handleVerifyExternalEndpoint}
             />
           )}
         </>

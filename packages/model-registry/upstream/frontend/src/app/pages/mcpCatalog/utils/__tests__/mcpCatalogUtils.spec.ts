@@ -50,7 +50,7 @@ describe('hasMcpFiltersApplied', () => {
       supportedTransports: [],
       license: [],
       labels: [],
-      securityVerification: [],
+      securityIndicators: [],
     };
     expect(hasMcpFiltersApplied(filters, '')).toBe(false);
   });
@@ -71,8 +71,8 @@ describe('hasMcpFiltersApplied', () => {
     expect(hasMcpFiltersApplied({ labels: ['Red Hat'] }, '')).toBe(true);
   });
 
-  it('returns true when securityVerification has values', () => {
-    expect(hasMcpFiltersApplied({ securityVerification: ['Verified'] }, '')).toBe(true);
+  it('returns true when securityIndicators has values', () => {
+    expect(hasMcpFiltersApplied({ securityIndicators: ['Verified'] }, '')).toBe(true);
   });
 
   it('returns true when multiple filter keys have values', () => {
@@ -92,9 +92,9 @@ describe('hasMcpFiltersApplied', () => {
 
 describe('filterMcpServersByFilters', () => {
   const servers: McpServer[] = [
-    { id: 1, name: 'A', deploymentMode: 'local', toolCount: 0 },
-    { id: 2, name: 'B', deploymentMode: 'remote', toolCount: 0 },
-    { id: 3, name: 'C', deploymentMode: 'remote', toolCount: 0 },
+    { id: '1', name: 'A', deploymentMode: 'local', toolCount: 0 },
+    { id: '2', name: 'B', deploymentMode: 'remote', toolCount: 0 },
+    { id: '3', name: 'C', deploymentMode: 'remote', toolCount: 0 },
   ];
 
   it('returns all items when filters are empty', () => {
@@ -116,20 +116,20 @@ describe('filterMcpServersByFilters', () => {
 
   it('filters by license when server has license', () => {
     const withLicense: McpServer[] = [
-      { id: 1, name: 'X', license: 'MIT', toolCount: 0 },
-      { id: 2, name: 'Y', license: 'Apache-2.0', toolCount: 0 },
+      { id: '1', name: 'X', license: 'MIT', toolCount: 0 },
+      { id: '2', name: 'Y', license: 'Apache-2.0', toolCount: 0 },
     ];
     expect(filterMcpServersByFilters(withLicense, { license: ['MIT'] })).toHaveLength(1);
     expect(filterMcpServersByFilters(withLicense, { license: ['MIT'] })[0].name).toBe('X');
   });
 
-  it('filters by securityVerification label', () => {
+  it('filters by securityIndicators label', () => {
     const withSecurity: McpServer[] = [
-      { id: 1, name: 'S1', securityIndicators: { verifiedSource: true }, toolCount: 0 },
-      { id: 2, name: 'S2', securityIndicators: { sast: true }, toolCount: 0 },
+      { id: '1', name: 'S1', securityIndicators: { verifiedSource: true }, toolCount: 0 },
+      { id: '2', name: 'S2', securityIndicators: { sast: true }, toolCount: 0 },
     ];
     const result = filterMcpServersByFilters(withSecurity, {
-      securityVerification: ['Verified source'],
+      securityIndicators: ['Verified source'],
     });
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('S1');
@@ -138,9 +138,9 @@ describe('filterMcpServersByFilters', () => {
 
 describe('filterMcpServersBySearchQuery', () => {
   const servers: McpServer[] = [
-    { id: 1, name: 'GitHub', description: 'Integrate with GitHub', toolCount: 0 },
-    { id: 2, name: 'Slack', description: 'Search and interact with Slack', toolCount: 0 },
-    { id: 3, name: 'PostgreSQL', description: 'Query databases', toolCount: 0 },
+    { id: '1', name: 'GitHub', description: 'Integrate with GitHub', toolCount: 0 },
+    { id: '2', name: 'Slack', description: 'Search and interact with Slack', toolCount: 0 },
+    { id: '3', name: 'PostgreSQL', description: 'Query databases', toolCount: 0 },
   ];
 
   it('returns all items when search is empty or whitespace', () => {

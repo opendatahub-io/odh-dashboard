@@ -30,7 +30,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
-describe('[Product Bug: RHOAIENG-51443] Verify models can be deployed from model registry', () => {
+describe('Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
   skipSuiteIfBYOIDC('Multiple permissions management tests are not supported on BYOIDC clusters');
 
@@ -97,14 +97,14 @@ describe('[Product Bug: RHOAIENG-51443] Verify models can be deployed from model
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
     },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Model Registry');
-      modelRegistry.navigate();
+      cy.step('Visit Model Registry Page');
+      modelRegistry.visit();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);
@@ -219,7 +219,7 @@ describe('[Product Bug: RHOAIENG-51443] Verify models can be deployed from model
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       // Check deployment link and verify status in deployments view
-      modelRegistry.navigate();
+      modelRegistry.visit();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
       cy.contains(ModelStateLabel.STARTED).should('be.visible');

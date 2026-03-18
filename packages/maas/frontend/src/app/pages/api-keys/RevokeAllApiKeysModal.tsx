@@ -12,7 +12,8 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { deleteAllApiKeys } from '~/app/api/api-keys';
+import { bulkRevokeApiKeys } from '~/app/api/api-keys';
+import useUser from '~/app/hooks/useUser';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
@@ -20,6 +21,7 @@ type RevokeAllApiKeysModalProps = {
 };
 
 const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, apiKeyCount }) => {
+  const { userId } = useUser();
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [value, setValue] = React.useState('');
@@ -32,13 +34,13 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
     setError(undefined);
 
     try {
-      await deleteAllApiKeys()({});
+      await bulkRevokeApiKeys()({}, userId);
       onClose(true);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to revoke API keys'));
       setRevoking(false);
     }
-  }, [onClose]);
+  }, [onClose, userId]);
 
   const onBeforeClose = (revoked: boolean) => {
     if (revoked) {

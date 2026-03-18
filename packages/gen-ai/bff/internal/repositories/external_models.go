@@ -3,9 +3,13 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/url"
+	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/helpers"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -81,4 +85,38 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	modelID string,
 ) error {
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client
+func (r *ExternalModelsRepository) VerifyExternalModel(
+	logger *slog.Logger,
+	ctx context.Context,
+	req models.VerifyExternalModelRequest,
+) (*models.VerifyExternalModelResponse, error) {
+	// Create client with SSRF validation disabled for localhost URLs (testing/development)
+	client, err := externalmodels.NewExternalModelsClient(
+		logger,
+		req.BaseURL,
+		req.SecretValue,
+		req.ModelType,
+		&externalmodels.ClientOptions{
+			SkipSSRFValidation: isLocalhost(req.BaseURL),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the model using the client (pass embedding dimension for embedding models)
+	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
+}
+
+// isLocalhost checks if a URL points to localhost by parsing the hostname.
+func isLocalhost(baseURL string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	hostname := u.Hostname()
+	return hostname == "localhost" || hostname == "::1" || strings.HasPrefix(hostname, "127.")
 }
