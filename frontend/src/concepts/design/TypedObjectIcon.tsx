@@ -36,6 +36,7 @@ import {
   ModelEvaluationIcon,
   LabTuningIcon,
   ModelConnectionRocketIcon,
+  PromptManagementIcon,
 } from '#~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -161,6 +162,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.modelEvaluation:
       Icon = ModelEvaluationIcon;
+      break;
+    case ProjectObjectType.promptManagement:
+      Icon = PromptManagementIcon;
       break;
     default:
       return null;
