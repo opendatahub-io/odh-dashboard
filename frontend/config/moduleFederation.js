@@ -154,6 +154,10 @@ module.exports = {
                 requiredVersion: deps['react-router-dom'],
                 eager: true,
               },
+              '@patternfly/react-code-editor': {
+                singleton: true,
+                requiredVersion: deps['@patternfly/react-code-editor'],
+              },
               '@patternfly/react-core': {
                 singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
