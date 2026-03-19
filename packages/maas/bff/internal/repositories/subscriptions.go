@@ -13,7 +13,6 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -21,25 +20,18 @@ import (
 type SubscriptionsRepository struct {
 	logger     *slog.Logger
 	k8sFactory kubernetes.KubernetesClientFactory
-	useMocks   bool
 }
 
 // NewSubscriptionsRepository creates a new subscriptions repository.
-func NewSubscriptionsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, useMocks bool) *SubscriptionsRepository {
+func NewSubscriptionsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory) *SubscriptionsRepository {
 	return &SubscriptionsRepository{
 		logger:     logger,
 		k8sFactory: k8sFactory,
-		useMocks:   useMocks,
 	}
 }
 
-// ListSubscriptions returns all MaaSSubscription resources.
+// ListSubscriptions returns all MaaSSubscription resources across all namespaces.
 func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error) {
-	if r.useMocks {
-		r.logger.Debug("Listing all subscriptions (mock)")
-		return mocks.GetMockMaaSSubscriptions(), nil
-	}
-
 	r.logger.Debug("Listing all subscriptions")
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -67,17 +59,9 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 }
 
 // GetSubscription returns a specific MaaSSubscription by name.
+// Since subscriptions are namespace-scoped but the API uses name only,
+// we list across all namespaces and find by name.
 func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name string) (*models.MaaSSubscription, error) {
-	if r.useMocks {
-		r.logger.Debug("Getting subscription (mock)", slog.String("name", name))
-		for _, sub := range mocks.GetMockMaaSSubscriptions() {
-			if sub.Name == name {
-				return &sub, nil
-			}
-		}
-		return nil, nil
-	}
-
 	r.logger.Debug("Getting subscription", slog.String("name", name))
 
 	obj, err := r.findSubscriptionByName(ctx, name)
@@ -93,11 +77,6 @@ func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name stri
 
 // CreateSubscription creates a MaaSSubscription and MaaSAuthPolicy.
 func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	if r.useMocks {
-		r.logger.Debug("Creating subscription (mock)", slog.String("name", request.Name))
-		return r.createSubscriptionMock(request)
-	}
-
 	r.logger.Debug("Creating subscription", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -157,11 +136,6 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 
 // UpdateSubscription updates a MaaSSubscription and MaaSAuthPolicy.
 func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	if r.useMocks {
-		r.logger.Debug("Updating subscription (mock)", slog.String("name", name))
-		return r.updateSubscriptionMock(name, request)
-	}
-
 	r.logger.Debug("Updating subscription", slog.String("name", name))
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -239,16 +213,6 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 // DeleteSubscription deletes a MaaSSubscription by name.
 // The associated MaaSAuthPolicy is expected to be garbage-collected via owner references.
 func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name string) error {
-	if r.useMocks {
-		r.logger.Debug("Deleting subscription (mock)", slog.String("name", name))
-		for _, sub := range mocks.GetMockMaaSSubscriptions() {
-			if sub.Name == name {
-				return nil
-			}
-		}
-		return fmt.Errorf("MaaSSubscription '%s' not found", name)
-	}
-
 	r.logger.Debug("Deleting subscription", slog.String("name", name))
 
 	existingObj, err := r.findSubscriptionByName(ctx, name)
@@ -278,14 +242,6 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 
 // GetFormData returns groups and model refs for the subscription creation form.
 func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.SubscriptionFormDataResponse, error) {
-	if r.useMocks {
-		r.logger.Debug("Getting subscription form data (mock)")
-		return &models.SubscriptionFormDataResponse{
-			Groups:    mocks.GetMockGroups(),
-			ModelRefs: mocks.GetMockMaaSModelRefSummaries(),
-		}, nil
-	}
-
 	r.logger.Debug("Getting subscription form data")
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -316,17 +272,6 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 
 // GetAuthPoliciesForSubscription returns MaaSAuthPolicy resources associated with a subscription.
 func (r *SubscriptionsRepository) GetAuthPoliciesForSubscription(ctx context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error) {
-	if r.useMocks {
-		r.logger.Debug("Getting auth policies for subscription (mock)", slog.String("subscription", subscriptionName))
-		var result []models.MaaSAuthPolicy
-		for _, policy := range mocks.GetMockMaaSAuthPolicies() {
-			if policy.Name == subscriptionName+"-policy" {
-				result = append(result, policy)
-			}
-		}
-		return result, nil
-	}
-
 	r.logger.Debug("Getting auth policies for subscription", slog.String("subscription", subscriptionName))
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -359,11 +304,6 @@ func (r *SubscriptionsRepository) GetAuthPoliciesForSubscription(ctx context.Con
 
 // GetModelRefSummaries returns MaaSModelRef summaries for the given model refs.
 func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs []models.ModelSubscriptionRef) ([]models.MaaSModelRefSummary, error) {
-	if r.useMocks {
-		r.logger.Debug("Getting model ref summaries (mock)")
-		return mocks.GetMockMaaSModelRefSummaries(), nil
-	}
-
 	r.logger.Debug("Getting model ref summaries")
 
 	client, err := r.k8sFactory.GetClient(ctx)
@@ -394,87 +334,8 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 	return result, nil
 }
 
-// --- Mock helpers (preserved for dev mode) ---
+// --- K8s helpers ---
 
-func (r *SubscriptionsRepository) createSubscriptionMock(request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	for _, sub := range mocks.GetMockMaaSSubscriptions() {
-		if sub.Name == request.Name {
-			return nil, fmt.Errorf("MaaSSubscription '%s' already exists", request.Name)
-		}
-	}
-
-	modelRefs := make([]models.ModelRef, len(request.ModelRefs))
-	for i, mr := range request.ModelRefs {
-		modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
-	}
-
-	return &models.CreateSubscriptionResponse{
-		Subscription: models.MaaSSubscription{
-			Name:          request.Name,
-			Namespace:     request.Namespace,
-			Phase:         "Pending",
-			Priority:      request.Priority,
-			Owner:         request.Owner,
-			ModelRefs:     request.ModelRefs,
-			TokenMetadata: request.TokenMetadata,
-		},
-		AuthPolicy: models.MaaSAuthPolicy{
-			Name:      request.Name + "-policy",
-			Namespace: request.Namespace,
-			Phase:     "Pending",
-			ModelRefs: modelRefs,
-			Subjects: models.SubjectSpec{
-				Groups: request.Owner.Groups,
-			},
-			MeteringMetadata: request.TokenMetadata,
-		},
-	}, nil
-}
-
-func (r *SubscriptionsRepository) updateSubscriptionMock(name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	var existing *models.MaaSSubscription
-	for _, sub := range mocks.GetMockMaaSSubscriptions() {
-		if sub.Name == name {
-			existing = &sub
-			break
-		}
-	}
-	if existing == nil {
-		return nil, nil
-	}
-
-	modelRefs := make([]models.ModelRef, len(request.ModelRefs))
-	for i, mr := range request.ModelRefs {
-		modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
-	}
-
-	return &models.CreateSubscriptionResponse{
-		Subscription: models.MaaSSubscription{
-			Name:              existing.Name,
-			Namespace:         existing.Namespace,
-			Phase:             existing.Phase,
-			Priority:          request.Priority,
-			Owner:             request.Owner,
-			ModelRefs:         request.ModelRefs,
-			TokenMetadata:     request.TokenMetadata,
-			CreationTimestamp: existing.CreationTimestamp,
-		},
-		AuthPolicy: models.MaaSAuthPolicy{
-			Name:      existing.Name + "-policy",
-			Namespace: existing.Namespace,
-			Phase:     existing.Phase,
-			ModelRefs: modelRefs,
-			Subjects: models.SubjectSpec{
-				Groups: request.Owner.Groups,
-			},
-			MeteringMetadata: request.TokenMetadata,
-		},
-	}, nil
-}
-
-// --- K8s helpers (used in non-mock mode) ---
-
-// findSubscriptionByName lists all MaaSSubscriptions across namespaces and returns the one matching the name.
 func (r *SubscriptionsRepository) findSubscriptionByName(ctx context.Context, name string) (*unstructured.Unstructured, error) {
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -496,7 +357,6 @@ func (r *SubscriptionsRepository) findSubscriptionByName(ctx context.Context, na
 	return nil, nil
 }
 
-// listGroups fetches OpenShift group names.
 func (r *SubscriptionsRepository) listGroups(ctx context.Context, kubeClient dynamic.Interface) ([]string, error) {
 	list, err := kubeClient.Resource(constants.GroupGvr).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -511,7 +371,6 @@ func (r *SubscriptionsRepository) listGroups(ctx context.Context, kubeClient dyn
 	return groups, nil
 }
 
-// listAllModelRefSummaries fetches all MaaSModelRef CRs and converts them to summaries.
 func (r *SubscriptionsRepository) listAllModelRefSummaries(ctx context.Context, kubeClient dynamic.Interface) ([]models.MaaSModelRefSummary, error) {
 	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -531,7 +390,7 @@ func (r *SubscriptionsRepository) listAllModelRefSummaries(ctx context.Context, 
 	return summaries, nil
 }
 
-// --- Conversion helpers: Unstructured <-> Go models ---
+// --- Conversion helpers: Unstructured -> Go models ---
 
 func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.MaaSSubscription, error) {
 	content := obj.UnstructuredContent()
@@ -541,11 +400,9 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		Namespace: obj.GetNamespace(),
 	}
 
-	// Phase from status
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
-	// Priority from spec
 	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
 	if priority != nil {
 		switch v := priority.(type) {
@@ -556,7 +413,6 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
-	// Owner from spec
 	ownerGroups, _, _ := unstructured.NestedSlice(content, "spec", "owner", "groups")
 	for _, g := range ownerGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -566,7 +422,6 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
-	// ModelRefs from spec
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -606,7 +461,6 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
-	// TokenMetadata from spec
 	tm, tmExists, _ := unstructured.NestedMap(content, "spec", "tokenMetadata")
 	if tmExists && tm != nil {
 		tokenMeta := &models.TokenMetadata{}
@@ -627,7 +481,6 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		sub.TokenMetadata = tokenMeta
 	}
 
-	// CreationTimestamp
 	ct := obj.GetCreationTimestamp()
 	if !ct.IsZero() {
 		t := ct.Time
