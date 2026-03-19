@@ -549,11 +549,11 @@ export interface MaaSModel {
 export type MaaSTokenRequest = {
   name?: string;
   description?: string;
-  expiration?: string; // Optional - only present when expiration is provided
+  expiresIn?: string;
 };
 export interface MaaSTokenResponse {
-  token: string;
-  expiresAt: number;
+  key: string;
+  expiresAt?: string;
 }
 
 export type ModArchRestGET<T> = (
