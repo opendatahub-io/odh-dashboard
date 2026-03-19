@@ -175,7 +175,7 @@ paths:
           schema:
             type: string
             maxLength: 253
-            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
           example: aws-secret-1
         - name: bucket
           in: query
@@ -257,7 +257,7 @@ paths:
           schema:
             type: string
             maxLength: 253
-            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
           example: aws-secret-1
         - name: bucket
           in: query
@@ -291,6 +291,7 @@ paths:
           description: The token value to use for the next page
           schema:
             type: string
+            minLength: 1
           example: /continuationtokenexample
         - name: limit
           in: query
@@ -347,7 +348,7 @@ paths:
           schema:
             type: string
             maxLength: 253
-            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
             example: 'my-lls-secret'
       responses:
         "200":
