@@ -40,6 +40,57 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Returns available namespaces in the cluster.
+  /api/v1/experiments:
+    summary: Path used to list MLflow experiments.
+    description: >-
+      The REST endpoint/path used to list MLflow experiments from the tracking server.
+    get:
+      tags:
+        - MLflowOperation
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for paginated results.
+        - name: maxResults
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+          description: Maximum number of experiments to return (must be a positive integer).
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter expression (e.g. "name = 'my-experiment'").
+      responses:
+        "200":
+          $ref: "#/components/responses/ExperimentsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: listMLflowExperiments
+      summary: List MLflow Experiments
+      description: Returns a paginated list of experiments from the MLflow tracking server.
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
     description: >-
@@ -47,8 +98,6 @@ paths:
     get:
       tags:
         - K8SOperation
-      parameters:
-        - $ref: "#/components/parameters/kubeflowUserId"
       responses:
         "200":
           $ref: "#/components/responses/ConfigResponse"
@@ -152,19 +201,79 @@ components:
             If set, it must be unique among all resources within a database instance.
           type: string
 
+    MLflowExperiment:
+      description: An MLflow experiment.
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique experiment identifier.
+          example: "1"
+        name:
+          type: string
+          description: Human-readable experiment name.
+          example: my-training-experiment
+        artifactLocation:
+          type: string
+          description: Location where artifacts for the experiment are stored.
+          example: s3://my-bucket/experiments/1
+        lifecycleStage:
+          type: string
+          description: Current lifecycle stage of the experiment (active or deleted).
+          example: active
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key-value tags associated with the experiment.
+          example:
+            team: ml-platform
+        creationTime:
+          type: string
+          format: date-time
+          description: Timestamp when the experiment was created.
+        lastUpdateTime:
+          type: string
+          format: date-time
+          description: Timestamp of the last update to the experiment.
+    MLflowExperimentsResponse:
+      description: Paginated list of MLflow experiments.
+      type: object
+      required:
+        - experiments
+      properties:
+        experiments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MLflowExperiment"
+        nextPageToken:
+          type: string
+          description: Token for retrieving the next page of results.
     Error:
-      description: Error code and message.
+      type: object
       required:
         - code
         - message
-      type: object
       properties:
         code:
-          description: Error code
           type: string
+          example: bad_request
+          description: Application error code (e.g. bad_request, unauthorized, forbidden, not_found, conflict, service_unavailable, mlflow_error).
         message:
-          description: Error message
           type: string
+          example: "Bad request"
+          description: Human-readable error message.
+
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -203,25 +312,25 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unexpected internal server error
     ConfigResponse:
       content:
@@ -235,20 +344,43 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
-    ConflictResponse:
+    ExperimentsResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
-      description: Conflict - Role Binding with the same name already exists
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/MLflowExperimentsResponse"
+            required:
+              - data
+      description: A response containing a paginated list of MLflow experiments.
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Forbidden - insufficient permissions
+    Conflict:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Conflict - resource already exists
+    BadGateway:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Bad gateway - unexpected error from the MLflow tracking server
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Service unavailable - MLflow server is not configured or reachable
 
   parameters:
-    kubeflowUserId:
-      in: header
-      name: kubeflow-userid
-      schema:
-        type: string
-      required: true
     id:
       name: id
       description: The ID of resource.
@@ -334,6 +466,13 @@ components:
         type: string
       in: query
       required: false
+    workspace:
+      name: workspace
+      description: The Kubernetes namespace where the MLflow tracking server is deployed (forwarded as X-MLFLOW-WORKSPACE header).
+      schema:
+        type: string
+      in: query
+      required: true
 
   securitySchemes:
     Bearer:
@@ -346,3 +485,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: MLflowOperation
+    description: Operations performed against the MLflow tracking server
