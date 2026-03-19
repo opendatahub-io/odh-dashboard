@@ -43,7 +43,7 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.GatewayName),
 		APIKeys:       apiKeysRepo,
 		Models:        modelsRepo,
-		Subscriptions: NewSubscriptionsRepository(logger),
-		MaaSModelRefs: NewMaaSModelRefsRepository(logger),
+		Subscriptions: NewSubscriptionsRepository(logger, k8sFactory, config.MockK8Client),
+		MaaSModelRefs: NewMaaSModelRefsRepository(logger, k8sFactory, config.MockK8Client),
 	}, nil
 }
