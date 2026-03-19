@@ -91,8 +91,8 @@ describe('CreateExternalEndpointModal', () => {
       // Model type dropdown should show "Inferencing model" (llm is default)
       expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
 
-      // Provider dropdown should show "Internal" (remote::vllm is default)
-      expect(screen.getByRole('button', { name: /Internal/i })).toBeInTheDocument();
+      // Provider dropdown should not be visible (hardcoded to OpenAI on backend)
+      expect(screen.queryByText(/Provider/i)).not.toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
@@ -150,7 +150,6 @@ describe('CreateExternalEndpointModal', () => {
           model_display_name: 'My Custom GPT-4o',
           base_url: 'https://api.openai.com/v1',
           secret_value: 'sk-test-token-123',
-          provider_type: 'remote::vllm',
           model_type: 'llm',
           use_cases: 'Chat and completion',
         });

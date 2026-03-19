@@ -53,7 +53,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	return &models.AAModel{
 		ModelName:       req.ModelID,
 		ModelID:         req.ModelID,
-		ServingRuntime:  string(req.ProviderType),
+		ServingRuntime:  string(models.ProviderTypeOpenAI),
 		APIProtocol:     "REST",
 		Version:         "",
 		Usecase:         req.UseCases,

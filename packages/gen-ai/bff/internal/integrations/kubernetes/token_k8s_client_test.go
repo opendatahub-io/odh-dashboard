@@ -1091,7 +1091,7 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 				Inference: []models.InferenceProvider{
 					{
 						ProviderID:   "test-provider",
-						ProviderType: models.ProviderTypeVLLM,
+						ProviderType: models.ProviderTypeOpenAI,
 						Config: models.ProviderConfig{
 							BaseURL: "https://api.example.com/v1",
 						},

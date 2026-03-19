@@ -2,14 +2,13 @@ package models
 
 // ExternalModelRequest represents the request to create an external model
 type ExternalModelRequest struct {
-	ModelID            string           `json:"model_id"`
-	ModelDisplayName   string           `json:"model_display_name"`
-	BaseURL            string           `json:"base_url"`
-	SecretValue        string           `json:"secret_value"`
-	ProviderType       ProviderTypeEnum `json:"provider_type"`
-	UseCases           string           `json:"use_cases,omitempty"`
-	ModelType          ModelTypeEnum    `json:"model_type"`
-	EmbeddingDimension *int             `json:"embedding_dimension,omitempty"`
+	ModelID            string        `json:"model_id"`
+	ModelDisplayName   string        `json:"model_display_name"`
+	BaseURL            string        `json:"base_url"`
+	SecretValue        string        `json:"secret_value"`
+	UseCases           string        `json:"use_cases,omitempty"`
+	ModelType          ModelTypeEnum `json:"model_type"`
+	EmbeddingDimension *int          `json:"embedding_dimension,omitempty"`
 }
 
 // VerifyExternalModelRequest represents a request to verify an external model
@@ -32,11 +31,7 @@ type VerifyExternalModelResponse struct {
 type ProviderTypeEnum string
 
 const (
-	ProviderTypeGemini      ProviderTypeEnum = "remote::gemini"
-	ProviderTypeOpenAI      ProviderTypeEnum = "remote::openai"
-	ProviderTypeAnthropic   ProviderTypeEnum = "remote::anthropic"
-	ProviderTypeVLLM        ProviderTypeEnum = "remote::vllm"
-	ProviderTypePassthrough ProviderTypeEnum = "remote::passthrough"
+	ProviderTypeOpenAI ProviderTypeEnum = "remote::openai"
 )
 
 // ModelTypeEnum represents supported model types

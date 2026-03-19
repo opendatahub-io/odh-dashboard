@@ -1671,16 +1671,9 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 			return fmt.Errorf("provider at index %d has empty provider_id", i)
 		}
 
-		// Validate ProviderType is one of the allowed values
-		validProviderTypes := map[models.ProviderTypeEnum]bool{
-			models.ProviderTypeGemini:      true,
-			models.ProviderTypeOpenAI:      true,
-			models.ProviderTypeAnthropic:   true,
-			models.ProviderTypeVLLM:        true,
-			models.ProviderTypePassthrough: true,
-		}
-		if !validProviderTypes[provider.ProviderType] {
-			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be one of: remote::vllm, remote::openai, remote::anthropic, remote::gemini, remote::passthrough", provider.ProviderID, provider.ProviderType)
+		// Validate ProviderType is remote::openai
+		if provider.ProviderType != models.ProviderTypeOpenAI {
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai", provider.ProviderID, provider.ProviderType)
 		}
 
 		// Validate BaseURL is a well-formed URL with scheme and host
@@ -2369,10 +2362,10 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 
-	// Add new provider
+	// Add new provider (hardcoded to remote::openai)
 	newProvider := models.InferenceProvider{
 		ProviderID:   fmt.Sprintf("external-model-provider-%s", providerID),
-		ProviderType: req.ProviderType,
+		ProviderType: models.ProviderTypeOpenAI,
 		Config: models.ProviderConfig{
 			BaseURL: req.BaseURL,
 			CustomGenAI: models.CustomGenAI{
@@ -2386,10 +2379,8 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		},
 	}
 
-	// For Gemini and OpenAI providers with specific models, add allowed_models
-	if req.ProviderType == models.ProviderTypeGemini || req.ProviderType == models.ProviderTypeOpenAI {
-		newProvider.Config.AllowedModels = []string{req.ModelID}
-	}
+	// For OpenAI provider, add allowed_models
+	newProvider.Config.AllowedModels = []string{req.ModelID}
 
 	config.Providers.Inference = append(config.Providers.Inference, newProvider)
 

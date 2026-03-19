@@ -379,12 +379,6 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  provider_type:
-    | 'remote::vllm'
-    | 'remote::openai'
-    | 'remote::anthropic'
-    | 'remote::gemini'
-    | 'remote::passthrough';
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
