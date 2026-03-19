@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
-import { NotificationContext, NotificationActionTypes } from 'mod-arch-core';
+import { AppNotificationAction, useStore } from '~/app/store';
 
 enum NotificationTypes {
   SUCCESS = 'success',
@@ -9,7 +9,11 @@ enum NotificationTypes {
   WARNING = 'warning',
 }
 
-type NotificationProps = (title: string, message?: React.ReactNode) => void;
+type NotificationProps = (
+  title: string,
+  message?: React.ReactNode,
+  actions?: AppNotificationAction[],
+) => void;
 
 type NotificationRemoveProps = (id: number | undefined) => void;
 
@@ -22,84 +26,68 @@ interface NotificationFunc extends NotificationTypeFunc {
 }
 
 export const useNotification = (): NotificationFunc => {
-  const { notificationCount, updateNotificationCount, dispatch } = useContext(NotificationContext);
+  const addNotification = useStore((state) => state.addNotification);
+  const removeNotification = useStore((state) => state.removeNotification);
 
   const success: NotificationProps = React.useCallback(
-    (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.success,
-          title,
-          timestamp: new Date(),
-          message,
-          id: notificationCount,
-        },
+    (title, message?, actions?) => {
+      addNotification({
+        status: AlertVariant.success,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [addNotification],
   );
 
   const warning: NotificationProps = React.useCallback(
-    (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.warning,
-          title,
-          timestamp: new Date(),
-          message,
-          id: notificationCount,
-        },
+    (title, message?, actions?) => {
+      addNotification({
+        status: AlertVariant.warning,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [addNotification],
   );
 
   const error: NotificationProps = React.useCallback(
-    (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.danger,
-          title,
-          timestamp: new Date(),
-          message,
-          id: notificationCount,
-        },
+    (title, message?, actions?) => {
+      addNotification({
+        status: AlertVariant.danger,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [addNotification],
   );
 
   const info: NotificationProps = React.useCallback(
-    (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.info,
-          title,
-          timestamp: new Date(),
-          message,
-          id: notificationCount,
-        },
+    (title, message?, actions?) => {
+      addNotification({
+        status: AlertVariant.info,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [addNotification],
   );
 
   const remove: NotificationRemoveProps = React.useCallback(
     (id) => {
-      dispatch({
-        type: NotificationActionTypes.DELETE_NOTIFICATION,
-        payload: { id },
-      });
+      if (id !== undefined) {
+        removeNotification(id);
+      }
     },
-    [dispatch],
+    [removeNotification],
   );
 
   const notification = React.useMemo(

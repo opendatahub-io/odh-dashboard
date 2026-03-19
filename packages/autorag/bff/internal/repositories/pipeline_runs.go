@@ -148,6 +148,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 		CreatedAt:                kfRun.CreatedAt,
 		ScheduledAt:              kfRun.ScheduledAt,
 		FinishedAt:               kfRun.FinishedAt,
+		PipelineSpec:             kfRun.PipelineSpec,
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
@@ -189,6 +190,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
 		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
+	}
+
+	if req.OptimizationMaxRagPatterns != nil {
+		value := *req.OptimizationMaxRagPatterns
+		if value < constants.MinRagPatterns {
+			return NewValidationError(fmt.Sprintf("optimization_max_rag_patterns must be at least %d, got %d", constants.MinRagPatterns, value))
+		}
+		if value > constants.MaxRagPatterns {
+			return NewValidationError(fmt.Sprintf("optimization_max_rag_patterns must be at most %d, got %d", constants.MaxRagPatterns, value))
+		}
 	}
 
 	return nil
@@ -233,6 +244,10 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 
 	if req.LlamaStackVectorDatabaseID != "" {
 		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	}
+
+	if req.OptimizationMaxRagPatterns != nil {
+		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
 	}
 
 	return models.CreatePipelineRunKFRequest{
@@ -293,7 +308,8 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 	return &run, nil
 }
 
-// GetPipelineRun retrieves a single pipeline run by ID
+// GetPipelineRun retrieves a single pipeline run by ID.
+// It also fetches the pipeline version to include pipeline_spec for topology visualization.
 func (r *PipelineRunsRepository) GetPipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
@@ -322,5 +338,19 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 	// Transform Kubeflow format to our stable API format.
 	// pipeline_type is not set here; the handler sets it after ownership validation.
 	run := toPipelineRun(kfRun, "")
+
+	// Enrich with pipeline_spec from the pipeline version (needed for DAG topology)
+	if ref := kfRun.PipelineVersionReference; ref != nil && ref.PipelineID != "" && ref.PipelineVersionID != "" {
+		version, vErr := client.GetPipelineVersion(ctx, ref.PipelineID, ref.PipelineVersionID)
+		if vErr != nil {
+			slog.Warn("failed to fetch pipeline version for spec enrichment",
+				"pipelineID", ref.PipelineID,
+				"versionID", ref.PipelineVersionID,
+				"error", vErr)
+		} else if version != nil && len(version.PipelineSpec) > 0 {
+			run.PipelineSpec = version.PipelineSpec
+		}
+	}
+
 	return &run, nil
 }

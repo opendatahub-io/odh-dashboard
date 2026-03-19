@@ -890,6 +890,12 @@ components:
         llama_stack_vector_database_id:
           type: string
           description: Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus)
+        optimization_max_rag_patterns:
+          type: integer
+          minimum: 4
+          maximum: 20
+          description: Maximum number of RAG patterns to generate. Passed to ai4rag (max_number_of_rag_patterns). Defaults to 8.
+          default: 8
       additionalProperties: false
 
     PipelineRunsData:
