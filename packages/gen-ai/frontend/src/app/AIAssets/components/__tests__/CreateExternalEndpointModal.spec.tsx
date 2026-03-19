@@ -62,7 +62,7 @@ describe('CreateExternalEndpointModal', () => {
     it('should render modal with title and form fields', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      expect(screen.getByText('Create external endpoint')).toBeInTheDocument();
+      expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
       expect(screen.getByText('Provider')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('CreateExternalEndpointModal', () => {
     it('should not render when isOpen is false', () => {
       render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByText('Create external endpoint')).not.toBeInTheDocument();
+      expect(screen.queryByText('Create endpoint')).not.toBeInTheDocument();
     });
   });
 

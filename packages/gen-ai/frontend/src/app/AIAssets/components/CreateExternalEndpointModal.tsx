@@ -237,7 +237,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       onClose={onClose}
       data-testid="create-external-model-modal"
     >
-      <ModalHeader title="Create external endpoint" />
+      <ModalHeader title="Create endpoint" />
       <ModalBody>
         {error && (
           <Alert
