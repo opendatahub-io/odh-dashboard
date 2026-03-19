@@ -38,6 +38,7 @@ let Image: string;
 let scaleDown: string;
 let scaleUp: string;
 let yamlEditorModelName: string;
+let yamlEditorModelPath: string;
 
 describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
@@ -56,6 +57,7 @@ describe('A user can deploy an LLMD model', () => {
         scaleDown = testData.scaleDown;
         scaleUp = testData.scaleUp;
         yamlEditorModelName = testData.yamlEditorModelName;
+        yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -218,16 +220,13 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findSubmitButton().should('be.disabled');
 
       cy.step('Load YAML content from fixture and deploy');
-      cy.fixture('resources/yaml/yaml_editor_model_serving.yaml', 'utf8').then(
-        (yamlContent: string) => {
-          const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-          yamlEditor.findStartFromScratchButton().click();
-          yamlEditor.setValue(yamlContent);
-          modelServingWizard.findYAMLCodeEditor().waitForReady();
-          modelServingWizard.findSubmitButton().should('be.enabled').click();
-          modelName = yamlContent;
-        },
-      );
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.findUpload().selectFile(yamlEditorModelPath, {
+        force: true,
+      });
+      modelServingWizard.findYAMLCodeEditor().waitForReady();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
       checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
 
