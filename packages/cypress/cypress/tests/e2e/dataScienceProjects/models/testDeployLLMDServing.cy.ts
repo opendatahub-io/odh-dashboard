@@ -86,7 +86,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer%3Dtrue',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -187,50 +187,56 @@ describe('A user can deploy an LLMD model', () => {
       deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
   );
-  it('Verify User can deploy an LLmd Model from Manual YAML editor', () => {
-    cy.step('Log into the application as admin with YAML viewer feature flag enabled');
-    cy.visitWithLogin(
-      '/?devFeatureFlags=deploymentWizardYAMLViewer%3Dtrue',
-      HTPASSWD_CLUSTER_ADMIN_USER,
-    );
+  it(
+    'Verify User can deploy an LLmd Model from Manual YAML editor',
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application as admin with YAML viewer feature flag enabled');
+      cy.visitWithLogin(
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
-    cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-    projectListPage.navigate();
-    projectListPage.filterProjectByName(projectName);
-    projectListPage.findProjectLink(projectName).click();
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
-    cy.step('Deploy LLMD Model From YAML Editor');
-    projectDetails.findSectionTab('model-server').click();
-    // If we have only one serving model platform, then it is selected by default.
-    // So we don't need to click the button.
-    modelServingGlobal.selectSingleServingModelButtonIfExists();
-    modelServingGlobal.findDeployModelButton().click();
+      cy.step('Deploy LLMD Model From YAML Editor');
+      projectDetails.findSectionTab('model-server').click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
 
-    cy.step('Enter Manual YAML editor Mode');
-    modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
-    modelServingWizard.findManualEditModeButton().click();
-    modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
-    modelServingWizard.findSubmitButton().should('be.disabled');
+      cy.step('Enter Manual YAML editor Mode');
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
+      modelServingWizard.findManualEditModeButton().click();
+      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.findSubmitButton().should('be.disabled');
 
-    cy.step('Load YAML content from fixture and deploy');
-    cy.fixture('resources/yaml/yaml_editor_model_serving.yaml', 'utf8').then(
-      (yamlContent: string) => {
-        const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-        yamlEditor.findStartFromScratchButton().click();
-        yamlEditor.setValue(yamlContent);
-        modelServingWizard.findYAMLCodeEditor().waitForReady();
-        modelServingWizard.findSubmitButton().should('be.enabled').click();
-        modelName = yamlContent;
-      },
-    );
-    const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
-    checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      cy.step('Load YAML content from fixture and deploy');
+      cy.fixture('resources/yaml/yaml_editor_model_serving.yaml', 'utf8').then(
+        (yamlContent: string) => {
+          const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+          yamlEditor.findStartFromScratchButton().click();
+          yamlEditor.setValue(yamlContent);
+          modelServingWizard.findYAMLCodeEditor().waitForReady();
+          modelServingWizard.findSubmitButton().should('be.enabled').click();
+          modelName = yamlContent;
+        },
+      );
+      const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
+      checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
 
-    cy.step('Verify the model Row');
-    llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
-    modelServingSection.getKServeRow(yamlEditorModelName).find().findKebabAction('Edit').click();
-    modelServingWizard.findYAMLEditFallbackAlert().should('exist');
-    modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
-    modelServingWizard.findSubmitButton().should('be.enabled').click();
-  });
+      cy.step('Verify the model Row');
+      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
+      modelServingSection.getKServeRow(yamlEditorModelName).find().findKebabAction('Edit').click();
+      modelServingWizard.findYAMLEditFallbackAlert().should('exist');
+      modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+    },
+  );
 });
