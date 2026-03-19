@@ -21,7 +21,7 @@ export const mockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
 });
 
 export const mockMaaSModels = (models?: Partial<MaaSModel>[]): MaaSModelsResponse => {
-  if (!models || models.length === 0) {
+  if (!models) {
     return {
       data: [mockMaaSModel()],
     };
