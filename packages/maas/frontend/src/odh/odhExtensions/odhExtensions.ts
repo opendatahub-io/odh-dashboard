@@ -58,11 +58,31 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+    },
+    properties: {
+      path: '/maas/subscriptions/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
       required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
-      path: '/maas/*',
+      path: '/maas/tokens/*',
       component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      path: '/maas',
+      component: () => import('./MaaSRedirect'),
     },
   },
 ];
