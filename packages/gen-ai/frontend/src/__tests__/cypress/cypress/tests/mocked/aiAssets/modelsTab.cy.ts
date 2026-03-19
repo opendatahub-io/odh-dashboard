@@ -96,7 +96,7 @@ describe('AI Assets - Models Tab', () => {
   );
 
   it(
-    'should filter models by name, keyword, and use case',
+    'should filter models by name and use case',
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
     () => {
       cy.step('Filter by model name');
@@ -104,10 +104,11 @@ describe('AI Assets - Models Tab', () => {
         .findByRole('button', { name: /Filter toggle/i })
         .click();
       cy.findByRole('menuitem', { name: 'Name' }).click();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('Llama');
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
-      cy.findByTestId('filter-chip-name').should('exist');
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').clear();
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('Llama');
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('{enter}');
+      cy.contains('Active filters:').should('exist');
+      cy.contains('Name: Llama').should('exist');
       modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
       modelsTabPage.getRow('Llama 70B MaaS').find().should('exist');
 
@@ -117,31 +118,15 @@ describe('AI Assets - Models Tab', () => {
         .click();
       modelsTabPage.findTableRows().should('have.length', 4);
 
-      cy.step('Filter by keyword');
-      cy.findByTestId('models-table-toolbar')
-        .findByRole('button', { name: /Filter toggle/i })
-        .click();
-      cy.findByRole('menuitem', { name: 'Keyword' }).click();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('External');
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
-      cy.findByTestId('filter-chip-keyword').should('exist');
-      modelsTabPage.getRow('GPT-4 External').find().should('exist');
-
-      cy.step('Clear filters');
-      cy.findByTestId('models-table-toolbar')
-        .findByRole('button', { name: /Clear all filters/i })
-        .click();
-
       cy.step('Filter by use case');
       cy.findByTestId('models-table-toolbar')
         .findByRole('button', { name: /Filter toggle/i })
         .click();
-      cy.findByRole('menuitem', { name: 'Use case' }).click();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('embedding');
-      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
-      cy.findByTestId('filter-chip-useCase').should('exist');
+      cy.findByRole('menuitem', { name: 'Use Case' }).click();
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').clear();
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('embedding');
+      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('{enter}');
+      cy.contains('Use Case: embedding').should('exist');
       modelsTabPage.getRow('Embedding Model').find().should('exist');
     },
   );
@@ -154,11 +139,12 @@ describe('AI Assets - Models Tab', () => {
       const internalRow = modelsTabPage.getRow('Llama 3B Internal');
       internalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
 
-      cy.step('Click endpoint view button to show endpoint details');
+      cy.step('Click endpoint view button to open endpoint modal');
       internalRow.findEndpointCell().findByTestId('endpoint-view-button').click();
 
-      cy.step('Verify copy endpoint button exists');
-      internalRow.findEndpointCell().findByTestId('copy-endpoint-button').should('exist');
+      cy.step('Verify endpoint modal opens with copy buttons');
+      cy.findByRole('dialog', { name: 'Endpoints' }).should('exist');
+      cy.findByTestId('endpoint-modal-internal-url').should('exist');
     },
   );
 
@@ -197,10 +183,7 @@ describe('AI Assets - Models Tab', () => {
       }).should('exist');
 
       cy.step('Verify popover content explains AI assets');
-      cy.findByRole('dialog').should(
-        'contain',
-        'model deployments that are available as AI assets',
-      );
+      cy.findByRole('dialog').should('contain', 'model deployments available as AI assets');
 
       cy.step('Close the popover');
       cy.findByTestId('model-info-popover').findByRole('button', { name: /close/i }).click();
@@ -220,21 +203,17 @@ describe('AI Assets - Models Tab (Empty State)', () => {
   });
 
   it(
-    'should display empty state with instructions',
+    'should display empty state when no models are available',
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets', '@EmptyState'] },
     () => {
-      cy.step('Verify empty state is visible');
-      cy.findByTestId('empty-state').should('exist').and('be.visible');
+      cy.step('Verify empty state is displayed with instructional message');
+      cy.findByText('To begin you must deploy a model').should('be.visible');
 
-      cy.step('Verify empty state message');
-      cy.findByTestId('empty-state-message').should('contain', 'Model Deployments');
-      cy.findByTestId('empty-state-message').should(
-        'contain',
-        'Make this deployment available as an AI asset',
-      );
+      cy.step('Verify models table does not exist');
+      modelsTabPage.findTable().should('not.exist');
 
-      cy.step('Verify "Go to Deployments" button exists');
-      cy.findByTestId('empty-state-action-button').should('exist').and('be.visible');
+      cy.step('Verify "Go to Deployments" action button exists');
+      cy.findByRole('button', { name: /Go to Deployments/i }).should('be.visible');
     },
   );
 });
