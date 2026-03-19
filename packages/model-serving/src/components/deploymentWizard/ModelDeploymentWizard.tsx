@@ -142,6 +142,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           fields={wizardFormData.fields}
           initialData={existingData}
           setExternalData={setExternalData}
+          dispatch={wizardFormData.dispatch}
         />
         {isExitModalOpen && (
           <ExitDeploymentModal onClose={closeExitModal} onConfirm={handleExitConfirm} />

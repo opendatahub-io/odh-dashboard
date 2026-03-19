@@ -123,30 +123,44 @@ export const useDeploymentWizardReducer = (
     () => ({ ...baseFormState, ...reducerState.initialValues, ...reducerState.fieldValues }),
     [baseFormState, reducerState.initialValues, reducerState.fieldValues],
   );
+  const mergedStateRef = React.useRef(mergedState);
+  mergedStateRef.current = mergedState;
 
   const activeFields = useActiveFields(mergedState);
 
-  const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);
-  const prevExternalData = React.useRef<ExternalDataMap>(externalDataMap);
+  // Makes it easier for callers to use init dispatch without needing entire merged state
+  const enhancedDispatch: React.Dispatch<WizardFormAction> = React.useCallback(
+    (action) => {
+      if (action.type === 'initFieldData') {
+        const { field } = action.payload;
+        dispatch({
+          ...action,
+          payload: {
+            ...action.payload,
+            existingFieldData: action.payload.existingFieldData ?? initialData?.[field.id],
+            dependencies:
+              action.payload.dependencies ?? getFieldDependencies(field, mergedStateRef.current),
+          },
+        });
+      } else {
+        dispatch(action);
+      }
+    },
+    [dispatch, initialData],
+  );
 
+  const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);
   const prevMergedState = React.useRef<WizardFormState>(mergedState);
 
   React.useEffect(() => {
     for (const field of activeFields) {
       const isNew = !prevActiveFields.current.some((f) => f.id === field.id);
 
-      const isLoaded =
-        field.id in prevExternalData.current &&
-        prevExternalData.current[field.id].loaded === false &&
-        field.id in externalDataMap &&
-        externalDataMap[field.id].loaded === true;
-
-      // This should be done in the reducer but not all fields from baseFormState trigger dispatches
       const dependencies = getFieldDependencies(field, mergedState);
       const prevDependencies = getFieldDependencies(field, prevMergedState.current);
       const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
-      if (isNew || isLoaded || isDependenciesChanged) {
+      if (isNew || isDependenciesChanged) {
         dispatch({
           type: 'initFieldData',
           payload: {
@@ -167,17 +181,16 @@ export const useDeploymentWizardReducer = (
     }
 
     prevActiveFields.current = activeFields;
-    prevExternalData.current = externalDataMap;
     prevMergedState.current = mergedState;
   }, [activeFields, dispatch, externalDataMap, initialData, mergedState]);
 
   return React.useMemo(
     () => ({
       state: mergedState,
-      dispatch,
+      dispatch: enhancedDispatch,
       fields: activeFields,
       externalDataLoaded: true,
     }),
-    [mergedState, activeFields],
+    [mergedState, enhancedDispatch, activeFields],
   );
 };
