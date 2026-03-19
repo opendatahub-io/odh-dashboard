@@ -71,8 +71,10 @@ describe('useMlflowExperiments', () => {
       expect(renderResult.result.current.loaded).toBe(true);
     });
 
-    expect(mockAxios).toHaveBeenCalledWith(expect.stringContaining('workspace=test-ns-giulio'));
-    expect(mockAxios).toHaveBeenCalledWith(expect.stringContaining('filter=tags.team'));
+    expect(mockAxios).toHaveBeenCalledTimes(1);
+    const url = mockAxios.mock.calls[0][0];
+    expect(url).toContain('workspace=test-ns-giulio');
+    expect(url).toContain('filter=tags.team');
     expect(renderResult.result.current.data).toHaveLength(1);
   });
 
