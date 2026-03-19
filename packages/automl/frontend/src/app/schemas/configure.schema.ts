@@ -132,10 +132,10 @@ const TRANSFORMERS: Array<Transformer> = [
       delete data.known_covariates_names;
     }
   },
-  // Include the task type in the name. Remove this later
+  // TODO - Include the task type in the name. Remove this later when we properly
+  // consume the name from the user input field
   (data) => {
     if (!data.display_name?.includes(data.task_type)) {
-      // Remove tabular-specific fields
       data.display_name = `${data.task_type}-${Date.now()}`;
     }
   },

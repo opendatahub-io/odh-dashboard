@@ -161,6 +161,9 @@ function ConfigureTimeseriesForm({
       <StackItem>
         <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
           Timestamp column
+          <span className="pf-v6-u-text-color-required" aria-hidden="true">
+            {' *'}
+          </span>
           <Popover
             aria-label="Timestamp column help"
             headerContent="Timestamp column"
