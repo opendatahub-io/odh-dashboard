@@ -50,7 +50,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
     new ReactRefreshWebpackPlugin(),
   ],
   devServer: {
-    port: 6005,
+    port: 6006,
     hot: true,
     open: false,
   },
