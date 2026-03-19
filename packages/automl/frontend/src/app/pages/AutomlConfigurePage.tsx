@@ -19,7 +19,6 @@ function AutomlConfigurePage(): React.JSX.Element {
       emptyStatePage={<InvalidExperiment />}
       loadError={!experimentId ? undefined : (experimentQuery.error ?? undefined)}
       loaded={experimentQuery.isFetched || !experimentId}
-      provideChildrenPadding
       removeChildrenTopPadding
     >
       <AutomlConfigure />

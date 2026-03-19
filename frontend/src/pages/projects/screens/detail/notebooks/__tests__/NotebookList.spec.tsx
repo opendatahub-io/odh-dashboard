@@ -11,7 +11,6 @@ import {
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
-// Mock the hooks
 jest.mock('#~/api/useAccessReview', () => ({
   useAccessReview: jest.fn(),
 }));
@@ -20,6 +19,8 @@ jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
   ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
   useKueueConfiguration: jest.fn(),
 }));
+
+jest.mock('#~/pages/projects/notebook/useKueueNotebookAlerts', () => jest.fn());
 
 const mockUseAccessReview = jest.mocked(useAccessReview);
 const mockUseKueueConfiguration = jest.mocked(useKueueConfiguration);
@@ -67,6 +68,8 @@ const mockContextValue = {
     refresh: jest.fn(),
   },
   refreshAllProjectData: jest.fn(),
+  kueueStatusByNotebookName: {},
+  isKueueLoaded: true,
 };
 
 const renderNotebookList = () =>

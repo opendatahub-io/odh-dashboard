@@ -35,6 +35,7 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, onRefresh 
         <DropdownItem
           data-testid="revoke-all-api-keys-action"
           onClick={() => setRevokeAllOpen(true)}
+          isDisabled={apiKeyCount === 0}
         >
           Revoke all API keys
         </DropdownItem>

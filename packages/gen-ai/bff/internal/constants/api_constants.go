@@ -46,6 +46,7 @@ const (
 
 	// External endpoints
 	ExternalModelsPath       = ApiPathPrefix + "/models/external"
+	VerifyExternalModelPath  = ApiPathPrefix + "/models/external/verify"
 	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
 	// Model as a Service (MaaS) endpoints

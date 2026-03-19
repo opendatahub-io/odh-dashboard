@@ -91,6 +91,23 @@ export const getEvaluationJobs =
     });
   };
 
+export const getEvaluationJob =
+  (hostPath: string, namespace: string, jobId: string) =>
+  (opts: APIOptions): Promise<EvaluationJob> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<EvaluationJob>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
 export const cancelEvaluationJob =
   (hostPath: string, namespace: string, jobId: string) =>
   (opts: APIOptions): Promise<void> =>

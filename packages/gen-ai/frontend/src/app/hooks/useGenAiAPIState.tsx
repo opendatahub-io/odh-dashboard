@@ -29,6 +29,7 @@ import {
   getMLflowPrompt,
   listMLflowPromptVersions,
   createExternalModel,
+  verifyExternalModel,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -66,6 +67,7 @@ const useGenAiAPIState = (
       getMLflowPrompt: getMLflowPrompt(path, queryParameters),
       listMLflowPromptVersions: listMLflowPromptVersions(path, queryParameters),
       createExternalModel: createExternalModel(path, queryParameters),
+      verifyExternalModel: verifyExternalModel(path, queryParameters),
     }),
     [queryParameters],
   );

@@ -2,7 +2,7 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import {
   getEvaluationName,
   getBenchmarkName,
-  getResultDisplay,
+  getResultScore,
   formatDate,
 } from '~/app/utilities/evaluationUtils';
 
@@ -36,50 +36,50 @@ describe('getBenchmarkName', () => {
   });
 });
 
-describe('getResultDisplay', () => {
+describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
-    expect(getResultDisplay(job)).toBe('85%');
+    expect(getResultScore(job)).toBe('85%');
   });
 
   it('should round fractional percentages to nearest integer', () => {
     const job = mockEvaluationJob({ score: 0.466 });
-    expect(getResultDisplay(job)).toBe('47%');
+    expect(getResultScore(job)).toBe('47%');
   });
 
   it('should fall back to benchmark test primary_score when top-level test is absent', () => {
     const job = mockEvaluationJob();
     // eslint-disable-next-line camelcase
     job.results = { benchmarks: [{ id: 'b1', test: { primary_score: 0.72 } }] };
-    expect(getResultDisplay(job)).toBe('72%');
+    expect(getResultScore(job)).toBe('72%');
   });
 
   it('should return dash when results has no benchmarks and no test', () => {
     const job = mockEvaluationJob();
     job.results = {};
-    expect(getResultDisplay(job)).toBe('-');
+    expect(getResultScore(job)).toBe('-');
   });
 
   it('should fall back to metrics when test fields are absent', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85 } }] };
-    expect(getResultDisplay(job)).toBe('85%');
+    expect(getResultScore(job)).toBe('85%');
   });
 
   it('should return dash when benchmarks have no test and no metrics', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1' }] };
-    expect(getResultDisplay(job)).toBe('-');
+    expect(getResultScore(job)).toBe('-');
   });
 
   it('should handle 0% result', () => {
     const job = mockEvaluationJob({ score: 0 });
-    expect(getResultDisplay(job)).toBe('0%');
+    expect(getResultScore(job)).toBe('0%');
   });
 
   it('should handle 100% result', () => {
     const job = mockEvaluationJob({ score: 1.0 });
-    expect(getResultDisplay(job)).toBe('100%');
+    expect(getResultScore(job)).toBe('100%');
   });
 });
 
@@ -97,7 +97,7 @@ describe('formatDate', () => {
     expect(result).toBeTruthy();
     expect(result).not.toBe('-');
     expect(result).toContain('2026');
-    expect(result).toContain('Feb');
+    expect(result).toContain('02');
   });
 
   it('should return the original string for an invalid date', () => {

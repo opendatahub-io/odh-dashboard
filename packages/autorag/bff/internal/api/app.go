@@ -145,9 +145,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
+		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
+			MockS3Client: cfg.MockS3Client,
+			DevMode:      cfg.DevMode,
+		}),
+		testEnv: testEnv,
+		rootCAs: rootCAs,
 	}
 	return app, nil
 }

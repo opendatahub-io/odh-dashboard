@@ -62,7 +62,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(client, ctx, namespace, secretName, identity)
+	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
