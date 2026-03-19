@@ -20,8 +20,8 @@ export const patchRayJobSuspension = async (
       {
         model: RayJobModel,
         queryOptions: {
-          name: job.metadata.name || '',
-          ns: job.metadata.namespace || '',
+          name: job.metadata.name,
+          ns: job.metadata.namespace,
         },
         patches: [
           {

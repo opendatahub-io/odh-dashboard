@@ -67,6 +67,9 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
 
   React.useEffect(() => {
     onTogglingChange?.(isSubmitting);
+    return () => {
+      onTogglingChange?.(false);
+    };
   }, [isSubmitting, onTogglingChange]);
 
   if (!job) {
@@ -130,6 +133,7 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
                     )}
                     <DropdownItem
                       key="delete"
+                      isDisabled={isSubmitting}
                       onClick={() => {
                         setIsKebabOpen(false);
                         onDelete(job);
