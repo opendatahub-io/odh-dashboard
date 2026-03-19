@@ -29,7 +29,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		repositories:      repositories.NewRepositories(),
 	}
 
-	t.Run("should issue token with default TTL when no body provided", func(t *testing.T) {
+	t.Run("should issue API key when no body provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", nil)
 		assert.NoError(t, err)
@@ -50,13 +50,12 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, responseEnvelope.Data.Token)
-		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
-		assert.Contains(t, responseEnvelope.Data.Token, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9") // JWT header
+		assert.NotEmpty(t, responseEnvelope.Data.Key)
+		assert.Contains(t, responseEnvelope.Data.Key, "sk-oai-")
 	})
 
-	t.Run("should issue token with custom TTL when provided", func(t *testing.T) {
-		tokenRequest := models.MaaSTokenRequest{TTL: "2h"}
+	t.Run("should issue API key with name and description when provided", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{Name: "my-key", Description: "test key", ExpiresIn: "30d"}
 		requestBody, err := json.Marshal(tokenRequest)
 		assert.NoError(t, err)
 
@@ -81,9 +80,8 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, responseEnvelope.Data.Token)
-		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
-		assert.Contains(t, responseEnvelope.Data.Token, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9") // JWT header
+		assert.NotEmpty(t, responseEnvelope.Data.Key)
+		assert.Contains(t, responseEnvelope.Data.Key, "sk-oai-")
 	})
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {
@@ -126,8 +124,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify required fields are present
-		assert.NotEmpty(t, responseEnvelope.Data.Token, "Token should not be empty")
-		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt, "ExpiresAt should not be empty")
+		assert.NotEmpty(t, responseEnvelope.Data.Key, "Key should not be empty")
 	})
 }
 
