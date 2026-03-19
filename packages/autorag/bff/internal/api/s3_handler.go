@@ -140,7 +140,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	bucket := queryParams.Get("bucket")
 	if dspaStorage != nil {
 		if dspaStorage.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("DSPA object storage configuration does not specify a bucket; contact your administrator"))
+			app.serviceUnavailableResponseWithMessage(w, r, fmt.Errorf("DSPA object storage configuration does not specify a bucket"), "DSPA object storage is missing a bucket — contact your administrator")
 			return
 		}
 		bucket = dspaStorage.Bucket

@@ -1116,7 +1116,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_Success(t *testing.T) {
 		SecretName:     "dspa-secret",
 		AccessKeyField: "accesskey",
 		SecretKeyField: "secretkey",
-		EndpointURL:    "http://minio.test-namespace.svc.cluster.local:9000",
+		EndpointURL:    "https://s3.amazonaws.com",
 		Bucket:         "pipeline-artifacts",
 		Region:         "us-east-1",
 	}
@@ -1127,7 +1127,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_Success(t *testing.T) {
 	assert.NotNil(t, creds)
 	assert.Equal(t, "MINIOACCESSKEY", creds.AccessKeyID)
 	assert.Equal(t, "MINIOSECRETKEY", creds.SecretAccessKey)
-	assert.Equal(t, "http://minio.test-namespace.svc.cluster.local:9000", creds.EndpointURL)
+	assert.Equal(t, "https://s3.amazonaws.com", creds.EndpointURL)
 	assert.Equal(t, "pipeline-artifacts", creds.Bucket)
 	assert.Equal(t, "us-east-1", creds.Region)
 }
@@ -1150,7 +1150,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_DefaultsRegion(t *testing.T) {
 		SecretName:     "dspa-secret",
 		AccessKeyField: "AWS_ACCESS_KEY_ID",
 		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
-		EndpointURL:    "http://minio:9000",
+		EndpointURL:    "https://s3.amazonaws.com",
 		Region:         "", // deliberately empty — should default to us-east-1
 	}
 

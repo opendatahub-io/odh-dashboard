@@ -252,10 +252,16 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 		region = "us-east-1" // MinIO and other compatible stores ignore region; SDK requires a value
 	}
 
+	// Validate and normalize the endpoint URL (same SSRF + scheme checks as GetS3Credentials).
+	validatedEndpoint, err := validateAndNormalizeEndpoint(dspaStorage.EndpointURL)
+	if err != nil {
+		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+	}
+
 	return &S3Credentials{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
-		EndpointURL:     dspaStorage.EndpointURL,
+		EndpointURL:     validatedEndpoint,
 		Bucket:          dspaStorage.Bucket,
 		Region:          region,
 	}, nil
