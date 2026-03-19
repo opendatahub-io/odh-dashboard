@@ -16,27 +16,48 @@ export default function PromptAssistantFormGroup({
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
   const [editMode, setEditMode] = React.useState(false);
-  const { activePrompt, setActivePrompt, openModal } = usePlaygroundStore();
-  const purePrompt =
+  const {
+    activePrompt,
+    dirtyPrompt,
+    setActivePrompt,
+    setDirtyPrompt,
+    resetDirtyPrompt,
+    openModal,
+  } = usePlaygroundStore();
+  const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = systemInstruction !== purePrompt;
+  const isEdited = systemInstruction !== activeTemplate;
+
+  React.useEffect(() => {
+    setEditMode(false);
+  }, [activePrompt]);
+
+  function handleTextChange(value: string) {
+    onSystemInstructionChange(value);
+    if (dirtyPrompt) {
+      setDirtyPrompt({ ...dirtyPrompt, template: value });
+    }
+  }
+
   function handleRevert() {
-    onSystemInstructionChange(purePrompt || DEFAULT_SYSTEM_INSTRUCTIONS);
+    resetDirtyPrompt();
+    onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
     setEditMode(false);
   }
 
   function handleNewPrompt() {
-    const promptStub = { ...buildPromptStub(), template: 'You are a helpful AI assistant.' };
-    setActivePrompt(promptStub);
+    const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
+    setActivePrompt(null);
+    setDirtyPrompt(promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
 
   function handleSaveClicked() {
-    const newPrompt: MLflowPromptVersion = activePrompt
-      ? { ...activePrompt, template: systemInstruction }
+    const newPrompt: MLflowPromptVersion = dirtyPrompt
+      ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
     openModal('create', newPrompt);
   }
@@ -78,7 +99,7 @@ export default function PromptAssistantFormGroup({
         }}
       >
         <Flex>
-          <Title headingLevel="h6">{get(activePrompt, 'name', 'New Prompt')}</Title>
+          <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
           {!!activePrompt?.version && (
             <Label
               isCompact
@@ -100,7 +121,7 @@ export default function PromptAssistantFormGroup({
           value={systemInstruction}
           readOnly={!editMode}
           onDoubleClick={() => setEditMode(true)}
-          onChange={(_event, value) => onSystemInstructionChange(value)}
+          onChange={(_event, value) => handleTextChange(value)}
           onBlur={() => setEditMode(false)}
           aria-label="Prompt instructions input"
           rows={12}
@@ -121,7 +142,7 @@ export default function PromptAssistantFormGroup({
             <Button variant="primary" onClick={handleSaveClicked}>
               Save
             </Button>
-            <Button variant="link" onClick={handleRevert}>
+            <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
               Revert
             </Button>
           </Flex>

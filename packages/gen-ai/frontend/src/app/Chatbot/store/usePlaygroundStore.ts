@@ -12,8 +12,9 @@ interface PlaygroundState {
 
 interface PlaygroundActions {
   setIsPromptManagementModalOpen: (isOpen: boolean) => void;
-  setActivePrompt: (prompt: MLflowPromptVersion) => void;
-  setDirtyPrompt: (prompt: MLflowPromptVersion) => void;
+  setActivePrompt: (prompt: MLflowPromptVersion | null) => void;
+  setDirtyPrompt: (prompt: MLflowPromptVersion | null) => void;
+  resetDirtyPrompt: () => void;
   openModal: (mode: 'allPrompts' | 'create' | 'edit', prompt?: MLflowPromptVersion) => void;
 }
 
@@ -32,10 +33,11 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
     immer((set) => ({
       ...initialState,
 
-      setActivePrompt: (prompt: MLflowPromptVersion) => {
+      setActivePrompt: (prompt: MLflowPromptVersion | null) => {
         set(
           (state) => {
             state.activePrompt = prompt;
+            state.dirtyPrompt = prompt ? { ...prompt } : null;
           },
           false,
           'setActivePrompt',
@@ -62,10 +64,24 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
         });
       },
 
-      setDirtyPrompt: (prompt: MLflowPromptVersion) => {
-        set((state) => {
-          state.dirtyPrompt = prompt;
-        });
+      setDirtyPrompt: (prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            state.dirtyPrompt = prompt;
+          },
+          false,
+          'setDirtyPrompt',
+        );
+      },
+
+      resetDirtyPrompt: () => {
+        set(
+          (state) => {
+            state.dirtyPrompt = state.activePrompt ? { ...state.activePrompt } : null;
+          },
+          false,
+          'resetDirtyPrompt',
+        );
       },
     })),
     {

@@ -261,15 +261,15 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
                             dateFormat={TimestampFormat.full}
                           />
                         </Td>
+                        <Td dataLabel={columns[3]}>
+                          <LabelGroup>
+                            {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                            ))}
+                          </LabelGroup>
+                        </Td>
                       </>
                     )}
-                    <Td dataLabel={columns[3]}>
-                      <LabelGroup>
-                        {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                          <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                        ))}
-                      </LabelGroup>
-                    </Td>
                   </Tr>
                 ))}
               </Tbody>
