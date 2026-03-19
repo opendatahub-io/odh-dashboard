@@ -174,7 +174,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.GetS3FileHandler))
 
 	// Model Registry - register model binary (requires MODEL_REGISTRY_BASE_URL)
-	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.AttachModelRegistryClient(app.RegisterModelHandler)))
+	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachModelRegistryClient(app.RegisterModelHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
