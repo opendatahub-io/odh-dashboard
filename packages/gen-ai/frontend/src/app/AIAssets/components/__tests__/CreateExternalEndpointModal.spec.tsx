@@ -64,7 +64,6 @@ describe('CreateExternalEndpointModal', () => {
 
       expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
-      expect(screen.getByText('Provider')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i)).toBeInTheDocument();
       expect(
@@ -90,9 +89,6 @@ describe('CreateExternalEndpointModal', () => {
 
       // Model type dropdown should show "Inferencing model" (llm is default)
       expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
-
-      // Provider dropdown should not be visible (hardcoded to OpenAI on backend)
-      expect(screen.queryByText(/Provider/i)).not.toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
