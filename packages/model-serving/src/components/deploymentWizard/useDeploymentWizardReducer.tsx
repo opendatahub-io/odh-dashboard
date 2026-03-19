@@ -126,7 +126,7 @@ export const useDeploymentWizardReducer = (
 
   const activeFields = useActiveFields(mergedState);
 
-  const prevActiveFields = React.useRef<WizardField<unknown>[]>(activeFields);
+  const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);
   const prevExternalData = React.useRef<ExternalDataMap>(externalDataMap);
 
   const prevMergedState = React.useRef<WizardFormState>(mergedState);
@@ -144,9 +144,9 @@ export const useDeploymentWizardReducer = (
       // This should be done in the reducer but not all fields from baseFormState trigger dispatches
       const dependencies = getFieldDependencies(field, mergedState);
       const prevDependencies = getFieldDependencies(field, prevMergedState.current);
-      const isDepdendenciesChanged = !isEqual(dependencies, prevDependencies);
+      const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
-      if (isNew || isLoaded || isDepdendenciesChanged) {
+      if (isNew || isLoaded || isDependenciesChanged) {
         dispatch({
           type: 'initFieldData',
           payload: {

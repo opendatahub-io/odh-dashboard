@@ -180,7 +180,7 @@ export const useModelServerSelectField = (
             label: getServingRuntimeDisplayNameFromTemplate(template),
             version: getServingRuntimeVersion(template),
             compatibleWithHardwareProfile: profileIdentifiers.some((identifier) =>
-              isCompatibleWithIdentifier(identifier, template.objects[0]),
+              isCompatibleWithIdentifier(identifier, getServingRuntimeFromTemplate(template)),
             ),
             scope: template.metadata.namespace === dashboardNamespace ? 'global' : 'project',
             template,

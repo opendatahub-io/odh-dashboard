@@ -11,7 +11,7 @@ import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/con
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
 import { LLMD_OPTION } from '../deployments/server';
-import { isLLMdActive } from '../utilts';
+import { isLLMInferenceServiceActive } from '../deployments/deployUtils';
 
 // External data hook
 
@@ -127,9 +127,10 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
     <ModelServerTemplateSelectField
       modelServerState={{
         data: value.selection,
-        setData: (data) => onChange({ ...value, selection: data ?? undefined }),
+        setData: (data: ModelServerOption | null) =>
+          onChange({ ...value, selection: data ?? undefined }),
         isAutoSelectChecked: value.autoSelect,
-        setIsAutoSelectChecked: (isAutoSelectChecked) =>
+        setIsAutoSelectChecked: (isAutoSelectChecked?: boolean) =>
           isAutoSelectChecked
             ? onChange({
                 selection: suggestedOption,
@@ -148,7 +149,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   id: 'modelServer',
   step: 'modelDeployment',
   type: 'replacement',
-  isActive: isLLMdActive,
+  isActive: isLLMInferenceServiceActive,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
