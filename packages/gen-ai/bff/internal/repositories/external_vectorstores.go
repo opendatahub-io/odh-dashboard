@@ -90,4 +90,3 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 
 	return result, nil
 }
-

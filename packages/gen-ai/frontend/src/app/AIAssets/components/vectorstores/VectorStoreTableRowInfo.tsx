@@ -26,28 +26,9 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
         position="right"
         isVisible={isOpen}
         shouldClose={() => setIsOpen(false)}
+        headerContent="Vector store details"
         bodyContent={
           <Stack hasGutter>
-            <StackItem>
-              <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                Vector store name
-              </Content>
-              <ClipboardCopy
-                hoverTip="Copy name"
-                clickTip="Copied"
-                aria-label="Copy vector store name"
-              >
-                {store.vector_store_name}
-              </ClipboardCopy>
-            </StackItem>
-            <StackItem>
-              <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                Vector store ID
-              </Content>
-              <ClipboardCopy hoverTip="Copy ID" clickTip="Copied" aria-label="Copy vector store ID">
-                {store.vector_store_id}
-              </ClipboardCopy>
-            </StackItem>
             <StackItem>
               <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                 Provider ID
@@ -70,6 +51,14 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 aria-label="Copy provider type"
               >
                 {store.provider_type}
+              </ClipboardCopy>
+            </StackItem>
+            <StackItem>
+              <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+                Vector store ID
+              </Content>
+              <ClipboardCopy hoverTip="Copy ID" clickTip="Copied" aria-label="Copy vector store ID">
+                {store.vector_store_id}
               </ClipboardCopy>
             </StackItem>
           </Stack>
