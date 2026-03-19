@@ -84,11 +84,6 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ h
 		Data: modelArtifact,
 	}
 
-	// Set Location header if artifact has an ID
-	if id := modelArtifact.GetId(); id != "" {
-		w.Header().Set("Location", r.URL.JoinPath(id).String())
-	}
-
 	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

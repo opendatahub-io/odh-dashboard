@@ -69,7 +69,6 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 		assert.NotNil(t, response.Data)
 		assert.NotEmpty(t, response.Data.GetId())
 		assert.Equal(t, req.S3Path, response.Data.GetUri())
-		assert.NotEmpty(t, rr.Header().Get("Location"))
 	})
 
 	t.Run("returns envelope with data field", func(t *testing.T) {

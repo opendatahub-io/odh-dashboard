@@ -107,7 +107,7 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 | `model_format_name` | No | e.g., "onnx", "pytorch", "tensorflow" |
 | `model_format_version` | No | e.g., "1.0" |
 
-**Response:** `201 Created` with the created `ModelArtifact` in an envelope. A `Location` header is set when the artifact has an ID.
+**Response:** `201 Created` with the created `ModelArtifact` in an envelope.
 
 **Example:**
 

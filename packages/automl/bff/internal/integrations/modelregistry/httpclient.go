@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
@@ -61,7 +62,6 @@ func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, ins
 				TLSClientConfig: tlsCfg,
 			},
 		},
-		baseURL: baseURL,
 		baseURL: baseURL,
 		logger:  logger,
 		Headers: headers,
