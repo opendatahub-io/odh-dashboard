@@ -27,9 +27,11 @@ The Model Registry integration is **disabled** unless `MODEL_REGISTRY_BASE_URL` 
 
 **Example values:**
 
-- In-cluster (Kubernetes): `http://model-registry.kubeflow.svc.cluster.local:8080/api/model_registry/v1alpha3`
-- Local (port-forward): `http://localhost:8080/api/model_registry/v1alpha3`
-- External: `https://model-registry.example.com/api/model_registry/v1alpha3`
+- In-cluster (Kubernetes): `http://model-registry.kubeflow.svc.cluster.local:8080/api/model_registry/v1alpha3` — internal only; when `AUTH_METHOD=user_token`, use `https://` (e.g., via Route/Ingress).
+- Local (port-forward): `http://localhost:8080/api/model_registry/v1alpha3` — dev only; localhost is allowed with `user_token` for local testing.
+- External: `https://model-registry.example.com/api/model_registry/v1alpha3` — always use `https://` for external endpoints.
+
+> **Security (high severity):** When using `AUTH_METHOD=user_token` and forwarding Bearer tokens, tokens **MUST** only be sent over TLS (`https://`) and **never** over plain HTTP (`http://`). Sending tokens over HTTP exposes them to interception (man-in-the-middle attacks). The BFF enforces HTTPS for `user_token` except for `localhost` and `127.0.0.1` (local dev only). **Remediation:** Use HTTPS/TLS for all external and in-cluster Model Registry endpoints when bearer tokens are used, or restrict `http://` to secure local port-forwarding for development only.
 
 The base URL must **not** include a trailing slash. The BFF appends paths such as `/registered_models` and `/model_versions/{id}/artifacts`.
 
@@ -56,6 +58,8 @@ The AutoML BFF uses the same auth modes as other endpoints. For the Model Regist
 2. The BFF extracts the token and forwards it to the Model Registry API on every outbound request.
 3. The Model Registry must accept that token (e.g., when behind OAuth Proxy or an API gateway that validates it).
 
+**Security:** Bearer tokens **MUST** only be sent over TLS (`https://`). Never use `http://` for `MODEL_REGISTRY_BASE_URL` when `AUTH_METHOD=user_token` except for `localhost`/`127.0.0.1` (local dev). Plain HTTP exposes tokens to interception.
+
 ### When `internal` or `disabled` is used
 
 No `Authorization` header is sent to the Model Registry. This is suitable when:
@@ -66,7 +70,7 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 ### Requirements for the Model Registry
 
-- If the Model Registry is exposed and requires auth, use `AUTH_METHOD=user_token` and ensure clients pass a valid Bearer token.
+- If the Model Registry is exposed and requires auth, use `AUTH_METHOD=user_token` and ensure clients pass a valid Bearer token. **Use HTTPS** for `MODEL_REGISTRY_BASE_URL` to avoid token interception.
 - If the Model Registry is internal and unauthenticated, `internal` or `disabled` is fine; no token is needed.
 
 ## API
