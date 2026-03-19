@@ -87,9 +87,12 @@ const AllApiKeysPage: React.FC = () => {
 
   const onPerPageSelect = React.useCallback((newPerPage: number, newPage: number) => {
     setPerPage(newPerPage);
-    setPage(newPage);
+    setPage(Math.max(1, newPage));
   }, []);
-  const hasActiveFilters = filterData.username !== '' || filterData.statuses.length > 0;
+  const hasActiveFilters =
+    filterData.username !== initialApiKeyFilterData.username ||
+    JSON.stringify([...filterData.statuses].toSorted()) !==
+      JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
   const [localUsername, setLocalUsername] = React.useState('');
 
   const onClearFilters = React.useCallback(() => {

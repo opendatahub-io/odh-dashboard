@@ -23,10 +23,10 @@ const isAPIKey = (v: unknown): v is APIKey =>
 
 const isAPIKeyListResponse = (v: unknown): v is APIKeyListResponse =>
   isRecord(v) &&
-  Array.isArray(v.data) &&
+  (Array.isArray(v.data) || v.data === null) &&
   typeof v.has_more === 'boolean' &&
   typeof v.object === 'string' &&
-  v.data.every(isAPIKey);
+  (v.data === null || v.data.every(isAPIKey));
 
 const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
   isRecord(v) &&
@@ -54,7 +54,8 @@ export const searchApiKeys =
       ),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isAPIKeyListResponse(response.data)) {
-        return response.data;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return { ...response.data, data: response.data.data ?? [] };
       }
       throw new Error('Invalid response format');
     });

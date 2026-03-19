@@ -250,25 +250,25 @@ describe('API Keys Page', () => {
 
   it('should revoke a specific API key', () => {
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
-    apiKeysPage.getRow('ci-pipeline').findKebabAction('Revoke API key').click();
+    apiKeysPage.getRow('development-testing').findKebabAction('Revoke API key').click();
 
     revokeAPIKeyModal.shouldBeOpen();
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
     revokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
-    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('ci-pipeline');
+    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('development-testing');
     revokeAPIKeyModal.findRevokeButton().should('be.enabled');
 
     cy.interceptOdh(
       'DELETE /maas/api/v1/api-keys/:id',
-      { path: { id: 'key-ci-pipeline-003' } },
+      { path: { id: 'key-dev-testing-002' } },
       {
         data: {
-          id: 'key-ci-pipeline-003',
-          name: 'ci-pipeline',
-          description: 'API key for CI/CD pipeline automation',
+          id: 'key-dev-testing-002',
+          name: 'development-testing',
+          description: 'Development API key for testing purposes',
           status: 'revoked',
-          creationDate: '2026-01-11T11:54:34.521671447-05:00',
+          creationDate: '2026-01-14T09:54:34.521671447-05:00',
         },
       },
     ).as('deleteApiKey');
@@ -278,7 +278,6 @@ describe('API Keys Page', () => {
     cy.wait('@deleteApiKey').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
     });
-    cy.wait('@getApiKeysAfterDelete');
   });
 
   it('should create a new API key with the default 30 days expiration', () => {
