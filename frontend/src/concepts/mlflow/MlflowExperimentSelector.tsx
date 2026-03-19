@@ -44,18 +44,16 @@ const MlflowExperimentSelector: React.FC<MlflowExperimentSelectorProps> = ({
   const experimentCount = experiments.length;
   const experimentLabel = experimentCount === 1 ? 'experiment' : 'experiments';
 
-  const toggleLabel = React.useMemo(() => {
-    if (error) {
-      return 'Error loading experiments';
-    }
-    if (!loaded) {
-      return 'Loading experiments';
-    }
-    if (experiments.length === 0) {
-      return 'No experiments available';
-    }
-    return selection ?? 'Select an experiment';
-  }, [loaded, error, experiments.length, selection]);
+  let toggleLabel = 'Select an experiment';
+  if (error) {
+    toggleLabel = 'Error loading experiments';
+  } else if (!loaded) {
+    toggleLabel = 'Loading experiments';
+  } else if (experiments.length === 0) {
+    toggleLabel = 'No experiments available';
+  } else if (selection) {
+    toggleLabel = selection;
+  }
 
   return (
     <SearchSelector

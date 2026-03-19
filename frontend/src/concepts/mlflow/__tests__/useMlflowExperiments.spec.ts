@@ -142,6 +142,7 @@ describe('useMlflowExperiments', () => {
     expect(mockAxios).toHaveBeenCalledTimes(2);
     const refetchUrl = mockAxios.mock.calls[1][0];
     const refetchParams = new URL(refetchUrl, 'http://localhost').searchParams;
+    expect(refetchParams.get('workspace')).toBe('test-ns-giulio');
     expect(refetchParams.get('filter')).toBe("name = 'training-run'");
   });
 });
