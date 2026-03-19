@@ -13,6 +13,7 @@ import (
 const maxLimit = 100
 
 type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, None]
+type EvaluationJobEnvelope Envelope[evalhub.EvaluationJob, None]
 type CreateEvaluationJobEnvelope Envelope[evalhub.EvaluationJob, None]
 type CancelEvaluationJobEnvelope Envelope[string, None]
 
@@ -31,6 +32,8 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
 	hardDeleteVal := r.URL.Query().Get("hard_delete")
 	var hardDelete bool
 	switch hardDeleteVal {
@@ -43,12 +46,45 @@ func (app *App) CancelEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := client.CancelEvaluationJob(ctx, id, hardDelete); err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to cancel evaluation job: %w", err))
+	if err := client.CancelEvaluationJob(ctx, id, namespace, hardDelete); err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to cancel evaluation job")
 		return
 	}
 
 	envelope := CancelEvaluationJobEnvelope{Data: "ok"}
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetEvaluationJobHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := ps.ByName("id")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("evaluation job id is required"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	job, err := client.GetEvaluationJob(ctx, id, namespace)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to get evaluation job")
+		return
+	}
+	if job == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	envelope := EvaluationJobEnvelope{Data: *job}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -109,6 +145,8 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
 	q := r.URL.Query()
 
 	if limitStr := q.Get("limit"); limitStr != "" {
@@ -127,7 +165,7 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 	}
 
 	params := evalhub.ListEvaluationJobsParams{
-		Namespace: q.Get("namespace"),
+		Namespace: namespace,
 		Limit:     q.Get("limit"),
 		Offset:    q.Get("offset"),
 		Status:    q.Get("status"),
@@ -137,7 +175,7 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	jobs, err := client.ListEvaluationJobs(ctx, params)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to list evaluation jobs: %w", err))
+		app.evalHubErrorResponse(w, r, err, "failed to list evaluation jobs")
 		return
 	}
 

@@ -43,6 +43,8 @@ import {
   ModArchRestGET,
   ExternalModelRequest,
   ExternalModelResponse,
+  VerifyExternalModelRequest,
+  VerifyExternalModelResponse,
   MaaSModel,
   MaaSTokenRequest,
   MaaSTokenResponse,
@@ -539,6 +541,43 @@ export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
 export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
   '/models/external',
 );
+/**
+ * Verify external model endpoint
+ *
+ * Validates and normalizes the response from the BFF to ensure the UI can safely consume it:
+ * - Ensures success is a boolean (defaults to false if missing/invalid)
+ * - Ensures message is a non-empty string (defaults to 'Verification completed' if missing/invalid)
+ * - Ensures response_time_ms is a non-negative number or undefined
+ *
+ * Errors are already normalized by mod-arch-core to { error: { code?, message } }
+ */
+export const verifyExternalModel = (
+  hostPath: string,
+  baseQueryParams: Record<string, unknown> = {},
+): ModArchRestCREATE<VerifyExternalModelResponse, VerifyExternalModelRequest> => {
+  const baseCreate = modArchRestCREATE<VerifyExternalModelResponse, VerifyExternalModelRequest>(
+    '/models/external/verify',
+  )(hostPath, baseQueryParams);
+
+  return async (data: VerifyExternalModelRequest, opts: APIOptions = {}) => {
+    const response = await baseCreate(data, opts);
+
+    // Validate and normalize response fields to prevent runtime errors in UI
+    const normalized: VerifyExternalModelResponse = {
+      success: typeof response.success === 'boolean' ? response.success : false,
+      message:
+        typeof response.message === 'string' && response.message.trim()
+          ? response.message
+          : 'Verification completed',
+      response_time_ms:
+        typeof response.response_time_ms === 'number' && response.response_time_ms >= 0
+          ? response.response_time_ms
+          : undefined,
+    };
+
+    return normalized;
+  };
+};
 
 export const getMCPServers = (
   hostPath: string,

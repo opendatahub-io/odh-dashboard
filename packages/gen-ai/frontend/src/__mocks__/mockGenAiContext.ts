@@ -49,6 +49,11 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
           token: '',
         },
       }),
+      verifyExternalModel: jest.fn().mockResolvedValue({
+        success: true,
+        message: 'External model verified successfully',
+        response_time_ms: 500,
+      }),
     },
   },
   refreshAPIState: jest.fn(),

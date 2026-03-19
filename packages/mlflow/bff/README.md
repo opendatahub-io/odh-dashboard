@@ -8,13 +8,12 @@ Minimal backend-for-frontend providing only core endpoints required by the MLflo
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes:
 
 - GET `/healthcheck` – liveness probe
-- GET `/api/v1/user` – returns the authenticated (mock) user
+- GET `/api/v1/user` – returns the authenticated user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
-
-All former MLflow-related endpoints, validation, mocks and OpenAPI dependencies were removed.
+- GET `/api/v1/experiments?workspace=<ns>` – list MLflow experiments for a workspace
 
 ## Development
 
@@ -48,17 +47,20 @@ make run LOG_LEVEL=DEBUG
 | Flag | Env Var | Description |
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `federated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
+| `-mock-http-client` | `MOCK_HTTP_CLIENT` | Use mock MLflow client (static data or local MLflow) |
+| `-static-mlflow-mock` | `STATIC_MLFLOW_MOCK` | Force static in-memory mock data (skip uv/local MLflow startup) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
+| `-auth-method` | `AUTH_METHOD` | `disabled` or `user_token` (default `user_token`) |
+| `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read bearer token from (default `Authorization`) |
+| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default `"Bearer "`, note trailing space) |
+| `-mlflow-url` | `MLFLOW_URL` | MLflow tracking server URL |
+| `-cert-file` | | TLS certificate path (enables TLS when paired with key) |
+| `-key-file` | | TLS key path |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
@@ -92,32 +94,32 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+JSON endpoints plus static asset serving (index.html fallback):
 
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces                    (dev / mock mode only)
+GET /api/v1/experiments?workspace=<ns>
 ```
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+When running with auth disabled (AUTH_METHOD=disabled), no authentication headers are needed.
 
 ```shell
 curl -i localhost:4000/healthcheck
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i localhost:4000/api/v1/user
+curl -i localhost:4000/api/v1/namespaces
+curl -i "localhost:4000/api/v1/experiments?workspace=default"
 ```
-
-<!-- Minimal scope: all former MLflow examples removed -->
 
 ### Authentication modes
 
 Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
-- internal (default): impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential.
-- user_token: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
+- disabled: skips all authentication, useful for local development and testing.
+- user_token (default): extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
 
 ### Overriding token header / prefix
 
@@ -181,7 +183,7 @@ Examples:
 
 ### Disabling TLS verification (development only)
 
-For local Kubeflow installations with self-signed certificates, you may need to disable TLS certificate verification.
+For installations with self-signed certificates, you may need to disable TLS certificate verification.
 
 **Kubernetes deployment:**
 
