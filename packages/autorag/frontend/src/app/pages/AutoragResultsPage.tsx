@@ -11,16 +11,16 @@ function AutoragResultsPage(): React.JSX.Element {
   // Early guard: treat missing route params as invalid immediately
   const missingParams = !namespace || !runId;
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(
-    !missingParams ? namespace : undefined,
+  const pipelineRunQuery = usePipelineRunQuery(
     !missingParams ? runId : undefined,
+    !missingParams ? namespace : undefined,
   );
 
   const invalidPipelineRunId = missingParams || pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title={pipelineRun?.display_name} objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
       loadError={pipelineRunQuery.error ?? undefined}
