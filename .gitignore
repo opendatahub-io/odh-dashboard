@@ -45,3 +45,6 @@ CLAUDE.md
 
 # Temporary files
 tmp/
+
+# git worktrees
+.trees
