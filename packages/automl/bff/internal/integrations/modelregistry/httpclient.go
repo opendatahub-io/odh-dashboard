@@ -55,9 +55,13 @@ func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, ins
 		tlsCfg.RootCAs = rootCAs
 	}
 	return &HTTPClient{
-		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: tlsCfg,
-		}},
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: tlsCfg,
+			},
+		},
+		baseURL: baseURL,
 		baseURL: baseURL,
 		logger:  logger,
 		Headers: headers,
