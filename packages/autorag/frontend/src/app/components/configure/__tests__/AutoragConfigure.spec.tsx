@@ -15,6 +15,17 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
+// Mock mod-arch-core
+jest.mock('mod-arch-core', () => ({
+  useNamespaceSelector: jest.fn().mockReturnValue({
+    namespaces: [{ name: 'test-namespace' }],
+    updatePreferredNamespace: jest.fn(),
+    namespacesLoaded: true,
+  }),
+  asEnumMember: jest.fn((val: unknown) => val),
+  DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
+}));
+
 // Mock useWatchConnectionTypes (used for connection types list)
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
@@ -95,12 +106,12 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
 // Mock FileExplorer component
 jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
   __esModule: true,
-  default: ({ isOpen, onSelect }: { isOpen: boolean; onSelect: (files: unknown) => void }) =>
+  default: ({ isOpen, onPrimary }: { isOpen: boolean; onPrimary: (files: unknown) => void }) =>
     isOpen ? (
       <div data-testid="file-explorer-modal">
         <button
           data-testid="file-explorer-select-file"
-          onClick={() => onSelect([{ name: 'test-file.txt' }])}
+          onClick={() => onPrimary([{ name: 'test-file.txt' }])}
         >
           Select File
         </button>

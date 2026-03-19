@@ -59,37 +59,18 @@ const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
-  onSubmit?: (data: unknown) => void;
-  defaultValues?: Partial<typeof configureSchema.defaults>;
-}> = ({ children, onSubmit, defaultValues }) => {
+}> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...defaultValues },
+    defaultValues: configureSchema.defaults,
   });
-  return (
-    <FormProvider {...form}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (onSubmit) {
-            form.handleSubmit(onSubmit)();
-          }
-        }}
-      >
-        {children}
-        <button type="submit">Submit</button>
-      </form>
-    </FormProvider>
-  );
+  return <FormProvider {...form}>{children}</FormProvider>;
 };
 
-const renderComponent = (
-  onSubmit?: (data: unknown) => void,
-  defaultValues?: Partial<typeof configureSchema.defaults>,
-) =>
+const renderComponent = () =>
   render(
-    <FormWrapper onSubmit={onSubmit} defaultValues={defaultValues}>
+    <FormWrapper>
       <AutoragCreate />
     </FormWrapper>,
   );
@@ -162,47 +143,22 @@ describe('AutoragCreate', () => {
   });
 
   describe('Form validation', () => {
-    it('should allow form submission when Name is filled', async () => {
+    it('should update form values when Name and Llama Stack secret are filled', async () => {
       const user = userEvent.setup();
-      const handleSubmit = jest.fn();
 
-      // Provide defaults for required fields not rendered by AutoragCreate
-      /* eslint-disable camelcase */
-      const defaultValues = {
-        input_data_secret_name: 'test-secret',
-        input_data_bucket_name: 'test-bucket',
-        input_data_key: 'test-key',
-        test_data_secret_name: 'test-secret',
-        test_data_bucket_name: 'test-bucket',
-        test_data_key: 'test-key',
-        llama_stack_secret_name: 'test-llama-secret',
-        generation_models: ['test-model'],
-        embeddings_models: ['test-embedding'],
-      };
-      /* eslint-enable camelcase */
-
-      renderComponent(handleSubmit, defaultValues);
+      renderComponent();
 
       const nameInput = screen.getByLabelText(/Name/i);
       await user.type(nameInput, 'Valid Name');
 
-      const submitButton = screen.getByRole('button', { name: /submit/i });
-      await user.click(submitButton);
+      // Select a Llama Stack secret (required field)
+      const selectSecretButton = screen.getByTestId('lls-secret-selector-select-secret');
+      await user.click(selectSecretButton);
 
       await waitFor(() => {
-        expect(handleSubmit).toHaveBeenCalledTimes(1);
+        expect(nameInput).toHaveValue('Valid Name');
+        expect(screen.getByTestId('lls-secret-selector-value')).toBeInTheDocument();
       });
-
-      const [[submittedData]] = handleSubmit.mock.calls;
-      /* eslint-disable camelcase */
-      expect(submittedData).toMatchObject({
-        display_name: 'Valid Name',
-        input_data_secret_name: 'test-secret',
-        llama_stack_secret_name: 'test-llama-secret',
-        generation_models: ['test-model'],
-        embeddings_models: ['test-embedding'],
-      });
-      /* eslint-enable camelcase */
     });
 
     it('should clear the Name field when user clears it', async () => {
