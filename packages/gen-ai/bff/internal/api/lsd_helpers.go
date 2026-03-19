@@ -1,8 +1,8 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -49,14 +49,15 @@ func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStack
 	var code string
 	var message string
 
-	// Enhance the error with categorization for user-friendly messages
+	// Enhance the error with categorization
 	enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
 
-	// Use stable error codes for standard HTTP status codes (for API consumers)
-	// while providing enhanced user-friendly messages
+	// Use the category as part of the error code for better frontend handling
+	categoryCode := strings.ToLower(string(enhancedErr.Category))
+
 	switch statusCode {
 	case http.StatusBadRequest:
-		code = "bad_request"
+		code = categoryCode
 		message = enhancedErr.UserFriendlyMsg
 	case http.StatusUnauthorized:
 		code = "unauthorized"
@@ -71,12 +72,11 @@ func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStack
 		code = "bad_gateway"
 		message = enhancedErr.UserFriendlyMsg
 	case http.StatusInternalServerError:
-		code = "internal_server_error"
+		code = categoryCode
 		message = enhancedErr.UserFriendlyMsg
 	default:
-		// For non-standard status codes, include the HTTP status in the message
-		code = "llamastack_error"
-		message = fmt.Sprintf("LlamaStack client error (HTTP %d): %s", statusCode, lsErr.Message)
+		code = categoryCode
+		message = enhancedErr.UserFriendlyMsg
 	}
 
 	return &integrations.HTTPError{
