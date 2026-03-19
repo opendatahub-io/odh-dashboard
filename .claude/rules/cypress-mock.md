@@ -578,8 +578,11 @@ class ChatbotPage {
 
 // In test file:
 it('should load message input', () => {
-  // ✅ GOOD - Timeout specified in test when needed
-  chatbotPage.findMessageInput({ timeout: 20000 }).should('be.visible');
+  // ✅ GOOD - Timeout specified at the assertion level in the test
+  chatbotPage.findMessageInput().should('be.visible');
+
+  // If a longer timeout is needed, chain .then() or increase defaultCommandTimeout
+  // in cypress.config for the specific test, or use a preceding cy.wait('@alias')
 });
 ```
 
