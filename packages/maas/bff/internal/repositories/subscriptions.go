@@ -700,17 +700,19 @@ func buildTokenMetadata(tm *models.TokenMetadata) map[string]interface{} {
 }
 
 func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
-	spec := map[string]interface{}{
-		"priority":  int64(priority),
-		"owner":     buildOwnerSpec(owner),
-		"modelRefs": buildModelSubscriptionRefs(modelRefs),
+	existingSpec, _, _ := unstructured.NestedMap(obj.Object, "spec")
+	if existingSpec == nil {
+		existingSpec = map[string]interface{}{}
 	}
+	existingSpec["priority"] = int64(priority)
+	existingSpec["owner"] = buildOwnerSpec(owner)
+	existingSpec["modelRefs"] = buildModelSubscriptionRefs(modelRefs)
 
 	if tokenMetadata != nil {
-		spec["tokenMetadata"] = buildTokenMetadata(tokenMetadata)
+		existingSpec["tokenMetadata"] = buildTokenMetadata(tokenMetadata)
 	}
 
-	obj.Object["spec"] = spec
+	obj.Object["spec"] = existingSpec
 }
 
 func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) {
@@ -729,16 +731,18 @@ func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.Mod
 		}
 	}
 
-	spec := map[string]interface{}{
-		"modelRefs": mrList,
-		"subjects": map[string]interface{}{
-			"groups": groupList,
-		},
+	existingSpec, _, _ := unstructured.NestedMap(obj.Object, "spec")
+	if existingSpec == nil {
+		existingSpec = map[string]interface{}{}
+	}
+	existingSpec["modelRefs"] = mrList
+	existingSpec["subjects"] = map[string]interface{}{
+		"groups": groupList,
 	}
 
 	if tokenMetadata != nil {
-		spec["meteringMetadata"] = buildTokenMetadata(tokenMetadata)
+		existingSpec["meteringMetadata"] = buildTokenMetadata(tokenMetadata)
 	}
 
-	obj.Object["spec"] = spec
+	obj.Object["spec"] = existingSpec
 }

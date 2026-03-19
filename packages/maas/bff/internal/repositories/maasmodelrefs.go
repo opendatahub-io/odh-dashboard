@@ -70,16 +70,18 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 		return nil, fmt.Errorf("failed to get MaaSModelRef: %w", err)
 	}
 
-	spec := map[string]interface{}{
-		"modelRef": map[string]interface{}{
-			"kind": request.ModelRef.Kind,
-			"name": request.ModelRef.Name,
-		},
+	existingSpec, _, _ := unstructured.NestedMap(existing.Object, "spec")
+	if existingSpec == nil {
+		existingSpec = map[string]interface{}{}
+	}
+	existingSpec["modelRef"] = map[string]interface{}{
+		"kind": request.ModelRef.Kind,
+		"name": request.ModelRef.Name,
 	}
 	if request.EndpointOverride != "" {
-		spec["endpointOverride"] = request.EndpointOverride
+		existingSpec["endpointOverride"] = request.EndpointOverride
 	}
-	existing.Object["spec"] = spec
+	existing.Object["spec"] = existingSpec
 
 	updated, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {
