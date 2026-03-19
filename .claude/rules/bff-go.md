@@ -99,7 +99,9 @@ CLI flags + environment variables via `EnvConfig`:
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Enable K8s mocks |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | CORS origins |
 | `-log-level` | `LOG_LEVEL` | Log level |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip TLS verification (default `false`, **local dev only** — never enable in production or CI) |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip TLS verification (default `false`, **local dev only** — forbidden in production/CI) |
+
+> **Security**: `INSECURE_SKIP_VERIFY=true` is permitted only for local debugging against non-production endpoints. Production and CI profiles must fail configuration validation at startup if this flag is enabled.
 
 ## Error handling
 

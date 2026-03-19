@@ -30,6 +30,11 @@ The host app (`frontend/`) uses Webpack Module Federation (`@module-federation/e
 5. Static (`pluginExtensions`) and federated (`appExtensions`) extensions merge in `ExtensibilityContext`
 6. `PluginStore` makes all extensions available via `useExtensions()` / `useResolvedExtensions()`
 
+> **Security**: Treat `mfRemotesJson` as a privileged config surface.
+> - Only allow remotes from an explicit backend allowlist (name + origin + path).
+> - Enforce HTTPS origins in non-local environments.
+> - Reject unknown/unsigned remote entries and fail closed.
+
 ## Extension point types (quick reference)
 
 Full details in [docs/extensibility.md](../../docs/extensibility.md).

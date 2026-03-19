@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## PatternFly Version
 
-This project uses **PatternFly v6** (`^6.4.0`). All class names, tokens, and APIs must target v6. Do not introduce v5 patterns.
+This project uses **PatternFly v6** (`^6.4.1`). All class names, tokens, and APIs must target v6. Do not introduce v5 patterns.
 
 ## Component Imports
 
@@ -26,32 +26,29 @@ import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
 ## Styling Approach
 
+The majority of Dashboard components should use PatternFly components and props directly with no custom CSS. Anything requiring custom or inline styles should ideally be addressed as a gap upstream.
+
+### Priority order
+
+1. **PatternFly component props first** — always the default approach
+2. **PF layout components** (`Flex`, `Stack`, `Grid`, `Split`) for spacing and arrangement
+3. **PF utility classes** (`pf-v6-u-*`) when props and layout components are insufficient
+4. **SCSS only** when PF has no built-in functionality — and open a PF upstream issue if something fundamental is missing
+
 ### File format and co-location
+
+When SCSS is necessary:
 
 - Use **SCSS** (`.scss`) for custom styles, co-located next to the component.
 - No CSS modules — use plain class imports: `import './MyComponent.scss';`
 - No styled-components or Emotion.
 
-### Class composition with `css()`
+### PF utility classes
 
-Combine classes using `@patternfly/react-styles`:
-
-```tsx
-import { css } from '@patternfly/react-styles';
-
-<div className={css('odh-my-component', isActive && 'm-active', className)} />
-```
-
-### PF utility classes — import style
-
-Import PF utility CSS from `@patternfly/react-styles` rather than using raw `pf-v6-u-*` strings:
+PF utility classes (`pf-v6-u-*`) are available globally via the `@patternfly/patternfly/patternfly-addons.css` import in `App.tsx`. Use them as raw strings in `className` — no per-file imports from `@patternfly/react-styles` needed:
 
 ```tsx
-import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import text from '@patternfly/react-styles/css/utilities/Text/text';
-
-<div className={spacing.mbLg} />
-<span className={text.textColorStatusDanger} />
+<div className="pf-v6-u-mb-lg pf-v6-u-w-100" />
 ```
 
 ## Design Tokens
@@ -188,12 +185,14 @@ The project provides custom wrappers. Use them instead of raw PF equivalents:
 
 ## Inline Styles
 
-Minimize inline styles. When needed for dynamic values, reference tokens:
+**Avoid inline styles.** They are brittle, bypass the design token system, break dark mode support, and are not reusable. Always prefer PatternFly component props and layout components instead.
+
+If an inline style seems necessary, first check whether a PF component prop, layout component, or utility class can achieve the same result. If truly unavoidable for a dynamic value, reference tokens — never hardcode values:
 
 ```tsx
-// Acceptable for dynamic/one-off values
+// Last resort for dynamic values — reference tokens
 style={{ gap: 'var(--pf-t--global--spacer--lg)' }}
 
-// Avoid hardcoded pixel values
+// Never do this
 style={{ gap: '24px' }}
 ```
