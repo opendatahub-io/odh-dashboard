@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { ModelArtifact } from '~/app/types';
-import './AutomlModelDetailsModal.css';
+import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
   model: ModelArtifact;

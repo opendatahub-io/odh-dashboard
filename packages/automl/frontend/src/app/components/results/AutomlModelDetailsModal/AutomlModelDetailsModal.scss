@@ -43,15 +43,15 @@
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--regular);
   cursor: pointer;
-}
 
-.automl-model-details-nav-item:hover {
-  background-color: var(--pf-t--global--background--color--primary--hover);
-}
+  &:hover {
+    background-color: var(--pf-t--global--background--color--primary--hover);
+  }
 
-.automl-model-details-nav-item--active {
-  border-left-color: var(--pf-t--global--color--brand--default);
-  font-weight: var(--pf-t--global--font--weight--body--bold);
+  &.automl-model-details-nav-item--active {
+    border-left-color: var(--pf-t--global--color--brand--default);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
 }
 
 /* Tab content title row */
@@ -76,10 +76,10 @@
   border-radius: 4px;
   font-size: var(--pf-t--global--font--size--xs);
   color: var(--pf-t--global--text--color--subtle);
-}
 
-.automl-confusion-gradient span {
-  padding: 0 var(--pf-t--global--spacer--sm);
+  span {
+    padding: 0 var(--pf-t--global--spacer--sm);
+  }
 }
 
 /* Header row styling */

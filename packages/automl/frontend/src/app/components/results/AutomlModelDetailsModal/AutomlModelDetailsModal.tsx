@@ -13,7 +13,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { ModelArtifact, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
-import './AutomlModelDetailsModal.css';
+import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalProps = {
   isOpen: boolean;
