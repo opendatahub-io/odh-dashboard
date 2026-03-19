@@ -73,8 +73,9 @@ describe('useMlflowExperiments', () => {
 
     expect(mockAxios).toHaveBeenCalledTimes(1);
     const url = mockAxios.mock.calls[0][0];
-    expect(url).toContain('workspace=test-ns-giulio');
-    expect(url).toContain('filter=tags.team');
+    const params = new URL(url, 'http://localhost').searchParams;
+    expect(params.get('workspace')).toBe('test-ns-giulio');
+    expect(params.get('filter')).toBe("tags.team = 'eval-hub'");
     expect(renderResult.result.current.data).toHaveLength(1);
   });
 
@@ -139,5 +140,8 @@ describe('useMlflowExperiments', () => {
       expect(renderResult.result.current.data).toHaveLength(1);
     });
     expect(mockAxios).toHaveBeenCalledTimes(2);
+    const refetchUrl = mockAxios.mock.calls[1][0];
+    const refetchParams = new URL(refetchUrl, 'http://localhost').searchParams;
+    expect(refetchParams.get('filter')).toBe("name = 'training-run'");
   });
 });

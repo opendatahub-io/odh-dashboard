@@ -80,7 +80,7 @@ describe('MlflowExperimentTable', () => {
     expect(screen.queryByText('Training pipeline')).not.toBeInTheDocument();
   });
 
-  it('should render the correct number of rows', () => {
+  it('should render experiment rows', () => {
     renderTable();
 
     expect(screen.getByTestId('mlflow-experiment-selector-table-list')).toBeInTheDocument();
