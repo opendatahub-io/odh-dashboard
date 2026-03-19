@@ -56,33 +56,33 @@ class ModelArchive {
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/ai-hub/registry/${preferredModelRegistry}/registered-models/archive`);
+    cy.visit(`/ai-hub/models/registry/${preferredModelRegistry}/registered-models/archive`);
     this.wait();
   }
 
   visitArchiveModelDetail() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/ai-hub/registry/${preferredModelRegistry}/registered-models/archive/${rmId}`);
+    cy.visit(`/ai-hub/models/registry/${preferredModelRegistry}/registered-models/archive/${rmId}`);
   }
 
   visitArchiveModelVersionList() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
     cy.visit(
-      `/ai-hub/registry/${preferredModelRegistry}/registered-models/archive/${rmId}/versions`,
+      `/ai-hub/models/registry/${preferredModelRegistry}/registered-models/archive/${rmId}/versions`,
     );
   }
 
   visitModelList() {
-    cy.visit('/ai-hub/registry/modelregistry-sample');
+    cy.visit('/ai-hub/models/registry/modelregistry-sample');
     this.wait();
   }
 
   visitModelDetails() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}`);
+    cy.visit(`/ai-hub/models/registry/${preferredModelRegistry}/registered-models/${rmId}`);
     this.wait();
   }
 

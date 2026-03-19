@@ -326,7 +326,10 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', 'ai-hub/deployments/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
+    cy.url().should(
+      'eq',
+      `${Cypress.config().baseUrl ?? ''}/ai-hub/models/deployments/test-project`,
+    );
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
@@ -2081,7 +2084,7 @@ describe('Model Serving Deploy Wizard', () => {
     it('deploy create', () => {
       cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/deploy');
+      cy.url().should('include', '/ai-hub/models/deployments/deploy');
     });
   });
 

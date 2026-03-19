@@ -140,11 +140,9 @@ describe('Model Catalog core', () => {
       disableModelCatalogFeature: true,
     });
     modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('not.exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
 
-    cy.visitWithLogin(`/ai-hub/catalog`);
+    cy.visitWithLogin(`/ai-hub/models/catalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
   });
 
@@ -153,19 +151,15 @@ describe('Model Catalog core', () => {
       disableModelCatalogFeature: false,
     });
     modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
   });
 
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
 
     modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' }).click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     modelCatalog.findModelCatalogCards().should('exist');
   });
 
@@ -176,7 +170,7 @@ describe('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink().click();
     cy.location('pathname').should(
       'equal',
-      '/ai-hub/catalog/source-2/sample%20category%201-model-1/overview',
+      '/ai-hub/models/catalog/source-2/sample%20category%201-model-1/overview',
     );
   });
 });

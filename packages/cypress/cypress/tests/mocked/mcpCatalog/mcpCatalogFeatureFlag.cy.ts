@@ -12,9 +12,7 @@ describe('MCP Catalog feature flag', () => {
     );
     navSidebar.visit();
     navSidebar.findNavSection('AI hub').should('exist');
-    navSidebar
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'MCP servers' })
-      .should('exist');
+    navSidebar.findNavItem({ name: 'MCP servers', rootSection: 'AI hub' }).should('exist');
   });
 
   it('should not show MCP Catalog nav item when feature flag is disabled', () => {
@@ -25,9 +23,7 @@ describe('MCP Catalog feature flag', () => {
       }),
     );
     navSidebar.visit();
-    navSidebar
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'MCP servers' })
-      .should('not.exist');
+    navSidebar.findNavItem({ name: 'MCP servers', rootSection: 'AI hub' }).should('not.exist');
   });
 
   it('should show 404 page when navigating to MCP Catalog with flag disabled', () => {
@@ -37,7 +33,7 @@ describe('MCP Catalog feature flag', () => {
         mcpCatalog: false,
       }),
     );
-    cy.visitWithLogin('/ai-hub/mcp-catalog');
+    cy.visitWithLogin('/ai-hub/mcp-servers/catalog');
     pageNotfound.findPage().should('exist');
   });
 });
