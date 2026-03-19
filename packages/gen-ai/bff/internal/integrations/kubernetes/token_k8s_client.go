@@ -2278,9 +2278,9 @@ func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identit
 	// This prevents collisions when providers are deleted or reordered
 	maxID := 0
 	for _, provider := range config.Providers.Inference {
-		// Provider IDs are in format "external-model-provider-{id}"
+		// Provider IDs are in format "endpoint-{id}"
 		// Extract the numeric ID part
-		idStr := strings.TrimPrefix(provider.ProviderID, "external-model-provider-")
+		idStr := strings.TrimPrefix(provider.ProviderID, "endpoint-")
 		if id, err := strconv.Atoi(idStr); err == nil {
 			if id > maxID {
 				maxID = id
@@ -2364,7 +2364,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 
 	// Add new provider (hardcoded to remote::openai)
 	newProvider := models.InferenceProvider{
-		ProviderID:   fmt.Sprintf("external-model-provider-%s", providerID),
+		ProviderID:   fmt.Sprintf("endpoint-%s", providerID),
 		ProviderType: models.ProviderTypeOpenAI,
 		Config: models.ProviderConfig{
 			BaseURL: req.BaseURL,
@@ -2386,7 +2386,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 
 	// Add new registered model
 	newModel := models.RegisteredModel{
-		ProviderID: fmt.Sprintf("external-model-provider-%s", providerID),
+		ProviderID: fmt.Sprintf("endpoint-%s", providerID),
 		ModelID:    req.ModelID,
 		ModelType:  req.ModelType,
 		Metadata: models.RegisteredModelMetadata{

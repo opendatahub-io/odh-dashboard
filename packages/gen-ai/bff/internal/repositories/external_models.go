@@ -34,7 +34,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Create Secret for API key
-	secretName := fmt.Sprintf("external-model-provider-api-key-%s", providerID)
+	secretName := fmt.Sprintf("endpoint-api-key-%s", providerID)
 	if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
 		return nil, fmt.Errorf("failed to create secret: %w", err)
 	}
