@@ -83,20 +83,15 @@ Add `install:module` script if the package has its own `node_modules`:
 
 Each package needs a unique port. See [docs/onboard-modular-architecture.md § Configure the Port](../../docs/onboard-modular-architecture.md#3-configure-the-port) for where to update it (both `Makefile` and `package.json`).
 
-Current port assignments:
+To see current port assignments and detect conflicts, run:
 
-| Package | Frontend Port | BFF Port |
-|---|---|---|
-| model-registry | 9100 | 4000 |
-| gen-ai | 9102 | 8080 |
-| eval-hub | 9105 | 4002 |
-| maas | 9104 | 8081 |
-| notebooks | 9105 | — |
-| autorag | 9107 | 4001 |
-| automl | 9108 | 4003 |
-| mlflow | 9110 | 4020 |
+```bash
+node scripts/validate-module-ports.js
+```
 
-Note: eval-hub and notebooks both use frontend port 9105 (conflict).
+The source of truth for each package is:
+- **Frontend port**: `module-federation.local.port` in the package's `package.json`
+- **BFF port**: `PORT=` values in the package's `Makefile`
 
 ### 4. Directory structure
 
