@@ -40,8 +40,8 @@ const App: React.FC = () => {
     () =>
       configSettings && userSettings
         ? {
-            config: configSettings!,
-            user: userSettings!,
+            config: configSettings,
+            user: userSettings,
           }
         : null,
     [configSettings, userSettings],

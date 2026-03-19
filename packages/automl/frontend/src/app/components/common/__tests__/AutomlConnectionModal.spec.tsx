@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
-import AutomlConnectionModal from '../../common/AutomlConnectionModal';
+import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 
 const TEST_PROJECT = 'my-project';
 

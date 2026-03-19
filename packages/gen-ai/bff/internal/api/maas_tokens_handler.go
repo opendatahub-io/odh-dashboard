@@ -20,7 +20,7 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 	}
-	// If no body, tokenRequest remains empty (TTL="") and client will use default
+	// If no body, tokenRequest remains empty and the MaaS API will use its defaults
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, tokenRequest)
 	if err != nil {

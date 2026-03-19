@@ -424,23 +424,61 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
-        - name: pipelineType
-          in: query
-          required: false
-          schema:
-            type: string
-            enum:
-              - timeseries
-              - tabular
-            default: timeseries
-          description: Type of AutoML pipeline to use for run creation (defaults to timeseries)
-          example: "timeseries"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateAutoMLRunRequest"
+            examples:
+              tabular-binary:
+                summary: Tabular binary classification pipeline request
+                value:
+                  display_name: "Credit Risk Binary Classification"
+                  description: "Binary classification for credit default prediction"
+                  train_data_secret_name: "s3-credentials"
+                  train_data_bucket_name: "ml-datasets"
+                  train_data_file_key: "credit/train.csv"
+                  label_column: "default"
+                  task_type: "binary"
+                  top_n: 5
+              tabular-multiclass:
+                summary: Tabular multiclass classification pipeline request
+                value:
+                  display_name: "Customer Segmentation"
+                  description: "Multiclass classification for customer categorization"
+                  train_data_secret_name: "s3-credentials"
+                  train_data_bucket_name: "ml-datasets"
+                  train_data_file_key: "customers/train.csv"
+                  label_column: "segment"
+                  task_type: "multiclass"
+                  top_n: 5
+              tabular-regression:
+                summary: Tabular regression pipeline request
+                value:
+                  display_name: "House Price Prediction"
+                  description: "Regression model for house price estimation"
+                  train_data_secret_name: "s3-credentials"
+                  train_data_bucket_name: "ml-datasets"
+                  train_data_file_key: "housing/train.csv"
+                  label_column: "price"
+                  task_type: "regression"
+                  top_n: 3
+              timeseries:
+                summary: Timeseries forecasting pipeline request
+                value:
+                  display_name: "Sales Forecasting"
+                  description: "7-day ahead sales forecast by store"
+                  train_data_secret_name: "s3-credentials"
+                  train_data_bucket_name: "ml-datasets"
+                  train_data_file_key: "sales/historical.csv"
+                  task_type: "timeseries"
+                  target: "sales"
+                  id_column: "store_id"
+                  timestamp_column: "date"
+                  prediction_length: 7
+                  known_covariates_names: ["temperature", "is_holiday"]
+                  top_n: 3
       responses:
         "200":
           $ref: "#/components/responses/CreatePipelineRunResponse"
@@ -458,8 +496,19 @@ paths:
       summary: Create Pipeline Run
       description: >-
         Creates a new AutoML pipeline run using the auto-discovered pipeline for the
-        requested pipeline type. The pipelineType query parameter selects which discovered
-        pipeline to use; when omitted it defaults to "timeseries".
+        requested task type. The task_type field in the request body determines which
+        pipeline to use and must be provided.
+
+
+        Request body schema requirements based on task_type:
+
+        - task_type=binary/multiclass/regression: Requires CreateTabularRunRequest schema with fields:
+          label_column (required), task_type (required, enum: binary/multiclass/regression)
+
+        - task_type=timeseries: Requires CreateTimeSeriesRunRequest schema with fields:
+          target (required), id_column (required), timestamp_column (required),
+          task_type (required, must be "timeseries"),
+          prediction_length (optional, default: 1), known_covariates_names (optional array)
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID
@@ -604,19 +653,18 @@ components:
           example: "S3 bucket for training data storage"
 
     # Pipeline Run Schemas
-    CreateAutoMLRunRequest:
+    CreateAutoMLRunRequestBase:
       type: object
-      description: Request body for creating an AutoML pipeline run
+      description: Base schema with common fields for all AutoML pipeline run types
       required:
         - display_name
         - train_data_secret_name
         - train_data_bucket_name
         - train_data_file_key
-        - label_column
-        - task_type
       properties:
         display_name:
           type: string
+          minLength: 1
           description: Human-readable name for the run
           example: "AutoML Optimization Run 1"
         description:
@@ -625,31 +673,119 @@ components:
           example: "Test optimization run"
         train_data_secret_name:
           type: string
+          minLength: 1
           description: Name of the Kubernetes secret containing S3 credentials
           example: "minio-secret"
         train_data_bucket_name:
           type: string
+          minLength: 1
           description: S3 bucket name containing the training data
           example: "automl-bucket"
         train_data_file_key:
           type: string
+          minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
-        label_column:
-          type: string
-          description: Name of the target column in the training data
-          example: "target"
-        task_type:
-          type: string
-          enum:
-            - binary
-            - multiclass
-          description: Type of classification task
-          example: "binary"
         top_n:
           type: integer
+          minimum: 1
           description: Number of top models to consider (optional)
           example: 5
+
+    CreateTabularRunRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateAutoMLRunRequestBase'
+        - type: object
+          description: Request body for creating a tabular AutoML pipeline run (binary, multiclass, or regression)
+          required:
+            - label_column
+            - task_type
+          properties:
+            label_column:
+              type: string
+              minLength: 1
+              description: Name of the target column in the training data
+              example: "target"
+            task_type:
+              type: string
+              minLength: 1
+              enum:
+                - binary
+                - multiclass
+                - regression
+              description: Type of task (binary classification, multiclass classification, or regression)
+              example: "binary"
+          not:
+            anyOf:
+              - required: [target]
+              - required: [id_column]
+              - required: [timestamp_column]
+              - required: [prediction_length]
+              - required: [known_covariates_names]
+
+    CreateTimeSeriesRunRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateAutoMLRunRequestBase'
+        - type: object
+          description: Request body for creating a timeseries AutoML pipeline run (forecasting)
+          required:
+            - target
+            - id_column
+            - timestamp_column
+            - task_type
+          properties:
+            task_type:
+              type: string
+              enum:
+                - timeseries
+              description: Type of task - must be "timeseries" for time series forecasting
+              example: "timeseries"
+            target:
+              type: string
+              minLength: 1
+              description: Name of the target column to forecast
+              example: "sales"
+            id_column:
+              type: string
+              minLength: 1
+              description: Name of the column identifying each time series (item_id)
+              example: "item_id"
+            timestamp_column:
+              type: string
+              minLength: 1
+              description: Name of the timestamp/datetime column
+              example: "timestamp"
+            prediction_length:
+              type: integer
+              minimum: 1
+              description: Forecast horizon (number of timesteps)
+              default: 1
+              example: 7
+            known_covariates_names:
+              type: array
+              items:
+                type: string
+              description: Optional list of known covariate column names
+              example: ["temperature", "holiday"]
+          not:
+            required: [label_column]
+
+    CreateAutoMLRunRequest:
+      description: >-
+        Request body for creating an AutoML pipeline run. The schema varies based on the
+        task_type field in the request body:
+        - task_type=binary/multiclass/regression: Uses CreateTabularRunRequest schema for tabular tasks
+        - task_type=timeseries: Uses CreateTimeSeriesRunRequest schema for forecasting tasks
+      oneOf:
+        - $ref: '#/components/schemas/CreateTabularRunRequest'
+        - $ref: '#/components/schemas/CreateTimeSeriesRunRequest'
+      discriminator:
+        propertyName: task_type
+        mapping:
+          binary: '#/components/schemas/CreateTabularRunRequest'
+          multiclass: '#/components/schemas/CreateTabularRunRequest'
+          regression: '#/components/schemas/CreateTabularRunRequest'
+          timeseries: '#/components/schemas/CreateTimeSeriesRunRequest'
 
     PipelineRun:
       type: object
@@ -729,7 +865,7 @@ components:
             - tabular
           description: >-
             Type of the AutoML pipeline that produced this run. Identifies whether
-            this is a time-series or tabular (classification/regression) pipeline run.
+            this is a time-series or tabular (binary/multiclass/regression) pipeline run.
           example: "timeseries"
 
     PipelineVersionReference:
