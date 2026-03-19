@@ -1,4 +1,4 @@
-import { Stack, StackItem, Title } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
@@ -20,9 +20,6 @@ function AutoragResults({ pipelineRun }: AutoragResultsProps): React.JSX.Element
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Title headingLevel="h2">{pipelineRun?.display_name} configurations</Title>
-      </StackItem>
       <StackItem isFilled>
         <PipelineTopology
           nodes={nodes}
