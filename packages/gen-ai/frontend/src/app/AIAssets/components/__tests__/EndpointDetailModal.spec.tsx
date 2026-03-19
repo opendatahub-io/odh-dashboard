@@ -166,7 +166,7 @@ describe('EndpointDetailModal', () => {
     it('should show generated token with alert when token is available', () => {
       mockUseGenerateMaaSToken = jest.fn(() => ({
         isGenerating: false,
-        tokenData: { token: 'generated-token-123' },
+        tokenData: { key: 'generated-token-123' },
         error: null,
         generateToken: mockGenerateToken,
         resetToken: mockResetToken,

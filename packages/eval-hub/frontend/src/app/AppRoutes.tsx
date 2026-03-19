@@ -10,6 +10,7 @@ import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
 import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
 import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
+import EvaluationResultsPage from './pages/EvaluationResultsPage';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -28,6 +29,7 @@ const AppRoutes: React.FC = () => (
         element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
       >
         <Route path=":namespace" element={<EvaluationsPage />} />
+        <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
         <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />

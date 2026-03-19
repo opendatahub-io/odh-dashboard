@@ -38,3 +38,4 @@ export { default as StorageIcon } from './StorageIcon';
 export { default as UserIcon } from './UserIcon';
 export { default as LabTuningIcon } from './LabTuningIcon';
 export { default as ModelConnectionRocketIcon } from './ModelConnectionRocketIcon';
+export { default as PromptManagementIcon } from './PromptManagementIcon';
