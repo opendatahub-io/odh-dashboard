@@ -940,10 +940,6 @@ class RayJobPodsTab {
     return cy.findByTestId('ray-cluster-pods-section');
   }
 
-  findPodName(name: string) {
-    return cy.findByTestId(`pod-name-${name}`);
-  }
-
   findWorkerGroup(groupName: string) {
     return cy.findByTestId(`worker-group-${groupName}`);
   }

@@ -17,7 +17,7 @@ type MockRayJobConfigType = {
   jobId?: string;
   jobStatus?: string;
   jobDeploymentStatus?: string;
-  rayClusterName?: string;
+  rayClusterName?: string | null;
   dashboardURL?: string;
   startTime?: string;
   endTime?: string;
@@ -46,7 +46,7 @@ export const mockRayJobK8sResource = ({
   jobStatus,
   jobDeploymentStatus,
   clusterSelector,
-  rayClusterName = clusterSelector?.['ray.io/cluster'] ?? `${name}-raycluster`,
+  rayClusterName: rawRayClusterName,
   dashboardURL = `http://${name}-head-svc.${namespace}:8265`,
   startTime,
   endTime,
@@ -58,6 +58,11 @@ export const mockRayJobK8sResource = ({
   additionalLabels = {},
   isDeleting = false,
 }: MockRayJobConfigType = {}): RayJobKind => {
+  const rayClusterName =
+    rawRayClusterName === null
+      ? undefined
+      : rawRayClusterName ?? clusterSelector?.['ray.io/cluster'] ?? `${name}-raycluster`;
+
   const resolvedJobStatus =
     jobStatus ??
     (() => {

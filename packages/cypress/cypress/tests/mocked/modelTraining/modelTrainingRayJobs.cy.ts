@@ -73,6 +73,7 @@ const mockRayJobs = mockRayJobK8sResourceList([
     namespace: projectName,
     jobStatus: RayJobStatusValue.SUCCEEDED,
     jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
+    rayClusterName: null,
     succeeded: 1,
   },
   {
