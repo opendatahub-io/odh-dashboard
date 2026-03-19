@@ -16,6 +16,8 @@ import {
   EmptyStateBody,
   EmptyStateVariant,
   debounce,
+  LabelGroup,
+  Label,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -143,7 +145,9 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     );
   }
 
-  const columns = selectedVersion ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified'];
+  const columns = selectedVersion
+    ? ['Name', 'Version']
+    : ['Name', 'Version', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -259,6 +263,13 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
                         </Td>
                       </>
                     )}
+                    <Td dataLabel={columns[3]}>
+                      <LabelGroup>
+                        {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                          <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                        ))}
+                      </LabelGroup>
+                    </Td>
                   </Tr>
                 ))}
               </Tbody>
