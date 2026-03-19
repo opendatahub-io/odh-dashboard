@@ -415,7 +415,7 @@ export type ExternalVectorStoresListData = {
   vector_stores: ExternalVectorStoreSummary[];
   total_count: number;
   config_map_info: VectorStoreConfigMapInfo;
-}
+};
 
 export type VerifyExternalModelRequest = {
   model_id: string;

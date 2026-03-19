@@ -8,7 +8,12 @@ import VectorStoresTable from '~/app/AIAssets/components/vectorstores/VectorStor
 
 const AIAssetsVectorStoresTab: React.FC = () => {
   const { data: vectorStores = [], loaded, error } = useFetchAAEVectorStores();
-  const { data: playgroundModels } = useFetchLlamaModels();
+  // below we include embedding models as that allows checking & displaying
+  // which embedding models are registered in llamastack
+  const { data: playgroundModels } = useFetchLlamaModels(
+    undefined, // lsdNotReady
+    true, // includeEmbeddingModels
+  );
   const { models: allModels } = useMergedModels();
 
   if (!loaded && !error) {
