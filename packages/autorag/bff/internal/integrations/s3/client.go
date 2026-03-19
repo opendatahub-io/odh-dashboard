@@ -53,7 +53,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		return nil, fmt.Errorf("S3Credentials must not be nil")
 	}
 
-	c := &RealS3Client{options: opts}
+	c := &RealS3Client{options: opts.withDefaults()}
 
 	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
@@ -80,25 +80,16 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	// Create transfer manager for optimized downloads
 	transferClient := transfermanager.New(c.s3Client)
 
-	// TODO [ PR-Feedback: AI ] A1 - Gustavo + Daniel:
-	//   Transfer manager tuning is hardcoded. 10 concurrency * 64MB parts = up to 640MB memory
-	//   per download. With multiple concurrent requests, this could cause memory pressure.
-	//   Consider lower defaults (e.g., Concurrency=3, PartSizeBytes=8MB) or making them configurable.
-	//   Also consider whether transfer manager is needed at all — for streaming to HTTP responses,
-	//   a simple s3Client.GetObject() may be simpler and use less memory.
-
 	// Get the object using transfer manager
 	// This automatically handles multipart downloads for large files with concurrency
 	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}, func(o *transfermanager.Options) {
-		// Configure for optimal streaming performance
-		o.Concurrency = 10                  // 10 concurrent part downloads
-		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
-		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
-		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
-		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
+		o.Concurrency = c.options.Concurrency
+		o.PartSizeBytes = c.options.PartSizeBytes
+		o.GetObjectBufferSize = c.options.GetObjectBufSize
+		o.PartBodyMaxRetries = c.options.PartBodyMaxRetries
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
