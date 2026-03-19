@@ -75,6 +75,52 @@ interface UseChatbotMessagesProps {
   promptName?: string;
 }
 
+/**
+ * Extracts a user-friendly error message from an error object
+ * Handles both structured API errors and generic Error objects
+ */
+const getErrorMessage = (error: unknown): string => {
+  // Check if this is a structured error with error.error.message (mod-arch format)
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'error' in error &&
+    typeof error.error === 'object' &&
+    error.error !== null &&
+    'message' in error.error &&
+    typeof error.error.message === 'string'
+  ) {
+    return error.error.message;
+  }
+
+  // Check if this is a standard Error object
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Fallback for unknown error types
+  return ERROR_MESSAGES.GENERIC_ERROR;
+};
+
+/**
+ * Extracts the error category/code from an error object
+ * Returns undefined if no category is found
+ */
+const getErrorCategory = (error: unknown): string | undefined => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'error' in error &&
+    typeof error.error === 'object' &&
+    error.error !== null &&
+    'code' in error.error &&
+    typeof error.error.code === 'string'
+  ) {
+    return error.error.code;
+  }
+  return undefined;
+};
+
 const useChatbotMessages = ({
   configId,
   modelId,
@@ -538,10 +584,15 @@ const useChatbotMessages = ({
         return;
       }
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
+      // Extract error message and category from the error object
+      const errorMessage = getErrorMessage(error);
+      const errorCategory = getErrorCategory(error);
+
+      // Log error details for debugging (category helps identify the error type)
+      if (errorCategory) {
+        // eslint-disable-next-line no-console
+        console.error('Response API error:', { category: errorCategory, message: errorMessage });
+      }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
       const wasUserStopped =
