@@ -46,7 +46,7 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 
 // parseLlamaStackModel parses LlamaStack's native JSON format and translates it to our stable public API format.
 // This translation layer isolates our public API from changes in LlamaStack's response structure.
-// LlamaStack native format: {identifier, model_type, provider_id, provider_resource_id}
+// LlamaStack native format: {id, custom_metadata: {model_type, provider_id, provider_resource_id}}
 // Our public API format: {id, type, provider, resource_path}
 func parseLlamaStackModel(rawJSON string) (models.LSDModel, error) {
 	if rawJSON == "" {
@@ -58,22 +58,22 @@ func parseLlamaStackModel(rawJSON string) (models.LSDModel, error) {
 		return models.LSDModel{}, fmt.Errorf("failed to parse LlamaStack model: %w", err)
 	}
 
-	if native.Identifier == "" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model missing required 'identifier' field")
+	if native.ID == "" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model missing required 'id' field")
 	}
 
-	if native.ModelType != "llm" && native.ModelType != "embedding" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q has unsupported model_type %q: must be 'llm' or 'embedding'", native.Identifier, native.ModelType)
+	if native.CustomMetadata.ModelType != "llm" && native.CustomMetadata.ModelType != "embedding" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q has unsupported model_type %q: must be 'llm' or 'embedding'", native.ID, native.CustomMetadata.ModelType)
 	}
 
-	if native.ProviderID == "" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q missing required 'provider_id' field", native.Identifier)
+	if native.CustomMetadata.ProviderID == "" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q missing required 'provider_id' field", native.ID)
 	}
 
 	return models.LSDModel{
-		ID:           native.Identifier,
-		Type:         native.ModelType,
-		Provider:     native.ProviderID,
-		ResourcePath: native.ProviderResourceID,
+		ID:           native.ID,
+		Type:         native.CustomMetadata.ModelType,
+		Provider:     native.CustomMetadata.ProviderID,
+		ResourcePath: native.CustomMetadata.ProviderResourceID,
 	}, nil
 }

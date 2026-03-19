@@ -4,7 +4,12 @@ package models
 // This is private and can change when LlamaStack updates their API.
 // It is NOT exposed to the frontend - only used for parsing.
 type LlamaStackNativeModel struct {
-	Identifier         string `json:"identifier"`           // Model identifier from LlamaStack
+	ID             string                   `json:"id"`              // Model identifier from LlamaStack
+	CustomMetadata LlamaStackCustomMetadata `json:"custom_metadata"` // Nested metadata from LlamaStack
+}
+
+// LlamaStackCustomMetadata represents the custom_metadata nested object in LlamaStack's response.
+type LlamaStackCustomMetadata struct {
 	ModelType          string `json:"model_type"`           // Model type from LlamaStack
 	ProviderID         string `json:"provider_id"`          // Provider identifier from LlamaStack
 	ProviderResourceID string `json:"provider_resource_id"` // Full provider resource path from LlamaStack

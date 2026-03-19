@@ -419,7 +419,7 @@ function AutoragConfigure(): React.JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onPrimary={(files) => {
           // TODO: replace with actual logic once implemented
-          setValue('input_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+          setValue('input_data_key', 'documents', { shouldValidate: true });
           setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
         }}
         onSelectSource={
