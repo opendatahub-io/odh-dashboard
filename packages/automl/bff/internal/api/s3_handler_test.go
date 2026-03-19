@@ -1242,7 +1242,7 @@ func TestGetS3FileHandler_DSPAPath_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestGetS3FileHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
+func TestGetS3FileHandler_DSPAPath_EmptyBucket_Returns503(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	// Secret must exist so GetS3CredentialsFromDSPA succeeds before the bucket check
 	mockSecrets := []corev1.Secret{
@@ -1273,7 +1273,7 @@ func TestGetS3FileHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.GetS3FileHandler(rr, req, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }
 
 func TestGetS3FileHandler_DSPAPath_BucketOverriddenByDSPA(t *testing.T) {
@@ -1354,7 +1354,7 @@ func TestGetS3FileSchemaHandler_DSPAPath_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
+func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns503(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	mockSecrets := []corev1.Secret{
 		{
@@ -1383,5 +1383,5 @@ func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.GetS3FileSchemaHandler(rr, req, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }
