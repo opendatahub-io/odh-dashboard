@@ -1,12 +1,16 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/kubeflow/model-registry/ui/bff/internal/mocks"
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 )
+
+var ErrMcpDeploymentNotFound = errors.New("MCP deployment not found")
 
 // McpDeploymentRepository provides CRUD operations for MCPServer deployments.
 // Currently backed by in-memory mock data; will be replaced with real K8s
@@ -37,15 +41,31 @@ func (r *McpDeploymentRepository) List(namespace string, pageSize int32, nextPag
 		pageSize = int32(len(filtered))
 	}
 
-	total := int32(len(filtered))
-	if int(pageSize) < len(filtered) {
-		filtered = filtered[:pageSize]
+	start := 0
+	if nextPageToken != "" {
+		v, err := strconv.Atoi(nextPageToken)
+		if err != nil || v < 0 || v > len(filtered) {
+			return models.McpDeploymentList{}, fmt.Errorf("invalid nextPageToken %q", nextPageToken)
+		}
+		start = v
+	}
+
+	end := start + int(pageSize)
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	pageItems := filtered[start:end]
+	newNextPageToken := ""
+	if end < len(filtered) {
+		newNextPageToken = strconv.Itoa(end)
 	}
 
 	return models.McpDeploymentList{
-		Items:    filtered,
-		Size:     total,
-		PageSize: pageSize,
+		Items:         pageItems,
+		Size:          int32(len(filtered)),
+		PageSize:      int32(len(pageItems)),
+		NextPageToken: newNextPageToken,
 	}, nil
 }
 
@@ -59,5 +79,5 @@ func (r *McpDeploymentRepository) Delete(namespace string, name string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("MCPServer deployment %q not found in namespace %q", name, namespace)
+	return fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentNotFound, name, namespace)
 }

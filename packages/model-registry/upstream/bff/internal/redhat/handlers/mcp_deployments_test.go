@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/model-registry/ui/bff/internal/api"
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	redhatrepos "github.com/kubeflow/model-registry/ui/bff/internal/redhat/repositories"
 )
 
 type mockMcpDeploymentRepo struct {
@@ -129,5 +131,28 @@ func TestMcpDeploymentDeleteMissingName(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestMcpDeploymentDeleteNotFoundReturns404(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	repo := &mockMcpDeploymentRepo{
+		deleteFn: func(namespace string, name string) error {
+			return errors.Join(redhatrepos.ErrMcpDeploymentNotFound, errors.New(name))
+		},
+	}
+
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentDelete(app, failDefault(t))
+
+	req := httptest.NewRequest(http.MethodDelete, api.McpDeploymentPath+"?namespace=test-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: api.McpDeploymentName, Value: "does-not-exist"}})
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rr.Code)
 	}
 }

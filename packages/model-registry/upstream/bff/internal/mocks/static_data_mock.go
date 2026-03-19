@@ -3220,12 +3220,3 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 	}
 }
 
-func GetMcpDeploymentListMock() models.McpDeploymentList {
-	allDeployments := GetMcpDeploymentMocks()
-
-	return models.McpDeploymentList{
-		Items:    allDeployments,
-		Size:     int32(len(allDeployments)),
-		PageSize: int32(10),
-	}
-}

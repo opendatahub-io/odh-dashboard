@@ -1,4 +1,8 @@
-export type McpDeploymentPhase = 'Pending' | 'Running' | 'Failed';
+export enum McpDeploymentPhase {
+  PENDING = 'Pending',
+  RUNNING = 'Running',
+  FAILED = 'Failed',
+}
 
 export type McpDeploymentCondition = {
   type: string;

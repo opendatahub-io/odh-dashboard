@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -50,6 +51,10 @@ func overrideMcpDeploymentList(app *api.App, _ func() httprouter.Handle) httprou
 				app.BadRequest(w, r, fmt.Errorf("invalid pageSize: %w", err))
 				return
 			}
+			if parsed <= 0 {
+				app.BadRequest(w, r, fmt.Errorf("pageSize must be > 0"))
+				return
+			}
 			pageSize = int32(parsed)
 		}
 		nextPageToken := r.URL.Query().Get("nextPageToken")
@@ -83,6 +88,10 @@ func overrideMcpDeploymentDelete(app *api.App, _ func() httprouter.Handle) httpr
 		}
 
 		if err := repo.Delete(namespace, name); err != nil {
+			if errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound) {
+				app.NotFound(w, r)
+				return
+			}
 			app.ServerError(w, r, err)
 			return
 		}
