@@ -60,14 +60,12 @@ class ModelRegistry {
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}`);
+    cy.visitWithLogin(`/ai-hub/models/registry/${preferredModelRegistry}`);
     this.wait();
   }
 
   navigate() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
@@ -131,16 +129,12 @@ class ModelRegistry {
   }
 
   tabEnabled() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .should('not.exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 

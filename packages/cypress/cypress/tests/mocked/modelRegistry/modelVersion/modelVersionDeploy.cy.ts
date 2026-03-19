@@ -334,7 +334,7 @@ describe('Model version deploy kebab action works', () => {
         disableModelServing: true,
       }),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/models/registry/modelregistry-sample/registered-models/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebab().click();
     cy.get('[role="menu"]').within(() => {
@@ -344,7 +344,7 @@ describe('Model version deploy kebab action works', () => {
 
   it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
     initIntercepts({ disableKServe: true });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/models/registry/modelregistry-sample/registered-models/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').should('have.attr', 'aria-disabled');
   });
@@ -369,7 +369,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source - verify we're on this step
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -395,7 +395,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -464,7 +464,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -504,7 +504,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -544,7 +544,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -575,7 +575,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -610,7 +610,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -667,7 +667,7 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.findDeployButton().click();
 
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments/deploy');
+    cy.url().should('include', '/ai-hub/models/deployments/deploy');
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -695,6 +695,6 @@ describe('Deploy model version', () => {
     // Wizard should show spinner while data is loading
     modelServingWizard.findSpinner().should('exist');
     // Wait for wizard to open
-    cy.url().should('include', '/ai-hub/deployments');
+    cy.url().should('include', '/ai-hub/models/deployments');
   });
 });

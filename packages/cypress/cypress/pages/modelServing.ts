@@ -23,14 +23,12 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
 }
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/ai-hub/models/deployments${project ? `/${project}` : ''}`);
     this.wait();
   }
 
   navigate() {
-    appChrome
-      .findNavItem({ name: 'Deployments', rootSection: 'AI hub', subSection: 'Models' })
-      .click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
@@ -907,7 +905,7 @@ class ModelServingWizard extends Wizard {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/deployments/deploy`);
+    cy.visitWithLogin(`/ai-hub/models/deployments/deploy`);
   }
 
   findSpinner() {
