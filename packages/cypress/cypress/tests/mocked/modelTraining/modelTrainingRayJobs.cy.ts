@@ -9,6 +9,7 @@ import {
 } from '@odh-dashboard/model-training/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
@@ -35,10 +36,12 @@ import {
   rayJobResourcesTab,
   editRayJobNodeCountModal,
   pauseRayJobModal,
+  rayJobPodsTab,
+  rayJobLogsTab,
 } from '../../../pages/modelTraining';
 import { tablePagination } from '../../../pages/components/Pagination';
 import { deleteModal } from '../../../pages/components/DeleteModal';
-import { ProjectModel } from '../../../utils/models';
+import { ProjectModel, PodModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
 const projectDisplayName = 'Test RayJobs Project';
@@ -320,6 +323,34 @@ const initIntercepts = () => {
 
   cy.interceptK8s({ model: ClusterQueueModel, name: 'test-cluster-queue' }, mockClusterQueues[0]);
 
+  cy.interceptK8sList(
+    { model: PodModel, ns: projectName },
+    mockK8sResourceList([
+      mockPodK8sResource({
+        name: 'ray-data-processing-submitter-abc',
+        namespace: projectName,
+        labels: { 'batch.kubernetes.io/job-name': 'ray-data-processing' },
+      }),
+      mockPodK8sResource({
+        name: 'ray-data-processing-raycluster-head-xyz',
+        namespace: projectName,
+        labels: {
+          'ray.io/cluster': 'ray-data-processing-raycluster',
+          'ray.io/node-type': 'head',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'ray-data-processing-raycluster-worker-1',
+        namespace: projectName,
+        labels: {
+          'ray.io/cluster': 'ray-data-processing-raycluster',
+          'ray.io/node-type': 'worker',
+          'ray.io/group': 'worker-group-1',
+        },
+      }),
+    ]),
+  );
+
   cy.interceptK8s(
     { model: RayClusterModel, ns: projectName, name: 'shared-ray-cluster' },
     mockRayClusterK8sResource({
@@ -363,6 +394,10 @@ const initIntercepts = () => {
         );
       }
     });
+
+  cy.intercept('GET', '**/ray-job-logs/*/*/*/*', {
+    body: 'Sample RayJob driver log output\nLine 2 of logs',
+  });
 };
 
 const createWorkloadForRayJob = (
@@ -1328,5 +1363,131 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.filterByName('ray-queued-job');
     const queuedRow = trainingJobTable.getTableRow('ray-queued-job');
     queuedRow.findRayCluster().should('contain', '-');
+  });
+});
+
+describe('RayJob Pods Tab', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should display submitter pod section with pod name', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Pods');
+
+    rayJobPodsTab.findSubmitterPodSection().should('exist');
+    rayJobPodsTab.findSubmitterPodSection().should('contain', 'ray-data-processing-submitter-abc');
+  });
+
+  it('should display head pod with role and restarts', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Pods');
+
+    rayJobPodsTab.findRayClusterPodsSection().should('exist');
+    rayJobPodsTab.findRayClusterPodsSection().should('contain', 'Ray Head');
+    rayJobPodsTab
+      .findRayClusterPodsSection()
+      .should('contain', 'ray-data-processing-raycluster-head-xyz');
+    rayJobPodsTab.findRayClusterPodsSection().should('contain', 'Restarts');
+  });
+
+  it('should display worker group name and worker pods', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Pods');
+
+    rayJobPodsTab.findRayClusterPodsSection().should('contain', 'Ray Worker');
+    rayJobPodsTab.findRayClusterPodsSection().should('contain', 'worker-group-1');
+    rayJobPodsTab
+      .findRayClusterPodsSection()
+      .should('contain', 'ray-data-processing-raycluster-worker-1');
+  });
+
+  it('should show empty state for completed job with no cluster pods', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-completed-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Pods');
+
+    rayJobPodsTab
+      .findRayClusterPodsSection()
+      .should('contain', 'The Ray cluster has been shut down.');
+  });
+});
+
+describe('RayJob Logs Tab', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should display Job ID and download button for running job', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Logs');
+
+    rayJobLogsTab.findJobId().should('contain', 'Job ID:');
+    rayJobLogsTab.findDownloadButton().should('exist');
+  });
+
+  it('should display log viewer with content for running job', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Logs');
+
+    rayJobLogsTab.findLogViewer().should('exist');
+    rayJobLogsTab.findLogViewer().should('contain', 'Sample RayJob driver log output');
+  });
+
+  it('should show empty state for completed job without head pod', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-completed-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Logs');
+
+    rayJobLogsTab.findEmptyState().should('exist');
+    rayJobLogsTab.findEmptyState().should('contain', 'The Ray cluster has been shut down.');
+  });
+
+  it('should show waiting state for initializing job', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-pending-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Logs');
+
+    rayJobLogsTab.findWaitingState().should('exist');
+    rayJobLogsTab.findWaitingState().should('contain', 'The Ray cluster is initializing');
   });
 });

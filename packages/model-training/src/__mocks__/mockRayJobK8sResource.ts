@@ -14,6 +14,7 @@ type MockRayJobConfigType = {
   submissionMode?: RayJobKind['spec']['submissionMode'];
   rayVersion?: string;
   shutdownAfterJobFinishes?: boolean;
+  jobId?: string;
   jobStatus?: string;
   jobDeploymentStatus?: string;
   rayClusterName?: string;
@@ -41,6 +42,7 @@ export const mockRayJobK8sResource = ({
   submissionMode = 'K8sJobMode',
   rayVersion = '2.9.0',
   shutdownAfterJobFinishes = true,
+  jobId = `raysubmit_${name}`,
   jobStatus,
   jobDeploymentStatus,
   clusterSelector,
@@ -163,6 +165,7 @@ export const mockRayJobK8sResource = ({
             }),
       },
       status: {
+        jobId,
         jobStatus: resolvedJobStatus,
         jobDeploymentStatus: resolvedDeploymentStatus,
         rayClusterName,
