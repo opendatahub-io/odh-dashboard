@@ -47,7 +47,6 @@ export type ModelServerOption = {
   template?: TemplateKind | K8sResourceIdentifier;
   version?: string;
   compatibleWithHardwareProfile?: boolean;
-  suggested?: boolean;
 };
 
 // Schema

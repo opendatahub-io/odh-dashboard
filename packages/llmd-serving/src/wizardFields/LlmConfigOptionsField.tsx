@@ -75,7 +75,6 @@ const getOptionFromLLMInferenceServiceConfig = (
     version: llmInferenceServiceConfig.metadata.annotations?.['opendatahub.io/runtime-version'],
     template: llmInferenceServiceConfig,
     compatibleWithHardwareProfile: isCompatible,
-    suggested: isCompatible,
   };
 };
 
@@ -84,7 +83,7 @@ const getOptions = (
   hardwareProfile?: HardwareProfileKind,
 ): ModelServerOption[] => {
   const result: ModelServerOption[] = [];
-  result.push({ ...LLMD_OPTION, suggested: externalData?.isLlmdSuggested });
+  result.push(LLMD_OPTION);
   result.push(
     ...(externalData?.configs.map((config) =>
       getOptionFromLLMInferenceServiceConfig(config, hardwareProfile),
@@ -96,6 +95,7 @@ const getOptions = (
 export type LLMConfigOptionsFieldValue = {
   selection?: ModelServerOption | null;
   autoSelect?: boolean;
+  suggestion?: ModelServerOption | null;
 };
 
 type LLMConfigOptionsFieldType = WizardField<
@@ -115,13 +115,6 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
     () => getOptions(externalData?.data, dependencies?.hardwareProfile),
     [externalData?.data, dependencies?.hardwareProfile],
   );
-  const suggestedOption = React.useMemo(() => {
-    const suggestedOptions = options.filter((option) => option.suggested);
-    if (suggestedOptions.length === 1) {
-      return suggestedOptions[0];
-    }
-    return null;
-  }, [options]);
 
   return (
     <ModelServerTemplateSelectField
@@ -133,12 +126,13 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
         setIsAutoSelectChecked: (isAutoSelectChecked?: boolean) =>
           isAutoSelectChecked
             ? onChange({
-                selection: suggestedOption,
+                ...value,
+                selection: value.suggestion,
                 autoSelect: isAutoSelectChecked,
               })
-            : onChange({ selection: null, autoSelect: isAutoSelectChecked }),
+            : onChange({ ...value, selection: null, autoSelect: isAutoSelectChecked }),
         options,
-        suggestion: suggestedOption,
+        suggestion: value.suggestion,
       }}
       isEditing={isEditing}
     />
@@ -170,16 +164,18 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
         return {
           selection: LLMD_OPTION,
           autoSelect: true,
+          suggestion: LLMD_OPTION,
         };
       }
-      // if there is a matching hardware profile, select it
-      const matchingHardwareProfileOption = options.find(
+      // if there is only one matching hardware profile, select it
+      const matchingHardwareProfileOption = options.filter(
         (option) => option.compatibleWithHardwareProfile,
       );
-      if (matchingHardwareProfileOption) {
+      if (matchingHardwareProfileOption.length === 1) {
         return {
-          selection: matchingHardwareProfileOption,
+          selection: matchingHardwareProfileOption[0],
           autoSelect: true,
+          suggestion: matchingHardwareProfileOption[0],
         };
       }
       // if there is only one option, select it
@@ -188,7 +184,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
           selection: options[0],
         };
       }
-      return { selection: null, autoSelect: false };
+      return { selection: null, autoSelect: false, suggestion: null };
     },
     // validationSchema: maasFieldSchema,
   },
