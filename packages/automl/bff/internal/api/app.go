@@ -158,7 +158,7 @@ func (app *App) Shutdown() error {
 // middleware runs as normal.
 func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if r.URL.Query().Get("secretName") != "" {
+		if strings.TrimSpace(r.URL.Query().Get("secretName")) != "" {
 			next(w, r, ps)
 			return
 		}

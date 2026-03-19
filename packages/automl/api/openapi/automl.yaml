@@ -180,7 +180,11 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
           example: my-bucket
@@ -296,7 +300,11 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
           example: my-bucket

@@ -79,6 +79,8 @@ func (r *MockS3Repository) GetS3Credentials(
 }
 
 // GetS3CredentialsFromDSPA returns mock S3 credentials derived from a DSPAObjectStorage config.
+// Mirrors the real S3Repository.GetS3CredentialsFromDSPA fast-fail checks so tests using
+// MockS3Client fail on misconfigured DSPA the same way as the production implementation.
 func (r *MockS3Repository) GetS3CredentialsFromDSPA(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
@@ -86,6 +88,15 @@ func (r *MockS3Repository) GetS3CredentialsFromDSPA(
 	dspaStorage *models.DSPAObjectStorage,
 	identity *k8s.RequestIdentity,
 ) (*S3Credentials, error) {
+	if dspaStorage == nil {
+		return nil, fmt.Errorf("dspaStorage must not be nil")
+	}
+	if dspaStorage.SecretName == "" {
+		return nil, fmt.Errorf("DSPA spec missing secret name: SecretName is required")
+	}
+	if dspaStorage.EndpointURL == "" {
+		return nil, fmt.Errorf("DSPA spec missing a valid endpoint (scheme + host are required)")
+	}
 	secret, err := client.GetSecret(ctx, namespace, dspaStorage.SecretName, identity)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", dspaStorage.SecretName, namespace, err)

@@ -46,7 +46,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	secretName := queryParams.Get("secretName")
+	secretName := strings.TrimSpace(queryParams.Get("secretName"))
 
 	key := queryParams.Get("key")
 	if key == "" {
@@ -233,7 +233,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	secretName := queryParams.Get("secretName")
+	secretName := strings.TrimSpace(queryParams.Get("secretName"))
 
 	key := queryParams.Get("key")
 	if key == "" {
