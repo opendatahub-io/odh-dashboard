@@ -1541,7 +1541,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.providerType, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
@@ -2565,5 +2565,3 @@ func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *int
 	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
 	return nil
 }
-
-// GetDashboardConfig retrieves the OdhDashboardConfig custom resource
