@@ -2,6 +2,10 @@
 /**
  * @jest-environment node
  */
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
+import type { IncomingMessage } from 'http';
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
@@ -880,6 +884,88 @@ describe('AutoRAG API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).toBe(400);
         }
+      });
+    });
+
+    describe('Error Cases - Declared Content-Length', () => {
+      /** Matches bff s3_upload_limit.go: 1 GiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (1 << 30) + (64 << 20);
+
+      const postS3WithDeclaredContentLength = async (
+        pathWithQuery: string,
+        declaredLength: number,
+        bodySent: Buffer,
+      ): Promise<{ status: number; headers: Record<string, string>; data: unknown }> => {
+        const target = new URL(pathWithQuery, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+        const isHttps = target.protocol === 'https:';
+        const lib = isHttps ? https : http;
+        const port = target.port !== '' ? Number(target.port) : isHttps ? 443 : 80;
+
+        return new Promise((resolve, reject) => {
+          const req = lib.request(
+            {
+              hostname: target.hostname,
+              port,
+              path: `${target.pathname}${target.search}`,
+              method: 'POST',
+              headers: {
+                'kubeflow-userid': 'dev-user@example.com',
+                'kubeflow-groups': 'system:masters',
+                'Content-Length': String(declaredLength),
+                'Content-Type': 'application/octet-stream',
+              },
+            },
+            (res: IncomingMessage) => {
+              const parts: string[] = [];
+              res.setEncoding('utf8');
+              res.on('data', (chunk: string) => {
+                parts.push(chunk);
+              });
+              res.on('end', () => {
+                const raw = parts.join('');
+                let data: unknown = raw;
+                try {
+                  data = raw.length > 0 ? JSON.parse(raw) : undefined;
+                } catch {
+                  data = raw;
+                }
+                const headers: Record<string, string> = {};
+                for (const [k, v] of Object.entries(res.headers)) {
+                  headers[k] = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+                }
+                resolve({
+                  status: res.statusCode ?? 0,
+                  headers,
+                  data,
+                });
+              });
+            },
+          );
+          req.on('error', reject);
+          req.write(bodySent);
+          req.end();
+        });
+      };
+
+      it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
+        const path =
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf';
+        const response = await postS3WithDeclaredContentLength(
+          path,
+          s3PostMaxDeclaredBodyBytes + 1,
+          Buffer.from('x'),
+        );
+        expect(response.status).toBe(413);
+        const body = response.data as { error?: { code: string; message: string } };
+        expect(body.error).toBeDefined();
+        // Shared toMatchContract cannot compile ErrorEnvelope (nested $ref); validate inner Error.
+        expect({
+          status: response.status,
+          data: body.error,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/Error',
+          status: 413,
+        });
       });
     });
 

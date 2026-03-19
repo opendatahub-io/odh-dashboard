@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
@@ -100,6 +101,24 @@ func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		path,
 		nil,
 		factory,
 		identity,
@@ -1008,6 +1027,24 @@ func TestPostS3FileHandler_MissingKey(t *testing.T) {
 
 	res, err := setupApiTestPostMultipart(
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
+	res, err := setupApiTestPostMultipart(
+		path,
 		[]byte("test"),
 		"file.pdf",
 		factory,

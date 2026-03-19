@@ -44,13 +44,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
-	secretName := queryParams.Get("secretName")
+	secretName := strings.TrimSpace(queryParams.Get("secretName"))
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
 		return
 	}
 
-	key := queryParams.Get("key")
+	key := strings.TrimSpace(queryParams.Get("key"))
 	if key == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
 		return
@@ -199,13 +199,13 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	queryParams := r.URL.Query()
 
-	secretName := queryParams.Get("secretName")
+	secretName := strings.TrimSpace(queryParams.Get("secretName"))
 	if secretName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
 		return
 	}
 
-	key := queryParams.Get("key")
+	key := strings.TrimSpace(queryParams.Get("key"))
 	if key == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
 		return
