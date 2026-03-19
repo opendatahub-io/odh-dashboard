@@ -158,20 +158,12 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         cy.step('Wait for chatbot playground');
         chatbotPage.findChatbotPlayground().should('be.visible');
 
-        cy.step('Verify System instructions input is visible');
-        chatbotPage.findSystemInstructionInput().should('be.visible');
-
-        cy.step('Verify system instructions has default content');
-        chatbotPage
-          .findSystemInstructionInput()
-          .should('contain.value', 'You are a helpful AI assistant');
-
         cy.step('Edit system instructions');
         const newInstructions = 'You are a specialized assistant for testing purposes';
-        chatbotPage.setSystemInstructions(newInstructions);
+        chatbotPage.editInstructions(newInstructions);
 
         cy.step('Verify system instructions updated');
-        chatbotPage.findSystemInstructionInput().should('have.value', newInstructions);
+        chatbotPage.findInstructionsInput().should('have.value', newInstructions);
 
         cy.step('Test completed - System instructions are editable');
       },
