@@ -80,8 +80,8 @@ func (r *MockS3Repository) GetS3Credentials(
 
 // GetS3CredentialsFromDSPA returns mock S3 credentials derived from a DSPAObjectStorage config.
 func (r *MockS3Repository) GetS3CredentialsFromDSPA(
-	client k8s.KubernetesClientInterface,
 	ctx context.Context,
+	client k8s.KubernetesClientInterface,
 	namespace string,
 	dspaStorage *models.DSPAObjectStorage,
 	identity *k8s.RequestIdentity,

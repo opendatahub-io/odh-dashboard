@@ -46,10 +46,11 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-		logger:                  logger,
-		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+		config:                      config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockPipelineServerClient: true},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)

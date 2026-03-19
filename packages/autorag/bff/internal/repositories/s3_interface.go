@@ -24,8 +24,8 @@ type S3RepositoryInterface interface {
 	// endpoint coordinates from a DSPipelineApplication spec, rather than the
 	// conventional AWS_* field names.
 	GetS3CredentialsFromDSPA(
-		client k8s.KubernetesClientInterface,
 		ctx context.Context,
+		client k8s.KubernetesClientInterface,
 		namespace string,
 		dspaStorage *models.DSPAObjectStorage,
 		identity *k8s.RequestIdentity,

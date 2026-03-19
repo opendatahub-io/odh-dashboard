@@ -488,7 +488,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_Success(t *testing.T) {
 		Region:         "us-east-1",
 	}
 
-	creds, err := s3Repo.GetS3CredentialsFromDSPA(mockClient, context.Background(), "test-namespace", dspaStorage, identity)
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), mockClient, "test-namespace", dspaStorage, identity)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, creds)
@@ -521,7 +521,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_DefaultsRegion(t *testing.T) {
 		Region:         "", // deliberately empty — should default to us-east-1
 	}
 
-	creds, err := s3Repo.GetS3CredentialsFromDSPA(&mockKubernetesClientForSecrets{secrets: mockSecrets}, context.Background(), "test-namespace", dspaStorage, identity)
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), &mockKubernetesClientForSecrets{secrets: mockSecrets}, "test-namespace", dspaStorage, identity)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "us-east-1", creds.Region)
@@ -538,7 +538,7 @@ func TestS3Repository_GetS3CredentialsFromDSPA_MissingEndpoint(t *testing.T) {
 		EndpointURL:    "", // missing
 	}
 
-	creds, err := s3Repo.GetS3CredentialsFromDSPA(&mockKubernetesClientForSecrets{}, context.Background(), "test-namespace", dspaStorage, identity)
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), &mockKubernetesClientForSecrets{}, "test-namespace", dspaStorage, identity)
 
 	assert.Error(t, err)
 	assert.Nil(t, creds)

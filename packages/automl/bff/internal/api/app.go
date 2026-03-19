@@ -151,6 +151,21 @@ func (app *App) Shutdown() error {
 	return app.testEnv.Stop()
 }
 
+// attachPipelineClientIfNeeded is a best-effort shim for the S3 file routes.
+// When the caller supplies an explicit secretName query parameter the handler
+// can resolve S3 credentials directly, so DSPA discovery is skipped and next
+// is called immediately. Otherwise the full AttachPipelineServerClient
+// middleware runs as normal.
+func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if r.URL.Query().Get("secretName") != "" {
+			next(w, r, ps)
+			return
+		}
+		app.AttachPipelineServerClient(next)(w, r, ps)
+	}
+}
+
 func (app *App) Routes() http.Handler {
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
@@ -168,9 +183,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 
-	// S3 operations
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.GetS3FileSchemaHandler))
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.GetS3FileHandler))
+	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
+	// secretName (the handler resolves credentials directly in that case).
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

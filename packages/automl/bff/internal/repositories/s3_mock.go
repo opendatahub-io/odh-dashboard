@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
 // mockCSVContent is the shared CSV fixture used by both GetS3Object and GetS3CSVSchema
@@ -182,6 +183,52 @@ func (r *MockS3Repository) GetS3Credentials(
 	creds.EndpointURL = rawEndpoint
 
 	return creds, nil
+}
+
+// GetS3CredentialsFromDSPA returns mock S3 credentials derived from a DSPAObjectStorage config.
+func (r *MockS3Repository) GetS3CredentialsFromDSPA(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	dspaStorage *models.DSPAObjectStorage,
+	identity *k8s.RequestIdentity,
+) (*S3Credentials, error) {
+	secret, err := client.GetSecret(ctx, namespace, dspaStorage.SecretName, identity)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", dspaStorage.SecretName, namespace, err)
+	}
+
+	getValue := func(targetKey string) string {
+		targetLower := strings.ToLower(targetKey)
+		for secretKey, secretValue := range secret.Data {
+			if strings.ToLower(secretKey) == targetLower {
+				return string(secretValue)
+			}
+		}
+		return ""
+	}
+
+	accessKeyID := getValue(dspaStorage.AccessKeyField)
+	if accessKeyID == "" {
+		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.AccessKeyField)
+	}
+	secretAccessKey := getValue(dspaStorage.SecretKeyField)
+	if secretAccessKey == "" {
+		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.SecretKeyField)
+	}
+
+	region := dspaStorage.Region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	return &S3Credentials{
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
+		EndpointURL:     dspaStorage.EndpointURL,
+		Bucket:          dspaStorage.Bucket,
+		Region:          region,
+	}, nil
 }
 
 // GetS3Object returns mock file data for testing

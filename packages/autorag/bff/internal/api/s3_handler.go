@@ -77,7 +77,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		// Primary production path: use field names and endpoint from DSPA spec
 		dspaStorage = storage
 		secretName = dspaStorage.SecretName
-		creds, credsErr = app.repositories.S3.GetS3CredentialsFromDSPA(client, ctx, namespace, dspaStorage, identity)
+		creds, credsErr = app.repositories.S3.GetS3CredentialsFromDSPA(ctx, client, namespace, dspaStorage, identity)
 	} else {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required when no DSPA object storage config is available"))
 		return

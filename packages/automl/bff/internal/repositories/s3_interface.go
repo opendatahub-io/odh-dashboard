@@ -5,6 +5,7 @@ import (
 	"io"
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
 // S3RepositoryInterface defines the contract for S3 repository operations
@@ -15,6 +16,17 @@ type S3RepositoryInterface interface {
 		client k8s.KubernetesClientInterface,
 		namespace string,
 		secretName string,
+		identity *k8s.RequestIdentity,
+	) (*S3Credentials, error)
+
+	// GetS3CredentialsFromDSPA retrieves S3 credentials using the field names and
+	// endpoint coordinates from a DSPipelineApplication spec, rather than the
+	// conventional AWS_* field names.
+	GetS3CredentialsFromDSPA(
+		ctx context.Context,
+		client k8s.KubernetesClientInterface,
+		namespace string,
+		dspaStorage *models.DSPAObjectStorage,
 		identity *k8s.RequestIdentity,
 	) (*S3Credentials, error)
 

@@ -3,11 +3,18 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/config"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -1082,4 +1089,299 @@ func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
 	columns, ok := data["columns"]
 	assert.True(t, ok, "Response data should have 'columns' field")
 	assert.NotNil(t, columns)
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_Success(t *testing.T) {
+	// Verifies that GetS3CredentialsFromDSPA uses the field names from DSPAObjectStorage
+	// rather than hardcoded AWS_* names, and takes endpoint/region from the struct.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dspa-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-dspa"),
+			},
+			Data: map[string][]byte{
+				"accesskey": []byte("MINIOACCESSKEY"),
+				"secretkey": []byte("MINIOSECRETKEY"),
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	s3Repo := repositories.NewS3Repository(true)
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "accesskey",
+		SecretKeyField: "secretkey",
+		EndpointURL:    "http://minio.test-namespace.svc.cluster.local:9000",
+		Bucket:         "pipeline-artifacts",
+		Region:         "us-east-1",
+	}
+
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), mockClient, "test-namespace", dspaStorage, identity)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, "MINIOACCESSKEY", creds.AccessKeyID)
+	assert.Equal(t, "MINIOSECRETKEY", creds.SecretAccessKey)
+	assert.Equal(t, "http://minio.test-namespace.svc.cluster.local:9000", creds.EndpointURL)
+	assert.Equal(t, "pipeline-artifacts", creds.Bucket)
+	assert.Equal(t, "us-east-1", creds.Region)
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_DefaultsRegion(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "dspa-secret", Namespace: "test-namespace"},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("KEY"),
+				"AWS_SECRET_ACCESS_KEY": []byte("SECRET"),
+			},
+		},
+	}
+
+	s3Repo := repositories.NewS3Repository(true)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "http://minio:9000",
+		Region:         "", // deliberately empty — should default to us-east-1
+	}
+
+	creds, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), &mockKubernetesClientForSecrets{secrets: mockSecrets}, "test-namespace", dspaStorage, identity)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "us-east-1", creds.Region)
+}
+
+func TestS3Repository_GetS3CredentialsFromDSPA_MissingEndpoint(t *testing.T) {
+	s3Repo := repositories.NewS3Repository(true)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "", // missing endpoint
+	}
+
+	_, err := s3Repo.GetS3CredentialsFromDSPA(context.Background(), &mockKubernetesClientForSecrets{}, "test-namespace", dspaStorage, identity)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "endpoint")
+}
+
+// newS3TestApp creates a minimal App for directly invoking S3 handlers with injected context.
+// Tests that use this helper bypass the route middleware and inject context values themselves.
+func newS3TestApp(k8Factory kubernetes.KubernetesClientFactory) *App {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	return &App{
+		config:                      config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockPipelineServerClient: true},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+	}
+}
+
+// buildDSPARequest builds an HTTP request with namespace, identity, and DSPAObjectStorage
+// already injected into the context, simulating what AttachPipelineServerClient would inject
+// in a production environment.
+func buildDSPARequest(method, url string, dspaStorage *models.DSPAObjectStorage, namespace string, identity *kubernetes.RequestIdentity) *http.Request {
+	req, _ := http.NewRequest(method, url, http.NoBody)
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, identity)
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, namespace)
+	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaStorage)
+	return req.WithContext(ctx)
+}
+
+func TestGetS3FileHandler_DSPAPath_Success(t *testing.T) {
+	// Secret containing S3 credentials referenced by the DSPA spec
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dspa-secret",
+				Namespace: "default",
+				UID:       types.UID("uid-dspa"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			},
+		},
+	}
+
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	factory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: mockSecrets}}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "dspa-bucket",
+		Region:         "us-east-1",
+	}
+
+	// No secretName in URL — should use DSPA path
+	req := buildDSPARequest("GET", "/api/v1/s3/file?key=test.pdf", dspaStorage, "default", identity)
+
+	app := newS3TestApp(factory)
+	rr := httptest.NewRecorder()
+	app.GetS3FileHandler(rr, req, nil)
+
+	// Mock S3 returns content for .pdf files — expect 200
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestGetS3FileHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	// Secret must exist so GetS3CredentialsFromDSPA succeeds before the bucket check
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "dspa-secret", Namespace: "default", UID: types.UID("uid-dspa")},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			},
+		},
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: mockSecrets}}
+
+	// DSPA config with no bucket configured — handler should fast-fail with 400
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "", // no bucket
+		Region:         "us-east-1",
+	}
+
+	req := buildDSPARequest("GET", "/api/v1/s3/file?key=test.pdf", dspaStorage, "default", identity)
+
+	app := newS3TestApp(factory)
+	rr := httptest.NewRecorder()
+	app.GetS3FileHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestGetS3FileHandler_DSPAPath_BucketOverriddenByDSPA(t *testing.T) {
+	// Verifies that a caller-supplied bucket is ignored on the DSPA path
+	// (DSPA bucket always wins — oracle-free design)
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dspa-secret",
+				Namespace: "default",
+				UID:       types.UID("uid-dspa"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			},
+		},
+	}
+
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	factory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: mockSecrets}}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "dspa-bucket",
+		Region:         "us-east-1",
+	}
+
+	// Caller passes a different bucket — it should be silently ignored
+	req := buildDSPARequest("GET", "/api/v1/s3/file?bucket=caller-bucket&key=test.pdf", dspaStorage, "default", identity)
+
+	app := newS3TestApp(factory)
+	rr := httptest.NewRecorder()
+	app.GetS3FileHandler(rr, req, nil)
+
+	// The DSPA bucket is used — request should succeed (200, not 400)
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestGetS3FileSchemaHandler_DSPAPath_Success(t *testing.T) {
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dspa-secret",
+				Namespace: "default",
+				UID:       types.UID("uid-dspa"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			},
+		},
+	}
+
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	factory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: mockSecrets}}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "dspa-bucket",
+		Region:         "us-east-1",
+	}
+
+	req := buildDSPARequest("GET", "/api/v1/s3/file/schema?key=data.csv", dspaStorage, "default", identity)
+
+	app := newS3TestApp(factory)
+	rr := httptest.NewRecorder()
+	app.GetS3FileSchemaHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns400(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "dspa-secret", Namespace: "default", UID: types.UID("uid-dspa")},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			},
+		},
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: mockSecrets}}
+
+	dspaStorage := &models.DSPAObjectStorage{
+		SecretName:     "dspa-secret",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "",
+		Region:         "us-east-1",
+	}
+
+	req := buildDSPARequest("GET", "/api/v1/s3/file/schema?key=data.csv", dspaStorage, "default", identity)
+
+	app := newS3TestApp(factory)
+	rr := httptest.NewRecorder()
+	app.GetS3FileSchemaHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }

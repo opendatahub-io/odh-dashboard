@@ -206,8 +206,8 @@ func (r *S3Repository) GetS3Credentials(
 // conventional AWS_* names. The endpoint URL, bucket, and region come from the DSPA spec
 // and are carried in the dspaStorage struct — they are not expected to be in the secret.
 func (r *S3Repository) GetS3CredentialsFromDSPA(
-	client k8s.KubernetesClientInterface,
 	ctx context.Context,
+	client k8s.KubernetesClientInterface,
 	namespace string,
 	dspaStorage *models.DSPAObjectStorage,
 	identity *k8s.RequestIdentity,
