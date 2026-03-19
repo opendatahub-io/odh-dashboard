@@ -1,29 +1,28 @@
-import { ApplicationsPage } from 'mod-arch-shared';
+import { ApplicationsPage, TitleWithIcon, ProjectObjectType } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
 import AutoragResults from '~/app/components/results/AutoragResults';
-import { useExperimentQuery, usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/queries';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 
 function AutoragResultsPage(): React.JSX.Element {
-  const { runId } = useParams();
+  const { namespace, runId } = useParams();
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId);
-  const { data: experiment, ...experimentQuery } = useExperimentQuery(pipelineRun?.experiment_id);
+  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
 
   const invalidPipelineRunId = pipelineRunQuery.isError;
 
   return (
     <ApplicationsPage
-      title={experiment?.display_name}
+      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
-      loadError={pipelineRunQuery.error ?? experimentQuery.error ?? undefined}
-      loaded={pipelineRunQuery.isFetched && experimentQuery.isFetched}
+      loadError={pipelineRunQuery.error ?? undefined}
+      loaded={pipelineRunQuery.isFetched}
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoragResults />
+      <AutoragResults pipelineRun={pipelineRun} />
     </ApplicationsPage>
   );
 }
