@@ -611,11 +611,92 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
+
+			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
+			// from the DSPA spec even when a Pipeline Server override URL is set
+			// (e.g. port-forwarding during local development). Failure is non-fatal:
+			// the S3 handler falls back to requiring an explicit secretName.
+			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		}
 
 		r = r.WithContext(ctx)
 		next(w, r, ps)
 	}
+}
+
+// injectDSPAObjectStorageIfAvailable performs a best-effort DSPA discovery and, if a ready
+// DSPA with external storage config is found, injects DSPAObjectStorageKey into ctx.
+// Returns the (possibly updated) context. Never fails the request — callers proceed without
+// S3 storage context if the DSPA cannot be discovered.
+func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespace string, logger *slog.Logger) context.Context {
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		logger.Debug("K8s client unavailable; DSPA S3 config not injected (S3 will require explicit secretName)",
+			"error", err)
+		return ctx
+	}
+
+	dspa, err := app.discoverReadyDSPA(ctx, client, namespace, logger)
+	if err != nil {
+		logger.Debug("DSPA discovery skipped in override-URL mode; S3 will require explicit secretName",
+			"error", err)
+		return ctx
+	}
+	if dspa == nil {
+		return ctx
+	}
+
+	if dspa.Spec == nil ||
+		dspa.Spec.ObjectStorage == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName == "" {
+		return ctx
+	}
+
+	ext := dspa.Spec.ObjectStorage.ExternalStorage
+	cred := ext.S3CredentialsSecret
+
+	endpointURL := ""
+	scheme := strings.ToLower(ext.Scheme)
+	if ext.Host != "" && (scheme == "http" || scheme == "https") {
+		if ext.Port != "" {
+			endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+		} else {
+			endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+		}
+	} else if ext.Scheme != "" && ext.Host != "" {
+		logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+			"scheme", ext.Scheme,
+			"namespace", namespace,
+		)
+	}
+
+	accessKeyField := cred.AccessKey
+	if accessKeyField == "" {
+		accessKeyField = "AWS_ACCESS_KEY_ID"
+	}
+	secretKeyField := cred.SecretKey
+	if secretKeyField == "" {
+		secretKeyField = "AWS_SECRET_ACCESS_KEY"
+	}
+
+	dspaObjectStorage := &models.DSPAObjectStorage{
+		SecretName:     cred.SecretName,
+		AccessKeyField: accessKeyField,
+		SecretKeyField: secretKeyField,
+		EndpointURL:    endpointURL,
+		Bucket:         ext.Bucket,
+		Region:         ext.Region,
+	}
+	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+	logger.Debug("Injected DSPA object storage config (override-URL mode)",
+		"secretName", cred.SecretName,
+		"namespace", namespace,
+		"hasEndpoint", endpointURL != "",
+		"hasBucket", ext.Bucket != "",
+	)
+	return ctx
 }
 
 const (

@@ -210,3 +210,33 @@ export INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
+
+### Local testing with port-forward
+
+When testing the BFF locally against a Kubeflow Pipelines instance running in a cluster, set `PIPELINE_SERVER_URL` to the port-forwarded address:
+
+```shell
+# Terminal 1: port-forward the pipeline server
+kubectl port-forward -n <namespace> svc/<ds-pipeline-service-name> 8888:8443
+
+# Terminal 2: run the BFF with override URL
+cd packages/automl/bff
+make run PIPELINE_SERVER_URL=https://localhost:8888 INSECURE_SKIP_VERIFY=true
+```
+
+#### S3 endpoints in port-forward mode
+
+When `PIPELINE_SERVER_URL` is set, the pipeline client is created from the override URL rather than by discovering the DSPipelineApplication (DSPA) in the cluster. However, the BFF will still **attempt best-effort DSPA discovery** via the Kubernetes API so that the S3 file and schema endpoints (`GET /api/v1/s3/file`, `GET /api/v1/s3/file/schema`) can resolve credentials from the DSPA spec without requiring an explicit `secretName` query parameter.
+
+If you see the error `"query parameter 'secretName' is required when no DSPA object storage config is available"` while using port-forward mode, one of the following is likely true:
+
+- Your auth token does not have permission to list `datasciencepipelinesapplications` resources in the namespace — verify with `kubectl auth can-i list datasciencepipelinesapplications -n <namespace>`
+- No DSPA exists in the namespace yet
+- The DSPA exists but its API Server component is not ready
+
+As a workaround you can pass `secretName` explicitly:
+```shell
+curl -H "kubeflow-userid: user@example.com" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
+```
