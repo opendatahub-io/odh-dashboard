@@ -53,13 +53,13 @@ function ConfigureTimeseriesForm({
 
   const clearColumnFromOtherFields = (selectedColumn: string, currentField: string) => {
     if (currentField !== 'target' && targetValue === selectedColumn) {
-      setValue('target', undefined);
+      setValue('target', '', { shouldValidate: true });
     }
     if (currentField !== 'timestamp_column' && timestampValue === selectedColumn) {
-      setValue('timestamp_column', undefined);
+      setValue('timestamp_column', '', { shouldValidate: true });
     }
     if (currentField !== 'id_column' && idValue === selectedColumn) {
-      setValue('id_column', undefined);
+      setValue('id_column', '', { shouldValidate: true });
     }
     if (
       currentField !== 'known_covariates_names' &&
@@ -68,6 +68,7 @@ function ConfigureTimeseriesForm({
       setValue(
         'known_covariates_names',
         knownCovariatesValue.filter((v: string) => v !== selectedColumn),
+        { shouldValidate: true },
       );
     }
   };
@@ -210,7 +211,9 @@ function ConfigureTimeseriesForm({
                     <SelectOption
                       key={column.name}
                       value={column.name}
-                      isDisabled={column.type !== 'timestamp'}
+                      // FYI - Technically this field should only support timestamp cols but
+                      // since our type is an estimation, we should leave this open for now
+                      // isDisabled={column.type !== 'timestamp'}
                     >
                       <span
                         style={{

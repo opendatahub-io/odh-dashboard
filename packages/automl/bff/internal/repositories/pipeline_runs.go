@@ -351,9 +351,11 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 			params["timestamp_column"] = *req.TimestampColumn
 		}
 		// Optional timeseries parameters
+		predictionLength := 1 // Default per automl backend code and OpenAPI spec
 		if req.PredictionLength != nil {
-			params["prediction_length"] = *req.PredictionLength
+			predictionLength = *req.PredictionLength
 		}
+		params["prediction_length"] = predictionLength
 		if req.KnownCovariatesNames != nil {
 			params["known_covariates_names"] = *req.KnownCovariatesNames
 		}

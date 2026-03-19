@@ -170,13 +170,13 @@ function AutomlConfigure(): React.JSX.Element {
   useEffect(() => {
     if (trainDataFileKey && trainDataFileKey !== previousFileKeyRef.current) {
       // Reset tabular form fields
-      setValue('label_column', undefined);
+      setValue('label_column', '');
 
       // Reset timeseries form fields
-      setValue('target', undefined);
-      setValue('timestamp_column', undefined);
-      setValue('id_column', undefined);
-      setValue('known_covariates_names', undefined);
+      setValue('target', '');
+      setValue('timestamp_column', '');
+      setValue('id_column', '');
+      setValue('known_covariates_names', []);
     }
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
@@ -188,7 +188,7 @@ function AutomlConfigure(): React.JSX.Element {
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
         [],
       );
-      setValue('label_column', undefined);
+      setValue('label_column', '');
     }
   }, [
     trainDataSecretName,
@@ -273,7 +273,7 @@ function AutomlConfigure(): React.JSX.Element {
                                     onChange={(secret) => {
                                       setNewConnectionNotLoaded(false);
                                       setSelectedSecret(secret);
-                                      onChange(secret?.invalid ? undefined : secret?.name);
+                                      onChange(secret?.invalid ? '' : secret?.name);
                                       setValue(
                                         'train_data_bucket_name',
                                         getBucketFromSecretData(secret?.data),
@@ -320,9 +320,9 @@ function AutomlConfigure(): React.JSX.Element {
                               onClose={() => {
                                 setSelectedSecret(undefined);
                                 // Clear selections
-                                setValue('train_data_secret_name', undefined);
-                                setValue('train_data_bucket_name', undefined);
-                                setValue('train_data_file_key', undefined);
+                                setValue('train_data_secret_name', '');
+                                setValue('train_data_bucket_name', '');
+                                setValue('train_data_file_key', '');
                               }}
                               closeBtnAriaLabel="Clear selected connection"
                             >
@@ -517,10 +517,10 @@ function AutomlConfigure(): React.JSX.Element {
                 ...secret,
                 invalid,
               });
-              setValue('train_data_secret_name', invalid ? undefined : secret.name);
+              setValue('train_data_secret_name', invalid ? '' : secret.name);
               setValue(
                 'train_data_bucket_name',
-                invalid ? undefined : getBucketFromSecretData(secret.data ?? connection.stringData),
+                invalid ? '' : getBucketFromSecretData(secret.data ?? connection.stringData),
               );
             } else {
               setNewConnectionNotLoaded(true);

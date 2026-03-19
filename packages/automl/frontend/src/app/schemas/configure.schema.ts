@@ -67,12 +67,59 @@ export type ConfigureSchema = z.infer<ReturnType<typeof createConfigureSchema>>;
 type Validator = (data: ConfigureSchema) => z.core.$ZodRawIssue[];
 type Transformer = (data: ConfigureSchema) => void;
 
-const VALIDATORS: Array<Validator> = [];
+const VALIDATORS: Array<Validator> = [
+  // Validate tabular-specific required fields
+  (data) => {
+    const issues: z.core.$ZodRawIssue[] = [];
+    if (data.task_type !== TASK_TYPE_TIMESERIES) {
+      if (!data.label_column || data.label_column.trim() === '') {
+        issues.push({
+          code: 'custom',
+          path: ['label_column'],
+          message: 'Label column is required',
+          input: data.label_column,
+        });
+      }
+    }
+    return issues;
+  },
+  // Validate timeseries-specific required fields
+  (data) => {
+    const issues: z.core.$ZodRawIssue[] = [];
+    if (data.task_type === TASK_TYPE_TIMESERIES) {
+      if (!data.target || data.target.trim() === '') {
+        issues.push({
+          code: 'custom',
+          path: ['target'],
+          message: 'Target column is required',
+          input: data.target,
+        });
+      }
+      if (!data.id_column || data.id_column.trim() === '') {
+        issues.push({
+          code: 'custom',
+          path: ['id_column'],
+          message: 'ID column is required',
+          input: data.id_column,
+        });
+      }
+      if (!data.timestamp_column || data.timestamp_column.trim() === '') {
+        issues.push({
+          code: 'custom',
+          path: ['timestamp_column'],
+          message: 'Timestamp column is required',
+          input: data.timestamp_column,
+        });
+      }
+    }
+    return issues;
+  },
+];
 
+/* eslint-disable no-param-reassign */
 const TRANSFORMERS: Array<Transformer> = [
   // Remove task-type-specific fields based on the selected task_type
   (data) => {
-    /* eslint-disable no-param-reassign */
     if (data.task_type === TASK_TYPE_TIMESERIES) {
       // Remove tabular-specific fields
       delete data.label_column;
@@ -84,16 +131,23 @@ const TRANSFORMERS: Array<Transformer> = [
       delete data.prediction_length;
       delete data.known_covariates_names;
     }
-    /* eslint-enable no-param-reassign */
+  },
+  // Include the task type in the name. Remove this later
+  (data) => {
+    if (!data.display_name?.includes(data.task_type)) {
+      // Remove tabular-specific fields
+      data.display_name = `${data.task_type}-${Date.now()}`;
+    }
   },
 ];
+/* eslint-enable no-param-reassign */
 
 /**
  * Get default values for the configure form.
- * Automatically applies all schema defaults.
+ * Automatically applies all schema defaults without running validation.
  */
 export function getDefaultValues(): ConfigureSchema {
-  const schema = createConfigureSchema();
+  const schema = getBaseSchema();
   return schema.parse({});
 }
 

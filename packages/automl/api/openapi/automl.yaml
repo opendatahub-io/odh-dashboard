@@ -715,6 +715,13 @@ components:
                 - regression
               description: Type of task (binary classification, multiclass classification, or regression)
               example: "binary"
+          not:
+            anyOf:
+              - required: [target]
+              - required: [id_column]
+              - required: [timestamp_column]
+              - required: [prediction_length]
+              - required: [known_covariates_names]
 
     CreateTimeSeriesRunRequest:
       allOf:
@@ -760,6 +767,8 @@ components:
                 type: string
               description: Optional list of known covariate column names
               example: ["temperature", "holiday"]
+          not:
+            required: [label_column]
 
     CreateAutoMLRunRequest:
       description: >-
