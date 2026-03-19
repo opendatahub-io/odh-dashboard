@@ -6,6 +6,7 @@ import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 
 const RAY_LOG_BASE_PATH = '/tmp/ray/session_latest/logs';
+const SAFE_PARAM = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 /**
  * Build a KubeConfig that authenticates as the requesting user rather than
@@ -140,6 +141,11 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       reply: FastifyReply,
     ) => {
       const { namespace, podName, containerName, jobId } = request.params;
+
+      if (!SAFE_PARAM.test(jobId)) {
+        reply.code(400).send({ error: 'Invalid jobId' });
+        return;
+      }
 
       const filePath = `${RAY_LOG_BASE_PATH}/job-driver-${jobId}.log`;
 

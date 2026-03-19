@@ -11,7 +11,9 @@ export const getRayJobDriverLogs = async (
   containerName: string,
   jobId: string,
 ): Promise<string> => {
-  const url = `/api/ray-job-logs/${namespace}/${podName}/${containerName}/${jobId}`;
+  const url = `/api/ray-job-logs/${encodeURIComponent(namespace)}/${encodeURIComponent(
+    podName,
+  )}/${encodeURIComponent(containerName)}/${encodeURIComponent(jobId)}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch logs: ${response.statusText}`);
