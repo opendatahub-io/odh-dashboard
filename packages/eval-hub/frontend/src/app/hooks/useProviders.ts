@@ -1,4 +1,4 @@
-import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
+import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import React from 'react';
 import { getProviders } from '~/app/api/k8s';
 import { Provider } from '~/app/types';
@@ -11,7 +11,12 @@ type UseProvidersResult = {
 
 export const useProviders = (namespace: string): UseProvidersResult => {
   const fetchProviders = React.useCallback<FetchStateCallbackPromise<Provider[]>>(
-    (opts) => getProviders('', namespace)(opts),
+    (opts) => {
+      if (!namespace) {
+        return Promise.reject(new NotReadyError('Namespace is required to fetch providers'));
+      }
+      return getProviders('', namespace)(opts);
+    },
     [namespace],
   );
 

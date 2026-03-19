@@ -1,0 +1,29 @@
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: ${hardwareProfileName}
+  namespace: ${hardwareProfileNamespace}
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '["workbench"]'
+    opendatahub.io/disabled: 'false'
+    opendatahub.io/display-name: ${displayName}
+spec:
+  displayName: ${displayName}
+  enabled: true
+  identifiers:
+    - defaultCount: 1
+      displayName: CPU
+      identifier: cpu
+      maxCount: 2
+      minCount: 1
+      resourceType: CPU
+    - defaultCount: 2Gi
+      displayName: Memory
+      identifier: memory
+      maxCount: 4Gi
+      minCount: 1Gi
+      resourceType: Memory
+  scheduling:
+    type: Queue
+    kueue:
+      localQueueName: ${localQueueName}

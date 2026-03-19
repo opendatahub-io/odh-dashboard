@@ -16,16 +16,12 @@ func CreateMaasFakeServer() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			if r.URL.Path == "/v1/api-keys" {
-				sendFakeResponse("api-keys-list.json", http.StatusOK, w)
+			if r.URL.Path == "/v1/models" {
+				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
 				return
 			}
 			if strings.HasPrefix(r.URL.Path, "/v1/api-keys/") {
 				sendFakeResponse("get-api-key-response.json", http.StatusOK, w)
-				return
-			}
-			if r.URL.Path == "/v1/models" {
-				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
 				return
 			}
 
@@ -34,10 +30,18 @@ func CreateMaasFakeServer() *httptest.Server {
 				sendFakeResponse("create-api-key-response.json", http.StatusCreated, w)
 				return
 			}
+			if r.URL.Path == "/v1/api-keys/search" {
+				sendFakeResponse("api-keys-search-response.json", http.StatusOK, w)
+				return
+			}
+			if r.URL.Path == "/v1/api-keys/bulk-revoke" {
+				sendFakeResponse("bulk-revoke-response.json", http.StatusOK, w)
+				return
+			}
 
 		case http.MethodDelete:
-			if r.URL.Path == "/v1/tokens" {
-				w.WriteHeader(http.StatusNoContent)
+			if strings.HasPrefix(r.URL.Path, "/v1/api-keys/") {
+				sendFakeResponse("revoke-api-key-response.json", http.StatusOK, w)
 				return
 			}
 

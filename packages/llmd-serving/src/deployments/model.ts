@@ -3,6 +3,8 @@ import {
   MetadataAnnotation,
   type SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
@@ -36,7 +38,7 @@ export const applyModelLocation = (
   if (!dryRun) {
     // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
     result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      connectionSecretName ?? createConnectionData?.nameDesc?.name ?? '';
+      connectionSecretName ?? createConnectionData?.nameDesc?.k8sName.value ?? '';
   } else {
     // Remove the connection name in the dry run or it will conflict during updates
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
@@ -75,6 +77,11 @@ export const applyModelLocation = (
 export const extractModelFormat = (): SupportedModelFormats | null => {
   return null;
 };
+
+export const extractModelType = (): ModelTypeFieldData => ({
+  type: ServingRuntimeModelType.GENERATIVE,
+  legacyVLLM: false,
+});
 
 /**
  * Helper function to ensure the main container exists and return a cloned service with the container

@@ -65,7 +65,9 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).click();
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .click();
     this.wait();
   }
 
@@ -129,12 +131,16 @@ class ModelRegistry {
   }
 
   tabEnabled() {
-    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('not.exist');
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('not.exist');
     return this;
   }
 
@@ -302,7 +308,7 @@ class ModelRegistry {
   }
 
   findDeployAction() {
-    return cy.findByTestId('deploy-model-version-action');
+    return cy.findByRole('menuitem', { name: /Deploy/ });
   }
 
   findArchiveModelVersionAction() {

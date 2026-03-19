@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
-import { registerProxy } from '../utils/proxy';
+import { addDefaultCacheControl, registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
@@ -29,6 +29,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           },
           local: backend.localService,
           headers: backend.headers,
+          rewriteHeaders: addDefaultCacheControl,
           onError: (reply, error) => {
             if (
               'code' in error.error &&

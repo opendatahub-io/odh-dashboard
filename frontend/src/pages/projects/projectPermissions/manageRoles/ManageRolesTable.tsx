@@ -11,8 +11,9 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import { getRoleRefKey } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import ManageRolesTableRow from './ManageRolesTableRow';
-import { ManageRolesRow, manageRolesColumns } from './columns';
+import { ManageRolesRow, manageRolesColumns, ASSIGNMENT_STATUS_COLUMN_INDEX } from './columns';
 
 type ManageRolesTableProps = {
   subjectName: string;
@@ -40,6 +41,19 @@ const ManageRolesTable: React.FC<ManageRolesTableProps> = ({
 
   const sort = useTableColumnSort<ManageRolesRow>(manageRolesColumns, [], 1);
   const sortedRows = sort.transformData(filteredRows);
+
+  const activeSortIndex = sort.getColumnSort(ASSIGNMENT_STATUS_COLUMN_INDEX)?.sortBy.index;
+  const activeSortDirection = sort.getColumnSort(ASSIGNMENT_STATUS_COLUMN_INDEX)?.sortBy.direction;
+
+  React.useEffect(() => {
+    if (activeSortIndex === ASSIGNMENT_STATUS_COLUMN_INDEX && activeSortDirection) {
+      /* eslint-disable camelcase */
+      fireMiscTrackingEvent('RBAC Assignment Status Sorted', {
+        sorting_status: activeSortDirection,
+      });
+      /* eslint-enable camelcase */
+    }
+  }, [activeSortIndex, activeSortDirection]);
 
   const onClearFilters = React.useCallback(() => {
     setFilterText('');

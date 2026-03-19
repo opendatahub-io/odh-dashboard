@@ -2538,6 +2538,12 @@ describe('Workbench page', () => {
         .should('have.text', 'Queued');
     });
 
+    it('displays human-readable subtitle for Queued status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'Waiting for');
+    });
+
     it('displays Failed when workload has Finished with failed reason', () => {
       initKueueWorkloadStatus(WorkloadStatusType.Failed);
       workbenchPage.visit('test-project');
@@ -2554,6 +2560,15 @@ describe('Workbench page', () => {
         .getNotebookRow('Test Notebook')
         .findHaveNotebookStatusText()
         .should('have.text', 'Preempted');
+    });
+
+    it('displays human-readable subtitle for Preempted status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Paused by a higher-priority job');
     });
 
     it('displays Inadmissible when workload is inadmissible', () => {

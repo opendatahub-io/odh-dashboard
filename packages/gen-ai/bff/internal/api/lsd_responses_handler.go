@@ -783,19 +783,32 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		TTL: constants.MaaSTokenTTLString,
+		ExpiresIn: constants.MaaSTokenTTLString,
 	})
 	if err != nil {
-		app.logger.Warn("Failed to issue MaaS token", "model", modelID, "error", err)
+		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
 		return ""
 	}
 
-	// Cache the new token
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Token, constants.MaaSTokenTTLDuration); err != nil {
-		app.logger.Warn("Failed to cache MaaS token", "model", modelID, "error", err)
-	} else {
-		app.logger.Debug("Cached new MaaS token", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
+	// Compute cache TTL from the key's actual expiry, with a safety buffer
+	cacheTTL := constants.MaaSTokenTTLDuration
+	ttlSource := "default"
+	if tokenResponse.ExpiresAt != "" {
+		if expiresAt, parseErr := time.Parse(time.RFC3339, tokenResponse.ExpiresAt); parseErr == nil {
+			const safetyBuffer = 30 * time.Second
+			computed := time.Until(expiresAt) - safetyBuffer
+			if computed > 0 && computed <= 24*time.Hour {
+				cacheTTL = computed
+				ttlSource = "expiresAt"
+			}
+		}
 	}
 
-	return tokenResponse.Token
+	// Cache the new API key
+	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Key, cacheTTL); err != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	}
+
+	return tokenResponse.Key
 }

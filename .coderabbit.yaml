@@ -1,0 +1,211 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Per-repo CodeRabbit config for opendatahub-io/odh-dashboard
+# Inherits org-wide baseline from opendatahub-io/security-config.
+# Only overrides listed below differ from the org baseline.
+
+inheritance: true
+
+reviews:
+  # ── Path filters (additive to baseline) ─────────────────────────
+  path_filters:
+    # Baseline already excludes: vendor, node_modules, bin, __pycache__,
+    #   *.sum, *.pb.go, *.generated.go, synced security configs
+    - "!package-lock.json"
+    - "!.github/**"
+    - "!.tekton/**"
+    - "!**/@mf-types/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!**/upstream/**"
+
+  # ── Monorepo path instructions ──────────────────────────────────
+  # These supplement the baseline instructions (Go, Python, TS, etc.)
+  # with odh-dashboard-specific architectural guidance.
+  path_instructions:
+    # ── Main frontend app ─────────────────────────────────────────
+    - path: "frontend/src/**/*.{ts,tsx}"
+      instructions: |
+        ODH DASHBOARD FRONTEND (main app):
+        1. PatternFly v6: use PF6 imports from @patternfly/react-core, not custom wrappers.
+           Avoid custom CSS — if you need to "nudge" PF layout, check frontend/src/concepts/dashboard first.
+        2. Functional components only (no class components). Use hooks for state management.
+        3. API calls: use the shared API utilities, never raw fetch(); handle loading/error states.
+        4. No hardcoded cluster URLs or API endpoints — use config from backend.
+        5. Route guards: protected routes must check user permissions before rendering.
+        6. Performance: avoid unnecessary useCallback/useMemo/useRef — React is performant by default.
+           Only use useCallback when the function is passed as a prop, used as a useEffect dependency,
+           or returned from a custom hook (see docs/best-practices.md).
+        7. Custom components go in frontend/src/components. PF-first: verify with the team before
+           creating new custom components.
+
+    - path: "frontend/src/**/*.{test,spec}.{ts,tsx}"
+      instructions: |
+        FRONTEND UNIT TESTS (Jest):
+        1. Co-locate tests with source: MyComponent.test.tsx next to MyComponent.tsx
+           (or in __tests__/ subdirectory).
+        2. Test behavior, not implementation details. Test names must describe the verified behavior.
+        3. Tests must be deterministic — no flaky tests, no timing dependencies.
+        4. Follow conventions in docs/agent-rules/unit-tests.md.
+
+    # ── Main backend (Node.js/TypeScript) ─────────────────────────
+    - path: "backend/src/**/*.{ts,js}"
+      instructions: |
+        ODH DASHBOARD BACKEND (Node.js BFF):
+        1. All external API calls must use the service account token, never user-provided tokens.
+        2. Validate and sanitize route parameters before K8s API calls (prevent injection).
+        3. Proxy endpoints must not expose internal cluster addresses to the client.
+        4. Error responses must not leak cluster internals (pod names, IPs, stack traces).
+        5. Verify RBAC: backend routes should check user permissions via SubjectAccessReview.
+
+    # ── Feature plugin frontends (packages with frontend/ subdir) ─
+    - path: "packages/*/frontend/src/**/*.{ts,tsx}"
+      instructions: |
+        FEATURE PLUGIN FRONTEND (Module Federation):
+        These packages (automl, autorag, eval-hub, gen-ai, maas, mlflow) use Module Federation
+        to load as remotes into the host dashboard app.
+        1. Plugins must use plugin-core APIs for navigation, not direct router manipulation.
+        2. Shared dependencies (React, PatternFly, Redux) must come from the host app — do not
+           bundle duplicates.
+        3. No global CSS — use PatternFly utility classes or CSS modules only.
+        4. Lazy-load heavy components; plugins load on demand via Module Federation.
+        5. Follow PatternFly v6 patterns consistent with the main frontend app.
+
+    # ── Feature plugin source (packages with direct src/) ─────────
+    - path: "packages/{model-registry,model-serving,model-training,kserve,llmd-serving,feature-store,observability,plugin-core,app-config}/src/**/*.{ts,tsx}"
+      instructions: |
+        FEATURE PACKAGE SOURCE:
+        These packages contribute to the dashboard via extensions or direct imports.
+        1. Follow the same PatternFly v6 and TypeScript strict-mode conventions as the main frontend.
+        2. Exports must be stable — other packages depend on them.
+        3. Co-locate tests with source files.
+        4. Check for AGENTS.md in the package root for package-specific guidance.
+
+    - path: "packages/mlflow-embedded/{experiments,prompts,shared}/**/*.{ts,tsx}"
+      instructions: |
+        MLFLOW EMBEDDED PACKAGE:
+        This package contributes to the dashboard via extensions or direct imports.
+        1. Follow the same PatternFly v6 and TypeScript strict-mode conventions as the main frontend.
+        2. Exports must be stable — other packages depend on them.
+        3. Co-locate tests with source files.
+
+    - path: "packages/model-serving/modelRegistry/**/*.{ts,tsx}"
+      instructions: |
+        MODEL SERVING — MODEL REGISTRY INTEGRATION:
+        1. Follow the same PatternFly v6 and TypeScript strict-mode conventions as the main frontend.
+        2. Ensure model registry API calls use shared utilities and handle errors consistently.
+        3. Co-locate tests with source files.
+
+    # ── Go BFF services ───────────────────────────────────────────
+    - path: "packages/*/bff/**/*.go"
+      instructions: |
+        GO BFF SERVICE (Backend-for-Frontend):
+        Packages with BFFs: automl, autorag, eval-hub, gen-ai, maas, mlflow.
+        1. Validate all incoming request bodies and query parameters at handler level.
+        2. Use the shared K8s client config; do not create ad-hoc kubeconfig readers.
+        3. HTTP clients to external services must set timeouts and use TLS verification.
+        4. No credentials in BFF code — use mounted secrets or environment variables.
+        5. OpenAPI spec in api/ or docs/ must match actual handler signatures.
+        6. Follow .golangci.yaml rules in the package root.
+        7. No panic in handlers — use explicit error returns with context.
+        8. Repository pattern: data access through repository interfaces, not direct K8s calls
+           in handlers. Mock interfaces for unit testing (see mocks/ directory).
+        9. Error wrapping: use fmt.Errorf with %w for error chains.
+        10. Context propagation: pass context.Context through all layers.
+
+    # ── OpenAPI / API specs ───────────────────────────────────────
+    - path: "packages/*/api/**/*.{yaml,yml,json}"
+      instructions: |
+        OPENAPI SPECIFICATIONS:
+        1. API specs must stay in sync with the corresponding BFF handler implementations.
+        2. Breaking changes to API specs require corresponding contract test updates.
+        3. Use semantic versioning annotations where applicable.
+
+    # ── Cypress E2E tests (shared framework) ──────────────────────
+    - path: "packages/cypress/**/*.{ts,js}"
+      instructions: |
+        CYPRESS E2E TESTS (shared test framework):
+        1. No hardcoded credentials — use Cypress environment variables (cypress.env.json).
+        2. Test data cleanup: delete resources created during tests in after() hooks.
+        3. Use data-testid selectors, not CSS classes (resilient to style changes).
+        4. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
+        5. Tests must be idempotent: runnable in any order without shared state.
+        6. Follow conventions in docs/agent-rules/cypress-e2e.md and docs/agent-rules/cypress-mock.md.
+
+    # ── Package-level Cypress tests ───────────────────────────────
+    - path: "packages/*/frontend/src/__tests__/cypress/**/*.{ts,js}"
+      instructions: |
+        PACKAGE CYPRESS TESTS:
+        Same conventions as the shared Cypress framework (packages/cypress).
+        Use data-testid selectors, cy.intercept() instead of cy.wait(), and ensure idempotency.
+
+    # ── Contract tests ────────────────────────────────────────────
+    - path: "packages/*/contract-tests/**/*.{ts,js}"
+      instructions: |
+        CONTRACT TESTS (BFF API validation):
+        Packages with contract tests: automl, autorag, eval-hub, gen-ai, mlflow, model-registry.
+        1. Contracts must match the OpenAPI spec in the corresponding api/ directory.
+        2. Provider verification tests must run against actual BFF endpoints.
+        3. No mocking of the provider in contract verification (defeats the purpose).
+        4. Follow conventions in docs/agent-rules/contract-tests.md.
+
+    - path: "packages/contract-tests/**/*.{ts,js}"
+      instructions: |
+        SHARED CONTRACT TEST UTILITIES:
+        This package provides shared test infrastructure for per-package contract tests.
+        1. Changes here affect all packages with contract tests — ensure backward compatibility.
+        2. Shared helpers must be generic; package-specific logic belongs in per-package tests.
+
+    # ── Shared config packages ────────────────────────────────────
+    - path: "packages/{eslint-config,eslint-plugin,jest-config,tsconfig}/**"
+      instructions: |
+        SHARED CONFIG PACKAGES:
+        1. Changes here affect ALL packages — ensure backward compatibility.
+        2. ESLint rule changes must not introduce new warnings in existing packages.
+        3. TypeScript config changes must not break any package's build.
+        4. Version bumps should be coordinated across the monorepo.
+
+    # ── Kubernetes manifests ──────────────────────────────────────
+    - path: "manifests/**/*.yaml"
+      instructions: |
+        K8S DEPLOYMENT MANIFESTS (Kustomize-based):
+        1. No :latest image tags — use pinned versions or digests.
+        2. Resource requests and limits must be set on all containers.
+        3. SecurityContext: runAsNonRoot, readOnlyRootFilesystem, drop ALL capabilities.
+        4. No hostPath volumes or privileged containers.
+        5. Validate with kustomize build before merging.
+        6. RBAC changes must follow least-privilege principle.
+
+    # ── Dockerfiles ───────────────────────────────────────────────
+    - path: "**/Dockerfile*"
+      instructions: |
+        DOCKERFILES:
+        1. Multi-stage builds: separate build and runtime stages.
+        2. Copy only necessary artifacts to runtime stage (no source code, node_modules, .git).
+        3. Use the same base image version as the main Dockerfile where possible.
+        4. No npm install in runtime stage — copy from build stage.
+        5. Dockerfile.workspace files are for dev workspace images — follow the same base image
+           conventions.
+
+    # ── Turbo / monorepo build config ─────────────────────────────
+    - path: "turbo.json{,c}"
+      instructions: |
+        TURBOREPO CONFIG:
+        1. Task dependencies must reflect the actual package dependency graph.
+        2. Cache inputs/outputs must be accurate — incorrect caching causes stale builds.
+        3. Changes here affect all package build ordering and CI performance.
+
+    # ── Webpack config ────────────────────────────────────────────
+    - path: "**/webpack.{common,dev,prod}.{ts,js}"
+      instructions: |
+        WEBPACK CONFIG:
+        1. Build configuration changes affect dev and production bundles.
+        2. Ensure dev/prod parity — avoid dev-only shortcuts that mask production issues.
+        3. Changes here affect build performance and output for all consumers.
+
+    # ── Module Federation config ──────────────────────────────────
+    - path: "**/moduleFederation.{ts,js}"
+      instructions: |
+        MODULE FEDERATION CONFIG:
+        1. Shared dependencies in ModuleFederationPlugin must match host app versions.
+        2. Remote entry configuration must be consistent with manifests/modular-architecture/.
+        3. Changes to shared dependency list require coordination across all plugins.

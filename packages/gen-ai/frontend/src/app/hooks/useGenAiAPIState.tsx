@@ -23,7 +23,12 @@ import {
   createResponse,
   getGuardrailsStatus,
   getSafetyConfig,
+  listMLflowPrompts,
+  registerMLflowPrompt,
+  getMLflowPrompt,
+  listMLflowPromptVersions,
   createExternalModel,
+  verifyExternalModel,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -55,7 +60,12 @@ const useGenAiAPIState = (
       getBFFConfig: getBFFConfig(path, queryParameters),
       getGuardrailsStatus: getGuardrailsStatus(path, queryParameters),
       getSafetyConfig: getSafetyConfig(path, queryParameters),
+      listMLflowPrompts: listMLflowPrompts(path, queryParameters),
+      registerMLflowPrompt: registerMLflowPrompt(path, queryParameters),
+      getMLflowPrompt: getMLflowPrompt(path, queryParameters),
+      listMLflowPromptVersions: listMLflowPromptVersions(path, queryParameters),
       createExternalModel: createExternalModel(path, queryParameters),
+      verifyExternalModel: verifyExternalModel(path, queryParameters),
     }),
     [queryParameters],
   );

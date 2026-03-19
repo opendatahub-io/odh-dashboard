@@ -1,33 +1,245 @@
 import {
+  Alert,
   Button,
   Card,
-  CardHeader,
   CardBody,
+  CardHeader,
   CardTitle,
+  FormHelperText,
   Grid,
   GridItem,
+  HelperText,
+  HelperTextItem,
   Label,
+  NumberInput,
   Panel,
   PanelMain,
   PanelMainBody,
   PanelFooter,
+  Popover,
+  Content,
+  Gallery,
   Split,
   SplitItem,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { automlResultsPathname } from '~/app/utilities/routes';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import React, { useEffect, useState, useRef } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  isConnectionType,
+  isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import createConfigureSchema, {
+  ConfigureSchema,
+  MIN_TOP_N,
+  MAX_TOP_N,
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+  getDefaultValues,
+} from '~/app/schemas/configure.schema';
+import { automlExperimentsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { useFilesQuery, useCreatePipelineRun } from '~/app/hooks/queries';
+import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+import ConfigureTabularForm from './ConfigureTabularForm';
+import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
+
+function getBucketFromSecretData(data: Record<string, string> | undefined): string {
+  if (!data) {
+    return '';
+  }
+  const key = Object.keys(data).find((k) => k.toLowerCase() === 'aws_s3_bucket');
+  return key ? data[key] : '';
+}
+
+const PREDICTION_TYPES: {
+  value: ConfigureSchema['task_type'];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: TASK_TYPE_BINARY,
+    label: 'Binary classification',
+    description:
+      'Classify data into categories. Choose this if your prediction column contains two distinct categories',
+  },
+  {
+    value: TASK_TYPE_MULTICLASS,
+    label: 'Multiclass classification',
+    description:
+      'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
+  },
+  {
+    value: TASK_TYPE_REGRESSION,
+    label: 'Regression',
+    description:
+      'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
+  },
+  {
+    value: TASK_TYPE_TIMESERIES,
+    label: 'Time series forecasting',
+    description:
+      'Predict future activity over a specified date/time range. Data must be structured and sequential.',
+  },
+];
+
+const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+
+const configureSchema = createConfigureSchema();
 
 function AutomlConfigure(): React.JSX.Element {
   const navigate = useNavigate();
-
+  const { namespace } = useParams();
+  const queryClient = useQueryClient();
+  const [allConnectionTypes] = useWatchConnectionTypes();
+  const automlConnectionTypes = React.useMemo(
+    () =>
+      allConnectionTypes.filter((ct) => {
+        if (!isConnectionType(ct)) {
+          return false;
+        }
+        const fieldEnvs = ct.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+        return S3ConnectionTypeKeys.every((envVar) => fieldEnvs?.includes(envVar));
+      }),
+    [allConnectionTypes],
+  );
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const [submitError, setSubmitError] = useState<string | undefined>();
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const previousFileKeyRef = useRef<string | undefined>();
+
+  const createPipelineRun = useCreatePipelineRun();
+
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema),
+    defaultValues: getDefaultValues(),
+  });
+
+  const {
+    control,
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
+  } = form;
+
+  const trainDataSecretName = watch('train_data_secret_name');
+  const trainDataBucketName = watch('train_data_bucket_name');
+  const trainDataFileKey = watch('train_data_file_key');
+  const taskType = watch('task_type');
+  const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
+
+  const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
+  const isFileSelected = Boolean(trainDataFileKey);
+
+  const canSelectLearningType = isFileSelected;
+  // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
+  const formDisabled = !formIsValid || formIsSubmitting || createPipelineRun.isPending;
+
+  const {
+    data: columns = [],
+    isLoading: isLoadingColumns,
+    isFetching: isFetchingColumns,
+    error: columnsError,
+  } = useFilesQuery(namespace ?? '', trainDataSecretName, trainDataBucketName, trainDataFileKey);
+
+  // reset selected file values if bucket changes
+  useEffect(() => {
+    setValue('train_data_file_key', '');
+  }, [trainDataBucketName, setValue]);
+
+  // reset all column-related form fields when file selection changes
+  useEffect(() => {
+    if (trainDataFileKey && trainDataFileKey !== previousFileKeyRef.current) {
+      // Reset tabular form fields
+      setValue('label_column', '');
+
+      // Reset timeseries form fields
+      setValue('target', '');
+      setValue('timestamp_column', '');
+      setValue('id_column', '');
+      setValue('known_covariates_names', []);
+    }
+    previousFileKeyRef.current = trainDataFileKey;
+  }, [trainDataFileKey, setValue]);
+
+  // reset columns query cache and label column when connection data is cleared
+  useEffect(() => {
+    if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
+      queryClient.setQueryData(
+        ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
+        [],
+      );
+      setValue('label_column', '');
+    }
+  }, [
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+    namespace,
+    queryClient,
+    setValue,
+  ]);
+
+  // Initialize timeseries-specific fields when switching to timeseries mode
+  useEffect(() => {
+    if (taskType === TASK_TYPE_TIMESERIES) {
+      // Only set default values if the fields are undefined
+      if (watch('prediction_length') === undefined) {
+        setValue('prediction_length', 1);
+      }
+      if (watch('known_covariates_names') === undefined) {
+        setValue('known_covariates_names', []);
+      }
+    }
+  }, [taskType, watch, setValue]);
+
+  const onSubmit = handleSubmit(async (data) => {
+    if (!namespace) {
+      return;
+    }
+
+    setSubmitError(undefined);
+
+    try {
+      await createPipelineRun.mutateAsync({
+        namespace,
+        data,
+      });
+
+      // TODO Redirect to the experiments page on success for now until we hook
+      // up the results screen.
+      navigate(`${automlExperimentsPathname}/${namespace}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create pipeline run';
+      setSubmitError(errorMessage);
+    }
+  });
+
+  if (!namespace) {
+    return <Navigate to={automlExperimentsPathname} replace />;
+  }
 
   return (
-    <>
+    <FormProvider {...form}>
       <Panel isScrollable={false}>
         <PanelMain tabIndex={0}>
           <PanelMainBody>
@@ -41,41 +253,98 @@ function AutomlConfigure(): React.JSX.Element {
                         Select or add an S3 connection to upload files or browse existing files.
                       </StackItem>
                       <StackItem>
-                        <Split>
-                          <SplitItem isFilled data-temp-placeholder>
-                            Connections dropdown
+                        <Split
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                          }}
+                        >
+                          <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
+                            {Boolean(namespace) && (
+                              <Controller
+                                control={control}
+                                name="train_data_secret_name"
+                                render={({ field: { onChange } }) => (
+                                  <SecretSelector
+                                    namespace={String(namespace)}
+                                    type="storage"
+                                    additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                    value={selectedSecret?.uuid}
+                                    onChange={(secret) => {
+                                      setNewConnectionNotLoaded(false);
+                                      setSelectedSecret(secret);
+                                      onChange(secret?.invalid ? '' : secret?.name);
+                                      setValue(
+                                        'train_data_bucket_name',
+                                        getBucketFromSecretData(secret?.data),
+                                      );
+                                    }}
+                                    onRefreshReady={(refresh) => {
+                                      secretsRefreshRef.current = refresh;
+                                    }}
+                                    label="S3 connection"
+                                    placeholder="Select connection"
+                                    toggleWidth="16rem"
+                                    dataTestId="aws-secret-selector"
+                                  />
+                                )}
+                              />
+                            )}
                           </SplitItem>
                           <SplitItem>
                             <Button
                               key="add-new-connection"
                               variant="secondary"
-                              onClick={() => null}
+                              onClick={() => setIsConnectionModalOpen(true)}
                             >
                               Add new connection
                             </Button>
                           </SplitItem>
                         </Split>
                       </StackItem>
+                      {newConnectionNotLoaded && (
+                        <StackItem className="pf-v6-u-mt-md">
+                          <Alert variant="warning" isInline title="Connection added">
+                            The connection was created but could not be loaded. Please refresh the
+                            page to see it.
+                          </Alert>
+                        </StackItem>
+                      )}
+                      {Boolean(selectedSecret?.uuid) && (
+                        <>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected connection
+                          </StackItem>
+                          <StackItem>
+                            <Label
+                              onClose={() => {
+                                setSelectedSecret(undefined);
+                                // Clear selections
+                                setValue('train_data_secret_name', '');
+                                setValue('train_data_bucket_name', '');
+                                setValue('train_data_file_key', '');
+                              }}
+                              closeBtnAriaLabel="Clear selected connection"
+                            >
+                              {selectedSecret?.displayName ?? selectedSecret?.name}
+                            </Label>
+                          </StackItem>
 
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label onClose={() => null}>S3 connection test</Label>
-                      </StackItem>
-
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected files
-                      </StackItem>
-                      <StackItem>
-                        <Button
-                          key="select-files"
-                          variant="secondary"
-                          onClick={() => setIsFileExplorerOpen(true)}
-                        >
-                          Select files
-                        </Button>
-                      </StackItem>
+                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                            Selected files
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="select-files"
+                              variant="secondary"
+                              onClick={() => setIsFileExplorerOpen(true)}
+                              isDisabled={!canSelectFiles}
+                            >
+                              Select files
+                            </Button>
+                          </StackItem>
+                        </>
+                      )}
                     </Stack>
                   </CardBody>
                 </Card>
@@ -84,64 +353,122 @@ function AutomlConfigure(): React.JSX.Element {
                 <Card className="pf-v6-u-h-100">
                   <CardTitle>Configure details</CardTitle>
                   <CardBody>
-                    <Stack>
-                      <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                        Where would you like to index your documents?
-                      </StackItem>
-                      <StackItem data-temp-placeholder>Vector index dropdown</StackItem>
-
-                      <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Add the data source you would like to use for evaluation.{' '}
-                        <span className="pf-v6-u-text-color-required">*</span>
-                      </StackItem>
-                      <StackItem data-temp-placeholder>
-                        Evaluation data source upload component
-                      </StackItem>
-
-                      <Grid hasGutter className="pf-v6-u-mt-md">
-                        <GridItem span={6}>
-                          <Card>
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-optimization-metric"
-                                    variant="secondary"
-                                    onClick={() => null}
+                    <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
+                      <StackItem>
+                        <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+                          Prediction type
+                          <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                            {' *'}
+                          </span>
+                        </div>
+                        <Controller
+                          control={form.control}
+                          name="task_type"
+                          render={({ field }) => (
+                            <Gallery hasGutter minWidths={{ default: '200px' }}>
+                              {PREDICTION_TYPES.map((type) => (
+                                <Card
+                                  key={type.value}
+                                  isSelectable
+                                  isDisabled={!canSelectLearningType}
+                                  isSelected={field.value === type.value}
+                                  onClick={() => field.onChange(type.value)}
+                                  data-testid={`task-type-card-${type.value}`}
+                                >
+                                  <CardHeader
+                                    selectableActions={{
+                                      selectableActionId: `task-type-${type.value}`,
+                                      selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                      name: 'task_type',
+                                      variant: 'single',
+                                      isChecked: field.value === type.value,
+                                      onChange: () => field.onChange(type.value),
+                                      isHidden: true,
+                                    }}
                                   >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Optimization metric</CardTitle>
-                            </CardHeader>
-                            <CardBody />
-                          </Card>
-                        </GridItem>
-                        <GridItem span={6}>
-                          <Card>
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-considered-models"
-                                    variant="secondary"
-                                    onClick={() => null}
-                                  >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Models to consider</CardTitle>
-                            </CardHeader>
-                            <CardBody />
-                          </Card>
-                        </GridItem>
-                      </Grid>
+                                    <CardTitle id={`task-type-label-${type.value}`}>
+                                      {type.label}
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardBody>
+                                    <Content component="small">{type.description}</Content>
+                                  </CardBody>
+                                </Card>
+                              ))}
+                            </Gallery>
+                          )}
+                        />
+                      </StackItem>
+
+                      {isTimeseries ? (
+                        <ConfigureTimeseriesForm
+                          columns={columns}
+                          isLoadingColumns={isLoadingColumns}
+                          isFetchingColumns={isFetchingColumns}
+                          columnsError={columnsError}
+                          isFileSelected={isFileSelected}
+                          formIsSubmitting={formIsSubmitting}
+                        />
+                      ) : (
+                        <ConfigureTabularForm
+                          columns={columns}
+                          isLoadingColumns={isLoadingColumns}
+                          isFetchingColumns={isFetchingColumns}
+                          columnsError={columnsError}
+                          isFileSelected={isFileSelected}
+                          formIsSubmitting={formIsSubmitting}
+                        />
+                      )}
+
+                      <StackItem>
+                        <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+                          Top models to consider
+                          <Popover
+                            aria-label="Top models to consider help"
+                            headerContent="Top models to consider"
+                            bodyContent="Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training."
+                          >
+                            <DashboardPopupIconButton
+                              icon={<OutlinedQuestionCircleIcon />}
+                              aria-label="More info for top models to consider"
+                            />
+                          </Popover>
+                        </div>
+                        <Controller
+                          control={form.control}
+                          name="top_n"
+                          render={({ field, fieldState }) => (
+                            <>
+                              <NumberInput
+                                id="top-n-input"
+                                value={field.value}
+                                min={MIN_TOP_N}
+                                max={MAX_TOP_N}
+                                isDisabled={formIsSubmitting}
+                                validated={fieldState.error ? 'error' : 'default'}
+                                onMinus={() => field.onChange(Number(field.value) - 1)}
+                                onPlus={() => field.onChange(Number(field.value) + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const value = parseInt(event.currentTarget.value, 10);
+                                  if (!Number.isNaN(value)) {
+                                    field.onChange(value);
+                                  }
+                                }}
+                                data-testid="top-n-input"
+                              />
+                              {fieldState.error && (
+                                <FormHelperText>
+                                  <HelperText>
+                                    <HelperTextItem variant="error">
+                                      {fieldState.error.message}
+                                    </HelperTextItem>
+                                  </HelperText>
+                                </FormHelperText>
+                              )}
+                            </>
+                          )}
+                        />
+                      </StackItem>
                     </Stack>
                   </CardBody>
                 </Card>
@@ -150,24 +477,68 @@ function AutomlConfigure(): React.JSX.Element {
           </PanelMainBody>
         </PanelMain>
         <PanelFooter>
-          <Button
-            variant="primary"
-            onClick={() => {
-              navigate(`${automlResultsPathname}/FAKE_RUN_ID`);
-            }}
-          >
-            Run experiment
-          </Button>
+          <Stack hasGutter>
+            {submitError && (
+              <StackItem>
+                <Alert variant="danger" isInline title="Failed to create experiment">
+                  {submitError}
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Button variant="primary" isDisabled={formDisabled} onClick={onSubmit}>
+                Run experiment
+              </Button>
+            </StackItem>
+          </Stack>
         </PanelFooter>
       </Panel>
 
+      {isConnectionModalOpen && (
+        <AutomlConnectionModal
+          connectionTypes={automlConnectionTypes}
+          project={namespace}
+          onClose={() => {
+            setIsConnectionModalOpen(false);
+          }}
+          onSubmit={async (connection: Connection) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === connection.metadata.name);
+            if (secret) {
+              setNewConnectionNotLoaded(false);
+              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const availableKeys = Object.keys(secret.data ?? connection.stringData ?? {});
+              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              setSelectedSecret({
+                ...secret,
+                invalid,
+              });
+              setValue('train_data_secret_name', invalid ? '' : secret.name);
+              setValue(
+                'train_data_bucket_name',
+                invalid ? '' : getBucketFromSecretData(secret.data ?? connection.stringData),
+              );
+            } else {
+              setNewConnectionNotLoaded(true);
+            }
+          }}
+        />
+      )}
       <FileExplorer
-        id="AutomlConfigure-FileExplorer"
+        id="AutoMlConfigure-FileExplorer"
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+        onSelect={(files) => {
+          if (Array.isArray(files) && files.length > 0) {
+            setValue('train_data_file_key', files[0].name);
+          }
+        }}
       />
-    </>
+    </FormProvider>
   );
 }
 

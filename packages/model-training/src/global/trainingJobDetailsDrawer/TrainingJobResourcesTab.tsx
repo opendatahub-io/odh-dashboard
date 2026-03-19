@@ -56,7 +56,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   return (
     <Stack hasGutter>
       <StackItem className="pf-v6-u-mt-md">
-        <DescriptionList isHorizontal>
+        <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '20ch' }}>
           <Title headingLevel="h6" size="md" data-testid="node-configurations-section">
             Node configurations
           </Title>

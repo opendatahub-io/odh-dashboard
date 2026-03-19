@@ -20,6 +20,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -412,11 +413,14 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
 			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("mock://"+namespace, "", false, app.rootCAs)
+			mockBaseURL := "mock://" + namespace
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
 			baseURL := app.config.PipelineServerURL
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
 				"namespace", namespace)
 
@@ -549,6 +553,7 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 		}
 
 		r = r.WithContext(ctx)
@@ -909,4 +914,79 @@ func (app *App) discoverReadyDSPA(
 		"namespace", namespace,
 		"total_dspas", len(dspas))
 	return nil, nil
+}
+
+// AttachDiscoveredPipeline middleware discovers managed pipelines and attaches them to context.
+//
+// Middleware Chain Requirements:
+//   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
+//   - Returns 400 if prerequisites are missing
+//
+// Behavior:
+//   - Builds a definitions map from config (pipeline type → name prefix)
+//   - Calls DiscoverNamedPipelines to find all configured pipelines
+//   - Stores the result map in context at constants.DiscoveredPipelinesKey
+//   - Partial maps are allowed — handlers decide if their specific type is required
+//   - Returns 500 only if discovery fails with a hard API error
+//   - Logs discovery results for debugging
+//
+// Handlers using this middleware can retrieve discovered pipelines from context:
+//
+//	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+//	discovered := pipelines["autorag"]
+func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get pipeline server client from context (set by AttachPipelineServerClient middleware)
+		pipelineClient, ok := ctx.Value(constants.PipelineServerClientKey).(pipelineserver.PipelineServerClientInterface)
+		if !ok || pipelineClient == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing pipeline server client in context - ensure AttachPipelineServerClient middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Get pipeline server base URL from context (used as part of cache key)
+		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
+
+		// Build definitions map: pipeline type key → name prefix
+		definitions := map[string]string{
+			"autorag": app.config.AutoRAGPipelineNamePrefix,
+		}
+
+		// Discover named pipelines in the namespace
+		pipelines, err := app.repositories.Pipeline.DiscoverNamedPipelines(pipelineClient, ctx, namespace, pipelineServerBaseURL, definitions)
+		if err != nil {
+			logger.Error("Failed to discover AutoRAG pipelines",
+				"namespace", namespace,
+				"error", err)
+			app.serverErrorResponseWithMessage(w, r,
+				fmt.Errorf("failed to discover AutoRAG pipeline: %w", err),
+				fmt.Sprintf("failed to discover AutoRAG pipeline in namespace %s - check that the pipeline server is accessible", namespace))
+			return
+		}
+
+		if autoragPipeline, found := pipelines["autorag"]; found {
+			logger.Debug("Discovered AutoRAG pipeline",
+				"namespace", namespace,
+				"pipelineId", autoragPipeline.PipelineID,
+				"pipelineVersionId", autoragPipeline.PipelineVersionID)
+		} else {
+			logger.Debug("No AutoRAG pipeline discovered in namespace", "namespace", namespace)
+		}
+
+		// Attach discovered pipelines map to context (may be empty)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
 }

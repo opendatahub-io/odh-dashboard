@@ -4,6 +4,79 @@ import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { getStatusSubtitle } from '#~/pages/projects/notebook/NotebookStateStatus';
 
 describe('getStatusSubtitle', () => {
+  describe('error priority', () => {
+    it('should return error event when notebookStatus is ERROR', () => {
+      const notebookStatus: NotebookStatus = {
+        currentStatus: EventStatus.ERROR,
+        currentEvent: 'ImagePullBackOff',
+        currentEventReason: 'ErrImagePull',
+        currentEventDescription: 'Failed to pull image',
+      };
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus,
+          kueueStatus: null,
+        }),
+      ).toBe('ImagePullBackOff');
+    });
+
+    it('should return error event even when Kueue override status is present', () => {
+      const notebookStatus: NotebookStatus = {
+        currentStatus: EventStatus.ERROR,
+        currentEvent: 'CrashLoopBackOff',
+        currentEventReason: 'BackOff',
+        currentEventDescription: 'Container crashed',
+      };
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Queued,
+            message: 'insufficient unused quota',
+          },
+        }),
+      ).toBe('CrashLoopBackOff');
+    });
+
+    it('should return error event even when isStopping is true', () => {
+      const notebookStatus: NotebookStatus = {
+        currentStatus: EventStatus.ERROR,
+        currentEvent: 'FailedMount',
+        currentEventReason: 'MountFailed',
+        currentEventDescription: 'Failed to mount volume',
+      };
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: true,
+          notebookStatus,
+          kueueStatus: null,
+        }),
+      ).toBe('FailedMount');
+    });
+
+    it('should return null when notebookStatus is ERROR but currentEvent is empty', () => {
+      const notebookStatus: NotebookStatus = {
+        currentStatus: EventStatus.ERROR,
+        currentEvent: '',
+        currentEventReason: '',
+        currentEventDescription: '',
+      };
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus,
+          kueueStatus: null,
+        }),
+      ).toBeNull();
+    });
+  });
+
   describe('isStopping priority', () => {
     it('should return null when isStopping is true', () => {
       expect(
@@ -49,7 +122,7 @@ describe('getStatusSubtitle', () => {
   });
 
   describe('Kueue override status', () => {
-    it('should return Kueue message when status is in override list and not stopping', () => {
+    it('should return human-readable Kueue message when status is in override list and not stopping', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
@@ -58,12 +131,13 @@ describe('getStatusSubtitle', () => {
           kueueStatus: {
             status: KueueWorkloadStatus.Queued,
             message: 'insufficient unused quota in cluster',
+            queueName: 'test-queue',
           },
         }),
-      ).toBe('insufficient unused quota in cluster');
+      ).toBe('Waiting for quota in test-queue');
     });
 
-    it('should return trimmed Kueue message when message has surrounding whitespace', () => {
+    it('should return human-readable Kueue message for Inadmissible with quota message', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
@@ -72,23 +146,24 @@ describe('getStatusSubtitle', () => {
           kueueStatus: {
             status: KueueWorkloadStatus.Inadmissible,
             message: '  quota exceeded  ',
+            queueName: 'test-queue',
           },
         }),
-      ).toBe('quota exceeded');
+      ).toBe('Exceeded quota for test-queue');
     });
 
-    it('should return status when message is empty and status is in override list', () => {
+    it('should return human-readable default message when message is empty and status is in override list', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
           isStopping: false,
           notebookStatus: null,
-          kueueStatus: { status: KueueWorkloadStatus.Queued },
+          kueueStatus: { status: KueueWorkloadStatus.Queued, queueName: 'test-queue' },
         }),
-      ).toBe(KueueWorkloadStatus.Queued);
+      ).toBe('Waiting for quota in test-queue');
     });
 
-    it('should return status when message is whitespace-only', () => {
+    it('should return human-readable default message when message is whitespace-only', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
@@ -97,9 +172,10 @@ describe('getStatusSubtitle', () => {
           kueueStatus: {
             status: KueueWorkloadStatus.Failed,
             message: '   ',
+            queueName: 'test-queue',
           },
         }),
-      ).toBe(KueueWorkloadStatus.Failed);
+      ).toBe('Exceeded quota for test-queue');
     });
 
     it('should return null when kueueStatus is null', () => {

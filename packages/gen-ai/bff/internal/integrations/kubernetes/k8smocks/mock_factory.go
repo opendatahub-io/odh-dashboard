@@ -206,6 +206,10 @@ type ConfigurableMockKubernetesClient struct {
 	CanListLSDError   error
 }
 
+func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
+	return "mockUser", nil
+}
+
 func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	if c.CanListLSDError != nil {
 		return false, c.CanListLSDError

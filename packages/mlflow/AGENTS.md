@@ -16,7 +16,7 @@ request/response objects must be documented before coding.
 
 ### 2. BFF Stub Second
 
-Add handlers and mock-returning services in `bff/internal/api` and `bff/internal/mocks` that satisfy
+Add handlers and services in `bff/internal/api` and `bff/internal/repositories` that satisfy
 the new contract. Wire them in `bff/cmd/main.go` and expose feature flags/env vars as needed.
 
 ### 3. Frontend Third
@@ -47,7 +47,6 @@ mlflow/
 │   │   ├── constants/           # Shared constants
 │   │   ├── helpers/             # Utility functions (k8s helpers)
 │   │   ├── integrations/        # External service integrations
-│   │   ├── mocks/               # Mock data and stub implementations
 │   │   ├── models/              # DTOs and data models
 │   │   └── repositories/        # Data access layer
 │   ├── static/                  # Static assets served by BFF
@@ -176,11 +175,12 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                 | Description                          |
-| ------ | -------------------- | ------------------------------------ |
-| GET    | `/healthcheck`       | Liveness probe                       |
-| GET    | `/api/v1/user`       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+| Method | Path                                 | Description                          |
+| ------ | ------------------------------------ | ------------------------------------ |
+| GET    | `/healthcheck`                       | Liveness probe                       |
+| GET    | `/api/v1/user`                       | Returns authenticated user info      |
+| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only) |
+| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments              |
 
 ---
 
@@ -194,8 +194,8 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `internal/api/`          | HTTP handlers                            |
 | `internal/models/`       | DTOs and data transfer objects           |
 | `internal/repositories/` | Kubernetes/external service integrations |
-| `internal/mocks/`        | Stub data for development                |
 | `internal/helpers/`      | Utility functions (k8s.go helpers)       |
+| `internal/integrations/` | External service clients (k8s, mlflow)   |
 
 ### Development Guidelines
 
@@ -216,19 +216,21 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### BFF Configuration Flags
 
-| Flag                    | Env Var                | Description                              | Default       |
-| ----------------------- | ---------------------- | ---------------------------------------- | ------------- |
-| `-port`                 | `PORT`                 | Listen port                              | 4000          |
-| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `federated`              | standalone    |
-| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors                | false         |
-| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s               | false         |
-| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets       | ./static      |
-| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG                 | INFO          |
-| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins             | ""            |
-| `-auth-method`          | `AUTH_METHOD`          | `internal` (mock) or `user_token`        | internal      |
-| `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from         | Authorization |
-| `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix                    | Bearer        |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
+| Flag                    | Env Var                | Description                         | Default       |
+| ----------------------- | ---------------------- | ----------------------------------- | ------------- |
+| `-port`                 | `PORT`                 | Listen port                         | 4000          |
+| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `federated`         | standalone    |
+| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors           | false         |
+| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s          | false         |
+| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets  | ./static      |
+| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG            | INFO          |
+| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins        | ""            |
+| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use mock MLflow client              | false         |
+| `-auth-method`          | `AUTH_METHOD`          | `disabled` or `user_token`          | user_token    |
+| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from    | Authorization |
+| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected value prefix               | Bearer        |
+| `-mlflow-url`           | `MLFLOW_URL`           | MLflow tracking server URL          | ""            |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) | false         |
 
 ---
 
@@ -273,14 +275,14 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ### Environment Variables (Frontend)
 
-| Variable            | Description                              | Default              |
-| ------------------- | ---------------------------------------- | -------------------- |
-| `DEPLOYMENT_MODE`   | `standalone` or `federated`              | standalone           |
-| `STYLE_THEME`       | `mui-theme` or `patternfly-theme`        | mui-theme            |
-| `LOGO`              | Light theme logo filename                | logo-light-theme.svg |
-| `LOGO_DARK`         | Dark theme logo filename                 | logo-dark-theme.svg  |
-| `FAVICON`           | Favicon filename                         | favicon.ico          |
-| `PRODUCT_NAME`      | Product name in UI                       | "MLflow"             |
+| Variable          | Description                       | Default              |
+| ----------------- | --------------------------------- | -------------------- |
+| `DEPLOYMENT_MODE` | `standalone` or `federated`       | standalone           |
+| `STYLE_THEME`     | `mui-theme` or `patternfly-theme` | mui-theme            |
+| `LOGO`            | Light theme logo filename         | logo-light-theme.svg |
+| `LOGO_DARK`       | Dark theme logo filename          | logo-dark-theme.svg  |
+| `FAVICON`         | Favicon filename                  | favicon.ico          |
+| `PRODUCT_NAME`    | Product name in UI                | "MLflow"             |
 
 ---
 
@@ -296,7 +298,7 @@ npm run cypress:run:mock   # Run Cypress headless
 #### Standalone Mode
 
 - UI served by BFF
-- Exposes `/namespace` endpoint for namespace selection
+- Exposes `/api/v1/namespaces` endpoint for namespace selection
 - Use for local development and testing
 
 #### Federated Mode
@@ -312,13 +314,13 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ### Environment Variables for Container Builds
 
-| Variable            | Description            | Default                                        |
-| ------------------- | ---------------------- | ---------------------------------------------- |
-| `CONTAINER_TOOL`    | Container build tool   | docker                                         |
+| Variable            | Description            | Default                                         |
+| ------------------- | ---------------------- | ----------------------------------------------- |
+| `CONTAINER_TOOL`    | Container build tool   | docker                                          |
 | `IMG_UI`            | Default mode image     | quay.io/opendatahub/mlflow/ui:latest            |
 | `IMG_UI_STANDALONE` | Standalone mode image  | quay.io/opendatahub/mlflow/ui-standalone:latest |
 | `IMG_UI_FEDERATED`  | Federated mode image   | quay.io/opendatahub/mlflow/ui-federated:latest  |
-| `PLATFORM`          | Docker buildx platform | linux/amd64                                    |
+| `PLATFORM`          | Docker buildx platform | linux/amd64                                     |
 
 ---
 

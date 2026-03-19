@@ -142,7 +142,7 @@ export const useLineagePopover = ({
         stateRef.current.currentOperation = null;
       });
     },
-    [data.nodes, enabled, isPopoverVisible],
+    [data.nodes, enabled, isPopoverVisible, debouncedStateUpdate],
   );
 
   const hidePopover = useCallback(() => {
@@ -156,7 +156,7 @@ export const useLineagePopover = ({
     lastClickPositionRef.current = null;
     justShowedPopoverRef.current = false;
     debouncedStateUpdate(null, null, false);
-  }, []);
+  }, [debouncedStateUpdate]);
 
   const findNodeElement = useCallback((nodeId: string): Element | null => {
     const selectors = [
@@ -286,6 +286,7 @@ export const useLineagePopover = ({
 
     // Reset cleanup flag for new effect
     isCleanedUpRef.current = false;
+    const timeoutRefsSnapshot = timeoutRefs.current;
 
     let lastKnownPosition = { x: 0, y: 0 };
     let isRepositioning = false;
@@ -365,13 +366,13 @@ export const useLineagePopover = ({
     return () => {
       isCleanedUpRef.current = true;
       clearTimeout(updateTimer);
-      if (timeoutRefs.current.repositioning) {
-        clearTimeout(timeoutRefs.current.repositioning);
-        timeoutRefs.current.repositioning = null;
+      if (timeoutRefsSnapshot.repositioning) {
+        clearTimeout(timeoutRefsSnapshot.repositioning);
+        timeoutRefsSnapshot.repositioning = null;
       }
-      if (timeoutRefs.current.justShowed) {
-        clearTimeout(timeoutRefs.current.justShowed);
-        timeoutRefs.current.justShowed = null;
+      if (timeoutRefsSnapshot.justShowed) {
+        clearTimeout(timeoutRefsSnapshot.justShowed);
+        timeoutRefsSnapshot.justShowed = null;
       }
       if (stateUpdateTimeoutRef.current) {
         clearTimeout(stateUpdateTimeoutRef.current);

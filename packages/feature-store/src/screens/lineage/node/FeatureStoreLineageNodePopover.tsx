@@ -64,13 +64,13 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
+  const { getLastClickPosition } = useLineageClick();
 
   // Conditional rendering after all hooks
   if (!node || !isVisible || !currentProject) {
     return null;
   }
 
-  const { getLastClickPosition } = useLineageClick();
   const clickPosition = getLastClickPosition();
   const triggerElement = clickPosition?.pillElement;
 
