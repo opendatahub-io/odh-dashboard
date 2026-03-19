@@ -14,6 +14,7 @@ import {
   checkModelExistsInDatabase,
   checkModelRegistry,
   checkModelRegistryAvailable,
+  checkModelTransferJobPodStarted,
   checkModelVersionExistsInDatabase,
   cleanupRegisteredModelsFromDatabase,
   createAndVerifyDatabase,
@@ -260,7 +261,7 @@ describe('Verify models can be registered in a model registry', () => {
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=registryOciStorage=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
       modelRegistry.visit();
@@ -352,6 +353,9 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.ociTransferJobStartedNotification, { timeout: 15000 }).should(
         'be.visible',
       );
+
+      cy.step('Verify transfer job and pod started in the backend');
+      checkModelTransferJobPodStarted(testData.ociJobName, namespaceName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
