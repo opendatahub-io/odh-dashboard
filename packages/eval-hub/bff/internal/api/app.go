@@ -172,6 +172,7 @@ func (app *App) Routes() http.Handler {
 	// AttachEvalHubClient resolves the EvalHub service URL (env override or CR auto-discovery).
 	apiRouter.GET(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.EvaluationJobsHandler))))
 	apiRouter.POST(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateEvaluationJobHandler))))
+	apiRouter.GET(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobHandler))))
 	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
