@@ -27,10 +27,6 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
 
 const namespaceName = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-const sourceAccessKeyId = Cypress.env('OCI_SOURCE_ACCESS_KEY_ID') as string;
-const sourceSecretAccessKey = Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY') as string;
-const destinationUsername = Cypress.env('OCI_DESTINATION_USERNAME') as string;
-const destinationPassword = Cypress.env('OCI_DESTINATION_PASSWORD') as string;
 
 describe('Verify models can be registered in a model registry', () => {
   let testData: ModelRegistryTestData;
@@ -258,13 +254,13 @@ describe('Verify models can be registered in a model registry', () => {
   );
 
   it(
-    'Exercises the register and store UI flow with OCI destination',
+    'Registers and stores a model to an OCI destination',
     {
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
       modelRegistry.visit();
@@ -327,10 +323,10 @@ describe('Verify models can be registered in a model registry', () => {
 
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
-        .type(sourceAccessKeyId, { log: false });
+        .type(Cypress.env('OCI_SOURCE_ACCESS_KEY_ID'), { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_SECRET_ACCESS_KEY)
-        .type(sourceSecretAccessKey, { log: false });
+        .type(Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY'), { log: false });
 
       cy.step('Fill in OCI destination fields');
       registerModelPage
@@ -341,10 +337,10 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(destinationUsername, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_USERNAME'), { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(destinationPassword, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_PASSWORD'), { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
@@ -360,7 +356,10 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
 
-      cy.step('Verify transfer job failure notification (expected on PSI due to no TLS)');
+      // PSI cluster environments do not support TLS for OCI registries,
+      // so the transfer job is expected to fail. We verify the failure
+      // notification appears as confirmation that the job was created and ran.
+      cy.step('Verify transfer job failure notification (expected — no TLS on PSI)');
       cy.contains(testData.ociTransferJobFailedNotification, { timeout: 60000 }).should(
         'be.visible',
       );
