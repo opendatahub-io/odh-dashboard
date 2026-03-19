@@ -94,7 +94,13 @@ func main() {
 	if cfg.ModelRegistryBaseURL != "" {
 		u, parseErr := url.Parse(cfg.ModelRegistryBaseURL)
 		if parseErr != nil || u.Scheme == "" || u.Host == "" {
-			logger.Error("invalid model-registry-base-url", "value", cfg.ModelRegistryBaseURL)
+			// Never log raw URL - may contain userinfo credentials
+			if parseErr != nil {
+				logger.Error("invalid model-registry-base-url")
+			} else {
+				u.User = nil
+				logger.Error("invalid model-registry-base-url", "value", u.String())
+			}
 			os.Exit(1)
 		}
 		if cfg.AuthMethod == config.AuthMethodUser &&
@@ -102,6 +108,12 @@ func main() {
 			u.Hostname() != "localhost" &&
 			u.Hostname() != "127.0.0.1" {
 			logger.Error("model-registry-base-url must use https when auth-method=user_token (except for localhost)")
+			os.Exit(1)
+		}
+		// Require path to contain Model Registry API prefix
+		if !strings.Contains(u.Path, "/api/model_registry/") {
+			u.User = nil
+			logger.Error("model-registry-base-url path must contain /api/model_registry/", "value", u.String())
 			os.Exit(1)
 		}
 	}
