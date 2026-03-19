@@ -78,11 +78,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Ensure MockS3Client always uses MockK8Client since GetS3Credentials needs
+	// MockS3Client depends on MockK8Client since GetS3Credentials needs
 	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
 	if cfg.MockS3Client && !cfg.MockK8Client {
-		logger.Warn("mock-s3-client depends on mock-k8s-client=true. Enabling to true as it was found to be mock-k8s-client=false")
-		cfg.MockK8Client = true
+		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+		os.Exit(1)
 	}
 
 	// Handle backward compatibility: if old flags are used, override deployment mode
