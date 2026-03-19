@@ -653,6 +653,302 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('S3 Files Endpoint', () => {
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/files?namespace=default&bucket=my-bucket');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when all parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/files');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secret_name', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty bucket when secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret&bucket=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      }, 8000);
+    });
+    describe('Search parameters handling', () => {
+      const searchParamsUri =
+        '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket';
+
+      describe('path parameter', () => {
+        it('should accept request with valid path parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&path=folder/subfolder`);
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
+        }, 8000);
+
+        it('should return 400 when path is provided but empty', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&path=`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('search parameter', () => {
+        it('should accept request with valid search parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&search=myfile`);
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
+        }, 8000);
+
+        it('should return 400 when search contains slash characters', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&search=folder/file`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('next parameter', () => {
+        it('should accept request with valid next parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&next=some-continuation-token`);
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
+        }, 8000);
+
+        it('should return 400 when next is provided but empty', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&next=`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+
+      describe('limit parameter', () => {
+        it('should accept request with valid limit parameter', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=20`);
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            status: 200,
+          });
+        }, 8000);
+
+        it('should return 400 when limit is zero', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=0`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit is negative', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=-1`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit exceeds 1000', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=1001`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 when limit is not a number', async () => {
+          const result = await apiClient.get(`${searchParamsUri}&limit=abc`);
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+      });
+    });
+
+    describe('Success Cases', () => {
+      it('should retrieve files list with bucket from secret', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files list with explicit bucket parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&bucket=my-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return response with expected S3 list objects structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+        expect(result.success).toBe(true);
+      });
+
+      it('should retrieve files with path parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&path=folder/subfolder',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with search parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&search=myfile',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with limit parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&limit=10',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with next (continuation token) parameter', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&next=some-token',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should retrieve files with combined path, search, and limit parameters', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/files?namespace=default&secretName=test-secret-with-bucket&path=documents&search=report&limit=5',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {
