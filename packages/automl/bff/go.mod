@@ -18,7 +18,6 @@ require (
 	sigs.k8s.io/controller-runtime v0.22.3
 )
 
-replace github.com/kubeflow/model-registry/pkg/openapi => ../../../../model-registry/pkg/openapi
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
