@@ -75,16 +75,13 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
-  const {
-    runs,
-    contextsError,
-    runArtifactsError,
-    runArtifactsLoaded,
-    metricsNames,
-  } = useMetricColumns(runWithoutMetrics);
-
+  const { runs, contextsError, runArtifactsError, runArtifactsLoaded, metricsNames } =
+    useMetricColumns(runWithoutMetrics);
   const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
-  const filteredRuns = React.useMemo(() => filterByMlflowExperiment(runs, mlflowFilter), [runs, mlflowFilter]);
+  const filteredRuns = React.useMemo(() => filterByMlflowExperiment(runs, mlflowFilter), [
+    runs,
+    mlflowFilter,
+  ]);
   const effectiveTotalSize = mlflowFilter ? filteredRuns.length : totalSize;
   const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
     () =>
@@ -282,17 +279,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
                       : !metricsNames.size
-                      ? 'Customize metrics columns: No metrics available'
-                      : 'Customize metrics columns'
+                        ? 'Customize metrics columns: No metrics available'
+                        : 'Customize metrics columns'
                   }
                 >
                   <Button
                     variant="plain"
                     aria-label="Customize metrics column button"
                     data-testid="customize-metrics-columns-button"
-                    isAriaDisabled={
-                      !runArtifactsLoaded || !metricsNames.size
-                    }
+                    isAriaDisabled={!runArtifactsLoaded || !metricsNames.size}
                     onClick={manageColumnsResult.openModal}
                     icon={<ColumnsIcon />}
                   />
@@ -325,9 +320,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
                 ) : (
-                  run.metrics.find((metric) => metric.name === metricName)?.value ?? (
+                  (run.metrics.find((metric) => metric.name === metricName)?.value ?? (
                     <UnavailableMetricValue />
-                  )
+                  ))
                 )}
               </Td>
             ))}
