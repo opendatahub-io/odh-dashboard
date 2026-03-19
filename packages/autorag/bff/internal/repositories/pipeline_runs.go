@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
@@ -15,6 +16,20 @@ import (
 
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
+
+// ValidationError represents a client-side validation error (should result in 400 Bad Request)
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+// NewValidationError creates a new validation error
+func NewValidationError(message string) error {
+	return &ValidationError{Message: message}
+}
 
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
@@ -169,11 +184,11 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		missing = append(missing, "llama_stack_secret_name")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required fields: %v", missing)
+		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
-		return fmt.Errorf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric)
+		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
 	}
 
 	return nil

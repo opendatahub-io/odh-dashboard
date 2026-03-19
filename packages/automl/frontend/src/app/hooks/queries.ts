@@ -1,5 +1,8 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { URL_PREFIX } from '~/app/utilities/const';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { PipelineRun } from '~/app/types';
+import { createPipelineRun } from '~/app/api/pipelines';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -90,5 +93,21 @@ export function usePipelineRunQuery(
       return pipelineRun;
     },
     enabled: !!runId,
+  });
+}
+
+type CreatePipelineRunVariables = {
+  namespace: string;
+  data: ConfigureSchema;
+};
+
+export function useCreatePipelineRun(): UseMutationResult<
+  PipelineRun,
+  Error,
+  CreatePipelineRunVariables
+> {
+  return useMutation({
+    mutationFn: async ({ namespace, data }: CreatePipelineRunVariables) =>
+      createPipelineRun('', { namespace, data }),
   });
 }

@@ -4,38 +4,49 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaaSModelsHandler(t *testing.T) {
-	// Create test app with mock client
+func newMaaSModelsTestApp(t *testing.T) *App {
+	t.Helper()
 	maasClientFactory := maasmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		maasClientFactory: maasClientFactory,
-		repositories:      repositories.NewRepositories(),
+	return &App{
+		logger:                  slog.Default(),
+		maasClientFactory:       maasClientFactory,
+		kubernetesClientFactory: k8smocks.NewMockTokenClientFactory(),
+		repositories:            repositories.NewRepositories(),
+		memoryStore:             cache.NewMemoryStore(),
 	}
+}
+
+func newMaaSModelsTestCtx(app *App, r *http.Request) *http.Request {
+	maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
+	ctx := context.WithValue(r.Context(), constants.MaaSClientKey, maasClient)
+	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "token_mock"})
+	return r.WithContext(ctx)
+}
+
+func TestMaaSModelsHandler(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
 
 	t.Run("should return all models successfully", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware: create client and add to context
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -67,11 +78,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -100,11 +107,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -129,7 +132,6 @@ func TestMaaSModelsHandler(t *testing.T) {
 			}
 		}
 
-		// Based on our mock data, we should have both ready and not-ready models
 		assert.Greater(t, readyModels, 0, "Should have at least one ready model")
 		assert.Greater(t, notReadyModels, 0, "Should have at least one not-ready model")
 	})
