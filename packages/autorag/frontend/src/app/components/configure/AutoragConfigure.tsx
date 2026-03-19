@@ -84,7 +84,7 @@ function AutoragConfigure(): React.JSX.Element {
     ],
   });
 
-  const { data: allModelsData } = useLlamaStackModelsQuery(String(namespace), llamaStackSecretName);
+  const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
