@@ -47,7 +47,10 @@ func (e *HTTPError) Error() string {
 
 // NewHTTPClient creates a new HTTP client for the Model Registry API.
 func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool) (HTTPClientInterface, error) {
-	tlsCfg := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: insecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
+	}
 	if rootCAs != nil {
 		tlsCfg.RootCAs = rootCAs
 	}
