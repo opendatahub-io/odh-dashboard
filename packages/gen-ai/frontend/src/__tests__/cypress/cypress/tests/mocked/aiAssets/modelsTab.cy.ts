@@ -65,7 +65,7 @@ describe('AI Assets - Models Tab', () => {
   });
 
   it(
-    'should display the models table with correct columns and data',
+    'should display models table with different model types and sources',
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
     () => {
       cy.step('Verify the models table is visible');
@@ -96,6 +96,149 @@ describe('AI Assets - Models Tab', () => {
       maasRow.findUseCaseCell().should('contain.text', 'text-generation');
       maasRow.findStatusCell().should('contain.text', 'Ready');
       maasRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
+    },
+  );
+
+  it(
+    'should filter models by name, keyword, and use case',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Filter by model name');
+      cy.findByTestId('models-table-toolbar')
+        .findByRole('button', { name: /Filter toggle/i })
+        .click();
+      cy.findByRole('menuitem', { name: 'Name' }).click();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('Llama');
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
+      cy.findByTestId('filter-chip-name').should('exist');
+      modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
+      modelsTabPage.getRow('Llama 70B MaaS').find().should('exist');
+
+      cy.step('Clear filters');
+      cy.findByTestId('models-table-toolbar')
+        .findByRole('button', { name: /Clear all filters/i })
+        .click();
+      modelsTabPage.findTableRows().should('have.length', 4);
+
+      cy.step('Filter by keyword');
+      cy.findByTestId('models-table-toolbar')
+        .findByRole('button', { name: /Filter toggle/i })
+        .click();
+      cy.findByRole('menuitem', { name: 'Keyword' }).click();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('External');
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
+      cy.findByTestId('filter-chip-keyword').should('exist');
+      modelsTabPage.getRow('GPT-4 External').find().should('exist');
+
+      cy.step('Clear filters');
+      cy.findByTestId('models-table-toolbar')
+        .findByRole('button', { name: /Clear all filters/i })
+        .click();
+
+      cy.step('Filter by use case');
+      cy.findByTestId('models-table-toolbar')
+        .findByRole('button', { name: /Filter toggle/i })
+        .click();
+      cy.findByRole('menuitem', { name: 'Use case' }).click();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').clear();
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('embedding');
+      cy.findByTestId('models-table-toolbar').findByRole('searchbox').type('{enter}');
+      cy.findByTestId('filter-chip-useCase').should('exist');
+      modelsTabPage.getRow('Embedding Model').find().should('exist');
+    },
+  );
+
+  it(
+    'should display and interact with model endpoints',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Verify endpoint view button exists');
+      const internalRow = modelsTabPage.getRow('Llama 3B Internal');
+      internalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
+
+      cy.step('Click endpoint view button to show endpoint details');
+      internalRow.findEndpointCell().findByTestId('endpoint-view-button').click();
+
+      cy.step('Verify copy endpoint button exists');
+      internalRow.findEndpointCell().findByTestId('copy-endpoint-button').should('exist');
+    },
+  );
+
+  it(
+    'should show add to playground button for active models',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets', '@Playground'] },
+    () => {
+      cy.step('Verify Add to playground button for active model');
+      const activeRow = modelsTabPage.getRow('Llama 3B Internal');
+      activeRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('exist')
+        .and('not.be.disabled');
+
+      cy.step('Verify button is disabled for inactive models');
+      const inactiveRow = modelsTabPage.getRow('Embedding Model');
+      inactiveRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('be.disabled');
+    },
+  );
+
+  it(
+    'should display model information popover',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Click "Don\'t see the model you\'re looking for?" button');
+      cy.findByTestId('dont-see-model-button').should('exist');
+      cy.findByTestId('dont-see-model-button').click();
+
+      cy.step('Verify popover opens with information');
+      cy.findByRole('dialog', {
+        name: /Information about making model deployments available/i,
+      }).should('exist');
+
+      cy.step('Verify popover content explains AI assets');
+      cy.findByRole('dialog').should(
+        'contain',
+        'model deployments that are available as AI assets',
+      );
+
+      cy.step('Close the popover');
+      cy.findByTestId('model-info-popover').findByRole('button', { name: /close/i }).click();
+    },
+  );
+});
+
+describe('AI Assets - Models Tab (Empty State)', () => {
+  beforeEach(() => {
+    setupModelsTabIntercepts({
+      namespace: TEST_NAMESPACE,
+      aiModels: [],
+      maasModels: [],
+    });
+
+    aiAssetsPage.visit(TEST_NAMESPACE);
+  });
+
+  it(
+    'should display empty state with instructions',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets', '@EmptyState'] },
+    () => {
+      cy.step('Verify empty state is visible');
+      cy.findByTestId('empty-state').should('exist').and('be.visible');
+
+      cy.step('Verify empty state message');
+      cy.findByTestId('empty-state-message').should('contain', 'Model Deployments');
+      cy.findByTestId('empty-state-message').should(
+        'contain',
+        'Make this deployment available as an AI asset',
+      );
+
+      cy.step('Verify "Go to Deployments" button exists');
+      cy.findByTestId('empty-state-action-button').should('exist').and('be.visible');
     },
   );
 });
