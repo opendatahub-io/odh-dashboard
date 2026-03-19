@@ -31,7 +31,7 @@ import {
 } from '../../../utils/oc_commands/hardwareProfiles';
 import { waitForLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 
-describe('AI Assets - Models Tab', () => {
+describe('AI Assets Models - User Journeys', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
@@ -124,992 +124,284 @@ describe('AI Assets - Models Tab', () => {
     }
   });
 
-  // Setup Tests
-  describe('Setup', () => {
-    it(
-      'Create custom serving runtime for Gen AI',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime', '@AIAssets'],
-      },
-      () => {
-        if (skipTest) {
-          cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-          return;
-        }
+  it(
+    'Administrator discovers and deploys Gen AI model as AI asset',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@UserJourney'],
+    },
+    () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
+      }
 
-        cy.step('Log into the application');
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.step('Administrator logs into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-        cy.step('Navigate to Serving Runtimes settings');
-        cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
+      cy.step('Navigate to AI Assets Models tab in empty project');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
 
-        cy.step('Click Add serving runtime button');
-        servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+      cy.step('View empty state with instructional message');
+      aiAssetsPage.findEmptyState().should('exist').and('be.visible');
+      aiAssetsPage.findEmptyState().should('contain', 'To begin you must deploy a model');
 
-        cy.step('Select API Protocol');
-        servingRuntimes.findSelectAPIProtocolButton().click();
-        servingRuntimes.selectAPIProtocol(testData.apiProtocol);
+      cy.step('Click "Don\'t see the model you\'re looking for?" info button');
+      aiAssetsPage.findDontSeeModelButton().should('exist').and('be.visible').click();
 
-        cy.step('Select Generative AI Model Type');
-        servingRuntimes.findSelectModelTypes().click();
-        servingRuntimes.findGenerativeAIModelOption().click();
+      cy.step('Read popover explaining how to enable "Available as AI asset" during deployment');
+      aiAssetsPage
+        .findModelInfoPopoverContent()
+        .should('exist')
+        .and('contain', 'model deployments that are available as AI assets');
 
-        cy.step('Upload serving runtime YAML file');
-        const servingRuntimeYaml = getVllmCpuAmd64RuntimePath();
-        servingRuntimes.uploadYaml(servingRuntimeYaml);
+      cy.step('Close the popover');
+      aiAssetsPage.closeModelInfoPopover();
 
-        cy.step('Submit and verify serving runtime creation');
-        servingRuntimes
-          .findSubmitButton()
-          .should('be.enabled')
-          .click()
-          .then(() => {
-            // Extended timeout for redirect after serving runtime creation completes
-            cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
-              timeout: 30000,
-            });
+      cy.step('Click "Go to Deployments" button from empty state');
+      aiAssetsPage.findEmptyStateActionButton().should('exist').and('be.visible').click();
+
+      cy.step('Verify navigation to Model Deployments page');
+      cy.url().should('include', `/ai-hub/deployments/${projectName}`);
+
+      cy.step('Navigate to Serving Runtimes settings to create custom serving runtime');
+      cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
+
+      cy.step('Click Add serving runtime button');
+      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+
+      cy.step('Select API Protocol');
+      servingRuntimes.findSelectAPIProtocolButton().click();
+      servingRuntimes.selectAPIProtocol(testData.apiProtocol);
+
+      cy.step('Select Generative AI Model Type');
+      servingRuntimes.findSelectModelTypes().click();
+      servingRuntimes.findGenerativeAIModelOption().click();
+
+      cy.step('Upload serving runtime YAML file');
+      const servingRuntimeYaml = getVllmCpuAmd64RuntimePath();
+      servingRuntimes.uploadYaml(servingRuntimeYaml);
+
+      cy.step('Submit and verify serving runtime creation');
+      servingRuntimes
+        .findSubmitButton()
+        .should('be.enabled')
+        .click()
+        .then(() => {
+          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+            timeout: 30000,
           });
-
-        cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
-        cy.contains(servingRuntimeDisplayName).should('be.visible');
-        servingRuntimes.getRowById(servingRuntimeName).find().should('exist');
-      },
-    );
-
-    it(
-      'Deploy Gen AI model as AI asset',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@AIAssets'],
-      },
-      () => {
-        if (skipTest) {
-          cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-          return;
-        }
-
-        cy.step('Log into the application');
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-        cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-        projectListPage.navigate();
-        projectListPage.filterProjectByName(projectName);
-        projectListPage.findProjectLink(projectName).click();
-
-        cy.step('Navigate to Model Serving tab and click Deploy Model');
-        projectDetails.findSectionTab('model-server').click();
-        modelServingGlobal.selectSingleServingModelButtonIfExists();
-        modelServingGlobal.findDeployModelButton().click();
-
-        cy.step('Model details - Configure model location');
-        modelServingWizard.findModelLocationSelectOption('URI').click();
-        modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
-        modelServingWizard.findSaveConnectionCheckbox().uncheck();
-        modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
-        modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
-        modelServingWizard.findNextButton().click();
-
-        cy.step('Configure model deployment details');
-        modelServingWizard
-          .findModelDeploymentNameInput()
-          .clear()
-          .type(testData.modelDeploymentName);
-
-        cy.step('Select hardware profile');
-        inferenceServiceModal.selectPotentiallyDisabledProfile(
-          testData.hardwareProfileDeploymentSize,
-          hardwareProfileName,
-        );
-
-        cy.step('Select serving runtime');
-        modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-
-        cy.step('Wait for serving runtime options to load');
-        modelServingWizard.findGlobalScopedServingRuntimes().should('exist');
-
-        cy.step(`Select ${testData.servingRuntime} serving runtime`);
-        modelServingWizard
-          .findServingRuntimeOption(testData.servingRuntime)
-          .should('exist')
-          .click();
-
-        cy.step('Verify global-scoped label is displayed');
-        modelServingWizard.findGlobalScopedLabel().should('be.visible');
-
-        modelServingWizard.findNextButton().click();
-
-        cy.step('Enable AI asset endpoint');
-        modelServingWizard.findSaveAiAssetCheckbox().click();
-
-        modelServingWizard.findNextButton().click();
-
-        cy.step('Wait for Review step to load');
-        modelServingWizard.findReviewStepModelDetailsSection().should('be.visible');
-
-        cy.step('Deploy model');
-        modelServingWizard.findDeployButton().should('be.enabled').click();
-
-        cy.step('Wait for redirect after model deployment submission');
-        cy.url().should('include', `/projects/${projectName}`);
-        modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
-
-        cy.step('Verify model deployment was created and started');
-        waitForResource('inferenceService', testData.inferenceServiceName, projectName);
-        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
-          checkReady: true,
         });
-      },
-    );
-  });
 
-  // User Story: Viewing AI Models
-  describe('Viewing AI Models', () => {
-    it(
-      'Test navigating to AI asset endpoints page',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.findModelsTab().should('exist').and('be.visible');
-      },
-    );
-
-    it(
-      'Test that Models tab loads successfully',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-        aiAssetsPage.findModelsTable().should('exist').and('be.visible');
-      },
-    );
-
-    it(
-      'Test that model table displays all AI models',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-        aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test that model columns show: Name, Endpoint, Status, Playground actions',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.findModelName(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelUseCase(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelStatus(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelPlaygroundActions(testData.modelDeploymentName).should('be.visible');
-      },
-    );
-
-    it(
-      'Test that model status badge shows Running/Inactive correctly',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-        aiAssetsPage.verifyModelStatus(
-          testData.modelDeploymentName,
-          testData.expectedStatus as 'Active' | 'Inactive',
-        );
-      },
-    );
-
-    it(
-      'Test loading state with spinner',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        // Loading state is shown during initial navigation
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.findModelsTab().should('be.visible');
-      },
-    );
-  });
-
-  // User Story: Filtering and Searching Models
-  describe('Filtering and Searching Models', () => {
-    it(
-      'Test filtering by model name',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage
-          .findActiveFilterChip('Name', testData.filterByNameValue)
-          .should('exist')
-          .and('be.visible');
-        aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test filtering by keywords',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
-        aiAssetsPage
-          .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
-          .should('exist')
-          .and('be.visible');
-        aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test filtering by use case',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue);
-        aiAssetsPage
-          .findActiveFilterChip('Use case', testData.filterByUseCaseValue)
-          .should('exist')
-          .and('be.visible');
-        aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test that filter chips appear with correct colors',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('be.visible');
-      },
-    );
-
-    it(
-      'Test clearing individual filters',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.removeFilterChip('Name', testData.filterByNameValue);
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('not.exist');
-      },
-    );
-
-    it(
-      'Test clearing all filters',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
-        aiAssetsPage.clearAllFilters();
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('not.exist');
-        aiAssetsPage
-          .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
-          .should('not.exist');
-      },
-    );
-
-    it(
-      'Test that filtered results update correctly',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test empty table view when no results match filters',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.filterByName(testData.nonExistentFilterValue);
-        aiAssetsPage.verifyModelDoesNotExist(testData.modelDeploymentName);
-      },
-    );
-  });
-
-  // User Story: Model Endpoints
-  describe('Model Endpoints', () => {
-    it(
-      'Test that endpoint URLs are displayed correctly',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Endpoints'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
-      },
-    );
-
-    it(
-      'Test copying endpoint to clipboard',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Endpoints'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.copyEndpoint(testData.modelDeploymentName);
-      },
-    );
-
-    it(
-      'Test endpoint format validation',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Endpoints'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // Endpoint format is validated by the UI displaying the URL correctly
-        aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
-        aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
-      },
-    );
-
-    it(
-      'Test tooltip/popover for endpoint information',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Endpoints'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.viewEndpointUrl(testData.modelDeploymentName);
-      },
-    );
-  });
-
-  // User Story: Adding Models to Playground from Models Tab
-  describe('Adding Models to Playground from Models Tab', () => {
-    it(
-      'Test "Add to playground" button for models not in playground',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage
-          .findAddToPlaygroundButton(testData.modelDeploymentName)
-          .should('exist')
-          .and('be.visible');
-      },
-    );
-
-    it(
-      'Test that button is disabled for inactive models',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // Since our test model is Active, we verify the button is NOT disabled
-        aiAssetsPage
-          .findAddToPlaygroundButton(testData.modelDeploymentName)
-          .should('not.be.disabled');
-      },
-    );
-
-    it(
-      'Test opening configuration modal from "Add to playground" button',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
-        cy.findByTestId('modal-submit-button').should('exist').and('be.visible');
-      },
-    );
-
-    it(
-      'Test that model is pre-selected in configuration modal',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
-        cy.findByTestId('chatbot-configuration-table').should('be.visible');
-      },
-    );
-
-    it(
-      'Test creating/updating playground with the selected model',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
-        cy.findByTestId('modal-submit-button').should('be.enabled').click();
-
-        waitForResource('configmap', testData.configMapName, projectName);
-        waitForLlamaStackDistributionReady(projectName);
-      },
-    );
-
-    it(
-      'Test redirect to playground after successful addition',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
-        cy.findByTestId('modal-submit-button').should('be.enabled').click();
-
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
-      },
-    );
-  });
-
-  // User Story: Trying Models in Playground
-  describe('Trying Models in Playground', () => {
-    it(
-      'Test "Try in playground" button for models already in playground',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage
-          .findTryInPlaygroundButton(testData.modelDeploymentName)
-          .should('exist')
-          .and('be.visible');
-      },
-    );
-
-    it(
-      'Test that button is disabled for inactive models',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // Since our test model is Active, we verify the button is NOT disabled
-        aiAssetsPage
-          .findTryInPlaygroundButton(testData.modelDeploymentName)
-          .should('not.be.disabled');
-      },
-    );
-
-    it(
-      'Test navigation to playground with selected model',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
-      },
-    );
-
-    it(
-      'Test that correct model is selected in playground after navigation',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
-
-        genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
-      },
-    );
-  });
-
-  // User Story: Model Information Popover
-  describe('Model Information Popover', () => {
-    it(
-      'Test "Don\'t see the model you\'re looking for?" button',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@InfoPopover'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.findDontSeeModelButton().should('exist').and('be.visible');
-      },
-    );
-
-    it(
-      'Test that popover opens with information',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@InfoPopover'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.openModelInfoPopover();
-        aiAssetsPage.findModelInfoPopoverContent().should('exist');
-      },
-    );
-
-    it(
-      'Test that popover explains how to make deployments available as AI assets',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@InfoPopover'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.openModelInfoPopover();
-        aiAssetsPage
-          .findModelInfoPopoverContent()
-          .should('contain', 'model deployments that are available as AI assets')
-          .and('contain', 'Model deployments');
-      },
-    );
-
-    it(
-      'Test closing the popover',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@InfoPopover'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.openModelInfoPopover();
-        aiAssetsPage.closeModelInfoPopover();
-      },
-    );
-  });
-
-  // User Story: Empty State Handling
-  describe('Empty State Handling', () => {
-    const emptyProjectName = `ai-assets-empty-test-${uuid}`;
-
-    before(() => {
-      if (!skipTest) {
-        createCleanProject(emptyProjectName);
+      cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
+      cy.contains(servingRuntimeDisplayName).should('be.visible');
+      servingRuntimes.getRowById(servingRuntimeName).find().should('exist');
+
+      cy.step(`Navigate to the Project list and select ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      cy.step('Navigate to Model Serving tab and click Deploy Model');
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+
+      cy.step('Configure model location with URI');
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
+      modelServingWizard.findSaveConnectionCheckbox().uncheck();
+      modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
+      modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Configure model deployment details');
+      modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
+
+      cy.step('Select hardware profile');
+      inferenceServiceModal.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        hardwareProfileName,
+      );
+
+      cy.step('Select serving runtime');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedServingRuntimes().should('exist');
+      modelServingWizard.findServingRuntimeOption(testData.servingRuntime).should('exist').click();
+      modelServingWizard.findGlobalScopedLabel().should('be.visible');
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Enable "Available as AI asset" checkbox');
+      modelServingWizard.findSaveAiAssetCheckbox().click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Review and deploy model');
+      modelServingWizard.findReviewStepModelDetailsSection().should('be.visible');
+      modelServingWizard.findDeployButton().should('be.enabled').click();
+
+      cy.step('Wait for redirect after model deployment submission');
+      cy.url().should('include', `/projects/${projectName}`);
+      modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
+
+      cy.step('Wait for model to reach Active state');
+      waitForResource('inferenceService', testData.inferenceServiceName, projectName);
+      checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+        checkReady: true,
+      });
+
+      cy.step('Navigate back to AI Assets Models tab');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+
+      cy.step('Verify deployed model appears in the table with correct name, status, and use case');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
+      aiAssetsPage.findModelName(testData.modelDeploymentName).should('be.visible');
+      aiAssetsPage.verifyModelStatus(
+        testData.modelDeploymentName,
+        testData.expectedStatus as 'Active' | 'Inactive',
+      );
+      aiAssetsPage.findModelUseCase(testData.modelDeploymentName).should('be.visible');
+    },
+  );
+
+  it(
+    'Data scientist experiments with deployed models in playground',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@Playground', '@UserJourney'],
+    },
+    () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
       }
-    });
 
-    after(() => {
-      if (!skipTest) {
-        deleteOpenShiftProject(emptyProjectName, { wait: false, ignoreNotFound: true });
+      cy.step('Data scientist logs into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to AI Assets Models tab');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+
+      cy.step('Use filters to find a specific model by name');
+      aiAssetsPage.filterByName(testData.filterByNameValue);
+      aiAssetsPage
+        .findActiveFilterChip('Name', testData.filterByNameValue)
+        .should('exist')
+        .and('be.visible');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
+
+      cy.step('Clear filter and filter by keyword');
+      aiAssetsPage.clearAllFilters();
+      aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
+      aiAssetsPage
+        .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
+        .should('exist')
+        .and('be.visible');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
+
+      cy.step('Clear filter and filter by use case');
+      aiAssetsPage.clearAllFilters();
+      aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue);
+      aiAssetsPage
+        .findActiveFilterChip('Use case', testData.filterByUseCaseValue)
+        .should('exist')
+        .and('be.visible');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
+
+      cy.step('Clear all filters');
+      aiAssetsPage.clearAllFilters();
+
+      cy.step('Click "Add to playground" button on the active model');
+      aiAssetsPage
+        .findAddToPlaygroundButton(testData.modelDeploymentName)
+        .should('be.visible')
+        .and('not.be.disabled');
+      aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
+
+      cy.step('Configure playground in the modal (verify model is pre-selected)');
+      cy.findByTestId('chatbot-configuration-table').should('be.visible');
+
+      cy.step('Submit configuration');
+      cy.findByTestId('modal-submit-button').should('be.enabled').click();
+
+      cy.step('Verify redirect to playground');
+      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+
+      cy.step('Verify playground resources are created');
+      waitForResource('configmap', testData.configMapName, projectName);
+      waitForLlamaStackDistributionReady(projectName);
+
+      cy.step('Verify model is selected in playground');
+      genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
+
+      cy.step('Send test message to confirm model responds');
+      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
+      genAiPlayground.sendMessage(testData.testMessage);
+      genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
+
+      cy.step('Navigate back to AI Assets Models tab');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+
+      cy.step('Find the model already in the playground');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
+
+      cy.step('Click "Try in playground" button');
+      aiAssetsPage
+        .findTryInPlaygroundButton(testData.modelDeploymentName)
+        .should('exist')
+        .and('be.visible')
+        .and('not.be.disabled');
+      aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
+
+      cy.step('Verify redirect to playground with correct model selected');
+      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+
+      cy.step('Verify model is ready for interaction');
+      genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
+      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
+    },
+  );
+
+  it(
+    'Developer retrieves model endpoint for application integration',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@Endpoints', '@UserJourney'],
+    },
+    () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
       }
-    });
 
-    it(
-      'Test empty state when no models are available',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@EmptyState'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
+      cy.step('Developer logs into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(emptyProjectName);
-        aiAssetsPage.switchToModelsTab();
+      cy.step('Navigate to AI Assets Models tab');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.findEmptyState().should('exist').and('be.visible');
-      },
-    );
+      cy.step('Locate the deployed model in the table');
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
 
-    it(
-      'Test empty state title and description',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@EmptyState'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
+      cy.step('View internal and external endpoint URLs');
+      aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
+      aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
 
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(emptyProjectName);
-        aiAssetsPage.switchToModelsTab();
+      cy.step('View endpoint URL details');
+      aiAssetsPage.viewEndpointUrl(testData.modelDeploymentName);
 
-        aiAssetsPage.findEmptyState().should('contain', 'To begin you must deploy a model');
-        aiAssetsPage
-          .findEmptyStateMessage()
-          .should('contain', 'Model Deployments')
-          .and('contain', 'Make this deployment available as an AI asset');
-      },
-    );
+      cy.step('Copy endpoint URL to clipboard');
+      aiAssetsPage.copyEndpoint(testData.modelDeploymentName);
 
-    it(
-      'Test "Go to Deployments" button',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@EmptyState'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
+      cy.step('Verify endpoint format is valid and accessible');
+      aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
+      aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
 
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(emptyProjectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.findEmptyStateActionButton().should('exist').and('be.visible');
-      },
-    );
-
-    it(
-      'Test navigation to Model Deployments page',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@EmptyState'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(emptyProjectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.findEmptyStateActionButton().click();
-        cy.url().should('include', `/ai-hub/deployments/${emptyProjectName}`);
-      },
-    );
-
-    it(
-      'Test that instructions are clear about making models available',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@EmptyState'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(emptyProjectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage
-          .findEmptyStateMessage()
-          .should('contain', 'Make this deployment available as an AI asset');
-      },
-    );
-  });
-
-  // User Story: Table Pagination
-  describe('Table Pagination', () => {
-    it(
-      'Test pagination controls appear when needed',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // With only one model, pagination may not appear
-        aiAssetsPage.findModelsTable().should('exist');
-      },
-    );
-
-    it(
-      'Test navigating to next/previous pages',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // If pagination controls exist, test them
-        cy.get('body').then(($body) => {
-          if ($body.find('[aria-label*="pagination"]').length > 0) {
-            aiAssetsPage.findPaginationControls().should('be.visible');
-          }
-        });
-      },
-    );
-
-    it(
-      'Test changing page size',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        // Page size testing requires multiple models
-        aiAssetsPage.findModelsTable().should('exist');
-      },
-    );
-
-    it(
-      'Test that page state persists during session',
-      {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
-      },
-      () => {
-        if (skipTest) {
-          return;
-        }
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        aiAssetsPage.getVisibleRowCount().should('be.gte', 1);
-      },
-    );
-  });
+      cy.step('Navigate back and verify model status remains Active');
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+      aiAssetsPage.verifyModelStatus(testData.modelDeploymentName, 'Active');
+    },
+  );
 });
