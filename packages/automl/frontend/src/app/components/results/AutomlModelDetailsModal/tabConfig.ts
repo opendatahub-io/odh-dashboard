@@ -17,6 +17,7 @@ import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 
 export type TabContentProps = {
   model: ModelArtifact;
+  createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
 };

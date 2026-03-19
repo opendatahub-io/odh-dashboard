@@ -140,6 +140,4 @@ export type ModelArtifactContext = {
 export type ModelArtifact = {
   display_name: string;
   context: ModelArtifactContext;
-  rank: number;
-  created_at: string;
 };

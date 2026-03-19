@@ -8,15 +8,15 @@ import {
 } from '@patternfly/react-core';
 import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
 
-const ModelInformationTab: React.FC<TabContentProps> = ({ model }) => {
-  const { context, created_at: createdAt } = model;
+const ModelInformationTab: React.FC<TabContentProps> = ({ model, createdAt }) => {
+  const { context } = model;
 
   return (
     <>
       <Title headingLevel="h3" className="pf-v6-u-mb-md">
         Experiment parameters
       </Title>
-      <DescriptionList isHorizontal>
+      <DescriptionList isHorizontal isCompact className="automl-model-info-list">
         <DescriptionListGroup>
           <DescriptionListTerm>Prediction column</DescriptionListTerm>
           <DescriptionListDescription>{context.label_column}</DescriptionListDescription>
@@ -36,7 +36,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ model }) => {
         <DescriptionListGroup>
           <DescriptionListTerm>Created on</DescriptionListTerm>
           <DescriptionListDescription>
-            {new Date(createdAt).toLocaleString()}
+            {createdAt ? new Date(createdAt).toLocaleString() : '-'}
           </DescriptionListDescription>
         </DescriptionListGroup>
       </DescriptionList>

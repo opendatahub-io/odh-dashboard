@@ -7,9 +7,6 @@ import {
   ModalBody,
   ModalHeader,
   Popover,
-  Tab,
-  Tabs,
-  TabTitleText,
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -23,6 +20,9 @@ type AutomlModelDetailsModalProps = {
   onClose: () => void;
   model: ModelArtifact;
   rank: number;
+  createdAt?: string;
+  featureImportance?: FeatureImportanceData;
+  confusionMatrix?: ConfusionMatrixData;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -41,6 +41,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClose,
   model,
   rank,
+  createdAt,
+  featureImportance,
+  confusionMatrix,
 }) => {
   const visibleTabs = React.useMemo(
     () => getVisibleTabs(model.context.task_type),
@@ -48,10 +51,6 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   );
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
   const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
-
-  // TODO: Replace with real S3 fetch using model.context.location
-  const [featureImportance] = React.useState<FeatureImportanceData | undefined>(undefined);
-  const [confusionMatrix] = React.useState<ConfusionMatrixData | undefined>(undefined);
 
   // Reset active tab when model changes
   React.useEffect(() => {
@@ -68,32 +67,34 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
       onClose={onClose}
       aria-labelledby="automl-model-details-title"
       data-testid="automl-model-details-modal"
+      className="automl-model-details-modal"
     >
       <ModalHeader title={model.display_name} labelId="automl-model-details-title" />
       <ModalBody>
         <AutomlModelDetailsModalHeader model={model} rank={rank} />
         <Grid hasGutter>
           <GridItem span={3} className="automl-model-details-sidebar">
-            {[...groupedTabs.entries()].map(([section, tabs]) => (
-              <React.Fragment key={section}>
-                <div className="automl-model-details-sidebar-section">{section}</div>
-                <Tabs
-                  isVertical
-                  activeKey={activeTabKey}
-                  onSelect={(_e, key) => setActiveTabKey(String(key))}
-                  aria-label={`${section} tabs`}
-                >
-                  {tabs.map((tab) => (
-                    <Tab
-                      key={tab.key}
-                      eventKey={tab.key}
-                      title={<TabTitleText>{tab.label}</TabTitleText>}
-                      data-testid={`tab-${tab.key}`}
-                    />
-                  ))}
-                </Tabs>
-              </React.Fragment>
-            ))}
+            <nav aria-label="Model details navigation">
+              {[...groupedTabs.entries()].map(([section, tabs]) => (
+                <div key={section}>
+                  <div className="automl-model-details-sidebar-section">{section}</div>
+                  <ul className="automl-model-details-nav-list">
+                    {tabs.map((tab) => (
+                      <li key={tab.key}>
+                        <button
+                          type="button"
+                          className={`automl-model-details-nav-item${activeTabKey === tab.key ? ' automl-model-details-nav-item--active' : ''}`}
+                          onClick={() => setActiveTabKey(tab.key)}
+                          data-testid={`tab-${tab.key}`}
+                        >
+                          {tab.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </nav>
           </GridItem>
           <GridItem span={9}>
             {activeTab && (
@@ -108,13 +109,16 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     />
                   </Popover>
                 </div>
-                {ActiveComponent && (
-                  <ActiveComponent
-                    model={model}
-                    featureImportance={featureImportance}
-                    confusionMatrix={confusionMatrix}
-                  />
-                )}
+                <div className="automl-model-details-tab-content">
+                  {ActiveComponent && (
+                    <ActiveComponent
+                      model={model}
+                      createdAt={createdAt}
+                      featureImportance={featureImportance}
+                      confusionMatrix={confusionMatrix}
+                    />
+                  )}
+                </div>
               </>
             )}
           </GridItem>
