@@ -25,7 +25,6 @@ const AllApiKeysPage: React.FC = () => {
       loaded={loaded}
       loadError={error}
       emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
-      headerAction={<ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />}
     >
       {isModalOpen && (
         <CreateApiKeyModal
@@ -42,14 +41,17 @@ const AllApiKeysPage: React.FC = () => {
             apiKeys={apiKeys}
             onRevokeApiKey={setRevokeApiKey}
             toolbarContent={
-              <Button
-                variant="primary"
-                icon={<PlusIcon />}
-                onClick={() => setIsModalOpen(true)}
-                data-testid="create-api-key-button"
-              >
-                Create API key
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  icon={<PlusIcon />}
+                  onClick={() => setIsModalOpen(true)}
+                  data-testid="create-api-key-button"
+                >
+                  Create API key
+                </Button>
+                <ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />
+              </>
             }
           />
         </PageSection>
