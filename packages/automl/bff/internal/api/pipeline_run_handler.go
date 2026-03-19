@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -39,15 +40,29 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Determine which pipeline type to use (defaults to timeseries)
-	pipelineType := r.URL.Query().Get("pipelineType")
-	if pipelineType == "" {
-		pipelineType = constants.PipelineTypeTimeSeries
+	// Decode the request body first to access task_type
+	var req models.CreateAutoMLRunRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		return
 	}
 
-	// Validate pipelineType is a known value
-	if !constants.ValidPipelineTypes[pipelineType] {
-		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: must be one of timeseries, tabular", pipelineType))
+	// Determine pipeline type from task_type in request body
+	if req.TaskType == nil || *req.TaskType == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("task_type is required in request body"))
+		return
+	}
+
+	pipelineType, err := repositories.DeterminePipelineType(*req.TaskType)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -67,24 +82,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	var req models.CreateAutoMLRunRequest
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
-		return
-	}
-	var extra interface{}
-	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
-		return
-	}
-
-	if err := repositories.ValidateCreateAutoMLRunRequest(req); err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(
 		client,
 		ctx,
@@ -94,6 +91,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		pipelineType,
 	)
 	if err != nil {
+		// Check if this is a validation error (client error - 400) vs server error (500)
+		var validationErr *repositories.ValidationError
+		if errors.As(err, &validationErr) {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create pipeline run: %w", err))
 		return
 	}
