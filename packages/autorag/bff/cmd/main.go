@@ -85,12 +85,6 @@ func main() {
 		cfg.MockK8Client = true
 	}
 
-	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
-	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient || cfg.MockS3Client) && cfg.AuthMethod == "user_token" {
-		cfg.AuthMethod = config.AuthMethodDisabled
-	}
-
 	// Handle backward compatibility: if old flags are used, override deployment mode
 	if cfg.StandaloneMode {
 		cfg.DeploymentMode = config.DeploymentModeStandalone
