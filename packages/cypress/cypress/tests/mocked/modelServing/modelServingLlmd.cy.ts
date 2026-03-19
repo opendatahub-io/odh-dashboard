@@ -70,6 +70,7 @@ const initIntercepts = ({
       genAiStudio: true,
       modelAsService: true, // Enable MaaS for testing
       disableLLMd: false,
+      vLLMDeploymentOnMaaS: true,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -348,6 +349,7 @@ describe('Model Serving LLMD', () => {
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findLegacyModeCheckbox().should('not.be.checked');
       modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -505,6 +507,10 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizardEdit.findSaveConnectionCheckbox().click();
       modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
+      modelServingWizardEdit
+        .findLegacyModeCheckbox()
+        .should('not.be.checked')
+        .should('be.disabled');
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 2: Model deployment
