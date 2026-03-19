@@ -2254,14 +2254,14 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
+            - maas
           example: 'namespace'
           description: >-
             Source type of the model:
             'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
-            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
-            'external_provider' for external models pointing to providers (outside cluster)
+            'custom_endpoint' for external model endpoints (user-provided URL),
+            'maas' for Models as a Service
         model_type:
           type: string
           enum:
@@ -3507,14 +3507,12 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
             - maas
           description: |
             Source type of the model (required):
             - namespace: Model deployed in the same Kubernetes namespace
-            - external_cluster: Model deployed in a different namespace or cluster
-            - external_provider: Model from external AI provider (OpenAI, Anthropic, etc.)
+            - custom_endpoint: External model endpoint (user-provided URL)
             - maas: Model from Model as a Service (MaaS) platform
           example: 'namespace'
         max_tokens:
@@ -4168,7 +4166,7 @@ components:
               serving_runtime: 'remote::gemini'
               api_protocol: 'REST'
               version: ''
-              model_source_type: 'external_provider'
+              model_source_type: 'custom_endpoint'
               model_type: 'llm'
               usecase: 'Classification, Image Generation'
               description: ''

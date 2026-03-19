@@ -1083,14 +1083,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		// Determine model source type based on URL
-		sourceType := models.ModelSourceTypeExternalProvider
-		endpoint := fmt.Sprintf("external: %s", provider.Config.BaseURL)
-		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
-			sourceType = models.ModelSourceTypeExternalCluster
-			endpoint = fmt.Sprintf("internal: %s", provider.Config.BaseURL)
-		}
-
 		aaModel := models.AAModel{
 			ModelName:       model.ModelID,
 			ModelID:         model.ModelID,
@@ -1100,10 +1092,10 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Version:         "",
 			Usecase:         useCases,
 			Description:     "",
-			Endpoints:       []string{endpoint},
+			Endpoints:       []string{provider.Config.BaseURL},
 			Status:          "Running",
 			SAToken:         models.SAToken{},
-			ModelSourceType: sourceType,
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			ModelType:       model.ModelType,
 		}
 		aaModels = append(aaModels, aaModel)
@@ -1548,9 +1540,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 
-			// External models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddExternalProviderAndModel(extDetails.providerID, extDetails.providerType, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
-			kc.Logger.Info("Added external model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
+			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.providerType, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
+			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
 			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: extDetails.providerID, tokenEnvVar: ""}
@@ -2582,3 +2574,5 @@ func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *int
 	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
 	return nil
 }
+
+// GetDashboardConfig retrieves the OdhDashboardConfig custom resource

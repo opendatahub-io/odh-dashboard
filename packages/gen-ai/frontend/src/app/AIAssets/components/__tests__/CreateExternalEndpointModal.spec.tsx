@@ -48,7 +48,7 @@ describe('CreateExternalEndpointModal', () => {
         token_name: '',
         token: '',
       },
-      model_source_type: 'external_provider',
+      model_source_type: 'custom_endpoint',
     });
 
     mockOnVerify.mockResolvedValue({
