@@ -77,7 +77,8 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
+	const maxResponseBodyBytes = 10 * 1024 * 1024 // 10MB
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes))
 	logUpstreamResp(c.logger, requestID, response, body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
