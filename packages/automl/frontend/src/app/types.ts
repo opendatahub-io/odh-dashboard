@@ -108,11 +108,11 @@ export type TaskType = 'binary' | 'multiclass' | 'regression';
 
 export type FeatureImportanceData = {
   importance: Record<string, number>;
-  stddev: Record<string, number>;
-  p_value: Record<string, number>;
-  n: Record<string, number>;
-  p99_high: Record<string, number>;
-  p99_low: Record<string, number>;
+  stddev?: Record<string, number>;
+  p_value?: Record<string, number>;
+  n?: Record<string, number>;
+  p99_high?: Record<string, number>;
+  p99_low?: Record<string, number>;
 };
 
 export type EvaluationMetrics = Record<string, number>;

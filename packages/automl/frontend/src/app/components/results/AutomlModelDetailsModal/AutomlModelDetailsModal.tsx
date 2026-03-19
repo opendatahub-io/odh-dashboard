@@ -6,8 +6,8 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  Popover,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { ModelArtifact, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
@@ -73,7 +73,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
       <ModalBody>
         <AutomlModelDetailsModalHeader model={model} rank={rank} />
         <Grid hasGutter>
-          <GridItem span={3} className="automl-model-details-sidebar">
+          <GridItem span={2} className="automl-model-details-sidebar">
             <nav aria-label="Model details navigation">
               {[...groupedTabs.entries()].map(([section, tabs]) => (
                 <div key={section}>
@@ -96,18 +96,18 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               ))}
             </nav>
           </GridItem>
-          <GridItem span={9}>
+          <GridItem span={10}>
             {activeTab && (
               <>
                 <div className="automl-model-details-tab-title">
                   <Title headingLevel="h2">{activeTab.label}</Title>
-                  <Popover bodyContent={activeTab.tooltip}>
+                  <Tooltip content={activeTab.tooltip} position="right">
                     <Button
                       variant="plain"
                       aria-label={`${activeTab.label} info`}
                       icon={<OutlinedQuestionCircleIcon />}
                     />
-                  </Popover>
+                  </Tooltip>
                 </div>
                 <div className="automl-model-details-tab-content">
                   {ActiveComponent && (

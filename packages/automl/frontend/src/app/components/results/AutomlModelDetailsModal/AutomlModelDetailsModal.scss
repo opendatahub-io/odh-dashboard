@@ -1,8 +1,7 @@
-/* Make modal wider to match design */
 .automl-model-details-modal {
   --pf-v6-c-modal-box--MaxWidth: 1200px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
-  min-height: 80vh;
+  min-height: 60vh;
 }
 
 /* Prevent sidebar from stretching to fill full modal height */
@@ -12,7 +11,7 @@
 
 /* Sidebar section headers */
 .automl-model-details-sidebar-section {
-  font-size: var(--pf-t--global--font--size--xs);
+  font-size: var(--pf-t--global--font--size--sm);
   font-weight: 600;
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
@@ -25,7 +24,6 @@
   margin-top: 16px;
 }
 
-/* Custom nav list (replaces PF Tabs to avoid dual-indicator bug) */
 .automl-model-details-nav-list {
   list-style: none;
   margin: 0;
@@ -40,7 +38,7 @@
   border-left: 3px solid transparent;
   background: none;
   text-align: left;
-  font-size: var(--pf-t--global--font--size--sm);
+  font-size: var(--pf-t--global--font--size--md);
   color: var(--pf-t--global--text--color--regular);
   cursor: pointer;
 
@@ -58,12 +56,28 @@
 .automl-model-details-tab-title {
   display: inline-flex;
   align-items: center;
-  gap: var(--pf-t--global--spacer--sm);
+  gap: 2px;
+
+  .pf-v6-c-title {
+    font-weight: var(--pf-t--global--font--weight--body--default);
+  }
 }
 
 /* Spacing between tab title and tab content */
 .automl-model-details-tab-content {
   margin-top: var(--pf-t--global--spacer--lg);
+  font-size: var(--pf-t--global--font--size--md);
+
+  /* Bold sub-section headers within tab content */
+  .pf-v6-c-title {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+
+  .pf-v6-c-table th,
+  .pf-v6-c-table td {
+    font-size: var(--pf-t--global--font--size--md);
+    white-space: nowrap;
+  }
 }
 
 /* Confusion matrix gradient bar */
@@ -89,7 +103,7 @@
   gap: var(--pf-t--global--spacer--xl);
   padding-bottom: var(--pf-t--global--spacer--md);
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
-  margin-bottom: var(--pf-t--global--spacer--md);
+  margin-bottom: var(--pf-t--global--spacer--lg);
 }
 
 .automl-model-details-header-item {
@@ -99,18 +113,33 @@
 }
 
 .automl-model-details-header-label {
-  font-size: var(--pf-t--global--font--size--xs);
+  font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
 }
 
 .automl-model-details-header-value {
-  font-size: var(--pf-t--global--font--size--md);
+  font-size: var(--pf-t--global--font--size--lg);
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
-/* Model information compact description list */
-.automl-model-info-list .pf-v6-c-description-list__group {
-  gap: var(--pf-t--global--spacer--xs);
+/* Model information description list */
+.automl-model-info-list {
+  --pf-v6-c-description-list--m-horizontal__term--width: 10rem;
+
+  .pf-v6-c-description-list__group {
+    gap: var(--pf-t--global--spacer--xs);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  }
+
+  .pf-v6-c-description-list__term,
+  .pf-v6-c-description-list__description {
+    font-size: var(--pf-t--global--font--size--md);
+  }
+
+  .pf-v6-c-description-list__term {
+    white-space: nowrap;
+  }
 }
 
 /* Print styles for PDF download */

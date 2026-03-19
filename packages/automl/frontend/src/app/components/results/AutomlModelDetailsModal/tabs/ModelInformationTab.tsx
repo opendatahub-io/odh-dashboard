@@ -13,7 +13,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ model, createdAt }) =>
 
   return (
     <>
-      <Title headingLevel="h3" className="pf-v6-u-mb-md">
+      <Title headingLevel="h3" className="pf-v6-u-mb-lg">
         Experiment parameters
       </Title>
       <DescriptionList isHorizontal isCompact className="automl-model-info-list">
