@@ -667,14 +667,14 @@ func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
 		configMapYAML := `
 providers:
   inference:
-    - provider_id: "cluster-vllm-provider"
-      provider_type: "remote::vllm"
+    - provider_id: "endpoint-1"
+      provider_type: "remote::openai"
       config:
-        base_url: "https://qwen3-06b.test-namespace.svc.cluster.local:8080/v1"
+        base_url: "https://api.openai.com/v1"
 registered_resources:
   models:
-    - model_id: "qwen3-06b"
-      provider_id: "cluster-vllm-provider"
+    - model_id: "gpt-4o"
+      provider_id: "endpoint-1"
       model_type: "llm"
 `
 		configMap := &corev1.ConfigMap{
@@ -699,7 +699,7 @@ registered_resources:
 
 		installModels := []models.InstallModel{
 			{
-				ModelName:       "qwen3-06b",
+				ModelName:       "gpt-4o",
 				ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			},
 		}
@@ -709,9 +709,9 @@ registered_resources:
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
-		assert.Contains(t, result, "qwen3-06b")
-		assert.Contains(t, result, "cluster-vllm-provider")
-		assert.Contains(t, result, "svc.cluster.local")
+		assert.Contains(t, result, "gpt-4o")
+		assert.Contains(t, result, "endpoint-1")
+		assert.Contains(t, result, "api.openai.com")
 	})
 }
 
