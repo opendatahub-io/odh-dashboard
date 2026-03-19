@@ -13,6 +13,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  deleteModelServingModal,
 } from '../../../../pages/modelServing';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData } from '../../../../types';
@@ -34,6 +35,8 @@ let modelURI: string;
 let servingRuntime: string;
 let resourceType: string;
 let Image: string;
+let scaleDown: string;
+let scaleUp: string;
 let yamlEditorModelName: string;
 
 describe('A user can deploy an LLMD model', () => {
@@ -50,6 +53,8 @@ describe('A user can deploy an LLMD model', () => {
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         resourceType = testData.resourceType;
         Image = testData.Image;
+        scaleDown = testData.scaleDown;
+        scaleUp = testData.scaleUp;
         yamlEditorModelName = testData.yamlEditorModelName;
 
         cy.log(`Loaded project name: ${projectName}`);
@@ -164,14 +169,22 @@ describe('A user can deploy an LLMD model', () => {
       // workaround for model to be deployed without GPUs.
       cy.get<string>('@resourceName').then((resourceName) => {
         patchOpenShiftResource(resourceType, resourceName, Image, projectName);
+        // Scale down to 0 and back to 1 to force pod recreation with new CPU image
+        patchOpenShiftResource(resourceType, resourceName, scaleDown, projectName);
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(5000); // Wait for pods to terminate
+        patchOpenShiftResource(resourceType, resourceName, scaleUp, projectName);
         cy.step('Verify that the Model is ready');
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
+      cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
       modelServingSection.getKServeRow(modelName).find().findKebabAction('Delete').click();
+      deleteModelServingModal.findInput().clear().type(modelName);
+      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
   );
   it('Verify User can deploy an LLmd Model from Manual YAML editor', () => {
@@ -212,6 +225,8 @@ describe('A user can deploy an LLMD model', () => {
     );
     const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
     checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+
+    cy.step('Verify the model Row');
     llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
     modelServingSection.getKServeRow(yamlEditorModelName).find().findKebabAction('Edit').click();
     modelServingWizard.findYAMLEditFallbackAlert().should('exist');
