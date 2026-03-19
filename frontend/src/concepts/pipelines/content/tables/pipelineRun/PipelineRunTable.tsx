@@ -9,7 +9,7 @@ import { ManageColumnsModal, useManageColumns } from 'mod-arch-shared';
 import { TableBase, getTableColumnSort, useCheckboxTable, SortableData } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
-import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
@@ -69,7 +69,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 }) => {
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
-  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
@@ -77,7 +77,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const { runs, contextsError, runArtifactsError, runArtifactsLoaded, metricsNames } =
     useMetricColumns(runWithoutMetrics);
-
   const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
   const filteredRuns = React.useMemo(
     () => filterByMlflowExperiment(runs, mlflowFilter),
