@@ -5,17 +5,17 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/api"
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
-
-	"log/slog"
-	"net/http"
-	"os"
-	"time"
 )
 
 func main() {
@@ -88,6 +88,22 @@ func main() {
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
+	}
+
+	// Validate model-registry-base-url when set: require valid URL and HTTPS when auth-method=user_token
+	if cfg.ModelRegistryBaseURL != "" {
+		u, parseErr := url.Parse(cfg.ModelRegistryBaseURL)
+		if parseErr != nil || u.Scheme == "" || u.Host == "" {
+			logger.Error("invalid model-registry-base-url", "value", cfg.ModelRegistryBaseURL)
+			os.Exit(1)
+		}
+		if cfg.AuthMethod == config.AuthMethodUser &&
+			u.Scheme != "https" &&
+			u.Hostname() != "localhost" &&
+			u.Hostname() != "127.0.0.1" {
+			logger.Error("model-registry-base-url must use https when auth-method=user_token (except for localhost)")
+			os.Exit(1)
+		}
 	}
 
 	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
