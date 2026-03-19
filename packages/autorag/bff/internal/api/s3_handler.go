@@ -103,7 +103,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		if strings.Contains(err.Error(), "missing required field") {
+		if isInvalidS3CredentialConfigError(err) {
 			app.badRequestResponse(w, r, err)
 			return
 		}
@@ -156,12 +156,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		defer closer.Close()
 	}
 
-	if isInlineDangerousContentType(contentType) {
+	sanitizedContentType := sanitizeUploadContentType(contentType)
+	if isInlineDangerousContentType(contentType) || sanitizedContentType == "application/octet-stream" {
 		w.Header().Set("Content-Disposition", "attachment")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
 	// Same normalization as POST uploads so GET cannot echo arbitrary S3 metadata types.
-	w.Header().Set("Content-Type", sanitizeUploadContentType(contentType))
+	w.Header().Set("Content-Type", sanitizedContentType)
 
 	// Stream the file content to the response
 	w.WriteHeader(http.StatusOK)
@@ -252,7 +253,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			app.errorResponse(w, r, httpError)
 			return
 		}
-		if strings.Contains(err.Error(), "missing required field") {
+		if isInvalidS3CredentialConfigError(err) {
 			app.badRequestResponse(w, r, err)
 			return
 		}
@@ -392,6 +393,25 @@ func isInlineDangerousContentType(v string) bool {
 	mediaType = strings.ToLower(mediaType)
 	_, ok := dangerousS3GetMediaTypes[mediaType]
 	return ok
+}
+
+// isInvalidS3CredentialConfigError reports whether err is a credential/endpoint validation error
+// (missing required field, invalid AWS_S3_ENDPOINT, or SSRF-blocked endpoint) that should be
+// returned as 400 Bad Request rather than 500.
+func isInvalidS3CredentialConfigError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "missing required field") ||
+		strings.Contains(msg, "invalid AWS_S3_ENDPOINT") ||
+		strings.Contains(msg, "HTTPS") ||
+		strings.Contains(msg, "RFC-1918") ||
+		strings.Contains(msg, "RFC 1122") ||
+		strings.Contains(msg, "RFC 1112") ||
+		strings.Contains(msg, "loopback") ||
+		strings.Contains(msg, "link-local") ||
+		strings.Contains(msg, "IPv6")
 }
 
 // allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
