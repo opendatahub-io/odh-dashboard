@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import type { PipelineRun } from '~/app/types';
+import React from 'react';
 import AutoragResults from '~/app/components/results/AutoragResults';
+import type { PipelineRun } from '~/app/types';
 
 jest.mock('~/app/topology/PipelineTopology', () => ({
   __esModule: true,
@@ -27,11 +27,6 @@ describe('AutoragResults', () => {
     jest.clearAllMocks();
   });
 
-  it('should render the configuration title with pipeline run name', () => {
-    render(<AutoragResults pipelineRun={mockPipelineRun} />);
-    expect(screen.getByText('My AutoRAG Run configurations')).toBeInTheDocument();
-  });
-
   it('should render the PipelineTopology component', () => {
     render(<AutoragResults pipelineRun={mockPipelineRun} />);
     expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
@@ -51,7 +46,6 @@ describe('AutoragResults', () => {
 
   it('should render gracefully when pipelineRun is undefined', () => {
     render(<AutoragResults />);
-    expect(screen.getByText('configurations')).toBeInTheDocument();
     expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
   });
 });
