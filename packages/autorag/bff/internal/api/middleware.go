@@ -453,6 +453,12 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+
+			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
+			// from the DSPA spec even when a Pipeline Server override URL is set
+			// (e.g. port-forwarding during local development). Failure is non-fatal:
+			// the S3 handler falls back to requiring an explicit secretName.
+			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -576,6 +582,11 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"hasEndpoint", endpointURL != "",
 					"hasBucket", ext.Bucket != "",
 				)
+			} else {
+				logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 endpoints require explicit secretName",
+					"dspa", dspa.Metadata.Name,
+					"namespace", namespace,
+				)
 			}
 
 			// Extract auth token from request identity to forward to Pipeline Server
@@ -611,12 +622,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
-
-			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
-			// from the DSPA spec even when a Pipeline Server override URL is set
-			// (e.g. port-forwarding during local development). Failure is non-fatal:
-			// the S3 handler falls back to requiring an explicit secretName.
-			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		}
 
 		r = r.WithContext(ctx)
@@ -631,26 +636,40 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespace string, logger *slog.Logger) context.Context {
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
-		logger.Debug("K8s client unavailable; DSPA S3 config not injected (S3 will require explicit secretName)",
+		logger.Warn("K8s client unavailable; DSPA S3 config not injected (S3 will require explicit secretName)",
 			"error", err)
 		return ctx
 	}
 
-	dspa, err := app.discoverReadyDSPA(ctx, client, namespace, logger)
+	// List all DSPAs regardless of readiness — storage config lives in the spec, not status.
+	dspaItems, err := listDSPipelineApplications(ctx, client, namespace, app.config.MockK8Client, logger)
 	if err != nil {
-		logger.Debug("DSPA discovery skipped in override-URL mode; S3 will require explicit secretName",
-			"error", err)
+		logger.Warn("DSPA listing failed; S3 will require explicit secretName",
+			"error", err, "namespace", namespace)
 		return ctx
+	}
+	if len(dspaItems) == 0 {
+		logger.Warn("No DSPA found in namespace; S3 will require explicit secretName",
+			"namespace", namespace)
+		return ctx
+	}
+
+	// Use the first DSPA that has external storage configured.
+	var dspa *models.DSPipelineApplication
+	for i := range dspaItems {
+		d := &dspaItems[i]
+		if d.Spec != nil &&
+			d.Spec.ObjectStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+			dspa = d
+			break
+		}
 	}
 	if dspa == nil {
-		return ctx
-	}
-
-	if dspa.Spec == nil ||
-		dspa.Spec.ObjectStorage == nil ||
-		dspa.Spec.ObjectStorage.ExternalStorage == nil ||
-		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret == nil ||
-		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName == "" {
+		logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 requires explicit secretName",
+			"namespace", namespace)
 		return ctx
 	}
 
