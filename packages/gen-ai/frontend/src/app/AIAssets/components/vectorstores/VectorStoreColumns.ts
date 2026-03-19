@@ -4,7 +4,7 @@ import { ExternalVectorStoreSummary } from '~/app/types';
 const VectorStoreColumns: SortableData<ExternalVectorStoreSummary>[] = [
   {
     field: 'vector_store_name',
-    label: 'Collection',
+    label: 'Collection name',
     info: { tooltip: 'The collection name and its parent vector store' },
     sortable: (a, b) => a.vector_store_name.localeCompare(b.vector_store_name),
     width: 20,

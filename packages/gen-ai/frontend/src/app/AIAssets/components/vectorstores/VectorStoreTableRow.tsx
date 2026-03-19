@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Button, ButtonVariant, Truncate, Icon, Tooltip } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
+  ExclamationTriangleIcon,
   OutlinedQuestionCircleIcon,
   PlusCircleIcon,
 } from '@patternfly/react-icons';
@@ -61,17 +62,42 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
   const status = computeEmbeddingModelStatus(store.embedding_model, allModels, playgroundModels);
   const isDisabled = status === 'not_available';
 
+  const dimStyle = isDisabled ? { opacity: 0.5 } : undefined;
+
   return (
-    <Tr style={isDisabled ? { opacity: 0.5 } : undefined}>
-      <Td dataLabel="Collection">
-        <div className="pf-v6-u-font-weight-bold">
-          <VectorStoreTableRowInfo store={store} />
+    <Tr>
+      <Td dataLabel="Collection name">
+        <div style={dimStyle}>
+          <div className="pf-v6-u-font-weight-bold">
+            <VectorStoreTableRowInfo store={store} />
+          </div>
+          {store.description && <TruncatedText maxLines={2} content={store.description} />}
         </div>
-        {store.description && <TruncatedText maxLines={2} content={store.description} />}
       </Td>
       <Td dataLabel="Embedding model">
+        {isDisabled && (
+          <h4
+            style={{
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--pf-t--global--spacer--xs)',
+              marginBottom: 'var(--pf-t--global--spacer--xs)',
+            }}
+          >
+            <Icon status="warning">
+              <ExclamationTriangleIcon />
+            </Icon>
+            Missing model
+          </h4>
+        )}
         <span
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs)' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--pf-t--global--spacer--xs)',
+            ...dimStyle,
+          }}
         >
           <Truncate content={store.embedding_model} />
           {status === 'registered' && (
@@ -91,8 +117,10 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
           )}
         </span>
       </Td>
-      <Td dataLabel="Dimensions">{store.embedding_dimension}</Td>
-      <Td dataLabel="Playground">
+      <Td dataLabel="Dimensions" style={dimStyle}>
+        {store.embedding_dimension}
+      </Td>
+      <Td dataLabel="Playground" style={dimStyle}>
         {status === 'registered' ? (
           <Button
             variant={ButtonVariant.secondary}

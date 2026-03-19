@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Button,
+  ButtonVariant,
   ClipboardCopy,
   Content,
   Flex,
@@ -8,8 +10,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DashboardPopupIconButton } from 'mod-arch-shared';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { ExternalVectorStoreSummary } from '~/app/types';
 
 type VectorStoreTableRowInfoProps = {
@@ -64,12 +65,14 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
           </Stack>
         }
       >
-        <DashboardPopupIconButton
-          icon={<OutlinedQuestionCircleIcon />}
+        <Button
+          variant={ButtonVariant.plain}
           aria-label="More info"
           style={{ paddingTop: 0, paddingBottom: 0 }}
           onClick={() => setIsOpen(!isOpen)}
-        />
+        >
+          <InfoCircleIcon />
+        </Button>
       </Popover>
     </Flex>
   );
