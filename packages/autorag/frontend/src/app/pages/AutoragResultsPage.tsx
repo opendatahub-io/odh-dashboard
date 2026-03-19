@@ -19,7 +19,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId);
+  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
   const invalidPipelineRunId = pipelineRunQuery.isError;
 
   return (
@@ -45,7 +45,7 @@ function AutoragResultsPage(): React.JSX.Element {
       loadError={pipelineRunQuery.error ?? namespacesLoadError}
       loaded={namespacesLoaded && pipelineRunQuery.isFetched}
     >
-      <AutoragResults />
+      <AutoragResults pipelineRun={pipelineRun} />
     </ApplicationsPage>
   );
 }

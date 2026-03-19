@@ -358,6 +358,384 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('S3 File Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should successfully download a file from S3', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=test-file.pdf',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+    });
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when all parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/s3/file');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secretName', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty bucket', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty key', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+        );
+        // Mock S3 should succeed when bucket is provided via secret's AWS_S3_BUCKET field
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+        );
+        // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+    });
+
+    describe('Key Format Variations', () => {
+      it('should handle nested key structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
+        );
+        // Mock S3 should return file data for valid key formats
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should handle key with special characters', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should handle URL-encoded key', async () => {
+        const encodedKey = encodeURIComponent('documents/my file.pdf');
+        const result = await apiClient.get(
+          `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+    });
+
+    describe('Valid Bucket and Key Formats', () => {
+      it('should accept simple key format', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
+        );
+        // Mock S3 validates parameter parsing and returns mock file data
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should accept key with multiple path segments', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+    });
+  });
+
+  describe('S3 File Schema Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should successfully retrieve CSV file schema from S3', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          status: 200,
+        });
+      }, 8000);
+    });
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Empty Parameters', () => {
+      it('should return 400 for empty namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=&secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty secretName', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty key', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Secret and File Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=data.csv',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should handle request for non-existent CSV file', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=non-existent.csv',
+        );
+        // Mock S3 returns 404 for files with "non-existent" in the key
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      }, 8000);
+    });
+
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&key=data.csv',
+        );
+        // Mock S3 should return schema when bucket is provided via secret's AWS_S3_BUCKET field
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=data.csv',
+        );
+        // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          status: 200,
+        });
+      }, 8000);
+    });
+
+    describe('File Format Validation', () => {
+      it('should handle CSV files with nested paths', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/data.csv',
+        );
+        // Mock S3 returns schema data for valid CSV key formats
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should handle URL-encoded file keys', async () => {
+        const encodedKey = encodeURIComponent('data/my file.csv');
+        const result = await apiClient.get(
+          `/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          status: 200,
+        });
+      }, 8000);
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {
@@ -428,97 +806,218 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Create Pipeline Run', () => {
-      it('should create a pipeline run with required fields', async () => {
-        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-          display_name: 'contract-test-run',
-          train_data_secret_name: 'minio-secret',
-          train_data_bucket_name: 'automl-bucket',
-          train_data_file_key: 'data/train.csv',
-          label_column: 'target',
-          task_type: 'binary',
-        });
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
-
-      it('should include pipeline_type on the created run', async () => {
-        const result = await apiClient.post(
-          '/api/v1/pipeline-runs?namespace=test-namespace&pipelineType=timeseries',
-          {
-            display_name: 'pipeline-type-test-run',
+      describe('Tabular Pipeline', () => {
+        it('should create a tabular pipeline run with required fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'contract-test-tabular-run',
             train_data_secret_name: 'minio-secret',
             train_data_bucket_name: 'automl-bucket',
             train_data_file_key: 'data/train.csv',
             label_column: 'target',
             task_type: 'binary',
-          },
-        );
-        expect(result.success).toBe(true);
-        if (result.success) {
-          type RunData = { pipeline_type?: string };
-          const data = result.response.data as { data: RunData };
-          expect(data.data.pipeline_type).toBe('timeseries');
-        }
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('should include pipeline_type on the created tabular run', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'pipeline-type-tabular-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result.success).toBe(true);
+          if (result.success) {
+            type RunData = { pipeline_type?: string };
+            const data = result.response.data as { data: RunData };
+            expect(data.data.pipeline_type).toBe('tabular');
+          }
+        });
+
+        it('should create a tabular pipeline run with all optional fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'full-options-tabular-run',
+            description: 'Tabular run with all optional fields',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'multiclass',
+            top_n: 5,
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('should create a tabular regression pipeline run', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'regression-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'price',
+            task_type: 'regression',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('should return 400 for missing required tabular fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-tabular-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            // Missing label_column and task_type
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for invalid task_type', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'bad-task-type-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'unsupervised',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
       });
 
-      it('should create a pipeline run with all optional fields', async () => {
-        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-          display_name: 'full-options-run',
-          description: 'Run with all optional fields',
-          train_data_secret_name: 'minio-secret',
-          train_data_bucket_name: 'automl-bucket',
-          train_data_file_key: 'data/train.csv',
-          label_column: 'target',
-          task_type: 'multiclass',
-          top_n: 5,
+      describe('Timeseries Pipeline', () => {
+        it('should create a timeseries pipeline run with required fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'contract-test-timeseries-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
         });
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-          status: 200,
+
+        it('should include pipeline_type on the created timeseries run', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'pipeline-type-timeseries-test-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+          });
+          expect(result.success).toBe(true);
+          if (result.success) {
+            type RunData = { pipeline_type?: string };
+            const data = result.response.data as { data: RunData };
+            expect(data.data.pipeline_type).toBe('timeseries');
+          }
+        });
+
+        it('should create a timeseries pipeline run with all optional fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'full-options-timeseries-run',
+            description: 'Timeseries run with all optional fields',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+            prediction_length: 7,
+            known_covariates_names: ['temperature', 'is_holiday'],
+            top_n: 5,
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('should return 400 for missing required timeseries fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-timeseries-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            task_type: 'timeseries',
+            target: 'sales',
+            // Missing id_column and timestamp_column
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
       });
 
-      it('should return 400 for missing required fields', async () => {
-        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-          display_name: 'incomplete-run',
+      describe('General Validation', () => {
+        it('should return 400 for missing common required fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'incomplete-run',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
 
-      it('should return 400 for invalid task_type', async () => {
-        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-          display_name: 'bad-task-type-run',
-          train_data_secret_name: 's',
-          train_data_bucket_name: 'b',
-          train_data_file_key: 'k',
-          label_column: 'target',
-          task_type: 'unsupervised',
+        it('should return 400 for unknown JSON fields', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'test',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+            unknown_field: 'should be rejected',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
 
-      it('should return 400 for unknown JSON fields', async () => {
-        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
-          display_name: 'test',
-          train_data_secret_name: 'minio-secret',
-          train_data_bucket_name: 'automl-bucket',
-          train_data_file_key: 'data/train.csv',
-          label_column: 'target',
-          task_type: 'binary',
-          unknown_field: 'should be rejected',
+        it('should return 400 when task_type is missing', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'missing-task-type-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            target: 'sales',
+            id_column: 'store_id',
+            timestamp_column: 'date',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
       });
     });
   });

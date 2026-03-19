@@ -1,7 +1,8 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { getLlamaStackModels } from '~/app/api/k8s';
-import { LlamaStackModelsResponse, LlamaStackModelType } from '~/app/types';
+import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { LlamaStackModelsResponse, LlamaStackModelType, PipelineRun } from '~/app/types';
 
 export function useLlamaStackModelsQuery(
   namespace: string,
@@ -39,16 +40,23 @@ export function useLlamaStackModelsQuery(
   });
 }
 
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+const POLL_INTERVAL_MS = 5000;
+
 export function usePipelineRunQuery(
   runId?: string,
-): UseQueryResult<{ display_name: string }, Error> {
+  namespace?: string,
+): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId],
-    queryFn: async () => {
-      // eslint-disable-next-line camelcase
-      const pipelineRun = { display_name: 'RUN_NAME' };
-      return pipelineRun;
+    queryKey: ['pipelineRun', runId, namespace],
+    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
+    enabled: !!runId && !!namespace,
+    refetchInterval: (query) => {
+      const state = query.state.data?.state;
+      if (!state || TERMINAL_STATES.has(state)) {
+        return false;
+      }
+      return POLL_INTERVAL_MS;
     },
-    enabled: !!runId,
   });
 }

@@ -105,15 +105,38 @@ type ChildTask struct {
 }
 
 // CreateAutoMLRunRequest is the BFF-level input for creating an AutoML pipeline run.
+// This struct supports both tabular and timeseries pipeline types.
+// Required fields vary based on pipelineType:
+//
+// Common fields (all pipeline types):
+//   - DisplayName, TrainDataSecretName, TrainDataBucketName, TrainDataFileKey
+//
+// Tabular-specific required fields (pipelineType=tabular):
+//   - LabelColumn, TaskType
+//
+// Timeseries-specific required fields (pipelineType=timeseries):
+//   - Target, IDColumn, TimestampColumn
+//
+// Optional fields: Description, TopN, PredictionLength, KnownCovariatesNames
 type CreateAutoMLRunRequest struct {
+	// Common fields for all pipeline types
 	DisplayName         string `json:"display_name"`
 	Description         string `json:"description,omitempty"`
 	TrainDataSecretName string `json:"train_data_secret_name"`
 	TrainDataBucketName string `json:"train_data_bucket_name"`
 	TrainDataFileKey    string `json:"train_data_file_key"`
-	LabelColumn         string `json:"label_column"`
-	TaskType            string `json:"task_type"`
 	TopN                *int   `json:"top_n,omitempty"`
+
+	// Tabular-specific fields
+	LabelColumn *string `json:"label_column,omitempty"`
+	TaskType    *string `json:"task_type,omitempty"`
+
+	// Timeseries-specific fields
+	Target               *string   `json:"target,omitempty"`
+	IDColumn             *string   `json:"id_column,omitempty"`
+	TimestampColumn      *string   `json:"timestamp_column,omitempty"`
+	PredictionLength     *int      `json:"prediction_length,omitempty"`
+	KnownCovariatesNames *[]string `json:"known_covariates_names,omitempty"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.

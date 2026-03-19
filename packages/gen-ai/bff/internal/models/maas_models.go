@@ -21,13 +21,15 @@ type MaaSModelsResponse struct {
 	Data   []MaaSModel `json:"data"`
 }
 
-// MaaSTokenRequest represents a request to issue a new token
+// MaaSTokenRequest represents a request to create a new API key
 type MaaSTokenRequest struct {
-	TTL string `json:"expiration"` // Token time-to-live (Go duration format: ns, us, ms, s, m, h), default: "4h"
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	ExpiresIn   string `json:"expiresIn,omitempty"`
 }
 
-// MaaSTokenResponse represents the response when a token is issued
+// MaaSTokenResponse represents the response when an API key is created
 type MaaSTokenResponse struct {
-	Token     string `json:"token"`     // Generated token
-	ExpiresAt int64  `json:"expiresAt"` // Token expiration (Unix timestamp)
+	Key       string `json:"key"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
 }

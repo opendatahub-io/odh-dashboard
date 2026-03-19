@@ -3,12 +3,18 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
-import { ExternalModelRequest, ExternalModelResponse } from '~/app/types';
+import {
+  ExternalModelRequest,
+  ExternalModelResponse,
+  VerifyExternalModelRequest,
+  VerifyExternalModelResponse,
+} from '~/app/types';
 
 describe('CreateExternalEndpointModal', () => {
   let mockOnClose: jest.Mock;
   let mockOnSuccess: jest.Mock;
   let mockOnSubmit: jest.Mock<Promise<ExternalModelResponse>, [ExternalModelRequest]>;
+  let mockOnVerify: jest.Mock<Promise<VerifyExternalModelResponse>, [VerifyExternalModelRequest]>;
   let defaultProps: ReturnType<typeof getDefaultProps>;
 
   const getDefaultProps = () => ({
@@ -16,12 +22,14 @@ describe('CreateExternalEndpointModal', () => {
     onClose: mockOnClose,
     onSuccess: mockOnSuccess,
     onSubmit: mockOnSubmit,
+    onVerify: mockOnVerify,
   });
 
   beforeEach(() => {
     mockOnClose = jest.fn();
     mockOnSuccess = jest.fn();
     mockOnSubmit = jest.fn<Promise<ExternalModelResponse>, [ExternalModelRequest]>();
+    mockOnVerify = jest.fn<Promise<VerifyExternalModelResponse>, [VerifyExternalModelRequest]>();
     defaultProps = getDefaultProps();
 
     mockOnSubmit.mockResolvedValue({
@@ -41,6 +49,12 @@ describe('CreateExternalEndpointModal', () => {
         token: '',
       },
       model_source_type: 'external_provider',
+    });
+
+    mockOnVerify.mockResolvedValue({
+      success: true,
+      message: 'External model verified successfully',
+      response_time_ms: 500,
     });
   });
 

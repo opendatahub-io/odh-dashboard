@@ -12,6 +12,7 @@ import AutoragRunsTableRow from './AutoragRunsTableRow';
  */
 type AutoragRunsTableProps = {
   runs: PipelineRun[];
+  namespace: string;
   totalSize: number;
   page: number;
   pageSize: number;
@@ -26,6 +27,7 @@ type AutoragRunsTableProps = {
  */
 const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
   runs,
+  namespace,
   totalSize,
   page,
   pageSize,
@@ -42,7 +44,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
     defaultSortColumn={0}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent}
-    rowRenderer={(run) => <AutoragRunsTableRow key={run.run_id} run={run} />}
+    rowRenderer={(run) => <AutoragRunsTableRow key={run.run_id} run={run} namespace={namespace} />}
     itemCount={totalSize}
     page={page}
     perPage={pageSize}
