@@ -30,7 +30,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
       }
 
       try {
-        const response = await api.generateMaaSToken(expiration ? { expiration } : {});
+        const response = await api.generateMaaSToken(expiration ? { expiresIn: expiration } : {});
         setTokenData(response);
         try {
           fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {

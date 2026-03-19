@@ -27,13 +27,3 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 		},
 	}
 }
-
-// GetServiceDetails overrides to simulate ClusterIP for localhost access
-// Client service discovery removed in minimal starter.
-
-// BearerToken always returns a fake token for tests
-func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
-	return "FAKE-BEARER-TOKEN", nil
-}
-
-// GetGroups removed in minimal starter.

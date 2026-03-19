@@ -1,0 +1,56 @@
+name: Test / MLflow BFF Tests
+on:
+  push:
+    paths:
+      - 'packages/mlflow/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/mlflow/**'
+      - '.github/workflows/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.6'
+
+      - name: Lint
+        working-directory: packages/mlflow/bff
+        run: make lint
+
+      - name: Build (BFF)
+        working-directory: packages/mlflow/bff
+        run: make build
+
+      - name: Test (BFF)
+        working-directory: packages/mlflow/bff
+        run: make test
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/mlflow
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

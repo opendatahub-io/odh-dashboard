@@ -164,6 +164,10 @@ Before performing certain tasks, read and follow the corresponding specialized r
 | **Cypress E2E Tests** | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md)           | When creating or modifying E2E tests, Robot Framework migrations             |
 | **Cypress Mock Tests**| [docs/agent-rules/cypress-mock.md](docs/agent-rules/cypress-mock.md)         | When creating or modifying mock/component tests                              |
 | **Unit Tests**        | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md)             | When creating or modifying Jest unit tests for utilities, hooks, or components |
+| **Architecture**      | [docs/agent-rules/architecture.md](docs/agent-rules/architecture.md)         | When making structural changes, adding packages, or modifying package boundaries |
+| **Conventions**       | [docs/agent-rules/conventions.md](docs/agent-rules/conventions.md)           | When writing or reviewing TypeScript, React, or backend code                  |
+| **Testing Standards** | [docs/agent-rules/testing-standards.md](docs/agent-rules/testing-standards.md) | When working across multiple test types or choosing a testing strategy        |
+| **Security**          | [docs/agent-rules/security.md](docs/agent-rules/security.md)                 | When working on auth, secrets, input validation, or K8s API interactions      |
 
 **Important**: Always read the relevant rule file before starting the task to ensure you follow the project's conventions and patterns.
 

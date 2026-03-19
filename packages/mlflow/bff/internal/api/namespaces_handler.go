@@ -4,16 +4,25 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
 	"github.com/opendatahub-io/mlflow/bff/internal/constants"
 	"github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 
 func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if app.config.AuthMethod == config.AuthMethodDisabled {
+		namespacesEnvelope := NamespacesEnvelope{
+			Data: []models.NamespaceModel{{Name: "default"}},
+		}
+		if err := app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -34,13 +43,8 @@ func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ h
 		return
 	}
 
-	namespacesEnvelope := NamespacesEnvelope{
-		Data: namespaces,
-	}
-
-	err = app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil)
-
-	if err != nil {
+	namespacesEnvelope := NamespacesEnvelope{Data: namespaces}
+	if err := app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
