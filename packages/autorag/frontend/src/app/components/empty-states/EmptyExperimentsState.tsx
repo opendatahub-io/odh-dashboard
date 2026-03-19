@@ -39,7 +39,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
             variant="primary"
             onClick={() => navigate(createExperimentRoute)}
           >
-            Create Autorag experiment
+            Create AutoRAG experiment
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>
