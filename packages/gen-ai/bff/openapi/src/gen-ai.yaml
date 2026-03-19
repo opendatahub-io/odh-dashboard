@@ -385,7 +385,7 @@ paths:
     description: >-
       Register and manage OpenAI-compatible external model endpoints for use in Gen AI Studio.
       Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
-      Supports both external providers (data sent outside cluster) and in-cluster cross-namespace models.
+      Supports custom endpoints, including public external APIs and cluster-local URLs.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
