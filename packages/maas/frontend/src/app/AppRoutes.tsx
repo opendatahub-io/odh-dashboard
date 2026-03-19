@@ -1,21 +1,19 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
-// Tiers UI disabled - API being removed in next release
-// import AllTiersPage from '~/app/pages/tiers/AllTiersPage';
-// import ViewTierPage from '~/app/pages/tiers/ViewTierPage';
-// import EditTierPage from '~/app/pages/tiers/EditTierPage';
-// import CreateTierPage from '~/app/pages/tiers/CreateTierPage';
+import AllSubscriptionsPage from '~/app/pages/subscriptions/AllSubscriptionsPage';
+import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
+import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
+import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
 import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
 
 const AppRoutes: React.FC = () => (
   <Routes>
-    <Route path="/" element={<AllApiKeysPage />} />
-    {/* Tiers UI disabled - API being removed in next release */}
-    {/* <Route path="/" element={<AllTiersPage />} /> */}
-    {/* <Route path="/create" element={<CreateTierPage />} /> */}
-    {/* <Route path="/view/:tierName" element={<ViewTierPage />} /> */}
-    {/* <Route path="/edit/:tierName" element={<EditTierPage />} /> */}
+    <Route path="/tokens" element={<AllApiKeysPage />} />
+    <Route path="/subscriptions" element={<AllSubscriptionsPage />} />
+    <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
+    <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
+    <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

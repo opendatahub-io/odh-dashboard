@@ -22,6 +22,10 @@ import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@pattern
 import { ZodIssue } from 'zod';
 import { RateLimit } from '~/app/types/tier';
 
+// !!!!!!!
+// LEAVING THIS FOR HISTORICAL PURPOSES, THIS WILL BE REPURPOSED WITH THE SUBSCRIPTION FORM
+// !!!!!!!
+
 const UNIT_OPTIONS: { value: RateLimit['unit']; label: string }[] = [
   { value: 'hour', label: 'hour' },
   { value: 'minute', label: 'minute' },

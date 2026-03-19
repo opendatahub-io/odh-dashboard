@@ -10,7 +10,6 @@ import {
   HelperText,
   HelperTextItem,
   NumberInput,
-  ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -25,7 +24,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { mockAvailableGroups, RateLimit, Tier } from '~/app/types/tier';
 import { RateLimitCheckbox } from './RateLimitCheckbox';
-import { useCreateTierFormValidation } from './useCreateTierFormValidation';
+
+// !!!!!!!
+// !!!!!!!
+// !!!!!!!
+// TODO: LEAVING FOR HISTORICAL PURPOSES, THIS WILL BE REPLACED WITH THE SUBSCRIPTION FORM
+// !!!!!!!
+// !!!!!!!
+// !!!!!!!
 
 const DEFAULT_TOKEN_LIMIT: RateLimit = { count: 10000, time: 1, unit: 'hour' };
 const DEFAULT_REQUEST_LIMIT: RateLimit = { count: 100, time: 1, unit: 'minute' };
@@ -112,18 +118,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   // Check if k8sName is already taken by another tier
   const isK8sNameTaken = existingTierNames.has(data.k8sName.value);
 
-  const { isValid: isFormValid, getAllValidationIssues } = useCreateTierFormValidation({
-    name: data.name,
-    level,
-    groups: selectedGroupNames,
-    tokenLimitEnabled,
-    tokenLimits,
-    requestLimitEnabled,
-    requestLimits,
-  });
-
-  const canSubmit =
-    isK8sNameValid && isFormValid && !isLevelTaken && !isK8sNameTaken && !isSubmitting;
+  const canSubmit = isK8sNameValid && !isLevelTaken && !isK8sNameTaken && !isSubmitting;
 
   const limits = React.useMemo(() => {
     if (tokenLimitEnabled && requestLimitEnabled) {
@@ -177,11 +172,6 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
         <NumberInput
           value={Number.isNaN(level) ? '' : level}
           data-testid="tier-level"
-          validated={
-            getAllValidationIssues(['level']).length > 0 || isLevelTaken
-              ? ValidatedOptions.error
-              : ValidatedOptions.default
-          }
           onChange={(event: React.FormEvent<HTMLInputElement>) => {
             const inputValue = event.currentTarget.value;
             if (inputValue === '') {
@@ -200,15 +190,6 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
           onMinus={() => setLevel((Number.isNaN(level) ? 0 : level) - 1)}
           onPlus={() => setLevel((Number.isNaN(level) ? 0 : level) + 1)}
         />
-        {getAllValidationIssues(['level']).length > 0 && (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                {getAllValidationIssues(['level'])[0].message}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )}
         {isLevelTaken && (
           <FormHelperText>
             <HelperText>
@@ -269,7 +250,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
                 }
               }}
               defaultRateLimit={DEFAULT_TOKEN_LIMIT}
-              validationIssues={getAllValidationIssues()}
+              validationIssues={[]}
             />
           </FlexItem>
           <FlexItem>
@@ -286,7 +267,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
                 }
               }}
               defaultRateLimit={DEFAULT_REQUEST_LIMIT}
-              validationIssues={getAllValidationIssues()}
+              validationIssues={[]}
             />
           </FlexItem>
         </Flex>
