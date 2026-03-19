@@ -64,7 +64,7 @@ Extensions use `flags.required` / `flags.disallowed` arrays referencing `Support
 
 ## Standard package structure
 
-```
+```text
 packages/<name>/
 ├── package.json              # module-federation, exports ./extensions
 ├── extensions.ts             # Root extensions (or re-exports from frontend/src/odh/)

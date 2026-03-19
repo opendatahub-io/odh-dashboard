@@ -77,7 +77,7 @@ Some packages have their own AGENTS.md with package-specific guidance. Check the
 
 Before performing certain tasks, read and follow the corresponding specialized rules.
 
-Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, and `.gemini/rules/`. The `.cursor` and `.gemini` directories are symlinks to `.claude/`.
+Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, and `.gemini/rules/`. The rule files in `.cursor/` and `.gemini/` are symlinks pointing to their `.claude/` counterparts.
 
 | Rule                        | File                          | Trigger                                                                        |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |

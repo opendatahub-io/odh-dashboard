@@ -12,7 +12,7 @@ gen-ai, model-registry, maas, automl, autorag, mlflow, eval-hub — each with a 
 
 ## Directory structure
 
-```
+```text
 bff/
 ├── cmd/
 │   ├── main.go            # Entry point, flag parsing, server setup

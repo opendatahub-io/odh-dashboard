@@ -17,7 +17,7 @@ The quickstart in `docs/onboard-modular-architecture.md` uses `npx mod-arch-inst
 
 If not using the installer, start from `packages/plugin-template/`:
 
-```
+```text
 packages/plugin-template/
 ├── package.json          # @odh-dashboard/template
 ├── tsconfig.json         # extends @odh-dashboard/tsconfig
@@ -102,7 +102,7 @@ Note: eval-hub and notebooks both use frontend port 9105 (conflict).
 
 For a full federated module:
 
-```
+```text
 packages/<name>/
 ├── package.json
 ├── extensions.ts              # Root extensions export
@@ -131,7 +131,7 @@ packages/<name>/
 
 For a simple plugin (no separate build):
 
-```
+```text
 packages/<name>/
 ├── package.json
 ├── extensions.ts
