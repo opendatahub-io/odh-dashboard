@@ -81,14 +81,14 @@ describe('AI Assets - Models Tab', () => {
 
       cy.step('Verify External model row');
       const externalRow = modelsTabPage.getRow('GPT-4 External');
-      externalRow.findSourceLabel().should('contain.text', 'External');
+      externalRow.findSourceLabel().should('contain.text', 'Custom endpoint');
       externalRow.findModelTypeCell().should('contain.text', 'Inferencing');
       externalRow.findStatusCell().should('contain.text', 'Active');
       externalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
 
       cy.step('Verify Public route / Embedding model row');
       const embeddingRow = modelsTabPage.getRow('Embedding Model');
-      embeddingRow.findSourceLabel().should('contain.text', 'Public route');
+      embeddingRow.findSourceLabel().should('contain.text', 'Custom endpoint');
       embeddingRow.findModelTypeCell().should('contain.text', 'Embedding');
       embeddingRow.findUseCaseCell().should('contain.text', 'embedding');
       embeddingRow.findStatusCell().should('contain.text', 'Inactive');
