@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
 import { mockVectorStoresResponse } from '~/__mocks__/mockVectorStore';
-import createConfigureSchema from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -20,6 +20,17 @@ jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackVectorStoresQuery: jest.fn(),
 }));
 
+const mockNotificationError = jest.fn();
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: mockNotificationError,
+    info: jest.fn(),
+    warning: jest.fn(),
+    remove: jest.fn(),
+  })),
+}));
+
 const mockUseParams = jest.mocked(useParams);
 const mockUseLlamaStackVectorStoresQuery = jest.mocked(useLlamaStackVectorStoresQuery);
 
@@ -28,8 +39,8 @@ const configureSchema = createConfigureSchema();
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -113,7 +124,7 @@ describe('AutoragVectorStoreSelector', () => {
     expect(toggle).toHaveTextContent('No vector stores available');
   });
 
-  it('should disable the toggle when fetching vector stores fails', () => {
+  it('should disable the toggle and show error notification when fetching vector stores fails', () => {
     mockUseLlamaStackVectorStoresQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -124,6 +135,7 @@ describe('AutoragVectorStoreSelector', () => {
 
     const toggle = screen.getByTestId('vector-store-select-toggle');
     expect(toggle).toBeDisabled();
+    expect(mockNotificationError).toHaveBeenCalledWith('Failed to load vector stores');
   });
 
   it('should show a loading skeleton when vector stores are loading', () => {

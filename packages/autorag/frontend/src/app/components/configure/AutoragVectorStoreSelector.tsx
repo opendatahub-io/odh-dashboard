@@ -1,13 +1,15 @@
 import { MenuToggle, Select, SelectList, SelectOption, Skeleton } from '@patternfly/react-core';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
+import { useNotification } from '~/app/hooks/useNotification';
 import { SUPPORTED_VECTOR_STORE_PROVIDERS, ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
 
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
   const [isOpen, setIsOpen] = useState(false);
+  const notification = useNotification();
 
   const {
     formState: { isSubmitting },
@@ -30,6 +32,12 @@ const AutoragVectorStoreSelector: React.FC = () => {
     SUPPORTED_VECTOR_STORE_PROVIDERS,
   );
 
+  useEffect(() => {
+    if (isError) {
+      notification.error('Failed to load vector stores');
+    }
+  }, [isError, notification]);
+
   const vectorStores = vectorStoresData?.vector_stores ?? [];
   const selectedStore = vectorStores.find((vs) => vs.id === field.value);
 
@@ -43,7 +51,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       onSelect={(_e, selectedValue) => {
-        field.onChange(selectedValue === field.value ? undefined : selectedValue);
+        field.onChange(selectedValue === field.value ? '' : selectedValue);
         setIsOpen(false);
       }}
       selected={field.value}

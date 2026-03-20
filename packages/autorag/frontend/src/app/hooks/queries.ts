@@ -52,7 +52,7 @@ export function useLlamaStackVectorStoresQuery(
 ): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
-    queryKey: ['vectorStores', namespace, secretName, providers],
+    queryKey: ['vectorStores', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
