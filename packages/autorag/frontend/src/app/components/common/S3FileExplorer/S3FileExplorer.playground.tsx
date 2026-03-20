@@ -18,6 +18,11 @@ import {
 import type { SecretListItem } from '~/app/types.ts';
 import S3FileExplorer from './S3FileExplorer.tsx';
 
+// Environment ---------------------------------------------------------------->
+
+const s3Namespace = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
+const s3SecretName = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
+
 // Mocks ---------------------------------------------------------------------->
 
 const mockS3Secret: SecretListItem = {
@@ -98,6 +103,31 @@ const App: React.FC = () => {
               isChecked={isDarkTheme}
               onChange={(_event, checked) => setIsDarkTheme(checked)}
             />
+          </CardBody>
+        </Card>
+        <Card>
+          <CardTitle>Configuration</CardTitle>
+          <CardBody>
+            <p className="pf-v6-u-font-family-monospace">
+              <span className="pf-v6-u-text-color-status-danger">
+                AUTORAG_PLAYGROUND_S3_NAMESPACE
+              </span>
+              :
+              <span className="pf-v6-u-text-color-status-success">
+                &nbsp;
+                {s3Namespace || <em>not set</em>}
+              </span>
+            </p>
+            <p className="pf-v6-u-font-family-monospace">
+              <span className="pf-v6-u-text-color-status-danger">
+                AUTORAG_PLAYGROUND_S3_SECRET_NAME
+              </span>
+              :
+              <span className="pf-v6-u-text-color-status-success">
+                &nbsp;
+                {s3SecretName || <em>not set</em>}
+              </span>
+            </p>
           </CardBody>
         </Card>
         <Card>
