@@ -1,74 +1,275 @@
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import {
+  ActionsColumn,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+  type ThProps,
+} from '@patternfly/react-table';
+import { StarIcon } from '@patternfly/react-icons';
+import { Button, Label, Skeleton, Tooltip } from '@patternfly/react-core';
 import React from 'react';
+import { useParams } from 'react-router';
+import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import { getOptimizedMetricForTask } from '~/app/utilities/utils';
+import { RuntimeStateKF } from '~/app/types/pipeline';
+import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
 
 type LeaderboardEntry = {
   rank: number;
   model: string;
-  accuracy: number;
-  balancedAccuracy: number;
-  mcc: number;
-  rocAuc: number;
-  f1: number;
-  precision: number;
-  recall: number;
-  notebook: string;
-  predictor: string;
+  metrics: Record<string, number>;
+  optimizedMetricValue: number;
+};
+
+// Helper function to format metric names for display
+const formatMetricName = (metricKey: string): string => {
+  // Special cases for common acronyms
+  /* eslint-disable camelcase */
+  const specialCases: Record<string, string> = {
+    roc_auc: 'ROC AUC',
+    mcc: 'MCC',
+    f1: 'F1',
+    r2: 'R²',
+    mae: 'MAE',
+    mse: 'MSE',
+    rmse: 'RMSE',
+    mape: 'MAPE',
+    smape: 'SMAPE',
+  };
+  /* eslint-enable camelcase */
+
+  if (specialCases[metricKey]) {
+    return specialCases[metricKey];
+  }
+
+  // Convert snake_case to Title Case
+  return metricKey
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 function AutomlLeaderboard(): React.JSX.Element {
-  // Hardcoded data for one row - will be passed as props later
-  const data: LeaderboardEntry[] = [
-    {
-      rank: 1,
-      model: 'WeightedEnsemble_L5_FULL',
-      accuracy: 0.801278,
-      balancedAccuracy: 0.701657,
-      mcc: 0.451217,
-      rocAuc: 0.840465,
-      f1: 0.566563,
-      precision: 0.672794,
-      recall: 0.489305,
-      notebook:
-        's3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/8b070e93-2dea-4d10-977d-d346b45d7401/autogluon-models-full-refit/e2d85720-b36d-481b-b06a-e59ce23ccb68/model_artifact/WeightedEnsemble_L5_FULL/notebooks/automl_predictor_notebook.ipynb',
-      predictor:
-        's3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/8b070e93-2dea-4d10-977d-d346b45d7401/autogluon-models-full-refit/e2d85720-b36d-481b-b06a-e59ce23ccb68/model_artifact/WeightedEnsemble_L5_FULL/predictor/predictor.pkl',
+  const { namespace } = useParams<{ namespace: string }>();
+  const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
+    useAutomlResultsContext();
+  // FYI default taskType to timeseries since it is the only task which will not have
+  // this as an actual parameter passed to the pipeline
+  const taskType = parameters?.task_type ?? 'timeseries';
+
+  // Sorting state
+  const [activeSortIndex, setActiveSortIndex] = React.useState<number>(0); // 0 = rank column
+  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
+
+  // Check if pipeline is still running
+  const pipelineRunning =
+    pipelineRun?.state === RuntimeStateKF.PENDING ||
+    pipelineRun?.state === RuntimeStateKF.RUNNING ||
+    pipelineRun?.state === RuntimeStateKF.CANCELING;
+
+  // Determine the optimized metric
+  const optimizedMetric = React.useMemo(
+    () => getOptimizedMetricForTask(taskType) ?? 'accuracy',
+    [taskType],
+  );
+
+  // Extract all unique metric keys across all models
+  const metricKeys = React.useMemo(() => {
+    const keysSet = new Set<string>();
+    Object.values(models).forEach((model: AutomlModel) => {
+      Object.keys(model.metrics.test_data).forEach((key) => {
+        keysSet.add(key);
+      });
+    });
+    return Array.from(keysSet).toSorted();
+  }, [models]);
+
+  // Transform models into LeaderboardEntry array
+  const data: LeaderboardEntry[] = React.useMemo(() => {
+    const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
+      // Helper to get metric value from test_data
+      const getMetricValue = (metricName: string): number => {
+        const value = model.metrics.test_data[metricName];
+        if (typeof value === 'number') {
+          return value;
+        }
+        if (typeof value === 'string') {
+          return parseFloat(value) || 0;
+        }
+        return 0;
+      };
+
+      // Build metrics object with all available metrics
+      const metrics: Record<string, number> = {};
+      metricKeys.forEach((key) => {
+        metrics[key] = getMetricValue(key);
+      });
+
+      const optimizedMetricValue = getMetricValue(optimizedMetric);
+
+      return {
+        rank: 0, // Will be assigned after sorting by optimized metric initially
+        model: model.display_name || modelName,
+        metrics,
+        optimizedMetricValue,
+      };
+    });
+
+    // Initial ranking by optimized metric value
+    // Error metrics (smape, mse, mae, etc.) where lower is better
+    const errorMetrics = ['smape', 'mse', 'mae', 'rmse', 'mape'];
+    const isErrorMetric = errorMetrics.includes(optimizedMetric.toLowerCase());
+
+    const sortedByMetric = isErrorMetric
+      ? // For error metrics, lower is better (ascending sort)
+        entries.toSorted((a, b) => a.optimizedMetricValue - b.optimizedMetricValue)
+      : // For performance metrics, higher is better (descending sort)
+        entries.toSorted((a, b) => b.optimizedMetricValue - a.optimizedMetricValue);
+
+    // Assign initial rank
+    const rankedEntries = sortedByMetric.map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+
+    // Apply user-selected sorting
+    if (activeSortIndex === 0) {
+      // Sort by rank
+      return rankedEntries.toSorted((a, b) =>
+        activeSortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank,
+      );
+    }
+    if (activeSortIndex === 1) {
+      // Sort by model name
+      return rankedEntries.toSorted((a, b) => {
+        const comparison = a.model.localeCompare(b.model);
+        return activeSortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+    // Sort by metric column (index 2+ maps to metricKeys)
+    const metricIndex = activeSortIndex - 2;
+    const metricKey = metricKeys[metricIndex];
+    if (metricKey) {
+      return rankedEntries.toSorted((a, b) => {
+        const comparison = a.metrics[metricKey] - b.metrics[metricKey];
+        return activeSortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return rankedEntries;
+  }, [models, metricKeys, optimizedMetric, activeSortIndex, activeSortDirection]);
+
+  // Helper function to get sort params for a column
+  const getSortParams = (columnIndex: number): ThProps['sort'] => ({
+    sortBy: {
+      index: activeSortIndex,
+      direction: activeSortDirection,
     },
-  ];
+    onSort: (_event, index, direction) => {
+      setActiveSortIndex(index);
+      setActiveSortDirection(direction);
+    },
+    columnIndex,
+  });
+
+  // Handler for viewing model details
+  const handleViewDetails = (modelName: string) => {
+    // TODO: Implement view details
+    // eslint-disable-next-line no-console
+    console.log('View details for model:', modelName);
+  };
+
+  // Show empty state when pipeline is still running
+  if (pipelineRunning) {
+    return <AutomlRunInProgress namespace={namespace!} />;
+  }
+
+  // Show loading state with 5 rows and 8 columns
+  const hasNoModels = Object.keys(models).length === 0;
+  if (pipelineRunLoading || modelsLoading || hasNoModels) {
+    return (
+      <Table aria-label="AutoML Model Leaderboard" variant="compact">
+        <Thead>
+          <Tr>
+            {Array.from({ length: 8 }).map((__, colIndex) => (
+              <Th key={colIndex}>
+                <Skeleton />
+              </Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {Array.from({ length: 5 }).map((__, rowIndex) => (
+            <Tr key={rowIndex}>
+              {Array.from({ length: 8 }).map((_, colIndex) => (
+                <Td key={colIndex}>
+                  <Skeleton />
+                </Td>
+              ))}
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    );
+  }
 
   return (
     <Table aria-label="AutoML Model Leaderboard" variant="compact">
       <Thead>
         <Tr>
-          <Th>Rank</Th>
-          <Th>Model</Th>
-          <Th>Accuracy</Th>
-          <Th>Balanced Accuracy</Th>
-          <Th>MCC</Th>
-          <Th>ROC AUC</Th>
-          <Th>F1</Th>
-          <Th>Precision</Th>
-          <Th>Recall</Th>
-          <Th>Notebook</Th>
-          <Th>Predictor</Th>
+          <Th sort={getSortParams(0)}>Rank</Th>
+          <Th sort={getSortParams(1)}>Model name</Th>
+          {metricKeys.map((metricKey, index) => (
+            <Th key={metricKey} sort={getSortParams(index + 2)}>
+              {formatMetricName(metricKey)}
+              {metricKey === optimizedMetric ? ' (optimized)' : ''}
+            </Th>
+          ))}
+          <Th />
         </Tr>
       </Thead>
       <Tbody>
         {data.map((entry) => (
           <Tr key={entry.rank}>
-            <Td dataLabel="Rank">{entry.rank}</Td>
-            <Td dataLabel="Model">{entry.model}</Td>
-            <Td dataLabel="Accuracy">{entry.accuracy.toFixed(6)}</Td>
-            <Td dataLabel="Balanced Accuracy">{entry.balancedAccuracy.toFixed(6)}</Td>
-            <Td dataLabel="MCC">{entry.mcc.toFixed(6)}</Td>
-            <Td dataLabel="ROC AUC">{entry.rocAuc.toFixed(6)}</Td>
-            <Td dataLabel="F1">{entry.f1.toFixed(6)}</Td>
-            <Td dataLabel="Precision">{entry.precision.toFixed(6)}</Td>
-            <Td dataLabel="Recall">{entry.recall.toFixed(6)}</Td>
-            <Td dataLabel="Notebook" modifier="truncate">
-              {entry.notebook}
+            <Td dataLabel="Rank">
+              {entry.rank === 1 ? (
+                <Label color="teal" icon={<StarIcon />}>
+                  {entry.rank}
+                </Label>
+              ) : (
+                entry.rank
+              )}
             </Td>
-            <Td dataLabel="Predictor" modifier="truncate">
-              {entry.predictor}
+            <Td dataLabel="Model">
+              <Button variant="link" isInline onClick={() => handleViewDetails(entry.model)}>
+                {entry.model}
+              </Button>
+            </Td>
+            {metricKeys.map((metricKey) => (
+              <Td key={metricKey} dataLabel={formatMetricName(metricKey)}>
+                <Tooltip content={String(entry.metrics[metricKey])}>
+                  <span>{entry.metrics[metricKey].toFixed(3)}</span>
+                </Tooltip>
+              </Td>
+            ))}
+            <Td isActionCell>
+              <ActionsColumn
+                items={[
+                  {
+                    title: 'View details',
+                    onClick: () => handleViewDetails(entry.model),
+                  },
+                  {
+                    title: 'Save notebook',
+                    onClick: () => {
+                      // TODO: Implement save notebook
+                    },
+                  },
+                ]}
+              />
             </Td>
           </Tr>
         ))}

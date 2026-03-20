@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useFilesQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -21,14 +21,14 @@ const createWrapper = () => {
   return Wrapper;
 };
 
-describe('useFilesQuery', () => {
+describe('useS3GetFileSchemaQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should be disabled when namespace is missing', () => {
     const { result } = renderHook(
-      () => useFilesQuery(undefined, 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery(undefined, 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -39,7 +39,7 @@ describe('useFilesQuery', () => {
 
   it('should be disabled when secretName is missing', () => {
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', undefined, 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', undefined, 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -50,7 +50,7 @@ describe('useFilesQuery', () => {
 
   it('should be disabled when key is missing', () => {
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', undefined),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', undefined),
       { wrapper: createWrapper() },
     );
 
@@ -76,9 +76,12 @@ describe('useFilesQuery', () => {
       json: async () => mockResponse,
     });
 
-    renderHook(() => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'), {
-      wrapper: createWrapper(),
-    });
+    renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/s3/file/schema?'));
@@ -105,9 +108,12 @@ describe('useFilesQuery', () => {
       json: async () => mockResponse,
     });
 
-    renderHook(() => useFilesQuery('test-namespace', 'test-secret', undefined, 'data.csv'), {
-      wrapper: createWrapper(),
-    });
+    renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', undefined, 'data.csv'),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -142,7 +148,7 @@ describe('useFilesQuery', () => {
     });
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -162,7 +168,7 @@ describe('useFilesQuery', () => {
     });
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -178,7 +184,7 @@ describe('useFilesQuery', () => {
     });
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -204,7 +210,7 @@ describe('useFilesQuery', () => {
     });
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.txt'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.txt'),
       { wrapper: createWrapper() },
     );
 
@@ -227,7 +233,7 @@ describe('useFilesQuery', () => {
     });
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -244,7 +250,7 @@ describe('useFilesQuery', () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -258,9 +264,12 @@ describe('useFilesQuery', () => {
   it('should not retry on error', async () => {
     (global.fetch as jest.Mock).mockRejectedValue(new Error('Fetch failed'));
 
-    renderHook(() => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'), {
-      wrapper: createWrapper(),
-    });
+    renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -269,7 +278,7 @@ describe('useFilesQuery', () => {
 
   it('should use correct query key', () => {
     const { result } = renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper() },
     );
 
@@ -292,7 +301,8 @@ describe('useFilesQuery', () => {
     });
 
     renderHook(
-      () => useFilesQuery('test-namespace', 'test-secret', 'my-bucket', 'folder/my file.csv'),
+      () =>
+        useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'my-bucket', 'folder/my file.csv'),
       { wrapper: createWrapper() },
     );
 

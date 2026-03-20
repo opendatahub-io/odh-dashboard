@@ -6,8 +6,10 @@ import { Link, useParams } from 'react-router';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import AutomlResults from '~/app/components/results/AutomlResults';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
+import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -19,8 +21,17 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
-  const invalidPipelineRunId = pipelineRunQuery.isError;
+  const {
+    data: pipelineRun,
+    isPending: pipelineRunPending,
+    isFetching: pipelineRunFetching,
+    isError: pipelineRunError,
+    error: pipelineRunLoadError,
+  } = usePipelineRunQuery(runId, namespace);
+  const invalidPipelineRunId = pipelineRunError;
+
+  // Fetch and process AutoML results using custom hook
+  const { models, isLoading: modelsLoading } = useAutomlResults(runId, namespace, pipelineRun);
 
   return (
     <ApplicationsPage
@@ -46,10 +57,19 @@ function AutomlResultsPage(): React.JSX.Element {
           <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
         )
       }
-      loadError={pipelineRunQuery.error ?? namespacesLoadError}
-      loaded={namespacesLoaded && pipelineRunQuery.isFetched}
+      loadError={pipelineRunLoadError ?? namespacesLoadError}
+      loaded={namespacesLoaded && !pipelineRunPending}
     >
-      <AutomlResults pipelineRun={pipelineRun} />
+      <AutomlResultsContext.Provider
+        value={getAutomlContext({
+          pipelineRun,
+          models,
+          pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+          modelsLoading,
+        })}
+      >
+        <AutomlResults />
+      </AutomlResultsContext.Provider>
     </ApplicationsPage>
   );
 }

@@ -6,7 +6,9 @@ import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseU
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
   'automl-data-loader': 'Input data loader',
+  'timeseries-data-loader': 'Input data loader',
   'models-selection': 'Model selection',
+  'timeseries-models-selection': 'Model selection',
   'for-loop-1': 'Model generation',
   'leaderboard-evaluation': 'Leaderboard evaluation',
 };

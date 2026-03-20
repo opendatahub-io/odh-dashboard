@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import AutomlResults from '~/app/components/results/AutomlResults';
+import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 
 jest.mock('~/app/topology/PipelineTopology', () => ({
@@ -27,25 +29,34 @@ describe('AutomlResults', () => {
     jest.clearAllMocks();
   });
 
+  const renderWithContext = (pipelineRun?: PipelineRun, models = {}) =>
+    render(
+      <AutomlResultsContext.Provider
+        value={{ pipelineRun, models, parameters: { task_type: 'timeseries', label_column: '' } }}
+      >
+        <AutomlResults />
+      </AutomlResultsContext.Provider>,
+    );
+
   it('should render the PipelineTopology component', () => {
-    render(<AutomlResults pipelineRun={mockPipelineRun} />);
+    renderWithContext(mockPipelineRun);
     expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
   });
 
   it('should pass the automl-topology-container className to PipelineTopology', () => {
-    render(<AutomlResults pipelineRun={mockPipelineRun} />);
+    renderWithContext(mockPipelineRun);
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveClass('automl-topology-container');
   });
 
   it('should pass nodes from useAutoMLTaskTopology to PipelineTopology', () => {
-    render(<AutomlResults pipelineRun={mockPipelineRun} />);
+    renderWithContext(mockPipelineRun);
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveAttribute('data-node-count', '2');
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
-    render(<AutomlResults />);
+    renderWithContext();
     expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
   });
 });

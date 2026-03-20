@@ -2,16 +2,13 @@ import { Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
-import type { PipelineRun } from '~/app/types';
 import type { RunDetailsKF } from '~/app/types/pipeline';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import './AutomlResults.scss';
 
-type AutomlResultsProps = {
-  pipelineRun?: PipelineRun;
-};
-
-function AutomlResults({ pipelineRun }: AutomlResultsProps): React.JSX.Element {
+function AutomlResults(): React.JSX.Element {
+  const { pipelineRun } = useAutomlResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -21,7 +18,7 @@ function AutomlResults({ pipelineRun }: AutomlResultsProps): React.JSX.Element {
 
   return (
     <Stack hasGutter>
-      <StackItem isFilled>
+      <StackItem>
         <PipelineTopology
           nodes={nodes}
           selectedIds={selectedIds}

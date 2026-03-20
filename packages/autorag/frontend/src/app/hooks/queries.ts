@@ -41,7 +41,7 @@ export function useLlamaStackModelsQuery(
 }
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 10000;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -51,6 +51,7 @@ export function usePipelineRunQuery(
     queryKey: ['pipelineRun', runId, namespace],
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
+    placeholderData: (previousData) => previousData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       if (!state || TERMINAL_STATES.has(state)) {
