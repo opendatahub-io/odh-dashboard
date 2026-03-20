@@ -12,8 +12,7 @@ type ProvidersSection struct {
 	VectorIO []VectorIOProvider `yaml:"vector_io"`
 }
 
-// VectorIOProvider describes a single vector database provider including its connection config.
-// Credentials are stored in referenced Kubernetes Secrets under config.custom_gen_ai.credentials.
+// VectorIOProvider describes a single vector database provider
 type VectorIOProvider struct {
 	ProviderID   string `yaml:"provider_id"`
 	ProviderType string `yaml:"provider_type"`
