@@ -38,9 +38,9 @@ name: Cypress e2e Test
 #        Add an entry to .github/frontend-ci-tags.json
 #
 # BFF SUPPORT (Backend-For-Frontend):
-#   Packages with BFFs (automl, autorag, eval-hub, gen-ai, maas, mlflow, model-registry)
-#   can be automatically started when changes are detected.
-#   BFFs are started after the frontend webpack server.
+#   Packages with bffConfig.enabled=true in their package.json are automatically
+#   detected and started when changes are found. BFFs start after the frontend
+#   webpack server. See docs/bff-e2e-testing.md for details.
 #
 #   To add BFF support to a package:
 #     Add "bffConfig" to package.json with enabled, port, healthEndpoint,
@@ -1120,6 +1120,10 @@ jobs:
           BFF_INFO_DIR="/tmp/gha-bff/${{ github.run_id }}"
           mkdir -p "$BFF_INFO_DIR"
 
+          # Allowlists to prevent command injection from PR code (CWE-94)
+          ALLOWED_COMMANDS=("make dev-bff-e2e-mock" "make dev-bff-e2e-cluster" "make -C upstream dev-bff-e2e-mock" "make -C upstream dev-bff-e2e-cluster")
+          ALLOWED_DIRS=("automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
+
           # Parse BFF packages JSON and start each one
           echo "$BFF_PACKAGES" | jq -c '.[]' | while read -r bff_config; do
             BFF_NAME=$(echo "$bff_config" | jq -r '.name')
@@ -1130,6 +1134,44 @@ jobs:
 
             echo ""
             echo "📦 Starting BFF for $BFF_NAME on port $BFF_PORT..."
+
+            # Validate BFF_CMD against allowlist (prevent command injection)
+            CMD_VALID=false
+            for allowed in "${ALLOWED_COMMANDS[@]}"; do
+              if [ "$BFF_CMD" = "$allowed" ]; then
+                CMD_VALID=true
+                break
+              fi
+            done
+            if [ "$CMD_VALID" = "false" ]; then
+              echo "  ❌ Rejected untrusted startCommand: '$BFF_CMD'"
+              echo "  Allowed commands: ${ALLOWED_COMMANDS[*]}"
+              exit 1
+            fi
+
+            # Validate BFF_DIR against allowlist (prevent path traversal)
+            DIR_VALID=false
+            for allowed in "${ALLOWED_DIRS[@]}"; do
+              if [ "$BFF_DIR" = "$allowed" ]; then
+                DIR_VALID=true
+                break
+              fi
+            done
+            if [ "$DIR_VALID" = "false" ]; then
+              echo "  ❌ Rejected untrusted package directory: '$BFF_DIR'"
+              echo "  Allowed directories: ${ALLOWED_DIRS[*]}"
+              exit 1
+            fi
+
+            # Validate port is numeric and health endpoint is a safe path
+            if ! echo "$BFF_PORT" | grep -qE '^[0-9]+$'; then
+              echo "  ❌ Invalid BFF port: '$BFF_PORT' (must be numeric)"
+              exit 1
+            fi
+            if ! echo "$BFF_HEALTH" | grep -qE '^/[a-zA-Z0-9/_-]+$'; then
+              echo "  ❌ Invalid health endpoint: '$BFF_HEALTH' (must be a simple path)"
+              exit 1
+            fi
 
             # Reuse if already healthy on this port (avoid parallel startup race)
             if curl -sf "http://localhost:$BFF_PORT$BFF_HEALTH" > /dev/null 2>&1; then
