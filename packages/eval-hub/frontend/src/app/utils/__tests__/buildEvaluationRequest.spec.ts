@@ -199,24 +199,12 @@ describe('buildEvaluationRequest', () => {
   });
 
   describe('collection flow', () => {
-    it('should build benchmark entries from collection.benchmarks', () => {
+    it('should send empty benchmarks array and include collection.id when collection is provided', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.benchmarks).toHaveLength(2);
-      expect(result.benchmarks[0]).toEqual(
-        expect.objectContaining({ id: 'mmlu', provider_id: 'lm_harness', weight: 0.6 }),
-      );
-      expect(result.benchmarks[1]).toEqual(
-        expect.objectContaining({ id: 'hellaswag', provider_id: 'lm_harness', weight: 0.4 }),
-      );
-    });
-
-    it('should preserve existing parameters on collection benchmarks', () => {
-      const col = makeCollection();
-      const result = buildEvaluationRequest({ ...baseParams, collection: col });
-
-      expect(result.benchmarks[0].parameters).toEqual({ num_few_shot: 5 });
+      expect(result.benchmarks).toEqual([]);
+      expect(result.collection).toEqual({ id: 'col-1' });
     });
 
     it('should include collection.id in the request', () => {
@@ -226,27 +214,11 @@ describe('buildEvaluationRequest', () => {
       expect(result.collection).toEqual({ id: 'col-1' });
     });
 
-    it('should not include parameters when collection benchmark has none', () => {
+    it('should not expand collection benchmarks into the benchmarks array', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.benchmarks[1]).not.toHaveProperty('parameters');
-    });
-
-    it('should add test_data_ref to all collection benchmarks in prerecorded mode', () => {
-      const col = makeCollection();
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        inputMode: 'prerecorded',
-        sourceName: 'src',
-        datasetUrl: 's3://bucket/data',
-        accessToken: '',
-        collection: col,
-      });
-
-      result.benchmarks.forEach((b) => {
-        expect(b.test_data_ref).toEqual({ s3: { key: 's3://bucket/data' } });
-      });
+      expect(result.benchmarks).toHaveLength(0);
     });
   });
 
@@ -297,16 +269,18 @@ describe('buildEvaluationRequest', () => {
       expect(result).toHaveProperty('pass_criteria', { threshold: 0.8 });
     });
 
-    it('should merge additional params with existing collection benchmark parameters', () => {
+    it('should still apply top-level keys from additionalArgs when using a collection', () => {
       const col = makeCollection();
+      const experiment = { name: 'col-exp' };
       const result = buildEvaluationRequest({
         ...baseParams,
         collection: col,
-        additionalArgs: { limit: 5 },
+        additionalArgs: { limit: 5, experiment },
       });
 
-      expect(result.benchmarks[0].parameters).toEqual({ num_few_shot: 5, limit: 5 });
-      expect(result.benchmarks[1].parameters).toEqual({ limit: 5 });
+      expect(result.benchmarks).toEqual([]);
+      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result).toHaveProperty('experiment', experiment);
     });
 
     it('should not add parameters when additionalArgs is empty', () => {
