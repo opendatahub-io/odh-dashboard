@@ -64,6 +64,9 @@ const EvaluationResultsPage: React.FC = () => {
   const hiddenCount = Math.max(0, benchmarkIds.length - DEFAULT_VISIBLE_BENCHMARKS);
 
   const evaluationName = job ? getEvaluationName(job) : '';
+  const duration = job
+    ? formatDuration(job.resource.created_at, job.resource.updated_at)
+    : undefined;
 
   const scoreDisplay = React.useMemo(() => {
     if (!job) {
@@ -112,14 +115,14 @@ const EvaluationResultsPage: React.FC = () => {
             : getBenchmarkName(job)}
         </Content>
       </FlexItem>
-      {formatDuration(job.resource.created_at, job.resource.updated_at) && (
+      {duration && (
         <FlexItem>
           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
             <OutlinedClockIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
             />
-            {formatDuration(job.resource.created_at, job.resource.updated_at)}
+            {duration}
           </Content>
         </FlexItem>
       )}
