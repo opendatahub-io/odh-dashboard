@@ -53,12 +53,12 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, responseEnvelope.Data.Token)
+		assert.NotEmpty(t, responseEnvelope.Data.Key)
 		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
 	})
 
 	t.Run("should issue token with custom TTL", func(t *testing.T) {
-		tokenRequest := models.MaaSTokenRequest{TTL: "2h"}
+		tokenRequest := models.MaaSTokenRequest{ExpiresIn: "2h"}
 		requestBody, err := json.Marshal(tokenRequest)
 		assert.NoError(t, err)
 
