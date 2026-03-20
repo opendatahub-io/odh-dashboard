@@ -35,14 +35,10 @@ describe('getSourceLabel', () => {
     ).toBe('Internal');
   });
 
-  it('should return "Public route" for external_cluster', () => {
-    expect(getSourceLabel(makeModel({ model_source_type: 'external_cluster' }))).toBe(
-      'Public route',
+  it('should return "Custom endpoint" for custom_endpoint', () => {
+    expect(getSourceLabel(makeModel({ model_source_type: 'custom_endpoint' }))).toBe(
+      'Custom endpoint',
     );
-  });
-
-  it('should return "External" for external_provider', () => {
-    expect(getSourceLabel(makeModel({ model_source_type: 'external_provider' }))).toBe('External');
   });
 
   it('should return "MaaS" for maas', () => {

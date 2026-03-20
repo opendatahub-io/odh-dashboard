@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -199,8 +200,11 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 		}
 	}
 
-	// Cache the result (even if partial or empty)
-	globalPipelineCache.set(cacheKey, result)
+	// Only cache when at least one pipeline was discovered to avoid long-lived negative caches
+	// that would delay detection of pipelines deployed after the initial miss.
+	if len(result) > 0 {
+		globalPipelineCache.set(cacheKey, result)
+	}
 
 	return result, nil
 }
@@ -235,25 +239,31 @@ func (r *PipelineRepository) discoverOnePipeline(
 		return nil, nil
 	}
 
-	// Find matching pipeline by namespace and name (case-insensitive prefix match).
+	// Find matching pipelines by namespace and name (case-insensitive prefix match).
 	// Namespace guard is a defence-in-depth measure: the KFP API is already scoped to
 	// the DSPA in this namespace, but an empty or cross-namespace response could otherwise
 	// leak pipelines from other tenants.
 	// TODO: Replace with attribute-based lookup once managed pipeline metadata is available
-	var matchedPipeline *models.KFPipeline
+	var matches []*models.KFPipeline
 	for i := range pipelinesResp.Pipelines {
 		pipeline := &pipelinesResp.Pipelines[i]
 		if (pipeline.Namespace == "" || pipeline.Namespace == namespace) &&
 			strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(namePrefix)) {
-			matchedPipeline = pipeline
-			break
+			matches = append(matches, pipeline)
 		}
 	}
 
-	if matchedPipeline == nil {
+	if len(matches) == 0 {
 		// No pipeline matches the prefix — soft miss
 		return nil, nil
 	}
+
+	// Sort deterministically by display name (case-insensitive) so selection is stable
+	// regardless of the order ListPipelines returns results.
+	sort.Slice(matches, func(i, j int) bool {
+		return strings.ToLower(matches[i].DisplayName) < strings.ToLower(matches[j].DisplayName)
+	})
+	matchedPipeline := matches[0]
 
 	// Get pipeline versions
 	versionsResp, err := client.ListPipelineVersions(ctx, matchedPipeline.PipelineID)

@@ -12,10 +12,9 @@ import {
 } from '@patternfly/react-core';
 import {
   CalendarAltIcon,
-  CubesIcon,
-  FlaskIcon,
-  MapMarkerAltIcon,
+  ClipboardListIcon,
   OutlinedClockIcon,
+  ProjectDiagramIcon,
 } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -25,6 +24,7 @@ import {
   formatDate,
   formatDuration,
   getBenchmarkName,
+  getBenchmarkResultScore,
   getEvaluationName,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
@@ -38,7 +38,6 @@ const EvaluationResultsPage: React.FC = () => {
   const { namespace, jobId } = useParams<{ namespace: string; jobId: string }>();
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);
 
-  const isCollection = !!job?.collection?.id;
   const benchmarkIds = React.useMemo(
     () => job?.benchmarks?.map((b) => b.id) ?? [],
     [job?.benchmarks],
@@ -48,10 +47,15 @@ const EvaluationResultsPage: React.FC = () => {
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
 
   React.useEffect(() => {
-    if (benchmarkIds.length > 0 && selectedBenchmarkId === null) {
-      setSelectedBenchmarkId(benchmarkIds[0]);
+    if (benchmarkIds.length > 0) {
+      setSelectedBenchmarkId((prev) =>
+        prev === null || !benchmarkIds.includes(prev) ? benchmarkIds[0] : prev,
+      );
+    } else {
+      setSelectedBenchmarkId(null);
     }
-  }, [benchmarkIds, selectedBenchmarkId]);
+    setShowAllBenchmarks(false);
+  }, [benchmarkIds]);
 
   const visibleBenchmarkIds = showAllBenchmarks
     ? benchmarkIds
@@ -60,8 +64,19 @@ const EvaluationResultsPage: React.FC = () => {
   const hiddenCount = Math.max(0, benchmarkIds.length - DEFAULT_VISIBLE_BENCHMARKS);
 
   const evaluationName = job ? getEvaluationName(job) : '';
+  const duration = job
+    ? formatDuration(job.resource.created_at, job.resource.updated_at)
+    : undefined;
 
-  const scoreDisplay = React.useMemo(() => (!job ? '-' : getResultScore(job)), [job]);
+  const scoreDisplay = React.useMemo(() => {
+    if (!job) {
+      return '-';
+    }
+    if (selectedBenchmarkId && benchmarkIds.length > 1) {
+      return getBenchmarkResultScore(job, selectedBenchmarkId);
+    }
+    return getResultScore(job);
+  }, [job, selectedBenchmarkId, benchmarkIds.length]);
 
   const metadataRow = job ? (
     <Flex
@@ -80,20 +95,9 @@ const EvaluationResultsPage: React.FC = () => {
           </Content>
         </FlexItem>
       )}
-      {formatDuration(job.resource.created_at, job.resource.updated_at) && (
-        <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <OutlinedClockIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
-            {formatDuration(job.resource.created_at, job.resource.updated_at)}
-          </Content>
-        </FlexItem>
-      )}
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <CubesIcon
+          <ProjectDiagramIcon
             className="pf-v6-u-mr-xs"
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
@@ -102,7 +106,7 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <FlaskIcon
+          <ClipboardListIcon
             className="pf-v6-u-mr-xs"
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
@@ -111,14 +115,14 @@ const EvaluationResultsPage: React.FC = () => {
             : getBenchmarkName(job)}
         </Content>
       </FlexItem>
-      {job.model.url && (
+      {duration && (
         <FlexItem>
           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <MapMarkerAltIcon
+            <OutlinedClockIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
             />
-            {job.model.url}
+            {duration}
           </Content>
         </FlexItem>
       )}
@@ -175,8 +179,8 @@ const EvaluationResultsPage: React.FC = () => {
             </Title>
           </div>
 
-          {/* Collection: benchmark cards grid */}
-          {isCollection && benchmarkIds.length > 1 && (
+          {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
+          {benchmarkIds.length > 1 && (
             <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
               <Title headingLevel="h3" className="pf-v6-u-mb-md">
                 Benchmarks

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,115 +16,169 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-// GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
-// Query parameters:
-//   - namespace (required): The Kubernetes namespace containing the secret
-//   - secretName (required): The name of the Kubernetes secret containing S3 credentials
-//   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
-//   - key (required): The S3 object key to retrieve
-//
-// Note: namespace is provided via the AttachNamespace middleware
-func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
+
+// resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
+type resolvedS3 struct {
+	client s3int.S3ClientInterface
+	bucket string
+}
+
+// resolveS3Client extracts identity and namespace from the request context,
+// fetches S3 credentials (from DSPA context or a named Kubernetes secret), resolves
+// the bucket, and returns a ready-to-use S3 client.
+// When secretName is empty the function falls back to the DSPAObjectStorageKey injected
+// by attachPipelineClientIfNeeded; if neither is available a 400 is returned.
+// Returns false if an error response was already written to w.
+func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (*resolvedS3, bool) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
 	if !ok || identity == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
+		return nil, false
 	}
 
-	// Get namespace from context (set by AttachNamespace middleware)
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return
+		return nil, false
 	}
 
-	// Parse query parameters
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return nil, false
+	}
+
+	var creds *s3int.S3Credentials
+	var dspaStorage *models.DSPAObjectStorage
+
+	if secretName == "" {
+		// DSPA path: use DSPAObjectStorageKey injected by attachPipelineClientIfNeeded.
+		if storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && storage != nil {
+			dspaStorage = storage
+			creds, err = app.repositories.S3.GetS3CredentialsFromDSPA(ctx, client, namespace, dspaStorage, identity)
+			if err != nil {
+				var statusErr *apierrors.StatusError
+				if errors.As(err, &statusErr) {
+					if apierrors.IsNotFound(statusErr) {
+						app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret '%s' not found in namespace '%s'", dspaStorage.SecretName, namespace))
+						return nil, false
+					}
+					if apierrors.IsForbidden(statusErr) {
+						app.forbiddenResponse(w, r, fmt.Sprintf("access to secret '%s' is forbidden", dspaStorage.SecretName))
+						return nil, false
+					}
+				}
+				app.serverErrorResponse(w, r, err)
+				return nil, false
+			}
+		} else {
+			app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required when no DSPA object storage config is available"))
+			return nil, false
+		}
+	} else {
+		creds, err = app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
+		if err != nil {
+			var httpErr *integrations.HTTPError
+			if errors.As(err, &httpErr) {
+				if httpErr.StatusCode == http.StatusUnauthorized {
+					app.unauthorizedResponse(w, r, httpErr.Message)
+					return nil, false
+				}
+				app.errorResponse(w, r, httpErr)
+				return nil, false
+			}
+			app.serverErrorResponse(w, r, err)
+			return nil, false
+		}
+	}
+
+	// Resolve bucket.
+	// On the DSPA path the DSPA-configured bucket always wins; the caller-supplied override
+	// is ignored to prevent bucket substitution and oracle-enumeration attacks.
+	// On the explicit secretName path use the override or fall back to AWS_S3_BUCKET in the secret.
+	var bucket string
+	if dspaStorage != nil {
+		if dspaStorage.Bucket == "" {
+			app.serviceUnavailableResponseWithMessage(w, r,
+				fmt.Errorf("DSPA object storage configuration does not specify a bucket"),
+				"DSPA object storage is missing a bucket — contact your administrator")
+			return nil, false
+		}
+		bucket = dspaStorage.Bucket
+	} else {
+		bucket = strings.TrimSpace(bucketOverride)
+		if bucket == "" {
+			bucket = strings.TrimSpace(creds.Bucket)
+			if bucket == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+				return nil, false
+			}
+		}
+	}
+
+	// TODO [ PR-Feedback: AI ] Gustavo + Chris **HANDLED IN FUTURE PR**
+	//   A new AWS S3 client is created on every request. The AWS SDK client
+	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
+	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
+	s3Client, err := app.s3ClientFactory.CreateClient(creds)
+	if err != nil {
+		if errors.Is(err, s3int.ErrEndpointValidation) {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
+		return nil, false
+	}
+
+	return &resolvedS3{client: s3Client, bucket: bucket}, true
+}
+
+// GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
+// Query parameters:
+//   - namespace (required): The Kubernetes namespace containing the secret
+//   - secretName (optional): Name of the Kubernetes secret holding S3 credentials.
+//     If omitted, the secret name is taken from the DSPA associated with the
+//     Pipeline Server in this namespace (set by AttachPipelineServerClient middleware).
+//   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
+//   - key (required): The S3 object key to retrieve
+func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
-	secretName := strings.TrimSpace(queryParams.Get("secretName"))
-	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
+	// Resolve S3 credentials from one of two sources:
+	//   1. DSPA object storage config injected by AttachPipelineServerClient (primary in production).
+	//      Uses the credential field names and endpoint coordinates from the DSPA spec, so it
+	//      works for both external S3 and managed MinIO without requiring the caller to know
+	//      which secret is in use.
+	//   2. Explicit secretName query parameter (override / development path).
+	//      Falls back to conventional AWS_* field names for the secret's credential keys.
+	secretName := queryParams.Get("secretName")
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
 	key := strings.TrimSpace(queryParams.Get("key"))
 	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
 		return
 	}
 
-	// Get Kubernetes client
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	if !ok {
 		return
 	}
 
-	// Get S3 credentials from the secret
-	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
-	if err != nil {
-		// Check if it's a Kubernetes API error and handle accordingly
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
-					},
-				}
-				app.errorResponse(w, r, httpError)
-				return
-			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
-				return
-			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
-				return
-			}
-		}
-
-		// Check if it's a secret not found or validation error
-		if strings.Contains(err.Error(), "not found") {
-			httpError := &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			}
-			app.errorResponse(w, r, httpError)
-			return
-		}
-
-		if isInvalidS3CredentialConfigError(err) {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	// Determine bucket: use query param if provided, otherwise use bucket from secret
-	bucket := queryParams.Get("bucket")
-	if bucket == "" {
-		if creds.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
-			return
-		}
-		bucket = creds.Bucket
-	}
-
-	// Retrieve the file from S3
-	objectReader, contentType, err := app.repositories.S3.GetS3Object(ctx, creds, bucket, key)
+	ctx := r.Context()
+	bucket := s3.bucket
+	objectReader, contentType, err := s3.client.GetObject(ctx, bucket, key)
 	if err != nil {
 		// Check if it's an S3 error (e.g., object not found, access denied)
 		var noSuchKey *types.NoSuchKey
@@ -140,7 +195,6 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		// Check for access denied errors
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", bucket, key))
@@ -151,10 +205,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Ensure cleanup of the reader
-	if closer, ok := objectReader.(io.Closer); ok {
-		defer closer.Close()
-	}
+	defer objectReader.Close()
 
 	sanitizedContentType := sanitizeUploadContentType(contentType)
 	if isInlineDangerousContentType(contentType) || sanitizedContentType == "application/octet-stream" {
@@ -183,93 +234,31 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
-	// Get namespace from context (set by AttachNamespace middleware)
-	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return
-	}
-
 	queryParams := r.URL.Query()
 
-	secretName := strings.TrimSpace(queryParams.Get("secretName"))
+	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
+		return
+	}
+	if !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
 	key := strings.TrimSpace(queryParams.Get("key"))
 	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
 		return
 	}
 
-	// Resolve credentials before reading the body so we fail fast without consuming large uploads.
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	if !ok {
 		return
 	}
 
-	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
-	if err != nil {
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
-					},
-				}
-				app.errorResponse(w, r, httpError)
-				return
-			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
-				return
-			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
-				return
-			}
-		}
-		if strings.Contains(err.Error(), "not found") {
-			httpError := &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			}
-			app.errorResponse(w, r, httpError)
-			return
-		}
-		if isInvalidS3CredentialConfigError(err) {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	// Determine bucket: use query param if provided, otherwise use bucket from secret
-	bucket := queryParams.Get("bucket")
-	if bucket == "" {
-		if creds.Bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
-			return
-		}
-		bucket = creds.Bucket
-	}
+	ctx := r.Context()
+	bucket := s3.bucket
 
 	maxUploadSize := app.s3PostMaxTotalBodyBytes()
 	// Cap the entire request body so chunked/unknown-length clients cannot force the multipart
@@ -288,7 +277,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 	if mr == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("request must be multipart/form-data with a boundary"))
+		app.badRequestResponse(w, r, errors.New("request must be multipart/form-data with a boundary"))
 		return
 	}
 
@@ -322,7 +311,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	if filePart == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing 'file' part in multipart form"))
+		app.badRequestResponse(w, r, errors.New("missing 'file' part in multipart form"))
 		return
 	}
 
@@ -338,7 +327,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
 	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
 	defer limitedFile.Close()
-	if err := app.repositories.S3.UploadS3Object(ctx, creds, bucket, key, limitedFile, contentType); err != nil {
+	if err := s3.client.UploadObject(ctx, bucket, key, limitedFile, contentType); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
@@ -395,25 +384,6 @@ func isInlineDangerousContentType(v string) bool {
 	return ok
 }
 
-// isInvalidS3CredentialConfigError reports whether err is a credential/endpoint validation error
-// (missing required field, invalid AWS_S3_ENDPOINT, or SSRF-blocked endpoint) that should be
-// returned as 400 Bad Request rather than 500.
-func isInvalidS3CredentialConfigError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "missing required field") ||
-		strings.Contains(msg, "invalid AWS_S3_ENDPOINT") ||
-		strings.Contains(msg, "HTTPS") ||
-		strings.Contains(msg, "RFC-1918") ||
-		strings.Contains(msg, "RFC 1122") ||
-		strings.Contains(msg, "RFC 1112") ||
-		strings.Contains(msg, "loopback") ||
-		strings.Contains(msg, "link-local") ||
-		strings.Contains(msg, "IPv6")
-}
-
 // allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
 // Anything else is stored as application/octet-stream so GET cannot echo arbitrary
 // caller-controlled MIME types (e.g. image/svg+xml, application/javascript) under the dashboard origin.
@@ -450,4 +420,178 @@ func sanitizeUploadContentType(v string) string {
 		return mediaType
 	}
 	return "application/octet-stream"
+}
+
+// GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
+func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Validate parameters
+	parameters, err := validateGetS3FilesHandlerParameters(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, parameters.SecretName, parameters.Bucket)
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	bucket := s3.bucket
+	result, err := s3.client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
+		Path:   parameters.Path,
+		Search: parameters.Search,
+		Next:   parameters.Next,
+		Limit:  parameters.Limit,
+	})
+	if err != nil {
+		var noBucket *types.NoSuchBucket
+		if errors.As(err, &noBucket) {
+			app.notFoundResponseWithMessage(w, r, fmt.Sprintf("bucket '%s' does not exist", bucket))
+			return
+		}
+
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 bucket '%s'", bucket))
+			return
+		}
+
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if result == nil {
+		app.serverErrorResponse(w, r, errors.New("unexpected nil response from S3 ListObjects"))
+		return
+	}
+
+	response := S3FilesEnvelope{
+		Data:     *result,
+		Metadata: &struct{}{},
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) getS3CredentialsFromSecret(
+	ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
+	namespace string,
+	secretName string,
+	identity *kubernetes.RequestIdentity,
+) (*s3int.S3Credentials, error) {
+	creds, err := app.repositories.S3.GetS3Credentials(ctx, client, namespace, secretName, identity)
+	if err != nil {
+		// Check if it's a Kubernetes API error and handle accordingly
+		var statusErr *apierrors.StatusError
+		if errors.As(err, &statusErr) {
+			if apierrors.IsNotFound(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusNotFound,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusNotFound),
+						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
+					},
+				}
+			}
+			if apierrors.IsForbidden(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusForbidden,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusForbidden),
+						Message: fmt.Sprintf("access to secret '%s' in namespace '%s' is forbidden", secretName, namespace),
+					},
+				}
+			}
+			if apierrors.IsUnauthorized(statusErr) {
+				return nil, &integrations.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    strconv.Itoa(http.StatusUnauthorized),
+						Message: "Access unauthorized",
+					},
+				}
+			}
+		}
+
+		if errors.Is(err, repositories.ErrMissingRequiredField) {
+			return nil, &integrations.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusBadRequest),
+					Message: err.Error(),
+				},
+			}
+		}
+
+		return nil, err
+	}
+
+	return creds, nil
+}
+
+type s3FilesParams struct {
+	SecretName string
+	Bucket     string
+	Path       string
+	Search     string
+	Next       string
+	Limit      int32
+}
+
+func validateGetS3FilesHandlerParameters(r *http.Request) (*s3FilesParams, error) {
+	queryParams := r.URL.Query()
+
+	// secretName is optional — when absent the handler falls back to DSPA object storage context.
+	secretName := queryParams.Get("secretName")
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+		return nil, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
+	}
+
+	bucket := queryParams.Get("bucket")
+
+	path := queryParams.Get("path")
+	if queryParams.Has("path") && path == "" {
+		return nil, errors.New("query parameter 'path' must be a non-empty string if provided")
+	}
+
+	const maxPrefixLength = 1024
+	if len(path) > maxPrefixLength {
+		return nil, fmt.Errorf("query parameter 'path' must not exceed %d characters", maxPrefixLength)
+	}
+
+	search := queryParams.Get("search")
+	if len(search) > maxPrefixLength {
+		return nil, fmt.Errorf("query parameter 'search' must not exceed %d characters", maxPrefixLength)
+	}
+	if search != "" && strings.Contains(search, "/") {
+		return nil, errors.New("query parameter 'search' must not contain '/' characters")
+	}
+
+	next := queryParams.Get("next")
+	if queryParams.Has("next") && next == "" {
+		return nil, errors.New("query parameter 'next' must be a non-empty string if provided")
+	}
+
+	const maxS3ListLimit int32 = 1000
+	var limit = maxS3ListLimit
+	if limitStr := queryParams.Get("limit"); limitStr != "" {
+		parsed, err := strconv.ParseInt(limitStr, 10, 32)
+		if err != nil || parsed < 1 || parsed > int64(maxS3ListLimit) {
+			return nil, errors.New("query parameter 'limit' must be a positive number between 1 and 1000")
+		}
+		limit = int32(parsed)
+	}
+
+	return &s3FilesParams{
+		SecretName: secretName,
+		Bucket:     bucket,
+		Path:       path,
+		Search:     search,
+		Next:       next,
+		Limit:      limit,
+	}, nil
 }

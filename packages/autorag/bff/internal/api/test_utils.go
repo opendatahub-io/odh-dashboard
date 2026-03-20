@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
@@ -47,10 +48,19 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-		logger:                  logger,
-		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+		config: config.EnvConfig{
+			AllowedOrigins: []string{"*"},
+			AuthMethod:     config.AuthMethodInternal,
+			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
+			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
+			// DSPAObjectStorageKey will NOT be set in context for these tests.
+			PipelineServerURL: "http://test-pipeline-server",
+		},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -146,10 +156,19 @@ func setupApiTestPostMultipart(
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-		logger:                  logger,
-		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+		config: config.EnvConfig{
+			AllowedOrigins: []string{"*"},
+			AuthMethod:     config.AuthMethodInternal,
+			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
+			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
+			// DSPAObjectStorageKey will NOT be set in context for these tests.
+			PipelineServerURL: "http://test-pipeline-server",
+		},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
 	}
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
