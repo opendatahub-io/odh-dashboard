@@ -1,3 +1,5 @@
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import {
   Alert,
   Bullseye,
@@ -8,16 +10,13 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-// eslint-disable-next-line import/no-extraneous-dependencies -- ~/app is local path alias, not gen-ai package
-import { autoragCreatePathname } from '~/app/utilities/routes';
+import { autoragConfigurePathname } from '~/app/utilities/routes';
 
 /**
  * Main experiments list page for AutoRAG. Renders pipeline runs in a paginated table,
@@ -45,12 +44,12 @@ function AutoragExperiments(): React.JSX.Element {
   const loadError = defsError ?? runsError;
 
   const handleCreateClick = React.useCallback(() => {
-    navigate(`${autoragCreatePathname}/${namespace ?? effectiveNamespace}`);
-  }, [navigate, namespace, effectiveNamespace]);
+    navigate(`${autoragConfigurePathname}/${effectiveNamespace}`);
+  }, [navigate, effectiveNamespace]);
 
   const createButton = (
     <Button variant="primary" onClick={handleCreateClick}>
-      Create Autorag experiment
+      Create AutoRAG experiment
     </Button>
   );
 
@@ -86,7 +85,7 @@ function AutoragExperiments(): React.JSX.Element {
   if (!hasExperiments) {
     return (
       <EmptyExperimentsState
-        createExperimentRoute={`${autoragCreatePathname}/${namespace ?? effectiveNamespace}`}
+        createExperimentRoute={`${autoragConfigurePathname}/${effectiveNamespace}`}
         dataTestId="empty-experiments-state"
       />
     );

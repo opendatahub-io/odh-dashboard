@@ -128,7 +128,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create Autorag experiment',
+      'Create AutoRAG experiment',
     );
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });

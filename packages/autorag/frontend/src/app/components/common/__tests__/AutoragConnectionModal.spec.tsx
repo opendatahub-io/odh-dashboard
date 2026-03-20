@@ -1,9 +1,9 @@
-import React, { act } from 'react';
-import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
-import AutoragConnectionModal from '../../common/AutoragConnectionModal';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React, { act } from 'react';
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 
 const TEST_PROJECT = 'my-project';
 

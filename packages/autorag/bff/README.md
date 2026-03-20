@@ -46,24 +46,25 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls |
-| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`) |
+| Flag | Env Var | Description                                                                            |
+|------|---------|----------------------------------------------------------------------------------------|
+| `-port` | `PORT` | Listen port (default 4000)                                                             |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`)                                    |
+| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.)                                   |
+| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
+| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
+| `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
+| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`)      |
 | `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
+| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
+| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
+| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
 | `-auth-method` | `AUTH_METHOD` | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`) |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
+| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization)                               |
+| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer)                                                 |
+| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key)                                |
+| `-key-file` | `KEY_FILE` | TLS key path                                                                           |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                                                    |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 

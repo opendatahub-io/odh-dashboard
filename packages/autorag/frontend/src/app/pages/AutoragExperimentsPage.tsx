@@ -25,7 +25,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="Autorag" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
       headerContent={
         <ProjectSelectorNavigator
           namespace={namespace}
