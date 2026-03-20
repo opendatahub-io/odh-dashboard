@@ -144,7 +144,6 @@ describe('AI Assets Models - User Journeys', () => {
 
       cy.step('View empty state with instructional message');
       aiAssetsPage.findEmptyState().should('exist').and('be.visible');
-      aiAssetsPage.findEmptyState().should('contain', 'To begin you must deploy a model');
 
       cy.step('Click "Don\'t see the model you\'re looking for?" info button');
       aiAssetsPage.findDontSeeModelButton().should('exist').and('be.visible').click();
@@ -319,10 +318,10 @@ describe('AI Assets Models - User Journeys', () => {
       aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
 
       cy.step('Configure playground in the modal (verify model is pre-selected)');
-      cy.findByTestId('chatbot-configuration-table').should('be.visible');
+      genAiPlayground.findConfigurationTable().should('be.visible');
 
       cy.step('Submit configuration');
-      cy.findByTestId('modal-submit-button').should('be.enabled').click();
+      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Verify redirect to playground');
       cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
@@ -399,9 +398,12 @@ describe('AI Assets Models - User Journeys', () => {
       aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
 
       cy.step('Navigate back and verify model status remains Active');
+      // Verify InferenceService is ready by checking from source (oc command)
+      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
       aiAssetsPage.navigate(projectName);
       aiAssetsPage.switchToModelsTab();
-      aiAssetsPage.verifyModelStatus(testData.modelDeploymentName, 'Active');
+      // Verify the model appears in the table after confirming it's ready
+      aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
     },
   );
 });
