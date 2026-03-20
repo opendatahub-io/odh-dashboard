@@ -139,9 +139,7 @@ class AIAssetsPage {
   }
 
   findModelInfoPopoverContent() {
-    return cy.findByRole('dialog', {
-      name: /Information about making model deployments available/i,
-    });
+    return cy.findByTestId('model-info-popover-content');
   }
 
   closeModelInfoPopover() {
@@ -196,7 +194,8 @@ class AIAssetsPage {
   }
 
   verifyModelStatus(modelName: string, status: 'Active' | 'Inactive') {
-    this.findModelStatus(modelName).should('contain', status);
+    const testId = status === 'Active' ? 'model-status-active' : 'model-status-inactive';
+    this.findModelsTableRow(modelName).findByTestId(testId).should('exist');
   }
 
   // Models Tab - Model Columns
@@ -245,7 +244,7 @@ class AIAssetsPage {
 
   // Table Row Count
   getVisibleRowCount() {
-    return this.findModelsTable().find('tbody tr').its('length');
+    return this.findModelsTable().find('tbody tr[role="row"]').its('length');
   }
 
   // Verify specific model exists in table
