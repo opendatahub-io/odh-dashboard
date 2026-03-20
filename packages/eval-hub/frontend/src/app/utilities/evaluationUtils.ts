@@ -4,29 +4,21 @@ export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
 export const getBenchmarkName = (job: EvaluationJob): string => {
-<<<<<<< HEAD
   if (job.benchmarks && job.benchmarks.length > 0) {
-    return job.benchmarks[0].id;
+    const first = job.benchmarks[0].id;
+    if (job.benchmarks.length === 1) {
+      return first;
+    }
+    return `${first} +${job.benchmarks.length - 1} more`;
   }
   if (job.collection?.id) {
     return job.collection.id;
   }
   return '-';
 };
-=======
-  if (!job.benchmarks || job.benchmarks.length === 0) {
-    return '-';
-  }
-  const first = job.benchmarks[0].id;
-  if (job.benchmarks.length === 1) {
-    return first;
-  }
-  return `${first} +${job.benchmarks.length - 1} more`;
-};
 
 export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
   job.benchmarks?.map((b) => b.id) ?? [];
->>>>>>> 2d4c5d217 (updated results page evaluation score)
 
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

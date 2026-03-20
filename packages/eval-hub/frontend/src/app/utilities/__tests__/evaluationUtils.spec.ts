@@ -37,7 +37,6 @@ describe('getBenchmarkName', () => {
     expect(getBenchmarkName(job)).toBe('-');
   });
 
-<<<<<<< HEAD
   it('should return dash when benchmarks is null and no collection', () => {
     const job = mockEvaluationJob();
     job.benchmarks = null;
@@ -47,7 +46,8 @@ describe('getBenchmarkName', () => {
   it('should return collection id when benchmarks is null and collection is set', () => {
     const job = mockEvaluationJob({ collectionId: 'my-collection' });
     expect(getBenchmarkName(job)).toBe('my-collection');
-=======
+  });
+
   /* eslint-disable camelcase */
   it('should show +N more when there are multiple benchmarks', () => {
     const job = mockEvaluationJob({ benchmarkId: 'arc_easy' });
@@ -86,7 +86,6 @@ describe('getAllBenchmarkNames', () => {
     const job = mockEvaluationJob();
     job.benchmarks = null;
     expect(getAllBenchmarkNames(job)).toEqual([]);
->>>>>>> 2d4c5d217 (updated results page evaluation score)
   });
 });
 
