@@ -660,21 +660,21 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	t.Run("should successfully generate config with external_cluster model", func(t *testing.T) {
+	t.Run("should successfully generate config with custom_endpoint model", func(t *testing.T) {
 		scheme := runtime.NewScheme()
 		require.NoError(t, corev1.AddToScheme(scheme))
 
 		configMapYAML := `
 providers:
   inference:
-    - provider_id: "cluster-vllm-provider"
-      provider_type: "remote::vllm"
+    - provider_id: "endpoint-1"
+      provider_type: "remote::openai"
       config:
-        base_url: "https://qwen3-06b.test-namespace.svc.cluster.local:8080/v1"
+        base_url: "https://api.openai.com/v1"
 registered_resources:
   models:
-    - model_id: "qwen3-06b"
-      provider_id: "cluster-vllm-provider"
+    - model_id: "gpt-4o"
+      provider_id: "endpoint-1"
       model_type: "llm"
 `
 		configMap := &corev1.ConfigMap{
@@ -699,8 +699,8 @@ registered_resources:
 
 		installModels := []models.InstallModel{
 			{
-				ModelName:       "qwen3-06b",
-				ModelSourceType: models.ModelSourceTypeExternalCluster,
+				ModelName:       "gpt-4o",
+				ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			},
 		}
 
@@ -709,9 +709,9 @@ registered_resources:
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
-		assert.Contains(t, result, "qwen3-06b")
-		assert.Contains(t, result, "cluster-vllm-provider")
-		assert.Contains(t, result, "svc.cluster.local")
+		assert.Contains(t, result, "gpt-4o")
+		assert.Contains(t, result, "endpoint-1")
+		assert.Contains(t, result, "api.openai.com")
 	})
 }
 
@@ -724,15 +724,8 @@ func TestModelSourceTypeRouting(t *testing.T) {
 		shouldCallCluster  bool
 	}{
 		{
-			name:               "external_provider routes to external model handling",
-			modelSourceType:    models.ModelSourceTypeExternalProvider,
-			expectedHandling:   "external",
-			shouldCallExternal: true,
-			shouldCallCluster:  false,
-		},
-		{
-			name:               "external_cluster routes to external model handling",
-			modelSourceType:    models.ModelSourceTypeExternalCluster,
+			name:               "custom_endpoint routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			expectedHandling:   "external",
 			shouldCallExternal: true,
 			shouldCallCluster:  false,
@@ -757,10 +750,8 @@ func TestModelSourceTypeRouting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify the enum values are correct
 			switch tt.modelSourceType {
-			case models.ModelSourceTypeExternalProvider:
-				assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), tt.modelSourceType)
-			case models.ModelSourceTypeExternalCluster:
-				assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), tt.modelSourceType)
+			case models.ModelSourceTypeCustomEndpoint:
+				assert.Equal(t, models.ModelSourceTypeEnum("custom_endpoint"), tt.modelSourceType)
 			case models.ModelSourceTypeNamespace:
 				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
 			}
@@ -782,32 +773,18 @@ func TestModelSourceTypeConstants(t *testing.T) {
 		// These values are part of the API contract and must remain stable
 		assert.Equal(t, models.ModelSourceTypeEnum("namespace"), models.ModelSourceTypeNamespace,
 			"ModelSourceTypeNamespace value must be 'namespace'")
-		assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), models.ModelSourceTypeExternalCluster,
-			"ModelSourceTypeExternalCluster value must be 'external_cluster'")
-		assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), models.ModelSourceTypeExternalProvider,
-			"ModelSourceTypeExternalProvider value must be 'external_provider'")
+		assert.Equal(t, models.ModelSourceTypeEnum("custom_endpoint"), models.ModelSourceTypeCustomEndpoint,
+			"ModelSourceTypeCustomEndpoint value must be 'custom_endpoint'")
 		assert.Equal(t, models.ModelSourceTypeEnum("maas"), models.ModelSourceTypeMaaS,
 			"ModelSourceTypeMaaS value must be 'maas'")
 	})
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
-	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
+
+	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider"
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
-	})
-
-	t.Run("should handle external_cluster ModelSourceType", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "qwen3-06b",			"model_source_type": "external_cluster"
+			"model_name": "qwen3-06b",			"model_source_type": "custom_endpoint"
 		}`)
 
 		var model models.InstallModel
@@ -815,7 +792,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "qwen3-06b", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalCluster, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 	})
 
 	t.Run("should handle namespace ModelSourceType", func(t *testing.T) {
@@ -845,7 +822,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096
 		}`)
 
@@ -854,14 +831,14 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.NotNil(t, model.MaxTokens)
 		assert.Equal(t, 4096, *model.MaxTokens)
 	})
 
 	t.Run("should handle max_tokens as float64", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096.0
 		}`)
 
@@ -869,14 +846,14 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		err := model.UnmarshalJSON(jsonData)
 
 		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.NotNil(t, model.MaxTokens)
 		assert.Equal(t, 4096, *model.MaxTokens)
 	})
 
 	t.Run("should reject fractional max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096.5
 		}`)
 
@@ -889,7 +866,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle nil max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": null
 		}`)
 
@@ -897,7 +874,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		err := model.UnmarshalJSON(jsonData)
 
 		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.Nil(t, model.MaxTokens)
 	})
 
@@ -1102,7 +1079,7 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 				Inference: []models.InferenceProvider{
 					{
 						ProviderID:   "test-provider",
-						ProviderType: models.ProviderTypeVLLM,
+						ProviderType: models.ProviderTypeOpenAI,
 						Config: models.ProviderConfig{
 							BaseURL: "https://api.example.com/v1",
 						},
