@@ -24,6 +24,7 @@ import {
   formatDate,
   formatDuration,
   getBenchmarkName,
+  getBenchmarkResultScore,
   getEvaluationName,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
@@ -37,7 +38,6 @@ const EvaluationResultsPage: React.FC = () => {
   const { namespace, jobId } = useParams<{ namespace: string; jobId: string }>();
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);
 
-  const isCollection = !!job?.collection?.id;
   const benchmarkIds = React.useMemo(
     () => job?.benchmarks?.map((b) => b.id) ?? [],
     [job?.benchmarks],
@@ -60,7 +60,15 @@ const EvaluationResultsPage: React.FC = () => {
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
-  const scoreDisplay = React.useMemo(() => (!job ? '-' : getResultScore(job)), [job]);
+  const scoreDisplay = React.useMemo(() => {
+    if (!job) {
+      return '-';
+    }
+    if (selectedBenchmarkId && benchmarkIds.length > 1) {
+      return getBenchmarkResultScore(job, selectedBenchmarkId);
+    }
+    return getResultScore(job);
+  }, [job, selectedBenchmarkId, benchmarkIds.length]);
 
   const metadataRow = job ? (
     <Flex
@@ -163,8 +171,8 @@ const EvaluationResultsPage: React.FC = () => {
             </Title>
           </div>
 
-          {/* Collection: benchmark cards grid */}
-          {isCollection && benchmarkIds.length > 1 && (
+          {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
+          {benchmarkIds.length > 1 && (
             <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
               <Title headingLevel="h3" className="pf-v6-u-mb-md">
                 Benchmarks

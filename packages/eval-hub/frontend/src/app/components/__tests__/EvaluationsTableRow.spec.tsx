@@ -66,6 +66,31 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('MMLU Finance');
   });
 
+  it('should render multiple benchmarks with +N more suffix', () => {
+    const job = mockEvaluationJob({ benchmarkId: 'arc_easy' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      { id: 'arc_easy', provider_id: 'lm_evaluation_harness' },
+      { id: 'hellaswag_ar', provider_id: 'lm_evaluation_harness' },
+    ];
+    /* eslint-enable camelcase */
+    render(
+      <MemoryRouter>
+        <Table aria-label="test">
+          <Tbody>
+            <EvaluationsTableRow
+              job={job}
+              rowIndex={0}
+              namespace="test-ns"
+              onActionComplete={mockOnActionComplete}
+            />
+          </Tbody>
+        </Table>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+  });
+
   it('should render model name in the Type column', () => {
     renderRow({ modelName: 'gpt-4-turbo' });
     expect(screen.getByTestId('evaluation-type')).toHaveTextContent('gpt-4-turbo');
