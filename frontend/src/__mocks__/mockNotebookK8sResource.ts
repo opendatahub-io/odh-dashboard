@@ -32,6 +32,7 @@ type MockResourceConfigType = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string | null;
   workbenchImageNamespace?: string | null;
+  injectAuth?: string | null;
 };
 
 export const mockNotebookK8sResource = ({
@@ -59,6 +60,7 @@ export const mockNotebookK8sResource = ({
   hardwareProfileName = '',
   hardwareProfileNamespace = null,
   workbenchImageNamespace = null,
+  injectAuth = 'true',
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -68,7 +70,7 @@ export const mockNotebookK8sResource = ({
         annotations: {
           'opendatahub.io/image-display-name': imageDisplayName,
           'notebooks.kubeflow.org/last-activity': '2023-02-14T21:45:14Z',
-          'notebooks.opendatahub.io/inject-auth': 'true',
+          ...(injectAuth !== null ? { 'notebooks.opendatahub.io/inject-auth': injectAuth } : {}),
           'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
           'notebooks.opendatahub.io/last-size-selection': 'Small',
           'opendatahub.io/username': user,
