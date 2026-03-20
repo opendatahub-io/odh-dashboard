@@ -4165,6 +4165,7 @@ components:
             data:
               - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
                 vector_store_name: 'Product Docs RAG Store'
+                provider_id: 'pgvector-provider-1'
                 provider_type: 'remote::pgvector'
                 embedding_model: 'ibm-granite/granite-embedding-125m-english'
                 embedding_dimension: 768
@@ -4189,6 +4190,7 @@ components:
                   vector_stores:
                     - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
                       vector_store_name: 'Product Docs RAG Store'
+                      provider_id: 'pgvector-provider-1'
                       provider_type: 'remote::pgvector'
                       embedding_model: 'ibm-granite/granite-embedding-125m-english'
                       embedding_dimension: 768
