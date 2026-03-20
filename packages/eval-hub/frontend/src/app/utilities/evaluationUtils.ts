@@ -3,8 +3,15 @@ import { EvaluationJob } from '~/app/types';
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
-export const getBenchmarkName = (job: EvaluationJob): string =>
-  job.benchmarks && job.benchmarks.length > 0 ? job.benchmarks[0].id : '-';
+export const getBenchmarkName = (job: EvaluationJob): string => {
+  if (job.benchmarks && job.benchmarks.length > 0) {
+    return job.benchmarks[0].id;
+  }
+  if (job.collection?.id) {
+    return job.collection.id;
+  }
+  return '-';
+};
 
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

@@ -1,0 +1,268 @@
+package s3
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+)
+
+// S3Credentials contains the credentials needed to connect to S3.
+type S3Credentials struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Region          string
+	EndpointURL     string
+	Bucket          string // Optional bucket name from secret (AWS_S3_BUCKET)
+}
+
+// ListObjectsOptions contains parameters for listing S3 objects.
+type ListObjectsOptions struct {
+	Path   string // Denotes the current "folder" we should be searching in
+	Search string // The value the user entered into the search bar
+	Next   string // The token value to use if the user wants the next page
+	Limit  int32  // Variable amount of max keys so we can paginate
+}
+
+// S3ClientInterface defines the interface for S3 operations.
+type S3ClientInterface interface {
+	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
+	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
+}
+
+// RealS3Client implements S3ClientInterface using the AWS SDK.
+type RealS3Client struct {
+	s3Client *awss3.Client
+	options  S3ClientOptions
+}
+
+// NewRealS3Client creates a new S3 client from credentials.
+func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
+	if creds == nil {
+		return nil, fmt.Errorf("S3Credentials must not be nil")
+	}
+
+	c := &RealS3Client{options: opts.withDefaults()}
+
+	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
+	if err != nil {
+		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+	}
+
+	cfg := aws.Config{
+		Region:      creds.Region,
+		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+
+	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
+		o.BaseEndpoint = aws.String(validatedEndpoint)
+		// Enable path-style addressing for S3-compatible services like MinIO
+		o.UsePathStyle = true
+	})
+
+	return c, nil
+}
+
+// GetObject retrieves an object from S3 using transfer manager for optimized downloading
+// and returns a reader for the content. Uses concurrent multipart downloads for large files.
+func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	// Create transfer manager for optimized downloads
+	transferClient := transfermanager.New(c.s3Client)
+
+	// Get the object using transfer manager
+	// This automatically handles multipart downloads for large files with concurrency
+	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}, func(o *transfermanager.Options) {
+		o.Concurrency = c.options.Concurrency
+		o.PartSizeBytes = c.options.PartSizeBytes
+		o.GetObjectBufferSize = c.options.GetObjectBufSize
+		o.PartBodyMaxRetries = c.options.PartBodyMaxRetries
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+	}
+
+	// Get content type, default to application/octet-stream if not specified
+	contentType := "application/octet-stream"
+	if result.ContentType != nil {
+		contentType = *result.ContentType
+	}
+
+	// The transfer manager returns io.Reader; promote to io.ReadCloser so
+	// callers can unconditionally Close the stream.
+	body, ok := result.Body.(io.ReadCloser)
+	if !ok {
+		body = io.NopCloser(result.Body)
+	}
+
+	return body, contentType, nil
+}
+
+// ListObjects retrieves a listing of objects from S3.
+func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	prefix := options.Search
+	if options.Path != "" {
+		path := options.Path
+		if !strings.HasSuffix(path, "/") {
+			path += "/"
+		}
+		prefix = path + options.Search
+	}
+
+	input := &awss3.ListObjectsV2Input{
+		Bucket:    aws.String(bucket),
+		Delimiter: aws.String("/"),
+		Prefix:    aws.String(prefix),
+		MaxKeys:   aws.Int32(options.Limit),
+	}
+
+	if options.Next != "" {
+		input.ContinuationToken = aws.String(options.Next)
+	}
+
+	output, err := c.s3Client.ListObjectsV2(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &models.S3ListObjectsResponse{
+		IsTruncated:           aws.ToBool(output.IsTruncated),
+		KeyCount:              aws.ToInt32(output.KeyCount),
+		MaxKeys:               aws.ToInt32(output.MaxKeys),
+		Name:                  aws.ToString(output.Name),
+		Prefix:                aws.ToString(output.Prefix),
+		Delimiter:             aws.ToString(output.Delimiter),
+		ContinuationToken:     aws.ToString(output.ContinuationToken),
+		NextContinuationToken: aws.ToString(output.NextContinuationToken),
+		CommonPrefixes:        []models.S3CommonPrefix{},
+		Contents:              []models.S3ObjectInfo{},
+	}
+
+	for _, cp := range output.CommonPrefixes {
+		result.CommonPrefixes = append(result.CommonPrefixes, models.S3CommonPrefix{Prefix: aws.ToString(cp.Prefix)})
+	}
+
+	for _, obj := range output.Contents {
+		info := models.S3ObjectInfo{
+			Key:          aws.ToString(obj.Key),
+			Size:         aws.ToInt64(obj.Size),
+			ETag:         aws.ToString(obj.ETag),
+			StorageClass: string(obj.StorageClass),
+		}
+		if obj.LastModified != nil {
+			info.LastModified = obj.LastModified.Format(time.RFC3339)
+		}
+		result.Contents = append(result.Contents, info)
+	}
+
+	return result, nil
+}
+
+// validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
+// It ensures the URL uses HTTPS, is properly formatted, and does not target private IP ranges.
+// Returns the normalized URL string or an error if validation fails.
+func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
+	if endpoint == "" {
+		return "", fmt.Errorf("endpoint URL cannot be empty")
+	}
+
+	// Parse the URL
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
+	}
+
+	// Ensure scheme is HTTPS
+	if parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("endpoint URL must use HTTPS scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Extract hostname (may be hostname or IP)
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return "", fmt.Errorf("endpoint URL must have a valid hostname")
+	}
+
+	// Check if the hostname is an IP address
+	ip := net.ParseIP(hostname)
+	if ip != nil {
+		// Direct IP address - validate it
+		if err := c.validateIPAddress(ip); err != nil {
+			return "", err
+		}
+	} else {
+		// Hostname - resolve it and validate all IPs
+		ips, err := net.LookupIP(hostname)
+		if err != nil {
+			// Only honor ALLOW_UNRESOLVED_S3_ENDPOINTS in dev mode to prevent
+			// weakening SSRF protections in production.
+			if c.options.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+				slog.Warn("SECURITY: Bypassing DNS resolution check for S3 endpoint (dev mode). "+
+					"This weakens SSRF protection and introduces TOCTOU risk. Do NOT use in production.",
+					"hostname", hostname,
+					"error", err.Error())
+			} else {
+				return "", fmt.Errorf("endpoint hostname '%s' cannot be resolved: %w (this may indicate a DNS rebinding attempt or misconfiguration)", hostname, err)
+			}
+		} else {
+			// Validate all resolved IPs
+			for _, resolvedIP := range ips {
+				if err := c.validateIPAddress(resolvedIP); err != nil {
+					return "", fmt.Errorf("endpoint hostname '%s' resolves to blocked IP %s: %w", hostname, resolvedIP, err)
+				}
+			}
+		}
+	}
+
+	// Return the normalized URL string
+	return parsedURL.String(), nil
+}
+
+// validateIPAddress checks if an IP address is in a blocked range (private or link-local).
+// Returns an error if the IP is blocked, nil otherwise.
+func (c *RealS3Client) validateIPAddress(ip net.IP) error {
+	blockedRanges := []struct {
+		cidr        string
+		description string
+	}{
+		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
+		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
+		{"100.64.0.0/10", "Carrier-Grade NAT range (RFC 6598)"},
+		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
+		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
+		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
+		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
+		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
+		{"::1/128", "IPv6 loopback"},
+		{"fe80::/10", "IPv6 link-local"},
+		{"fc00::/7", "IPv6 unique local addresses"},
+	}
+
+	for _, blocked := range blockedRanges {
+		_, network, err := net.ParseCIDR(blocked.cidr)
+		if err != nil {
+			// Should never happen with hardcoded CIDRs, but handle gracefully
+			slog.Error("Failed to parse blocked CIDR", "cidr", blocked.cidr, "error", err)
+			continue
+		}
+
+		if network.Contains(ip) {
+			return fmt.Errorf("endpoint IP %s is in blocked %s", ip, blocked.description)
+		}
+	}
+
+	return nil
+}

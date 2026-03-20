@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -35,7 +34,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Create Secret for API key
-	secretName := fmt.Sprintf("external-model-provider-api-key-%s", providerID)
+	secretName := fmt.Sprintf("endpoint-api-key-%s", providerID)
 	if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
 		return nil, fmt.Errorf("failed to create secret: %w", err)
 	}
@@ -50,28 +49,20 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
-	// Determine model source type based on URL
-	sourceType := models.ModelSourceTypeExternalProvider
-	endpoint := fmt.Sprintf("external: %s", req.BaseURL)
-	if helper.IsClusterLocalURL(req.BaseURL) {
-		sourceType = models.ModelSourceTypeExternalCluster
-		endpoint = fmt.Sprintf("internal: %s", req.BaseURL)
-	}
-
 	// Return AAModel structure for consistent API response
 	return &models.AAModel{
 		ModelName:       req.ModelID,
 		ModelID:         req.ModelID,
-		ServingRuntime:  string(req.ProviderType),
+		ServingRuntime:  string(models.ProviderTypeOpenAI),
 		APIProtocol:     "REST",
 		Version:         "",
 		Usecase:         req.UseCases,
 		Description:     "",
-		Endpoints:       []string{endpoint},
+		Endpoints:       []string{req.BaseURL},
 		Status:          "Running",
 		DisplayName:     req.ModelDisplayName,
 		SAToken:         models.SAToken{},
-		ModelSourceType: sourceType,
+		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
 	}, nil
 }

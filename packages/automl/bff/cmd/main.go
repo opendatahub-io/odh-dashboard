@@ -95,6 +95,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// a mock Kubernetes client to fetch secrets
+	if cfg.MockS3Client && !cfg.MockK8Client {
+		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+		os.Exit(1)
+	}
+
 	// Validate pipeline name prefixes
 	if cfg.AutoMLTimeSeriesPipelineNamePrefix == "" {
 		logger.Error("automl-timeseries-pipeline-name-prefix must not be empty")

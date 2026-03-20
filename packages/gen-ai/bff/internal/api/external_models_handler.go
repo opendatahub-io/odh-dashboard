@@ -58,25 +58,8 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
 		return
 	}
-	if req.ProviderType == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("provider_type is required"))
-		return
-	}
 	if req.ModelType == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
-		return
-	}
-
-	// Validate provider type
-	validProviderTypes := map[models.ProviderTypeEnum]bool{
-		models.ProviderTypeGemini:      true,
-		models.ProviderTypeOpenAI:      true,
-		models.ProviderTypeAnthropic:   true,
-		models.ProviderTypeVLLM:        true,
-		models.ProviderTypePassthrough: true,
-	}
-	if !validProviderTypes[req.ProviderType] {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid provider_type: %s", req.ProviderType))
 		return
 	}
 
