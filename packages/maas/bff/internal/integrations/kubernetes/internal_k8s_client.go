@@ -218,6 +218,30 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 	return false, nil
 }
 
+func (kc *InternalKubernetesClient) CheckSelfAccess(ctx context.Context, group, resource, verb, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Group:     group,
+				Resource:  resource,
+				Verb:      verb,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform access review", "error", err)
+		return false, fmt.Errorf("failed to perform access review: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
