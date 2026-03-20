@@ -4,13 +4,13 @@ class AIAssetsPage {
     this.waitForPageLoad();
   }
 
-  private waitForPageLoad() {
-    cy.findByTestId('page-title', { timeout: 15000 }).should('be.visible');
-    cy.findByRole('tab', { timeout: 10000 }).should('exist');
+  private waitForPageLoad(timeout?: number) {
+    cy.findByTestId('page-title', { timeout }).should('be.visible');
+    cy.findByRole('tab', { timeout }).should('exist');
   }
 
-  waitForTabLoad() {
-    cy.findByRole('tabpanel', { timeout: 10000 }).should('be.visible');
+  waitForTabLoad(timeout?: number) {
+    cy.findByRole('tabpanel', { timeout }).should('be.visible');
   }
 
   // Tab Navigation
@@ -112,8 +112,7 @@ class AIAssetsPage {
     this.findClearAllFiltersButton().click();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  findActiveFilterChip(filterType: string, _value: string) {
+  findActiveFilterChip(filterType: string) {
     // Map display names to filter keys used in testIDs
     const filterKeyMap: Record<string, string> = {
       Name: 'name',
@@ -124,8 +123,8 @@ class AIAssetsPage {
     return cy.findByTestId(`filter-chip-${filterKey}`);
   }
 
-  removeFilterChip(filterType: string, value: string) {
-    this.findActiveFilterChip(filterType, value)
+  removeFilterChip(filterType: string) {
+    this.findActiveFilterChip(filterType)
       .findByRole('button', { name: new RegExp(`Remove ${filterType} filter`, 'i') })
       .click();
   }
@@ -255,7 +254,7 @@ class AIAssetsPage {
   }
 
   verifyModelDoesNotExist(modelName: string) {
-    this.findModelsTable().contains('tr', modelName).should('not.exist');
+    this.findModelsTableRow(modelName).should('not.exist');
   }
 }
 
