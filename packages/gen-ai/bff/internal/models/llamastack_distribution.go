@@ -51,16 +51,14 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 	switch raw.ModelSourceType {
 	case string(ModelSourceTypeNamespace):
 		im.ModelSourceType = ModelSourceTypeNamespace
-	case string(ModelSourceTypeExternalCluster):
-		im.ModelSourceType = ModelSourceTypeExternalCluster
-	case string(ModelSourceTypeExternalProvider):
-		im.ModelSourceType = ModelSourceTypeExternalProvider
+	case string(ModelSourceTypeCustomEndpoint):
+		im.ModelSourceType = ModelSourceTypeCustomEndpoint
 	case string(ModelSourceTypeMaaS):
 		im.ModelSourceType = ModelSourceTypeMaaS
 	case "":
 		return fmt.Errorf("model_source_type is required")
 	default:
-		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, external_cluster, external_provider, maas", raw.ModelSourceType)
+		return fmt.Errorf("invalid model_source_type: %q, must be one of: namespace, custom_endpoint, maas", raw.ModelSourceType)
 	}
 
 	// Handle max_tokens conversion from interface{} to *int
@@ -95,7 +93,7 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 type InstallModel struct {
 	ModelName       string              `json:"model_name"`
-	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`    // Source type of the model (required: namespace, external_cluster, external_provider, maas)
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`    // Source type of the model (required: namespace, custom_endpoint, maas)
 	MaxTokens       *int                `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
 }
 

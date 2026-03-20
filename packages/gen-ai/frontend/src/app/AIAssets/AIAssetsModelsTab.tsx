@@ -142,9 +142,9 @@ const AIAssetsModelsTab: React.FC = () => {
                 <Button
                   variant="primary"
                   onClick={() => setIsCreateEndpointModalOpen(true)}
-                  data-testid="register-external-endpoint-button"
+                  data-testid="create-endpoint-button"
                 >
-                  Register external endpoint
+                  Create endpoint
                 </Button>
               ) : undefined
             }
