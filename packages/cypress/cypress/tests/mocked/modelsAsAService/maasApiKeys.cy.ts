@@ -78,7 +78,6 @@ describe('API Keys Page', () => {
     );
 
     apiKeysPage.findFilterInput().type('alice');
-    apiKeysPage.findFilterSearchButton().click();
 
     cy.wait('@searchByUsername').then((interception) => {
       expect(interception.request.body.data.filters.username).to.eq('alice');
@@ -102,7 +101,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findStatusFilterOption('Active').click();
 
     cy.wait('@filterByStatus').then((interception) => {
-      expect(interception.request.body.data.filters.status).to.deep.equal(['expired', 'revoked']);
+      expect(interception.request.body.data.filters.status).to.deep.equal(['active']);
     });
 
     apiKeysPage.findRows().should('have.length', 2);
