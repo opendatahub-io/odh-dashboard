@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // ModerationResult contains the result of a moderation check
@@ -16,51 +16,50 @@ type ModerationResult struct {
 	ViolationReason string
 }
 
-func (app *App) checkModeration(ctx context.Context, input string, shieldID string) (*ModerationResult, error) {
-	app.logger.Debug("Moderation check started", "shield_id", shieldID, "input_length", len(input))
+// checkModeration sends content to the NeMo Guardrails API for safety evaluation.
+// The configID maps to a NeMo guardrail configuration (replaces the old LLS shield ID).
+func (app *App) checkModeration(ctx context.Context, input string, configID string) (*ModerationResult, error) {
+	app.logger.Debug("Moderation check started", "config_id", configID, "input_length", len(input))
 
-	client, err := helper.GetContextLlamaStackClient(ctx)
+	nemoClient, err := helper.GetContextNemoClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get LlamaStack client: %w", err)
+		return nil, fmt.Errorf("failed to get NeMo Guardrails client: %w", err)
 	}
 
-	response, err := client.CreateModeration(ctx, input, shieldID)
+	response, err := nemoClient.CheckGuardrails(ctx, input, configID)
 	if err != nil {
-		app.logger.Debug("Moderation API call error", "error", err)
-		return nil, fmt.Errorf("moderation API call failed: %w", err)
+		app.logger.Debug("NeMo guardrail check error", "error", err)
+		return nil, fmt.Errorf("guardrail check failed: %w", err)
 	}
 
-	// No results means content is not flagged
-	if len(response.Results) == 0 {
-		app.logger.Debug("Moderation returned no results", "shield_id", shieldID)
-		return &ModerationResult{Flagged: false}, nil
-	}
-
-	modResult := response.Results[0]
-	app.logger.Debug("Moderation result", "flagged", modResult.Flagged, "raw_json", modResult.RawJSON())
-	return &ModerationResult{
-		Flagged:         modResult.Flagged,
-		ViolationReason: extractDetectionType(modResult.RawJSON()),
-	}, nil
+	return interpretNemoResponse(response), nil
 }
 
-// extractDetectionType extracts the detection_type from TrustyAI's moderation response
-func extractDetectionType(rawJSON string) string {
-	if rawJSON == "" {
-		return ""
+// interpretNemoResponse converts a NeMo GuardrailCheckResponse into a ModerationResult.
+func interpretNemoResponse(resp *nemo.GuardrailCheckResponse) *ModerationResult {
+	if resp == nil {
+		return &ModerationResult{Flagged: false}
 	}
 
-	var result struct {
-		Metadata struct {
-			DetectionType string `json:"detection_type"`
-		} `json:"metadata"`
+	switch resp.Status {
+	case nemo.StatusBlocked:
+		reason := extractBlockedRailName(resp.RailsStatus)
+		return &ModerationResult{Flagged: true, ViolationReason: reason}
+	case nemo.StatusError:
+		return &ModerationResult{Flagged: false}
+	default:
+		return &ModerationResult{Flagged: false}
 	}
+}
 
-	if err := json.Unmarshal([]byte(rawJSON), &result); err != nil {
-		return ""
+// extractBlockedRailName finds the first rail that has a "blocked" status.
+func extractBlockedRailName(railsStatus map[string]nemo.RailStatus) string {
+	for name, rail := range railsStatus {
+		if rail.Status == nemo.StatusBlocked {
+			return name
+		}
 	}
-
-	return result.Metadata.DetectionType
+	return "guardrail_violation"
 }
 
 func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {

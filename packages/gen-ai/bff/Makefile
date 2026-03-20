@@ -6,6 +6,7 @@ ENVTEST_K8S_VERSION = 1.29.3
 LOG_LEVEL ?= debug
 ALLOWED_ORIGINS ?= ""
 LLAMA_STACK_URL ?= ""
+NEMO_GUARDRAILS_URL ?= ""
 MAAS_URL ?= ""
 MLFLOW_URL ?= ""
 MOCK_LS_CLIENT ?= false
@@ -13,6 +14,7 @@ MOCK_K8S_CLIENT ?= false
 MOCK_MCP_CLIENT ?= false
 MOCK_MAAS_CLIENT ?= false
 MOCK_MLFLOW_CLIENT ?= false
+MOCK_NEMO_CLIENT ?= false
 AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
@@ -63,7 +65,7 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 run: fmt vet envtest uv ## Runs the project.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
-	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
+	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
 debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can attach on port 2345).
@@ -72,7 +74,7 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	dlv debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
-		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
+		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 ##@ MLflow
 

@@ -60,8 +60,4 @@ const (
 	MLflowPromptVersionPath  = ApiPathPrefix + "/mlflow/prompts/:name/versions/:version"
 
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
-
-	// LSD Safety endpoint - returns configured guardrail models and shields
-	// Parsed from llama-stack-config ConfigMap
-	LSDSafetyPath = ApiPathPrefix + "/lsd/safety"
 )
