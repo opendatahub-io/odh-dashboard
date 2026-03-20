@@ -18,8 +18,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -1309,4 +1311,101 @@ func TestGetProviderDataRouting(t *testing.T) {
 		assert.Contains(t, providerData, "vllm_api_token")
 		assert.Equal(t, "test-token", providerData["vllm_api_token"])
 	})
+
+	t.Run("should successfully retrieve custom endpoint API key when ConfigMap and Secret exist", func(t *testing.T) {
+		// Create a custom mock client factory that returns a working K8s client with mock data
+		mockK8sClientWithData := &customEndpointMockClient{
+			externalModelsConfig: &models.ExternalModelsConfig{
+				RegisteredResources: models.RegisteredResourcesConfig{
+					Models: []models.RegisteredModel{
+						{
+							ModelID:    "gpt-4o",
+							ProviderID: "endpoint-1",
+						},
+					},
+				},
+				Providers: models.ProvidersConfig{
+					Inference: []models.InferenceProvider{
+						{
+							ProviderID:   "endpoint-1",
+							ProviderType: models.ProviderTypeOpenAI,
+							Config: models.ProviderConfig{
+								CustomGenAI: models.CustomGenAI{
+									APIKey: models.APIKeyConfig{
+										SecretRef: models.SecretRef{
+											Name: "endpoint-api-key-1",
+											Key:  "api_key",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			secretValue: "sk-test-openai-key-12345",
+		}
+
+		mockFactoryWithData := &customEndpointMockFactory{
+			client: mockK8sClientWithData,
+		}
+
+		appWithData := App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  logger,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			kubernetesClientFactory: mockFactoryWithData,
+			memoryStore:             memStore,
+		}
+
+		// Create context with required values
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+
+		// Call with provider-qualified model ID and custom_endpoint source type
+		providerData := appWithData.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint")
+
+		// Should return provider data with the API key from the secret
+		assert.NotNil(t, providerData, "Provider data should not be nil")
+		assert.Contains(t, providerData, "openai_api_key")
+		assert.Equal(t, "sk-test-openai-key-12345", providerData["openai_api_key"])
+	})
+}
+
+// customEndpointMockFactory is a mock factory that returns a client with external models config and secret data
+type customEndpointMockFactory struct {
+	client *customEndpointMockClient
+}
+
+func (f *customEndpointMockFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return f.client, nil
+}
+
+func (f *customEndpointMockFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "test-token"}, nil
+}
+
+func (f *customEndpointMockFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	return nil
+}
+
+// customEndpointMockClient is a mock K8s client that returns predefined external models config and secret
+type customEndpointMockClient struct {
+	k8s.KubernetesClientInterface
+	externalModelsConfig *models.ExternalModelsConfig
+	secretValue          string
+}
+
+func (c *customEndpointMockClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+	return c.externalModelsConfig, nil
+}
+
+func (c *customEndpointMockClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	return c.secretValue, nil
 }
