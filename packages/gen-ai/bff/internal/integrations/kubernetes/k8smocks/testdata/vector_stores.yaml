@@ -1,3 +1,6 @@
+# This file gives sample gen-ai-aa-vector-stores configuration (it includes the data that'd be inlined inside the 'config.yaml' portion of the configmap), 
+# with multiple vector store providers and registered vector stores
+
 providers:
   vector_io:
     - provider_id: pgvector-provider
