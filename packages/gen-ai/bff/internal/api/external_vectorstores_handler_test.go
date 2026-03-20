@@ -114,7 +114,7 @@ var _ = Describe("ExternalVectorStoresListHandler", func() {
 			storesByID[store.VectorStoreID] = store
 		}
 
-		// pgvector store should have resolved provider_type and distance_metric
+		// pgvector store should have resolved provider_type
 		pgStore := storesByID["vs_282695f8-7e3e-48da-abac-d81a0aa225a4"]
 		assert.Equal(t, "remote::pgvector", pgStore.ProviderType, "pgvector store should have correct provider_type")
 
