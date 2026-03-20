@@ -516,30 +516,6 @@ class ChatbotPage {
     this.findBotMessagesInPane(0).should('contain.text', text);
     this.findBotMessagesInPane(1).should('contain.text', text);
   }
-
-  findInstructionsInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    this.clickPromptTab();
-    return cy.get('body').then(($body) => {
-      const testId = $body.find('[data-testid="prompt-instructions-input"]').length
-        ? 'prompt-instructions-input'
-        : 'system-instructions-input';
-      return cy.findByTestId(testId);
-    });
-  }
-
-  editInstructions(newInstructions: string): void {
-    this.clickPromptTab();
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="prompt-instructions-input"]').length) {
-        cy.findByTestId('prompt-instructions-input').dblclick();
-        cy.findByTestId('prompt-instructions-input').clear();
-        cy.findByTestId('prompt-instructions-input').type(newInstructions);
-      } else {
-        cy.findByTestId('system-instructions-input').clear();
-        cy.findByTestId('system-instructions-input').type(newInstructions);
-      }
-    });
-  }
 }
 
 export const chatbotPage = new ChatbotPage();
