@@ -15,7 +15,7 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { useAutoMLTaskTopology } from '../useAutoMLTaskTopology';
+import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
 
 const mockSpec: PipelineSpecVariable = {
   root: {

@@ -14,7 +14,7 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from '../parseUtils';
+import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from '~/app/topology/parseUtils';
 
 const makeRunDetails = (
   ...tasks: { task_id: string; display_name?: string; state?: RuntimeStateKF }[]

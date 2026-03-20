@@ -4,6 +4,7 @@ import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
 import type { PipelineRun } from '~/app/types';
 import type { RunDetailsKF } from '~/app/types/pipeline';
+import AutomlLeaderboard from './AutomlLeaderboard';
 import './AutomlResults.scss';
 
 type AutomlResultsProps = {
@@ -27,6 +28,9 @@ function AutomlResults({ pipelineRun }: AutomlResultsProps): React.JSX.Element {
           onSelectionChange={setSelectedIds}
           className="automl-topology-container"
         />
+      </StackItem>
+      <StackItem>
+        <AutomlLeaderboard />
       </StackItem>
     </Stack>
   );
