@@ -15,7 +15,6 @@ export default function PromptAssistantFormGroup({
   systemInstruction,
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
-  const [editMode, setEditMode] = React.useState(false);
   const {
     activePrompt,
     dirtyPrompt,
@@ -24,6 +23,7 @@ export default function PromptAssistantFormGroup({
     resetDirtyPrompt,
     openModal,
   } = usePlaygroundStore();
+  const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
@@ -31,7 +31,7 @@ export default function PromptAssistantFormGroup({
   const isEdited = systemInstruction !== activeTemplate;
 
   React.useEffect(() => {
-    setEditMode(false);
+    setEditMode(!activePrompt);
   }, [activePrompt]);
 
   function handleTextChange(value: string) {
@@ -56,6 +56,7 @@ export default function PromptAssistantFormGroup({
   }
 
   function handleSaveClicked() {
+    setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
@@ -120,14 +121,13 @@ export default function PromptAssistantFormGroup({
           type="text"
           value={systemInstruction}
           readOnly={!editMode}
-          onDoubleClick={() => setEditMode(true)}
+          onClick={() => setEditMode(true)}
           onChange={(_event, value) => handleTextChange(value)}
-          onBlur={() => setEditMode(false)}
           aria-label="Prompt instructions input"
           rows={12}
-          data-testid="prompt-instructions-input"
+          data-testid="system-instructions-input"
         />
-        {!isEdited && (
+        {!editMode && (
           <Flex>
             <Button variant="primary" isDisabled={editMode} onClick={() => setEditMode(!editMode)}>
               Edit
@@ -137,9 +137,9 @@ export default function PromptAssistantFormGroup({
             </Button>
           </Flex>
         )}
-        {isEdited && (
+        {editMode && (
           <Flex>
-            <Button variant="primary" onClick={handleSaveClicked}>
+            <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
               Save
             </Button>
             <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
