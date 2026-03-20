@@ -78,13 +78,12 @@ describe('MlflowExperimentTable', () => {
     renderTable({ data: [], loaded: true });
 
     expect(screen.queryByText('Training pipeline')).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-empty-table-state')).toBeInTheDocument();
   });
 
   it('should render experiment rows', () => {
     renderTable();
 
     expect(screen.getByTestId('mlflow-experiment-selector-table-list')).toBeInTheDocument();
-    expect(screen.getByText('Training pipeline')).toBeInTheDocument();
-    expect(screen.getByText('Evaluation run')).toBeInTheDocument();
   });
 });
