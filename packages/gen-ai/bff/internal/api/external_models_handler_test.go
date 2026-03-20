@@ -45,12 +45,11 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		t := GinkgoT()
 
 		requestBody := models.ExternalModelRequest{
-			ModelID:          "gemini-2.5-flash-lite",
-			ModelDisplayName: "Gemini 2.5 Flash Lite",
-			BaseURL:          "https://generativelanguage.googleapis.com/v1beta/openai/",
-			SecretValue:      "test-api-key-12345",
-			ProviderType:     models.ProviderTypeGemini,
-			UseCases:         "Classification, Image Generation",
+			ModelID:          "gpt-4o",
+			ModelDisplayName: "GPT-4 Optimized",
+			BaseURL:          "https://api.openai.com/v1",
+			SecretValue:      "sk-test-api-key-12345",
+			UseCases:         "Classification, Text Generation",
 			ModelType:        models.ModelTypeLLM,
 		}
 
@@ -89,65 +88,59 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok, "Data should be a map")
 
-		assert.Equal(t, "gemini-2.5-flash-lite", dataMap["model_id"])
-		assert.Equal(t, "gemini-2.5-flash-lite", dataMap["model_name"])
-		assert.Equal(t, "Gemini 2.5 Flash Lite", dataMap["display_name"])
-		assert.Equal(t, "remote::gemini", dataMap["serving_runtime"])
+		assert.Equal(t, "gpt-4o", dataMap["model_id"])
+		assert.Equal(t, "gpt-4o", dataMap["model_name"])
+		assert.Equal(t, "GPT-4 Optimized", dataMap["display_name"])
+		assert.Equal(t, "remote::openai", dataMap["serving_runtime"])
 		assert.Equal(t, "REST", dataMap["api_protocol"])
 		assert.Equal(t, "Running", dataMap["status"])
-		assert.Equal(t, "Classification, Image Generation", dataMap["usecase"])
+		assert.Equal(t, "Classification, Text Generation", dataMap["usecase"])
 
 		endpoints, ok := dataMap["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 1)
-		assert.Equal(t, "external: https://generativelanguage.googleapis.com/v1beta/openai/", endpoints[0])
+		assert.Equal(t, "https://api.openai.com/v1", endpoints[0])
 	})
 
-	It("should support all provider types", func() {
+	It("should hardcode provider type to remote::openai", func() {
 		t := GinkgoT()
 
-		providers := []struct {
-			providerType models.ProviderTypeEnum
-			modelID      string
-		}{
-			{models.ProviderTypeGemini, "gemini-test"},
-			{models.ProviderTypeOpenAI, "gpt-4"},
-			{models.ProviderTypeAnthropic, "claude-3"},
-			{models.ProviderTypeVLLM, "llama-2"},
+		requestBody := models.ExternalModelRequest{
+			ModelID:          "test-model",
+			ModelDisplayName: "Test Model",
+			BaseURL:          "https://api.example.com",
+			SecretValue:      "test-key",
+			// Note: not sending provider_type to verify it gets hardcoded
+			ModelType: models.ModelTypeLLM,
 		}
 
-		for i, p := range providers {
-			requestBody := models.ExternalModelRequest{
-				ModelID:          p.modelID,
-				ModelDisplayName: "Test Model",
-				BaseURL:          "https://api.example.com",
-				SecretValue:      "test-key",
-				ProviderType:     p.providerType,
-				ModelType:        models.ModelTypeLLM,
-			}
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
 
-			bodyBytes, err := json.Marshal(requestBody)
-			require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
+		assert.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
-			assert.NoError(t, err)
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
 
-			// Use different namespaces for each iteration
-			// Each namespace gets its own ConfigMap, so each will have provider ID 1 (which is correct)
-			namespaces := []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4"}
-			namespace := namespaces[i]
-			ctx := context.Background()
-			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
-			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-				Token: "FAKE_BEARER_TOKEN",
-			})
-			req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+		app.CreateExternalModelHandler(rr, req, nil)
 
-			rr := httptest.NewRecorder()
-			app.CreateExternalModelHandler(rr, req, nil)
+		assert.Equal(t, http.StatusCreated, rr.Code)
 
-			assert.Equal(t, http.StatusCreated, rr.Code, "Failed for provider: %s", p.providerType)
-		}
+		// Verify response has provider set to remote::openai
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		data, exists := response["data"]
+		assert.True(t, exists)
+		dataMap := data.(map[string]interface{})
+		assert.Equal(t, "remote::openai", dataMap["serving_runtime"])
 	})
 
 	It("should successfully create an external model without optional use_cases field", func() {
@@ -159,7 +152,6 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			ModelDisplayName:   "OpenAI Text Embedding 3 Small",
 			BaseURL:            "https://api.openai.com/v1",
 			SecretValue:        "sk-test-key-abc123",
-			ProviderType:       models.ProviderTypeOpenAI,
 			ModelType:          models.ModelTypeEmbedding,
 			EmbeddingDimension: &embeddingDimension,
 		}
@@ -205,7 +197,6 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			ModelDisplayName: "Test Model",
 			BaseURL:          "https://api.example.com",
 			SecretValue:      "test-key",
-			ProviderType:     models.ProviderTypeOpenAI,
 			ModelType:        models.ModelTypeLLM,
 		}
 
@@ -242,55 +233,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.Contains(t, errorMap["message"], "model_id is required")
 	})
 
-	It("should return error when provider_type is invalid", func() {
-		t := GinkgoT()
-
-		requestBody := map[string]interface{}{
-			"model_id":           "test-model",
-			"model_display_name": "Test Model",
-			"base_url":           "https://api.example.com",
-			"secret_value":       "test-key",
-			"provider_type":      "remote::invalid-provider",
-			"model_type":         "llm",
-		}
-
-		bodyBytes, err := json.Marshal(requestBody)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.CreateExternalModelHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		errorData, exists := response["error"]
-		assert.True(t, exists, "Response should contain 'error' field")
-
-		errorMap, ok := errorData.(map[string]interface{})
-		assert.True(t, ok, "Error should be a map")
-
-		message, messageExists := errorMap["message"]
-		assert.True(t, messageExists, "Error map should contain 'message' field")
-
-		messageStr, isString := message.(string)
-		assert.True(t, isString, "Message should be a string")
-
-		assert.Contains(t, messageStr, "invalid provider_type")
-	})
+	// Test removed: provider_type is now hardcoded to remote::openai on the server side
 
 	It("should return error when namespace is missing from context", func() {
 		t := GinkgoT()
@@ -300,7 +243,6 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			ModelDisplayName: "Test Model",
 			BaseURL:          "https://api.example.com",
 			SecretValue:      "test-key",
-			ProviderType:     models.ProviderTypeOpenAI,
 			ModelType:        models.ModelTypeLLM,
 		}
 
@@ -347,7 +289,6 @@ var _ = Describe("CreateExternalModelHandler", func() {
 			ModelDisplayName: "Test Model",
 			BaseURL:          "https://api.example.com",
 			SecretValue:      "test-key",
-			ProviderType:     models.ProviderTypeOpenAI,
 			ModelType:        models.ModelTypeLLM,
 		}
 
@@ -418,7 +359,6 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 			ModelDisplayName: "Test Delete Model",
 			BaseURL:          "https://api.test-delete.com/v1",
 			SecretValue:      "test-api-key",
-			ProviderType:     models.ProviderTypeOpenAI,
 			UseCases:         "Testing",
 			ModelType:        models.ModelTypeLLM,
 		}
@@ -573,7 +513,6 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 			ModelDisplayName: "OpenAI GPT-4o",
 			BaseURL:          "https://api.openai.com/v1",
 			SecretValue:      "test-api-key",
-			ProviderType:     models.ProviderTypeOpenAI,
 			UseCases:         "Testing slash support",
 			ModelType:        models.ModelTypeLLM,
 		}

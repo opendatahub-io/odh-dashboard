@@ -28,20 +28,20 @@ describe('AI Assets - Models Tab', () => {
           description: 'External GPT-4 model',
           usecase: 'text-generation',
           status: 'Running',
-          model_source_type: 'external_provider',
+          model_source_type: 'custom_endpoint',
           model_type: 'llm',
-          endpoints: ['external: https://api.openai.com/v1/models/gpt-4'],
+          endpoints: ['https://api.openai.com/v1/models/gpt-4'],
         },
         {
           model_name: 'Embedding-Model',
           model_id: 'embedding-model',
           display_name: 'Embedding Model',
-          description: 'Text embedding model via public route',
+          description: 'Custom endpoint embedding model',
           usecase: 'embedding',
           status: 'Stop',
-          model_source_type: 'external_cluster',
+          model_source_type: 'custom_endpoint',
           model_type: 'embedding',
-          endpoints: ['internal: http://embedding.cluster.local:8080'],
+          endpoints: ['http://embedding.cluster.local:8080'],
         },
       ],
       maasModels: [
@@ -81,14 +81,14 @@ describe('AI Assets - Models Tab', () => {
 
       cy.step('Verify External model row');
       const externalRow = modelsTabPage.getRow('GPT-4 External');
-      externalRow.findSourceLabel().should('contain.text', 'External');
+      externalRow.findSourceLabel().should('contain.text', 'Custom endpoint');
       externalRow.findModelTypeCell().should('contain.text', 'Inferencing');
       externalRow.findStatusCell().should('contain.text', 'Active');
       externalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
 
       cy.step('Verify Public route / Embedding model row');
       const embeddingRow = modelsTabPage.getRow('Embedding Model');
-      embeddingRow.findSourceLabel().should('contain.text', 'Public route');
+      embeddingRow.findSourceLabel().should('contain.text', 'Custom endpoint');
       embeddingRow.findModelTypeCell().should('contain.text', 'Embedding');
       embeddingRow.findUseCaseCell().should('contain.text', 'embedding');
       embeddingRow.findStatusCell().should('contain.text', 'Inactive');

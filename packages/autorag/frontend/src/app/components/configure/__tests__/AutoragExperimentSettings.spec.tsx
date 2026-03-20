@@ -1,11 +1,11 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import createConfigureSchema from '~/app/schemas/configure.schema';
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
   const MockModelSelection = () => <div data-testid="mock-model-selection">Model Selection</div>;
@@ -17,8 +17,8 @@ const configureSchema = createConfigureSchema();
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -27,7 +27,6 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   revertChanges: jest.fn(),
-  saveChanges: jest.fn(),
 };
 
 const renderComponent = (props = {}) =>
@@ -177,13 +176,13 @@ describe('AutoragExperimentSettings', () => {
   });
 
   describe('Save and Cancel actions', () => {
-    it('should call saveChanges when Save is clicked', async () => {
+    it('should call onClose when Save is clicked', async () => {
       const user = userEvent.setup();
       renderComponent();
 
       await user.click(screen.getByTestId('metric-radio-answer_correctness'));
       await user.click(screen.getByTestId('experiment-settings-save'));
-      expect(defaultProps.saveChanges).toHaveBeenCalledTimes(1);
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('should call revertChanges and onClose when Cancel is clicked', async () => {

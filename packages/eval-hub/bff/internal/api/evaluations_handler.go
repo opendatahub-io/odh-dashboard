@@ -115,10 +115,6 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("model name is required"))
 		return
 	}
-	if len(input.Benchmarks) == 0 {
-		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark is required"))
-		return
-	}
 
 	job, err := client.CreateEvaluationJob(ctx, namespace, input)
 	if err != nil {

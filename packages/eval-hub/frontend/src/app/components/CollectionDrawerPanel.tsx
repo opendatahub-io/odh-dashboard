@@ -14,6 +14,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Collection } from '~/app/types';
 
 type CollectionDrawerPanelProps = {
@@ -31,6 +32,15 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return null;
   }
 
+  const framework =
+    collection.benchmarks && collection.benchmarks.length > 0
+      ? [
+          ...new Set(
+            collection.benchmarks.map((b) => b.provider_id).filter((id): id is string => !!id),
+          ),
+        ].join(', ')
+      : undefined;
+
   return (
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
       <DrawerHead>
@@ -40,29 +50,28 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               {collection.name}
             </Title>
           </StackItem>
-          <StackItem>
-            {collection.benchmarks && collection.benchmarks.length > 0 && (
-              <Content component="small">
-                <strong>
-                  {collection.benchmarks.length} benchmark
-                  {collection.benchmarks.length !== 1 ? 's' : ''}
-                </strong>
-              </Content>
-            )}
-          </StackItem>
-          {collection.description && (
-            <StackItem>
-              <Content component="p">{collection.description}</Content>
-            </StackItem>
-          )}
         </Stack>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
 
-      <DrawerPanelBody>
+      <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
         <Stack hasGutter>
+          {collection.description && (
+            <StackItem>
+              <Content component="h4">Description</Content>
+              <Content component="p">{collection.description}</Content>
+            </StackItem>
+          )}
+
+          {framework && (
+            <StackItem>
+              <Content component="h4">Framework</Content>
+              <Content component="p">{framework}</Content>
+            </StackItem>
+          )}
+
           {collection.benchmarks && collection.benchmarks.length > 0 && (
             <StackItem>
               <Stack hasGutter>
@@ -74,21 +83,14 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                     <Panel variant="bordered">
                       <PanelMain>
                         <PanelMainBody>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <strong>{b.id}</strong>
-                            </StackItem>
-                            {b.provider_id && (
-                              <StackItem>
-                                <Content component="small">Provider: {b.provider_id}</Content>
-                              </StackItem>
-                            )}
-                            {b.weight !== undefined && (
-                              <StackItem>
-                                <Content component="small">Weight: {b.weight}</Content>
-                              </StackItem>
-                            )}
-                          </Stack>
+                          <Button
+                            variant="link"
+                            isInline
+                            icon={<ExternalLinkAltIcon />}
+                            iconPosition="end"
+                          >
+                            {b.id}
+                          </Button>
                         </PanelMainBody>
                       </PanelMain>
                     </Panel>
@@ -97,13 +99,13 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               </Stack>
             </StackItem>
           )}
-
-          <StackItem>
-            <Button variant="primary" onClick={() => onRunCollection(collection)}>
-              Run collection
-            </Button>
-          </StackItem>
         </Stack>
+      </DrawerPanelBody>
+
+      <DrawerPanelBody style={{ flex: '0 0 auto' }}>
+        <Button variant="primary" onClick={() => onRunCollection(collection)}>
+          Run this benchmark suite
+        </Button>
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

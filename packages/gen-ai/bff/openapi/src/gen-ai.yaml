@@ -383,9 +383,9 @@ paths:
   /gen-ai/api/v1/models/external:
     summary: Manage external model endpoints
     description: >-
-      Register and manage external model endpoints (e.g., Gemini, OpenAI, Anthropic, or in-cluster models) for use in Gen AI Studio.
+      Register and manage OpenAI-compatible external model endpoints for use in Gen AI Studio.
       Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
-      Supports both external providers (data sent outside cluster) and in-cluster cross-namespace models.
+      Supports custom endpoints, including public external APIs and cluster-local URLs.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
@@ -408,12 +408,11 @@ paths:
             schema:
               $ref: '#/components/schemas/ExternalModelRequest'
             example:
-              model_id: 'gemini-2.5-flash-lite'
-              model_display_name: 'Gemini 2.5 Flash Lite'
-              base_url: 'https://generativelanguage.googleapis.com/v1beta/openai/'
-              secret_value: 'your-api-key-here'
-              provider_type: 'remote::gemini'
-              use_cases: 'Classification, Image Generation'
+              model_id: 'gpt-4o'
+              model_display_name: 'GPT-4 Optimized'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-your-api-key-here'
+              use_cases: 'Classification, Text Generation'
               model_type: 'llm'
       responses:
         '201':
@@ -448,7 +447,7 @@ paths:
           required: true
           schema:
             type: string
-            example: 'gemini-2.5-flash-lite'
+            example: 'gpt-4o'
         - name: namespace
           in: query
           description: Kubernetes namespace where the external model is registered
@@ -2091,38 +2090,27 @@ components:
         - model_display_name
         - base_url
         - secret_value
-        - provider_type
         - model_type
       properties:
         model_id:
           type: string
-          example: 'gemini-2.5-flash-lite'
-          description: Unique identifier for the model
+          example: 'gpt-4o'
+          description: Unique identifier for the model from the OpenAI-compatible provider
         model_display_name:
           type: string
-          example: 'Gemini 2.5 Flash Lite'
+          example: 'GPT-4 Optimized'
           description: Human-readable display name for the model
         base_url:
           type: string
-          example: 'https://generativelanguage.googleapis.com/v1beta/openai/'
-          description: Base URL of the model endpoint
+          example: 'https://api.openai.com/v1'
+          description: Base URL of the OpenAI-compatible model endpoint
         secret_value:
           type: string
-          example: 'your-api-key-here'
+          example: 'sk-your-api-key-here'
           description: API key or authentication token for the model endpoint
-        provider_type:
-          type: string
-          enum:
-            - 'remote::gemini'
-            - 'remote::openai'
-            - 'remote::anthropic'
-            - 'remote::vllm'
-            - 'remote::passthrough'
-          example: 'remote::gemini'
-          description: Provider type for the external model
         use_cases:
           type: string
-          example: 'Classification, Image Generation'
+          example: 'Classification, Text Generation'
           description: Optional use cases or capabilities of the model
         model_type:
           type: string
@@ -2254,14 +2242,14 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
+            - maas
           example: 'namespace'
           description: >-
             Source type of the model:
             'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
-            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
-            'external_provider' for external models pointing to providers (outside cluster)
+            'custom_endpoint' for external model endpoints (user-provided URL),
+            'maas' for Models as a Service
         model_type:
           type: string
           enum:
@@ -3507,14 +3495,12 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
             - maas
           description: |
             Source type of the model (required):
             - namespace: Model deployed in the same Kubernetes namespace
-            - external_cluster: Model deployed in a different namespace or cluster
-            - external_provider: Model from external AI provider (OpenAI, Anthropic, etc.)
+            - custom_endpoint: External model endpoint (user-provided URL)
             - maas: Model from Model as a Service (MaaS) platform
           example: 'namespace'
         max_tokens:
@@ -4163,19 +4149,19 @@ components:
                 $ref: '#/components/schemas/AAModel'
           example:
             data:
-              model_name: 'gemini-2.5-flash-lite'
-              model_id: 'gemini-2.5-flash-lite'
-              serving_runtime: 'remote::gemini'
+              model_name: 'gpt-4o'
+              model_id: 'gpt-4o'
+              serving_runtime: 'remote::openai'
               api_protocol: 'REST'
               version: ''
-              model_source_type: 'external_provider'
+              model_source_type: 'custom_endpoint'
               model_type: 'llm'
-              usecase: 'Classification, Image Generation'
+              usecase: 'Classification, Text Generation'
               description: ''
               endpoints:
-                - 'https://generativelanguage.googleapis.com/v1beta/openai/'
+                - 'https://api.openai.com/v1'
               status: 'Running'
-              display_name: 'Gemini 2.5 Flash Lite'
+              display_name: 'GPT-4 Optimized'
               sa_token:
                 name: ''
                 token_name: ''

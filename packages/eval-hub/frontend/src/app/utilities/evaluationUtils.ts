@@ -3,32 +3,57 @@ import { EvaluationJob } from '~/app/types';
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
-export const getBenchmarkName = (job: EvaluationJob): string =>
-  job.benchmarks && job.benchmarks.length > 0 ? job.benchmarks[0].id : '-';
+export const getBenchmarkName = (job: EvaluationJob): string => {
+  if (job.benchmarks && job.benchmarks.length > 0) {
+    const first = job.benchmarks[0].id;
+    if (job.benchmarks.length === 1) {
+      return first;
+    }
+    return `${first} +${job.benchmarks.length - 1} more`;
+  }
+  if (job.collection?.id) {
+    return job.collection.id;
+  }
+  return '-';
+};
+
+export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
+  job.benchmarks?.map((b) => b.id) ?? [];
 
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+const formatBenchmarkScore = (
+  benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
+): string | null => {
+  if (benchmark.test?.primary_score != null) {
+    return `${Math.round(benchmark.test.primary_score * 100)}%`;
+  }
+  if (benchmark.metrics) {
+    const preferred = benchmark.metrics.acc_norm ?? benchmark.metrics.acc;
+    if (typeof preferred === 'number') {
+      return `${Math.round(preferred * 100)}%`;
+    }
+  }
+  return null;
+};
 
 export const getResultScore = (job: EvaluationJob): string => {
   if (job.results.test?.score != null) {
     return `${Math.round(job.results.test.score * 100)}%`;
   }
   if (job.results.benchmarks?.length) {
-    const firstBenchmark = job.results.benchmarks[0];
-    if (firstBenchmark.test?.primary_score != null) {
-      return `${Math.round(firstBenchmark.test.primary_score * 100)}%`;
-    }
-    if (firstBenchmark.metrics) {
-      const metricEntries = Object.entries(firstBenchmark.metrics);
-      if (metricEntries.length > 0) {
-        const value = metricEntries[0][1];
-        if (typeof value === 'number') {
-          return `${Math.round(value * 100)}%`;
-        }
-      }
-    }
+    return formatBenchmarkScore(job.results.benchmarks[0]) ?? '-';
   }
   return '-';
+};
+
+export const getBenchmarkResultScore = (job: EvaluationJob, benchmarkId: string): string => {
+  const benchmark = job.results.benchmarks?.find((b) => b.id === benchmarkId);
+  if (!benchmark) {
+    return '-';
+  }
+  return formatBenchmarkScore(benchmark) ?? '-';
 };
 
 export const getResultPass = (job: EvaluationJob): boolean | null => {

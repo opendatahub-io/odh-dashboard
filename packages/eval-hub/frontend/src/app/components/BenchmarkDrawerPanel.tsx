@@ -13,6 +13,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { FlatBenchmark } from '~/app/types';
 import { getCategoryColor } from './benchmarkUtils';
 
@@ -48,6 +49,15 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <Title headingLevel="h2" size="xl">
               {benchmark.name}
             </Title>
+            <Button
+              variant="link"
+              isInline
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="end"
+              style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+            >
+              {benchmark.id}
+            </Button>
           </StackItem>
         </Stack>
         <DrawerActions>

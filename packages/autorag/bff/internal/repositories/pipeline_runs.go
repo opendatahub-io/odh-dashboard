@@ -192,6 +192,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
 	}
 
+	if req.OptimizationMaxRagPatterns != nil {
+		value := *req.OptimizationMaxRagPatterns
+		if value < constants.MinRagPatterns {
+			return NewValidationError(fmt.Sprintf("optimization_max_rag_patterns must be at least %d, got %d", constants.MinRagPatterns, value))
+		}
+		if value > constants.MaxRagPatterns {
+			return NewValidationError(fmt.Sprintf("optimization_max_rag_patterns must be at most %d, got %d", constants.MaxRagPatterns, value))
+		}
+	}
+
 	return nil
 }
 
@@ -234,6 +244,10 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 
 	if req.LlamaStackVectorDatabaseID != "" {
 		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	}
+
+	if req.OptimizationMaxRagPatterns != nil {
+		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
 	}
 
 	return models.CreatePipelineRunKFRequest{
