@@ -1,7 +1,8 @@
 # External Vector Stores
 
 * Date: 2026-02-19
-* Authors: Eder Ignatowicz
+* Updated: 2026-03-20
+* Authors: Eder Ignatowicz, John Haran
 
 ## Context and Problem Statement
 
@@ -77,9 +78,6 @@ registered_resources:
       embedding_dimension: 768
       metadata:
         description: "Product catalog embeddings"
-        custom_gen_ai:
-          owner: platform-team
-          domain: e-commerce
 ```
 
 ### API Endpoints
