@@ -15,9 +15,9 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import VectorStoreTableRowInfo from './VectorStoreTableRowInfo';
 
-type EmbeddingModelStatus = 'not_available' | 'available' | 'registered';
+export type EmbeddingModelStatus = 'not_available' | 'available' | 'registered';
 
-const computeEmbeddingModelStatus = (
+export const computeEmbeddingModelStatus = (
   embeddingModel: string,
   allModels: AIModel[],
   playgroundModels: LlamaModel[],
