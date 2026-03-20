@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
@@ -18,16 +19,18 @@ const mockOnActionComplete = jest.fn();
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
   return render(
-    <Table aria-label="test">
-      <Tbody>
-        <EvaluationsTableRow
-          job={job}
-          rowIndex={rowIndex}
-          namespace="test-ns"
-          onActionComplete={mockOnActionComplete}
-        />
-      </Tbody>
-    </Table>,
+    <MemoryRouter>
+      <Table aria-label="test">
+        <Tbody>
+          <EvaluationsTableRow
+            job={job}
+            rowIndex={rowIndex}
+            namespace="test-ns"
+            onActionComplete={mockOnActionComplete}
+          />
+        </Tbody>
+      </Table>
+    </MemoryRouter>,
   );
 };
 
@@ -75,7 +78,7 @@ describe('EvaluationsTableRow', () => {
   });
 
   it('should render result percentage when score exists', () => {
-    renderRow({ score: 0.85 });
+    renderRow({ score: 0.85, scorePass: true });
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('85%');
   });
 

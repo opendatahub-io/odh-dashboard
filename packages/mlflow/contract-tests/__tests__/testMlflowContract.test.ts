@@ -7,10 +7,6 @@ describe('MLflow API Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
   const apiClient = new ContractApiClient({
     baseUrl,
-    defaultHeaders: {
-      'kubeflow-userid': 'dev-user@example.com',
-      'kubeflow-groups': 'system:masters',
-    },
   });
 
   const apiSchema = loadOpenAPISchema('api/openapi/mlflow.yaml');
@@ -40,6 +36,16 @@ describe('MLflow API Contract Tests', () => {
       const result = await apiClient.get('/api/v1/namespaces');
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+
+  describe('Experiments Endpoint', () => {
+    it('should successfully retrieve experiments list', async () => {
+      const result = await apiClient.get('/api/v1/experiments?workspace=test-ns');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ExperimentsResponse/content/application/json/schema',
         status: 200,
       });
     });

@@ -46,7 +46,7 @@ export type PipelineVersionReference = {
 };
 
 export type PipelineRunRuntimeConfig = {
-  parameters?: Record<string, string>;
+  parameters?: Record<string, unknown>;
   pipeline_root?: string;
 };
 
@@ -63,7 +63,26 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-export type PipelineSpec = Record<string, unknown>;
+import type { PipelineSpecVariable } from '~/app/types/pipeline';
+
+export type PipelineSpec = PipelineSpecVariable;
+
+export type PipelineRunTaskDetail = {
+  run_id?: string;
+  task_id: string;
+  display_name?: string;
+  create_time?: string;
+  start_time?: string;
+  end_time?: string;
+  state?: string;
+  execution_id?: string;
+  child_tasks?: { pod_name?: string; task_id?: string }[];
+  error?: PipelineRunError;
+};
+
+export type PipelineRunDetails = {
+  task_details?: PipelineRunTaskDetail[];
+};
 
 export type PipelineRun = {
   run_id: string;
@@ -81,6 +100,7 @@ export type PipelineRun = {
   scheduled_at?: string;
   finished_at?: string;
   error?: PipelineRunError;
+  run_details?: PipelineRunDetails;
 };
 
 export type LlamaStackModelType = 'llm' | 'embedding';

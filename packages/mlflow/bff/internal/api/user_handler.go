@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
 	"github.com/opendatahub-io/mlflow/bff/internal/constants"
 	"github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
@@ -13,6 +14,13 @@ import (
 type UserEnvelope Envelope[*models.User, None]
 
 func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if app.config.AuthMethod == config.AuthMethodDisabled {
+		userRes := UserEnvelope{Data: &models.User{UserID: "anonymous"}}
+		if err := app.WriteJSON(w, http.StatusOK, userRes, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -33,14 +41,8 @@ func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 
-	userRes := UserEnvelope{
-		Data: user,
-	}
-
-	err = app.WriteJSON(w, http.StatusOK, userRes, nil)
-
-	if err != nil {
+	userRes := UserEnvelope{Data: user}
+	if err := app.WriteJSON(w, http.StatusOK, userRes, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-
 }

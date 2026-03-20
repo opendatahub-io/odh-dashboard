@@ -86,10 +86,12 @@ func createMockVectorStore(id, name, status, providerID string) openai.VectorSto
 func createMockModel(identifier, modelType, providerID, providerResourceID string) openai.Model {
 	// Create LlamaStack native format as JSON string
 	nativeModel := map[string]interface{}{
-		"identifier":           identifier,
-		"model_type":           modelType,
-		"provider_id":          providerID,
-		"provider_resource_id": providerResourceID,
+		"id": identifier,
+		"custom_metadata": map[string]interface{}{
+			"model_type":           modelType,
+			"provider_id":          providerID,
+			"provider_resource_id": providerResourceID,
+		},
 	}
 
 	// Marshal to JSON bytes

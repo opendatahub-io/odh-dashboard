@@ -18,7 +18,7 @@ func NewMockMaaSClient() *MockMaaSClient {
 }
 
 // ListModels returns mock MaaS model data
-func (m *MockMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
 	// Create timestamp for consistent mock data
 	created := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
@@ -81,25 +81,11 @@ func (m *MockMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 	}, nil
 }
 
-// IssueToken returns a mock token response
+// IssueToken returns a mock API key response
 func (m *MockMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
-	// Set default TTL if not provided
-	ttl := request.TTL
-	if ttl == "" {
-		ttl = "4h"
-	}
-
-	// Parse the TTL duration and calculate expiration time
-	duration, err := time.ParseDuration(ttl)
-	if err != nil {
-		// Fallback to default if TTL is invalid
-		duration = 4 * time.Hour
-	}
-	expiresAt := time.Now().Add(duration).Unix()
-
 	return &models.MaaSTokenResponse{
-		Token:     "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrLXVzZXIiLCJleHAiOjE3MzU0MDY0MDB9.mock-signature-data-here",
-		ExpiresAt: expiresAt,
+		Key:       "sk-oai-mock-api-key-for-testing-purposes-only",
+		ExpiresAt: time.Now().Add(90 * 24 * time.Hour).UTC().Format(time.RFC3339),
 	}, nil
 }
 

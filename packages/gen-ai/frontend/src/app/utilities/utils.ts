@@ -118,10 +118,36 @@ export const parseEndpointByPrefix = (
     ?.replace(`${prefix}:`, '')
     .trim();
 
+/**
+ * Checks if a URL points to a Kubernetes cluster-local service.
+ * It properly parses the URL and checks only the hostname to prevent manipulation
+ * via query parameters or path components.
+ *
+ * Examples:
+ *   - "http://service.namespace.svc.cluster.local" -> true
+ *   - "https://service.namespace.svc.cluster.local:8080/path" -> true
+ *   - "https://evil.com/redirect?to=http://internal.svc.cluster.local" -> false
+ *   - "https://api.openai.com" -> false
+ *
+ * If the URL cannot be parsed, it returns false (treats it as external for safety).
+ *
+ * @param rawURL - The URL to check
+ * @returns true if the URL is cluster-local, false otherwise
+ */
+export const isClusterLocalURL = (rawURL: string): boolean => {
+  try {
+    // TODO: Accept extra cluster domains from the OdhDashboardConfig
+    const url = new URL(rawURL);
+    return url.hostname.endsWith('.svc.cluster.local');
+  } catch {
+    // If we can't parse it, treat it as external for safety
+    return false;
+  }
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   namespace: 'Internal',
-  external_cluster: 'Public route',
-  external_provider: 'External',
+  custom_endpoint: 'Custom endpoint',
   maas: 'MaaS',
 };
 
@@ -145,8 +171,7 @@ export const getSourceLabel = (model: AIModel): string => {
 
 const SOURCE_LABEL_COLORS: Record<string, 'blue' | 'green' | 'orange' | 'grey'> = {
   MaaS: 'blue',
-  External: 'green',
-  'Public route': 'orange',
+  'Custom endpoint': 'green',
   Internal: 'grey',
 };
 

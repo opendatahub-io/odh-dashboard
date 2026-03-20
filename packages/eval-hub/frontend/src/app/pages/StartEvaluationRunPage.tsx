@@ -6,17 +6,18 @@ import {
   Bullseye,
   Button,
   Checkbox,
+  Content,
   FileUpload,
   Form,
   FormGroup,
   FormHelperText,
   FormSection,
+  TextArea,
   HelperText,
   HelperTextItem,
   PageSection,
   Radio,
   Spinner,
-  TextArea,
   TextInput,
   EmptyState,
   EmptyStateBody,
@@ -52,13 +53,22 @@ const StartEvaluationRunPage: React.FC = () => {
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
 
-  const [evaluationName, setEvaluationName] = React.useState('');
+  const [evaluationName, setEvaluationName] = React.useState(() =>
+    new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }),
+  );
   const [description, setDescription] = React.useState('');
   const [inputMode, setInputMode] = React.useState<InputMode>('inference');
 
   const [modelName, setModelName] = React.useState('');
   const [endpointUrl, setEndpointUrl] = React.useState('');
-  const [apiKey, setApiKey] = React.useState('');
+  const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
 
   const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
@@ -173,7 +183,7 @@ const StartEvaluationRunPage: React.FC = () => {
       collection,
       modelName,
       endpointUrl,
-      apiKey,
+      apiKeySecretRef,
       sourceName,
       datasetUrl,
       accessToken,
@@ -263,6 +273,15 @@ const StartEvaluationRunPage: React.FC = () => {
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
+          <FormGroup
+            label={isCollectionFlow ? 'Benchmark suite name' : 'Benchmark name'}
+            fieldId="benchmark-name"
+          >
+            <Content component="p" data-testid="benchmark-name-display">
+              {benchmarkDisplayName}
+            </Content>
+          </FormGroup>
+
           <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
             <TextInput
               id="evaluation-name"
@@ -283,16 +302,7 @@ const StartEvaluationRunPage: React.FC = () => {
             />
           </FormGroup>
 
-          <FormGroup label="Benchmark name" fieldId="benchmark-name">
-            <TextInput
-              id="benchmark-name"
-              data-testid="benchmark-name-input"
-              value={benchmarkDisplayName}
-              isDisabled
-            />
-          </FormGroup>
-
-          <FormSection title="Input">
+          <FormSection title="Source">
             <Radio
               id="input-inference"
               data-testid="input-mode-inference"
@@ -322,6 +332,13 @@ const StartEvaluationRunPage: React.FC = () => {
                     onChange={(_e, val) => setModelName(val)}
                     isRequired
                   />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        The verbatim model or agent name from the deployment. Must match exactly.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
 
                 <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
@@ -330,26 +347,18 @@ const StartEvaluationRunPage: React.FC = () => {
                     data-testid="endpoint-url-input"
                     value={endpointUrl}
                     onChange={(_e, val) => setEndpointUrl(val)}
+                    placeholder="https://api.example.com/v1/model"
                     isRequired
                   />
                 </FormGroup>
 
-                <FormGroup
-                  label="API key secret name"
-                  fieldId="api-key"
-                  labelHelp={
-                    <LabelHelpPopover
-                      ariaLabel="More info for API key secret"
-                      content="Name of the Kubernetes Secret that contains the API key for the inference endpoint."
-                    />
-                  }
-                >
+                <FormGroup label="API key" fieldId="api-key">
                   <TextInput
                     id="api-key"
                     data-testid="api-key-input"
-                    value={apiKey}
-                    onChange={(_e, val) => setApiKey(val)}
-                    placeholder="e.g. my-model-api-key"
+                    value={apiKeySecretRef}
+                    onChange={(_e, val) => setApiKeySecretRef(val)}
+                    placeholder="e.g. my-model-credentials"
                   />
                 </FormGroup>
               </>

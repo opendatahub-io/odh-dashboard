@@ -166,7 +166,7 @@ describe('EndpointDetailModal', () => {
     it('should show generated token with alert when token is available', () => {
       mockUseGenerateMaaSToken = jest.fn(() => ({
         isGenerating: false,
-        tokenData: { token: 'generated-token-123' },
+        tokenData: { key: 'generated-token-123' },
         error: null,
         generateToken: mockGenerateToken,
         resetToken: mockResetToken,
@@ -247,10 +247,10 @@ describe('EndpointDetailModal', () => {
       expect(screen.queryByText('API token')).not.toBeInTheDocument();
     });
 
-    it('should show only external endpoint for External models', () => {
+    it('should show only external endpoint for Custom endpoint models', () => {
       const model = createMockModel({
-        model_source_type: 'external_provider',
-        externalEndpoint: 'https://api.external-provider.com/v1',
+        model_source_type: 'custom_endpoint',
+        externalEndpoint: 'https://api.custom-endpoint.com/v1',
       });
       renderModal(model);
 

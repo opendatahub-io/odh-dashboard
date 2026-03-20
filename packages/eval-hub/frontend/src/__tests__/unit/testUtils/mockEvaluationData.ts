@@ -10,6 +10,8 @@ type MockEvaluationJobOptions = {
   providerId?: string;
   createdAt?: string;
   score?: number;
+  scorePass?: boolean;
+  collectionId?: string;
 };
 
 const DEFAULT_BENCHMARK_ID = 'default-benchmark';
@@ -31,21 +33,24 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
         ? [
             {
               id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
-              test: { primary_score: options.score },
+              test: { primary_score: options.score, pass: options.scorePass },
             },
           ]
         : [],
-    test: options.score != null ? { score: options.score } : undefined,
+    test: options.score != null ? { score: options.score, pass: options.scorePass } : undefined,
   },
   name: options.name,
   model: {
     name: options.modelName ?? 'test-model',
   },
-  benchmarks: [
-    {
-      id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
-      provider_id: options.providerId ?? 'lm_evaluation_harness',
-    },
-  ],
+  benchmarks: options.collectionId
+    ? null
+    : [
+        {
+          id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
+          provider_id: options.providerId ?? 'lm_evaluation_harness',
+        },
+      ],
+  ...(options.collectionId ? { collection: { id: options.collectionId } } : {}),
 });
 /* eslint-enable camelcase */

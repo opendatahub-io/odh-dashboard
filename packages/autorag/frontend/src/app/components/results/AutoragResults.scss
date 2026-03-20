@@ -1,0 +1,10 @@
+.autorag-topology-container {
+  height: 345px;
+  border-radius: 16px;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  overflow: hidden;
+
+  .pf-topology-content {
+    background-color: var(--pf-t--global--background--color--primary--default);
+  }
+}

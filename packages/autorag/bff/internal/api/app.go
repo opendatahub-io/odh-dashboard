@@ -16,6 +16,8 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -36,6 +38,7 @@ const (
 	NamespacePath       = ApiPathPrefix + "/namespaces"
 	SecretsPath         = ApiPathPrefix + "/secrets"
 	S3FilePath          = ApiPathPrefix + "/s3/file"
+	S3FilesPath         = ApiPathPrefix + "/s3/files"
 	LSDModelsPath       = ApiPathPrefix + "/lsd/models"
 	LSDVectorStoresPath = ApiPathPrefix + "/lsd/vector-stores"
 	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
@@ -47,6 +50,7 @@ type App struct {
 	kubernetesClientFactory     k8s.KubernetesClientFactory
 	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
+	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
@@ -140,18 +144,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelineServerClientFactory = ps.NewRealClientFactory()
 	}
 
+	// Initialize S3 client factory
+	var s3ClientFactory s3int.S3ClientFactory
+	if cfg.MockS3Client {
+		logger.Info("Using mock S3 client factory")
+		s3ClientFactory = s3mocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real S3 client factory")
+		s3ClientOptions := s3int.S3ClientOptions{DevMode: cfg.DevMode}
+		s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
+	}
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
-			MockS3Client: cfg.MockS3Client,
-			DevMode:      cfg.DevMode,
-		}),
-		testEnv: testEnv,
-		rootCAs: rootCAs,
+		s3ClientFactory:             s3ClientFactory,
+		repositories:                repositories.NewRepositories(logger),
+		testEnv:                     testEnv,
+		rootCAs:                     rootCAs,
 	}
 	return app, nil
 }
@@ -182,6 +195,7 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FilesHandler)))
 
 	// LLamaStack
 	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))

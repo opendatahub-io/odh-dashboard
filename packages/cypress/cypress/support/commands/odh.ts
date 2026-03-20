@@ -1134,6 +1134,14 @@ declare global {
         ((
           type: 'POST /maas/api/v1/api-keys',
           response: { data: OdhResponse<CreateAPIKeyResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/user',
+          response: OdhResponse<{ data: { userId: string; clusterAdmin: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/namespaces',
+          response: OdhResponse<{ data: { metadata: { name: string } }[] }>,
         ) => Cypress.Chainable<null>);
     }
   }
