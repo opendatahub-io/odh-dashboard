@@ -1,16 +1,15 @@
+import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+
 export const LLMD_OPTION = {
   name: 'llmd-serving',
   label: 'Distributed inference with llm-d',
 };
 
-export const extractModelServerTemplate = (): {
-  name: string;
-  label?: string;
-  namespace?: string;
-  scope?: string;
-} => {
+export const extractModelServerTemplate = (): ModelServerSelectFieldData => {
   return {
-    name: 'llmd-serving',
-    label: 'Distributed inference with llm-d',
+    selection: {
+      name: 'llmd-serving',
+      label: 'Distributed inference with llm-d',
+    },
   };
 };

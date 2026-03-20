@@ -1,5 +1,8 @@
 import React from 'react';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type {
+  ModelServerSelectFieldData,
+  WizardField,
+} from '@odh-dashboard/model-serving/types/form-data';
 import ModelServerTemplateSelectField, {
   ModelServerOption,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
@@ -119,20 +122,9 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
   return (
     <ModelServerTemplateSelectField
       modelServerState={{
-        data: value.selection,
-        setData: (data: ModelServerOption | null) =>
-          onChange({ ...value, selection: data ?? undefined }),
-        isAutoSelectChecked: value.autoSelect,
-        setIsAutoSelectChecked: (isAutoSelectChecked?: boolean) =>
-          isAutoSelectChecked
-            ? onChange({
-                ...value,
-                selection: value.suggestion,
-                autoSelect: isAutoSelectChecked,
-              })
-            : onChange({ ...value, selection: null, autoSelect: isAutoSelectChecked }),
+        data: value,
+        setData: (data: ModelServerSelectFieldData) => onChange(data ?? {}),
         options,
-        suggestion: value.suggestion,
       }}
       isEditing={isEditing}
     />
