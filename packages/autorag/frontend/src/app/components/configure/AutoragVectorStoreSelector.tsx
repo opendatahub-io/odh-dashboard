@@ -1,6 +1,6 @@
 import { MenuToggle, Select, SelectList, SelectOption, Skeleton } from '@patternfly/react-core';
 import React, { useState } from 'react';
-import { useController, useFormContext } from 'react-hook-form';
+import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { SUPPORTED_VECTOR_STORE_PROVIDERS, ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
@@ -11,19 +11,24 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   const {
     formState: { isSubmitting },
+    control,
   } = useFormContext<ConfigureSchema>();
 
   const { field } = useController<ConfigureSchema, 'llama_stack_vector_database_id'>({
     name: 'llama_stack_vector_database_id',
   });
 
-  // TODO: secretName should come from a react-hook-form field. Once it's implemented,
-  // add secretName as a parameter into useLlamaStackVectorStoresQuery
+  const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
+
   const {
     data: vectorStoresData,
     isLoading,
     isError,
-  } = useLlamaStackVectorStoresQuery(namespace, undefined, SUPPORTED_VECTOR_STORE_PROVIDERS);
+  } = useLlamaStackVectorStoresQuery(
+    namespace,
+    llamaStackSecretName,
+    SUPPORTED_VECTOR_STORE_PROVIDERS,
+  );
 
   const vectorStores = vectorStoresData?.vector_stores ?? [];
   const selectedStore = vectorStores.find((vs) => vs.id === field.value);
