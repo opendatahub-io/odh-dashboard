@@ -8,6 +8,8 @@ const webpack = require('webpack');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
+const { getPluginPackageDetails } = require('./discoverPluginPackages');
+const { getPluginChunkName } = require('./pluginChunking');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -31,9 +33,15 @@ try {
   COMMIT_HASH_DIRECT = 'unknown';
 }
 
+const pluginPackageDetails = getPluginPackageDetails();
+
 if (OUTPUT_ONLY !== 'true') {
   console.info(
     `\nPrepping files...\n  SRC DIR: ${SRC_DIR}\n  OUTPUT DIR: ${DIST_DIR}\n  PUBLIC PATH: ${PUBLIC_PATH}\n`,
+  );
+  console.info(
+    'Plugin chunk groups:',
+    pluginPackageDetails.map((p) => p.shortName),
   );
   if (COVERAGE === 'true') {
     console.info('\nAdding code coverage instrumentation.\n');
@@ -207,6 +215,23 @@ module.exports = (env) => ({
     path: DIST_DIR,
     publicPath: PUBLIC_PATH,
     chunkFilename: '[name]-[chunkhash].js',
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        pluginChunks: {
+          test(module) {
+            return pluginPackageDetails.some(
+              (pkg) => module.resource && module.resource.startsWith(`${pkg.location}/`),
+            );
+          },
+          name: getPluginChunkName(pluginPackageDetails),
+          chunks: 'async',
+          enforce: true,
+          priority: 10,
+        },
+      },
+    },
   },
   plugins: [
     // Generate extensions file before compilation
