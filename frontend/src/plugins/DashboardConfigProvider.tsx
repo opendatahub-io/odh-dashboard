@@ -7,26 +7,26 @@ import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 /**
  * Provider that dynamically updates the dashboard config extension
  * with the current dashboard configuration.
- * This can be used to expose any non-feature flag data from the OdhDashboardConfig CR
+ * This exposes the entire dashboardConfig.spec from the OdhDashboardConfig CR.
  */
 export const DashboardConfigProvider: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const pluginStore = usePluginStore();
 
-  const genAiStudioConfig = useDeepCompareMemoize(dashboardConfig.spec.genAiStudioConfig);
+  const configSpec = useDeepCompareMemoize(dashboardConfig.spec);
 
   React.useEffect(() => {
     // Find the dashboard config extension by ID
     const extensions = pluginStore.getExtensions();
     const configExtension = extensions
       .filter(isDashboardConfigExtension)
-      .find((ext) => ext.properties.id === 'genai-config');
+      .find((ext) => ext.properties.id === 'dashboard-config');
 
     if (configExtension) {
-      // Update the extension with the current config, or clear if undefined
-      configExtension.properties.config = genAiStudioConfig ? { genAiStudioConfig } : {};
+      // Update the extension with the entire spec
+      configExtension.properties.config = configSpec;
     }
-  }, [genAiStudioConfig, pluginStore]);
+  }, [configSpec, pluginStore]);
 
   return null;
 };

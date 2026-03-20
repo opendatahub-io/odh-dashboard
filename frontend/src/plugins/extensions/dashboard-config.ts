@@ -4,8 +4,8 @@ const dashboardConfigExtensions: DashboardConfigExtension[] = [
   {
     type: 'app.config/dashboard',
     properties: {
-      id: 'genai-config',
-      // Config will be dynamically populated by DashboardConfigProvider
+      id: 'dashboard-config',
+      // Config will be dynamically populated by DashboardConfigProvider with the entire dashboardConfig.spec
       config: {},
     },
   },

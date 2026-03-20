@@ -1,16 +1,11 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { DashboardConfigKind } from '@odh-dashboard/internal/k8sTypes';
 
 /**
  * Configuration data provided by the host application.
+ * This is the entire dashboardConfig.spec object from the OdhDashboardConfig CR.
  */
-export type DashboardConfigData = {
-  genAiStudioConfig?: {
-    aiAssetCustomEndpoints?: {
-      externalProviders?: boolean;
-      clusterDomains?: string[];
-    };
-  };
-};
+export type DashboardConfigData = DashboardConfigKind['spec'];
 
 /**
  * Provides dashboard configuration data to plugins.
@@ -20,8 +15,8 @@ export type DashboardConfigExtension = Extension<
   {
     /** The config provider ID. */
     id: string;
-    /** The configuration data. */
-    config: DashboardConfigData;
+    /** The configuration data (populated at runtime by DashboardConfigProvider). */
+    config: Partial<DashboardConfigData>;
   }
 >;
 

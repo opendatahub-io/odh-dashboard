@@ -12,14 +12,16 @@ const useGenAiDashboardConfig = (): DashboardConfigData['genAiStudioConfig'] => 
   const configExtensions = useExtensions(isDashboardConfigExtension);
 
   return React.useMemo(() => {
-    const configExtension = configExtensions.find((ext) => ext.properties.id === 'genai-config');
+    const configExtension = configExtensions.find(
+      (ext) => ext.properties.id === 'dashboard-config',
+    );
 
     if (!configExtension) {
       return undefined;
     }
 
-    const { genAiStudioConfig } = configExtension.properties.config;
-    return genAiStudioConfig;
+    // Extract genAiStudioConfig from the full dashboard config spec
+    return configExtension.properties.config.genAiStudioConfig;
   }, [configExtensions]);
 };
 
