@@ -272,6 +272,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                         ref={toggleRef}
                         onClick={() => setIsSelectOpen(!isSelectOpen)}
                         isExpanded={isSelectOpen}
+                        isFullWidth
                         data-testid="api-key-expiration-toggle"
                       >
                         {selectedOption?.label ?? '90 days'}
