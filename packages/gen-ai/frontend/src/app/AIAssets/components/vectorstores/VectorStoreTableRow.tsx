@@ -133,11 +133,8 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
             Try in playground
           </Button>
         ) : (
-          <Button
-            variant={ButtonVariant.link}
-            icon={<PlusCircleIcon />}
-            isDisabled={status === 'not_available'}
-          >
+          // TODO: hook up "Add to playground" action in a follow-up PR
+          <Button variant={ButtonVariant.link} icon={<PlusCircleIcon />} isDisabled>
             Add to playground
           </Button>
         )}

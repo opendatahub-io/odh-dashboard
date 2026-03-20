@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useMergedModels from '~/app/hooks/useMergedModels';
@@ -26,23 +26,10 @@ const AIAssetsVectorStoresTab: React.FC = () => {
 
   if (error) {
     return (
-      <>
-        <Alert
-          variant="warning"
-          isInline
-          title="Vector store configuration not found"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          The vector stores ConfigMap was not found in this namespace. Ask your cluster
-          administrator to create the <b>gen-ai-aa-vector-stores</b> ConfigMap to register external
-          vector stores.
-        </Alert>
-        <VectorStoresTable
-          vectorStores={[]}
-          allModels={allModels}
-          playgroundModels={playgroundModels}
-        />
-      </>
+      <NoData
+        title="No vector store configuration found"
+        description="This playground does not have a vector store configuration. Contact your cluster administrator to add vector stores."
+      />
     );
   }
 
