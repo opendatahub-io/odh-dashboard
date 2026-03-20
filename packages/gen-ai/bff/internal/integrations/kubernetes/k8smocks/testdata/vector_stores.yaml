@@ -45,9 +45,6 @@ registered_resources:
       vector_store_name: "Product Embeddings (PGVector)"
       metadata:
         description: "Product catalog embeddings for semantic search"
-        custom_gen_ai:
-          owner: platform-team
-          domain: e-commerce
 
     - provider_id: qdrant-provider
       vector_store_id: vs_4c4b74e3-30ac-4e46-9057-213154f83dba
@@ -56,9 +53,6 @@ registered_resources:
       vector_store_name: "Document Search (Qdrant)"
       metadata:
         description: "Document search index for internal knowledge base"
-        custom_gen_ai:
-          owner: data-team
-          domain: knowledge-management
 
     - provider_id: milvus-provider
       vector_store_id: vs_a2607363-cea0-4d2a-8a93-7fb76863403b
@@ -67,6 +61,3 @@ registered_resources:
       vector_store_name: "Code Vector Store (Milvus)"
       metadata:
         description: "Code embeddings for repository search"
-        custom_gen_ai:
-          owner: dev-team
-          domain: engineering
