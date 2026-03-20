@@ -31,7 +31,7 @@ const AIAssetsVectorStoresTab: React.FC = () => {
     return (
       <NoData
         title="Unable to load vector stores"
-        description="There was a problem loading vector stores. Try refreshing the page, or contact your cluster administrator if the issue persists."
+        description="We were unable to load vector stores. Try contacting your cluster administrator to ensure the vector store configuration has been added for this playground."
       />
     );
   }
