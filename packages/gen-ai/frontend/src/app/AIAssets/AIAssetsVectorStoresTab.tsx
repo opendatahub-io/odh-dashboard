@@ -30,8 +30,8 @@ const AIAssetsVectorStoresTab: React.FC = () => {
   if (error) {
     return (
       <NoData
-        title="No vector store configuration found"
-        description="This playground does not have a vector store configuration. Contact your cluster administrator to add vector stores."
+        title="Unable to load vector stores"
+        description="There was a problem loading vector stores. Try refreshing the page, or contact your cluster administrator if the issue persists."
       />
     );
   }
