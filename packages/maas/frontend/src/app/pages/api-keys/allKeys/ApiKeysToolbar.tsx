@@ -14,20 +14,8 @@ import {
   SearchInput,
 } from '@patternfly/react-core';
 import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
-import { APIKey, APIKeyStatus } from '~/app/types/api-key';
+import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
 import ApiKeysActions from '../ApiKeysActions';
-
-export const STATUS_OPTIONS: APIKeyStatus[] = ['active', 'expired', 'revoked'];
-
-export type ApiKeyFilterDataType = {
-  username: string;
-  statuses: APIKeyStatus[];
-};
-
-export const initialApiKeyFilterData: ApiKeyFilterDataType = {
-  username: '',
-  statuses: ['active', 'expired', 'revoked'],
-};
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -42,6 +30,8 @@ type ApiKeysToolbarProps = {
   onClearFilters: () => void;
 };
 
+const DEBOUNCE_DELAY = 500;
+
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   setIsModalOpen,
   filterData,
@@ -55,13 +45,22 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onClearFilters,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const onDebouncedUsernameChange = React.useCallback(
+    (value: string) => {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => onUsernameChange(value), DEBOUNCE_DELAY);
+    },
+    [onUsernameChange],
+  );
 
   return (
     <Toolbar
       clearAllFilters={() => {
+        clearTimeout(debounceRef.current);
         setLocalUsername('');
         onUsernameChange('');
-        STATUS_OPTIONS.forEach(onStatusClear);
         onClearFilters();
       }}
     >
@@ -123,7 +122,11 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
             </ToolbarFilter>
             <ToolbarFilter
               labels={filterData.username ? [filterData.username] : []}
-              deleteLabel={() => onUsernameChange('')}
+              deleteLabel={() => {
+                clearTimeout(debounceRef.current);
+                setLocalUsername('');
+                onUsernameChange('');
+              }}
               categoryName="Username"
             >
               <SearchInput
@@ -131,9 +134,12 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 placeholder="Filter by username"
                 data-testid="username-filter-input"
                 value={localUsername}
-                onSearch={(_event, value) => onUsernameChange(value)}
-                onChange={(_event, value) => setLocalUsername(value)}
+                onChange={(_event, value) => {
+                  setLocalUsername(value);
+                  onDebouncedUsernameChange(value);
+                }}
                 onClear={() => {
+                  clearTimeout(debounceRef.current);
                   setLocalUsername('');
                   onUsernameChange('');
                 }}
