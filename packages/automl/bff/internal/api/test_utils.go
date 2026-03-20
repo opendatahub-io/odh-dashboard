@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
 
@@ -50,7 +51,8 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		logger:                      logger,
 		kubernetesClientFactory:     k8Factory,
 		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
-		repositories:                repositories.NewRepositories(logger, repositories.RepositoryConfig{MockS3Client: true}),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -110,5 +112,5 @@ func newTestApp(t *testing.T) *App {
 	// Create a mock Pipeline Server client factory
 	psFactory := psmocks.NewMockClientFactory()
 
-	return NewTestApp(cfg, logger, k8sFactory, psFactory, nil)
+	return NewTestApp(cfg, logger, k8sFactory, psFactory, s3mocks.NewMockClientFactory(), nil)
 }
