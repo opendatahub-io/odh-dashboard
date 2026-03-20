@@ -56,6 +56,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       path: '/ai-hub/models/*',
       group: '1_models',
       section: 'ai-hub',
+      objectType: 'registered-models',
     },
   },
   {
@@ -67,6 +68,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       path: '/ai-hub/mcp-servers/*',
       group: '2_mcp_servers',
       section: 'ai-hub',
+      objectType: 'model-catalog',
     },
   },
   // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088

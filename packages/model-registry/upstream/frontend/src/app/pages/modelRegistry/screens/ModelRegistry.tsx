@@ -1,6 +1,7 @@
 import React from 'react';
 import { Divider, Stack, StackItem } from '@patternfly/react-core';
 import { ProjectObjectType, ApplicationsPage, TitleWithIcon } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
 import useModelVersions from '~/app/hooks/useModelVersions';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
@@ -19,6 +20,7 @@ type ModelRegistryProps = Omit<
 >;
 
 const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const [registeredModels, modelsLoaded, modelsLoadError, refreshModels] = useRegisteredModels();
   const [modelVersions, versionsLoaded, versionsLoadError, refreshVersions] = useModelVersions();
 
@@ -33,6 +35,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
+      noTitle={tabRouteContext?.isInsideTabPage}
       title={
         <TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />
       }

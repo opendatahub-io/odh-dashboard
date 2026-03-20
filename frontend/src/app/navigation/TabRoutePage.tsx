@@ -1,13 +1,19 @@
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { PageSection, Spinner, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { Content, PageSection, Spinner, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import type { LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import {
   isTabRouteTabExtension,
   TabRoutePageExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import {
+  LazyCodeRefComponent,
+  TabRoutePageContext,
+  useExtensions,
+} from '@odh-dashboard/plugin-core';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 type TabRoutePageProps = {
   extension: LoadedExtension<TabRoutePageExtension>;
@@ -54,8 +60,16 @@ const getDefaultTab = (
   return tabExtensions[0].properties.id;
 };
 
+const tabRoutePageContextValue: { isInsideTabPage: boolean } = { isInsideTabPage: true };
+
+const isProjectObjectType = (value: string): value is ProjectObjectType =>
+  Object.values<string>(ProjectObjectType).includes(value);
+
 const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   const pageId = extension.properties.id;
+  const { objectType: objectTypeStr } = extension.properties;
+  const objectType =
+    objectTypeStr && isProjectObjectType(objectTypeStr) ? objectTypeStr : undefined;
   const allTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,6 +98,24 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     return null;
   }
 
+  const pageTitle = (
+    <PageSection hasBodyWrapper={false}>
+      <Content component="h1" data-testid="app-page-title">
+        {objectType ? (
+          <TitleWithIcon title={extension.properties.title} objectType={objectType} />
+        ) : (
+          extension.properties.title
+        )}
+      </Content>
+    </PageSection>
+  );
+
+  const tabContentFallback = (
+    <PageSection>
+      <Spinner />
+    </PageSection>
+  );
+
   // Single tab: render content directly without tab bar
   if (tabExtensions.length === 1) {
     const singleTab = tabExtensions[0];
@@ -92,14 +124,15 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
         <Route
           path={`${singleTab.properties.id}/*`}
           element={
-            <LazyCodeRefComponent
-              component={singleTab.properties.component}
-              fallback={
-                <PageSection>
-                  <Spinner />
-                </PageSection>
-              }
-            />
+            <>
+              {pageTitle}
+              <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
+                <LazyCodeRefComponent
+                  component={singleTab.properties.component}
+                  fallback={tabContentFallback}
+                />
+              </TabRoutePageContext.Provider>
+            </>
           }
         />
         <Route path="*" element={<Navigate to={singleTab.properties.id} replace />} />
@@ -117,6 +150,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
           path={`${tab.properties.id}/*`}
           element={
             <>
+              {pageTitle}
               <PageSection type="tabs">
                 <Tabs
                   activeKey={tab.properties.id}
@@ -133,14 +167,12 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
                   ))}
                 </Tabs>
               </PageSection>
-              <LazyCodeRefComponent
-                component={tab.properties.component}
-                fallback={
-                  <PageSection>
-                    <Spinner />
-                  </PageSection>
-                }
-              />
+              <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
+                <LazyCodeRefComponent
+                  component={tab.properties.component}
+                  fallback={tabContentFallback}
+                />
+              </TabRoutePageContext.Provider>
             </>
           }
         />

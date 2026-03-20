@@ -26,6 +26,11 @@ export type TabRoutePageExtension = Extension<
     path: string;
     /** The access review resource attributes for this item. */
     accessReview?: AccessReviewResourceAttributes;
+    /**
+     * Object type string for the page title icon (e.g. 'registered-models').
+     * Used with TitleWithIcon to render a page-level title above the tabs.
+     */
+    objectType?: string;
   }
 >;
 

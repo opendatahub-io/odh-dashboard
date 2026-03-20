@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { PageSection, Sidebar, SidebarContent, SidebarPanel, Stack } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { hasMcpFiltersApplied } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
@@ -11,6 +12,7 @@ import McpCatalogAllServersView from './McpCatalogAllServersView';
 import McpCatalogGalleryView from './McpCatalogGalleryView';
 
 const McpCatalog: React.FC = () => {
+  const tabRouteContext = useTabRoutePageContext();
   const { searchQuery, setSearchQuery, clearAllFilters, selectedSourceLabel, filters } =
     React.useContext(McpCatalogContext);
 
@@ -36,6 +38,7 @@ const McpCatalog: React.FC = () => {
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
       <ApplicationsPage
+        noTitle={tabRouteContext?.isInsideTabPage}
         title={
           <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
         }
