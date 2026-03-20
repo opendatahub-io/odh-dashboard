@@ -26,7 +26,9 @@ export const getResultScore = (job: EvaluationJob): string => {
       return `${Math.round(firstBenchmark.test.primary_score * 100)}%`;
     }
     if (firstBenchmark.metrics) {
-      const metricEntries = Object.entries(firstBenchmark.metrics);
+      const metricEntries = Object.entries(firstBenchmark.metrics).toSorted(([a], [b]) =>
+        a.localeCompare(b),
+      );
       if (metricEntries.length > 0) {
         const value = metricEntries[0][1];
         if (typeof value === 'number') {
