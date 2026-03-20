@@ -7,7 +7,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  Icon,
   Label,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
@@ -73,8 +72,15 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
       <CardBody>
         {passStatus != null && (
           <Label
+            variant="outline"
             color={passStatus ? 'green' : 'red'}
-            icon={<Icon isInline>{passStatus ? <CheckCircleIcon /> : <TimesCircleIcon />}</Icon>}
+            icon={
+              passStatus ? (
+                <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+              ) : (
+                <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+              )
+            }
             data-testid={`benchmark-pass-label-${benchmarkId}`}
           >
             {passStatus ? 'Pass' : 'Fail'}

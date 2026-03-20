@@ -12,6 +12,7 @@ type MockEvaluationJobOptions = {
   score?: number;
   scorePass?: boolean;
   collectionId?: string;
+  metrics?: Record<string, unknown>;
 };
 
 const DEFAULT_BENCHMARK_ID = 'default-benchmark';
@@ -36,7 +37,14 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
               test: { primary_score: options.score, pass: options.scorePass },
             },
           ]
-        : [],
+        : options.metrics
+          ? [
+              {
+                id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
+                metrics: options.metrics,
+              },
+            ]
+          : [],
     test: options.score != null ? { score: options.score, pass: options.scorePass } : undefined,
   },
   name: options.name,
