@@ -46,6 +46,8 @@ type KubernetesClientInterface interface {
 	CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error
 	DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error
 	DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error
+	GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error)
+	GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error)
 
 	// Guardrails operations
 	CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)

@@ -14,8 +14,11 @@ import (
 	"time"
 
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -1215,5 +1218,95 @@ func TestCalculateTTFT(t *testing.T) {
 		ttft := calculateTTFT(startTime, nil)
 
 		assert.Nil(t, ttft)
+	})
+}
+
+func TestGetProviderDataRouting(t *testing.T) {
+	// Create test app with mock client
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	// Create mock Kubernetes client factory (returns nil client for simple tests)
+	mockK8sFactory := k8smocks.NewMockTokenClientFactory()
+
+	// Create memory store for token caching
+	memStore := cache.NewMemoryStore()
+
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		logger:                   logger,
+		llamaStackClientFactory:  llamaStackClientFactory,
+		repositories:             repositories.NewRepositories(),
+		kubernetesClientFactory:  mockK8sFactory,
+		memoryStore:              memStore,
+	}
+
+	t.Run("should call custom endpoint provider secret for custom_endpoint model_source_type", func(t *testing.T) {
+		// Create context with required values (but no K8s client, so it should return nil)
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+
+		// Call with model_source_type = "custom_endpoint"
+		// Since we don't have a real K8s client, it should return nil but not crash
+		providerData := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint")
+
+		// Without a K8s client factory, this should return nil
+		assert.Nil(t, providerData, "Should return nil when K8s client is not available")
+	})
+
+	t.Run("should fall back to auto-detection when model_source_type is empty", func(t *testing.T) {
+		// Create context with required values
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+
+		// Call with empty model_source_type
+		// Should fall back to auto-detection (tries MaaS prefix, then user JWT)
+		providerData := app.getProviderData(ctx, "test-model", "")
+
+		// Should return user JWT provider data
+		assert.NotNil(t, providerData)
+		assert.Contains(t, providerData, "vllm_api_token")
+		assert.Equal(t, "test-token", providerData["vllm_api_token"])
+	})
+
+	t.Run("should detect MaaS model by prefix when model_source_type is empty", func(t *testing.T) {
+		// Create context with required values
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+
+		// Call with MaaS model prefix and empty model_source_type
+		// Should auto-detect as MaaS but fail to get token without K8s client
+		providerData := app.getProviderData(ctx, "maas-vllm-inference-1/llama-3", "")
+
+		// Without proper K8s client, should fall back to user JWT
+		// (MaaS detection fails, falls back to getUserJWTProviderData)
+		assert.NotNil(t, providerData)
+		assert.Contains(t, providerData, "vllm_api_token")
+	})
+
+	t.Run("should return user JWT for namespace model_source_type", func(t *testing.T) {
+		// Create context with required values
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+
+		// Call with namespace model (no special handling, falls through to auto-detection)
+		providerData := app.getProviderData(ctx, "my-namespace-model", "namespace")
+
+		// Should fall back to auto-detection which returns user JWT
+		assert.NotNil(t, providerData)
+		assert.Contains(t, providerData, "vllm_api_token")
+		assert.Equal(t, "test-token", providerData["vllm_api_token"])
 	})
 }

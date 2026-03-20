@@ -144,6 +144,7 @@ type CreateResponseRequest struct {
 	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
 	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
 	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
+	ModelSourceType    string               `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -361,8 +362,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Retrieve and inject provider data for custom headers (MaaS or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model)
+	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
+	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -696,8 +697,14 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 }
 
 // getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string) map[string]interface{} {
-	// Try MaaS first
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string) map[string]interface{} {
+	// If model_source_type is custom_endpoint, fetch API key from ConfigMap secret
+	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
+		return app.getCustomEndpointProviderSecret(ctx, modelID)
+	}
+
+	// For all other cases, use existing auto-detection logic
+	// Try MaaS first (by prefix)
 	if maasData := app.getMaaSProviderData(ctx, modelID); maasData != nil {
 		return maasData
 	}
@@ -811,4 +818,91 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	return tokenResponse.Key
+}
+
+// getCustomEndpointProviderSecret retrieves API keys for custom endpoint models from ConfigMap secrets
+func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID string) map[string]interface{} {
+	// Early return if context doesn't have required data
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return nil
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return nil
+	}
+
+	// Strip provider prefix to get actual model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
+	actualModelID := modelID
+	if strings.Contains(modelID, "/") {
+		parts := strings.SplitN(modelID, "/", 2)
+		if len(parts) == 2 {
+			actualModelID = parts[1]
+			app.logger.Debug("Stripped provider prefix from model ID", "original", modelID, "actualModelID", actualModelID)
+		}
+	}
+
+	// Get Kubernetes client
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return nil
+	}
+
+	// Get external models ConfigMap
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return nil
+	}
+
+	// Find the model in the ConfigMap
+	var foundModel *models.RegisteredModel
+	for i := range externalModelsConfig.RegisteredResources.Models {
+		if externalModelsConfig.RegisteredResources.Models[i].ModelID == actualModelID {
+			foundModel = &externalModelsConfig.RegisteredResources.Models[i]
+			break
+		}
+	}
+
+	if foundModel == nil {
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "model", actualModelID, "namespace", namespace)
+		return nil
+	}
+
+	// Find the provider for this model
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID, "namespace", namespace)
+		return nil
+	}
+
+	// Get secret reference from provider config
+	secretName := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Name
+	secretKey := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Key
+	if secretName == "" || secretKey == "" {
+		app.logger.Warn("Missing secret reference in provider config", "model", actualModelID, "providerID", foundProvider.ProviderID, "secretName", secretName, "secretKey", secretKey)
+		return nil
+	}
+
+	// Get the secret value from Kubernetes
+	apiKey, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+	if err != nil {
+		app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
+		return nil
+	}
+
+	// Inject API key as provider data
+	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
+	return map[string]interface{}{
+		"openai_api_key": apiKey,
+	}
 }
