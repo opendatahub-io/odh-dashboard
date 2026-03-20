@@ -20,7 +20,8 @@ function getWorkspacePackages() {
     return cachedWorkspacePackages;
   } catch (error) {
     console.warn('Error querying workspaces with npm query:', error.message);
-    return [];
+    cachedWorkspacePackages = [];
+    return cachedWorkspacePackages;
   }
 }
 
@@ -92,7 +93,18 @@ function getPluginPackageDetails() {
   const workspacePackages = getWorkspacePackages();
   const pluginPackages = filterPluginPackages(workspacePackages);
   return pluginPackages
-    .filter((pkg) => pkg.name !== '@odh-dashboard/internal')
+    .filter((pkg) => {
+      if (pkg.name === '@odh-dashboard/internal') {
+        return false;
+      }
+      if (!pkg.path) {
+        console.warn(
+          `Plugin package ${pkg.name} has no path from npm query, skipping chunk grouping`,
+        );
+        return false;
+      }
+      return true;
+    })
     .map((pkg) => ({
       name: pkg.name,
       shortName: pkg.name.replace(/^@[^/]+\//, ''),

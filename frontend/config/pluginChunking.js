@@ -26,7 +26,7 @@ function getPluginChunkName(pluginPackageDetails) {
     const plugin = pluginPackageDetails.find((pkg) =>
       module.resource?.startsWith(`${pkg.location}/`),
     );
-    return plugin ? `plugin-${plugin.shortName}` : false;
+    return plugin ? `plugin-${plugin.shortName}` : undefined;
   };
 }
 

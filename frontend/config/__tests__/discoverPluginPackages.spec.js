@@ -100,6 +100,57 @@ describe('getPluginPackageDetails', () => {
     ]);
   });
 
+  it('should skip packages with missing path and warn', () => {
+    const packages = [
+      {
+        name: '@odh-dashboard/no-path-plugin',
+        exports: { './extensions': './extensions.ts' },
+      },
+      {
+        name: '@odh-dashboard/has-path-plugin',
+        path: '/workspace/packages/has-path-plugin',
+        exports: { './extensions': './extensions.ts' },
+      },
+    ];
+
+    jest.doMock('child_process', () => ({
+      execSync: jest.fn().mockReturnValue(JSON.stringify(packages)),
+    }));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { getPluginPackageDetails } = require('../discoverPluginPackages');
+    const result = getPluginPackageDetails();
+
+    expect(result).toEqual([
+      {
+        name: '@odh-dashboard/has-path-plugin',
+        shortName: 'has-path-plugin',
+        location: '/workspace/packages/has-path-plugin',
+      },
+    ]);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('@odh-dashboard/no-path-plugin'));
+    warnSpy.mockRestore();
+  });
+
+  it('should cache the failure so subsequent calls do not re-run execSync', () => {
+    const mockExecSync = jest.fn().mockImplementation(() => {
+      throw new Error('npm query failed');
+    });
+    jest.doMock('child_process', () => ({ execSync: mockExecSync }));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const {
+      getPluginPackageDetails,
+      discoverPluginPackages,
+    } = require('../discoverPluginPackages');
+
+    getPluginPackageDetails();
+    discoverPluginPackages();
+
+    expect(mockExecSync).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
+  });
+
   it('should memoize the npm query call across multiple invocations', () => {
     const mockExecSync = jest.fn().mockReturnValue(JSON.stringify(mockWorkspacePackages));
     jest.doMock('child_process', () => ({ execSync: mockExecSync }));

@@ -58,16 +58,16 @@ describe('getPluginChunkName', () => {
   });
 
   describe('unknown modules', () => {
-    it('should return false for a module outside all plugin packages', () => {
+    it('should return undefined for a module outside all plugin packages', () => {
       const module = mockModule('/workspace/node_modules/lodash/index.js');
       const chunks = [mockChunk(undefined)];
-      expect(getName(module, chunks)).toBe(false);
+      expect(getName(module, chunks)).toBeUndefined();
     });
 
-    it('should return false when module.resource is undefined', () => {
+    it('should return undefined when module.resource is undefined', () => {
       const module = mockModule(undefined);
       const chunks = [mockChunk(undefined)];
-      expect(getName(module, chunks)).toBe(false);
+      expect(getName(module, chunks)).toBeUndefined();
     });
   });
 
@@ -75,7 +75,7 @@ describe('getPluginChunkName', () => {
     it('should not match a directory whose name is a prefix of a plugin path', () => {
       const module = mockModule('/workspace/packages/kserve-extra/src/index.ts');
       const chunks = [mockChunk(undefined)];
-      expect(getName(module, chunks)).toBe(false);
+      expect(getName(module, chunks)).toBeUndefined();
     });
   });
 });

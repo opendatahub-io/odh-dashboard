@@ -35,6 +35,13 @@ try {
 
 const pluginPackageDetails = getPluginPackageDetails();
 
+if (pluginPackageDetails.length === 0) {
+  console.warn(
+    'Warning: No plugin packages discovered. The pluginChunks splitChunks group will have no effect. ' +
+      'Check that workspace packages have ./extensions exports and that npm query is working.',
+  );
+}
+
 if (OUTPUT_ONLY !== 'true') {
   console.info(
     `\nPrepping files...\n  SRC DIR: ${SRC_DIR}\n  OUTPUT DIR: ${DIST_DIR}\n  PUBLIC PATH: ${PUBLIC_PATH}\n`,
