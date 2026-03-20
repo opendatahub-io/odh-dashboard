@@ -833,15 +833,23 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 		return nil
 	}
 
-	// Strip provider prefix to get actual model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
-	actualModelID := modelID
-	if strings.Contains(modelID, "/") {
-		parts := strings.SplitN(modelID, "/", 2)
-		if len(parts) == 2 {
-			actualModelID = parts[1]
-			app.logger.Debug("Stripped provider prefix from model ID", "original", modelID, "actualModelID", actualModelID)
-		}
+	// Extract provider prefix and model ID (e.g., "endpoint-1/meta-llama/Llama-3.1-8B" → "endpoint-1", "meta-llama/Llama-3.1-8B")
+	// Model ID must be provider-qualified to prevent ambiguity when multiple providers expose same model_id
+	if !strings.Contains(modelID, "/") {
+		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
+		return nil
 	}
+
+	// Split on FIRST slash only (model IDs can contain slashes like "meta-llama/Llama-3.1-8B")
+	parts := strings.SplitN(modelID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		app.logger.Warn("Invalid custom endpoint model ID format", "model", modelID)
+		return nil
+	}
+
+	providerPrefix := parts[0]
+	actualModelID := parts[1]
+	app.logger.Debug("Parsed provider-qualified model ID", "original", modelID, "provider", providerPrefix, "modelID", actualModelID)
 
 	// Get Kubernetes client
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -857,17 +865,19 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 		return nil
 	}
 
-	// Find the model in the ConfigMap
+	// Find the model in the ConfigMap - match BOTH ProviderID and ModelID
+	// Prevents returning wrong API key when multiple providers expose same model_id
 	var foundModel *models.RegisteredModel
 	for i := range externalModelsConfig.RegisteredResources.Models {
-		if externalModelsConfig.RegisteredResources.Models[i].ModelID == actualModelID {
-			foundModel = &externalModelsConfig.RegisteredResources.Models[i]
+		model := &externalModelsConfig.RegisteredResources.Models[i]
+		if model.ProviderID == providerPrefix && model.ModelID == actualModelID {
+			foundModel = model
 			break
 		}
 	}
 
 	if foundModel == nil {
-		app.logger.Warn("Custom endpoint model not found in ConfigMap", "model", actualModelID, "namespace", namespace)
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID, "namespace", namespace)
 		return nil
 	}
 
