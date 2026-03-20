@@ -125,32 +125,74 @@ describe('API Keys Page', () => {
     });
   });
 
-  it('should create a new API key', () => {
-    const now = new Date(2026, 0, 14).getTime(); // January 14, 2026
-    // Set the clock to the same day every time so the expiration date is always the same
-    cy.clock(now);
-
+  it('should create a new API key with the default 90 days expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
       data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationToggle().should('contain.text', '90 days');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
-    createApiKeyModal.findExpirationDateInput().type('2026-01-20');
-    createApiKeyModal.findCreateButton().click();
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
-        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
       });
     });
 
     copyApiKeyModal.shouldBeOpen();
-    // Verify the token is displayed correctly in the ClipboardCopy input
     copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
-    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '2026-01-20');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '90 days');
+  });
+
+  it('should display an inline error alert when API key creation fails', () => {
+    cy.intercept('POST', '/maas/api/v1/api-keys', {
+      statusCode: 400,
+      body: {
+        error: {
+          code: '400',
+          message: 'requested expiration (8760h0m0s) exceeds maximum allowed (90 days)',
+        },
+      },
+    }).as('createApiKeyFail');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKeyFail');
+
+    createApiKeyModal.findErrorAlert().should('exist');
+    createApiKeyModal
+      .findErrorAlert()
+      .should(
+        'contain.text',
+        'Requested expiration exceeds maximum allowed (90 days). Select a shorter duration and try again.',
+      );
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+  });
+
+  it('should display the selected expiration label in the success view', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationToggle().click();
+    createApiKeyModal.findExpirationOption('30d').click();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey');
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
   });
 });
