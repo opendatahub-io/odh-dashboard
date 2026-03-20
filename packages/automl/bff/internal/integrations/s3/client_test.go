@@ -1,0 +1,196 @@
+package s3
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func newTestClient() *RealS3Client {
+	return &RealS3Client{options: S3ClientOptions{DevMode: false}}
+}
+
+// ---------------------------------------------------------------------------
+// validateAndNormalizeEndpoint — SSRF protection tests
+// ---------------------------------------------------------------------------
+
+func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {
+	c := newTestClient()
+	result, err := c.validateAndNormalizeEndpoint("https://s3.us-east-1.amazonaws.com")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://s3.us-east-1.amazonaws.com", result)
+}
+
+func TestValidateAndNormalizeEndpoint_AcceptsHTTPSWithPort(t *testing.T) {
+	c := newTestClient()
+	result, err := c.validateAndNormalizeEndpoint("https://s3.amazonaws.com:9000")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://s3.amazonaws.com:9000", result)
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsHTTP(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTPS")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsEmpty(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "empty")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_10(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://10.0.0.1:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_172(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://172.16.0.1:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_192(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://192.168.1.1:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "RFC-1918")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsLoopback(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://127.0.0.1:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "loopback")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsLinkLocal(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://169.254.169.254")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "link-local")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsUnspecified(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://0.0.0.0:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "this network")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsReservedFutureUse(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://240.0.0.1:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for future use")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsIPv6Loopback(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://[::1]:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "IPv6 loopback")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsIPv6LinkLocal(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://[fe80::1]:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "IPv6 link-local")
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsIPv6UniqueLocal(t *testing.T) {
+	c := newTestClient()
+	_, err := c.validateAndNormalizeEndpoint("https://[fc00::1]:9000")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "IPv6 unique local")
+}
+
+// ---------------------------------------------------------------------------
+// CSV helper function tests
+// ---------------------------------------------------------------------------
+
+func TestIsNumber(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"123", true}, {"-456", true}, {"123.456", true}, {"1.23e10", true},
+		{"abc", false}, {"123abc", false}, {"", false},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, isNumber(tt.input), "input: %q", tt.input)
+	}
+}
+
+func TestIsInteger(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"123", true}, {"-456", true}, {"0", true},
+		{"123.456", false}, {"123.0", false}, {"1.23e10", false}, {"abc", false}, {"", false},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, isInteger(tt.input), "input: %q", tt.input)
+	}
+}
+
+func TestIsBoolean(t *testing.T) {
+	trueInputs := []string{"true", "false", "TRUE", "FALSE", "t", "f", "yes", "no", "y", "n", "1", "0"}
+	falseInputs := []string{"maybe", "123", ""}
+	for _, s := range trueInputs {
+		assert.True(t, isBoolean(s), "should be boolean: %q", s)
+	}
+	for _, s := range falseInputs {
+		assert.False(t, isBoolean(s), "should not be boolean: %q", s)
+	}
+}
+
+func TestInferColumnType_Bool(t *testing.T) {
+	rows := [][]string{{"true"}, {"false"}, {"true"}}
+	assert.Equal(t, "bool", inferColumnType(rows, 0))
+}
+
+func TestInferColumnType_Integer(t *testing.T) {
+	rows := [][]string{{"123"}, {"456"}, {"789"}}
+	assert.Equal(t, "integer", inferColumnType(rows, 0))
+}
+
+func TestInferColumnType_Double(t *testing.T) {
+	rows := [][]string{{"1.5"}, {"2.7"}, {"3.9"}}
+	assert.Equal(t, "double", inferColumnType(rows, 0))
+}
+
+func TestInferColumnType_String(t *testing.T) {
+	rows := [][]string{{"alice"}, {"bob"}, {"charlie"}}
+	assert.Equal(t, "string", inferColumnType(rows, 0))
+}
+
+func TestInferColumnType_Timestamp(t *testing.T) {
+	rows := [][]string{{"2024-03-13"}, {"2024-03-14"}, {"2024-03-15"}}
+	assert.Equal(t, "timestamp", inferColumnType(rows, 0))
+}
+
+func TestExtractFirstLine(t *testing.T) {
+	line, err := extractFirstLine([]byte("header\nrow1"))
+	assert.NoError(t, err)
+	assert.Equal(t, "header", line)
+}
+
+func TestExtractFirstLine_NoLineEnding(t *testing.T) {
+	_, err := extractFirstLine([]byte("only one line without newline"))
+	assert.Error(t, err)
+}
+
+func TestCountLines(t *testing.T) {
+	assert.Equal(t, 0, countLines([]byte("hello")))
+	assert.Equal(t, 1, countLines([]byte("a\nb")))
+	assert.Equal(t, 3, countLines([]byte("a\nb\nc\n")))
+}
