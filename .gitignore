@@ -72,7 +72,8 @@ public-cypress/
 # Test artifacts
 **/cypress/videos/
 **/cypress/screenshots/
-**/results/
+**/test-results/
+**/cypress/results/
 
 # IDE (comprehensive)
 *.swp

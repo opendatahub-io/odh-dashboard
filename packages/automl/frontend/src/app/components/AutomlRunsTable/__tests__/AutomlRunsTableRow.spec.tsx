@@ -90,44 +90,63 @@ describe('AutomlRunsTableRow', () => {
     pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   };
 
+  const mockNamespace = 'test-namespace';
+
   it('should render run name', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(<AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />);
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
   });
 
   it('should render description', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(<AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />);
     expect(screen.getByText('First run')).toBeInTheDocument();
   });
 
   it('should render em dash for missing description', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, description: undefined }} />);
+    render(
+      <AutomlRunsTableRow run={{ ...mockRun, description: undefined }} namespace={mockNamespace} />,
+    );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('should render state with Label', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(<AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />);
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
   });
 
   it('should render different states correctly', () => {
-    const { rerender } = render(<AutomlRunsTableRow run={mockRun} />);
+    const { rerender } = render(<AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />);
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }} />);
+    rerender(
+      <AutomlRunsTableRow
+        run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }}
+        namespace={mockNamespace}
+      />,
+    );
     expect(screen.getByText('FAILED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }} />);
+    rerender(
+      <AutomlRunsTableRow
+        run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }}
+        namespace={mockNamespace}
+      />,
+    );
     expect(screen.getByText('RUNNING')).toBeInTheDocument();
   });
 
   it('should render em dash for invalid created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: 'invalid-date' }} />);
+    render(
+      <AutomlRunsTableRow
+        run={{ ...mockRun, created_at: 'invalid-date' }}
+        namespace={mockNamespace}
+      />,
+    );
     expect(screen.getAllByText('—')).toHaveLength(1);
   });
 
   it('should render em dash for empty created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} />);
+    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} namespace={mockNamespace} />);
     expect(screen.getAllByText('—')).toHaveLength(1);
   });
 });

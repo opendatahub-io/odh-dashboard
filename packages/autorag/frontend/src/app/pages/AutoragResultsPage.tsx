@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React from 'react';
@@ -25,7 +25,11 @@ function AutoragResultsPage(): React.JSX.Element {
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
-      subtext={<h2 className="pf-v6-u-mt-sm">{`"${pipelineRun?.display_name}" results`}</h2>}
+      subtext={
+        <h2 className="pf-v6-u-mt-sm">
+          {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
+        </h2>
+      }
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>

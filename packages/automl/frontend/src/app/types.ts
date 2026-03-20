@@ -46,7 +46,7 @@ export type PipelineVersionReference = {
 };
 
 export type PipelineRunRuntimeConfig = {
-  parameters?: Record<string, string>;
+  parameters?: Record<string, unknown>;
   pipeline_root?: string;
 };
 
@@ -63,25 +63,32 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-export type PipelineSpec = Record<string, unknown>;
+import type { PipelineSpecVariable } from '~/app/types/pipeline';
 
-/** Known KFP run states. API may return other values; use string for flexibility. */
-export type PipelineRunState =
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'RUNNING'
-  | 'PENDING'
-  | 'SKIPPED'
-  | 'PAUSED'
-  | 'INCOMPLETE'
-  | 'COMPLETE'
-  | 'CANCELLED';
+export type PipelineSpec = PipelineSpecVariable;
+
+export type PipelineRunTaskDetail = {
+  run_id?: string;
+  task_id: string;
+  display_name?: string;
+  create_time?: string;
+  start_time?: string;
+  end_time?: string;
+  state?: string;
+  execution_id?: string;
+  child_tasks?: { pod_name?: string; task_id?: string }[];
+  error?: PipelineRunError;
+};
+
+export type PipelineRunDetails = {
+  task_details?: PipelineRunTaskDetail[];
+};
 
 export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: PipelineRunState | string;
+  state: string;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
@@ -93,13 +100,27 @@ export type PipelineRun = {
   scheduled_at?: string;
   finished_at?: string;
   error?: PipelineRunError;
+  run_details?: PipelineRunDetails;
+};
+
+export type LlamaStackModelType = 'llm' | 'embedding';
+
+export type LlamaStackModel = {
+  id: string;
+  type: LlamaStackModelType;
+  provider: string;
+  resource_path: string;
+};
+
+export type LlamaStackModelsResponse = {
+  models: LlamaStackModel[];
 };
 
 export type SecretListItem = {
   uuid: string;
   name: string;
   type?: string;
-  data?: Record<string, string>;
+  data: Record<string, string>;
   displayName?: string;
   description?: string;
 };
