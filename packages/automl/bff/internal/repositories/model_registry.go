@@ -16,6 +16,9 @@ const (
 	versionsPath         = "versions"
 	modelVersionsPath    = "/model_versions"
 	artifactsPath        = "artifacts"
+
+	// Default artifact type for Model Registry model-artifact resources.
+	defaultModelArtifactType = "model-artifact"
 )
 
 // ModelRegistryRepository handles Model Registry API operations.
@@ -110,7 +113,7 @@ func (m *ModelRegistryRepository) RegisterModel(
 		artifactName = req.VersionName
 	}
 
-	artifactType := "model-artifact"
+	artifactType := defaultModelArtifactType
 	artifactCreate := openapi.ModelArtifactCreate{
 		Name:         &artifactName,
 		Uri:          &req.S3Path,

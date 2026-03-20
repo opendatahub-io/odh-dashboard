@@ -22,6 +22,9 @@ type HTTPClientInterface interface {
 	PATCH(url string, body io.Reader) ([]byte, error)
 }
 
+// maxResponseBodyBytes caps response body reads to prevent unbounded memory use.
+const maxResponseBodyBytes = 10 * 1024 * 1024 // 10MB
+
 // HTTPClient is an HTTP client for the Model Registry REST API.
 type HTTPClient struct {
 	client  *http.Client
@@ -84,7 +87,6 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	const maxResponseBodyBytes = 10 * 1024 * 1024 // 10MB
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes))
 	logUpstreamResp(c.logger, requestID, response, body)
 	if err != nil {
@@ -114,7 +116,7 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes))
 	logUpstreamResp(c.logger, requestID, response, responseBody)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
@@ -143,7 +145,7 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes))
 	logUpstreamResp(c.logger, requestID, response, responseBody)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
