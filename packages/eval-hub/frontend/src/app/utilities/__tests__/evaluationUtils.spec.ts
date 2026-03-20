@@ -113,11 +113,25 @@ describe('getResultScore', () => {
     expect(getResultScore(job)).toBe('-');
   });
 
-  it('should fall back to metrics when test fields are absent', () => {
+  /* eslint-disable camelcase */
+  it('should prefer acc_norm over acc when both are present', () => {
+    const job = mockEvaluationJob();
+    job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.7, acc_norm: 0.85 } }] };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should fall back to acc when acc_norm is absent', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85 } }] };
     expect(getResultScore(job)).toBe('85%');
   });
+
+  it('should return dash when metrics has neither acc_norm nor acc', () => {
+    const job = mockEvaluationJob();
+    job.results = { benchmarks: [{ id: 'b1', metrics: { f1_score: 0.9 } }] };
+    expect(getResultScore(job)).toBe('-');
+  });
+  /* eslint-enable camelcase */
 
   it('should return dash when benchmarks have no test and no metrics', () => {
     const job = mockEvaluationJob();
@@ -151,13 +165,23 @@ describe('getBenchmarkResultScore', () => {
   });
   /* eslint-enable camelcase */
 
-  it('should fall back to metrics when test is absent', () => {
+  it('should fall back to acc when test is absent', () => {
     const job = mockEvaluationJob();
     job.results = {
       benchmarks: [{ id: 'b1', metrics: { acc: 0.9 } }],
     };
     expect(getBenchmarkResultScore(job, 'b1')).toBe('90%');
   });
+
+  /* eslint-disable camelcase */
+  it('should prefer acc_norm over acc for benchmark score', () => {
+    const job = mockEvaluationJob();
+    job.results = {
+      benchmarks: [{ id: 'b1', metrics: { acc: 0.7, acc_norm: 0.85 } }],
+    };
+    expect(getBenchmarkResultScore(job, 'b1')).toBe('85%');
+  });
+  /* eslint-enable camelcase */
 
   it('should return dash when benchmark is not found', () => {
     const job = mockEvaluationJob();

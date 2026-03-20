@@ -30,14 +30,9 @@ const formatBenchmarkScore = (
     return `${Math.round(benchmark.test.primary_score * 100)}%`;
   }
   if (benchmark.metrics) {
-    const metricEntries = Object.entries(benchmark.metrics).toSorted(([a], [b]) =>
-      a.localeCompare(b),
-    );
-    if (metricEntries.length > 0) {
-      const value = metricEntries[0][1];
-      if (typeof value === 'number') {
-        return `${Math.round(value * 100)}%`;
-      }
+    const preferred = benchmark.metrics.acc_norm ?? benchmark.metrics.acc;
+    if (typeof preferred === 'number') {
+      return `${Math.round(preferred * 100)}%`;
     }
   }
   return null;
