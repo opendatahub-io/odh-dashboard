@@ -68,7 +68,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const [modelName, setModelName] = React.useState('');
   const [endpointUrl, setEndpointUrl] = React.useState('');
-  const [apiKey, setApiKey] = React.useState('');
+  const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
 
   const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
@@ -183,7 +183,7 @@ const StartEvaluationRunPage: React.FC = () => {
       collection,
       modelName,
       endpointUrl,
-      apiKey,
+      apiKeySecretRef,
       sourceName,
       datasetUrl,
       accessToken,
@@ -356,8 +356,9 @@ const StartEvaluationRunPage: React.FC = () => {
                   <TextInput
                     id="api-key"
                     data-testid="api-key-input"
-                    value={apiKey}
-                    onChange={(_e, val) => setApiKey(val)}
+                    value={apiKeySecretRef}
+                    onChange={(_e, val) => setApiKeySecretRef(val)}
+                    placeholder="e.g. my-model-credentials"
                   />
                 </FormGroup>
               </>

@@ -8,7 +8,7 @@ type BuildEvaluationRequestParams = {
   collection: Collection | undefined;
   modelName: string;
   endpointUrl: string;
-  apiKey: string;
+  apiKeySecretRef: string;
   sourceName: string;
   datasetUrl: string;
   accessToken: string;
@@ -25,7 +25,7 @@ const buildEvaluationRequest = ({
   collection,
   modelName,
   endpointUrl,
-  apiKey,
+  apiKeySecretRef,
   sourceName,
   datasetUrl,
   accessToken,
@@ -92,7 +92,7 @@ const buildEvaluationRequest = ({
 
   const resolvedModelName = inputMode === 'inference' ? modelName.trim() : sourceName.trim();
   const resolvedUrl = inputMode === 'inference' ? endpointUrl.trim() : '';
-  const resolvedAuth = inputMode === 'inference' ? apiKey.trim() : '';
+  const resolvedAuth = inputMode === 'inference' ? apiKeySecretRef.trim() : '';
 
   return {
     name: evaluationName.trim(),
