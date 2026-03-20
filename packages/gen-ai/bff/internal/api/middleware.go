@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
 )
 
@@ -500,5 +501,50 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		// Attach to context
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
 		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+// AttachNemoClient middleware creates a NeMo Guardrails client and attaches it to context.
+// The NeMo client authenticates using the pod's service account token, not the user's token,
+// since the NeMo Guardrails server runs in the same namespace as the BFF.
+//
+// In mock mode, creates a mock client. In real mode, uses NEMO_GUARDRAILS_URL env var
+// or (later) the NemoGuardrails CR route for URL discovery.
+func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var nemoClient nemopkg.NemoClientInterface
+
+		if app.config.MockNemoClient {
+			logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
+			nemoClient = app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
+		} else {
+			serviceURL := app.config.NemoGuardrailsURL
+			if serviceURL == "" {
+				logger.Debug("NeMo Guardrails unavailable: NEMO_GUARDRAILS_URL not configured")
+				ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
+				next(w, r.WithContext(ctx), ps)
+				return
+			}
+
+			saToken, err := helper.GetServiceAccountToken()
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get service account token for NeMo client: %w", err))
+				return
+			}
+
+			logger.Debug("Creating NeMo Guardrails client",
+				"serviceURL", serviceURL,
+				"hasAuthToken", saToken != "")
+
+			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, saToken, app.config.InsecureSkipVerify, app.rootCAs)
+		}
+
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
 	}
 }

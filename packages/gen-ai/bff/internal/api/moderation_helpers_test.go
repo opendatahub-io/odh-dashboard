@@ -4,8 +4,105 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestInterpretNemoResponse_Success(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusSuccess}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+	assert.Empty(t, result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_Blocked(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{
+		Status: nemo.StatusBlocked,
+		RailsStatus: map[string]nemo.RailStatus{
+			"self_check_input": {Status: nemo.StatusBlocked},
+		},
+	}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "self_check_input", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_BlockedMultipleRails(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{
+		Status: nemo.StatusBlocked,
+		RailsStatus: map[string]nemo.RailStatus{
+			"jailbreak_check": {Status: nemo.StatusSuccess},
+			"pii_check":       {Status: nemo.StatusBlocked},
+		},
+	}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "pii_check", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_BlockedNoRailsStatus(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusBlocked}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "guardrail_violation", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_Error(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusError}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+}
+
+func TestInterpretNemoResponse_Nil(t *testing.T) {
+	result := interpretNemoResponse(nil)
+	assert.False(t, result.Flagged)
+}
+
+func TestInterpretNemoResponse_UnknownStatus(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: "unknown"}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+}
+
+func TestExtractBlockedRailName(t *testing.T) {
+	tests := []struct {
+		name        string
+		railsStatus map[string]nemo.RailStatus
+		expected    string
+	}{
+		{
+			name:        "nil map",
+			railsStatus: nil,
+			expected:    "guardrail_violation",
+		},
+		{
+			name:        "empty map",
+			railsStatus: map[string]nemo.RailStatus{},
+			expected:    "guardrail_violation",
+		},
+		{
+			name: "single blocked rail",
+			railsStatus: map[string]nemo.RailStatus{
+				"self_check_output": {Status: nemo.StatusBlocked},
+			},
+			expected: "self_check_output",
+		},
+		{
+			name: "no blocked rails",
+			railsStatus: map[string]nemo.RailStatus{
+				"self_check_input": {Status: nemo.StatusSuccess},
+			},
+			expected: "guardrail_violation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractBlockedRailName(tt.railsStatus)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
 
 func TestEndsWithSentenceBoundary(t *testing.T) {
 	tests := []struct {

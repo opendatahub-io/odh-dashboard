@@ -317,23 +317,50 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 	return mockResponse, nil
 }
 
-// CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
-// The handler's normal streaming loop processes these events identically to real streams.
-// Input moderation is handled here; output moderation is handled by the handler's async moderation system.
-func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
-	responseID := "resp_mock_stream123"
-	itemID := "msg_mock_stream123"
-	guardrailMessage := constants.InputGuardrailViolationMessage
+// MockStreamError indicates mock streaming mode and provides response data
+type MockStreamError struct {
+	Message      string
+	ResponseText string
+	Params       llamastack.CreateResponseParams
+}
 
-	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
-	if params.InputShieldID != "" {
-		inputModResult, err := m.CreateModeration(ctx, params.Input, params.InputShieldID)
-		if err == nil && len(inputModResult.Results) > 0 && inputModResult.Results[0].Flagged {
-			// Return refusal events for blocked input
-			events := buildRefusalEvents(responseID, itemID, params.Model, guardrailMessage)
-			return NewMockStreamIterator(events), nil
+func (e *MockStreamError) Error() string {
+	return e.Message
+}
+
+// ModerationChunkSize is the number of words to buffer before running moderation
+const ModerationChunkSize = 30
+
+func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
+	sleepWithContext := func(d time.Duration) bool {
+		select {
+		case <-ctx.Done():
+			return false // Context cancelled
+		case <-time.After(d):
+			return true // Sleep completed
 		}
 	}
+
+	// Set hardened headers for Server-Sent Events (same as real handler)
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	// Mock identifiers
+	responseID := "resp_mock_stream123"
+	itemID := "msg_mock_stream123"
+
+	// Helper function to send SSE event
+	sendEvent := func(eventData interface{}) {
+		if data, err := json.Marshal(eventData); err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+		}
+	}
+
+	// Track start time for metrics
+	streamStartTime := time.Now()
 
 	// Determine response text
 	responseText := "This is a mock response to your query: " + params.Input
@@ -343,9 +370,6 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	if params.PreviousResponseID != "" {
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
-
-	var events []responses.ResponseStreamEventUnion
-	sequenceNum := 0
 
 	// 1. Response created event
 	events = append(events, unmarshalEvent(map[string]interface{}{
@@ -408,14 +432,41 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 		if i > 0 {
 			chunk = " " + word
 		}
-		events = append(events, unmarshalEvent(map[string]interface{}{
-			"type":            "response.output_text.delta",
-			"sequence_number": sequenceNum,
-			"item_id":         itemID,
-			"output_index":    0,
-			"delta":           chunk,
-		}))
-		sequenceNum++
+
+		// Add to buffers
+		wordBuffer = append(wordBuffer, chunk)
+		accumulatedText += chunk
+
+		// Check if we've accumulated enough words for a chunk
+		if len(wordBuffer) >= ModerationChunkSize || i == len(words)-1 {
+			// Stream the buffered words
+			for _, bufferedChunk := range wordBuffer {
+				sendEvent(map[string]interface{}{
+					"type":            "response.output_text.delta",
+					"sequence_number": deltaSequenceNum,
+					"item_id":         itemID,
+					"output_index":    0,
+					"delta":           bufferedChunk,
+				})
+				deltaSequenceNum++
+
+				// Add delay between chunks for realistic streaming effect
+				if !sleepWithContext(50 * time.Millisecond) {
+					return
+				}
+				flusher.Flush()
+			}
+
+			// Update streamed text and clear buffer
+			streamedText = accumulatedText
+			wordBuffer = nil
+		}
+	}
+
+	// Use streamedText for final response (same as responseText if all passed)
+	finalText := streamedText
+	if finalText == "" {
+		finalText = responseText
 	}
 
 	// 6. Content part done event
@@ -782,45 +833,4 @@ func (m *MockLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vector
 	}
 	// Mock deletion always succeeds
 	return nil
-}
-
-// CreateModeration returns a mock moderation response using SDK types.
-// It simulates guardrail behavior by checking for certain patterns in the input.
-// This allows testing both flagged and unflagged scenarios.
-func (m *MockLlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
-	if input == "" {
-		return nil, fmt.Errorf("input is required")
-	}
-	if model == "" {
-		return nil, fmt.Errorf("model (shield ID) is required")
-	}
-
-	inputLower := strings.ToLower(input)
-
-	// Patterns that trigger moderation flags (for testing purposes)
-	flaggedPatterns := []string{
-		"hack", "attack", "exploit", "malicious", "harmful",
-		"kill", "hate", "violence",
-	}
-
-	// Check if any flagged patterns are present in the input
-	flagged := false
-	for _, pattern := range flaggedPatterns {
-		if strings.Contains(inputLower, pattern) {
-			flagged = true
-			break
-		}
-	}
-
-	// Build mock response using SDK types
-	// Only Flagged field is used by the actual code - Categories/Scores are not needed
-	return &openai.ModerationNewResponse{
-		ID:    "mod_mock_" + fmt.Sprintf("%d", time.Now().UnixNano()),
-		Model: model,
-		Results: []openai.Moderation{
-			{
-				Flagged: flagged,
-			},
-		},
-	}, nil
 }

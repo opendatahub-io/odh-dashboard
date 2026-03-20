@@ -18,6 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -42,6 +43,7 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	nemoClientFactory       nemopkg.NemoClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
@@ -113,6 +115,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
 		llamaStackClientFactory = llamastack.NewRealClientFactory()
+	}
+
+	// Initialize NeMo Guardrails client factory
+	var nemoClientFactory nemopkg.NemoClientFactory
+	if cfg.MockNemoClient {
+		logger.Info("Using mock NeMo Guardrails client factory")
+		nemoClientFactory = nemopkg.NewRealClientFactory()
+	} else {
+		logger.Info("Using real NeMo Guardrails client factory", "url", cfg.NemoGuardrailsURL)
+		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
 	// Initialize MaaS client factory - clients will be created per request
@@ -286,6 +298,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		nemoClientFactory:       nemoClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
@@ -355,8 +368,8 @@ func (app *App) Routes() http.Handler {
 	// Models (LlamaStack)
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
+	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler))))))
 
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
