@@ -10,7 +10,7 @@ const baseParams = {
   collection: undefined as Collection | undefined,
   modelName: 'llama-7b',
   endpointUrl: 'http://localhost:8080/v1',
-  apiKey: '',
+  apiKeySecretRef: '',
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
@@ -88,16 +88,16 @@ describe('buildEvaluationRequest', () => {
       });
     });
 
-    it('should include auth when apiKey is provided', () => {
+    it('should include auth when apiKeySecretRef is provided', () => {
       const result = buildEvaluationRequest({
         ...baseParams,
-        apiKey: 'my-secret',
+        apiKeySecretRef: 'my-model-credentials',
         benchmark: makeBenchmark(),
       });
-      expect(result.model.auth).toEqual({ secret_ref: 'my-secret' });
+      expect(result.model.auth).toEqual({ secret_ref: 'my-model-credentials' });
     });
 
-    it('should omit auth when apiKey is empty', () => {
+    it('should omit auth when apiKeySecretRef is empty', () => {
       const result = buildEvaluationRequest({
         ...baseParams,
         benchmark: makeBenchmark(),
@@ -132,10 +132,10 @@ describe('buildEvaluationRequest', () => {
       expect(result.model.url).toBe('');
     });
 
-    it('should not include model.auth even if apiKey is set', () => {
+    it('should not include model.auth even if apiKeySecretRef is set', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
-        apiKey: 'should-be-ignored',
+        apiKeySecretRef: 'should-be-ignored',
         benchmark: makeBenchmark(),
       });
       expect(result.model).not.toHaveProperty('auth');
