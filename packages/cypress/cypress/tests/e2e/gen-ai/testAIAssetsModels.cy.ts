@@ -164,6 +164,7 @@ describe('AI Assets Models - User Journeys', () => {
       cy.url().should('include', `/ai-hub/deployments/${projectName}`);
 
       cy.step('Navigate to Serving Runtimes settings to create custom serving runtime');
+      // Extended timeout for serving runtimes page navigation which can be slow in cluster environments
       cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
 
       cy.step('Click Add serving runtime button');
