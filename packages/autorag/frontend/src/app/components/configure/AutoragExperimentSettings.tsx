@@ -57,14 +57,12 @@ type AutoragExperimentSettingsProps = {
   isOpen: boolean;
   onClose: () => void;
   revertChanges: () => void;
-  saveChanges: () => void;
 };
 
 const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   isOpen,
   onClose,
   revertChanges,
-  saveChanges,
 }) => {
   const {
     control,
@@ -171,7 +169,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       <ModalFooter>
         <Button
           variant="primary"
-          onClick={saveChanges}
+          onClick={onClose}
           isDisabled={!isDirty || hasFieldErrors}
           data-testid="experiment-settings-save"
         >

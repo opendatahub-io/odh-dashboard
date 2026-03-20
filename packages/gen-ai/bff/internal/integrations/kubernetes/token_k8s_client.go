@@ -1083,14 +1083,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		// Determine model source type based on URL
-		sourceType := models.ModelSourceTypeExternalProvider
-		endpoint := fmt.Sprintf("external: %s", provider.Config.BaseURL)
-		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
-			sourceType = models.ModelSourceTypeExternalCluster
-			endpoint = fmt.Sprintf("internal: %s", provider.Config.BaseURL)
-		}
-
 		aaModel := models.AAModel{
 			ModelName:       model.ModelID,
 			ModelID:         model.ModelID,
@@ -1100,10 +1092,10 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Version:         "",
 			Usecase:         useCases,
 			Description:     "",
-			Endpoints:       []string{endpoint},
+			Endpoints:       []string{provider.Config.BaseURL},
 			Status:          "Running",
 			SAToken:         models.SAToken{},
-			ModelSourceType: sourceType,
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			ModelType:       model.ModelType,
 		}
 		aaModels = append(aaModels, aaModel)
@@ -1548,9 +1540,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 
-			// External models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddExternalProviderAndModel(extDetails.providerID, extDetails.providerType, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
-			kc.Logger.Info("Added external model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
+			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
+			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
 			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: extDetails.providerID, tokenEnvVar: ""}
@@ -1679,16 +1671,9 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 			return fmt.Errorf("provider at index %d has empty provider_id", i)
 		}
 
-		// Validate ProviderType is one of the allowed values
-		validProviderTypes := map[models.ProviderTypeEnum]bool{
-			models.ProviderTypeGemini:      true,
-			models.ProviderTypeOpenAI:      true,
-			models.ProviderTypeAnthropic:   true,
-			models.ProviderTypeVLLM:        true,
-			models.ProviderTypePassthrough: true,
-		}
-		if !validProviderTypes[provider.ProviderType] {
-			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be one of: remote::vllm, remote::openai, remote::anthropic, remote::gemini, remote::passthrough", provider.ProviderID, provider.ProviderType)
+		// Validate ProviderType is remote::openai
+		if provider.ProviderType != models.ProviderTypeOpenAI {
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai", provider.ProviderID, provider.ProviderType)
 		}
 
 		// Validate BaseURL is a well-formed URL with scheme and host
@@ -2293,9 +2278,9 @@ func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identit
 	// This prevents collisions when providers are deleted or reordered
 	maxID := 0
 	for _, provider := range config.Providers.Inference {
-		// Provider IDs are in format "external-model-provider-{id}"
+		// Provider IDs are in format "endpoint-{id}"
 		// Extract the numeric ID part
-		idStr := strings.TrimPrefix(provider.ProviderID, "external-model-provider-")
+		idStr := strings.TrimPrefix(provider.ProviderID, "endpoint-")
 		if id, err := strconv.Atoi(idStr); err == nil {
 			if id > maxID {
 				maxID = id
@@ -2377,10 +2362,10 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 
-	// Add new provider
+	// Add new provider (hardcoded to remote::openai)
 	newProvider := models.InferenceProvider{
-		ProviderID:   fmt.Sprintf("external-model-provider-%s", providerID),
-		ProviderType: req.ProviderType,
+		ProviderID:   fmt.Sprintf("endpoint-%s", providerID),
+		ProviderType: models.ProviderTypeOpenAI,
 		Config: models.ProviderConfig{
 			BaseURL: req.BaseURL,
 			CustomGenAI: models.CustomGenAI{
@@ -2394,16 +2379,14 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		},
 	}
 
-	// For Gemini and OpenAI providers with specific models, add allowed_models
-	if req.ProviderType == models.ProviderTypeGemini || req.ProviderType == models.ProviderTypeOpenAI {
-		newProvider.Config.AllowedModels = []string{req.ModelID}
-	}
+	// For OpenAI provider, add allowed_models
+	newProvider.Config.AllowedModels = []string{req.ModelID}
 
 	config.Providers.Inference = append(config.Providers.Inference, newProvider)
 
 	// Add new registered model
 	newModel := models.RegisteredModel{
-		ProviderID: fmt.Sprintf("external-model-provider-%s", providerID),
+		ProviderID: fmt.Sprintf("endpoint-%s", providerID),
 		ModelID:    req.ModelID,
 		ModelType:  req.ModelType,
 		Metadata: models.RegisteredModelMetadata{

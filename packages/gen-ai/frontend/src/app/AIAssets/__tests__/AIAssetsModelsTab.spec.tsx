@@ -31,7 +31,7 @@ jest.mock('~/app/hooks/useFetchLSDStatus', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useAiAssetExternalModelsEnabled', () => ({
+jest.mock('~/app/hooks/useAiAssetCustomEndpointsEnabled', () => ({
   __esModule: true,
   default: jest.fn(() => false),
 }));

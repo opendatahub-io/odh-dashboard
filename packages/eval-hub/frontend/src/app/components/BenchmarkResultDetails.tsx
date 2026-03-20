@@ -7,7 +7,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Icon,
   Label,
   Title,
 } from '@patternfly/react-core';
@@ -28,9 +27,15 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
     return null;
   }
 
-  const passStatus = result.test?.pass;
-  const primaryMetric = benchmarkConfig?.primary_score?.metric ?? '-';
+  const benchmarkStatus = job.status.benchmarks?.find((b) => b.id === benchmarkId);
+  const passStatus =
+    result.test?.pass ??
+    (benchmarkStatus?.status == null ? null : benchmarkStatus.status === 'completed');
+  const metricKeys = result.metrics ? Object.keys(result.metrics).toSorted() : [];
+  const primaryMetricName =
+    benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : '-');
   const threshold = benchmarkConfig?.pass_criteria?.threshold ?? job.pass_criteria?.threshold;
+  const providerLabel = result.provider_id ?? benchmarkConfig?.provider_id;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}`}>
@@ -45,8 +50,15 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
         {passStatus != null && (
           <FlexItem>
             <Label
+              variant="outline"
               color={passStatus ? 'green' : 'red'}
-              icon={<Icon isInline>{passStatus ? <CheckCircleIcon /> : <TimesCircleIcon />}</Icon>}
+              icon={
+                passStatus ? (
+                  <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                ) : (
+                  <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+                )
+              }
               data-testid={`details-pass-label-${benchmarkId}`}
             >
               {passStatus ? 'Pass' : 'Fail'}
@@ -54,13 +66,16 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
           </FlexItem>
         )}
       </Flex>
-      <Content
-        component="small"
-        className="pf-v6-u-mb-sm"
-        style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-      >
-        {benchmarkId}
-      </Content>
+      {providerLabel && (
+        <Content
+          component="small"
+          className="pf-v6-u-mb-sm"
+          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+          data-testid="benchmark-provider-label"
+        >
+          {providerLabel}
+        </Content>
+      )}
 
       <DescriptionList
         isHorizontal
@@ -71,7 +86,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Primary metric</DescriptionListTerm>
-          <DescriptionListDescription>{primaryMetric}</DescriptionListDescription>
+          <DescriptionListDescription>{primaryMetricName}</DescriptionListDescription>
         </DescriptionListGroup>
         {threshold != null && (
           <DescriptionListGroup>

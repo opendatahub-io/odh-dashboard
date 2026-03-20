@@ -1,12 +1,21 @@
 /* eslint-disable camelcase */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 
 const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
+}));
+
+jest.mock('mod-arch-core', () => ({
+  useNamespaceSelector: jest.fn().mockReturnValue({
+    namespaces: [{ name: 'test-ns' }],
+    updatePreferredNamespace: jest.fn(),
+    namespacesLoaded: true,
+    namespacesLoadError: undefined,
+  }),
 }));
 
 const mockUsePipelineRunQuery = jest.fn();

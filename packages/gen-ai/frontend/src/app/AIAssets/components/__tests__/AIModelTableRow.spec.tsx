@@ -393,24 +393,9 @@ describe('AIModelTableRow', () => {
   });
 
   describe('External models', () => {
-    it('should show "Add to playground" button for external_provider models', () => {
+    it('should show "Add to playground" button for custom_endpoint models', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
-        status: 'Running',
-      });
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
-      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
-    });
-
-    it('should show "Add to playground" button for external_cluster models', () => {
-      const model = createMockAIModel({
-        model_source_type: 'external_cluster',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       render(
@@ -425,7 +410,7 @@ describe('AIModelTableRow', () => {
 
     it('should open configuration modal when clicking "Add to playground" for external models', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       render(
@@ -443,7 +428,7 @@ describe('AIModelTableRow', () => {
     it('should handle external models already in playground', () => {
       const model = createMockAIModel({
         model_id: 'external-model-id',
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       const playgroundModel = createMockPlaygroundModel('external-model-id');
@@ -460,7 +445,7 @@ describe('AIModelTableRow', () => {
     it('should navigate to playground when clicking "Try in playground" for external models', () => {
       const model = createMockAIModel({
         model_id: 'external-model-id',
-        model_source_type: 'external_cluster',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       const playgroundModel = createMockPlaygroundModel('external-model-id');
@@ -483,7 +468,7 @@ describe('AIModelTableRow', () => {
 
     it('should disable "Add to playground" button for external models that are not Running', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Stop',
       });
       render(

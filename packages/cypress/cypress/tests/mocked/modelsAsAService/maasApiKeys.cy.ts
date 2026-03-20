@@ -17,8 +17,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        genAiStudio: true,
-        maasApiKeys: true,
       }),
     );
 
