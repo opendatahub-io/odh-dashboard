@@ -136,7 +136,7 @@ export const parseEndpointByPrefix = (
  */
 export const isClusterLocalURL = (rawURL: string): boolean => {
   try {
-    // TODO: Accept extra cluster domains from the isClusterLocalURL
+    // TODO: Accept extra cluster domains from the OdhDashboardConfig
     const url = new URL(rawURL);
     return url.hostname.endsWith('.svc.cluster.local');
   } catch {

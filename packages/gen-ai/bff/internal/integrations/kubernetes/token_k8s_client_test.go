@@ -781,18 +781,6 @@ func TestModelSourceTypeConstants(t *testing.T) {
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
-	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint"
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-	})
 
 	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
