@@ -165,10 +165,20 @@ Prefer PF layout components over raw CSS flex/grid:
 
 ### Responsive design
 
-Use PF component `breakpoint` props — do not write custom `@media` queries:
+PF components handle responsive behavior through their own breakpoint-aware props — the API varies per component. Do not write custom @media queries.
 
 ```tsx
-<ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+// Flex — responsive direction
+<Flex direction={{ default: 'column', md: 'row' }}>
+
+// Grid — responsive columns
+<GridItem sm={12} md={6} lg={4}>
+
+// DescriptionList — responsive columns
+<DescriptionList columnModifier={{ lg: '3Col' }}>
+
+// Th — responsive visibility
+<Th visibility={['hiddenOnMd', 'visibleOnLg']}>
 ```
 
 ## PF Wrapper Components
