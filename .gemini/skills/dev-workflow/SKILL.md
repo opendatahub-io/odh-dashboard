@@ -10,4 +10,4 @@ This skill's canonical instructions live in the Claude version. Read and follow:
 - **Workflow**: [.claude/skills/dev-workflow/SKILL.md](../../../.claude/skills/dev-workflow/SKILL.md)
 - **Reference**: [.claude/skills/dev-workflow/reference.md](../../../.claude/skills/dev-workflow/reference.md)
 
-Follow all phases described there. The instructions are generic and apply to any browser MCP (including `cursor-ide-browser` if available).
+Follow all phases described there.
