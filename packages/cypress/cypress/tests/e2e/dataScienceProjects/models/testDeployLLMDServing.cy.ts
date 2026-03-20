@@ -14,6 +14,7 @@ import {
   modelServingSection,
   modelServingWizard,
   deleteModelServingModal,
+  inferenceServiceActions,
 } from '../../../../pages/modelServing';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData } from '../../../../types';
@@ -143,11 +144,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
-      cy.get<string[]>('@copiedYAML')
-        .should('have.length.at.least', 1)
-        .then((copiedYAML) => {
-          expect(copiedYAML).to.have.length.greaterThan(0);
-        });
+      cy.get<string[]>('@copiedYAML').should('have.length.at.least', 1);
       modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
@@ -184,7 +181,8 @@ describe('A user can deploy an LLMD model', () => {
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
-      modelServingSection.getKServeRow(modelName).find().findKebabAction('Delete').click();
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findDeleteInferenceServiceAction().click();
       deleteModelServingModal.findInput().clear().type(modelName);
       deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
@@ -232,7 +230,8 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify the model Row');
       llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
-      modelServingSection.getKServeRow(yamlEditorModelName).find().findKebabAction('Edit').click();
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
       modelServingWizard.findYAMLEditFallbackAlert().should('exist');
       modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
