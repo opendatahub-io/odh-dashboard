@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useMergedModels from '~/app/hooks/useMergedModels';
@@ -8,15 +8,18 @@ import VectorStoresTable from '~/app/AIAssets/components/vectorstores/VectorStor
 
 const AIAssetsVectorStoresTab: React.FC = () => {
   const { data: vectorStores = [], loaded, error } = useFetchAAEVectorStores();
-  // below we include embedding models as that allows checking & displaying
-  // which embedding models are registered in llamastack
-  const { data: playgroundModels } = useFetchLlamaModels(
+  // load embedding models from llamastack to check which are "registered"
+  const {
+    data: playgroundModels,
+    loaded: playgroundModelsLoaded,
+    error: playgroundModelsError,
+  } = useFetchLlamaModels(
     undefined, // lsdNotReady
     true, // includeEmbeddingModels
   );
   const { models: allModels } = useMergedModels();
 
-  if (!loaded && !error) {
+  if ((!loaded || (!playgroundModelsLoaded && !playgroundModelsError)) && !error) {
     return (
       <Bullseye>
         <Spinner />
@@ -43,11 +46,24 @@ const AIAssetsVectorStoresTab: React.FC = () => {
   }
 
   return (
-    <VectorStoresTable
-      vectorStores={vectorStores}
-      allModels={allModels}
-      playgroundModels={playgroundModels}
-    />
+    <>
+      {playgroundModelsError && (
+        <Alert
+          variant="warning"
+          isInline
+          title="Playground model status unavailable"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          Embedding model registration status could not be loaded. Vector stores are shown, but
+          playground availability may be inaccurate.
+        </Alert>
+      )}
+      <VectorStoresTable
+        vectorStores={vectorStores}
+        allModels={allModels}
+        playgroundModels={playgroundModels}
+      />
+    </>
   );
 };
 

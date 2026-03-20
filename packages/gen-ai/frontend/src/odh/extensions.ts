@@ -136,7 +136,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
   {
     type: 'gen-ai.ai-assets/tab',
     flags: {
-      required: [AI_ASSET_VECTOR_STORES],
+      required: [PLUGIN_GEN_AI],
     },
     properties: {
       id: 'vectorstores',
