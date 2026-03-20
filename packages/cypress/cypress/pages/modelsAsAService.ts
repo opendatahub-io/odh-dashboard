@@ -435,7 +435,7 @@ class APIKeyTableRow extends TableRow {
 
 class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
-    super('Revoke API key?');
+    super('Revoke all your active keys?');
   }
 
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -453,7 +453,7 @@ class RevokeAPIKeyModal extends Modal {
   }
 
   findRevokeAllButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: 'Revoke keys' });
+    return cy.findByRole('button', { name: 'Permanently revoke all keys' });
   }
 
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {

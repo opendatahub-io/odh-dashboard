@@ -20,6 +20,7 @@ export const modelAvailabilityField: ModelAvailabilityField = {
   isActive: (wizardFormData) => {
     return (
       wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
+      !wizardFormData.modelType.data.legacyVLLM &&
       wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },

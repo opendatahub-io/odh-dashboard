@@ -9,7 +9,8 @@ const (
 	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
 	PipelineServerBaseURLKey    contextKey = "PipelineServerBaseURLKey"
 	DiscoveredPipelinesKey      contextKey = "DiscoveredPipelinesKey"
-	ModelRegistryHttpClientKey  contextKey = "ModelRegistryHttpClientKey"
+	ModelRegistryHttpClientKey contextKey = "ModelRegistryHttpClientKey"
+	DSPAObjectStorageKey       contextKey = "DSPAObjectStorageKey"
 
 	// The following keys are used to store the user access token in the context
 	RequestIdentityKey contextKey = "requestIdentityKey"

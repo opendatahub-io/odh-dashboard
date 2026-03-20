@@ -196,17 +196,26 @@ export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | strin
   isActive: (wizardFormData: RecursivePartial<WizardFormData['state']>) => boolean;
 };
 
+export type GenericFieldProps = {
+  isEditing?: boolean;
+};
+
 export type WizardField<
   FieldData = unknown,
   ExternalData = unknown,
+  Dependencies extends Record<string, unknown> = Record<string, unknown>,
 > = DeploymentWizardFieldBase<string> & {
-  type: 'addition';
+  type: 'addition' | 'replacement';
   parentId?: string;
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
-    // TODO: make dispatch function that clears if this field's dependencies are changing
     setFieldData: (fieldData: FieldData) => FieldData;
-    getInitialFieldData: (fieldData?: FieldData, externalData?: ExternalData) => FieldData;
+    getInitialFieldData: (
+      existingFieldData?: FieldData,
+      externalData?: ExternalData,
+      dependencies?: Dependencies,
+    ) => FieldData;
+    resolveDependencies?: (formData: WizardFormData['state']) => Dependencies;
     validationSchema?: z.ZodSchema<FieldData>;
   };
   externalDataHook?: (initialData?: InitialWizardFormData) => {
@@ -214,12 +223,15 @@ export type WizardField<
     loaded: boolean;
     loadError?: Error;
   };
-  component: React.FC<{
-    id: string;
-    value: FieldData;
-    onChange: (value: FieldData) => void;
-    externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
-  }>;
+  component: React.FC<
+    {
+      id: string;
+      value: FieldData;
+      onChange: (value: FieldData) => void;
+      externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
+      dependencies?: Dependencies;
+    } & GenericFieldProps
+  >;
   getReviewSections?: (
     value: FieldData,
     wizardState: WizardFormData['state'],
