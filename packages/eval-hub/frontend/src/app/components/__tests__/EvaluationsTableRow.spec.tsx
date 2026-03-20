@@ -89,6 +89,7 @@ describe('EvaluationsTableRow', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+    expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');
   });
 
   it('should render model name in the Type column', () => {

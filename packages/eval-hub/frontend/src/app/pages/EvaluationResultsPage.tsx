@@ -47,10 +47,15 @@ const EvaluationResultsPage: React.FC = () => {
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
 
   React.useEffect(() => {
-    if (benchmarkIds.length > 0 && selectedBenchmarkId === null) {
-      setSelectedBenchmarkId(benchmarkIds[0]);
+    if (benchmarkIds.length > 0) {
+      setSelectedBenchmarkId((prev) =>
+        prev === null || !benchmarkIds.includes(prev) ? benchmarkIds[0] : prev,
+      );
+    } else {
+      setSelectedBenchmarkId(null);
     }
-  }, [benchmarkIds, selectedBenchmarkId]);
+    setShowAllBenchmarks(false);
+  }, [benchmarkIds]);
 
   const visibleBenchmarkIds = showAllBenchmarks
     ? benchmarkIds
