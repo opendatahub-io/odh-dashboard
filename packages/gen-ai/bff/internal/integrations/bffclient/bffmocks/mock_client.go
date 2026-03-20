@@ -60,8 +60,8 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 		// MaaS BFF wraps responses in {"data": ...} envelope
 		tokenResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"token":     "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
-				"expiresAt": time.Now().Add(4 * time.Hour).Unix(),
+				"key":       "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"expiresAt": time.Now().Add(4 * time.Hour).Format(time.RFC3339),
 			},
 		}
 		return marshalToResponse(tokenResp, response)
