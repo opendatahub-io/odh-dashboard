@@ -9,10 +9,12 @@ import {
  * Hook to access genAiStudioConfig from the dashboard configuration.
  */
 const useGenAiDashboardConfig = (): DashboardConfigData['genAiStudioConfig'] => {
-  const configExtensions = useExtensions(isDashboardConfigExtension);
+  const allExtensions = useExtensions(isDashboardConfigExtension);
 
   return React.useMemo(() => {
-    const configExtension = configExtensions.find(
+    // Filter by type guard first, then find by ID
+    const dashboardConfigExtensions = allExtensions.filter(isDashboardConfigExtension);
+    const configExtension = dashboardConfigExtensions.find(
       (ext) => ext.properties.id === 'dashboard-config',
     );
 
@@ -22,7 +24,7 @@ const useGenAiDashboardConfig = (): DashboardConfigData['genAiStudioConfig'] => 
 
     // Extract genAiStudioConfig from the full dashboard config spec
     return configExtension.properties.config.genAiStudioConfig;
-  }, [configExtensions]);
+  }, [allExtensions]);
 };
 
 export default useGenAiDashboardConfig;
