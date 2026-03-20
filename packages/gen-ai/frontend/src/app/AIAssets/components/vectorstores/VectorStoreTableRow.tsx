@@ -76,7 +76,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
       </Td>
       <Td dataLabel="Embedding model">
         {isDisabled && (
-          <h4
+          <div
             style={{
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
               display: 'flex',
@@ -89,7 +89,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
               <ExclamationTriangleIcon />
             </Icon>
             Missing model
-          </h4>
+          </div>
         )}
         <span
           style={{
