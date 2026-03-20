@@ -12,8 +12,21 @@ export const getTopLevelExtensions = <E extends NavExtension>(extensions: E[]): 
     extensions.filter((e) => isNavSectionExtension(e)).map((e) => e.properties.id),
   );
 
-  // Filter top-level extensions (no section)
-  const topLevel = extensions.filter((e) => !e.properties.section).toSorted(compareNavItemGroups);
+  // Filter top-level extensions (no section), deduplicating sections by id so that
+  // multiple plugins can register the same section without creating duplicate nav entries.
+  const seenSectionIds = new Set<string>();
+  const topLevel = extensions
+    .filter((e) => !e.properties.section)
+    .toSorted(compareNavItemGroups)
+    .filter((e) => {
+      if (isNavSectionExtension(e)) {
+        if (seenSectionIds.has(e.properties.id)) {
+          return false;
+        }
+        seenSectionIds.add(e.properties.id);
+      }
+      return true;
+    });
 
   // Find extensions with sections that don't exist
   const orphanedExtensions = extensions.filter(

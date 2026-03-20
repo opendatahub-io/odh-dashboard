@@ -44,7 +44,6 @@ export type MockDashboardConfigType = {
   autorag?: boolean;
   modelAsService?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
@@ -77,7 +76,6 @@ export const mockDashboardConfig = ({
   autorag = false,
   modelAsService = true,
   aiAssetCustomEndpoints = true,
-  maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -264,7 +262,6 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
