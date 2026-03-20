@@ -76,6 +76,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		for _, store := range response.Data {
 			assert.NotEmpty(t, store.VectorStoreID, "Store should have a vector_store_id")
 			assert.NotEmpty(t, store.VectorStoreName, "Store should have a vector_store_name")
+			assert.NotEmpty(t, store.ProviderID, "Store should have a provider_id")
 			assert.NotEmpty(t, store.ProviderType, "Store should have a provider_type")
 			assert.NotEmpty(t, store.EmbeddingModel, "Store should have an embedding_model")
 			assert.Greater(t, store.EmbeddingDimension, 0, "Store should have a positive embedding_dimension")
