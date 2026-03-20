@@ -25,6 +25,10 @@ beforeEach(() => {
   jest.resetModules();
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('getPluginPackageDetails', () => {
   it('should return plugin packages with short names and locations, excluding internal', () => {
     jest.doMock('child_process', () => ({
@@ -72,7 +76,6 @@ describe('getPluginPackageDetails', () => {
       'Error querying workspaces with npm query:',
       'npm query failed',
     );
-    warnSpy.mockRestore();
   });
 
   it('should strip the org scope to produce shortName', () => {
@@ -129,7 +132,6 @@ describe('getPluginPackageDetails', () => {
       },
     ]);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('@odh-dashboard/no-path-plugin'));
-    warnSpy.mockRestore();
   });
 
   it('should cache the failure so subsequent calls do not re-run execSync', () => {
@@ -137,7 +139,7 @@ describe('getPluginPackageDetails', () => {
       throw new Error('npm query failed');
     });
     jest.doMock('child_process', () => ({ execSync: mockExecSync }));
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const {
       getPluginPackageDetails,
@@ -148,7 +150,6 @@ describe('getPluginPackageDetails', () => {
     discoverPluginPackages();
 
     expect(mockExecSync).toHaveBeenCalledTimes(1);
-    warnSpy.mockRestore();
   });
 
   it('should memoize the npm query call across multiple invocations', () => {
