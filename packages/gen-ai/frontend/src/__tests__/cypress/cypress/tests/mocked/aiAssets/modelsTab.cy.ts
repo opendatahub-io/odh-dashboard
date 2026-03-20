@@ -68,6 +68,10 @@ describe('AI Assets - Models Tab', () => {
     'should display models table with different model types and sources',
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
     () => {
+      cy.step('Wait for models API calls to complete');
+      cy.wait('@aaModels');
+      cy.wait('@maasModels');
+
       cy.step('Verify the models table is visible');
       modelsTabPage.findTable().should('be.visible');
 
@@ -104,33 +108,18 @@ describe('AI Assets - Models Tab', () => {
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
     () => {
       cy.step('Filter by model name');
-      cy.findByTestId('models-table-toolbar')
-        .findByRole('button', { name: /Filter toggle/i })
-        .click();
-      cy.findByRole('menuitem', { name: 'Name' }).click();
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').clear();
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('Llama');
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('{enter}');
-      cy.contains('Active filters:').should('exist');
-      cy.contains('Name: Llama').should('exist');
+      modelsTabPage.filterByName('Llama');
+      modelsTabPage.findActiveFilterChip('name').should('exist');
       modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
       modelsTabPage.getRow('Llama 70B MaaS').find().should('exist');
 
       cy.step('Clear filters');
-      cy.findByTestId('models-table-toolbar')
-        .findByRole('button', { name: /Clear all filters/i })
-        .click();
+      modelsTabPage.clearFilters();
       modelsTabPage.findTableRows().should('have.length', 4);
 
       cy.step('Filter by use case');
-      cy.findByTestId('models-table-toolbar')
-        .findByRole('button', { name: /Filter toggle/i })
-        .click();
-      cy.findByRole('menuitem', { name: 'Use Case' }).click();
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').clear();
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('embedding');
-      cy.findByTestId('models-table-toolbar').findByRole('textbox').type('{enter}');
-      cy.contains('Use Case: embedding').should('exist');
+      modelsTabPage.filterByUseCase('embedding');
+      modelsTabPage.findActiveFilterChip('useCase').should('exist');
       modelsTabPage.getRow('Embedding Model').find().should('exist');
     },
   );

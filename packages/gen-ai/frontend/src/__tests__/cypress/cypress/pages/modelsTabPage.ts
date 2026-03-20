@@ -60,6 +60,45 @@ class ModelsTabPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state');
   }
+
+  findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('models-table-toolbar');
+  }
+
+  findFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToolbar().findByRole('button', { name: /Filter toggle/i });
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToolbar().findByRole('textbox');
+  }
+
+  findClearFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToolbar().findByRole('button', { name: /Clear all filters/i });
+  }
+
+  selectFilterType(filterType: string): void {
+    this.findFilterToggle().click();
+    cy.findByRole('menuitem', { name: filterType }).click();
+  }
+
+  filterByName(name: string): void {
+    this.selectFilterType('Name');
+    this.findSearchInput().clear().type(`${name}{enter}`);
+  }
+
+  filterByUseCase(useCase: string): void {
+    this.selectFilterType('Use Case');
+    this.findSearchInput().clear().type(`${useCase}{enter}`);
+  }
+
+  clearFilters(): void {
+    this.findClearFiltersButton().click();
+  }
+
+  findActiveFilterChip(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-chip-${filterKey}`);
+  }
 }
 
 class EndpointModalPage {
