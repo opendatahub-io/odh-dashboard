@@ -88,8 +88,7 @@ registered_resources:
 | GET | `/api/v1/aaa/vectorstores` | Flat array of summaries (AI Available Assets sidebar) |
 
 Both endpoints return `ExternalVectorStoreSummary` objects. Provider `config` and `secretRefs`
-are not included in the response — they exist only in the parsed provider struct used for
-`distance_metric` resolution. The `/vectorstores/external` endpoint additionally includes `config_map_info` and
+are not included in the response. The `/vectorstores/external` endpoint additionally includes `config_map_info` and
 `total_count`.
 
 ### Embedding Model Status
