@@ -46,6 +46,10 @@ func main() {
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
 
+	// NeMo Guardrails configuration
+	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
+	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")
+
 	// MaaS configuration
 	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
 
