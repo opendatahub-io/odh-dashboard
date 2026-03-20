@@ -10,10 +10,6 @@ import { LLMD_SERVING_ID } from '../extensions/extensions';
 
 export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
 export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
-export const MAAS_DEFAULT_GATEWAY = {
-  name: 'maas-default-gateway',
-  namespace: 'openshift-ingress',
-} as const;
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
