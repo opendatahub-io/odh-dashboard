@@ -101,11 +101,29 @@
 /* Header row styling */
 .automl-model-details-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--pf-t--global--spacer--xl);
   padding-bottom: var(--pf-t--global--spacer--md);
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
   margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.automl-model-details-header-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.automl-model-details-header-metrics {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pf-t--global--spacer--xl);
+}
+
+.automl-model-details-header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
 }
 
 .automl-model-details-header-item {
@@ -125,6 +143,83 @@
 }
 
 /* Model information description list */
+/* Print-only container: hidden on screen, visible when printing */
+.automl-model-details-print-only {
+  display: none;
+}
+
+@media print {
+  /* Hide everything except the print container */
+  body > *:not(.pf-v6-c-backdrop) {
+    display: none !important;
+  }
+
+  .pf-v6-c-backdrop {
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  .automl-model-details-modal {
+    position: static !important;
+    max-width: none !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide the screen-only interactive content */
+  .automl-model-details-screen-only,
+  .automl-model-details-header,
+  .pf-v6-c-modal-box__close {
+    display: none !important;
+  }
+
+  /* Show the print container */
+  .automl-model-details-print-only {
+    display: block !important;
+  }
+
+  .automl-print-header {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #000;
+
+    h1 {
+      font-size: 24px;
+      margin: 0;
+    }
+
+    p {
+      font-size: 14px;
+      color: #555;
+      margin: 4px 0 0;
+    }
+  }
+
+  /* Hide PF modal header (close button area) */
+  .pf-v6-c-modal-box__header {
+    display: none !important;
+  }
+
+  /* Each tab on its own page; first tab flows after header without page break */
+  .automl-print-page {
+    page-break-before: always;
+    padding-top: 16px;
+  }
+
+  .automl-print-header + .automl-print-page {
+    page-break-before: avoid;
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ccc;
+    }
+  }
+}
+
 .automl-model-info-list {
   --pf-v6-c-description-list--m-horizontal__term--width: 10rem;
 
@@ -144,26 +239,3 @@
   }
 }
 
-/* Print styles for PDF download */
-@media print {
-  .pf-v6-c-backdrop {
-    background: none !important;
-  }
-
-  .pf-v6-c-modal-box__close,
-  .automl-model-details-sidebar,
-  .automl-model-details-header button,
-  .automl-model-details-header .pf-v6-c-dropdown {
-    display: none !important;
-  }
-
-  .pf-v6-c-modal-box {
-    box-shadow: none !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  .pf-v6-c-modal-box__body {
-    overflow: visible !important;
-  }
-}

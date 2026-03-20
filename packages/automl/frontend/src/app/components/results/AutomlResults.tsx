@@ -8,52 +8,54 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import type { ModelArtifact } from '~/app/types';
+import type { ModelArtifact, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
 import {
   mockBinaryModels,
   mockMulticlassModels,
   mockRegressionModels,
-  mockFeatureImportance,
-  mockBinaryConfusionMatrix,
-  mockMulticlassConfusionMatrix,
+  mockBinaryFeatureImportances,
+  mockMulticlassFeatureImportances,
+  mockRegressionFeatureImportances,
+  mockBinaryConfusionMatrices,
+  mockMulticlassConfusionMatrices,
 } from '~/app/mocks/mockModelArtifact';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 
 type TaskTypeSection = {
   label: string;
   models: ModelArtifact[];
+  featureImportances: FeatureImportanceData[];
+  confusionMatrices?: ConfusionMatrixData[];
 };
 
 const TASK_TYPE_SECTIONS: TaskTypeSection[] = [
-  { label: 'Binary', models: mockBinaryModels },
-  { label: 'Multiclass', models: mockMulticlassModels },
-  { label: 'Regression', models: mockRegressionModels },
+  {
+    label: 'Binary',
+    models: mockBinaryModels,
+    featureImportances: mockBinaryFeatureImportances,
+    confusionMatrices: mockBinaryConfusionMatrices,
+  },
+  {
+    label: 'Multiclass',
+    models: mockMulticlassModels,
+    featureImportances: mockMulticlassFeatureImportances,
+    confusionMatrices: mockMulticlassConfusionMatrices,
+  },
+  {
+    label: 'Regression',
+    models: mockRegressionModels,
+    featureImportances: mockRegressionFeatureImportances,
+  },
 ];
 
-type SelectedModel = {
-  model: ModelArtifact;
-  index: number;
+type ModalState = {
+  section: TaskTypeSection;
+  selectedIndex: number;
 };
 
-function getMockSupplementaryData(model: ModelArtifact) {
-  const taskType = model.context.task_type;
-
-  const confusionMatrixByType: Partial<Record<string, typeof mockBinaryConfusionMatrix>> = {
-    binary: mockBinaryConfusionMatrix,
-    multiclass: mockMulticlassConfusionMatrix,
-  };
-
-  return {
-    featureImportance: mockFeatureImportance,
-    confusionMatrix: confusionMatrixByType[taskType],
-  };
-}
-
 function AutomlResults(): React.JSX.Element {
-  const [selected, setSelected] = React.useState<SelectedModel | null>(null);
+  const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
-
-  const supplementaryData = selected ? getMockSupplementaryData(selected.model) : undefined;
 
   return (
     <Stack hasGutter>
@@ -66,7 +68,7 @@ function AutomlResults(): React.JSX.Element {
             isOpen={openDropdown === section.label}
             onSelect={(_e, value) => {
               const index = Number(value);
-              setSelected({ model: section.models[index], index });
+              setModalState({ section, selectedIndex: index });
               setOpenDropdown(null);
             }}
             onOpenChange={(isOpen) => setOpenDropdown(isOpen ? section.label : null)}
@@ -93,15 +95,16 @@ function AutomlResults(): React.JSX.Element {
           </Dropdown>
         </StackItem>
       ))}
-      {selected && supplementaryData && (
+      {modalState && (
         <AutomlModelDetailsModal
           isOpen
-          onClose={() => setSelected(null)}
-          model={selected.model}
-          rank={selected.index + 1}
+          onClose={() => setModalState(null)}
+          models={modalState.section.models}
+          selectedIndex={modalState.selectedIndex}
+          onSelectModel={(index) => setModalState({ ...modalState, selectedIndex: index })}
           createdAt="2026-02-17T12:30:24Z"
-          featureImportance={supplementaryData.featureImportance}
-          confusionMatrix={supplementaryData.confusionMatrix}
+          featureImportance={modalState.section.featureImportances[modalState.selectedIndex]}
+          confusionMatrix={modalState.section.confusionMatrices?.[modalState.selectedIndex]}
         />
       )}
     </Stack>

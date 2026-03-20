@@ -165,65 +165,134 @@ export const mockRegressionModels: ModelArtifact[] = buildMockModels({
 });
 
 // ---------------------------------------------------------------------------
-// Supplementary data (feature importance, confusion matrix)
+// Per-model supplementary data (feature importance, confusion matrix)
 // ---------------------------------------------------------------------------
 
-export const mockFeatureImportance: FeatureImportanceData = {
-  importance: {
-    Sex: 0.1203,
-    Pclass: 0.0852,
-    Fare: 0.0741,
-    Age: 0.0698,
-    Cabin: 0.0423,
-    Embarked: 0.0312,
-    SibSp: 0.0187,
+export const mockBinaryFeatureImportances: FeatureImportanceData[] = [
+  {
+    importance: {
+      Sex: 0.1203,
+      Pclass: 0.0852,
+      Fare: 0.0741,
+      Age: 0.0698,
+      Cabin: 0.0423,
+      Embarked: 0.0312,
+      SibSp: 0.0187,
+    },
   },
-  stddev: {
-    Sex: 0.012,
-    Pclass: 0.009,
-    Fare: 0.011,
-    Age: 0.008,
-    Cabin: 0.007,
-    Embarked: 0.005,
-    SibSp: 0.003,
+  {
+    importance: {
+      Fare: 0.1105,
+      Sex: 0.0983,
+      Age: 0.0812,
+      Pclass: 0.0654,
+      Cabin: 0.0398,
+      SibSp: 0.0245,
+      Embarked: 0.0201,
+    },
   },
-  p_value: {
-    Sex: 0.001,
-    Pclass: 0.002,
-    Fare: 0.003,
-    Age: 0.004,
-    Cabin: 0.01,
-    Embarked: 0.02,
-    SibSp: 0.05,
+  {
+    importance: {
+      Sex: 0.135,
+      Fare: 0.092,
+      Pclass: 0.078,
+      Age: 0.056,
+      Embarked: 0.041,
+      Cabin: 0.035,
+      SibSp: 0.015,
+    },
   },
-  n: { Sex: 30, Pclass: 30, Fare: 30, Age: 30, Cabin: 30, Embarked: 30, SibSp: 30 },
-  p99_high: {
-    Sex: 0.145,
-    Pclass: 0.103,
-    Fare: 0.096,
-    Age: 0.086,
-    Cabin: 0.056,
-    Embarked: 0.041,
-    SibSp: 0.025,
-  },
-  p99_low: {
-    Sex: 0.096,
-    Pclass: 0.067,
-    Fare: 0.052,
-    Age: 0.054,
-    Cabin: 0.029,
-    Embarked: 0.021,
-    SibSp: 0.012,
-  },
-};
+];
 
-export const mockBinaryConfusionMatrix: ConfusionMatrixData = {
-  'Not Survived': { 'Not Survived': 492, Survived: 57 },
-  Survived: { 'Not Survived': 89, Survived: 253 },
-};
+export const mockMulticlassFeatureImportances: FeatureImportanceData[] = [
+  {
+    importance: {
+      color: 0.183,
+      hair_length: 0.125,
+      has_soul: 0.098,
+      bone_length: 0.076,
+      rotting_flesh: 0.054,
+    },
+  },
+  {
+    importance: {
+      hair_length: 0.152,
+      color: 0.141,
+      bone_length: 0.089,
+      rotting_flesh: 0.072,
+      has_soul: 0.065,
+    },
+  },
+  {
+    importance: {
+      color: 0.169,
+      bone_length: 0.11,
+      hair_length: 0.105,
+      has_soul: 0.081,
+      rotting_flesh: 0.063,
+    },
+  },
+];
 
-export const mockMulticlassConfusionMatrix: ConfusionMatrixData = {
-  Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
-  Ghoul: { Ghost: 1, Ghoul: 10, Goblin: 2 },
-  Goblin: { Ghost: 2, Ghoul: 6, Goblin: 5 },
-};
+export const mockRegressionFeatureImportances: FeatureImportanceData[] = [
+  {
+    importance: {
+      rotting_flesh: 0.1485,
+      hair_length: 0.123,
+      has_soul: 0.089,
+      color: 0.065,
+      bone_length: 0.041,
+    },
+  },
+  {
+    importance: {
+      hair_length: 0.161,
+      rotting_flesh: 0.118,
+      color: 0.095,
+      has_soul: 0.072,
+      bone_length: 0.053,
+    },
+  },
+  {
+    importance: {
+      rotting_flesh: 0.132,
+      color: 0.115,
+      hair_length: 0.102,
+      bone_length: 0.068,
+      has_soul: 0.055,
+    },
+  },
+];
+
+export const mockBinaryConfusionMatrices: ConfusionMatrixData[] = [
+  {
+    'Not Survived': { 'Not Survived': 492, Survived: 57 },
+    Survived: { 'Not Survived': 89, Survived: 253 },
+  },
+  {
+    'Not Survived': { 'Not Survived': 478, Survived: 71 },
+    Survived: { 'Not Survived': 102, Survived: 240 },
+  },
+  {
+    'Not Survived': { 'Not Survived': 465, Survived: 84 },
+    Survived: { 'Not Survived': 115, Survived: 227 },
+  },
+];
+
+export const mockMulticlassConfusionMatrices: ConfusionMatrixData[] = [
+  {
+    Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
+    Ghoul: { Ghost: 1, Ghoul: 10, Goblin: 2 },
+    Goblin: { Ghost: 2, Ghoul: 6, Goblin: 5 },
+  },
+  {
+    Ghost: { Ghost: 9, Ghoul: 1, Goblin: 2 },
+    Ghoul: { Ghost: 2, Ghoul: 8, Goblin: 3 },
+    Goblin: { Ghost: 1, Ghoul: 5, Goblin: 7 },
+  },
+  {
+    Ghost: { Ghost: 8, Ghoul: 2, Goblin: 2 },
+    Ghoul: { Ghost: 3, Ghoul: 7, Goblin: 3 },
+    Goblin: { Ghost: 2, Ghoul: 4, Goblin: 7 },
+  },
+];
