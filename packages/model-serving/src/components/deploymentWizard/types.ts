@@ -245,7 +245,7 @@ export type WizardField<
       externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
       dependencies?: Dependencies;
       isDisabled?: boolean;
-  } & GenericFieldProps
+    } & GenericFieldProps
   >;
   getReviewSections?: (
     value: FieldData,
