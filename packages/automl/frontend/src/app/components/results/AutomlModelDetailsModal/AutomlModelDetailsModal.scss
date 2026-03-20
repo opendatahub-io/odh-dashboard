@@ -57,6 +57,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
     font-weight: var(--pf-t--global--font--weight--body--default);
@@ -67,6 +68,7 @@
 .automl-model-details-tab-content {
   margin-top: var(--pf-t--global--spacer--lg);
   font-size: var(--pf-t--global--font--size--md);
+  padding-left: var(--pf-t--global--spacer--xl);
 
   /* Bold sub-section headers within tab content */
   .pf-v6-c-title {
@@ -85,10 +87,10 @@
   display: flex;
   justify-content: space-between;
   margin-top: var(--pf-t--global--spacer--md);
-  padding: var(--pf-t--global--spacer--xs) 0;
-  background: linear-gradient(to right, rgba(144, 164, 174, 0.5), rgba(56, 142, 60, 0.5));
+  padding: var(--pf-t--global--spacer--sm) 0;
+  background: linear-gradient(to right, rgba(144, 164, 174, 0.5) 0%, #fff 45%, #fff 55%, rgba(56, 142, 60, 0.5) 100%);
   border-radius: 4px;
-  font-size: var(--pf-t--global--font--size--xs);
+  font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
 
   span {

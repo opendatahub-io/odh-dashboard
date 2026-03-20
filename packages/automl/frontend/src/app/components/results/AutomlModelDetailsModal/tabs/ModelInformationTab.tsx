@@ -22,10 +22,6 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ model, createdAt }) =>
           <DescriptionListDescription>{context.label_column}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Algorithm</DescriptionListTerm>
-          <DescriptionListDescription>{model.display_name}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
           <DescriptionListTerm>Evaluation metric</DescriptionListTerm>
           <DescriptionListDescription>
             {typeof context.model_config.eval_metric === 'string'

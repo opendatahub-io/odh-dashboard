@@ -12,10 +12,15 @@ function getCellStyle(
 ): React.CSSProperties {
   const isDiagonal = rowLabel === colLabel;
   const intensity = maxValue > 0 ? value / maxValue : 0;
-  const alpha = 0.15 + intensity * 0.45;
+  const alpha = intensity * 0.6;
 
   return {
-    backgroundColor: isDiagonal ? `rgba(56, 142, 60, ${alpha})` : `rgba(144, 164, 174, ${alpha})`,
+    backgroundColor:
+      alpha > 0
+        ? isDiagonal
+          ? `rgba(56, 142, 60, ${alpha})`
+          : `rgba(144, 164, 174, ${alpha})`
+        : 'transparent',
     textAlign: 'center',
     fontWeight: isDiagonal ? 600 : 400,
   };

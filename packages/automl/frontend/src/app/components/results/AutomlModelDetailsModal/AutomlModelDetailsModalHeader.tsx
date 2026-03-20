@@ -52,10 +52,6 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
           </span>
         </div>
       )}
-      <div className="automl-model-details-header-item">
-        <span className="automl-model-details-header-label">Algorithm</span>
-        <span className="automl-model-details-header-value">{model.display_name}</span>
-      </div>
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
         <Button
           variant="secondary"
