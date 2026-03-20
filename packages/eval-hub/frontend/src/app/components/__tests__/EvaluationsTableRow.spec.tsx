@@ -82,6 +82,12 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('85%');
   });
 
+  it('should render result percentage when metrics exist without pass/fail test', () => {
+    // eslint-disable-next-line camelcase
+    renderRow({ metrics: { acc: 0.7, acc_norm: 0.6 } });
+    expect(screen.getByTestId('evaluation-result')).toHaveTextContent('70%');
+  });
+
   it('should render dash for result when no metrics', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');

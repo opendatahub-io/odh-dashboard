@@ -135,7 +135,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {formatDate(job.resource.created_at)}
         </Td>
         <Td dataLabel="Result" data-testid="evaluation-result">
-          {getResultPass(job) === true ? getResultScore(job) : '-'}
+          {getResultPass(job) === false ? '-' : getResultScore(job)}
         </Td>
         <Td isActionCell data-testid="evaluation-kebab">
           {actions.length > 0 && <ActionsColumn items={actions} />}

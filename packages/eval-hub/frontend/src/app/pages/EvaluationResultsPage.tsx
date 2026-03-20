@@ -12,10 +12,9 @@ import {
 } from '@patternfly/react-core';
 import {
   CalendarAltIcon,
-  CubesIcon,
-  FlaskIcon,
-  MapMarkerAltIcon,
+  ClipboardListIcon,
   OutlinedClockIcon,
+  ProjectDiagramIcon,
 } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -80,20 +79,9 @@ const EvaluationResultsPage: React.FC = () => {
           </Content>
         </FlexItem>
       )}
-      {formatDuration(job.resource.created_at, job.resource.updated_at) && (
-        <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <OutlinedClockIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
-            {formatDuration(job.resource.created_at, job.resource.updated_at)}
-          </Content>
-        </FlexItem>
-      )}
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <CubesIcon
+          <ProjectDiagramIcon
             className="pf-v6-u-mr-xs"
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
@@ -102,7 +90,7 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <FlaskIcon
+          <ClipboardListIcon
             className="pf-v6-u-mr-xs"
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
@@ -111,14 +99,14 @@ const EvaluationResultsPage: React.FC = () => {
             : getBenchmarkName(job)}
         </Content>
       </FlexItem>
-      {job.model.url && (
+      {formatDuration(job.resource.created_at, job.resource.updated_at) && (
         <FlexItem>
           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <MapMarkerAltIcon
+            <OutlinedClockIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
             />
-            {job.model.url}
+            {formatDuration(job.resource.created_at, job.resource.updated_at)}
           </Content>
         </FlexItem>
       )}
