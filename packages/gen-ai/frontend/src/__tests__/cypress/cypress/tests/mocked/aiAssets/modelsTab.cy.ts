@@ -30,7 +30,7 @@ describe('AI Assets - Models Tab', () => {
           status: 'Running',
           model_source_type: 'custom_endpoint',
           model_type: 'llm',
-          endpoints: ['external: https://api.openai.com/v1/models/gpt-4'],
+          endpoints: ['https://api.openai.com/v1/models/gpt-4'],
         },
         {
           model_name: 'Embedding-Model',
@@ -41,7 +41,7 @@ describe('AI Assets - Models Tab', () => {
           status: 'Stop',
           model_source_type: 'custom_endpoint',
           model_type: 'embedding',
-          endpoints: ['internal: http://embedding.cluster.local:8080'],
+          endpoints: ['http://embedding.cluster.local:8080'],
         },
       ],
       maasModels: [
