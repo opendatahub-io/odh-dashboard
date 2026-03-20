@@ -1236,11 +1236,11 @@ func TestGetProviderDataRouting(t *testing.T) {
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		logger:                   logger,
-		llamaStackClientFactory:  llamaStackClientFactory,
-		repositories:             repositories.NewRepositories(),
-		kubernetesClientFactory:  mockK8sFactory,
-		memoryStore:              memStore,
+		logger:                  logger,
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+		kubernetesClientFactory: mockK8sFactory,
+		memoryStore:             memStore,
 	}
 
 	t.Run("should call custom endpoint provider secret for custom_endpoint model_source_type", func(t *testing.T) {
