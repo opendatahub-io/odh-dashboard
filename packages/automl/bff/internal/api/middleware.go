@@ -226,8 +226,10 @@ func (app *App) AttachModelRegistryClient(next func(http.ResponseWriter, *http.R
 			if ok && identity != nil && identity.Token != "" {
 				tokenToForward = identity.Token
 			}
-			// Fallback: if token from configured header is suspiciously short (< 20 chars, e.g. "Bearer" or "sha256")
-			// but Authorization header has a longer value, use Authorization (strip "Bearer " if present)
+			// Fallback: OpenShift oauth tokens (sha256~...) are typically 50+ chars; values like
+			// "Bearer" alone (7) or truncated prefixes suggest the configured header (e.g.
+			// X-Forwarded-Access-Token) may be empty/malformed while Authorization has the real token.
+			// Threshold 20 is heuristic; legitimate short tokens are rare.
 			if len(tokenToForward) < 20 {
 				if authHeaderValue := r.Header.Get("Authorization"); authHeaderValue != "" {
 					fallbackToken := strings.TrimSpace(authHeaderValue)

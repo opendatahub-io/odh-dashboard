@@ -203,7 +203,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
 
 	// Model Registry - register model binary (requires MODEL_REGISTRY_BASE_URL)
-	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachModelRegistryClient(app.RegisterModelHandler))))
+	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
+	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.AttachModelRegistryClient(app.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

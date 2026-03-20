@@ -28,6 +28,11 @@ func NewModelRegistryRepository() *ModelRegistryRepository {
 
 // RegisterModel creates a RegisteredModel, ModelVersion, and ModelArtifact in sequence,
 // linking the artifact to the provided S3 URI.
+//
+// Note: No rollback on partial failure — if step 2 (ModelVersion) or step 3 (ModelArtifact)
+// fails, resources created in prior steps remain in the registry. The Model Registry API
+// would need DELETE support to implement cleanup; consider manual cleanup of orphaned
+// RegisteredModels if failures occur.
 func (m *ModelRegistryRepository) RegisterModel(
 	client modelregistry.HTTPClientInterface,
 	req models.RegisterModelRequest,

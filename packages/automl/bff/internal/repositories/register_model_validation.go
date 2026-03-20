@@ -8,7 +8,8 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
-// S3 path pattern: s3://bucket-name/path or s3a://bucket/path (must have bucket and path)
+// S3 path pattern: s3://bucket-name/path or s3a://bucket/path (must have bucket and path).
+// s3a:// is Hadoop's S3-compatible URI scheme; included for compatibility with Spark/ML pipelines.
 var s3PathRegex = regexp.MustCompile(`^s3[a]?://[^/]+/.+`)
 
 // ValidateRegisterModelRequest validates the RegisterModelRequest.

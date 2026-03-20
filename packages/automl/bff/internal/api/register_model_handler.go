@@ -33,11 +33,12 @@ type RegisterModelEnvelope Envelope[*openapi.ModelArtifact, None]
 //
 // Error Responses:
 //   - 400: Invalid request body, missing required fields, or invalid S3 path
-//   - 500: Model Registry not configured, API error, or internal server error
+//   - 503: Model Registry not configured (MODEL_REGISTRY_BASE_URL unset)
+//   - 500: Model Registry API error or internal server error
 func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	client, ok := r.Context().Value(constants.ModelRegistryHttpClientKey).(modelregistry.HTTPClientInterface)
 	if !ok || client == nil {
-		app.serverErrorResponseWithMessage(w, r,
+		app.serviceUnavailableResponseWithMessage(w, r,
 			fmt.Errorf("model registry client not found in context"),
 			"model registry is not configured - set MODEL_REGISTRY_BASE_URL to enable model registration")
 		return
