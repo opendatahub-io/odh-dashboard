@@ -9,7 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
@@ -73,20 +73,28 @@ export const AIModelStatusPopoverContent = (
     <StackItem>
       <Content component={ContentVariants.dl}>
         <Content component={ContentVariants.dt}>
-          <Label color="green" icon={<CheckCircleIcon />} isCompact>
-            Active
+          <Label status="success" variant="outline">
+            Ready
           </Label>
         </Content>
         <Content component={ContentVariants.dd}>
           The model endpoint is running and ready to serve requests.
         </Content>
         <Content component={ContentVariants.dt}>
-          <Label color="red" icon={<ExclamationCircleIcon />} isCompact>
+          <Label status="danger" variant="outline">
             Inactive
           </Label>
         </Content>
         <Content component={ContentVariants.dd}>
           The model endpoint is not currently available.
+        </Content>
+        <Content component={ContentVariants.dt}>
+          <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
+            Unknown
+          </Label>
+        </Content>
+        <Content component={ContentVariants.dd}>
+          The model endpoint status could not be determined.
         </Content>
       </Content>
     </StackItem>
@@ -95,10 +103,8 @@ export const AIModelStatusPopoverContent = (
 
 const AI_FILTER_COLORS: Record<string, AssetsFilterColors> = {
   [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
-  [AssetsFilterOptions.SOURCE]: AssetsFilterColors.SOURCE,
   [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
   [AssetsFilterOptions.STATUS]: AssetsFilterColors.STATUS,
-  [AssetsFilterOptions.MODEL_TYPE]: AssetsFilterColors.MODEL_TYPE,
 };
 
 const AIModelsTable: React.FC<AIModelsTableProps> = ({

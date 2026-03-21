@@ -77,7 +77,18 @@ const AIAssetsModelsTab: React.FC = () => {
     warnings.push('Models as a Service could not be loaded.');
   }
 
-  const emptyState = (
+  const emptyState = isExternalModelsEnabled ? (
+    <ModelsEmptyState
+      title="No endpoints available"
+      description="There are no model endpoints in this project yet. Create an endpoint or deploy a model."
+      actionButtonText="Create endpoint"
+      handleActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
+      secondaryActionButtonText="Deploy a model"
+      handleSecondaryActionButtonClick={() => {
+        navigate(`/ai-hub/deployments/${namespace?.name}`);
+      }}
+    />
+  ) : (
     <ModelsEmptyState
       title="To begin you must deploy a model"
       description={
@@ -132,33 +143,31 @@ const AIAssetsModelsTab: React.FC = () => {
           emptyState
         )
       ) : (
-        <>
-          <AIModelsTable
-            models={models}
-            playgroundModels={playgroundModels}
-            lsdStatus={lsdStatus}
-            toolbarActions={
-              isExternalModelsEnabled ? (
-                <Button
-                  variant="primary"
-                  onClick={() => setIsCreateEndpointModalOpen(true)}
-                  data-testid="create-endpoint-button"
-                >
-                  Create endpoint
-                </Button>
-              ) : undefined
-            }
-          />
-          {isExternalModelsEnabled && (
-            <CreateExternalEndpointModal
-              isOpen={isCreateEndpointModalOpen}
-              onClose={() => setIsCreateEndpointModalOpen(false)}
-              onSuccess={handleCreationSuccess}
-              onSubmit={handleCreateExternalEndpoint}
-              onVerify={handleVerifyExternalEndpoint}
-            />
-          )}
-        </>
+        <AIModelsTable
+          models={models}
+          playgroundModels={playgroundModels}
+          lsdStatus={lsdStatus}
+          toolbarActions={
+            isExternalModelsEnabled ? (
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateEndpointModalOpen(true)}
+                data-testid="create-endpoint-button"
+              >
+                Create endpoint
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
+      {isExternalModelsEnabled && (
+        <CreateExternalEndpointModal
+          isOpen={isCreateEndpointModalOpen}
+          onClose={() => setIsCreateEndpointModalOpen(false)}
+          onSuccess={handleCreationSuccess}
+          onSubmit={handleCreateExternalEndpoint}
+          onVerify={handleVerifyExternalEndpoint}
+        />
       )}
     </>
   );

@@ -2,9 +2,8 @@ import * as React from 'react';
 import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
   InfoCircleIcon,
+  OutlinedQuestionCircleIcon,
   PlusCircleIcon,
 } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { getSourceLabel, getSourceLabelColor, getModelTypeLabel } from '~/app/utilities/utils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 import EndpointDetailModal from './EndpointDetailModal';
@@ -36,7 +34,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
-  const sourceLabel = getSourceLabel(model);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
 
   return (
@@ -44,20 +41,48 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
       <Tr>
         <Td dataLabel="Model deployment name">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
-          <Truncate
-            content={model.description}
+          <div
             style={{
-              fontSize: 'var(--pf-t--global--font--size--xs)',
+              fontFamily: 'var(--pf-t--global--font--family--mono)',
+              fontSize: '0.75rem',
               color: 'var(--pf-t--global--text--color--subtle)',
-              marginTop: 'var(--pf-t--global--spacer--xs)',
-              cursor: 'help',
+              marginTop: '0.125rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
-          />
+          >
+            {model.model_id}
+          </div>
+          {model.description && (
+            <Truncate
+              content={model.description}
+              style={{
+                fontSize: 'var(--pf-t--global--font--size--xs)',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                marginTop: 'var(--pf-t--global--spacer--sm)',
+                cursor: 'help',
+              }}
+            />
+          )}
         </Td>
-        <Td dataLabel="Source">
-          <Label color={getSourceLabelColor(sourceLabel)} isCompact>
-            {sourceLabel}
-          </Label>
+        <Td dataLabel="Use case">
+          <TruncatedText maxLines={2} content={model.usecase} />
+        </Td>
+        <Td dataLabel="Status">
+          {model.status === 'Running' ? (
+            <Label status="success" variant="outline">
+              Ready
+            </Label>
+          ) : model.status === 'Stop' ? (
+            <Label status="danger" variant="outline">
+              Inactive
+            </Label>
+          ) : (
+            <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
+              Unknown
+            </Label>
+          )}
         </Td>
         <Td dataLabel="Endpoints">
           {model.externalEndpoint || model.internalEndpoint ? (
@@ -78,23 +103,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Label>
           )}
         </Td>
-        <Td dataLabel="Model type">
-          <Truncate content={getModelTypeLabel(model.model_type)} />
-        </Td>
-        <Td dataLabel="Use case">
-          <TruncatedText maxLines={2} content={model.usecase} />
-        </Td>
-        <Td dataLabel="Status">
-          {model.status === 'Running' ? (
-            <Label color="green" icon={<CheckCircleIcon />}>
-              Active
-            </Label>
-          ) : (
-            <Label color="red" icon={<ExclamationCircleIcon />}>
-              Inactive
-            </Label>
-          )}
-        </Td>
         <Td dataLabel="Playground">
           {enabledModel ? (
             <Button
@@ -112,7 +120,11 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 });
               }}
               // Embedding models cannot be tried in the chat playground (vector output is not supported)
-              isDisabled={model.status !== 'Running' || model.model_type === 'embedding'}
+              // Custom endpoint models are always available if they're in the list
+              isDisabled={
+                model.model_type === 'embedding' ||
+                (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
+              }
             >
               Try in playground
             </Button>
@@ -122,7 +134,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               icon={<PlusCircleIcon />}
               onClick={() => setIsConfigurationModalOpen(true)}
               // Add stays enabled for embedding models (may be used in RAG configurations)
-              isDisabled={model.status !== 'Running'}
+              // Custom endpoint models are always available if they're in the list
+              isDisabled={
+                model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
+              }
             >
               Add to playground
             </Button>

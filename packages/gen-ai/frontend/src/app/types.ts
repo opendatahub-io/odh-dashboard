@@ -357,7 +357,7 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
-  status: 'Running' | 'Stop';
+  status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
   sa_token: {
     name: string;
