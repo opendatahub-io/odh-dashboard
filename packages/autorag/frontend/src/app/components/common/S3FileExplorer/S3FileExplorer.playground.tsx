@@ -20,49 +20,29 @@ import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
 
-const s3Namespace = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
-const s3SecretName = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
+const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
+const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
 
 // Mocks ---------------------------------------------------------------------->
 
-const mockS3Secret: SecretListItem = {
-  uuid: 'mock-secret-uuid-001',
-  name: 'my-s3-connection',
+const envS3Secret: SecretListItem = {
+  uuid: 'env-secret-uuid',
+  name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
   type: 'storage',
-  data: {
-    AWS_ACCESS_KEY_ID: 'mock-access-key',
-    AWS_SECRET_ACCESS_KEY: 'mock-secret-key',
-    AWS_S3_BUCKET: 'mock-bucket',
-    AWS_S3_ENDPOINT: 'https://s3.amazonaws.com',
-    AWS_DEFAULT_REGION: 'us-east-1',
-  },
-  displayName: 'My S3 Connection',
-  description: 'Mock S3 connection for playground testing',
+  data: {},
 };
 
 // Scenarios ------------------------------------------------------------------>
 
 interface Scenario {
   label: string;
-  s3Secret: SecretListItem;
+  s3Secret?: SecretListItem;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
-    { label: 'Default S3 connection', s3Secret: mockS3Secret },
-    {
-      label: 'Minimal secret',
-      s3Secret: {
-        uuid: 'mock-secret-uuid-002',
-        name: 'minimal-connection',
-        type: 'storage',
-        data: {
-          AWS_ACCESS_KEY_ID: 'key',
-          AWS_SECRET_ACCESS_KEY: 'secret',
-          AWS_S3_BUCKET: 'other-bucket',
-        },
-      },
-    },
+    { label: 'No S3 secret (null)', s3Secret: undefined },
+    { label: 'From env configuration', s3Secret: envS3Secret },
   ],
 };
 
@@ -71,7 +51,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const [activeSecret, setActiveSecret] = useState<SecretListItem>(mockS3Secret);
+  const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -115,7 +95,7 @@ const App: React.FC = () => {
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {s3Namespace || <em>not set</em>}
+                {AUTORAG_PLAYGROUND_S3_NAMESPACE || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
@@ -125,7 +105,7 @@ const App: React.FC = () => {
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {s3SecretName || <em>not set</em>}
+                {AUTORAG_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
               </span>
             </p>
           </CardBody>
@@ -134,7 +114,7 @@ const App: React.FC = () => {
           <CardTitle>State</CardTitle>
           <CardBody>
             <p>Modal open: {isOpen ? 'Yes' : 'No'}</p>
-            <p>Active secret: {activeSecret.name}</p>
+            <p>Active secret: {activeSecret?.name ?? <em>none</em>}</p>
           </CardBody>
         </Card>
         <Card>

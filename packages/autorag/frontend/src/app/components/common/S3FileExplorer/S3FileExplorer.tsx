@@ -2,7 +2,8 @@
 
 // Modules -------------------------------------------------------------------->
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { APIOptions, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type {
   Files,
@@ -10,7 +11,8 @@ import type {
   Sources,
   Directory,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import type { SecretListItem } from '~/app/types.ts';
+import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
+import { getFiles } from '~/app/api/s3.ts';
 
 // Types ---------------------------------------------------------------------->
 
@@ -37,9 +39,17 @@ interface S3FileExplorerProps {
   id?: string;
   isOpen: boolean;
   onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
-  s3Secret: SecretListItem;
+
+  namespace: string;
+  s3Secret?: ConnectionSecret;
 }
-const S3FileExplorer: React.FC<S3FileExplorerProps> = ({ id, isOpen, onClose, s3Secret }) => {
+const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
+  id,
+  isOpen,
+  onClose,
+  namespace,
+  s3Secret,
+}) => {
   // State -------------------------------------------------------------------->
 
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
@@ -69,6 +79,23 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({ id, isOpen, onClose, s3
   // Effects ------------------------------------------------------------------>
 
   // TODO [ Gustavo ] Add an effect on detecting that the isOpen is set to true. If set to true call GET /api/v1/s3/files?namespace={{namespace}}&secretName={{secret_name}}&bucket={{bucket}}
+  const secretName = s3Secret?.name;
+  const bucket = '';
+
+  const callback = useCallback<FetchStateCallbackPromise<S3ListObjectsResult[]>>(
+    (opts: APIOptions) => {
+      if (!secretName) {
+        return Promise.reject(new NotReadyError('No secret provided'));
+      }
+      return getFiles('')(namespace, secretName, bucket)(opts);
+    },
+    [namespace, secretName],
+  );
+
+  const [listObjectsResult, loaded, error, refresh] = useFetchState<S3ListObjectsResult[]>(
+    callback,
+    [],
+  );
 
   // Helpers ------------------------------------------------------------------>
 
@@ -123,6 +150,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({ id, isOpen, onClose, s3
   };
 
   // Rendering ---------------------------------------------------------------->
+
+  // TODO [ Gustavo ] Add an empty state if s3Connection is not passed in
 
   return (
     <FileExplorer

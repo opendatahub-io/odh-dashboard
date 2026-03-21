@@ -124,3 +124,8 @@ export type SecretListItem = {
   displayName?: string;
   description?: string;
 };
+
+export type S3ListObjectsResult = {
+  foo: string;
+  // TODO [ AI ] Make this align with api/openapi/autorag.yaml-components/schemas/S3ListObjectsResult
+};
