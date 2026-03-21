@@ -36,13 +36,18 @@ const envS3Secret: SecretListItem = {
 
 interface Scenario {
   label: string;
+  namespace: string;
   s3Secret?: SecretListItem;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
-    { label: 'No S3 secret (null)', s3Secret: undefined },
-    { label: 'From env configuration', s3Secret: envS3Secret },
+    { label: 'No S3 secret (null)', namespace: 'mock-playground-namespace', s3Secret: undefined },
+    {
+      label: 'From env configuration',
+      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      s3Secret: envS3Secret,
+    },
   ],
 };
 
@@ -51,6 +56,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
   const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
 
   useEffect(() => {
@@ -63,6 +69,7 @@ const App: React.FC = () => {
   }, [isDarkTheme]);
 
   const openScenario = (scenario: Scenario) => {
+    setActiveNamespace(scenario.namespace);
     setActiveSecret(scenario.s3Secret);
     setIsOpen(true);
   };
@@ -114,6 +121,7 @@ const App: React.FC = () => {
           <CardTitle>State</CardTitle>
           <CardBody>
             <p>Modal open: {isOpen ? 'Yes' : 'No'}</p>
+            <p>Active namespace: {activeNamespace}</p>
             <p>Active secret: {activeSecret?.name ?? <em>none</em>}</p>
           </CardBody>
         </Card>
@@ -148,6 +156,7 @@ const App: React.FC = () => {
         id="playground-s3-file-explorer"
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
+        namespace={activeNamespace}
         s3Secret={activeSecret}
       />
     </div>
