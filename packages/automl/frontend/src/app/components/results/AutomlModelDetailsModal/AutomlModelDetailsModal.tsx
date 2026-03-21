@@ -10,7 +10,11 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import type { ModelArtifact, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
+import {
+  mockMulticlassContext,
+  mockMulticlassFeatureImportances,
+  mockMulticlassConfusionMatrices,
+} from '~/app/mocks/mockAutomlResultsContext';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -18,12 +22,8 @@ import './AutomlModelDetailsModal.scss';
 type AutomlModelDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  models: ModelArtifact[];
-  selectedIndex: number;
-  onSelectModel: (index: number) => void;
-  createdAt?: string;
-  featureImportance?: FeatureImportanceData;
-  confusionMatrix?: ConfusionMatrixData;
+  modelName: string;
+  rank: number;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -40,24 +40,31 @@ function groupTabsBySection(tabs: TabDefinition[]): Map<string, TabDefinition[]>
 const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   isOpen,
   onClose,
-  models,
-  selectedIndex,
-  onSelectModel,
-  createdAt,
-  featureImportance,
-  confusionMatrix,
+  modelName,
+  rank: initialRank,
 }) => {
-  const model = models[selectedIndex];
-  const rank = selectedIndex + 1;
+  const context = mockMulticlassContext;
+  const models = Object.values(context.models);
+  const taskType = context.parameters.task_type;
+  const labelColumn = context.parameters.label_column;
+  const createdAt = context.pipelineRun.created_at;
 
-  const visibleTabs = React.useMemo(
-    () => getVisibleTabs(model.context.task_type),
-    [model.context.task_type],
-  );
+  const [selectedModelName, setSelectedModelName] = React.useState(modelName);
+
+  React.useEffect(() => {
+    setSelectedModelName(modelName);
+  }, [modelName]);
+
+  const model = context.models[selectedModelName];
+  const currentIndex = models.findIndex((m) => m.display_name === selectedModelName);
+  const rank = selectedModelName === modelName ? initialRank : currentIndex + 1;
+  const featureImportance = mockMulticlassFeatureImportances[selectedModelName];
+  const confusionMatrix = mockMulticlassConfusionMatrices[selectedModelName];
+
+  const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
   const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
 
-  // Reset active tab when model changes
   React.useEffect(() => {
     setActiveTabKey(visibleTabs[0]?.key ?? '');
   }, [visibleTabs]);
@@ -69,7 +76,6 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isPrinting) {
       return;
     }
-    // Use requestAnimationFrame to ensure the print div is painted before printing
     const frameId = requestAnimationFrame(() => {
       window.print();
       setIsPrinting(false);
@@ -79,6 +85,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
+  if (!model) {
+    return null;
+  }
 
   return (
     <Modal
@@ -93,8 +104,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
       <ModalBody>
         <AutomlModelDetailsModalHeader
           models={models}
-          selectedIndex={selectedIndex}
-          onSelectModel={onSelectModel}
+          currentModelName={selectedModelName}
+          rank={rank}
+          onSelectModel={(name) => setSelectedModelName(name)}
           onDownload={() => setIsPrinting(true)}
         />
         <Grid hasGutter className="automl-model-details-screen-only">
@@ -140,6 +152,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   {ActiveComponent && (
                     <ActiveComponent
                       model={model}
+                      taskType={taskType}
+                      labelColumn={labelColumn}
                       createdAt={createdAt}
                       featureImportance={featureImportance}
                       confusionMatrix={confusionMatrix}
@@ -157,7 +171,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             <div className="automl-print-header">
               <h1>{model.display_name}</h1>
               <p>
-                Rank: {rank} | {String(model.context.model_config.eval_metric)}
+                Rank: {rank} | {model.model_config.eval_metric}
               </p>
             </div>
             {visibleTabs.map((tab) => {
@@ -167,6 +181,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   <Title headingLevel="h2">{tab.label}</Title>
                   <TabComponent
                     model={model}
+                    taskType={taskType}
+                    labelColumn={labelColumn}
                     createdAt={createdAt}
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}

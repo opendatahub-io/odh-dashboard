@@ -8,43 +8,37 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
-import type { ModelArtifact } from '~/app/types';
+import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import { formatMetricName, toNumericMetric } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
-  models: ModelArtifact[];
-  selectedIndex: number;
-  onSelectModel: (index: number) => void;
+  models: MockAutomlModel[];
+  currentModelName: string;
+  rank: number;
+  onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
 };
 
-function getOptimizedMetric(model: ModelArtifact): { name: string; value: number } | undefined {
-  const evalMetric = model.context.model_config.eval_metric;
-  if (typeof evalMetric !== 'string') {
-    return undefined;
-  }
-  const metrics = model.context.metrics.test_data;
+function getOptimizedMetric(model: MockAutomlModel): { name: string; value: number } | undefined {
+  const evalMetric = model.model_config.eval_metric;
+  const metrics = model.metrics.test_data;
   if (!(evalMetric in metrics)) {
     return undefined;
   }
-  return { name: evalMetric, value: Math.abs(metrics[evalMetric]) };
-}
-
-/** Format metric keys from snake_case to Title Case. */
-export function formatMetricName(key: string): string {
-  return key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  return { name: evalMetric, value: Math.abs(toNumericMetric(metrics[evalMetric])) };
 }
 
 const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps> = ({
   models,
-  selectedIndex,
+  currentModelName,
+  rank,
   onSelectModel,
   onDownload,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const model = models[selectedIndex];
-  const optimizedMetric = getOptimizedMetric(model);
-  const rank = selectedIndex + 1;
+  const model = models.find((m) => m.display_name === currentModelName);
+  const optimizedMetric = model ? getOptimizedMetric(model) : undefined;
 
   return (
     <div className="automl-model-details-header">
@@ -54,7 +48,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
           <Dropdown
             isOpen={isDropdownOpen}
             onSelect={(_e, value) => {
-              onSelectModel(Number(value));
+              onSelectModel?.(String(value));
               setIsDropdownOpen(false);
             }}
             onOpenChange={setIsDropdownOpen}
@@ -65,20 +59,20 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
                 isExpanded={isDropdownOpen}
                 data-testid="model-selector-dropdown"
               >
-                {model.display_name}
+                {currentModelName}
               </MenuToggle>
             )}
           >
             <DropdownList>
               {models.map((m, i) => (
-                <DropdownItem key={m.display_name} value={i}>
+                <DropdownItem key={m.display_name} value={m.display_name}>
                   #{i + 1} {m.display_name}
                 </DropdownItem>
               ))}
             </DropdownList>
           </Dropdown>
         ) : (
-          <span className="automl-model-details-header-value">{model.display_name}</span>
+          <span className="automl-model-details-header-value">{currentModelName}</span>
         )}
       </div>
       <div className="automl-model-details-header-metrics">

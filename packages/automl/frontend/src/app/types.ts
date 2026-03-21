@@ -115,29 +115,4 @@ export type FeatureImportanceData = {
   p99_low?: Record<string, number>;
 };
 
-export type EvaluationMetrics = Record<string, number>;
-
 export type ConfusionMatrixData = Record<string, Record<string, number>>;
-
-export type ModelArtifactContext = {
-  data_config: {
-    sampling_config: Record<string, unknown>;
-    split_config: Record<string, unknown>;
-  };
-  task_type: TaskType;
-  label_column: string;
-  model_config: Record<string, unknown>;
-  location: {
-    model_directory: string;
-    predictor: string;
-    notebook: string;
-  };
-  metrics: {
-    test_data: EvaluationMetrics;
-  };
-};
-
-export type ModelArtifact = {
-  display_name: string;
-  context: ModelArtifactContext;
-};
