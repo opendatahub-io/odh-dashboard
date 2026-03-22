@@ -59,7 +59,6 @@ export type DashboardConfig = K8sResourceCommon & {
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
-      maasApiKeys: boolean;
       deploymentWizardYAMLViewer: boolean;
       vLLMDeploymentOnMaaS: boolean;
     };

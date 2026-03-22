@@ -11,6 +11,30 @@ import { LLMD_SERVING_ID } from '../extensions/extensions';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
+// Shared by both LLMInferenceService and LLMInferenceServiceConfig
+// https://kserve.github.io/website/docs/reference/crd-api#llminferenceservice
+type LLMInferenceServiceSpec = {
+  model: {
+    uri: string;
+    name?: string;
+  };
+  replicas?: number;
+  router?: {
+    gateway?: {
+      refs?: {
+        name?: string;
+        namespace?: string;
+      }[];
+    };
+    route?: object;
+    scheduler?: object;
+  };
+  template?: {
+    containers?: LLMdContainer[];
+    imagePullSecrets?: ImagePullSecret[];
+  };
+};
+
 export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 
 export type LLMInferenceServiceKind = K8sResourceCommon & {
@@ -29,27 +53,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
     };
   };
-  spec: {
-    model: {
-      uri: string;
-      name?: string;
-    };
-    replicas?: number;
-    router?: {
-      gateway?: {
-        refs?: {
-          name?: string;
-          namespace?: string;
-        }[];
-      };
-      route?: object;
-      scheduler?: object;
-    };
-    template?: {
-      containers?: LLMdContainer[];
-      imagePullSecrets?: ImagePullSecret[];
-    };
-  };
+  spec: LLMInferenceServiceSpec;
   status?: {
     conditions?: {
       lastTransitionTime?: string;
@@ -65,6 +69,22 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
   };
 };
 
+export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
+  kind: 'LLMInferenceServiceConfig';
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: DisplayNameAnnotations & {
+      'opendatahub.io/recommended-accelerators'?: string;
+      'opendatahub.io/runtime-version'?: string;
+    };
+    labels?: {
+      'opendatahub.io/config-type'?: 'accelerator' | string;
+    };
+  };
+  spec?: LLMInferenceServiceSpec;
+};
+
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind>;
 
 export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
@@ -75,4 +95,11 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
+};
+
+export const LLMInferenceServiceConfigModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'LLMInferenceServiceConfig',
+  plural: 'llminferenceserviceconfigs',
 };
