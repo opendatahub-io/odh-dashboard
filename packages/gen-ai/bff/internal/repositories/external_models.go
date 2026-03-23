@@ -59,7 +59,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		Usecase:         req.UseCases,
 		Description:     "",
 		Endpoints:       []string{req.BaseURL},
-		Status:          "Running",
+		Status:          models.ModelStatusUnknown,
 		DisplayName:     req.ModelDisplayName,
 		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
