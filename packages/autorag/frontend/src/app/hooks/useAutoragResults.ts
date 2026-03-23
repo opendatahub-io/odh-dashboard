@@ -32,7 +32,7 @@ export function useAutoragResults(
   // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED';
   const rootDir = 'documents-rag-optimization-pipeline';
-  const patternGenerationDir = 'autorag-patterns-full-refit';
+  const patternGenerationDir = 'rag_templates_optimization';
   const generatedPatternsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${patternGenerationDir}`
     : undefined;
