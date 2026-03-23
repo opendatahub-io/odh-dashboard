@@ -262,6 +262,12 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+
+			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
+			// from the DSPA spec even when a Pipeline Server override URL is set
+			// (e.g. port-forwarding during local development). Failure is non-fatal:
+			// the S3 handler falls back to requiring an explicit secretName.
+			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -330,6 +336,67 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Extract the full object storage configuration from the DSPA spec and store in
+			// context. This allows downstream handlers to connect to S3 (or compatible stores
+			// like managed MinIO) without an additional Kubernetes API call.
+			if dspa.Spec != nil &&
+				dspa.Spec.ObjectStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+				ext := dspa.Spec.ObjectStorage.ExternalStorage
+				cred := ext.S3CredentialsSecret
+
+				// Construct the endpoint URL from scheme, host, and optional port.
+				// Only "http" and "https" schemes are accepted; any other value is
+				// logged as a warning and the endpoint URL is left empty so that
+				// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
+				endpointURL := ""
+				scheme := strings.ToLower(ext.Scheme)
+				if ext.Host != "" && (scheme == "http" || scheme == "https") {
+					if ext.Port != "" {
+						endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+					} else {
+						endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+					}
+				} else if ext.Scheme != "" && ext.Host != "" {
+					logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+						"scheme", ext.Scheme,
+						"namespace", namespace,
+					)
+				}
+
+				accessKeyField := cred.AccessKey
+				if accessKeyField == "" {
+					accessKeyField = "AWS_ACCESS_KEY_ID"
+				}
+				secretKeyField := cred.SecretKey
+				if secretKeyField == "" {
+					secretKeyField = "AWS_SECRET_ACCESS_KEY"
+				}
+
+				dspaObjectStorage := &models.DSPAObjectStorage{
+					SecretName:     cred.SecretName,
+					AccessKeyField: accessKeyField,
+					SecretKeyField: secretKeyField,
+					EndpointURL:    endpointURL,
+					Bucket:         ext.Bucket,
+					Region:         ext.Region,
+				}
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+				logger.Debug("Found DSPA object storage config",
+					"secretName", cred.SecretName,
+					"namespace", namespace,
+					"hasEndpoint", endpointURL != "",
+					"hasBucket", ext.Bucket != "",
+				)
+			} else {
+				logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 endpoints require explicit secretName",
+					"dspa", dspa.Metadata.Name,
+					"namespace", namespace,
+				)
+			}
+
 			// Extract auth token from request identity to forward to Pipeline Server
 			// This works for both internal auth (kubeflow-userid) and user_token auth (Authorization header)
 			authToken := ""
@@ -368,6 +435,109 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		r = r.WithContext(ctx)
 		next(w, r, ps)
 	}
+}
+
+// injectDSPAObjectStorageIfAvailable performs a best-effort DSPA discovery and, if any
+// DSPA with external storage config is found, injects DSPAObjectStorageKey into ctx.
+// Unlike discoverReadyDSPA, this function does not require the DSPA API server to be ready —
+// it only needs the storage spec, which is present regardless of pipeline server readiness.
+// Returns the (possibly updated) context. Never fails the request — callers proceed without
+// S3 storage context if the DSPA cannot be discovered.
+func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespace string, logger *slog.Logger) context.Context {
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		logger.Warn("K8s client unavailable; DSPA S3 config not injected (S3 will require explicit secretName)",
+			"error", err)
+		return ctx
+	}
+
+	// List all DSPAs regardless of readiness — storage config lives in the spec, not status.
+	dspaItems, err := listDSPipelineApplications(ctx, client, namespace, app.config.MockK8Client, logger)
+	if err != nil {
+		logger.Warn("DSPA listing failed; S3 will require explicit secretName",
+			"error", err, "namespace", namespace)
+		return ctx
+	}
+	if len(dspaItems) == 0 {
+		logger.Warn("No DSPA found in namespace; S3 will require explicit secretName",
+			"namespace", namespace)
+		return ctx
+	}
+
+	// Use the first DSPA that has external storage configured.
+	var dspa *models.DSPipelineApplication
+	for i := range dspaItems {
+		d := &dspaItems[i]
+		if d.Spec != nil &&
+			d.Spec.ObjectStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+			dspa = d
+			break
+		}
+	}
+	if dspa == nil {
+		logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 requires explicit secretName",
+			"namespace", namespace)
+		return ctx
+	}
+
+	if dspa.Spec == nil ||
+		dspa.Spec.ObjectStorage == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret == nil ||
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName == "" {
+		logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 requires explicit secretName",
+			"dspa", dspa.Metadata.Name,
+			"namespace", namespace,
+		)
+		return ctx
+	}
+
+	ext := dspa.Spec.ObjectStorage.ExternalStorage
+	cred := ext.S3CredentialsSecret
+
+	endpointURL := ""
+	scheme := strings.ToLower(ext.Scheme)
+	if ext.Host != "" && (scheme == "http" || scheme == "https") {
+		if ext.Port != "" {
+			endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+		} else {
+			endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+		}
+	} else if ext.Scheme != "" && ext.Host != "" {
+		logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+			"scheme", ext.Scheme,
+			"namespace", namespace,
+		)
+	}
+
+	accessKeyField := cred.AccessKey
+	if accessKeyField == "" {
+		accessKeyField = "AWS_ACCESS_KEY_ID"
+	}
+	secretKeyField := cred.SecretKey
+	if secretKeyField == "" {
+		secretKeyField = "AWS_SECRET_ACCESS_KEY"
+	}
+
+	dspaObjectStorage := &models.DSPAObjectStorage{
+		SecretName:     cred.SecretName,
+		AccessKeyField: accessKeyField,
+		SecretKeyField: secretKeyField,
+		EndpointURL:    endpointURL,
+		Bucket:         ext.Bucket,
+		Region:         ext.Region,
+	}
+	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+	logger.Debug("Injected DSPA object storage config (override-URL mode)",
+		"secretName", cred.SecretName,
+		"namespace", namespace,
+		"hasEndpoint", endpointURL != "",
+		"hasBucket", ext.Bucket != "",
+	)
+	return ctx
 }
 
 const (
@@ -530,6 +700,20 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 			Spec: &models.DSPipelineApplicationSpec{
 				APIServer: &models.APIServer{
 					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "minio.test-namespace.svc.cluster.local",
+						Port:   "9000",
+						Scheme: "http",
+						Region: "us-east-1",
+						Bucket: "pipeline-artifacts",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "dspa-secret",
+							AccessKey:  "AWS_ACCESS_KEY_ID",
+							SecretKey:  "AWS_SECRET_ACCESS_KEY",
+						},
+					},
 				},
 			},
 			Status: &models.DSPipelineApplicationStatus{

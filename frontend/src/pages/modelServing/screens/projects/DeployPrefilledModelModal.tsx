@@ -11,7 +11,6 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { ProjectKind } from '#~/k8sTypes';
-import useProjectErrorForPrefilledModel from '#~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -79,27 +78,9 @@ const DeployPrefilledModelModalContents: React.FC<
   const [connections] = useServingConnections(selectedProject?.metadata.name);
   const isOciModel = isOciModelUri(modelDeployPrefillInfo.modelArtifactUri);
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
-  const { error: projectError } = useProjectErrorForPrefilledModel(
-    selectedProject?.metadata.name,
-    platformToUse,
-  );
-
-  const error = platformError || projectError;
 
   const loaded = servingContextLoaded && prefillInfoLoaded;
   const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
-
-  const projectLinkExtraUrlParams = React.useMemo(
-    () =>
-      modelDeployPrefillInfo.modelRegistryInfo
-        ? {
-            modelRegistryName: modelDeployPrefillInfo.modelRegistryInfo.mrName,
-            registeredModelId: modelDeployPrefillInfo.modelRegistryInfo.registeredModelId,
-            modelVersionId: modelDeployPrefillInfo.modelRegistryInfo.modelVersionId,
-          }
-        : undefined,
-    [modelDeployPrefillInfo],
-  );
 
   const handleSubmit = React.useCallback(async () => {
     if (selectedProject) {
@@ -122,8 +103,7 @@ const DeployPrefilledModelModalContents: React.FC<
     <ProjectSelector
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
-      error={error}
-      projectLinkExtraUrlParams={projectLinkExtraUrlParams}
+      error={platformError}
     />
   );
 
@@ -178,7 +158,7 @@ const DeployPrefilledModelModalContents: React.FC<
     <ManageKServeModal
       onClose={onClose}
       servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
-      shouldFormHidden={!!error}
+      shouldFormHidden={!!platformError}
       modelDeployPrefillInfo={modelDeployPrefillInfo}
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}

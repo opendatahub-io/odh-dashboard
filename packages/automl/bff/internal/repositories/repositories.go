@@ -4,7 +4,7 @@ import (
 	"log/slog"
 )
 
-// Repositories struct is a single convenient container to hold and represent all our repositories.
+// Repositories is a single convenient container for all repository instances.
 type Repositories struct {
 	HealthCheck  *HealthCheckRepository
 	User         *UserRepository
@@ -15,35 +15,14 @@ type Repositories struct {
 	PipelineRuns *PipelineRunsRepository
 }
 
-// RepositoryConfig contains configuration for repository initialization
-type RepositoryConfig struct {
-	MockS3Client bool
-	DevMode      bool // Pass through DevMode for security checks in repositories
-}
-
-// NewRepositories creates a new Repositories instance.
-// Accepts an optional RepositoryConfig - if not provided, uses default values.
-func NewRepositories(_ *slog.Logger, configs ...RepositoryConfig) *Repositories {
-	// Use default config if none provided
-	var config RepositoryConfig
-	if len(configs) > 0 {
-		config = configs[0]
-	}
-
-	var s3Repo S3RepositoryInterface
-	if config.MockS3Client {
-		s3Repo = NewMockS3Repository()
-	} else {
-		s3Repo = NewS3Repository(config.DevMode)
-	}
-
+func NewRepositories(_ *slog.Logger) *Repositories {
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),
 		Namespace:    NewNamespaceRepository(),
 		Pipeline:     NewPipelineRepository(),
 		Secret:       NewSecretRepository(),
-		S3:           s3Repo,
+		S3:           NewS3Repository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

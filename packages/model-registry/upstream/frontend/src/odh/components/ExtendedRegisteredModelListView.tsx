@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ToolbarGroup } from '@patternfly/react-core';
+import { Button, ToolbarGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
@@ -7,6 +7,7 @@ import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
 import {
+  modelTransferJobsUrl,
   registeredModelArchiveUrl,
   registerModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
@@ -82,6 +83,15 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
         secondaryActionOnClick={() => {
           navigate(registeredModelArchiveUrl(preferredModelRegistry?.name));
         }}
+        customAction={
+          <Button
+            data-testid="empty-model-registry-transfer-jobs-action"
+            variant="link"
+            onClick={() => navigate(modelTransferJobsUrl(preferredModelRegistry?.name))}
+          >
+            View model transfer jobs
+          </Button>
+        }
       />
     );
   }

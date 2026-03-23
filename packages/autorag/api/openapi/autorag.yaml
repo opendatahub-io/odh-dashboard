@@ -170,8 +170,13 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, connection details (endpoint, credentials field names, region, bucket)
+            are resolved from the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
             maxLength: 253
@@ -222,13 +227,24 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: getS3File
       summary: Get file from S3
       description: >-
-        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
-        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves an arbitrary file from S3 storage. The file is streamed with
+        transfer-encoding: chunked to efficiently handle large files.
+
+        Two credential resolution modes are supported:
+
+        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace. This works for both external S3 and managed
+        MinIO without requiring the caller to know which secret is in use.
+
+        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
 
   # TODO [ Gustavo ] Ongoing discussion on what this endpoint and the other S3/file endpoint should be structured as
   /api/v1/s3/files:

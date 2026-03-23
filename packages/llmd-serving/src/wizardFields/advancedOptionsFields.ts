@@ -13,6 +13,7 @@ export const externalRouteField: ExternalRouteField = {
   isActive: (wizardFormData) => {
     return (
       wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
+      !wizardFormData.modelType.data.legacyVLLM &&
       wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
@@ -25,6 +26,7 @@ export const tokenAuthField: TokenAuthField = {
   isActive: (wizardFormData) => {
     return (
       wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
+      !wizardFormData.modelType.data.legacyVLLM &&
       wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
@@ -37,6 +39,7 @@ export const deploymentStrategyField: DeploymentStrategyField = {
   isActive: (wizardFormData): boolean => {
     return (
       wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
+      !wizardFormData.modelType.data.legacyVLLM &&
       wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },

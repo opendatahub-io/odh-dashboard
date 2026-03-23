@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import {
   formatDate,
+  getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
   getResultPass,
@@ -45,6 +46,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
   const benchmarkName = getBenchmarkName(job);
+  const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
@@ -124,7 +126,19 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           <EvaluationStatusLabel state={displayState} />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
-          <Tooltip content={benchmarkName}>
+          <Tooltip
+            content={
+              allBenchmarkNames.length > 1 ? (
+                <div>
+                  {allBenchmarkNames.map((name) => (
+                    <div key={name}>{name}</div>
+                  ))}
+                </div>
+              ) : (
+                benchmarkName
+              )
+            }
+          >
             <span>{benchmarkName}</span>
           </Tooltip>
         </Td>
@@ -135,7 +149,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {formatDate(job.resource.created_at)}
         </Td>
         <Td dataLabel="Result" data-testid="evaluation-result">
-          {getResultPass(job) === true ? getResultScore(job) : '-'}
+          {allBenchmarkNames.length > 1 || getResultPass(job) === false ? '-' : getResultScore(job)}
         </Td>
         <Td isActionCell data-testid="evaluation-kebab">
           {actions.length > 0 && <ActionsColumn items={actions} />}

@@ -272,10 +272,6 @@ class ProjectDetails {
     return cy.findByTestId('error-selecting-serving-platform');
   }
 
-  findBackToRegistryButton() {
-    return cy.findByTestId('deploy-from-registry');
-  }
-
   findTopLevelDeployModelButton() {
     return cy.findByTestId('deploy-button');
   }

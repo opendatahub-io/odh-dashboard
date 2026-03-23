@@ -9,6 +9,7 @@ import { NotebookKind } from '#~/k8sTypes';
 import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '#~/components/table';
+import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
@@ -20,7 +21,7 @@ import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStop
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import StateActionToggle from '#~/components/StateActionToggle';
-import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
+import { isWorkbenchMigrated, useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
@@ -29,6 +30,7 @@ import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
+import WorkbenchMigrationLabel from './WorkbenchMigrationLabel';
 import useNotebookImage from './useNotebookImage';
 import NotebookUpdateImageModal from './NotebookUpdateImageModal';
 
@@ -64,6 +66,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
+  const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -128,16 +131,30 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td dataLabel="Name">
           <TableRowTitleDescription
             title={
-              <NotebookRouteLink
-                isLarge
-                notebook={obj.notebook}
-                isRunning={obj.isRunning}
-                aria-label="open"
-                buttonStyle={{ textDecoration: 'none' }}
-              />
+              <Flex
+                flexWrap={{ default: 'nowrap' }}
+                spaceItems={{ default: 'spaceItemsXs' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem>
+                  <ResourceNameTooltip resource={obj.notebook} wrap={false}>
+                    <NotebookRouteLink
+                      isLarge
+                      notebook={obj.notebook}
+                      isRunning={obj.isRunning}
+                      aria-label="open"
+                      buttonStyle={{ textDecoration: 'none' }}
+                    />
+                  </ResourceNameTooltip>
+                </FlexItem>
+                {showMigrationRequired && (
+                  <FlexItem>
+                    <WorkbenchMigrationLabel />
+                  </FlexItem>
+                )}
+              </Flex>
             }
             description={getDescriptionFromK8sResource(obj.notebook)}
-            resource={obj.notebook}
           />
         </Td>
         <Td dataLabel="Workbench image">
