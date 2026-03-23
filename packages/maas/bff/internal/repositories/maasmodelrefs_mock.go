@@ -55,7 +55,7 @@ func (r *MockMaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, name
 			}, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("MaaSModelRef '%s' not found", name)
 }
 
 func (r *MockMaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, namespace, name string) error {

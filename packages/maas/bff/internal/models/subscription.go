@@ -108,8 +108,8 @@ type UpdateSubscriptionRequest struct {
 
 // CreateSubscriptionResponse is the response after creating or updating a subscription.
 type CreateSubscriptionResponse struct {
-	Subscription MaaSSubscription  `json:"subscription"`
-	AuthPolicy   *MaaSAuthPolicy   `json:"authPolicy,omitempty"`
+	Subscription MaaSSubscription `json:"subscription"`
+	AuthPolicy   *MaaSAuthPolicy  `json:"authPolicy,omitempty"`
 }
 
 // SubscriptionInfoResponse contains detailed subscription info with related resources.

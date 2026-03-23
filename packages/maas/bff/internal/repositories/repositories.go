@@ -40,7 +40,13 @@ type Repositories struct {
 	MaaSModelRefs MaaSModelRefsRepositoryInterface
 }
 
-func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) (*Repositories, error) {
+func NewRepositories(
+	logger *slog.Logger,
+	k8sFactory kubernetes.KubernetesClientFactory,
+	config config.EnvConfig,
+	subscriptions SubscriptionsRepositoryInterface,
+	maasModelRefs MaaSModelRefsRepositoryInterface,
+) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
 	if err != nil {
 		return nil, err
@@ -49,17 +55,6 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 	modelsRepo, err := NewModelsRepository(logger, config.MaasApiUrl)
 	if err != nil {
 		return nil, err
-	}
-
-	var subscriptionsRepo SubscriptionsRepositoryInterface
-	var modelRefsRepo MaaSModelRefsRepositoryInterface
-
-	if config.MockK8Client {
-		subscriptionsRepo = NewMockSubscriptionsRepository(logger)
-		modelRefsRepo = NewMockMaaSModelRefsRepository(logger)
-	} else {
-		subscriptionsRepo = NewSubscriptionsRepository(logger, k8sFactory, config.MaaSSubscriptionNamespace)
-		modelRefsRepo = NewMaaSModelRefsRepository(logger, k8sFactory)
 	}
 
 	return &Repositories{
@@ -75,7 +70,7 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.GatewayName),
 		APIKeys:       apiKeysRepo,
 		Models:        modelsRepo,
-		Subscriptions: subscriptionsRepo,
-		MaaSModelRefs: modelRefsRepo,
+		Subscriptions: subscriptions,
+		MaaSModelRefs: maasModelRefs,
 	}, nil
 }

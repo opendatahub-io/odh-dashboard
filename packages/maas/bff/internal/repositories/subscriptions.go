@@ -662,4 +662,3 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSp
 
 	obj.Object["spec"] = existingSpec
 }
-
