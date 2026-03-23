@@ -5,6 +5,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
+  OffIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJobState } from '~/app/types';
@@ -43,14 +44,14 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
     icon: <BanIcon />,
   },
   stopping: {
-    label: 'Canceling',
+    label: 'Stopping',
     color: 'grey',
-    icon: <InProgressIcon />,
+    icon: <InProgressIcon className="odh-u-spin" />,
   },
   stopped: {
-    label: 'Canceled',
+    label: 'Stopped',
     color: 'grey',
-    icon: <BanIcon />,
+    icon: <OffIcon />,
   },
 };
 

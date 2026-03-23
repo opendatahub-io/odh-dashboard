@@ -41,10 +41,10 @@ export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> =
   isCompact = true,
   run,
 }) => {
-  const { icon, status, color, label, details, createdAt } = computeRunStatus(run);
+  const { icon, status, color, labelStatus, label, details, createdAt } = computeRunStatus(run);
   let tooltipContent: React.ReactNode = details;
   let content = (
-    <Label color={color} icon={icon} isCompact={isCompact}>
+    <Label color={color} status={labelStatus} icon={icon} isCompact={isCompact}>
       {label}
     </Label>
   );

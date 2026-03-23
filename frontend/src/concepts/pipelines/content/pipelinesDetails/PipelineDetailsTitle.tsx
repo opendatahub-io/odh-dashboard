@@ -17,7 +17,7 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
   pipelineRunLabel,
   isRegistered,
 }) => {
-  const { icon, label, color } = computeRunStatus(run);
+  const { icon, label, color, labelStatus } = computeRunStatus(run);
 
   const isArchived = run.storage_state === StorageStateKF.ARCHIVED;
 
@@ -35,7 +35,7 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
         )}
         {statusIcon && (
           <SplitItem>
-            <Label color={color} icon={icon} data-testid="status-icon">
+            <Label color={color} status={labelStatus} icon={icon} data-testid="status-icon">
               {label}
             </Label>
           </SplitItem>
