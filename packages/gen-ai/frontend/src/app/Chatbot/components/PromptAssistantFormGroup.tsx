@@ -116,12 +116,10 @@ export default function PromptAssistantFormGroup({
         </Flex>
         <TextArea
           className={!editMode ? 'pf-m-readonly' : undefined}
-          style={{ cursor: editMode ? 'text' : 'pointer' }}
           id="system-instructions-input"
           type="text"
           value={systemInstruction}
           readOnly={!editMode}
-          onClick={() => setEditMode(true)}
           onChange={(_event, value) => handleTextChange(value)}
           aria-label="Prompt instructions input"
           rows={12}
