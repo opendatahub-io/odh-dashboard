@@ -4,7 +4,7 @@ import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId, getLlamaModelDisplayName } from '~/app/utilities/utils';
+import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
   ChatbotSourceSettings,
   ChatMessageRole,
@@ -283,6 +283,11 @@ const useChatbotMessages = ({
       // Get guardrail shield IDs based on user configuration
       const guardrailShieldIds = getGuardrailShieldIds();
 
+      // Find the selected model to get its model_source_type
+      // Strip provider prefix from LlamaStack model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
+      const { id: baseModelId } = splitLlamaModelId(modelId);
+      const selectedModel = aiModels.find((model) => model.model_id === baseModelId);
+
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
@@ -302,6 +307,9 @@ const useChatbotMessages = ({
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
         ...guardrailShieldIds,
+        ...(selectedModel?.model_source_type && {
+          model_source_type: selectedModel.model_source_type,
+        }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
