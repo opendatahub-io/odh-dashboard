@@ -36,14 +36,8 @@ type RegisterModelEnvelope Envelope[*openapi.ModelArtifact, None]
 //   - 503: Model Registry not configured (MODEL_REGISTRY_BASE_URL unset)
 //   - 500: Model Registry API error or internal server error
 func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	client, ok := r.Context().Value(constants.ModelRegistryHttpClientKey).(modelregistry.HTTPClientInterface)
-	if !ok || client == nil {
-		app.serviceUnavailableResponseWithMessage(w, r,
-			fmt.Errorf("model registry client not found in context"),
-			"model registry is not configured - set MODEL_REGISTRY_BASE_URL to enable model registration")
-		return
-	}
-
+	// Validate request body before checking Model Registry availability.
+	// This ensures clients get 400 for invalid input even when MR is not configured.
 	var req models.RegisterModelRequest
 	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRegisterModelRequestBodyBytes))
 	decoder.DisallowUnknownFields()
@@ -59,6 +53,14 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ h
 
 	if err := repositories.ValidateRegisterModelRequest(req); err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	client, ok := r.Context().Value(constants.ModelRegistryHttpClientKey).(modelregistry.HTTPClientInterface)
+	if !ok || client == nil {
+		app.serviceUnavailableResponseWithMessage(w, r,
+			fmt.Errorf("model registry client not found in context"),
+			"model registry is not configured - set MODEL_REGISTRY_BASE_URL to enable model registration")
 		return
 	}
 

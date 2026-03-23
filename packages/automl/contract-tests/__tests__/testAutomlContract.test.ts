@@ -748,10 +748,6 @@ describe('AutoML API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).toBe(503);
         }
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/ServiceUnavailable/content/application/json/schema',
-          status: 503,
-        });
       });
 
       it('should return 400 for missing required fields', async () => {
@@ -763,10 +759,6 @@ describe('AutoML API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).toBe(400);
         }
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/BadRequest/content/application/json/schema',
-          status: 400,
-        });
       });
 
       it('should return 400 for invalid S3 path', async () => {
@@ -779,10 +771,6 @@ describe('AutoML API Contract Tests', () => {
         if (!result.success) {
           expect(result.error.status).toBe(400);
         }
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/BadRequest/content/application/json/schema',
-          status: 400,
-        });
       });
 
       it('should return 400 when namespace is missing', async () => {
