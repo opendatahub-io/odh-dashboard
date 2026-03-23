@@ -48,7 +48,7 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 		modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
 	}
 
-	return &models.CreateSubscriptionResponse{
+	response := &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:          request.Name,
 			Namespace:     request.Namespace,
@@ -58,7 +58,10 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 			ModelRefs:     request.ModelRefs,
 			TokenMetadata: request.TokenMetadata,
 		},
-		AuthPolicy: models.MaaSAuthPolicy{
+	}
+
+	if request.CreateAuthPolicy {
+		response.AuthPolicy = &models.MaaSAuthPolicy{
 			Name:      request.Name + "-policy",
 			Namespace: request.Namespace,
 			Phase:     "Pending",
@@ -67,8 +70,10 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 				Groups: request.Owner.Groups,
 			},
 			MeteringMetadata: request.TokenMetadata,
-		},
-	}, nil
+		}
+	}
+
+	return response, nil
 }
 
 func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
@@ -85,11 +90,6 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 		return nil, nil
 	}
 
-	modelRefs := make([]models.ModelRef, len(request.ModelRefs))
-	for i, mr := range request.ModelRefs {
-		modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
-	}
-
 	return &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:              existing.Name,
@@ -100,16 +100,6 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 			ModelRefs:         request.ModelRefs,
 			TokenMetadata:     request.TokenMetadata,
 			CreationTimestamp: existing.CreationTimestamp,
-		},
-		AuthPolicy: models.MaaSAuthPolicy{
-			Name:      existing.Name + "-policy",
-			Namespace: existing.Namespace,
-			Phase:     existing.Phase,
-			ModelRefs: modelRefs,
-			Subjects: models.SubjectSpec{
-				Groups: request.Owner.Groups,
-			},
-			MeteringMetadata: request.TokenMetadata,
 		},
 	}, nil
 }

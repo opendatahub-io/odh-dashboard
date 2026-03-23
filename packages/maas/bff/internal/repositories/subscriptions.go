@@ -20,19 +20,21 @@ import (
 type SubscriptionsRepository struct {
 	logger     *slog.Logger
 	k8sFactory kubernetes.KubernetesClientFactory
+	namespace  string // namespace for MaaSSubscription and MaaSAuthPolicy resources
 }
 
 // NewSubscriptionsRepository creates a new subscriptions repository.
-func NewSubscriptionsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory) *SubscriptionsRepository {
+func NewSubscriptionsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, namespace string) *SubscriptionsRepository {
 	return &SubscriptionsRepository{
 		logger:     logger,
 		k8sFactory: k8sFactory,
+		namespace:  namespace,
 	}
 }
 
-// ListSubscriptions returns all MaaSSubscription resources across all namespaces.
+// ListSubscriptions returns all MaaSSubscription resources in the configured namespace.
 func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error) {
-	r.logger.Debug("Listing all subscriptions")
+	r.logger.Debug("Listing all subscriptions", slog.String("namespace", r.namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -40,7 +42,7 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 	}
 
 	kubeClient := client.GetDynamicClient()
-	list, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).List(ctx, metav1.ListOptions{})
+	list, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list MaaSSubscriptions: %w", err)
 	}
@@ -58,24 +60,28 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 	return subscriptions, nil
 }
 
-// GetSubscription returns a specific MaaSSubscription by name.
-// Since subscriptions are namespace-scoped but the API uses name only,
-// we list across all namespaces and find by name.
+// GetSubscription returns a specific MaaSSubscription by name in the configured namespace.
 func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name string) (*models.MaaSSubscription, error) {
-	r.logger.Debug("Getting subscription", slog.String("name", name))
+	r.logger.Debug("Getting subscription", slog.String("name", name), slog.String("namespace", r.namespace))
 
-	obj, err := r.findSubscriptionByName(ctx, name)
+	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if obj == nil {
-		return nil, nil
+
+	kubeClient := client.GetDynamicClient()
+	obj, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
 
 	return convertUnstructuredToSubscription(obj)
 }
 
-// CreateSubscription creates a MaaSSubscription and MaaSAuthPolicy.
+// CreateSubscription creates a MaaSSubscription and optionally a MaaSAuthPolicy.
 func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
 	r.logger.Debug("Creating subscription", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
 
@@ -96,47 +102,61 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to create MaaSSubscription: %w", err)
 	}
 
-	// Build and create the MaaSAuthPolicy CR with owner reference to the subscription
-	modelRefs := make([]models.ModelRef, len(request.ModelRefs))
-	for i, mr := range request.ModelRefs {
-		modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
-	}
-
-	policyObj := buildAuthPolicyUnstructured(
-		request.Name+"-policy",
-		request.Namespace,
-		modelRefs,
-		request.Owner.Groups,
-		request.TokenMetadata,
-		createdSub.GetUID(),
-		createdSub.GetName(),
-	)
-	createdPolicy, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(request.Namespace).Create(ctx, policyObj, metav1.CreateOptions{})
-	if err != nil {
-		// Clean up the subscription if policy creation fails
-		_ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Delete(ctx, request.Name, metav1.DeleteOptions{})
-		return nil, fmt.Errorf("failed to create MaaSAuthPolicy: %w", err)
-	}
+	response := &models.CreateSubscriptionResponse{}
 
 	subscription, err := convertUnstructuredToSubscription(createdSub)
 	if err != nil {
 		return nil, err
 	}
+	response.Subscription = *subscription
 
-	authPolicy, err := convertUnstructuredToAuthPolicy(createdPolicy)
-	if err != nil {
-		return nil, err
+	// Only create auth policy if requested by the user
+	if request.CreateAuthPolicy {
+		modelRefs := make([]models.ModelRef, len(request.ModelRefs))
+		for i, mr := range request.ModelRefs {
+			modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
+		}
+
+		policyName := request.Name + "-policy"
+		policyObj := buildAuthPolicyUnstructured(
+			policyName,
+			request.Namespace,
+			modelRefs,
+			request.Owner.Groups,
+			request.TokenMetadata,
+			createdSub.GetUID(),
+			createdSub.GetName(),
+		)
+		createdPolicy, policyErr := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(request.Namespace).Create(ctx, policyObj, metav1.CreateOptions{})
+		if policyErr != nil {
+			// Clean up the subscription if policy creation fails
+			_ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Delete(ctx, request.Name, metav1.DeleteOptions{})
+			return nil, fmt.Errorf("failed to create MaaSAuthPolicy: %w", policyErr)
+		}
+
+		// Add annotation to subscription linking it to the auth policy
+		annotations := createdSub.GetAnnotations()
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
+		annotations["maas.opendatahub.io/auth-policy"] = policyName
+		createdSub.SetAnnotations(annotations)
+		_, _ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Update(ctx, createdSub, metav1.UpdateOptions{})
+
+		authPolicy, convertErr := convertUnstructuredToAuthPolicy(createdPolicy)
+		if convertErr != nil {
+			return nil, convertErr
+		}
+		response.AuthPolicy = authPolicy
 	}
 
-	return &models.CreateSubscriptionResponse{
-		Subscription: *subscription,
-		AuthPolicy:   *authPolicy,
-	}, nil
+	return response, nil
 }
 
-// UpdateSubscription updates a MaaSSubscription and MaaSAuthPolicy.
+// UpdateSubscription updates a MaaSSubscription.
+// Auth policy is not managed during update — only on create if specified by the user.
 func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	r.logger.Debug("Updating subscription", slog.String("name", name))
+	r.logger.Debug("Updating subscription", slog.String("name", name), slog.String("namespace", r.namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -145,51 +165,19 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 
 	kubeClient := client.GetDynamicClient()
 
-	// Find the existing subscription
-	existingObj, err := r.findSubscriptionByName(ctx, name)
+	existingObj, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
-	if existingObj == nil {
-		return nil, nil
-	}
-
-	namespace := existingObj.GetNamespace()
 
 	// Update the subscription spec
 	updateSubscriptionSpec(existingObj, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
-	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
+	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update MaaSSubscription: %w", err)
-	}
-
-	// Update the associated auth policy
-	policyName := name + "-policy"
-	existingPolicy, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(namespace).Get(ctx, policyName, metav1.GetOptions{})
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			r.logger.Warn("Associated MaaSAuthPolicy not found, skipping update", slog.String("policy", policyName))
-		} else {
-			return nil, fmt.Errorf("failed to get MaaSAuthPolicy for update: %w", err)
-		}
-	}
-
-	var authPolicy *models.MaaSAuthPolicy
-	if existingPolicy != nil {
-		modelRefs := make([]models.ModelRef, len(request.ModelRefs))
-		for i, mr := range request.ModelRefs {
-			modelRefs[i] = models.ModelRef{Name: mr.Name, Namespace: mr.Namespace}
-		}
-		updateAuthPolicySpec(existingPolicy, modelRefs, request.Owner.Groups, request.TokenMetadata)
-
-		updatedPolicy, updateErr := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(namespace).Update(ctx, existingPolicy, metav1.UpdateOptions{})
-		if updateErr != nil {
-			return nil, fmt.Errorf("failed to update MaaSAuthPolicy: %w", updateErr)
-		}
-		authPolicy, err = convertUnstructuredToAuthPolicy(updatedPolicy)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	subscription, err := convertUnstructuredToSubscription(updatedSub)
@@ -197,31 +185,15 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 		return nil, err
 	}
 
-	if authPolicy == nil {
-		authPolicy = &models.MaaSAuthPolicy{
-			Name:      policyName,
-			Namespace: namespace,
-		}
-	}
-
 	return &models.CreateSubscriptionResponse{
 		Subscription: *subscription,
-		AuthPolicy:   *authPolicy,
 	}, nil
 }
 
 // DeleteSubscription deletes a MaaSSubscription by name.
 // The associated MaaSAuthPolicy is expected to be garbage-collected via owner references.
 func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name string) error {
-	r.logger.Debug("Deleting subscription", slog.String("name", name))
-
-	existingObj, err := r.findSubscriptionByName(ctx, name)
-	if err != nil {
-		return err
-	}
-	if existingObj == nil {
-		return fmt.Errorf("MaaSSubscription '%s' not found", name)
-	}
+	r.logger.Debug("Deleting subscription", slog.String("name", name), slog.String("namespace", r.namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -229,7 +201,7 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 	}
 
 	kubeClient := client.GetDynamicClient()
-	err = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(existingObj.GetNamespace()).Delete(ctx, name, metav1.DeleteOptions{})
+	err = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("MaaSSubscription '%s' not found", name)
@@ -271,8 +243,9 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 }
 
 // GetAuthPoliciesForSubscription returns MaaSAuthPolicy resources associated with a subscription.
+// Uses the conventional name pattern (subscription-name + "-policy") to look up the policy directly.
 func (r *SubscriptionsRepository) GetAuthPoliciesForSubscription(ctx context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error) {
-	r.logger.Debug("Getting auth policies for subscription", slog.String("subscription", subscriptionName))
+	r.logger.Debug("Getting auth policies for subscription", slog.String("subscription", subscriptionName), slog.String("namespace", r.namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -281,25 +254,21 @@ func (r *SubscriptionsRepository) GetAuthPoliciesForSubscription(ctx context.Con
 
 	kubeClient := client.GetDynamicClient()
 
-	list, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSAuthPolicies: %w", err)
-	}
-
-	var result []models.MaaSAuthPolicy
 	expectedPolicyName := subscriptionName + "-policy"
-	for _, item := range list.Items {
-		if item.GetName() == expectedPolicyName {
-			policy, err := convertUnstructuredToAuthPolicy(&item)
-			if err != nil {
-				r.logger.Warn("Failed to convert MaaSAuthPolicy", slog.String("name", item.GetName()), slog.Any("error", err))
-				continue
-			}
-			result = append(result, *policy)
+	policyObj, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(r.namespace).Get(ctx, expectedPolicyName, metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return []models.MaaSAuthPolicy{}, nil
 		}
+		return nil, fmt.Errorf("failed to get MaaSAuthPolicy: %w", err)
 	}
 
-	return result, nil
+	policy, err := convertUnstructuredToAuthPolicy(policyObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert MaaSAuthPolicy: %w", err)
+	}
+
+	return []models.MaaSAuthPolicy{*policy}, nil
 }
 
 // GetModelRefSummaries returns MaaSModelRef summaries for the given model refs.
@@ -335,27 +304,6 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 }
 
 // --- K8s helpers ---
-
-func (r *SubscriptionsRepository) findSubscriptionByName(ctx context.Context, name string) (*unstructured.Unstructured, error) {
-	client, err := r.k8sFactory.GetClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	kubeClient := client.GetDynamicClient()
-	list, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSSubscriptions: %w", err)
-	}
-
-	for _, item := range list.Items {
-		if item.GetName() == name {
-			return item.DeepCopy(), nil
-		}
-	}
-
-	return nil, nil
-}
 
 func (r *SubscriptionsRepository) listGroups(ctx context.Context, kubeClient dynamic.Interface) ([]string, error) {
 	list, err := kubeClient.Resource(constants.GroupGvr).List(ctx, metav1.ListOptions{})
@@ -715,34 +663,3 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSp
 	obj.Object["spec"] = existingSpec
 }
 
-func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) {
-	mrList := make([]interface{}, len(modelRefs))
-	for i, mr := range modelRefs {
-		mrList[i] = map[string]interface{}{
-			"name":      mr.Name,
-			"namespace": mr.Namespace,
-		}
-	}
-
-	groupList := make([]interface{}, len(groups))
-	for i, g := range groups {
-		groupList[i] = map[string]interface{}{
-			"name": g.Name,
-		}
-	}
-
-	existingSpec, _, _ := unstructured.NestedMap(obj.Object, "spec")
-	if existingSpec == nil {
-		existingSpec = map[string]interface{}{}
-	}
-	existingSpec["modelRefs"] = mrList
-	existingSpec["subjects"] = map[string]interface{}{
-		"groups": groupList,
-	}
-
-	if tokenMetadata != nil {
-		existingSpec["meteringMetadata"] = buildTokenMetadata(tokenMetadata)
-	}
-
-	obj.Object["spec"] = existingSpec
-}

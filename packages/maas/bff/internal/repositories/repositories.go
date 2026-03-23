@@ -58,7 +58,7 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 		subscriptionsRepo = NewMockSubscriptionsRepository(logger)
 		modelRefsRepo = NewMockMaaSModelRefsRepository(logger)
 	} else {
-		subscriptionsRepo = NewSubscriptionsRepository(logger, k8sFactory)
+		subscriptionsRepo = NewSubscriptionsRepository(logger, k8sFactory, config.MaaSSubscriptionNamespace)
 		modelRefsRepo = NewMaaSModelRefsRepository(logger, k8sFactory)
 	}
 

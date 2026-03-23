@@ -50,8 +50,9 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		TiersConfigMapName:      "tier-to-group-mapping",
 		GatewayNamespace:        "openshift-ingress",
 		GatewayName:             "maas-default-gateway",
-		MockHTTPClient:          true,
-		MaasApiUrl:              maasFakeServer.URL,
+		MockHTTPClient:             true,
+		MaasApiUrl:                 maasFakeServer.URL,
+		MaaSSubscriptionNamespace:  "maas-system",
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))

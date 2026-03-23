@@ -44,7 +44,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 						OrganizationID: "org-123",
 						CostCenter:     "engineering",
 					},
-					Priority: 10,
+					Priority:         10,
+					CreateAuthPolicy: true,
 				},
 				k8Factory,
 				identity,
@@ -65,6 +66,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("org-123"))
 
 			// Auth policy should also be created
+			Expect(actual.AuthPolicy).NotTo(BeNil())
 			Expect(actual.AuthPolicy.Name).To(Equal(subName + "-policy"))
 			Expect(actual.AuthPolicy.Namespace).To(Equal("maas-system"))
 			Expect(actual.AuthPolicy.ModelRefs).To(HaveLen(1))
@@ -247,9 +249,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(actual.ModelRefs).To(HaveLen(1))
 			Expect(actual.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
 
-			// Should have the auth policy
-			Expect(actual.AuthPolicies).To(HaveLen(1))
-			Expect(actual.AuthPolicies[0].Name).To(Equal("info-test-sub-policy"))
+			// Auth policies may be empty if not created with the subscription
+			Expect(actual.AuthPolicies).NotTo(BeNil())
 		})
 
 		It("returns 404 for non-existent subscription", func() {
@@ -353,11 +354,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(actual.Subscription.TokenMetadata).NotTo(BeNil())
 			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("updated-org"))
 
-			// Auth policy should also be updated
-			Expect(actual.AuthPolicy.Name).To(Equal("update-test-sub-policy"))
-			Expect(actual.AuthPolicy.ModelRefs).To(HaveLen(2))
-			Expect(actual.AuthPolicy.Subjects.Groups).To(HaveLen(1))
-			Expect(actual.AuthPolicy.Subjects.Groups[0].Name).To(Equal("premium-users"))
+			// Auth policy is not managed during update
+			Expect(actual.AuthPolicy).To(BeNil())
 		})
 
 		It("returns 404 for non-existent subscription", func() {

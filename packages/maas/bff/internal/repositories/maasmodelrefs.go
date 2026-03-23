@@ -65,7 +65,7 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	existing, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, nil
+			return nil, fmt.Errorf("MaaSModelRef '%s' not found", name)
 		}
 		return nil, fmt.Errorf("failed to get MaaSModelRef: %w", err)
 	}
