@@ -51,7 +51,7 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 	response := &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:          request.Name,
-			Namespace:     request.Namespace,
+			Namespace:     "mock-namespace",
 			Phase:         "Pending",
 			Priority:      request.Priority,
 			Owner:         request.Owner,
@@ -63,7 +63,7 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 	if request.CreateAuthPolicy {
 		response.AuthPolicy = &models.MaaSAuthPolicy{
 			Name:      request.Name + "-policy",
-			Namespace: request.Namespace,
+			Namespace: "mock-namespace",
 			Phase:     "Pending",
 			ModelRefs: modelRefs,
 			Subjects: models.SubjectSpec{

@@ -1497,16 +1497,12 @@ components:
 
     CreateSubscriptionRequest:
       type: object
-      description: Request body for creating a new subscription. Optionally creates a MaaSAuthPolicy if createAuthPolicy is true.
+      description: Request body for creating a new subscription. Optionally creates a MaaSAuthPolicy if createAuthPolicy is true. The namespace is determined by server configuration (MAAS_SUBSCRIPTION_NAMESPACE).
       properties:
         name:
           type: string
           description: Name for the MaaSSubscription resource
           example: premium-team-sub
-        namespace:
-          type: string
-          description: Namespace for the resources
-          example: maas-system
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -1528,7 +1524,6 @@ components:
           default: false
       required:
         - name
-        - namespace
         - owner
         - modelRefs
 

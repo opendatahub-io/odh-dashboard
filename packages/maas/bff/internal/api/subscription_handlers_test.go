@@ -24,8 +24,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      subName,
-					Namespace: "maas-system",
+					Name: subName,
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{
 							{Name: "premium-users"},
@@ -83,8 +82,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      subName,
-					Namespace: "maas-system",
+					Name: subName,
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "users"}},
 					},
@@ -103,8 +101,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      subName,
-					Namespace: "maas-system",
+					Name: subName,
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "users"}},
 					},
@@ -124,8 +121,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      "",
-					Namespace: "maas-system",
+					Name: "",
 					ModelRefs: []models.ModelSubscriptionRef{
 						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
 					},
@@ -143,7 +139,6 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
 					Name:      "no-models-sub",
-					Namespace: "maas-system",
 					ModelRefs: []models.ModelSubscriptionRef{},
 				},
 				k8Factory,
@@ -161,8 +156,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      "list-test-sub",
-					Namespace: "maas-system",
+					Name: "list-test-sub",
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "users"}},
 					},
@@ -209,8 +203,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      "info-test-sub",
-					Namespace: "maas-system",
+					Name: "info-test-sub",
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "premium-users"}},
 					},
@@ -294,9 +287,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			}
 			Expect(names).To(ContainElements("granite-3-8b-instruct", "flan-t5-small"))
 
-			// Groups may be empty since envtest doesn't have user.openshift.io
-			// but should not error
-			Expect(actual.Groups).NotTo(BeNil())
+			// Groups fallback to system:authenticated since envtest doesn't have user.openshift.io
+			Expect(actual.Groups).To(ContainElement("system:authenticated"))
 		})
 	})
 
@@ -306,8 +298,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      "update-test-sub",
-					Namespace: "maas-system",
+					Name: "update-test-sub",
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "users"}},
 					},
@@ -401,8 +392,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 				http.MethodPost,
 				"/api/v1/new-subscription",
 				models.CreateSubscriptionRequest{
-					Name:      "delete-test-sub",
-					Namespace: "maas-system",
+					Name: "delete-test-sub",
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{{Name: "users"}},
 					},

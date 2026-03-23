@@ -83,7 +83,7 @@ func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name stri
 
 // CreateSubscription creates a MaaSSubscription and optionally a MaaSAuthPolicy.
 func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
-	r.logger.Debug("Creating subscription", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
+	r.logger.Debug("Creating subscription", slog.String("name", request.Name), slog.String("namespace", r.namespace))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -92,9 +92,9 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 
 	kubeClient := client.GetDynamicClient()
 
-	// Build and create the MaaSSubscription CR
-	subObj := buildSubscriptionUnstructured(request.Name, request.Namespace, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
-	createdSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Create(ctx, subObj, metav1.CreateOptions{})
+	// Build and create the MaaSSubscription CR in the configured namespace
+	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	createdSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Create(ctx, subObj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("MaaSSubscription '%s' already exists", request.Name)
@@ -120,17 +120,17 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 		policyName := request.Name + "-policy"
 		policyObj := buildAuthPolicyUnstructured(
 			policyName,
-			request.Namespace,
+			r.namespace,
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
 			createdSub.GetUID(),
 			createdSub.GetName(),
 		)
-		createdPolicy, policyErr := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(request.Namespace).Create(ctx, policyObj, metav1.CreateOptions{})
+		createdPolicy, policyErr := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(r.namespace).Create(ctx, policyObj, metav1.CreateOptions{})
 		if policyErr != nil {
 			// Clean up the subscription if policy creation fails
-			_ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Delete(ctx, request.Name, metav1.DeleteOptions{})
+			_ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Delete(ctx, request.Name, metav1.DeleteOptions{})
 			return nil, fmt.Errorf("failed to create MaaSAuthPolicy: %w", policyErr)
 		}
 
@@ -141,7 +141,11 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 		}
 		annotations["maas.opendatahub.io/auth-policy"] = policyName
 		createdSub.SetAnnotations(annotations)
-		_, _ = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(request.Namespace).Update(ctx, createdSub, metav1.UpdateOptions{})
+		if _, updateErr := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, createdSub, metav1.UpdateOptions{}); updateErr != nil {
+			r.logger.Warn("Failed to annotate subscription with auth policy reference",
+				slog.String("name", request.Name),
+				slog.Any("error", updateErr))
+		}
 
 		authPolicy, convertErr := convertUnstructuredToAuthPolicy(createdPolicy)
 		if convertErr != nil {
@@ -223,11 +227,11 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 
 	kubeClient := client.GetDynamicClient()
 
-	// Fetch groups from OpenShift
+	// Fetch groups from OpenShift (may not exist with BYOOIDC)
 	groups, err := r.listGroups(ctx, kubeClient)
 	if err != nil {
-		r.logger.Warn("Failed to list groups, returning empty list", slog.Any("error", err))
-		groups = []string{}
+		r.logger.Warn("Failed to list groups, falling back to system:authenticated", slog.Any("error", err))
+		groups = []string{"system:authenticated"}
 	}
 
 	// Fetch model refs

@@ -90,7 +90,6 @@ type MaaSModelRefSummary struct {
 // CreateSubscriptionRequest is the request body for creating a new subscription.
 type CreateSubscriptionRequest struct {
 	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
 	Owner            OwnerSpec              `json:"owner"`
 	ModelRefs        []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata    *TokenMetadata         `json:"tokenMetadata,omitempty"`
