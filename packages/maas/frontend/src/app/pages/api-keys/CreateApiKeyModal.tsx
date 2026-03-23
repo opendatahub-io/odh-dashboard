@@ -40,17 +40,16 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { formatApiKeyError } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '../../api/api-keys';
 
-const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'none'] as const;
+const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y'] as const;
 
 type ExpirationOptionValue = (typeof EXPIRATION_OPTION_VALUES)[number];
 
-const EXPIRATION_OPTIONS: { value: ExpirationOptionValue; label: string; expiresIn?: string }[] = [
+const EXPIRATION_OPTIONS: { value: ExpirationOptionValue; label: string; expiresIn: string }[] = [
   { value: '30d', label: '30 days', expiresIn: '30d' },
   { value: '60d', label: '60 days', expiresIn: '60d' },
   { value: '90d', label: '90 days', expiresIn: '90d' },
   { value: '180d', label: '180 days', expiresIn: '180d' },
   { value: '1y', label: '1 year', expiresIn: '365d' },
-  { value: 'none', label: 'Max expiration' },
 ];
 
 const isValidExpirationOption = (v: string | number | undefined): v is ExpirationOptionValue =>
@@ -186,7 +185,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>Expiration</DescriptionListTerm>
                       <DescriptionListDescription data-testid="api-key-display-expiration">
-                        {selectedOption?.label ?? 'Max expiration'}
+                        {selectedOption?.label}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   </DescriptionList>
