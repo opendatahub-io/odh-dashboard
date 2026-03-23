@@ -19,7 +19,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     }
     createPrompt({
       name: dirtyPrompt.name,
-      template: dirtyPrompt.template,
+      messages: [{ role: 'system', content: dirtyPrompt.template || '' }],
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
     });
