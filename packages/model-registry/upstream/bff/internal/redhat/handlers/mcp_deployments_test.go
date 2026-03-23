@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -88,6 +90,44 @@ func TestMcpDeploymentListReturnsDeployments(t *testing.T) {
 	}
 }
 
+func TestMcpDeploymentListReturnsServerErrorOnRepoFailure(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	repo := &mockMcpDeploymentRepo{
+		listFn: func(namespace string, pageSize int32, _ string) (models.McpDeploymentList, error) {
+			return models.McpDeploymentList{}, errors.New("connection refused")
+		},
+	}
+
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentList(app, failDefault(t))
+
+	req := httptest.NewRequest(http.MethodGet, api.McpDeploymentListPath+"?namespace=test-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestMcpDeploymentListRejectsBadPageSize(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	handler := overrideMcpDeploymentList(app, failDefault(t))
+
+	req := httptest.NewRequest(http.MethodGet, api.McpDeploymentListPath+"?namespace=test-ns&pageSize=-1", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rr.Code)
+	}
+}
+
 func TestMcpDeploymentDeleteReturnsNoContent(t *testing.T) {
 	factory := &fakeKubeFactory{}
 	app := newRedHatTestApp(factory)
@@ -140,7 +180,7 @@ func TestMcpDeploymentDeleteNotFoundReturns404(t *testing.T) {
 
 	repo := &mockMcpDeploymentRepo{
 		deleteFn: func(namespace string, name string) error {
-			return errors.Join(redhatrepos.ErrMcpDeploymentNotFound, errors.New(name))
+			return fmt.Errorf("%w: %q in namespace %q", redhatrepos.ErrMcpDeploymentNotFound, name, namespace)
 		},
 	}
 
@@ -154,5 +194,17 @@ func TestMcpDeploymentDeleteNotFoundReturns404(t *testing.T) {
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", rr.Code)
+	}
+
+	var errResp api.ErrorEnvelope
+	decodeResponse(t, rr, &errResp)
+	if errResp.Error == nil {
+		t.Fatalf("expected error envelope, got nil")
+	}
+	if errResp.Error.Code != strconv.Itoa(http.StatusNotFound) {
+		t.Fatalf("expected error code %q, got %q", strconv.Itoa(http.StatusNotFound), errResp.Error.Code)
+	}
+	if errResp.Error.Message != "the requested resource could not be found" {
+		t.Fatalf("unexpected error message: %s", errResp.Error.Message)
 	}
 }
