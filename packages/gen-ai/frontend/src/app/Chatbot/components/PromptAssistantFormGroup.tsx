@@ -2,8 +2,8 @@ import * as React from 'react';
 import { get } from 'lodash';
 import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import NavigationBlockerModal from '@odh-dashboard/internal/components/NavigationBlockerModal';
-import { useBrowserUnloadBlocker } from '@odh-dashboard/internal/utilities/useBrowserUnloadBlocker';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
@@ -41,7 +41,7 @@ export default function PromptAssistantFormGroup({
     '';
   const isEdited = usePromptEdited();
 
-  useBrowserUnloadBlocker(isEdited);
+  useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
   React.useEffect(() => {
@@ -99,7 +99,7 @@ export default function PromptAssistantFormGroup({
 
   return (
     <>
-      <NavigationBlockerModal hasUnsavedChanges={isEdited} />
+      <SafeNavigationBlocker hasUnsavedChanges={isEdited} />
       {confirmationModal}
       <Panel
         style={{
