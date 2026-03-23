@@ -1,18 +1,19 @@
 import * as React from 'react';
 import {
-  Badge,
   ExpandableSection,
   Flex,
   FlexItem,
   Icon,
   List,
   ListItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { ManageRolesRow } from '#~/pages/projects/projectPermissions/manageRoles/columns';
-import { getRoleRefKey } from '#~/concepts/permissions/utils.ts';
+import { getRoleRefKey } from '#~/concepts/permissions/utils';
 import { isAiRole } from '#~/pages/projects/projectPermissions/utils';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 
 type RoleChangesSectionProps = {
   label: string;
@@ -25,14 +26,7 @@ const RoleChangesSection: React.FC<RoleChangesSectionProps> = ({ label, rows, te
 
   return (
     <ExpandableSection
-      toggleContent={
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>{label}</FlexItem>
-          <FlexItem>
-            <Badge isRead>{rows.length}</Badge>
-          </FlexItem>
-        </Flex>
-      }
+      toggleContent={label}
       isExpanded={isExpanded}
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
       data-testid={testId}
@@ -51,9 +45,11 @@ const RoleChangesSection: React.FC<RoleChangesSectionProps> = ({ label, rows, te
               </FlexItem>
               {!isAiRole(row.roleRef, row.role) && (
                 <FlexItem>
-                  <Icon status="danger" size="sm">
-                    <ExclamationCircleIcon />
-                  </Icon>
+                  <Tooltip content={`Cannot be reassigned in ${ODH_PRODUCT_NAME}`}>
+                    <Icon status="danger" size="sm">
+                      <ExclamationCircleIcon />
+                    </Icon>
+                  </Tooltip>
                 </FlexItem>
               )}
             </Flex>

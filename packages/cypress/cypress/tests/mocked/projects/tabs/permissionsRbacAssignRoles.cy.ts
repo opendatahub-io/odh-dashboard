@@ -232,11 +232,9 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
     // Confirmation modal should appear
     confirmModal.find().should('exist');
 
-    // Should show unassigning section
-    confirmModal.find().within(() => {
-      cy.contains('Unassigning').should('exist');
-      cy.contains('Admin').should('exist');
-    });
+    confirmModal.findSaveButton().should('contain.text', 'Save');
+    confirmModal.findUnassigningSection().should('contain.text', 'Unassigning 1 role');
+    confirmModal.findUnassigningSection().should('contain.text', 'Admin');
   });
 
   it('should show custom role warning in confirmation modal when unassigning non-reversible roles', () => {
@@ -268,6 +266,9 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
 
     // Confirmation modal should show warning about irreversible roles
     confirmModal.find().should('exist');
+    confirmModal.findSaveButton().should('contain.text', 'Save');
+    confirmModal.findUnassigningSection().should('contain.text', 'Unassigning 1 role');
+    confirmModal.findUnassigningSection().should('contain.text', 'view');
     confirmModal.findCustomRoleWarning().should('exist');
     confirmModal.findCustomRoleWarning().should('contain.text', 'reassign');
   });
@@ -301,7 +302,9 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
     confirmModal.find().should('exist');
 
     // Verify the modal shows assigning section
-    confirmModal.findAssigningSection().should('exist').and('contain.text', 'dashboard-role');
+    confirmModal.findSaveButton().should('contain.text', 'Save');
+    confirmModal.findAssigningSection().should('exist').and('contain.text', 'Assigning 1 role');
+    confirmModal.findAssigningSection().should('contain.text', 'dashboard-role');
 
     // Click confirm - wait for button to be visible first
     confirmModal.findSaveButton().should('be.visible').and('not.be.disabled').click();
@@ -427,12 +430,11 @@ describe('Assign Roles Page - Confirmation Modal and Save', () => {
 
     // Confirmation modal should show both assigning and unassigning
     confirmModal.find().should('exist');
-    confirmModal.find().within(() => {
-      cy.contains('Assigning').should('exist');
-      cy.contains('dashboard-role').should('exist');
-      cy.contains('Unassigning').should('exist');
-      cy.contains('Admin').should('exist');
-    });
+    confirmModal.findSaveButton().should('contain.text', 'Save');
+    confirmModal.findAssigningSection().should('contain.text', 'Assigning 1 role');
+    confirmModal.findAssigningSection().should('contain.text', 'dashboard-role');
+    confirmModal.findUnassigningSection().should('contain.text', 'Unassigning 1 role');
+    confirmModal.findUnassigningSection().should('contain.text', 'Admin');
 
     // Click confirm
     confirmModal.findSaveButton().click();
@@ -560,7 +562,9 @@ describe('Assign Roles Page - Additional Scenarios', () => {
 
     // Confirmation modal appears
     confirmModal.find().should('exist');
-    confirmModal.findAssigningSection().should('exist').and('contain.text', 'dashboard-role');
+    confirmModal.findSaveButton().should('contain.text', 'Save');
+    confirmModal.findAssigningSection().should('exist').and('contain.text', 'Assigning 1 role');
+    confirmModal.findAssigningSection().should('contain.text', 'dashboard-role');
 
     // Click confirm - wait for button to be visible first
     confirmModal.findSaveButton().should('be.visible').and('not.be.disabled').click();
