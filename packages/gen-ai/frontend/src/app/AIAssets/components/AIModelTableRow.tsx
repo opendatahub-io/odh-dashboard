@@ -78,28 +78,15 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
       <Tr>
         <Td dataLabel="Model deployment name">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
-          <div
-            style={{
-              fontFamily: 'var(--pf-t--global--font--family--mono)',
-              fontSize: '0.75rem',
-              color: 'var(--pf-t--global--text--color--subtle)',
-              marginTop: '0.125rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {model.model_id}
-          </div>
+          <Truncate
+            content={model.model_id}
+            className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
+          />
           {model.description && (
             <Truncate
               content={model.description}
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--xs)',
-                color: 'var(--pf-t--global--text--color--subtle)',
-                marginTop: 'var(--pf-t--global--spacer--sm)',
-                cursor: 'help',
-              }}
+              className="pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-sm"
+              style={{ cursor: 'help' }}
             />
           )}
         </Td>
