@@ -61,6 +61,9 @@ export type ModelResourceType = K8sResourceCommon & {
   };
 };
 
+/**
+ * `server` is more of a template / config resource, not a server
+ */
 export type Deployment<
   ModelResource extends ModelResourceType = ModelResourceType,
   ServerResource extends ServerResourceType = ServerResourceType,

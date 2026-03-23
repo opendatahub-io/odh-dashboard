@@ -5,6 +5,7 @@ import type {
 } from '@odh-dashboard/model-serving/types/form-data';
 import ModelServerTemplateSelectField, {
   ModelServerOption,
+  modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
@@ -146,9 +147,9 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       externalData?: LLMConfigOptionsData,
       dependencies?: { hardwareProfile?: HardwareProfileKind },
     ): LLMConfigOptionsFieldValue => {
-      // if (existingFieldData) {
-      //   return { selection: existingFieldData };
-      // }
+      if (existingFieldData) {
+        return existingFieldData;
+      }
       // if llmd is default
       const options = getOptions(externalData, dependencies?.hardwareProfile);
 
@@ -178,7 +179,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       }
       return { selection: null, autoSelect: false, suggestion: null };
     },
-    // validationSchema: maasFieldSchema,
+    validationSchema: modelServerSelectFieldSchema,
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,

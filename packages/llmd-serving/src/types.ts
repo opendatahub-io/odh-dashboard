@@ -14,6 +14,9 @@ export type LLMdContainer = { name: string; args?: string[] } & Partial<PodConta
 // Shared by both LLMInferenceService and LLMInferenceServiceConfig
 // https://kserve.github.io/website/docs/reference/crd-api#llminferenceservice
 type LLMInferenceServiceSpec = {
+  baseRefs?: {
+    name?: string;
+  }[];
   model: {
     uri: string;
     name?: string;
@@ -85,7 +88,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
   spec?: LLMInferenceServiceSpec;
 };
 
-export type LLMdDeployment = Deployment<LLMInferenceServiceKind>;
+export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
 export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
   deployment.modelServingPlatformId === LLMD_SERVING_ID;
