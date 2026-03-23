@@ -167,7 +167,7 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 		repositories: repositories.NewRepositories(slog.Default()),
 	}
 
-	t.Run("returns 500 when model registry client not in context", func(t *testing.T) {
+	t.Run("returns 503 when model registry client not in context", func(t *testing.T) {
 		req := validRegisterModelRequest()
 		rr := httptest.NewRecorder()
 		httpReq := newRegisterModelRequest(t, req)
@@ -177,7 +177,7 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 
 		app.RegisterModelHandler(rr, httpReq, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 		assert.Contains(t, rr.Body.String(), "model registry")
 	})
 
