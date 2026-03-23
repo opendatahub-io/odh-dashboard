@@ -266,6 +266,23 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
+export type RegistrationCommonFormData = {
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelLocationType: ModelLocationType;
+  modelLocationEndpoint: string;
+  modelLocationBucket: string;
+  modelLocationRegion: string;
+  modelLocationPath: string;
+  modelLocationURI: string;
+  versionCustomProperties?: ModelRegistryCustomProperties;
+  modelCustomProperties?: ModelRegistryCustomProperties;
+  additionalArtifactProperties?: Partial<ModelArtifact>;
+  storageKey?: string;
+};
+
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersion: CreateModelVersion;
