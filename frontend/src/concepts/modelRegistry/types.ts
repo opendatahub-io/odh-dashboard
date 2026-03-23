@@ -1,5 +1,9 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
-import { ModelLocationType } from '#~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
+
+export enum ModelLocationType {
+  ObjectStorage = 'Object storage',
+  URI = 'URI',
+}
 
 export enum ModelState {
   LIVE = 'LIVE',

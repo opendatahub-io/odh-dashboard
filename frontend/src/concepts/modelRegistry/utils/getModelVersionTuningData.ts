@@ -1,7 +1,7 @@
 import { ModelVersion, RegisteredModel, ModelArtifactList } from '#~/concepts/modelRegistry/types';
 import { ServiceKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { getServerAddress } from '#~/pages/modelRegistry/screens/utils';
+import { getServerAddress } from '#~/concepts/modelRegistry/utils';
 
 export const getModelVersionTuningData = (
   modelVersion: ModelVersion | null,
