@@ -263,6 +263,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     onSelect={(_event, value) => {
                       if (isValidExpirationOption(value)) {
                         setFormData({ ...formData, expirationOption: value });
+                        setError(undefined);
                       }
                       setIsSelectOpen(false);
                     }}
