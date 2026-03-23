@@ -46,9 +46,6 @@ CLAUDE.md
 # Temporary files
 tmp/
 
-# git worktrees
-.trees
-
 # Python (for BFF services)
 __pycache__/
 *.py[cod]
