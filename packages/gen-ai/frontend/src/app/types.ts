@@ -558,6 +558,12 @@ export type GenAiAPIs = {
   deleteExternalModel: DeleteExternalModel;
 };
 
+export interface SubscriptionInfo {
+  name: string;
+  displayName?: string;
+  description?: string;
+}
+
 export interface MaaSModel {
   id: string;
   object: string;
@@ -571,6 +577,7 @@ export interface MaaSModel {
   description?: string;
   usecase?: string;
   model_type?: 'llm' | 'embedding';
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type MaaSTokenRequest = {

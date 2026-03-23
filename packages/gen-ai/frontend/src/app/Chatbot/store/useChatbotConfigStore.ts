@@ -202,6 +202,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
           isRagEnabled: sourceConfig.isRagEnabled,
+          selectedSubscription: sourceConfig.selectedSubscription,
         };
 
         set(
@@ -268,10 +269,24 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
             const config = state.configurations[id];
             if (config) {
               config.selectedModel = value;
+              config.selectedSubscription = '';
             }
           },
           false,
           'updateSelectedModel',
+        );
+      },
+
+      updateSelectedSubscription: (id: string, value: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.selectedSubscription = value;
+            }
+          },
+          false,
+          'updateSelectedSubscription',
         );
       },
 
