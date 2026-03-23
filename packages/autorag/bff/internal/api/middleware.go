@@ -20,6 +20,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,6 +46,28 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+// getSecretDataCaseInsensitive performs a case-insensitive lookup in secret data.
+// Returns the value and true if found, empty string and false if not found.
+func getSecretDataCaseInsensitive(data map[string][]byte, key string) (string, bool, error) {
+	// Prefer exact key when present.
+	if v, ok := data[key]; ok {
+		return string(v), true, nil
+	}
+
+	var matched string
+	found := false
+	for k, v := range data {
+		if strings.EqualFold(k, key) {
+			if found {
+				return "", false, fmt.Errorf("ambiguous secret data: multiple keys match %q case-insensitively", key)
+			}
+			matched = string(v)
+			found = true
+		}
+	}
+	return matched, found, nil
 }
 
 // isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
@@ -358,16 +381,24 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data using direct key lookups.
-			baseURL := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_base_url"]))
-			apiKey := strings.TrimSpace(string(foundSecret.Data["llama_stack_client_api_key"]))
+			// Extract LlamaStack credentials from secret data using case-insensitive key lookups.
+			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
+			if err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
+				return
+			}
+			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			if err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
+				return
+			}
 
-			if baseURL == "" {
+			if !foundBaseURL || baseURL == "" {
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
 				return
 			}
-			if apiKey == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_api_key", secretName))
+			if !foundAPIKey {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: llama_stack_client_api_key", secretName))
 				return
 			}
 			if err := isValidLlamaStackURL(baseURL); err != nil {
@@ -412,11 +443,14 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 		if app.config.MockPipelineServerClient {
 			logger.Debug("MOCK MODE: creating mock Pipeline Server client", "namespace", namespace)
 			// Pass namespace via mock:// URL so the mock client can return namespace-specific data
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient("mock://"+namespace, "", false, app.rootCAs)
+			mockBaseURL := "mock://" + namespace
+			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
 		} else if app.config.PipelineServerURL != "" {
 			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
 			baseURL := app.config.PipelineServerURL
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
 				"namespace", namespace)
 
@@ -449,6 +483,12 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+
+			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
+			// from the DSPA spec even when a Pipeline Server override URL is set
+			// (e.g. port-forwarding during local development). Failure is non-fatal:
+			// the S3 handler falls back to requiring an explicit secretName.
+			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -517,6 +557,68 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Extract the full object storage configuration from the DSPA spec and store in
+			// context. This allows downstream handlers to connect to S3 (or compatible stores
+			// like managed MinIO) without an additional Kubernetes API call.
+			if dspa.Spec != nil &&
+				dspa.Spec.ObjectStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+				ext := dspa.Spec.ObjectStorage.ExternalStorage
+				cred := ext.S3CredentialsSecret
+
+				// Construct the endpoint URL from scheme, host, and optional port.
+				// Only "http" and "https" schemes are accepted; any other value is
+				// logged as a warning and the endpoint URL is left empty so that
+				// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
+				endpointURL := ""
+				scheme := strings.ToLower(ext.Scheme)
+				if ext.Host != "" && (scheme == "http" || scheme == "https") {
+					if ext.Port != "" {
+						endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+					} else {
+						endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+					}
+				} else if ext.Scheme != "" && ext.Host != "" {
+					logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+						"scheme", ext.Scheme,
+						"namespace", namespace,
+					)
+				}
+
+				// Apply default field names when the DSPA spec omits them.
+				accessKeyField := cred.AccessKey
+				if accessKeyField == "" {
+					accessKeyField = "AWS_ACCESS_KEY_ID"
+				}
+				secretKeyField := cred.SecretKey
+				if secretKeyField == "" {
+					secretKeyField = "AWS_SECRET_ACCESS_KEY"
+				}
+
+				dspaObjectStorage := &models.DSPAObjectStorage{
+					SecretName:     cred.SecretName,
+					AccessKeyField: accessKeyField,
+					SecretKeyField: secretKeyField,
+					EndpointURL:    endpointURL,
+					Bucket:         ext.Bucket,
+					Region:         ext.Region,
+				}
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+				logger.Debug("Found DSPA object storage config",
+					"secretName", cred.SecretName,
+					"namespace", namespace,
+					"hasEndpoint", endpointURL != "",
+					"hasBucket", ext.Bucket != "",
+				)
+			} else {
+				logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 endpoints require explicit secretName",
+					"dspa", dspa.Metadata.Name,
+					"namespace", namespace,
+				)
+			}
+
 			// Extract auth token from request identity to forward to Pipeline Server
 			// This works for both internal auth (kubeflow-userid) and user_token auth (Authorization header)
 			authToken := ""
@@ -549,11 +651,101 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				app.rootCAs,
 			)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
+			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
 		}
 
 		r = r.WithContext(ctx)
 		next(w, r, ps)
 	}
+}
+
+// injectDSPAObjectStorageIfAvailable performs a best-effort DSPA discovery and, if a ready
+// DSPA with external storage config is found, injects DSPAObjectStorageKey into ctx.
+// Returns the (possibly updated) context. Never fails the request — callers proceed without
+// S3 storage context if the DSPA cannot be discovered.
+func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespace string, logger *slog.Logger) context.Context {
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		logger.Warn("K8s client unavailable; DSPA S3 config not injected (S3 will require explicit secretName)",
+			"error", err)
+		return ctx
+	}
+
+	// List all DSPAs regardless of readiness — storage config lives in the spec, not status.
+	dspaItems, err := listDSPipelineApplications(ctx, client, namespace, app.config.MockK8Client, logger)
+	if err != nil {
+		logger.Warn("DSPA listing failed; S3 will require explicit secretName",
+			"error", err, "namespace", namespace)
+		return ctx
+	}
+	if len(dspaItems) == 0 {
+		logger.Warn("No DSPA found in namespace; S3 will require explicit secretName",
+			"namespace", namespace)
+		return ctx
+	}
+
+	// Use the first DSPA that has external storage configured.
+	var dspa *models.DSPipelineApplication
+	for i := range dspaItems {
+		d := &dspaItems[i]
+		if d.Spec != nil &&
+			d.Spec.ObjectStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+			dspa = d
+			break
+		}
+	}
+	if dspa == nil {
+		logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 requires explicit secretName",
+			"namespace", namespace)
+		return ctx
+	}
+
+	ext := dspa.Spec.ObjectStorage.ExternalStorage
+	cred := ext.S3CredentialsSecret
+
+	endpointURL := ""
+	scheme := strings.ToLower(ext.Scheme)
+	if ext.Host != "" && (scheme == "http" || scheme == "https") {
+		if ext.Port != "" {
+			endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+		} else {
+			endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+		}
+	} else if ext.Scheme != "" && ext.Host != "" {
+		logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+			"scheme", ext.Scheme,
+			"namespace", namespace,
+		)
+	}
+
+	accessKeyField := cred.AccessKey
+	if accessKeyField == "" {
+		accessKeyField = "AWS_ACCESS_KEY_ID"
+	}
+	secretKeyField := cred.SecretKey
+	if secretKeyField == "" {
+		secretKeyField = "AWS_SECRET_ACCESS_KEY"
+	}
+
+	dspaObjectStorage := &models.DSPAObjectStorage{
+		SecretName:     cred.SecretName,
+		AccessKeyField: accessKeyField,
+		SecretKeyField: secretKeyField,
+		EndpointURL:    endpointURL,
+		Bucket:         ext.Bucket,
+		Region:         ext.Region,
+	}
+	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+	logger.Debug("Injected DSPA object storage config (override-URL mode)",
+		"secretName", cred.SecretName,
+		"namespace", namespace,
+		"hasEndpoint", endpointURL != "",
+		"hasBucket", ext.Bucket != "",
+	)
+	return ctx
 }
 
 const (
@@ -717,6 +909,20 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				APIServer: &models.APIServer{
 					Deploy: true,
 				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "minio.test-namespace.svc.cluster.local",
+						Port:   "9000",
+						Scheme: "http",
+						Region: "us-east-1",
+						Bucket: "pipeline-artifacts",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "dspa-secret",
+							AccessKey:  "AWS_ACCESS_KEY_ID",
+							SecretKey:  "AWS_SECRET_ACCESS_KEY",
+						},
+					},
+				},
 			},
 			Status: &models.DSPipelineApplicationStatus{
 				Ready: true,
@@ -842,6 +1048,20 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 					APIServer: &models.APIServer{
 						Deploy: true,
 					},
+					ObjectStorage: &models.ObjectStorage{
+						ExternalStorage: &models.ExternalStorage{
+							Host:   fmt.Sprintf("minio.%s.svc.cluster.local", namespace),
+							Port:   "9000",
+							Scheme: "http",
+							Region: "us-east-1",
+							Bucket: "pipeline-artifacts",
+							S3CredentialsSecret: &models.S3CredentialsSecret{
+								SecretName: "dspa-secret",
+								AccessKey:  "AWS_ACCESS_KEY_ID",
+								SecretKey:  "AWS_SECRET_ACCESS_KEY",
+							},
+						},
+					},
 				},
 				Status: &models.DSPipelineApplicationStatus{
 					Ready: true,
@@ -909,4 +1129,79 @@ func (app *App) discoverReadyDSPA(
 		"namespace", namespace,
 		"total_dspas", len(dspas))
 	return nil, nil
+}
+
+// AttachDiscoveredPipeline middleware discovers managed pipelines and attaches them to context.
+//
+// Middleware Chain Requirements:
+//   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
+//   - Returns 400 if prerequisites are missing
+//
+// Behavior:
+//   - Builds a definitions map from config (pipeline type → name prefix)
+//   - Calls DiscoverNamedPipelines to find all configured pipelines
+//   - Stores the result map in context at constants.DiscoveredPipelinesKey
+//   - Partial maps are allowed — handlers decide if their specific type is required
+//   - Returns 500 only if discovery fails with a hard API error
+//   - Logs discovery results for debugging
+//
+// Handlers using this middleware can retrieve discovered pipelines from context:
+//
+//	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+//	discovered := pipelines["autorag"]
+func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get pipeline server client from context (set by AttachPipelineServerClient middleware)
+		pipelineClient, ok := ctx.Value(constants.PipelineServerClientKey).(pipelineserver.PipelineServerClientInterface)
+		if !ok || pipelineClient == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing pipeline server client in context - ensure AttachPipelineServerClient middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Get pipeline server base URL from context (used as part of cache key)
+		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
+
+		// Build definitions map: pipeline type key → name prefix
+		definitions := map[string]string{
+			"autorag": app.config.AutoRAGPipelineNamePrefix,
+		}
+
+		// Discover named pipelines in the namespace
+		pipelines, err := app.repositories.Pipeline.DiscoverNamedPipelines(pipelineClient, ctx, namespace, pipelineServerBaseURL, definitions)
+		if err != nil {
+			logger.Error("Failed to discover AutoRAG pipelines",
+				"namespace", namespace,
+				"error", err)
+			app.serverErrorResponseWithMessage(w, r,
+				fmt.Errorf("failed to discover AutoRAG pipeline: %w", err),
+				fmt.Sprintf("failed to discover AutoRAG pipeline in namespace %s - check that the pipeline server is accessible", namespace))
+			return
+		}
+
+		if autoragPipeline, found := pipelines["autorag"]; found {
+			logger.Debug("Discovered AutoRAG pipeline",
+				"namespace", namespace,
+				"pipelineId", autoragPipeline.PipelineID,
+				"pipelineVersionId", autoragPipeline.PipelineVersionID)
+		} else {
+			logger.Debug("No AutoRAG pipeline discovered in namespace", "namespace", namespace)
+		}
+
+		// Attach discovered pipelines map to context (may be empty)
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
 }

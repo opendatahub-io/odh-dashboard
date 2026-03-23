@@ -19,6 +19,10 @@ import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
 import type { SupportedSubjectKind } from '#~/concepts/permissions/types';
+import { RoleLabelType } from '#~/concepts/permissions/types';
+import { getRoleLabelTypeForRole, getRoleLabelTypeForRoleRef } from '#~/concepts/permissions/utils';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import NavigationBlockerModal from '#~/components/NavigationBlockerModal';
 import AssignRolesFooterActions from './manageRoles/AssignRolesFooterActions';
 import AssignRolesSubjectSection from './manageRoles/AssignRolesSubjectSection';
@@ -64,6 +68,32 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
       setSubjectKind,
       setSubjectName,
     );
+
+  const isExistingSubject = existingSubjectNames.includes(trimmedSubjectName);
+
+  const fireRoleAssignmentEvent = (actionButton: 'save' | 'cancel') => {
+    const getRoleLabelType = (row: (typeof rows)[number]) =>
+      row.role ? getRoleLabelTypeForRole(row.role) : getRoleLabelTypeForRoleRef(row.roleRef);
+
+    const hasCustomOpenshiftRoleRemoved = changes.unassigning.some(
+      (row) => getRoleLabelType(row) === RoleLabelType.OpenshiftCustom,
+    );
+
+    /* eslint-disable camelcase */
+    fireFormTrackingEvent('RBAC Role Assignment Changes Saved', {
+      outcome: actionButton === 'save' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+      subject_kind: `${isExistingSubject ? 'existing' : 'new'}_${subjectKind}`,
+      assigned_role_count: selections.length,
+      custom_ai_role_count: rows.filter((r) => getRoleLabelType(r) === RoleLabelType.Dashboard)
+        .length,
+      custom_openshift_role_count: rows.filter(
+        (r) => getRoleLabelType(r) === RoleLabelType.OpenshiftCustom,
+      ).length,
+      custom_openshift_role_removed: hasCustomOpenshiftRoleRemoved,
+      action_button: actionButton,
+    });
+    /* eslint-enable camelcase */
+  };
 
   const handleSave = React.useCallback(async (): Promise<void> => {
     const rbacSubjectKind: SupportedSubjectKind =
@@ -163,8 +193,14 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
           subjectName={trimmedSubjectName}
           subjectKind={subjectKind}
           changes={changes}
-          onClose={() => setIsConfirmOpen(false)}
-          onConfirm={handleSave}
+          onClose={() => {
+            fireRoleAssignmentEvent('cancel');
+            setIsConfirmOpen(false);
+          }}
+          onConfirm={async () => {
+            await handleSave();
+            fireRoleAssignmentEvent('save');
+          }}
         />
       )}
       {pendingChange && (

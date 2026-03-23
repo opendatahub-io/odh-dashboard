@@ -19,7 +19,6 @@ import {
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
-import { appChrome } from '../../../pages/appChrome';
 import {
   archiveVersionModal,
   modelVersionArchive,
@@ -77,13 +76,9 @@ describe('Verify that models and versions can be archived and restored via model
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
     },
     () => {
-      cy.step('Login as an Admin');
+      cy.step('Login as an Admin and navigate to Model Registry');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-      cy.step('Navigate to Model Registry');
-      appChrome
-        .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-        .click();
+      modelRegistry.visit();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);

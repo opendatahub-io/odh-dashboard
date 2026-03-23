@@ -33,6 +33,7 @@ import { IdentifierResourceType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { K8sResourceIdentifier } from '@openshift/dynamic-plugin-sdk-utils';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 import { useWizardFieldFromExtension } from '../dynamicFormUtils';
@@ -43,7 +44,9 @@ export type ModelServerOption = {
   label?: string;
   namespace?: string;
   scope?: string;
-  template?: TemplateKind;
+  template?: TemplateKind | K8sResourceIdentifier;
+  version?: string;
+  compatibleWithHardwareProfile?: boolean;
 };
 
 // Schema
@@ -100,6 +103,8 @@ export const useModelServerSelectField = (
     undefined,
   );
 
+  const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
+
   const previousModelType = React.useRef(modelType);
   React.useEffect(() => {
     if (previousModelType.current !== modelType) {
@@ -120,7 +125,7 @@ export const useModelServerSelectField = (
     let filteredTemplates = modelServerTemplates;
     if (modelType) {
       filteredTemplates = filteredTemplates?.filter((template) =>
-        getModelTypesFromTemplate(template).includes(modelType),
+        getModelTypesFromTemplate(template).includes(modelType.type),
       );
     }
     if (modelFormat) {
@@ -148,6 +153,8 @@ export const useModelServerSelectField = (
       };
     }
     return null;
+    // We want dependencies to be specific to the values being used. If something else inside hardwareProfile changes, then it will recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     modelServerTemplates,
     modelFormat,
@@ -159,22 +166,34 @@ export const useModelServerSelectField = (
   ]);
 
   const options = React.useMemo(() => {
-    const result = [];
+    const result: ModelServerOption[] = [];
 
     result.push(...(modelServerSelectExtension?.extraOptions || []));
 
     result.push(
-      ...(modelServerTemplates?.map((template) => ({
-        name: template.metadata.name,
-        namespace: template.metadata.namespace,
-        label: getServingRuntimeDisplayNameFromTemplate(template),
-        scope: template.metadata.namespace === dashboardNamespace ? 'global' : 'project',
-        template,
-      })) || []),
+      ...(modelServerTemplates?.map(
+        (template) =>
+          ({
+            name: template.metadata.name,
+            namespace: template.metadata.namespace,
+            label: getServingRuntimeDisplayNameFromTemplate(template),
+            version: getServingRuntimeVersion(template),
+            compatibleWithHardwareProfile: profileIdentifiers.some((identifier) =>
+              isCompatibleWithIdentifier(identifier, getServingRuntimeFromTemplate(template)),
+            ),
+            scope: template.metadata.namespace === dashboardNamespace ? 'global' : 'project',
+            template,
+          } satisfies ModelServerOption),
+      ) || []),
     );
 
     return result;
-  }, [modelServerSelectExtension?.extraOptions, modelServerTemplates, dashboardNamespace]);
+  }, [
+    modelServerSelectExtension?.extraOptions,
+    modelServerTemplates,
+    dashboardNamespace,
+    profileIdentifiers,
+  ]);
 
   const isDirty = existingData || modelServer || isAutoSelectChecked !== undefined;
   const autoSelect = (suggestion && !isDirty) || isAutoSelectChecked;
@@ -189,52 +208,43 @@ export const useModelServerSelectField = (
 };
 
 // Component
+
+const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }) => (
+  <>
+    <FlexItem>
+      <Truncate content={option.label || option.name || ''} />
+    </FlexItem>
+    {option.version && (
+      <FlexItem>
+        <ServingRuntimeVersionLabel version={option.version} isCompact />
+      </FlexItem>
+    )}
+    {option.template && (
+      <FlexItem align={{ default: 'alignRight' }}>
+        {option.compatibleWithHardwareProfile && (
+          <Label color="blue">Compatible with hardware profile</Label>
+        )}
+      </FlexItem>
+    )}
+  </>
+);
+
 type ModelServerTemplateSelectFieldProps = {
   modelServerState: ModelServerSelectField;
-  hardwareProfile?: HardwareProfileKind;
   isEditing?: boolean;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
-  hardwareProfile,
   isEditing,
 }) => {
   const { data, setData, isAutoSelectChecked, setIsAutoSelectChecked, suggestion, options } =
     modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
 
-  const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
-
   const selectedTemplate = React.useMemo(() => {
     return options.find((o) => o.name === data?.name && o.namespace === data.namespace) ?? data;
   }, [options, data]);
-
-  const getServingRuntimeDropdownLabel = React.useCallback(
-    (option: ModelServerOption) => (
-      <>
-        <FlexItem>
-          <Truncate content={option.label || option.name || ''} />
-        </FlexItem>
-        {option.template && getServingRuntimeVersion(option.template) && (
-          <FlexItem>
-            <ServingRuntimeVersionLabel
-              version={getServingRuntimeVersion(option.template)}
-              isCompact
-            />
-          </FlexItem>
-        )}
-        {option.template && (
-          <FlexItem align={{ default: 'alignRight' }}>
-            {profileIdentifiers.some((identifier) =>
-              isCompatibleWithIdentifier(identifier, option.template?.objects[0]),
-            ) && <Label color="blue">Compatible with hardware profile</Label>}
-          </FlexItem>
-        )}
-      </>
-    ),
-    [profileIdentifiers],
-  );
 
   const renderMenuItem = React.useCallback(
     (option: ModelServerOption, index: number, scope: 'project' | 'global') => (
@@ -246,6 +256,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           setData({
             name: option.name,
             label: option.label,
+            version: option.version,
+            compatibleWithHardwareProfile: option.compatibleWithHardwareProfile,
             namespace: option.namespace,
             scope,
             template: option.template,
@@ -254,11 +266,11 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
         icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
       >
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {getServingRuntimeDropdownLabel(option)}
+          <OptionDropdownLabel option={option} />
         </Flex>
       </MenuItem>
     ),
-    [options, data, setData, getServingRuntimeDropdownLabel],
+    [data, setData],
   );
 
   const filteredProjectScopedTemplates = options.filter(
@@ -299,9 +311,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
                   : undefined
               }
               additionalContent={
-                getServingRuntimeVersion(selectedTemplate?.template) && (
+                selectedTemplate?.version && (
                   <ServingRuntimeVersionLabel
-                    version={getServingRuntimeVersion(selectedTemplate?.template)}
+                    version={selectedTemplate.version}
                     isCompact
                     isEditing={isEditing}
                   />
@@ -366,7 +378,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             body={
               isAutoSelectChecked && suggestion ? (
                 <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  {getServingRuntimeDropdownLabel(suggestion)}
+                  <OptionDropdownLabel option={suggestion} />
                 </Flex>
               ) : null
             }

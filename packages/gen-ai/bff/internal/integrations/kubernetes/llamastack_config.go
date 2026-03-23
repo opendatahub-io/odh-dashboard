@@ -459,6 +459,37 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	c.AddModel(model)
 }
 
+// AddCustomEndpointProviderAndModel adds a custom endpoint model provider and its corresponding model to the config
+// This is a helper for building LlamaStack configurations with OpenAI-compatible custom endpoint model providers
+// The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference
+// Provider type is hardcoded to "remote::openai" - all custom endpoints must be OpenAI-compatible.
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+	// Create provider config - minimal config for external models
+	// Full configuration (including secrets) is managed via the gen-ai-aa-external-models ConfigMap
+	providerConfig := EmptyConfig()
+	providerConfig["base_url"] = endpointURL
+	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap
+
+	// Add provider - hardcoded to remote::openai (only supported type for custom endpoints)
+	provider := NewProvider(providerID, "remote::openai", providerConfig)
+	c.AddInferenceProvider(provider)
+
+	// Add model
+	var model Model
+	if metadata == nil {
+		model = NewLLMModel(modelID, providerID, modelID)
+	} else {
+		model = NewModel(modelID, providerID, modelType, metadata)
+	}
+
+	// Set per-model max_tokens if provided
+	if maxTokens != nil {
+		model.MaxTokens = maxTokens
+	}
+
+	c.AddModel(model)
+}
+
 // AddInferenceProvider adds a new inference provider to the config
 func (c *LlamaStackConfig) AddInferenceProvider(provider Provider) {
 	c.Providers.Inference = append(c.Providers.Inference, provider)

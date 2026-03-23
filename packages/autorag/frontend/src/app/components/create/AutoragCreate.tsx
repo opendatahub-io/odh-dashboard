@@ -1,82 +1,68 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ActionGroup, Button, Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
-import React from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Navigate, useNavigate, useParams } from 'react-router';
-import createExperimentSchema from '~/app/schemas/experiment.schema';
-import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
-import { getRequiredFields } from '~/app/utilities/schema';
+import { FormGroup, TextArea, TextInput } from '@patternfly/react-core';
+import React, { useEffect } from 'react';
+import { Controller, useFormContext } from 'react-hook-form';
+import { useParams } from 'react-router';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import SecretSelector, { SecretSelection } from '../common/SecretSelector';
 
 function AutoragCreate(): React.JSX.Element {
-  const navigate = useNavigate();
   const { namespace } = useParams();
+  const [selectedLlamaStackSecret, setSelectedLlamaStackSecret] = React.useState<
+    SecretSelection | undefined
+  >();
 
-  const experimentSchema = createExperimentSchema();
-  const requiredFields = getRequiredFields(experimentSchema);
-  const form = useForm({
-    mode: 'onChange',
-    resolver: zodResolver(experimentSchema),
-    defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema.
-  });
+  const form = useFormContext<ConfigureSchema>();
+  const { setValue } = form;
 
-  if (!namespace) {
-    return <Navigate to={autoragExperimentsPathname} replace />;
-  }
+  // When pressing "Back" to return to this screen, the SecretSelector appears to have no value set
+  // even though "llama_stack_secret_name" is set from before.
+  // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
+  // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
+  // no selection appears to be made.
+  useEffect(() => {
+    setValue('llama_stack_secret_name', '');
+  }, [setValue]);
 
   return (
-    <div>
-      <Form>
-        <Controller
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormGroup
-              fieldId={field.name}
-              label="Name"
-              isRequired={requiredFields.includes(field.name)}
-            >
-              <TextInput
-                {...field}
-                id={field.name}
-                type="text"
-                isRequired={requiredFields.includes(field.name)}
-              />
-            </FormGroup>
-          )}
-        />
-
-        <Controller
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormGroup
-              fieldId={field.name}
-              label="Description"
-              isRequired={requiredFields.includes(field.name)}
-            >
-              <TextArea
-                {...field}
-                id={field.name}
-                isRequired={requiredFields.includes(field.name)}
-              />
-            </FormGroup>
-          )}
-        />
-        <ActionGroup>
-          <Button
-            variant="primary"
-            isDisabled={!form.formState.isValid}
-            onClick={async () => {
-              form.handleSubmit(() => {
-                navigate(`${autoragConfigurePathname}/${namespace}/FAKE_EXPERIMENT_ID`);
-              })();
-            }}
-          >
-            Create
-          </Button>
-        </ActionGroup>
-      </Form>
-    </div>
+    <>
+      <Controller
+        control={form.control}
+        name="display_name"
+        render={({ field }) => (
+          <FormGroup fieldId={field.name} label="Name" isRequired>
+            <TextInput {...field} id={field.name} type="text" isRequired />
+          </FormGroup>
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormGroup fieldId={field.name} label="Description">
+            <TextArea {...field} id={field.name} />
+          </FormGroup>
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="llama_stack_secret_name"
+        render={({ field }) => (
+          <FormGroup fieldId={field.name} label="Llama Stack instance" isRequired>
+            <SecretSelector
+              dataTestId="lls-secret-selector"
+              placeholder="Select Llama Stack secret"
+              type="lls"
+              namespace={namespace ?? ''}
+              value={selectedLlamaStackSecret?.uuid}
+              onChange={(secret) => {
+                setSelectedLlamaStackSecret(secret);
+                field.onChange(!secret || secret.invalid ? '' : secret.name);
+              }}
+            />
+          </FormGroup>
+        )}
+      />
+    </>
   );
 }
 

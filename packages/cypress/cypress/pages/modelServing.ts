@@ -1350,11 +1350,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    const editor = new DashboardCodeEditor(() =>
-      cy.findByTestId('yaml-editor').find('.monaco-editor'),
-    );
-    editor.waitForReady();
-    return editor;
+    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor'));
   }
 
   findYAMLEditorEmptyState() {
@@ -1367,6 +1363,10 @@ class ModelServingWizard extends Wizard {
 
   findSwitchToYAMLEditorConfirmButton() {
     return cy.findByTestId('switch-to-manual-yaml-editor');
+  }
+
+  findLegacyModeCheckbox() {
+    return cy.findByTestId('legacy-mode-checkbox');
   }
 }
 

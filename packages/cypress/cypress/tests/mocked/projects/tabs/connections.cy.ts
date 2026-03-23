@@ -127,7 +127,6 @@ describe('Connections', () => {
         metadata: {
           annotations: {
             'opendatahub.io/connection-type-ref': 'test',
-            'openshift.io/description': '',
             'openshift.io/display-name': 'new connection',
           },
           labels: { 'opendatahub.io/dashboard': 'true' },
@@ -178,7 +177,6 @@ describe('Connections', () => {
           annotations: {
             'opendatahub.io/connection-type-protocol': 's3',
             'openshift.io/display-name': 'whitespace connection',
-            'openshift.io/description': '',
             'opendatahub.io/connection-type': 's3',
             'opendatahub.io/connection-type-ref': 's3',
           },
@@ -223,6 +221,7 @@ describe('Connections', () => {
 
     connectionsPage.getConnectionRow('test2').findKebabAction('Edit').click();
     cy.findByTestId(['field', 'field_env']).fill('new data');
+    cy.findByTestId('connection-name-desc-description').fill('new description');
     cy.findByTestId('modal-submit-button').click();
 
     cy.wait('@editConnection').then((interception) => {
@@ -234,8 +233,8 @@ describe('Connections', () => {
             'opendatahub.io/connection-type-protocol': 's3',
             'opendatahub.io/connection-type': 's3',
             'opendatahub.io/connection-type-ref': 'postgres',
-            'openshift.io/description': '',
             'openshift.io/display-name': 'test2',
+            'openshift.io/description': 'new description',
           },
           labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
           name: 'test2',
@@ -326,7 +325,6 @@ describe('Connections', () => {
           annotations: {
             'opendatahub.io/connection-type-protocol': 'oci',
             'openshift.io/display-name': 'new oci connection',
-            'openshift.io/description': '',
             'opendatahub.io/connection-type-ref': 'oci-v1',
           },
         },

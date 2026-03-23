@@ -32,6 +32,7 @@ type MockResourceConfigType = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string | null;
   workbenchImageNamespace?: string | null;
+  injectAuth?: string | null;
 };
 
 export const mockNotebookK8sResource = ({
@@ -59,6 +60,7 @@ export const mockNotebookK8sResource = ({
   hardwareProfileName = '',
   hardwareProfileNamespace = null,
   workbenchImageNamespace = null,
+  injectAuth = 'true',
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -68,7 +70,7 @@ export const mockNotebookK8sResource = ({
         annotations: {
           'opendatahub.io/image-display-name': imageDisplayName,
           'notebooks.kubeflow.org/last-activity': '2023-02-14T21:45:14Z',
-          'notebooks.opendatahub.io/inject-auth': 'true',
+          ...(injectAuth !== null ? { 'notebooks.opendatahub.io/inject-auth': injectAuth } : {}),
           'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
           'notebooks.opendatahub.io/last-size-selection': 'Small',
           'opendatahub.io/username': user,
@@ -188,14 +190,13 @@ export const mockNotebookK8sResource = ({
                     },
                   },
                 ],
-                image:
-                  'registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4bef31eb993feb6f1096b51b4876c65a6fb1f4401fee97fa4f4542b6b7c9bc46',
+                image: 'quay.io/openshift/kube-rbac-proxy:latest',
                 imagePullPolicy: 'Always',
                 livenessProbe: {
                   failureThreshold: 3,
                   httpGet: {
-                    path: '/oauth/healthz',
-                    port: 'oauth-proxy',
+                    path: '/healthz',
+                    port: 'kube-rbac-proxy',
                     scheme: 'HTTPS',
                   },
                   initialDelaySeconds: 30,
@@ -203,19 +204,19 @@ export const mockNotebookK8sResource = ({
                   successThreshold: 1,
                   timeoutSeconds: 1,
                 },
-                name: 'oauth-proxy',
+                name: 'kube-rbac-proxy',
                 ports: [
                   {
                     containerPort: 8443,
-                    name: 'oauth-proxy',
+                    name: 'kube-rbac-proxy',
                     protocol: 'TCP',
                   },
                 ],
                 readinessProbe: {
                   failureThreshold: 3,
                   httpGet: {
-                    path: '/oauth/healthz',
-                    port: 'oauth-proxy',
+                    path: '/healthz',
+                    port: 'kube-rbac-proxy',
                     scheme: 'HTTPS',
                   },
                   initialDelaySeconds: 5,
@@ -235,8 +236,8 @@ export const mockNotebookK8sResource = ({
                 },
                 volumeMounts: [
                   {
-                    mountPath: '/etc/oauth/config',
-                    name: 'oauth-config',
+                    mountPath: '/etc/kube-rbac-proxy',
+                    name: 'kube-rbac-proxy-config',
                   },
                   {
                     mountPath: '/etc/tls/private',
@@ -267,7 +268,7 @@ export const mockNotebookK8sResource = ({
                 },
               },
               {
-                name: 'oauth-config',
+                name: 'kube-rbac-proxy-config',
                 secret: {
                   secretName: 'workbench-oauth-config',
                 },

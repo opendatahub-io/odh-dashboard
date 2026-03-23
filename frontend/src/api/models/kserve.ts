@@ -20,3 +20,10 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
 };
+
+export const LLMInferenceServiceConfigModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'LLMInferenceServiceConfig',
+  plural: 'llminferenceserviceconfigs',
+};

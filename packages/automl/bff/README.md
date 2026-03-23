@@ -8,13 +8,15 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes the following endpoints:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
-
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
+- GET `/api/v1/secrets` – list and filter secrets from a namespace (supports filtering by storage type)
+- GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
+- GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
+- POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
 
 ## Development
 
@@ -92,22 +94,30 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+The following JSON endpoints are available plus static asset serving (index.html fallback):
 
 ```text
-GET /healthcheck
-GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET  /healthcheck
+GET  /api/v1/user
+GET  /api/v1/namespaces          (dev / mock mode only)
+GET  /api/v1/secrets             (filter secrets by type, e.g., ?namespace=default&type=storage)
+GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered AutoML pipelines)
+GET  /api/v1/pipeline-runs/:runId
+POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
 ```
+
+For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
 
 ```shell
 curl -i localhost:4000/healthcheck
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/secrets?resource=default"
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/secrets?resource=default&type=storage"
 ```
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
@@ -200,3 +210,33 @@ export INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
+
+### Local testing with port-forward
+
+When testing the BFF locally against a Kubeflow Pipelines instance running in a cluster, set `PIPELINE_SERVER_URL` to the port-forwarded address:
+
+```shell
+# Terminal 1: port-forward the pipeline server
+kubectl port-forward -n <namespace> svc/<ds-pipeline-service-name> 8888:8443
+
+# Terminal 2: run the BFF with override URL
+cd packages/automl/bff
+make run PIPELINE_SERVER_URL=https://localhost:8888 INSECURE_SKIP_VERIFY=true
+```
+
+#### S3 endpoints in port-forward mode
+
+When `PIPELINE_SERVER_URL` is set, the pipeline client is created from the override URL rather than by discovering the DSPipelineApplication (DSPA) in the cluster. However, the BFF will still **attempt best-effort DSPA discovery** via the Kubernetes API so that the S3 file and schema endpoints (`GET /api/v1/s3/file`, `GET /api/v1/s3/file/schema`) can resolve credentials from the DSPA spec without requiring an explicit `secretName` query parameter.
+
+If you see the error `"query parameter 'secretName' is required when no DSPA object storage config is available"` while using port-forward mode, one of the following is likely true:
+
+- Your auth token does not have permission to list `datasciencepipelinesapplications` resources in the namespace — verify with `kubectl auth can-i list datasciencepipelinesapplications -n <namespace>`
+- No DSPA exists in the namespace yet
+- The DSPA exists but its API Server component is not ready
+
+As a workaround you can pass `secretName` explicitly:
+```shell
+curl -H "kubeflow-userid: user@example.com" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
+```

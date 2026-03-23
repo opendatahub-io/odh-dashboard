@@ -46,10 +46,18 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-		logger:                  logger,
-		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger),
+		config: config.EnvConfig{
+			AllowedOrigins: []string{"*"},
+			AuthMethod:     config.AuthMethodInternal,
+			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
+			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
+			// DSPAObjectStorageKey will NOT be set in context for these tests.
+			PipelineServerURL: "http://test-pipeline-server",
+		},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)

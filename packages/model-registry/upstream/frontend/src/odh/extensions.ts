@@ -12,7 +12,6 @@ import {
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
-
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
@@ -22,7 +21,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       devFlags: [
         'Model Registry Plugin (unreleased pages)',
         'KF MR Upstream: Catalog HuggingFace API Key',
-        'KF MR Upstream: Registry OCI Storage',
       ],
     },
   },

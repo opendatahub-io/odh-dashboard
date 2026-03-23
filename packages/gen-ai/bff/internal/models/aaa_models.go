@@ -6,11 +6,16 @@ type ModelSourceTypeEnum string
 const (
 	// ModelSourceTypeNamespace indicates a model deployed in the user's namespace (InferenceService/LLMInferenceService)
 	ModelSourceTypeNamespace ModelSourceTypeEnum = "namespace"
-	// ModelSourceTypeExternalCluster indicates an external model pointing inside the cluster (cross-namespace)
-	ModelSourceTypeExternalCluster ModelSourceTypeEnum = "external_cluster"
-	// ModelSourceTypeExternalProvider indicates an external model pointing to a provider (outside cluster)
-	ModelSourceTypeExternalProvider ModelSourceTypeEnum = "external_provider"
+	// ModelSourceTypeCustomEndpoint indicates an external model endpoint (user-provided URL)
+	ModelSourceTypeCustomEndpoint ModelSourceTypeEnum = "custom_endpoint"
+	// ModelSourceTypeMaaS indicates a MaaS (Model as a Service) model
+	ModelSourceTypeMaaS ModelSourceTypeEnum = "maas"
 )
+
+// IsExternalModelSource returns true if the model source type indicates an external model (custom_endpoint)
+func IsExternalModelSource(sourceType ModelSourceTypeEnum) bool {
+	return sourceType == ModelSourceTypeCustomEndpoint
+}
 
 type AAModel struct {
 	ModelName       string              `json:"model_name"`
@@ -25,6 +30,7 @@ type AAModel struct {
 	DisplayName     string              `json:"display_name"`
 	SAToken         SAToken             `json:"sa_token"`
 	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`
+	ModelType       ModelTypeEnum       `json:"model_type,omitempty"`
 }
 
 type SAToken struct {

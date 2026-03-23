@@ -1305,13 +1305,13 @@ export type DashboardCommonConfig = {
   autorag?: boolean;
   modelAsService?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  maasApiKeys?: boolean;
   mlflow?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

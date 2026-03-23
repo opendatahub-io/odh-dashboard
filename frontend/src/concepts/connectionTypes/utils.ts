@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { KnownLabels, SecretKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import {
+  K8sNameDescriptionFieldData,
+  K8sNameDescriptionType,
+} from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import {
   Connection,
   ConnectionTypeConfigMap,
@@ -338,7 +341,7 @@ export const withRequiredFields = (
 export const assembleConnectionSecret = (
   projectName: string,
   connectionTypeName: string,
-  nameDesc: K8sNameDescriptionFieldData,
+  nameDesc: K8sNameDescriptionFieldData | K8sNameDescriptionType,
   values: {
     [key: string]: ConnectionTypeValueType;
   },
@@ -364,15 +367,17 @@ export const assembleConnectionSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
+      name:
+        (typeof nameDesc.k8sName === 'object' ? nameDesc.k8sName.value : nameDesc.k8sName) ??
+        translateDisplayNameForK8s(nameDesc.name ?? ''),
       namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
         ...(managedType && { 'opendatahub.io/managed': 'true' }),
       },
       annotations: {
-        'openshift.io/display-name': nameDesc.name,
-        'openshift.io/description': nameDesc.description,
+        ...(nameDesc.name && { 'openshift.io/display-name': nameDesc.name }),
+        ...(nameDesc.description && { 'openshift.io/description': nameDesc.description }),
         'opendatahub.io/connection-type-ref': connectionTypeName,
         ...(managedType && { 'opendatahub.io/connection-type': managedType }),
       },

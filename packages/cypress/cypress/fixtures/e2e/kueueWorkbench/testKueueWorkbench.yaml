@@ -1,0 +1,11 @@
+# Kueue workbench test data
+projectName: "kueue-workbench-project"
+flavorName: "workbench-flavor"
+clusterQueueName: "workbench-cluster-queue"
+localQueueName: "workbench-queue"
+hardwareProfileName: "kueue-hp"
+hardwareProfileDisplayName: "Kueue Workbench Profile"
+cpuQuota: 4
+memoryQuota: 8
+sectionTab: "workbenches"
+notebookImage: "code-server-notebook"

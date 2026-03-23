@@ -308,7 +308,6 @@ describe('ConnectionsFormSection', () => {
           },
           annotations: {
             'openshift.io/display-name': 'new name',
-            'openshift.io/description': '',
             'opendatahub.io/connection-type-ref': 'oci-v1',
           },
         },

@@ -9,8 +9,21 @@ const (
 	TierCreatePath = ApiPathPrefix + "/tier"
 
 	// API Keys routes
-	APIKeysListPath   = ApiPathPrefix + "/api-keys"
-	APIKeyByIDPath    = ApiPathPrefix + "/api-key/:id"
-	APIKeyCreatePath  = ApiPathPrefix + "/api-key"
-	APIKeysDeletePath = ApiPathPrefix + "/api-keys"
+	APIKeyCreatePath     = ApiPathPrefix + "/api-keys"
+	APIKeySearchPath     = ApiPathPrefix + "/api-keys/search"
+	APIKeyBulkRevokePath = ApiPathPrefix + "/api-keys/bulk-revoke"
+	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
+
+	// Subscription routes
+	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"
+	SubscriptionInfoPath     = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionFormDataPath = ApiPathPrefix + "/new-subscription"
+	SubscriptionCreatePath   = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath   = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath   = ApiPathPrefix + "/subscription/:name"
+
+	// MaaSModelRef routes
+	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
+	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 )

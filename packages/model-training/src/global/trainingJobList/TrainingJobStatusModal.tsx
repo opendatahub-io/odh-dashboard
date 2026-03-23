@@ -40,11 +40,11 @@ import {
 import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
 import { TrainJobKind } from '../../k8sTypes';
-import { TrainingJobState } from '../../types';
+import { JobDisplayState, TrainingJobState } from '../../types';
 
 type TrainingJobStatusModalProps = {
   job: TrainJobKind;
-  jobStatus?: TrainingJobState;
+  jobStatus?: JobDisplayState;
   onClose?: () => void;
   onDelete?: () => void;
   onPauseClick?: () => void;
@@ -86,7 +86,10 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     if (!workloadLoaded || workloads.length === 0) return null;
     return workloads[0];
   }, [workloads, workloadLoaded]);
-  const workloadConditions = workload?.status?.conditions || [];
+  const workloadConditions = React.useMemo(
+    () => workload?.status?.conditions ?? [],
+    [workload?.status?.conditions],
+  );
 
   const [events, eventsLoaded] = useWatchTrainJobEvents(
     job.metadata.namespace,

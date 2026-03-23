@@ -433,9 +433,9 @@ class APIKeyTableRow extends TableRow {
   }
 }
 
-class RevokeAPIKeyModal extends Modal {
+class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
-    super('Revoke API key?');
+    super('Revoke all your active keys?');
   }
 
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -444,6 +444,24 @@ class RevokeAPIKeyModal extends Modal {
 
   findRevokeConfirmationInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('revoke-confirmation-input');
+  }
+}
+
+class RevokeAPIKeyModal extends Modal {
+  constructor() {
+    super('Revoke API key?');
+  }
+
+  findRevokeAllButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Permanently revoke all keys' });
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Revoke' });
+  }
+
+  findRevokeConfirmationInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-modal-input');
   }
 }
 
@@ -528,6 +546,7 @@ export const deleteTierModal = new DeleteTierModal();
 export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
+export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();

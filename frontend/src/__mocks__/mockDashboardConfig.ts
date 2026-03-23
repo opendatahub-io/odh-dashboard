@@ -44,7 +44,6 @@ export type MockDashboardConfigType = {
   autorag?: boolean;
   modelAsService?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
@@ -54,6 +53,7 @@ export type MockDashboardConfigType = {
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -76,7 +76,6 @@ export const mockDashboardConfig = ({
   autorag = false,
   modelAsService = true,
   aiAssetCustomEndpoints = true,
-  maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -107,6 +106,7 @@ export const mockDashboardConfig = ({
   observabilityDashboard = false,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
+  vLLMDeploymentOnMaaS = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -262,7 +262,6 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -283,6 +282,7 @@ export const mockDashboardConfig = ({
       observabilityDashboard,
       disableLLMd,
       deploymentWizardYAMLViewer,
+      vLLMDeploymentOnMaaS,
     },
     notebookController: {
       enabled: !disableNotebookController,

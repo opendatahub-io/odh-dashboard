@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
@@ -17,24 +18,45 @@ type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
-// Returns pipeline runs from a specific Pipeline Server filtered by pipeline version ID
+//
+// Returns pipeline runs for the auto-discovered AutoRAG pipeline version.
+// The pipeline is discovered via the AttachDiscoveredPipeline middleware.
+//
+// Query Parameters:
+//   - namespace: Kubernetes namespace (required, validated by middleware)
+//   - pageSize: Number of results per page (optional, default: 20, max: 100)
+//   - nextPageToken: Pagination token (optional)
+//
+// Error Responses:
+//   - 400: Invalid query parameters
+//   - 500: Missing pipeline server client (middleware misconfiguration) or no AutoRAG pipeline found
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	// Get pipeline server client from context (added by middleware)
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
 		return
 	}
 
-	// Parse query parameters
-	query := r.URL.Query()
-
-	// Get pipeline version ID from query params (optional)
-	pipelineVersionID := query.Get("pipelineVersionId")
+	// Require discovered AutoRAG pipeline
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+		return
+	}
+	discovered := pipelines["autorag"]
+	if discovered == nil {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("no AutoRAG pipeline found in namespace"),
+			"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
+		return
+	}
 
 	// Parse pagination parameters
+	query := r.URL.Query()
+
 	pageSize := int32(20) // default
 	if pageSizeStr := query.Get("pageSize"); pageSizeStr != "" {
 		parsed, err := strconv.ParseInt(pageSizeStr, 10, 32)
@@ -55,13 +77,14 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 
 	pageToken := query.Get("nextPageToken")
 
-	// Call repository to get filtered pipeline runs
+	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version.
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
-		pipelineVersionID,
+		discovered.PipelineVersionID,
 		pageSize,
 		pageToken,
+		constants.PipelineTypeAutoRAG,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
@@ -80,14 +103,42 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 }
 
 // PipelineRunHandler handles GET /api/v1/pipeline-runs/:runId
-// Returns a single pipeline run by ID
+// Returns a single pipeline run by ID, but only if it belongs to the discovered AutoRAG pipeline.
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before returning it. This prevents users from accessing runs from other
+// pipelines that may exist in the same namespace.
+//
+// Validation includes:
+//   - PipelineVersionReference must exist (defense-in-depth for data integrity)
+//   - Pipeline ID must match discovered AutoRAG pipeline
+//   - Pipeline version ID must match discovered AutoRAG pipeline version
+//
+// Error Responses:
+//   - 400: Missing runId or pipeline server client
+//   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
+//   - 500: Pipeline Server error or no AutoRAG pipeline discovered
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
 
 	// Get pipeline server client from context (added by middleware)
 	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	// Get discovered pipeline from context (added by AttachDiscoveredPipeline middleware)
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+		return
+	}
+	discovered := pipelines["autorag"]
+	if discovered == nil {
+		app.serverErrorResponseWithMessage(w, r,
+			fmt.Errorf("no AutoRAG pipeline found in namespace"),
+			"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
 		return
 	}
 
@@ -110,6 +161,32 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
 		return
 	}
+
+	// Verify that the run belongs to the discovered AutoRAG pipeline
+	// This ensures users can only access runs from the AutoRAG pipeline in their namespace
+
+	// Defense-in-depth: Validate that PipelineVersionReference exists
+	// KFP should always set this field, but we check explicitly for data integrity
+	if run.PipelineVersionReference == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
+			"runId", runID,
+			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
+		// Return 404 for security (don't leak that run exists with invalid data)
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Validate that the run belongs to the discovered AutoRAG pipeline
+	if run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		// Run exists but belongs to a different pipeline - return 404 for security
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Set the pipeline type now that ownership is confirmed.
+	run.PipelineType = constants.PipelineTypeAutoRAG
 
 	// Wrap in envelope response
 	response := PipelineRunEnvelope{

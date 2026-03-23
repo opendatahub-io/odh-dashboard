@@ -59,8 +59,8 @@ export type DashboardConfig = K8sResourceCommon & {
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
-      maasApiKeys: boolean;
       deploymentWizardYAMLViewer: boolean;
+      vLLMDeploymentOnMaaS: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

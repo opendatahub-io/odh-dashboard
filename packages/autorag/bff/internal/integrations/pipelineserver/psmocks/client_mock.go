@@ -2,6 +2,7 @@ package psmocks
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -14,14 +15,73 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
+// MockPipelineIDs holds deterministic, namespace-scoped UUIDs for mock pipeline fixtures.
+// Because IDs are derived from the namespace, each tenant gets a distinct set — so a test
+// using the wrong namespace will produce mismatching IDs and fail authorization checks.
+type MockPipelineIDs struct {
+	PipelineID      string // UUID for the AutoRAG pipeline
+	LatestVersionID string // UUID for the most-recently-created pipeline version
+	OldVersionID    string // UUID for the older pipeline version
+}
+
+// DeriveMockIDs returns a consistent MockPipelineIDs set for the given namespace by
+// applying SHA-256 to distinct seeds.  Two different namespaces always produce different IDs.
+func DeriveMockIDs(namespace string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("pipeline:" + namespace),
+		LatestVersionID: hashUUID("version-latest:" + namespace),
+		OldVersionID:    hashUUID("version-old:" + namespace),
+	}
+}
+
+// DeriveMockIDsFromName returns a consistent MockPipelineIDs set for the given pipeline name
+// and namespace.  Used when multiple named pipelines exist in the same namespace.
+func DeriveMockIDsFromName(namespace, name string) MockPipelineIDs {
+	return MockPipelineIDs{
+		PipelineID:      hashUUID("pipeline:" + name + ":" + namespace),
+		LatestVersionID: hashUUID("version-latest:" + name + ":" + namespace),
+		OldVersionID:    hashUUID("version-old:" + name + ":" + namespace),
+	}
+}
+
+// hashUUID converts the SHA-256 digest of input into a UUID-formatted string.
+func hashUUID(input string) string {
+	h := sha256.Sum256([]byte(input))
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		h[0:4], h[4:6], h[6:8], h[8:10], h[10:16])
+}
+
+// defaultPipelineNamePrefix is the prefix used when PipelineNamePrefix is not set.
+const defaultPipelineNamePrefix = "autorag"
+
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
+	// PipelineNamePrefix is the prefix used to construct the AutoRAG pipeline's DisplayName in
+	// ListPipelines (e.g. "autorag" → "autorag-pipeline").  Defaults to "autorag" when empty,
+	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
+	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// Ignored when PipelineNames is set.
+	PipelineNamePrefix string
+	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
+	// pipeline entry per name in this slice (with IDs derived from name+namespace).
+	// ListPipelineVersions returns versions for any of these pipelines' derived IDs.
+	PipelineNames []string
 	// LastListRunsParams records the last parameters passed to ListRuns for test assertions
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
+}
+
+// pipelineDisplayName returns the DisplayName used for the AutoRAG pipeline fixture,
+// falling back to the default prefix when PipelineNamePrefix is not set.
+func (m *MockPipelineServerClient) pipelineDisplayName() string {
+	prefix := m.PipelineNamePrefix
+	if prefix == "" {
+		prefix = defaultPipelineNamePrefix
+	}
+	return prefix + "-pipeline"
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -130,7 +190,7 @@ func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
 	if count == 0 {
 		return nil
 	}
-	baseRuns := getBaseMockRuns()
+	baseRuns := getBaseMockRuns(namespace)
 	if count <= len(baseRuns) {
 		return baseRuns[:count]
 	}
@@ -144,8 +204,10 @@ func getMockRunsForNamespace(namespace string) []models.KFPipelineRun {
 	return result
 }
 
-// getBaseMockRuns returns the base run templates
-func getBaseMockRuns() []models.KFPipelineRun {
+// getBaseMockRuns returns the base run templates with IDs derived from the namespace
+// so that runs from different tenants carry distinct pipeline references.
+func getBaseMockRuns(namespace string) []models.KFPipelineRun {
+	ids := DeriveMockIDs(namespace)
 	return []models.KFPipelineRun{
 		{
 			RunID:        "run-abc123-def456",
@@ -153,8 +215,8 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			Description:  "Test optimization run",
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "SUCCEEDED",
 			StorageState:   "AVAILABLE",
@@ -219,8 +281,8 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			Description:  "Another test run",
 			ExperimentID: "exp-456",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "version-v2",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "RUNNING",
 			StorageState:   "AVAILABLE",
@@ -267,8 +329,8 @@ func getBaseMockRuns() []models.KFPipelineRun {
 			Description:  "Baseline comparison run",
 			ExperimentID: "exp-123",
 			PipelineVersionReference: &models.PipelineVersionReference{
-				PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-				PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+				PipelineID:        ids.PipelineID,
+				PipelineVersionID: ids.LatestVersionID,
 			},
 			State:          "FAILED",
 			StorageState:   "AVAILABLE",
@@ -392,15 +454,16 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID
+	// Return mock data based on the run ID, using namespace-derived IDs
+	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
 		DisplayName:  "AutoRAG Optimization Run",
 		Description:  "Test optimization run",
 		ExperimentID: "exp-123",
 		PipelineVersionReference: &models.PipelineVersionReference{
-			PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
-			PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
 		},
 		State:          "SUCCEEDED",
 		StorageState:   "AVAILABLE",
@@ -450,6 +513,20 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	return mockRun, nil
 }
 
+// GetPipelineVersion returns a mock pipeline version with a pipeline_spec for topology visualization
+func (m *MockPipelineServerClient) GetPipelineVersion(_ context.Context, _, _ string) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		DisplayName:       "mock-pipeline-version",
+		PipelineSpec: json.RawMessage(`{"root":{"dag":{"tasks":{
+			"test-data-loader":{"taskInfo":{"name":"test-data-loader"},"dependentTasks":[],"componentRef":{"name":""}},
+			"text-extraction":{"taskInfo":{"name":"text-extraction"},"dependentTasks":["test-data-loader"],"componentRef":{"name":""}},
+			"leaderboard-evaluation":{"taskInfo":{"name":"leaderboard-evaluation"},"dependentTasks":["text-extraction"],"componentRef":{"name":""}}
+		}}}}`),
+	}, nil
+}
+
 // CreateRun returns a mock pipeline run response matching real KFP v2beta1 output
 func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	now := time.Now().UTC()
@@ -494,6 +571,116 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 				},
 			},
 		},
+	}, nil
+}
+
+// ListPipelines returns mock pipeline data with namespace-derived IDs.
+// The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
+// When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.
+func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		pipelines := make([]models.KFPipeline, 0, len(m.PipelineNames))
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			pipelines = append(pipelines, models.KFPipeline{
+				PipelineID:  ids.PipelineID,
+				DisplayName: name,
+				Description: "Managed AutoRAG pipeline",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			})
+		}
+		return &models.KFPipelinesResponse{
+			Pipelines:     pipelines,
+			TotalSize:     int32(len(pipelines)),
+			NextPageToken: "",
+		}, nil
+	}
+
+	ids := DeriveMockIDs(m.Namespace)
+	return &models.KFPipelinesResponse{
+		Pipelines: []models.KFPipeline{
+			{
+				PipelineID:  ids.PipelineID,
+				DisplayName: m.pipelineDisplayName(),
+				Description: "Managed AutoRAG pipeline for optimizing retrieval strategies",
+				CreatedAt:   "2026-02-20T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+			{
+				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),
+				DisplayName: "another-pipeline",
+				Description: "Some other pipeline",
+				CreatedAt:   "2026-02-21T10:00:00Z",
+				Namespace:   m.Namespace,
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+// ListPipelineVersions returns mock pipeline version data sorted by created_at desc (newest first),
+// matching the sort order requested by the real pipeline server client.
+// When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
+func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if len(m.PipelineNames) > 0 {
+		for _, name := range m.PipelineNames {
+			ids := DeriveMockIDsFromName(m.Namespace, name)
+			if pipelineID == ids.PipelineID {
+				return &models.KFPipelineVersionsResponse{
+					PipelineVersions: []models.KFPipelineVersion{
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.LatestVersionID,
+							DisplayName:       "v1.0.0",
+							Description:       "Pipeline version",
+							CreatedAt:         "2026-02-23T10:00:00Z",
+						},
+					},
+					TotalSize:     1,
+					NextPageToken: "",
+				}, nil
+			}
+		}
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{},
+			TotalSize:        0,
+			NextPageToken:    "",
+		}, nil
+	}
+
+	ids := DeriveMockIDs(m.Namespace)
+
+	// Only return versions for this namespace's AutoRAG pipeline
+	if pipelineID == ids.PipelineID {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        ids.PipelineID,
+					PipelineVersionID: ids.LatestVersionID,
+					DisplayName:       "v2.0.0",
+					Description:       "Updated AutoRAG pipeline with improved metrics",
+					CreatedAt:         "2026-02-23T10:00:00Z",
+				},
+				{
+					PipelineID:        ids.PipelineID,
+					PipelineVersionID: ids.OldVersionID,
+					DisplayName:       "v1.0.0",
+					Description:       "Initial AutoRAG pipeline version",
+					CreatedAt:         "2026-02-20T10:00:00Z",
+				},
+			},
+			TotalSize:     2,
+			NextPageToken: "",
+		}, nil
+	}
+
+	// Return empty for pipelines not belonging to this namespace
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{},
+		TotalSize:        0,
+		NextPageToken:    "",
 	}, nil
 }
 

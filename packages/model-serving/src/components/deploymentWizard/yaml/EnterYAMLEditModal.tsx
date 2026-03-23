@@ -16,7 +16,7 @@ export const EnterYAMLEditModal: React.FC<EnterYAMLEditModalProps> = ({ onClose,
       variant="small"
       buttonActions={[
         {
-          label: 'Switch to manual YAML editor',
+          label: 'Confirm',
           onClick: onConfirm,
           variant: 'danger',
           dataTestId: 'switch-to-manual-yaml-editor',

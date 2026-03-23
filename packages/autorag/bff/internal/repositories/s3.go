@@ -2,25 +2,20 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	s3client "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-// S3Credentials contains the credentials needed to connect to S3
-type S3Credentials struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	Region          string
-	EndpointURL     string
-	Bucket          string // Optional bucket name from secret (AWS_S3_BUCKET)
-}
+// S3Credentials is a type alias for the s3 client package's S3Credentials,
+// re-exported so the interface can reference it without a package qualifier.
+type S3Credentials = s3client.S3Credentials
+
+var ErrMissingRequiredField = errors.New("missing required field")
 
 type S3Repository struct{}
 
@@ -30,22 +25,29 @@ func NewS3Repository() *S3Repository {
 
 // GetS3Credentials retrieves S3 credentials from a Kubernetes secret
 func (r *S3Repository) GetS3Credentials(
-	client k8s.KubernetesClientInterface,
 	ctx context.Context,
+	client k8s.KubernetesClientInterface,
 	namespace string,
 	secretName string,
 	identity *k8s.RequestIdentity,
-) (*S3Credentials, error) {
+) (*s3client.S3Credentials, error) {
 	// Fetch the specific secret
 	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
+		return nil, err
 	}
 
 	// Extract S3 credentials from secret data (case-insensitive key matching)
-	creds := &S3Credentials{}
+	creds := &s3client.S3Credentials{}
 	secretData := secret.Data
 
+	// TODO [ PR-Feedback: AI ] R1 - Gustavo + Daniel:
+	//   Replace O(n*m) closure with a pre-built normalized map.
+	//   Current approach iterates all secret keys for each lookup and has non-deterministic
+	//   behavior with duplicate keys. Simpler and faster:
+	//     normalizedData := make(map[string]string, len(secretData))
+	//     for k, v := range secretData { normalizedData[strings.ToLower(k)] = string(v) }
+	//     getValue := func(key string) string { return normalizedData[strings.ToLower(key)] }
 	// Helper to get value from secret data case-insensitively
 	getValue := func(targetKeys ...string) string {
 		// Check all keys in the secret against the target keys (case-insensitive)
@@ -68,68 +70,77 @@ func (r *S3Repository) GetS3Credentials(
 
 	// Validate that all required fields are present
 	if creds.AccessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_ACCESS_KEY_ID", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_ACCESS_KEY_ID", secretName, ErrMissingRequiredField)
 	}
 	if creds.SecretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_SECRET_ACCESS_KEY", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_SECRET_ACCESS_KEY", secretName, ErrMissingRequiredField)
 	}
 	if creds.Region == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_DEFAULT_REGION", secretName, ErrMissingRequiredField)
 	}
 	if creds.EndpointURL == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
+		return nil, fmt.Errorf("secret '%s' %w: AWS_S3_ENDPOINT", secretName, ErrMissingRequiredField)
 	}
 
 	return creds, nil
 }
 
-// GetS3Object retrieves an object from S3 using transfer manager for optimized downloading
-// and returns a reader for the content. Uses concurrent multipart downloads for large files.
-func (r *S3Repository) GetS3Object(
+// GetS3CredentialsFromDSPA retrieves S3 credentials from the Kubernetes secret referenced by
+// a DSPAObjectStorage config, using the field names the DSPA spec specifies rather than the
+// conventional AWS_* names. The endpoint URL, bucket, and region come from the DSPA spec
+// and are carried in the dspaStorage struct — they are not expected to be in the secret.
+func (r *S3Repository) GetS3CredentialsFromDSPA(
 	ctx context.Context,
-	creds *S3Credentials,
-	bucket string,
-	key string,
-) (io.Reader, string, error) {
-	// Create AWS config with credentials
-	cfg := aws.Config{
-		Region:      creds.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	dspaStorage *models.DSPAObjectStorage,
+	identity *k8s.RequestIdentity,
+) (*S3Credentials, error) {
+	if dspaStorage.SecretName == "" {
+		return nil, fmt.Errorf("DSPA spec missing secret name: SecretName is required")
+	}
+	if dspaStorage.EndpointURL == "" {
+		return nil, fmt.Errorf("DSPA spec missing a valid endpoint (scheme + host are required)")
 	}
 
-	// Create S3 client
-	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(creds.EndpointURL)
-		// Enable path-style addressing for S3-compatible services like MinIO
-		o.UsePathStyle = true
-	})
-
-	// Create transfer manager for optimized downloads
-	transferClient := transfermanager.New(s3Client)
-
-	// Get the object using transfer manager
-	// This automatically handles multipart downloads for large files with concurrency
-	result, err := transferClient.GetObject(ctx, &transfermanager.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	}, func(o *transfermanager.Options) {
-		// Configure for optimal streaming performance
-		o.Concurrency = 10                  // 10 concurrent part downloads
-		o.PartSizeBytes = 64 * 1024 * 1024  // 64MB parts for large files
-		o.GetObjectBufferSize = 1024 * 1024 // 1MB buffer for streaming
-		o.PartBodyMaxRetries = 3            // Retry failed parts up to 3 times
-		o.DisableChecksumValidation = false // Enable checksum validation for data integrity
-	})
+	secret, err := client.GetSecret(ctx, namespace, dspaStorage.SecretName, identity)
 	if err != nil {
-		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w",
+			dspaStorage.SecretName, namespace, err)
 	}
 
-	// Get content type, default to application/octet-stream if not specified
-	contentType := "application/octet-stream"
-	if result.ContentType != nil {
-		contentType = *result.ContentType
+	getValue := func(targetKey string) string {
+		targetLower := strings.ToLower(targetKey)
+		for secretKey, secretValue := range secret.Data {
+			if strings.ToLower(secretKey) == targetLower {
+				return string(secretValue)
+			}
+		}
+		return ""
 	}
 
-	// Transfer manager's GetObject returns io.Reader; caller should type-assert to io.Closer if cleanup is needed
-	return result.Body, contentType, nil
+	accessKeyID := getValue(dspaStorage.AccessKeyField)
+	if accessKeyID == "" {
+		return nil, fmt.Errorf("secret '%s' missing required field: %s",
+			dspaStorage.SecretName, dspaStorage.AccessKeyField)
+	}
+
+	secretAccessKey := getValue(dspaStorage.SecretKeyField)
+	if secretAccessKey == "" {
+		return nil, fmt.Errorf("secret '%s' missing required field: %s",
+			dspaStorage.SecretName, dspaStorage.SecretKeyField)
+	}
+
+	region := dspaStorage.Region
+	if region == "" {
+		region = "us-east-1" // MinIO and other compatible stores ignore region; SDK requires a value
+	}
+
+	return &S3Credentials{
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
+		EndpointURL:     dspaStorage.EndpointURL,
+		Bucket:          dspaStorage.Bucket,
+		Region:          region,
+	}, nil
 }

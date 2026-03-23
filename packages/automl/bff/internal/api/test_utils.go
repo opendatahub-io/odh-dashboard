@@ -15,11 +15,12 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
-func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
+func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) { //nolint:unused
 	var empty T
 	var reqBody io.Reader
 	if body != nil {
@@ -42,8 +43,17 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
 
-	logger := slog.Default()
-	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories(logger)}
+	// Create a test logger that discards output
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+
+	app := &App{
+		config:                      config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockPipelineServerClient: true},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
+	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
@@ -102,5 +112,5 @@ func newTestApp(t *testing.T) *App {
 	// Create a mock Pipeline Server client factory
 	psFactory := psmocks.NewMockClientFactory()
 
-	return NewTestApp(cfg, logger, k8sFactory, psFactory, nil)
+	return NewTestApp(cfg, logger, k8sFactory, psFactory, s3mocks.NewMockClientFactory(), nil)
 }

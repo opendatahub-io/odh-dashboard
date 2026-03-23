@@ -39,7 +39,11 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import {
+  isValidModelType,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
@@ -297,14 +301,14 @@ export const applyConnectionData = (
   secretName?: string,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  if (createConnectionData.nameDesc?.name) {
+  if (secretName || createConnectionData.nameDesc?.name) {
     result.metadata.annotations = {
       ...result.metadata.annotations,
     };
     // Apply connection name to the annotations
     if (!dryRun) {
       result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-        secretName ?? createConnectionData.nameDesc.name;
+        secretName ?? createConnectionData.nameDesc?.name ?? '';
     }
     // Apply connection path to the annotations if the connection type is S3ObjectStorage
     if (
@@ -362,6 +366,19 @@ export const applyDashboardResourceLabel = (
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
   return result;
+};
+
+export const extractModelType = (deployment: {
+  model: InferenceServiceKind;
+}): ModelTypeFieldData | null => {
+  const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
+  if (modelType && isValidModelType(modelType)) {
+    return {
+      type: modelType,
+      legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
+    };
+  }
+  return null;
 };
 
 export const applyModelType = (

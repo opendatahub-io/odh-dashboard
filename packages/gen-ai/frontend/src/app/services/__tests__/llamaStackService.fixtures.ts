@@ -10,6 +10,7 @@ import {
   MCPConnectionStatus,
   MCPToolsStatus,
   MCPServerInfo,
+  LSDInstallModel,
 } from '~/app/types';
 
 // Test namespace constant
@@ -102,15 +103,15 @@ export const mockCodeExportResponseData: CodeExportData = {
 };
 
 // Install LSD fixtures
-export const mockInstallModels = [
-  { model_name: 'model-1', is_maas_model: false },
-  { model_name: 'model-2', is_maas_model: false },
-  { model_name: 'model-3', is_maas_model: true },
+export const mockInstallModels: LSDInstallModel[] = [
+  { model_name: 'model-1', model_source_type: 'namespace' },
+  { model_name: 'model-2', model_source_type: 'namespace' },
+  { model_name: 'model-3', model_source_type: 'maas' },
 ];
 
-export const mockMaaSModelsForInstall = [
-  { model_name: 'maas-model-1', is_maas_model: true },
-  { model_name: 'regular-model', is_maas_model: false },
+export const mockMaaSModelsForInstall: LSDInstallModel[] = [
+  { model_name: 'maas-model-1', model_source_type: 'maas' },
+  { model_name: 'regular-model', model_source_type: 'namespace' },
 ];
 
 // MaaS Models fixtures
@@ -121,7 +122,7 @@ export const mockMaaSModels = [
     created: 1672531200,
     owned_by: 'model-namespace',
     ready: true,
-    url: 'http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local',
+    url: 'https://granite-7b-lab.apps.example.openshift.com/v1',
     display_name: 'Granite 7B Lab',
     description: 'IBM Granite 7B model optimized for lab experiments and testing',
     usecase: 'Code generation, Text completion',
@@ -132,7 +133,7 @@ export const mockMaaSModels = [
     created: 1672531200,
     owned_by: 'model-namespace',
     ready: true,
-    url: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local',
+    url: 'https://llama-2-7b-chat.apps.example.openshift.com/v1',
     display_name: 'Llama 2 7B Chat',
     description: 'Meta Llama 2 7B model fine-tuned for conversational AI tasks',
     usecase: 'Chat, Question answering',

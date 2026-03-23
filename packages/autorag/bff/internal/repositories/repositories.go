@@ -12,12 +12,11 @@ type Repositories struct {
 	LSDModels    *LSDModelsRepository
 	Secret       *SecretRepository
 	S3           *S3Repository
+	Pipeline     *PipelineRepository
 	PipelineRuns *PipelineRunsRepository
 }
 
-func NewRepositories(logger *slog.Logger) *Repositories {
-	// logger parameter is reserved for future use when repository constructors need logging
-	_ = logger
+func NewRepositories(_ *slog.Logger) *Repositories {
 	return &Repositories{
 		HealthCheck:  NewHealthCheckRepository(),
 		User:         NewUserRepository(),
@@ -25,6 +24,7 @@ func NewRepositories(logger *slog.Logger) *Repositories {
 		LSDModels:    NewLSDModelsRepository(),
 		Secret:       NewSecretRepository(),
 		S3:           NewS3Repository(),
+		Pipeline:     NewPipelineRepository(),
 		PipelineRuns: NewPipelineRunsRepository(),
 	}
 }

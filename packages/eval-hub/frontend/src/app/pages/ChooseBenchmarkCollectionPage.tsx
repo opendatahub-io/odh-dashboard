@@ -95,11 +95,23 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                       <Card
                         key={collection.resource.id}
                         isSelected={isSelected}
-                        style={{ cursor: 'pointer' }}
                         data-testid={`collection-card-${collection.resource.id}`}
-                        onClick={() => setSelectedCollection(isSelected ? undefined : collection)}
                       >
-                        <CardTitle>{collection.name}</CardTitle>
+                        <CardTitle>
+                          <Button
+                            variant="link"
+                            isInline
+                            style={{
+                              textDecoration: 'none',
+                              fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                            }}
+                            onClick={() =>
+                              setSelectedCollection(isSelected ? undefined : collection)
+                            }
+                          >
+                            {collection.name}
+                          </Button>
+                        </CardTitle>
                         <CardBody>
                           {benchmarkCount > 0 && (
                             <Content component="small">
@@ -114,14 +126,11 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         </CardBody>
                         <CardFooter>
                           <Button
-                            variant="link"
+                            variant="secondary"
                             isInline
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRunCollection(collection);
-                            }}
+                            onClick={() => handleRunCollection(collection)}
                           >
-                            Run collection
+                            Run this benchmark suite
                           </Button>
                         </CardFooter>
                       </Card>

@@ -3,14 +3,19 @@ import { Button, PageSection } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
+import { APIKey } from '~/app/types/api-key';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysActions from './ApiKeysActions';
+import RevokeApiKeyModal from './RevokeApiKeyModal';
 
 const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+
+  const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
   return (
     <ApplicationsPage
@@ -20,7 +25,6 @@ const AllApiKeysPage: React.FC = () => {
       loaded={loaded}
       loadError={error}
       emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
-      headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
       {isModalOpen && (
         <CreateApiKeyModal
@@ -35,18 +39,33 @@ const AllApiKeysPage: React.FC = () => {
         <PageSection isFilled>
           <ApiKeysTable
             apiKeys={apiKeys}
+            onRevokeApiKey={setRevokeApiKey}
             toolbarContent={
-              <Button
-                variant="primary"
-                icon={<PlusIcon />}
-                onClick={() => setIsModalOpen(true)}
-                data-testid="create-api-key-button"
-              >
-                Create API key
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  icon={<PlusIcon />}
+                  onClick={() => setIsModalOpen(true)}
+                  data-testid="create-api-key-button"
+                >
+                  Create API key
+                </Button>
+                <ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />
+              </>
             }
           />
         </PageSection>
+      )}
+      {revokeApiKey && revokeApiKey.name && (
+        <RevokeApiKeyModal
+          apiKey={revokeApiKey}
+          onClose={(revoked) => {
+            setRevokeApiKey(undefined);
+            if (revoked) {
+              refresh();
+            }
+          }}
+        />
       )}
     </ApplicationsPage>
   );

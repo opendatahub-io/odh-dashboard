@@ -85,7 +85,6 @@ export const blankDashboardCR: DashboardConfig = {
       autorag: false,
       modelAsService: false,
       aiAssetCustomEndpoints: false,
-      maasApiKeys: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
@@ -95,6 +94,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLLMd: false,
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
+      vLLMDeploymentOnMaaS: false,
     },
     notebookController: {
       enabled: true,

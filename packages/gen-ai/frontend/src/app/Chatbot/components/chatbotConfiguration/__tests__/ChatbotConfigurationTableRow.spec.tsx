@@ -59,6 +59,7 @@ const createMockAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token_name: 'token',
     token: 'test-token',
   },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
@@ -70,7 +71,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 describe('ChatbotConfigurationTableRow', () => {
   const defaultProps = {
-    model: createMockAIModel({}),
+    model: createMockAIModel({ model_source_type: 'namespace' }),
     isChecked: false,
     onToggleCheck: jest.fn(),
     onMaxTokensChange: jest.fn(),
@@ -94,7 +95,7 @@ describe('ChatbotConfigurationTableRow', () => {
 
   it('renders MaaS badge for MaaS models', () => {
     const maasModel = createMockAIModel({
-      isMaaSModel: true,
+      model_source_type: 'maas',
       display_name: 'MaaS Test Model',
     });
 
@@ -105,17 +106,33 @@ describe('ChatbotConfigurationTableRow', () => {
     );
 
     expect(screen.getByText('MaaS Test Model')).toBeInTheDocument();
-    expect(screen.getByLabelText('Model as a Service')).toBeInTheDocument();
+    expect(screen.getByText('MaaS')).toBeInTheDocument();
   });
 
-  it('does not render MaaS badge for regular models', () => {
+  it('renders Custom endpoint badge for custom endpoint models', () => {
+    const customEndpointModel = createMockAIModel({
+      model_source_type: 'custom_endpoint',
+      display_name: 'Custom Endpoint Model',
+    });
+
+    render(
+      <TestWrapper>
+        <ChatbotConfigurationTableRow {...defaultProps} model={customEndpointModel} />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByText('Custom Endpoint Model')).toBeInTheDocument();
+    expect(screen.getByText('Custom endpoint')).toBeInTheDocument();
+  });
+
+  it('does not render source badge for internal models', () => {
     render(
       <TestWrapper>
         <ChatbotConfigurationTableRow {...defaultProps} />
       </TestWrapper>,
     );
 
-    expect(screen.queryByLabelText('Model as a Service')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-source-badge')).not.toBeInTheDocument();
   });
 
   it('enables checkbox for running models', () => {
