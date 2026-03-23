@@ -14,17 +14,78 @@ import type {
 import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
 import { getFiles } from '~/app/api/s3.ts';
 
-// Types ---------------------------------------------------------------------->
-
-// TODO [ Gustavo ] Imported from playground example. There might be a better name
-interface BrowsableDataset {
-  allDirectories: Directory[];
-  allFiles: Files;
-}
-
 // Globals -------------------------------------------------------------------->
 
 const DEFAULT_PER_PAGE = 10;
+
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+};
+
+/** Maps an S3ListObjectsResult to FileExplorer-compatible items. */
+const mapResultToItems = (result: S3ListObjectsResult): Files => {
+  const items: Files = [];
+
+  if (result.common_prefixes) {
+    for (const cp of result.common_prefixes) {
+      const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
+      const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
+      items.push({ name, path: prefixPath, type: 'directory', items: 0 });
+    }
+  }
+
+  if (result.contents) {
+    for (const obj of result.contents) {
+      // Skip keys that end with / (directory markers)
+      if (obj.key.endsWith('/')) {
+        const dirPath = `/${obj.key.replace(/\/$/, '')}`;
+        const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
+        items.push({ name, path: dirPath, type: 'directory', items: 0 });
+        continue;
+      }
+
+      const fullPath = `/${obj.key}`;
+      const segments = obj.key.split('/');
+      const fileName = segments.pop() ?? obj.key;
+      const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+
+      items.push({
+        name: fileName,
+        path: fullPath,
+        type: ext || 'file',
+        size: obj.size !== undefined ? formatBytes(obj.size) : undefined,
+        details: {
+          ...(obj.last_modified && { 'Last Modified': obj.last_modified }),
+          ...(obj.etag && { ETag: obj.etag }),
+          ...(obj.storage_class && { 'Storage Class': obj.storage_class }),
+          ...(obj.size !== undefined && { 'Size (bytes)': obj.size }),
+        },
+      });
+    }
+  }
+
+  return items;
+};
+
+/** Builds the ordered breadcrumb trail from root to the given path. */
+const getBreadcrumbTrail = (targetPath: string): Directory[] => {
+  if (targetPath === '/') {
+    return [];
+  }
+  const segments = targetPath.split('/').filter(Boolean);
+  const trail: Directory[] = [];
+  let accumulated = '';
+  for (const seg of segments) {
+    accumulated += `/${seg}`;
+    trail.push({ name: seg, path: accumulated, type: 'directory', items: 0 });
+  }
+  return trail;
+};
 
 // Components ----------------------------------------------------------------->
 
@@ -52,7 +113,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
   const [lastDirectoryClicked, setLastDirectoryClicked] = useState<Directory | null>(null);
-  const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>([]);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(
@@ -63,193 +123,94 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [searchResultsCountToRender, setSearchResultsCountToRender] = useState<number | undefined>(
     undefined,
   );
-  const [pageToRender, setPageToRender] = useState<number | undefined>(undefined);
-  const [perPageToRender, setPerPageToRender] = useState<number | undefined>(undefined);
+  const [pageToRender, setPageToRender] = useState<number | undefined>(1);
+  const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [itemCountToRender, setItemCountToRender] = useState<number | undefined>(undefined);
   const [selectionToRender, setSelectionToRender] = useState<'radio' | 'checkbox' | undefined>(
     undefined,
   );
-  const [activeDataset, setActiveDataset] = useState<BrowsableDataset | null>(null);
   const [currentPath, setCurrentPath] = useState('/');
-  const [allChildItems, setAllChildItems] = useState<Files>([]);
-  const [filteredChildItems, setFilteredChildItems] = useState<Files>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Track continuation tokens per page for forward/backward navigation
+  const continuationTokensRef = useRef<Map<number, string>>(new Map());
+  const lastResultRef = useRef<S3ListObjectsResult | null>(null);
 
   // Effects ------------------------------------------------------------------>
 
-  const callback = useCallback<FetchStateCallbackPromise<S3ListObjectsResult | null>>(
-    (opts: APIOptions) => {
+  const fetchPath = useCallback(
+    (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
       if (!secretName) {
-        return Promise.reject(new NotReadyError('No secret provided'));
+        return;
       }
-      return getFiles('')(namespace, secretName, bucket)(opts);
+      setLoadingToRender(true);
+
+      const apiPath = path === '/' ? undefined : path.replace(/^\//, '');
+      const opts: { path?: string; search?: string; limit?: number; next?: string } = {
+        limit: perPage,
+      };
+      if (apiPath) {
+        opts.path = apiPath;
+      }
+      if (search) {
+        opts.search = search;
+      }
+      if (continuationToken) {
+        opts.next = continuationToken;
+      }
+
+      getFiles('')(
+        namespace,
+        secretName,
+        bucket,
+        opts,
+      )({ signal: new AbortController().signal })
+        .then((result) => {
+          lastResultRef.current = result;
+          const items = mapResultToItems(result);
+          setFilesToRender(items);
+
+          // S3 doesn't provide a total count across all pages, so we estimate:
+          // - Items before this page: (currentPage - 1) * perPage
+          // - Items on this page: items.length
+          // - If truncated, signal at least one more page by adding perPage
+          const itemsBefore = (page - 1) * perPage;
+          if (result.is_truncated && result.next_continuation_token) {
+            setItemCountToRender(itemsBefore + items.length + perPage);
+          } else {
+            setItemCountToRender(itemsBefore + items.length);
+          }
+
+          setLoadingToRender(false);
+        })
+        .catch(() => {
+          setFilesToRender([]);
+          setLoadingToRender(false);
+        });
     },
-    [namespace, secretName],
+    [namespace, secretName, bucket],
   );
 
-  const [listObjectsResult, loaded, error, refresh] = useFetchState<S3ListObjectsResult | null>(
-    callback,
-    null,
-  );
-
-  // Map S3 response to BrowsableDataset when data loads
-  const hasBuiltDataset = useRef(false);
-
+  // Initial fetch on mount / when secret changes
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
-    if (!loaded || hasBuiltDataset.current || !listObjectsResult) {
+    if (!secretName || hasFetchedRef.current) {
       return;
     }
-    hasBuiltDataset.current = true;
-
-    const result = listObjectsResult;
-    const allDirectories: Directory[] = [];
-    const allFiles: Files = [];
-    const seenDirs = new Set<string>();
-
-    // Map common_prefixes to directories
-    if (result.common_prefixes) {
-      for (const cp of result.common_prefixes) {
-        const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
-        if (!seenDirs.has(prefixPath)) {
-          seenDirs.add(prefixPath);
-          const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-          allDirectories.push({
-            name,
-            path: prefixPath,
-            type: 'directory',
-            items: 0,
-          });
-        }
-      }
-    }
-
-    // Map contents to files (and synthesize parent directories)
-    if (result.contents) {
-      for (const obj of result.contents) {
-        const fullPath = `/${obj.key}`;
-        // Skip keys that end with / (they represent directories)
-        if (obj.key.endsWith('/')) {
-          const dirPath = fullPath.replace(/\/$/, '');
-          if (!seenDirs.has(dirPath)) {
-            seenDirs.add(dirPath);
-            const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
-            allDirectories.push({ name, path: dirPath, type: 'directory', items: 0 });
-          }
-          continue;
-        }
-
-        // Synthesize intermediate parent directories
-        const segments = obj.key.split('/');
-        for (let i = 1; i < segments.length; i++) {
-          const dirPath = `/${segments.slice(0, i).join('/')}`;
-          if (!seenDirs.has(dirPath)) {
-            seenDirs.add(dirPath);
-            allDirectories.push({
-              name: segments[i - 1],
-              path: dirPath,
-              type: 'directory',
-              items: 0,
-            });
-          }
-        }
-
-        const fileName = segments.pop() ?? obj.key;
-        const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
-
-        allFiles.push({
-          name: fileName,
-          path: fullPath,
-          type: ext || 'file',
-          size: obj.size !== undefined ? formatBytes(obj.size) : undefined,
-          details: {
-            ...(obj.last_modified && { 'Last Modified': obj.last_modified }),
-            ...(obj.etag && { ETag: obj.etag }),
-            ...(obj.storage_class && { 'Storage Class': obj.storage_class }),
-            ...(obj.size !== undefined && { 'Size (bytes)': obj.size }),
-          },
-        });
-      }
-    }
-
-    // Compute directory item counts
-    for (const dir of allDirectories) {
-      const prefix = dir.path === '/' ? '' : dir.path;
-      dir.items = [...allDirectories, ...allFiles].filter((item) => {
-        const parentPath = item.path.substring(0, item.path.lastIndexOf('/'));
-        return parentPath === prefix;
-      }).length;
-    }
-
-    const dataset: BrowsableDataset = { allDirectories, allFiles };
-    setActiveDataset(dataset);
-    setLoadingToRender(false);
-    navigateTo(dataset, '/');
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- guarded by hasBuiltDataset ref, runs once
-  }, [loaded, listObjectsResult]);
-
-  // Update loading state when fetch is in progress
-  useEffect(() => {
-    if (!loaded && !error) {
-      setLoadingToRender(true);
-    }
-  }, [loaded, error]);
+    hasFetchedRef.current = true;
+    fetchPath('/', DEFAULT_PER_PAGE, 1);
+  }, [secretName, fetchPath]);
 
   // Helpers ------------------------------------------------------------------>
 
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) {
-      return '0 B';
-    }
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-  };
-
-  /** Returns the direct children (subdirectories + files) at the given path. */
-  const getChildItems = (dataset: BrowsableDataset, parentPath: string): Files => {
-    const parent = parentPath === '/' ? '' : parentPath;
-    const allItems: Files = [...dataset.allDirectories, ...dataset.allFiles];
-    return allItems.filter((item) => {
-      const itemParent = item.path.substring(0, item.path.lastIndexOf('/'));
-      return itemParent === parent;
-    });
-  };
-
-  /** Builds the ordered breadcrumb trail from root to the given path. */
-  const getBreadcrumbTrail = (allDirs: Directory[], targetPath: string): Directory[] => {
-    if (targetPath === '/') {
-      return [];
-    }
-    const segments = targetPath.split('/').filter(Boolean);
-    const trail: Directory[] = [];
-    let accumulated = '';
-    for (const seg of segments) {
-      accumulated += `/${seg}`;
-      const dir = allDirs.find((d) => d.path === accumulated);
-      if (dir) {
-        trail.push(dir);
-      }
-    }
-    return trail;
-  };
-
-  const paginateItems = (items: Files, page: number, perPage: number): Files =>
-    items.slice((page - 1) * perPage, page * perPage);
-
-  const navigateTo = (dataset: BrowsableDataset, path: string) => {
-    const children = getChildItems(dataset, path);
+  const navigateTo = (path: string, perPage: number) => {
     setCurrentPath(path);
-    setAllChildItems(children);
-    setFilteredChildItems(children);
-    setDirectoriesToRender(getBreadcrumbTrail(dataset.allDirectories, path));
+    setDirectoriesToRender(getBreadcrumbTrail(path));
+    setSearchQuery('');
     setSearchResultsCountToRender(undefined);
-    applyView(children, 1, DEFAULT_PER_PAGE);
-  };
-
-  const applyView = (items: Files, page: number, perPage: number) => {
-    setPageToRender(page);
-    setPerPageToRender(perPage);
-    setItemCountToRender(items.length);
-    setFilesToRender(paginateItems(items, page, perPage));
+    setPageToRender(1);
+    continuationTokensRef.current = new Map();
+    fetchPath(path, perPage, 1);
   };
 
   // Rendering ---------------------------------------------------------------->
@@ -276,47 +237,55 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }}
       onDirectoryClick={(directory) => {
         setLastDirectoryClicked(directory);
-        if (activeDataset) {
-          navigateTo(activeDataset, directory.path);
-        }
+        navigateTo(directory.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onNavigate={(dir) => {
         setLastNavigatedDir(dir);
-        if (activeDataset) {
-          navigateTo(activeDataset, dir.path);
-        }
+        navigateTo(dir.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onNavigateRoot={() => {
-        if (activeDataset) {
-          navigateTo(activeDataset, '/');
-        }
+        navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onSearch={(query) => {
-        setLastSearchQuery(query);
-        if (activeDataset) {
-          const lowerQuery = query.toLowerCase();
-          const filtered = lowerQuery
-            ? allChildItems.filter((f) => f.name.toLowerCase().includes(lowerQuery))
-            : allChildItems;
-          setFilteredChildItems(filtered);
-          setSearchResultsCountToRender(lowerQuery ? filtered.length : undefined);
-          applyView(filtered, 1, perPageToRender ?? DEFAULT_PER_PAGE);
+        setSearchQuery(query);
+        setPageToRender(1);
+        continuationTokensRef.current = new Map();
+        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
+        if (query) {
+          setSearchResultsCountToRender(undefined);
+          fetchPath(currentPath, perPage, 1, query);
+        } else {
+          setSearchResultsCountToRender(undefined);
+          fetchPath(currentPath, perPage, 1);
         }
       }}
       onSetPage={(newPage) => {
+        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
+        const currentPage = pageToRender ?? 1;
+
+        if (newPage > currentPage) {
+          // Going forward: store the current result's next token for this page transition
+          const nextToken = lastResultRef.current?.next_continuation_token;
+          if (nextToken) {
+            continuationTokensRef.current.set(newPage, nextToken);
+          }
+        }
+
         setPageToRender(newPage);
-        if (activeDataset) {
-          setFilesToRender(
-            paginateItems(filteredChildItems, newPage, perPageToRender ?? DEFAULT_PER_PAGE),
-          );
+
+        if (newPage === 1) {
+          // First page: no continuation token needed
+          fetchPath(currentPath, perPage, newPage, searchQuery || undefined);
+        } else {
+          const token = continuationTokensRef.current.get(newPage);
+          fetchPath(currentPath, perPage, newPage, searchQuery || undefined, token);
         }
       }}
       onPerPageSelect={(newPerPage) => {
         setPerPageToRender(newPerPage);
         setPageToRender(1);
-        if (activeDataset) {
-          setFilesToRender(paginateItems(filteredChildItems, 1, newPerPage));
-        }
+        continuationTokensRef.current = new Map();
+        fetchPath(currentPath, newPerPage, 1, searchQuery || undefined);
       }}
       onPrimary={(files) => {
         setSelectedFiles(files);
