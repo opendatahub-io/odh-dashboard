@@ -20,22 +20,55 @@ jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
 // Mock Data Fixtures
 // ============================================================================
 
-const createMockPattern = (
-  displayName: string,
-  metrics: Record<string, number>,
-): AutoragPattern => ({
-  display_name: displayName,
-  pattern_config: {
-    eval_metric: 'faithfulness',
+const createMockPattern = (name: string, metrics: Record<string, number>): AutoragPattern => ({
+  name,
+  iteration: 1,
+  max_combinations: 10,
+  duration_seconds: 120,
+  settings: {
+    vector_store: {
+      datasource_type: 'milvus',
+      collection_name: 'test_collection',
+    },
+    chunking: {
+      method: 'sequential',
+      chunk_size: 512,
+      chunk_overlap: 50,
+    },
+    embedding: {
+      model_id: 'text-embedding-3',
+      distance_metric: 'cosine',
+      embedding_params: {
+        embedding_dimension: 1536,
+        context_length: 8192,
+        timeout: null,
+        model_type: null,
+        provider_id: null,
+        provider_resource_id: null,
+      },
+    },
+    retrieval: {
+      method: 'simple',
+      number_of_chunks: 5,
+      search_mode: 'vector',
+    },
+    generation: {
+      model_id: 'llama-3',
+      context_template_text: 'Context: {context}',
+      user_message_text: 'Question: {question}',
+      system_message_text: 'You are a helpful assistant.',
+    },
   },
-  location: {
-    pattern_directory: `/patterns/${displayName}`,
-    predictor: `/patterns/${displayName}/predictor.pkl`,
-    notebook: `/patterns/${displayName}/notebook.ipynb`,
-  },
-  metrics: {
-    test_data: metrics,
-  },
+  scoring: Object.fromEntries(
+    Object.entries(metrics).map(([key, value]) => [
+      key,
+      {
+        mean: value,
+        ci_high: value + 0.05,
+        ci_low: value - 0.05,
+      },
+    ]),
+  ) as AutoragPattern['scoring'],
 });
 
 // Standard RAG patterns with different metrics
@@ -86,7 +119,9 @@ const mockPatternsWithSmallValues: Record<string, AutoragPattern> = {
 };
 
 // Helper to create mock parameters
-const createMockParameters = (optimizationMetric: string) => ({
+const createMockParameters = (
+  optimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness',
+) => ({
   display_name: 'Test RAG Run',
   input_data_secret_name: 'test-secret',
   input_data_bucket_name: 'test-bucket',
@@ -103,7 +138,7 @@ const createMockParameters = (optimizationMetric: string) => ({
 
 const createMockPipelineRun = (
   state: RuntimeStateKF,
-  optimizationMetric?: string,
+  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness',
 ): PipelineRun => ({
   run_id: 'test-run-123',
   display_name: 'Test AutoRAG Run',
@@ -125,7 +160,7 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   patternsLoading?: boolean;
-  optimizationMetric?: string;
+  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
 
@@ -137,10 +172,14 @@ const renderWithContext = ({
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
-  const finalOptimizationMetric =
-    optimizationMetric ||
-    (pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
-      ?.optimization_metric ||
+  const finalOptimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness' =
+    optimizationMetric ??
+    ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
+      ?.optimization_metric as
+      | 'faithfulness'
+      | 'answer_correctness'
+      | 'context_correctness'
+      | undefined) ??
     'faithfulness';
 
   const contextValue = {
@@ -148,7 +187,7 @@ const renderWithContext = ({
     pipelineRunLoading,
     patterns,
     patternsLoading,
-    parameters: createMockParameters(finalOptimizationMetric as string),
+    parameters: createMockParameters(finalOptimizationMetric),
   };
 
   return render(
@@ -197,7 +236,7 @@ describe('AutoragLeaderboard utility functions', () => {
       expect(screen.getByText('Context Recall')).toBeInTheDocument();
 
       // For faithfulness optimization, faithfulness should be marked as optimized
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
       expect(faithfulnessHeader).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
@@ -230,7 +269,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Value should be formatted to 3 decimal places
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-mean-1');
       expect(metricCell).toHaveTextContent('0.954');
     });
 
@@ -241,7 +280,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Very small values should use scientific notation
-      const faithfulnessCell = screen.getByTestId('metric-faithfulness-1');
+      const faithfulnessCell = screen.getByTestId('metric-faithfulness-mean-1');
       expect(faithfulnessCell.textContent).toMatch(/1\.230e-5|1\.23e-5/);
     });
   });
@@ -477,7 +516,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         ' (optimized)',
@@ -490,7 +529,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
 
-      const header = screen.getByTestId('metric-header-answer_correctness');
+      const header = screen.getByTestId('metric-header-answer_correctness-mean');
       expect(within(header).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
@@ -500,7 +539,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-mean');
       expect(
         within(answerCorrectnessHeader).queryByTestId('optimized-indicator'),
       ).not.toBeInTheDocument();
@@ -550,7 +589,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-mean');
       const sortButton = within(answerCorrectnessHeader).getByRole('button');
 
       fireEvent.click(sortButton);
@@ -597,13 +636,25 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      // Check that all metric headers are present
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
+      // Check that all metric headers are present (mean, ci_high, ci_low for each)
+      expect(screen.getByTestId('metric-header-faithfulness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-ci_low')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-ci_low')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-ci_low')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-ci_low')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-ci_low')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-ci_high')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-ci_low')).toBeInTheDocument();
     });
 
     it('should display metric values with tooltip showing full precision', () => {
@@ -614,7 +665,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-mean-1');
       expect(metricCell).toHaveTextContent('0.954');
 
       // Tooltip should show full value

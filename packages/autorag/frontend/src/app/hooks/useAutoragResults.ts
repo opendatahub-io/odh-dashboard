@@ -3,7 +3,6 @@ import React from 'react';
 import { useS3ListFilesQuery, fetchS3File, fetchS3Files } from '~/app/hooks/queries';
 import type { AutoragPattern } from '~/app/context/AutoragResultsContext';
 import type { PipelineRun, S3ListObjectsResponse, S3CommonPrefix } from '~/app/types';
-import { getOptimizedMetricForRAG } from '~/app/utilities/utils';
 
 type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
@@ -121,30 +120,15 @@ export function useAutoragResults(
     }
 
     const results: Record<string, AutoragPattern> = {};
-    const evalMetric = getOptimizedMetricForRAG(pipelineRun);
 
     patternDirectories.forEach((pattern, index) => {
-      const metricsData = metricsQueries.data[index];
-      /* eslint-disable camelcase */
-      results[pattern.name] = {
-        display_name: pattern.name,
-        pattern_config: {
-          eval_metric: evalMetric,
-        },
-        location: {
-          pattern_directory: pattern.directory,
-          predictor: `${pattern.directory}predictor/predictor.pkl`,
-          notebook: `${pattern.directory}notebooks/autorag_predictor_notebook.ipynb`,
-        },
-        metrics: {
-          test_data: metricsData,
-        },
-      };
-      /* eslint-enable camelcase */
+      const patternData = metricsQueries.data[index];
+      // S3 data already matches AutoragPattern schema
+      results[pattern.name] = patternData;
     });
 
     return results;
-  }, [metricsQueries.data, metricsQueries.isPending, patternDirectories, pipelineRun]);
+  }, [metricsQueries.data, metricsQueries.isPending, patternDirectories]);
 
   return {
     patterns,

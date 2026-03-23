@@ -20,7 +20,7 @@ import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProg
 type LeaderboardEntry = {
   rank: number;
   pattern: string;
-  metrics: Record<string, number>;
+  metrics: Record<string, { mean: number; ci_high: number; ci_low: number }>;
   optimizedMetricValue: number;
 };
 
@@ -78,7 +78,7 @@ function AutoragLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
-      Object.keys(pattern.metrics.test_data).forEach((key) => {
+      Object.keys(pattern.scoring).forEach((key) => {
         keysSet.add(key);
       });
     });
@@ -89,29 +89,29 @@ function AutoragLeaderboard(): React.JSX.Element {
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        // Helper to get metric value from test_data
-        const getMetricValue = (metricName: string): number => {
-          const value = pattern.metrics.test_data[metricName];
-          if (typeof value === 'number') {
-            return value;
-          }
-          if (typeof value === 'string') {
-            return parseFloat(value) || 0;
-          }
-          return 0;
+        // Helper to get metric object from scoring
+        const getMetricObject = (metricName: string) => {
+          const metricData = pattern.scoring[metricName];
+          return {
+            mean: metricData?.mean ?? 0,
+            // eslint-disable-next-line camelcase
+            ci_high: metricData?.ci_high ?? 0,
+            // eslint-disable-next-line camelcase
+            ci_low: metricData?.ci_low ?? 0,
+          };
         };
 
         // Build metrics object with all available metrics
-        const metrics: Record<string, number> = {};
+        const metrics: Record<string, { mean: number; ci_high: number; ci_low: number }> = {};
         metricKeys.forEach((key) => {
-          metrics[key] = getMetricValue(key);
+          metrics[key] = getMetricObject(key);
         });
 
-        const optimizedMetricValue = getMetricValue(optimizedMetric);
+        const optimizedMetricValue = getMetricObject(optimizedMetric).mean;
 
         return {
           rank: 0, // Will be assigned after sorting by optimized metric initially
-          pattern: pattern.display_name || patternName,
+          pattern: pattern.name || patternName,
           metrics,
           optimizedMetricValue,
         };
@@ -149,7 +149,7 @@ function AutoragLeaderboard(): React.JSX.Element {
     const metricKey = metricKeys[metricIndex];
     if (metricKey) {
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.metrics[metricKey] - b.metrics[metricKey];
+        const comparison = a.metrics[metricKey].mean - b.metrics[metricKey].mean;
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -230,18 +230,22 @@ function AutoragLeaderboard(): React.JSX.Element {
             Pattern name
           </Th>
           {metricKeys.map((metricKey, index) => (
-            <Th
-              key={metricKey}
-              sort={getSortParams(index + 2)}
-              data-testid={`metric-header-${metricKey}`}
-            >
-              {formatMetricName(metricKey)}
-              {metricKey === optimizedMetric ? (
-                <span data-testid="optimized-indicator"> (optimized)</span>
-              ) : (
-                ''
-              )}
-            </Th>
+            <React.Fragment key={metricKey}>
+              <Th sort={getSortParams(index + 2)} data-testid={`metric-header-${metricKey}-mean`}>
+                {formatMetricName(metricKey)} (mean)
+                {metricKey === optimizedMetric ? (
+                  <span data-testid="optimized-indicator"> (optimized)</span>
+                ) : (
+                  ''
+                )}
+              </Th>
+              <Th data-testid={`metric-header-${metricKey}-ci_high`}>
+                {formatMetricName(metricKey)} (CI high)
+              </Th>
+              <Th data-testid={`metric-header-${metricKey}-ci_low`}>
+                {formatMetricName(metricKey)} (CI low)
+              </Th>
+            </React.Fragment>
           ))}
           <Th screenReaderText="Actions" />
         </Tr>
@@ -269,15 +273,32 @@ function AutoragLeaderboard(): React.JSX.Element {
               </Button>
             </Td>
             {metricKeys.map((metricKey) => (
-              <Td
-                key={metricKey}
-                dataLabel={formatMetricName(metricKey)}
-                data-testid={`metric-${metricKey}-${entry.rank}`}
-              >
-                <Tooltip content={String(entry.metrics[metricKey])}>
-                  <span>{formatMetricValue(entry.metrics[metricKey])}</span>
-                </Tooltip>
-              </Td>
+              <React.Fragment key={metricKey}>
+                <Td
+                  dataLabel={`${formatMetricName(metricKey)} (mean)`}
+                  data-testid={`metric-${metricKey}-mean-${entry.rank}`}
+                >
+                  <Tooltip content={String(entry.metrics[metricKey].mean)}>
+                    <span>{formatMetricValue(entry.metrics[metricKey].mean)}</span>
+                  </Tooltip>
+                </Td>
+                <Td
+                  dataLabel={`${formatMetricName(metricKey)} (CI high)`}
+                  data-testid={`metric-${metricKey}-ci_high-${entry.rank}`}
+                >
+                  <Tooltip content={String(entry.metrics[metricKey].ci_high)}>
+                    <span>{formatMetricValue(entry.metrics[metricKey].ci_high)}</span>
+                  </Tooltip>
+                </Td>
+                <Td
+                  dataLabel={`${formatMetricName(metricKey)} (CI low)`}
+                  data-testid={`metric-${metricKey}-ci_low-${entry.rank}`}
+                >
+                  <Tooltip content={String(entry.metrics[metricKey].ci_low)}>
+                    <span>{formatMetricValue(entry.metrics[metricKey].ci_low)}</span>
+                  </Tooltip>
+                </Td>
+              </React.Fragment>
             ))}
             <Td isActionCell>
               <ActionsColumn

@@ -95,18 +95,54 @@ jest.mock('mod-arch-shared', () => ({
 // ============================================================================
 
 const createMockPattern = (name: string, metrics: Record<string, number>): AutoragPattern => ({
-  display_name: name,
-  pattern_config: {
-    eval_metric: 'faithfulness',
+  name,
+  iteration: 1,
+  max_combinations: 10,
+  duration_seconds: 120,
+  settings: {
+    vector_store: {
+      datasource_type: 'milvus',
+      collection_name: 'test_collection',
+    },
+    chunking: {
+      method: 'sequential',
+      chunk_size: 512,
+      chunk_overlap: 50,
+    },
+    embedding: {
+      model_id: 'text-embedding-3',
+      distance_metric: 'cosine',
+      embedding_params: {
+        embedding_dimension: 1536,
+        context_length: 8192,
+        timeout: null,
+        model_type: null,
+        provider_id: null,
+        provider_resource_id: null,
+      },
+    },
+    retrieval: {
+      method: 'simple',
+      number_of_chunks: 5,
+      search_mode: 'vector',
+    },
+    generation: {
+      model_id: 'llama-3',
+      context_template_text: 'Context: {context}',
+      user_message_text: 'Question: {question}',
+      system_message_text: 'You are a helpful assistant.',
+    },
   },
-  location: {
-    pattern_directory: `/patterns/${name}`,
-    predictor: `/patterns/${name}/predictor.pkl`,
-    notebook: `/patterns/${name}/notebook.ipynb`,
-  },
-  metrics: {
-    test_data: metrics,
-  },
+  scoring: Object.fromEntries(
+    Object.entries(metrics).map(([key, value]) => [
+      key,
+      {
+        mean: value,
+        ci_high: value + 0.05,
+        ci_low: value - 0.05,
+      },
+    ]),
+  ) as AutoragPattern['scoring'],
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {
