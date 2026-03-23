@@ -5,7 +5,7 @@ import {
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
-} from '../utilities/const';
+} from '~/app/utilities/const';
 
 export const MIN_TOP_N = 1;
 export const MAX_TOP_N = 5;

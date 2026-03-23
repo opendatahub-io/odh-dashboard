@@ -3,7 +3,7 @@ import React from 'react';
 import { useS3ListFilesQuery, fetchS3File, fetchS3Files } from '~/app/hooks/queries';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun, getOptimizedMetricForTask } from '../utilities/utils';
+import { isTabularRun, getOptimizedMetricForTask } from '~/app/utilities/utils';
 
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;

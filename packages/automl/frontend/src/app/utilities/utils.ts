@@ -1,10 +1,10 @@
+import type { PipelineRun } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
 } from './const';
-import type { PipelineRun } from '../types';
 
 /**
  * Determines if a task type is tabular.

@@ -1,9 +1,14 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
+import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable/index';
+
+jest.mock('mod-arch-shared', () => ({
+  relativeTime: () => '1 day ago',
+}));
 
 jest.mock('@odh-dashboard/internal/components/table', () => {
   const MockTableBase = ({

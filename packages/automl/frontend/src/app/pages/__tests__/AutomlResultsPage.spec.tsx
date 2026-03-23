@@ -40,6 +40,23 @@ jest.mock('~/app/context/AutomlResultsContext', () => ({
     },
   },
   useAutomlResultsContext: jest.fn(),
+  getAutomlContext: ({
+    pipelineRun,
+    models = {},
+    pipelineRunLoading,
+    modelsLoading,
+  }: {
+    pipelineRun?: { runtime_config?: { parameters?: unknown } };
+    models?: unknown;
+    pipelineRunLoading?: boolean;
+    modelsLoading?: boolean;
+  }) => ({
+    pipelineRun,
+    pipelineRunLoading,
+    models,
+    modelsLoading,
+    parameters: pipelineRun?.runtime_config?.parameters,
+  }),
 }));
 
 jest.mock('~/app/components/results/AutomlResults', () => ({
@@ -118,7 +135,9 @@ describe('AutomlResultsPage', () => {
     expect(screen.getByTestId('automl-results')).toBeInTheDocument();
     expect(mockAutomlResultsContext).toHaveBeenCalledWith({
       pipelineRun: mockPipelineRun,
+      pipelineRunLoading: undefined,
       models: {},
+      modelsLoading: false,
       parameters: undefined,
     });
   });
@@ -165,7 +184,9 @@ describe('AutomlResultsPage', () => {
 
     expect(mockAutomlResultsContext).toHaveBeenCalledWith({
       pipelineRun: mockPipelineRun,
+      pipelineRunLoading: undefined,
       models: {},
+      modelsLoading: false,
       parameters: mockPipelineRun.runtime_config.parameters,
     });
   });
