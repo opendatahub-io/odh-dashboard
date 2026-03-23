@@ -112,7 +112,7 @@ describe('DeploymentsTableRow', () => {
     // Inference endpoint Column
     expect(screen.getByText('Failed to get endpoint for this deployed model.')).toBeInTheDocument();
     // Status Column
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('Inference Service Status')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
