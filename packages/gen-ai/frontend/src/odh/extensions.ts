@@ -17,6 +17,7 @@ const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const GUARDRAILS = 'guardrails';
 const PROMPT_MANAGEMENT = 'promptManagement';
 const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
+const AI_ASSET_VECTOR_STORES = 'ai-asset-vector-stores';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
@@ -49,6 +50,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: PROMPT_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       devFlags: [PROMPT_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: AI_ASSET_VECTOR_STORES,
+      reliantAreas: [PLUGIN_GEN_AI],
+      devFlags: [AI_ASSET_VECTOR_STORES],
     },
   },
   {
@@ -122,6 +131,17 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: 'mcpservers',
       title: 'MCP servers',
       component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI, AI_ASSET_VECTOR_STORES],
+    },
+    properties: {
+      id: 'vectorstores',
+      title: 'Vector stores',
+      component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
     },
   },
 ];

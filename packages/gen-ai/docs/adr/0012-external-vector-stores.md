@@ -1,7 +1,8 @@
 # External Vector Stores
 
 * Date: 2026-02-19
-* Authors: Eder Ignatowicz
+* Updated: 2026-03-20
+* Authors: Eder Ignatowicz, John Haran
 
 ## Context and Problem Statement
 
@@ -27,14 +28,14 @@ RAG workflows require vector stores for semantic search over embeddings. Users m
 
 Chosen option: "ConfigMap-based declaration", because it is namespace-scoped, requires no CRDs, and can be managed by platform teams with standard `kubectl` tooling.
 
-Each namespace may contain a ConfigMap named `gen-ai-aa-vector-stores` with a `stores.yaml` key describing the external vector stores. The BFF reads this ConfigMap, parses the YAML, cross-references embedding models against the LlamaStack config, and returns a sanitized response.
+Each namespace may contain a ConfigMap named `gen-ai-aa-vector-stores` with a `config.yaml` key describing the external vector stores. The BFF reads this ConfigMap, parses the YAML, and returns a sanitized response. Embedding model status is computed client-side by the frontend.
 
 ### Positive Consequences
 
 * No CRD or operator dependency — works with plain Kubernetes
 * Namespace isolation — each team manages their own vector store declarations
-* Sensitive fields stripped at the BFF layer before reaching the frontend
-* Embedding model availability computed dynamically from LlamaStack config
+* Sensitive fields not included in the BFF response — never reach the frontend
+* Embedding model status computed client-side by the frontend, consistent with the existing Add/Try in Playground pattern
 
 ### Negative Consequences
 
@@ -43,29 +44,40 @@ Each namespace may contain a ConfigMap named `gen-ai-aa-vector-stores` with a `s
 
 ## Implementation
 
+> **Note**: The ConfigMap schema below reflects the revised schema from `gen-ai-aa-vector-stores-schema.yaml`,
+> which supersedes the initial flat draft. The decision rationale above remains unchanged.
+
 ### ConfigMap Schema
 
+The ConfigMap uses a two-section structure: `providers` (connection details, credentials) and
+`registered_resources` (store entries referencing providers by ID). Sensitive provider config
+and credentials never appear in the API response — they are simply not included in the response
+type (`ExternalVectorStoreSummary`).
+
 ```yaml
-# ConfigMap: gen-ai-aa-vector-stores, key: stores.yaml
-version: 1
-vectorStores:
-  - name: pgvector-store
-    displayName: "Product Embeddings (PGVector)"
-    provider_type: "remote::pgvector"
-    collection: product_embeddings
-    config:                          # stripped from API response
-      host: pgvector.databases.svc.cluster.local
-      port: 5432
-      db: embeddings
-    credentialSecret:                # stripped from API response
-      name: pgvector-credentials
-      key: connection-string
-    embedding:
-      model_id: ibm-granite/granite-embedding-125m-english
-      dimension: 768
-    description: "Product catalog embeddings"
-    owner: platform-team
-    domain: e-commerce
+# ConfigMap: gen-ai-aa-vector-stores, key: config.yaml
+providers:
+  vector_io:
+    - provider_id: pgvector-prod
+      provider_type: remote::pgvector
+      config:
+        host: pgvector.databases.svc.cluster.local  # not included in API response
+        port: 5432
+        db: embeddings
+        distance_metric: COSINE
+        secretRefs:                                  # not included in API response
+          - key: connection-string
+            name: pgvector-credentials
+
+registered_resources:
+  vector_stores:
+    - provider_id: pgvector-prod
+      vector_store_id: vs_282695f8-0000-0000-0000-000000000001
+      vector_store_name: "Product Embeddings (PGVector)"
+      embedding_model: ibm-granite/granite-embedding-125m-english
+      embedding_dimension: 768
+      metadata:
+        description: "Product catalog embeddings"
 ```
 
 ### API Endpoints
@@ -75,19 +87,28 @@ vectorStores:
 | GET | `/api/v1/vectorstores/external` | Full list with ConfigMap metadata (management page) |
 | GET | `/api/v1/aaa/vectorstores` | Flat array of summaries (AI Available Assets sidebar) |
 
-Both endpoints return `ExternalVectorStoreSummary` objects with sensitive fields (`config`, `credentialSecret`, `tlsSecretRef`) removed. The `/vectorstores/external` endpoint additionally includes `config_map_info` and `total_count`.
+Both endpoints return `ExternalVectorStoreSummary` objects. Provider `config` and `secretRefs`
+are not included in the response. The `/vectorstores/external` endpoint additionally includes `config_map_info` and
+`total_count`.
 
-### Embedding Model Availability
+### Embedding Model Status
 
-For each vector store, the BFF checks whether the declared `embedding.model_id` is registered in the LlamaStack config (parsed from the `llama-stack-config` ConfigMap in the same namespace). The `embedding_model_available` boolean in the response tells the frontend whether the store's embedding model is active.
+The BFF returns the raw `embedding_model` identifier per store. The frontend computes a three-state status client-side by cross-referencing against the already-loaded merged models data (from `useMergedModels` and `useFetchLlamaModels`):
+
+| Status | Meaning |
+|--------|---------|
+| `not_available` | Model not found in AAE or LlamaStack — row greyed out |
+| `available` | Model present in the unified AI Assets models list but not yet in LlamaStack playground |
+| `registered` | Model registered in the running LlamaStack playground — green checkmark |
+
+This mirrors the existing Add/Try in Playground pattern in `AIModelTableRow`, which also cross-references frontend model data client-side. Computing status in the frontend avoids the need to query multiple Kubernetes resources (LlamaStack config, external models ConfigMap, InferenceServices, MaaS) from within the BFF for every vector stores request, and automatically stays in sync with whichever sources the unified models tab includes.
 
 ### Repository
 
 `ExternalVectorStoresRepository.ListExternalVectorStores()` performs:
-1. Read `gen-ai-aa-vector-stores` ConfigMap
-2. Parse `stores.yaml`
-3. Read LlamaStack config to build available embedding model set (graceful degradation if absent)
-4. Return entries with `EmbeddingModelAvailable` flag and ConfigMap metadata
+1. Read `gen-ai-aa-vector-stores` ConfigMap and parse `config.yaml`
+2. Build a provider lookup map (`provider_id` → `VectorIOProvider`) for `provider_type` and `distance_metric` resolution
+3. Return `ExternalVectorStoreSummary` entries with ConfigMap metadata — embedding model status is left to the frontend
 
 ## Links
 

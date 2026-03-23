@@ -386,6 +386,31 @@ export type ExternalModelRequest = {
 
 export type ExternalModelResponse = AAModelResponse;
 
+/** Single external vector store summary returned by the BFF (secrets and connection config not included). */
+export type ExternalVectorStoreSummary = {
+  vector_store_id: string;
+  vector_store_name: string;
+  provider_id: string;
+  provider_type: string;
+  embedding_model: string;
+  embedding_dimension: number;
+  description?: string;
+};
+
+/** ConfigMap metadata included in the detailed vector stores list response. */
+export type VectorStoreConfigMapInfo = {
+  name: string;
+  namespace: string;
+  last_updated: string;
+};
+
+/** Response body from GET /gen-ai/api/v1/vectorstores/external (includes ConfigMap metadata). */
+export type ExternalVectorStoresListData = {
+  vector_stores: ExternalVectorStoreSummary[];
+  total_count: number;
+  config_map_info: VectorStoreConfigMapInfo;
+};
+
 export type VerifyExternalModelRequest = {
   model_id: string;
   base_url: string;
@@ -509,6 +534,7 @@ export type GenAiAPIs = {
   installLSD: InstallLSD;
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
+  getAAVectorStores: GetAAVectorStores;
   getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
@@ -582,6 +608,7 @@ type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
 type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDRequest>;
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
+type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
 type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;

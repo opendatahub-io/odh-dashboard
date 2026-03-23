@@ -62,7 +62,7 @@ dev-start-mock-debug: ## Run frontend and bff (all mocks) with Delve debugger (V
 .PHONY: dev-portforward
 dev-portforward: ## Start port-forwarding in separate terminals
 	@echo "Starting port-forward for maas-api..."
-	@oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:8080 &
+	@oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:$${MAAS_SERVICE_PORT:-8080} &
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
