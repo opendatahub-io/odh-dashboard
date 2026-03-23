@@ -14,7 +14,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
-	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,56 +74,13 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		assert.Len(t, response.Data, 3, "Should return 3 vector stores from the ConfigMap")
 
 		for _, store := range response.Data {
-			assert.NotEmpty(t, store.Name, "Store should have a name")
-			assert.NotEmpty(t, store.ProviderType, "Store should have a provider type")
-			assert.NotEmpty(t, store.Collection, "Store should have a collection")
-			assert.NotEmpty(t, store.Embedding.ModelID, "Store should have an embedding model ID")
-			assert.Greater(t, store.Embedding.Dimension, 0, "Store should have a positive embedding dimension")
+			assert.NotEmpty(t, store.VectorStoreID, "Store should have a vector_store_id")
+			assert.NotEmpty(t, store.VectorStoreName, "Store should have a vector_store_name")
+			assert.NotEmpty(t, store.ProviderID, "Store should have a provider_id")
+			assert.NotEmpty(t, store.ProviderType, "Store should have a provider_type")
+			assert.NotEmpty(t, store.EmbeddingModel, "Store should have an embedding_model")
+			assert.Greater(t, store.EmbeddingDimension, 0, "Store should have a positive embedding_dimension")
 		}
-	})
-
-	It("should return stores with correct embedding model availability", func() {
-		t := GinkgoT()
-		rr := httptest.NewRecorder()
-
-		req, err := http.NewRequest("GET", "/gen-ai/api/v1/aaa/vectorstores?namespace=llama-stack", nil)
-		require.NoError(t, err)
-
-		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "llama-stack")
-		req = req.WithContext(ctx)
-
-		app.VectorStoresAAHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		body, err := io.ReadAll(rr.Result().Body)
-		require.NoError(t, err)
-		defer rr.Result().Body.Close()
-
-		var response VectorStoresAAEnvelope
-		err = json.Unmarshal(body, &response)
-		require.NoError(t, err)
-
-		storesByName := make(map[string]models.ExternalVectorStoreSummary)
-		for _, store := range response.Data {
-			storesByName[store.Name] = store
-		}
-
-		// pgvector-store and qdrant-store use ibm-granite/granite-embedding-125m-english
-		// which matches the provider_model_id in the LlamaStack config
-		assert.True(t, storesByName["pgvector-store"].EmbeddingModelAvailable,
-			"pgvector-store should have embedding_model_available=true")
-		assert.True(t, storesByName["qdrant-store"].EmbeddingModelAvailable,
-			"qdrant-store should have embedding_model_available=true")
-
-		// milvus-store uses unknown-embedding-model which is not registered
-		milvus, ok := storesByName["milvus-store"]
-		require.True(t, ok, "milvus-store must be present")
-		assert.False(t, milvus.EmbeddingModelAvailable,
-			"milvus-store should have embedding_model_available=false")
 	})
 
 	It("should return stores from mock-test namespaces", func() {
@@ -181,7 +137,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		assert.NotContains(t, bodyStr, "total_count", "AA response should not include total_count")
 	})
 
-	It("should not expose secrets or config details", func() {
+	It("should not expose secrets or provider config details", func() {
 		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
@@ -203,10 +159,9 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		defer rr.Result().Body.Close()
 
 		bodyStr := string(body)
-		assert.NotContains(t, bodyStr, "credentialSecret", "Response should not contain credentialSecret")
-		assert.NotContains(t, bodyStr, "tlsSecretRef", "Response should not contain tlsSecretRef")
+		assert.NotContains(t, bodyStr, "secretRefs", "Response should not contain secretRefs")
 		assert.NotContains(t, bodyStr, "pgvector-credentials", "Response should not contain secret names")
-		assert.NotContains(t, bodyStr, "connection-string", "Response should not contain secret keys")
+		assert.NotContains(t, bodyStr, "qdrant-credentials", "Response should not contain secret names")
 		assert.NotContains(t, bodyStr, `"config"`, "Response should not contain config block")
 	})
 

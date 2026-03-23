@@ -1205,3 +1205,83 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestGetSecretValue(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	t.Run("should successfully retrieve secret value", func(t *testing.T) {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "endpoint-api-key-1",
+				Namespace: "test-namespace",
+			},
+			Data: map[string][]byte{
+				"api_key": []byte("sk-test-secret-key-12345"),
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secret).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "endpoint-api-key-1", "api_key")
+
+		require.NoError(t, err)
+		assert.Equal(t, "sk-test-secret-key-12345", value)
+	})
+
+	t.Run("should return error when secret doesn't exist", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "nonexistent-secret", "api_key")
+
+		require.Error(t, err)
+		assert.Empty(t, value)
+		assert.Contains(t, err.Error(), "failed to get Secret")
+	})
+
+	t.Run("should return error when secret key doesn't exist", func(t *testing.T) {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "endpoint-api-key-1",
+				Namespace: "test-namespace",
+			},
+			Data: map[string][]byte{
+				"api_key": []byte("sk-test-secret-key-12345"),
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secret).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "endpoint-api-key-1", "wrong_key")
+
+		require.Error(t, err)
+		assert.Empty(t, value)
+		assert.Contains(t, err.Error(), "key 'wrong_key' not found in Secret")
+	})
+}

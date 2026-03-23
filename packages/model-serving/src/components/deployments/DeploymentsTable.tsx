@@ -3,9 +3,17 @@ import { SortableData, Table } from '@odh-dashboard/internal/components/table/in
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './row/DeploymentsTableRow';
+import { PlatformExtensionDataLoader } from '../../concepts/extensionHelpers/PlatformExtensionDataLoader';
+import { usePlatformExtensionDataMap } from '../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
-import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
+import {
+  Deployment,
+  isDeployedModelServingDetails,
+  type DeploymentsTableColumn,
+} from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
+
+const isDataHook = (value: unknown): value is () => unknown => typeof value === 'function';
 
 const expandedInfoColumn: SortableData<Deployment> = {
   field: 'expand',
@@ -88,8 +96,26 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
     return allColumns.findIndex((column) => column.field === 'lastDeployed');
   }, [allColumns]);
 
+  const platformIds = React.useMemo(
+    () => [...new Set(deployments.map((d) => d.modelServingPlatformId))],
+    [deployments],
+  );
+  const { extensionDataMap, onLoad } = usePlatformExtensionDataMap(
+    isDeployedModelServingDetails,
+    platformIds,
+  );
+
   return (
     <>
+      <PlatformExtensionDataLoader
+        predicate={isDeployedModelServingDetails}
+        platformIds={Object.keys(extensionDataMap)}
+        onLoad={onLoad}
+        getDataHook={(ext) => {
+          const { dataHook } = ext.properties;
+          return isDataHook(dataHook) ? dataHook : undefined;
+        }}
+      />
       <Table
         data-testid="deployments-table"
         columns={allColumns}
@@ -104,6 +130,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
             showExpandedToggle={showExpandedToggleColumn}
+            servingDetailsEntry={extensionDataMap[row.modelServingPlatformId]}
           />
         )}
         loading={!loaded}

@@ -58,9 +58,11 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 const initIntercepts = ({
   modelType,
   rejectAddSupportServingPlatformProject = false,
+  vLLMDeploymentOnMaaS = false,
 }: {
   modelType?: ServingRuntimeModelType;
   rejectAddSupportServingPlatformProject?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -76,6 +78,7 @@ const initIntercepts = ({
       disableNIMModelServing: true,
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
+      vLLMDeploymentOnMaaS,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -336,8 +339,8 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', 'projects/test-project?section=model-server');
   });
 
-  it('Create a new generative deployment and submit', () => {
-    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+  it('Create a new legacy generative deployment and submit', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE, vLLMDeploymentOnMaaS: true });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -365,8 +368,9 @@ describe('Model Serving Deploy Wizard', () => {
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
       .click();
-
     modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
+
+    modelServingWizard.findLegacyModeCheckbox().should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -377,12 +381,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
-    // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
-
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
     modelServingWizard.findNumReplicasMinusButton().should('be.disabled');
@@ -1339,7 +1341,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('Edit an existing deployment', () => {
+  it('Edit an existing predictive deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -1419,6 +1421,74 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
+  });
+
+  it('Edit an existing legacy generative deployment', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE, vLLMDeploymentOnMaaS: true });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.GENERATIVE,
+          hasExternalRoute: true,
+          secretName: 'test-uri-secret',
+          hardwareProfileName: 'small-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockServingRuntimeK8sResource({
+          scope: 'global',
+          templateDisplayName: 'vLLM NVIDIA',
+        }),
+      ]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    // Step 1: Model source
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    modelServingWizardEdit
+      .findModelTypeSelect()
+      .should('have.text', ModelTypeLabel.GENERATIVE)
+      .should('be.disabled');
+
+    modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .should('contain.text', 'test-description');
+    modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    modelServingWizardEdit
+      .findModelDeploymentNameInput()
+      .should('have.value', 'Test Inference Service');
+    hardwareProfileSection.findSelect().should('be.visible');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+    modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizardEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'vLLM NVIDIA');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();

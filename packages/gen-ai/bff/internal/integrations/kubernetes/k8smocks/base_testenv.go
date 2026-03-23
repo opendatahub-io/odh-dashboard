@@ -417,7 +417,7 @@ func createVectorStoresConfigMap(k8sClient client.Client, ctx context.Context, n
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			"stores.yaml": vectorStoresFixture,
+			"config.yaml": vectorStoresFixture,
 		},
 	}
 	return k8sClient.Create(ctx, cm)

@@ -1364,6 +1364,10 @@ class ModelServingWizard extends Wizard {
   findSwitchToYAMLEditorConfirmButton() {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
+
+  findLegacyModeCheckbox() {
+    return cy.findByTestId('legacy-mode-checkbox');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
