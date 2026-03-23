@@ -209,6 +209,7 @@ func (app *App) AttachModelRegistryClient(next func(http.ResponseWriter, *http.R
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		baseURL := strings.TrimSpace(app.config.ModelRegistryBaseURL)
 		if baseURL == "" {
+			helper.GetContextLoggerFromReq(r).Debug("Model Registry: MODEL_REGISTRY_BASE_URL unset, proceeding without client")
 			next(w, r, ps)
 			return
 		}
