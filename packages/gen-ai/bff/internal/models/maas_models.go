@@ -44,8 +44,20 @@ type MaaSTokenResponse struct {
 	ExpiresAt string `json:"expiresAt,omitempty"`
 }
 
+// MaaSBFFTokenRequest matches the MaaS BFF token endpoint contract (TokenRequest)
+// This is different from MaaSTokenRequest which is used for direct MaaS API key operations
+type MaaSBFFTokenRequest struct {
+	Expiration string `json:"expiration,omitempty"`
+}
+
+// MaaSBFFTokenResponseData matches the MaaS BFF token endpoint response (TokenResponse)
+type MaaSBFFTokenResponseData struct {
+	Token     string `json:"token"`
+	ExpiresAt int64  `json:"expiresAt"`
+}
+
 // MaaSBFFTokenResponse wraps the token response as returned by MaaS BFF
 // MaaS BFF returns responses in an envelope: {"data": {...}}
 type MaaSBFFTokenResponse struct {
-	Data MaaSTokenResponse `json:"data"`
+	Data MaaSBFFTokenResponseData `json:"data"`
 }

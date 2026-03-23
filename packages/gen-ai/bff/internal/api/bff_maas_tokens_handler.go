@@ -37,19 +37,24 @@ func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 	}
-	// If no body, tokenRequest remains empty (TTL="") and MaaS BFF will use default
+
+	// Map Gen-AI token request to MaaS BFF token contract
+	// Gen-AI uses MaaSTokenRequest (name, expiresIn) while MaaS BFF expects TokenRequest (expiration)
+	maasTokenReq := models.MaaSBFFTokenRequest{
+		Expiration: tokenRequest.ExpiresIn,
+	}
 
 	// Call MaaS BFF to issue token
 	// MaaS BFF returns response wrapped in envelope: {"data": {...}}
 	var bffResponse models.MaaSBFFTokenResponse
-	err := maasClient.Call(ctx, "POST", "/tokens", tokenRequest, &bffResponse)
+	err := maasClient.Call(ctx, "POST", "/tokens", maasTokenReq, &bffResponse)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
 		return
 	}
 
-	// Re-wrap the response in our envelope format
-	tokenResponseEnvelope := Envelope[models.MaaSTokenResponse, None]{
+	// Re-wrap the MaaS BFF response in our envelope format
+	tokenResponseEnvelope := Envelope[models.MaaSBFFTokenResponseData, None]{
 		Data: bffResponse.Data,
 	}
 
