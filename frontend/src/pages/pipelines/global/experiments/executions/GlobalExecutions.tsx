@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { PageSection } from '@patternfly/react-core';
 import { MlmdListContextProvider, usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
@@ -28,15 +27,12 @@ const GlobalExecutions: React.FC = () => {
       description={executionsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={executionsBaseRoute}
-      overrideChildPadding
       overrideTimeout
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>
           <MlmdListContextProvider>
-            <PageSection hasBodyWrapper={false} isFilled>
-              <ExecutionsList />
-            </PageSection>
+            <ExecutionsList />
           </MlmdListContextProvider>
         </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>

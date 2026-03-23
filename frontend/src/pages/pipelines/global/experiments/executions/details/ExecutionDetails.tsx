@@ -6,8 +6,6 @@ import {
   Spinner,
   Split,
   SplitItem,
-  Stack,
-  StackItem,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
@@ -102,83 +100,51 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       <Flex
         spaceItems={{ default: 'spaceItems2xl' }}
         direction={{ default: 'column' }}
-        // className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
+        className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
       >
         <FlexItem>
-          <Stack hasGutter>
-            <StackItem>
-              <ExecutionDetailsIDSection execution={execution} />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsIDSection execution={execution} />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsReferenceSection execution={execution} />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsReferenceSection execution={execution} />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsPropertiesSection execution={execution} />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsPropertiesSection execution={execution} />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsCustomPropertiesSection execution={execution} />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsCustomPropertiesSection execution={execution} />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsInputOutputSection
-                title={inputOutputSectionTitle[Event.Type.DECLARED_INPUT]}
-                events={allEvents[Event.Type.DECLARED_INPUT]}
-                isLoaded={artifactTypesLoaded}
-                artifactTypeMap={artifactTypeMap}
-              />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsInputOutputSection
+            title={inputOutputSectionTitle[Event.Type.DECLARED_INPUT]}
+            events={allEvents[Event.Type.DECLARED_INPUT]}
+            isLoaded={artifactTypesLoaded}
+            artifactTypeMap={artifactTypeMap}
+          />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsInputOutputSection
-                title={inputOutputSectionTitle[Event.Type.INPUT]}
-                events={allEvents[Event.Type.INPUT]}
-                isLoaded={artifactTypesLoaded}
-                artifactTypeMap={artifactTypeMap}
-              />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsInputOutputSection
+            title={inputOutputSectionTitle[Event.Type.INPUT]}
+            events={allEvents[Event.Type.INPUT]}
+            isLoaded={artifactTypesLoaded}
+            artifactTypeMap={artifactTypeMap}
+          />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsInputOutputSection
-                title={inputOutputSectionTitle[Event.Type.DECLARED_OUTPUT]}
-                events={allEvents[Event.Type.DECLARED_OUTPUT]}
-                isLoaded={artifactTypesLoaded}
-                artifactTypeMap={artifactTypeMap}
-              />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsInputOutputSection
+            title={inputOutputSectionTitle[Event.Type.DECLARED_OUTPUT]}
+            events={allEvents[Event.Type.DECLARED_OUTPUT]}
+            isLoaded={artifactTypesLoaded}
+            artifactTypeMap={artifactTypeMap}
+          />
         </FlexItem>
         <FlexItem>
-          <Stack>
-            <StackItem>
-              <ExecutionDetailsInputOutputSection
-                title={inputOutputSectionTitle[Event.Type.OUTPUT]}
-                events={allEvents[Event.Type.OUTPUT]}
-                isLoaded={artifactTypesLoaded}
-                artifactTypeMap={artifactTypeMap}
-              />
-            </StackItem>
-          </Stack>
+          <ExecutionDetailsInputOutputSection
+            title={inputOutputSectionTitle[Event.Type.OUTPUT]}
+            events={allEvents[Event.Type.OUTPUT]}
+            isLoaded={artifactTypesLoaded}
+            artifactTypeMap={artifactTypeMap}
+          />
         </FlexItem>
       </Flex>
     </ApplicationsPage>
