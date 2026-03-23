@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Truncate,
   Label,
@@ -55,6 +56,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
 
   const handleDelete = React.useCallback(async () => {
@@ -63,11 +65,14 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
     }
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await onDelete(model.model_id);
       setIsDeleteModalOpen(false);
-    } catch {
-      // Error handling is done in parent component
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to remove asset. Please try again.',
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -219,11 +224,24 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Modal
           variant="small"
           isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeleteError(null);
+          }}
           data-testid="delete-model-modal"
         >
           <ModalHeader title="Remove asset?" />
           <ModalBody>
+            {deleteError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Error"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                {deleteError}
+              </Alert>
+            )}
             <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
             list. The endpoint configuration will be deleted.
           </ModalBody>
