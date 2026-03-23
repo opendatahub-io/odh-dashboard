@@ -15,7 +15,7 @@ import (
 )
 
 func TestHealthCheckHandler(t *testing.T) {
-	repos, err := repositories.NewRepositories(nil, nil, config.EnvConfig{})
+	repos, err := repositories.NewRepositories(nil, nil, config.EnvConfig{}, nil, nil)
 	assert.NoError(t, err)
 	app := App{config: config.EnvConfig{
 		Port: 4000,
