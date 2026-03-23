@@ -13,6 +13,7 @@ type BuildEvaluationRequestParams = {
   datasetUrl: string;
   accessToken: string;
   additionalArgs: Record<string, unknown>;
+  experimentName?: string;
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
@@ -30,6 +31,7 @@ const buildEvaluationRequest = ({
   datasetUrl,
   accessToken,
   additionalArgs,
+  experimentName,
 }: BuildEvaluationRequestParams): CreateEvaluationJobRequest => {
   const topLevelOverrides: Record<string, unknown> = {};
   const benchmarkParams: Record<string, unknown> = {};
@@ -78,6 +80,20 @@ const buildEvaluationRequest = ({
   const resolvedUrl = inputMode === 'inference' ? endpointUrl.trim() : '';
   const resolvedAuth = inputMode === 'inference' ? apiKeySecretRef.trim() : '';
 
+  const rawExperiment = topLevelOverrides.experiment;
+  const experimentOverride: Record<string, unknown> | undefined =
+    typeof rawExperiment === 'object' && rawExperiment !== null
+      ? Object.fromEntries(Object.entries(rawExperiment))
+      : undefined;
+
+  const experiment = experimentName
+    ? { ...experimentOverride, name: experimentName }
+    : experimentOverride;
+
+  const restOverrides = Object.fromEntries(
+    Object.entries(topLevelOverrides).filter(([key]) => key !== 'experiment'),
+  );
+
   return {
     name: evaluationName.trim(),
     ...(description.trim() ? { description: description.trim() } : {}),
@@ -89,7 +105,8 @@ const buildEvaluationRequest = ({
     },
     benchmarks,
     ...(collection ? { collection: { id: collection.resource.id } } : {}),
-    ...topLevelOverrides,
+    ...restOverrides,
+    ...(experiment ? { experiment } : {}),
   };
 };
 

@@ -294,6 +294,117 @@ describe('buildEvaluationRequest', () => {
     });
   });
 
+  describe('experimentName parameter', () => {
+    it('should set experiment.name when experimentName is provided', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-experiment',
+      });
+
+      expect(result.experiment).toEqual({ name: 'my-experiment' });
+    });
+
+    it('should omit experiment when experimentName is undefined', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should use experimentName for name but preserve tags from additionalArgs', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'from-selector',
+        additionalArgs: { experiment: { name: 'from-args', tags: [{ key: 'k', value: 'v' }] } },
+      });
+
+      expect(result.experiment).toEqual({
+        name: 'from-selector',
+        tags: [{ key: 'k', value: 'v' }],
+      });
+    });
+
+    it('should merge artifact_location from additionalArgs when experimentName is provided', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-exp',
+        additionalArgs: {
+          experiment: { name: 'ignored', artifact_location: 's3://bucket/artifacts' },
+        },
+      });
+
+      expect(result.experiment).toEqual({
+        name: 'my-exp',
+        artifact_location: 's3://bucket/artifacts',
+      });
+    });
+
+    it('should fall back to experiment from additionalArgs when experimentName is not provided', () => {
+      const experiment = { name: 'from-args', tags: [{ key: 'env', value: 'test' }] };
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        additionalArgs: { experiment },
+      });
+
+      expect(result.experiment).toEqual(experiment);
+    });
+
+    it('should work with collection flow', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        experimentName: 'col-experiment',
+      });
+
+      expect(result.experiment).toEqual({ name: 'col-experiment' });
+      expect(result.collection).toEqual({ id: 'col-1' });
+    });
+
+    it('should treat empty string experimentName as no experiment', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: '',
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should ignore non-object experiment in additionalArgs', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        additionalArgs: { experiment: 'not-an-object' },
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should not interfere with other top-level overrides when experimentName is set', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-exp',
+        additionalArgs: {
+          custom: { foo: 'bar' },
+          tags: ['perf-test'],
+          experiment: { name: 'ignored' },
+        },
+      });
+
+      expect(result.experiment).toEqual({ name: 'my-exp' });
+      expect(result).toHaveProperty('custom', { foo: 'bar' });
+      expect(result).toHaveProperty('tags', ['perf-test']);
+    });
+  });
+
   describe('edge cases', () => {
     it('should return empty benchmarks when neither benchmark nor collection is provided', () => {
       const result = buildEvaluationRequest(baseParams);
