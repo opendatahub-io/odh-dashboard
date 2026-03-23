@@ -31,6 +31,7 @@ import {
   ModalHeader,
   Pagination,
   PaginationVariant,
+  type PaginationProps,
   SearchInput,
   Skeleton,
 } from '@patternfly/react-core';
@@ -99,6 +100,15 @@ const defaults = {
     tableItemsPlural: 'items',
 
     detailsPanelTitle: 'Details',
+
+    paginationIndeterminateToggleTemplate: (first: number, last: number) => (
+      <>
+        <b>
+          {first} - {last}
+        </b>{' '}
+        of <b>many</b>
+      </>
+    ),
   },
 };
 
@@ -167,10 +177,24 @@ const FilesTable: React.FC<FilesTableProps> = ({
   loading,
   page = 1,
   perPage = 100,
-  itemCount = 0,
+  itemCount,
   onSetPage,
   onPerPageSelect,
 }) => {
+  const isIndeterminate = itemCount === undefined;
+  const fileCount = Array.isArray(files) ? files.length : 0;
+  // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
+  // If the current page is full, assume there's at least one more page (+1 keeps "next" enabled).
+  const syntheticItemCount = isIndeterminate
+    ? (page - 1) * perPage + fileCount + (fileCount >= perPage ? 1 : 0)
+    : itemCount;
+
+  const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};
+  if (isIndeterminate) {
+    extraPaginationProps.toggleTemplate = ({ firstIndex = 0, lastIndex = 0 }) =>
+      defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
+  }
+
   const columns = {
     name: defaults.labels.tableColumnName,
     type: defaults.labels.tableColumnType,
@@ -290,7 +314,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
         </Table>
         <Pagination
           widgetId="FileExplorer-table-pagination"
-          itemCount={itemCount}
+          itemCount={syntheticItemCount}
           perPage={perPage}
           page={page}
           onSetPage={(_event, newPage) => onSetPage?.(newPage)}
@@ -298,6 +322,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
           isSticky
           isDisabled={loading}
           variant={PaginationVariant.bottom}
+          isCompact
+          {...extraPaginationProps}
         />
       </InnerScrollContainer>
     </OuterScrollContainer>

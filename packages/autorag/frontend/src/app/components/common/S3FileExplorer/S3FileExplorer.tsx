@@ -125,7 +125,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   );
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
-  const [itemCountToRender, setItemCountToRender] = useState<number | undefined>(undefined);
   const [selectionToRender, setSelectionToRender] = useState<'radio' | 'checkbox' | undefined>(
     undefined,
   );
@@ -169,18 +168,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           lastResultRef.current = result;
           const items = mapResultToItems(result);
           setFilesToRender(items);
-
-          // S3 doesn't provide a total count across all pages, so we estimate:
-          // - Items before this page: (currentPage - 1) * perPage
-          // - Items on this page: items.length
-          // - If truncated, signal at least one more page by adding perPage
-          const itemsBefore = (page - 1) * perPage;
-          if (result.is_truncated && result.next_continuation_token) {
-            setItemCountToRender(itemsBefore + items.length + perPage);
-          } else {
-            setItemCountToRender(itemsBefore + items.length);
-          }
-
           setLoadingToRender(false);
         })
         .catch(() => {
@@ -228,7 +215,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       searchResultsCount={searchResultsCountToRender}
       page={pageToRender}
       perPage={perPageToRender}
-      itemCount={itemCountToRender}
       selection={selectionToRender}
       isOpen={isOpen}
       onClose={onClose}
