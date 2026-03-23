@@ -67,6 +67,7 @@ describe('RoleAssignmentChangesModal', () => {
 
       expect(screen.getByText('Save role assignment changes?')).toBeInTheDocument();
       expect(screen.getByText('test-user')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
     it('should display correct description text', () => {
@@ -393,7 +394,7 @@ describe('RoleAssignmentChangesModal', () => {
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should call onConfirm when Confirm button is clicked', async () => {
+    it('should call onConfirm when Save button is clicked', async () => {
       const changes: RoleAssignmentChanges = {
         assigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
         unassigning: [],
