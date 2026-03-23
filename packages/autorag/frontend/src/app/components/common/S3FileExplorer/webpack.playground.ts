@@ -18,14 +18,8 @@ const ODH_ROOT = path.resolve(PROJECT_ROOT, '../../../');
 
 const getProxyHeaders = () => {
   try {
-    const token = execSync(
-      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-    )
-      .toString()
-      .trim();
-    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-      .toString()
-      .trim();
+    const token = execSync('oc whoami -t').toString().trim();
+    const username = execSync('oc whoami').toString().trim();
     console.info('Logged in as user:', username);
     console.info('Token value:', token);
     return {
@@ -119,6 +113,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
           port: 4001,
         },
         changeOrigin: true,
+        pathRewrite: { '^/autorag': '' },
         // @ts-expect-error TS2322 - proxy headers type mismatch
         headers: getProxyHeaders(),
       },

@@ -55,7 +55,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
 
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
   const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
 
