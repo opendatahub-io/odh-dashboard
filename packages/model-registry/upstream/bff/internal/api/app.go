@@ -97,6 +97,7 @@ const (
 	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
+	McpServerAvailabilityPath  = SettingsPath + "/mcp_server_available"
 )
 
 const (
@@ -113,6 +114,7 @@ const (
 	// MCPServer deployment handlers - downstream-only
 	handlerMcpDeploymentListID   HandlerID = "mcpDeployment:list"
 	handlerMcpDeploymentDeleteID HandlerID = "mcpDeployment:delete"
+	handlerMcpServerAvailabilityID  HandlerID = "mcpServer:availability"
 )
 
 type App struct {
@@ -364,6 +366,13 @@ func (app *App) Routes() http.Handler {
 			McpDeploymentPath,
 			app.handlerWithOverride(handlerMcpDeploymentDeleteID, func() httprouter.Handle {
 				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
+			}),
+		)
+
+		apiRouter.GET(
+			McpServerAvailabilityPath,
+			app.handlerWithOverride(handlerMcpServerAvailabilityID, func() httprouter.Handle {
+				return app.EndpointNotImplementedHandler("MCP server availability")
 			}),
 		)
 
