@@ -609,6 +609,85 @@ export const validateInferenceServiceTolerations = (
   });
 };
 
+/**
+ * Delete CUDA ReplicaSets for an LLMInferenceService to allow CPU ReplicaSet to take over.
+ * Waits until both CUDA and CPU ReplicaSets exist before deleting the CUDA one.
+ *
+ * @param resourceName The LLMInferenceService name
+ * @param namespace The namespace where the service is deployed
+ * @param maxAttempts Maximum polling attempts (default: 30)
+ * @param waitMs Wait time between attempts in ms (default: 3000)
+ */
+export const deleteCudaReplicaSets = (
+  resourceName: string,
+  namespace: string,
+  maxAttempts = 30,
+  waitMs = 3000,
+): Cypress.Chainable<void> => {
+  const poll = (attempt: number): Cypress.Chainable<void> => {
+    return cy
+      .exec(
+        `oc get replicaset -n ${namespace} -l app.kubernetes.io/name=${resourceName} -o jsonpath='{range .items[*]}{.metadata.name}|{.spec.template.spec.containers[0].image}{" "}{end}'`,
+        { failOnNonZeroExit: false },
+      )
+      .then((result) => {
+        const replicaSets = result.stdout
+          .trim()
+          .split(' ')
+          .filter(Boolean)
+          .map((rs) => {
+            const [name, image] = rs.split('|');
+            return { name, image: image || '' };
+          });
+
+        const kserveRS = replicaSets.filter(
+          (rs) => rs.name.includes(`${resourceName}-kserve`) && !rs.name.includes('router'),
+        );
+        const cudaRS = kserveRS.filter((rs) => rs.image.includes('cuda'));
+        const cpuRS = kserveRS.filter((rs) => rs.image.includes('vllm-cpu'));
+
+        cy.log(
+          `[Attempt ${attempt}/${maxAttempts}] CUDA RS: ${cudaRS.length}, CPU RS: ${cpuRS.length}`,
+        );
+
+        if (cudaRS.length > 0 && cpuRS.length > 0) {
+          // Both exist - safe to delete CUDA
+          const rsNames = cudaRS.map((rs) => rs.name).join(' ');
+          cy.log(`Deleting CUDA ReplicaSet(s): ${rsNames}`);
+          return cy
+            .exec(`oc delete replicaset ${rsNames} -n ${namespace} --ignore-not-found`, {
+              failOnNonZeroExit: false,
+              timeout: 60000,
+            })
+            .then(() => cy.wrap(undefined as void));
+        }
+        if (cpuRS.length > 0 && cudaRS.length === 0) {
+          // Only CPU exists - already good
+          cy.log('Only CPU ReplicaSet exists, no deletion needed');
+          return cy.wrap(undefined as void);
+        }
+        if (attempt < maxAttempts) {
+          // Wait for CPU RS to be created
+          cy.log(`Waiting for CPU ReplicaSet to be created...`);
+          return cy.wait(waitMs).then(() => poll(attempt + 1));
+        }
+        // Timeout - delete CUDA anyway
+        if (cudaRS.length > 0) {
+          cy.log('Timeout: Deleting CUDA ReplicaSet anyway');
+          const rsNames = cudaRS.map((rs) => rs.name).join(' ');
+          return cy
+            .exec(`oc delete replicaset ${rsNames} -n ${namespace} --ignore-not-found`, {
+              failOnNonZeroExit: false,
+            })
+            .then(() => cy.wrap(undefined as void));
+        }
+        return cy.wrap(undefined as void);
+      });
+  };
+
+  return poll(1);
+};
+
 export const verifyS3CopyCompleted = (
   podName: string,
   namespace: string,

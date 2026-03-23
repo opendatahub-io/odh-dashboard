@@ -24,7 +24,11 @@ import {
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
-import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  checkLLMInferenceServiceState,
+  deleteCudaReplicaSets,
+} from '../../../../utils/oc_commands/modelServing';
+import { stubClipboard, verifyClipboardHasContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -36,8 +40,6 @@ let modelURI: string;
 let servingRuntime: string;
 let resourceType: string;
 let Image: string;
-let scaleDown: string;
-let scaleUp: string;
 let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
 
@@ -55,8 +57,6 @@ describe('A user can deploy an LLMD model', () => {
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         resourceType = testData.resourceType;
         Image = testData.Image;
-        scaleDown = testData.scaleDown;
-        scaleUp = testData.scaleUp;
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
@@ -128,14 +128,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
-      cy.window().then((win) => {
-        const copied: string[] = [];
-        cy.wrap(copied).as('copiedYAML');
-        cy.stub(win.navigator.clipboard, 'writeText').callsFake((text: string) => {
-          copied.push(text);
-          return Promise.resolve();
-        });
-      });
+      stubClipboard('copiedYAML');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
@@ -144,7 +137,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
-      cy.get<string[]>('@copiedYAML').should('have.length.at.least', 1);
+      verifyClipboardHasContent('copiedYAML');
       modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
@@ -166,13 +159,11 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
       // Patch the LLM Inference Service to set image to VLLM CPU
       // workaround for model to be deployed without GPUs.
+      // After patching, delete the old ReplicaSet (with CUDA image) to allow the new one to progress.
       cy.get<string>('@resourceName').then((resourceName) => {
         patchOpenShiftResource(resourceType, resourceName, Image, projectName);
-        // Scale down to 0 and back to 1 to force pod recreation with new CPU image
-        patchOpenShiftResource(resourceType, resourceName, scaleDown, projectName);
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        cy.wait(5000); // Wait for pods to terminate
-        patchOpenShiftResource(resourceType, resourceName, scaleUp, projectName);
+        deleteCudaReplicaSets(resourceName, projectName);
+
         cy.step('Verify that the Model is ready');
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });

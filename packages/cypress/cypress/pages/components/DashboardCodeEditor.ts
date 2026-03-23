@@ -84,16 +84,14 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   copyToClipboard(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // PatternFly CodeEditor default aria-label is 'Copy code to clipboard'
-    return this.find().findByRole('button', { name: /copy/i });
+    return this.find().find('button[aria-label="Copy code to clipboard"]');
   }
 
   upload(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: 'Upload' });
+    return this.find().find('button[aria-label="Upload code"]');
   }
 
   download(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // PatternFly CodeEditor download button
-    return this.find().findByRole('button', { name: /download/i });
+    return this.find().find('button[aria-label="Download code"]');
   }
 }
