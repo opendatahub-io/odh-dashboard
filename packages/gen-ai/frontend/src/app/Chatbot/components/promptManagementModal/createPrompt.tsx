@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Flex, FlexItem, Button, TextInput, TextArea, Title } from '@patternfly/react-core';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
+import { useNotification } from '~/app/hooks/useNotification';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { useCreatePrompt } from './usePromptQueries';
 
 export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
   const { dirtyPrompt, setActivePrompt, setDirtyPrompt } = usePlaygroundStore();
+  const { namespace } = useContext(GenAiContext);
+  const notification = useNotification();
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
+      notification.success(
+        'Prompt saved',
+        `${newPrompt.name} was saved to ${namespace?.name ?? 'the project'}.`,
+      );
       setActivePrompt(newPrompt);
       onClose();
+    },
+    onError: () => {
+      notification.error('Prompt not saved', 'Something went wrong. Try again.');
     },
   });
 
@@ -42,6 +53,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           Name
         </Title>
         <TextInput
+          aria-label="Prompt name"
           value={dirtyPrompt?.name}
           onChange={(_event, value) => handleChange('name', value)}
         />
@@ -51,6 +63,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           Prompt
         </Title>
         <TextArea
+          aria-label="Prompt instructions"
           value={dirtyPrompt?.template}
           resizeOrientation="vertical"
           rows={12}
@@ -62,6 +75,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           Commit Message
         </Title>
         <TextInput
+          aria-label="Commit message"
           value={dirtyPrompt?.commit_message}
           onChange={(_event, value) => handleChange('commit_message', value)}
         />
