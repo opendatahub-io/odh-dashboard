@@ -34,18 +34,10 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	apiKey := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, "list-models")
 
-	var maasModels []models.MaaSModel
-
-	// Special case: empty-test-namespace should return no models for testing empty state
-	if namespace == "empty-test-namespace" {
-		maasModels = []models.MaaSModel{}
-	} else {
-		var err error
-		maasModels, err = app.repositories.MaaSModels.ListModels(ctx, apiKey)
-		if err != nil {
-			app.handleMaaSClientError(w, r, err)
-			return
-		}
+	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, apiKey)
+	if err != nil {
+		app.handleMaaSClientError(w, r, err)
+		return
 	}
 
 	response := models.MaaSModelsResponse{
