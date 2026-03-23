@@ -50,10 +50,10 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
+		var responseEnvelope Envelope[models.MaaSBFFTokenResponseData, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, responseEnvelope.Data.Key)
+		assert.NotEmpty(t, responseEnvelope.Data.Token)
 		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
 	})
 
