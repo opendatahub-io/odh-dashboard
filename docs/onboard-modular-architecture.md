@@ -27,28 +27,17 @@ npx mod-arch-installer -n <your-module-name>
 
 ### 3. Configure the Port
 
-Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. Pick an unused port from the registry below and update both `Makefile` and `package.json`.
+Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
 
-#### Port Registry
+```bash
+npm run validate:ports
+```
 
-| Port | Module | Package |
-| ---- | ----------------- | -------------------------------- |
-| 4000 | Dashboard Backend | `backend` |
-| 4010 | Dashboard Frontend| `frontend` |
-| 9005 | Observability | `@odh-dashboard/observability` |
-| 9100 | Model Registry | `@odh-dashboard/model-registry` |
-| 9102 | Gen AI | `@odh-dashboard/gen-ai` |
-| 9104 | MaaS | `@odh-dashboard/maas` |
-| 9105 | Notebooks | `@odh-dashboard/notebooks` |
-| 9106 | Eval Hub | `@odh-dashboard/eval-hub` |
-| 9107 | AutoRAG | `@odh-dashboard/autorag` |
-| 9108 | AutoML | `@odh-dashboard/automl` |
-| 9110 | MLflow | `@odh-dashboard/mlflow` |
-| 9300 | MLflow Embedded | `@odh-dashboard/mlflow-embedded` |
+This prints a complete list of all current port assignments, sourced directly from the workspace `package.json` files and `federation-configmap.yaml`.
 
 > **Convention**: Frontend federation ports use the 9100–9399 range. BFF ports use the 4000–4099 range. Pick the next available number in the appropriate range.
 
-#### Steps
+Pick an unused port and update both `Makefile` and `package.json`:
 
 1. **Update `Makefile`**:
    Open `packages/<your-module-name>/Makefile` and find the `dev-frontend-federated` target. Update the `PORT` variable:

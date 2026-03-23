@@ -169,7 +169,7 @@ function validate() {
     console.error(
       `\nEach module must have a unique "module-federation.local.port" in its package.json.`,
     );
-    console.error(`See docs/onboard-modular-architecture.md for the port registry.\n`);
+    console.error(`See docs/onboard-modular-architecture.md for port conventions.\n`);
   }
 
   // --- 2. Validate production service ports from federation-configmap.yaml ---

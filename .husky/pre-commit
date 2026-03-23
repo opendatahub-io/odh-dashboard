@@ -17,7 +17,7 @@ if git diff --cached --name-only | grep -qE 'package\.json$|manifests/modular-ar
     if ! node scripts/validate-module-ports.js; then
         echo ""
         echo "💥 Module federation port conflict detected!"
-        echo "   See docs/onboard-modular-architecture.md for the port registry."
+        echo "   Run 'npm run validate:ports' to see current assignments."
         echo ""
         exit 1
     fi
