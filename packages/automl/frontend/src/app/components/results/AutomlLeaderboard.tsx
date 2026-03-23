@@ -52,6 +52,16 @@ const formatMetricName = (metricKey: string): string => {
     .join(' ');
 };
 
+// Helper function to format metric values for display
+const formatMetricValue = (value: number): string => {
+  // If the value would round to 0.000, use scientific notation
+  const fixed = value.toFixed(3);
+  if (fixed === '0.000' || fixed === '-0.000') {
+    return value.toExponential(3);
+  }
+  return fixed;
+};
+
 function AutomlLeaderboard(): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
@@ -251,7 +261,7 @@ function AutomlLeaderboard(): React.JSX.Element {
             {metricKeys.map((metricKey) => (
               <Td key={metricKey} dataLabel={formatMetricName(metricKey)}>
                 <Tooltip content={String(entry.metrics[metricKey])}>
-                  <span>{entry.metrics[metricKey].toFixed(3)}</span>
+                  <span>{formatMetricValue(entry.metrics[metricKey])}</span>
                 </Tooltip>
               </Td>
             ))}
@@ -261,6 +271,12 @@ function AutomlLeaderboard(): React.JSX.Element {
                   {
                     title: 'View details',
                     onClick: () => handleViewDetails(entry.model),
+                  },
+                  {
+                    title: 'Register model',
+                    onClick: () => {
+                      // TODO: Implement register model
+                    },
                   },
                   {
                     title: 'Save notebook',
