@@ -67,5 +67,9 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
     subscriptionsPage.findRows().should('have.length', 2);
+
+    premiumRow.findKebabAction('View details').should('exist');
+    premiumRow.findKebabAction('Edit subscription').should('exist');
+    premiumRow.findKebabAction('Delete subscription').should('exist');
   });
 });

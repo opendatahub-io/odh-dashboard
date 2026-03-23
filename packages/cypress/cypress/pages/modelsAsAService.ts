@@ -560,7 +560,7 @@ class SubscriptionsPage {
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-actions');
+    return cy.findByTestId('subscription-actions');
   }
 
   getRow(name: string): SubscriptionTableRow {
