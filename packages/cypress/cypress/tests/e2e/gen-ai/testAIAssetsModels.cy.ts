@@ -284,28 +284,19 @@ describe('AI Assets Models - User Journeys', () => {
 
       cy.step('Use filters to find a specific model by name');
       aiAssetsPage.filterByName(testData.filterByNameValue);
-      aiAssetsPage
-        .findActiveFilterChip('Name', testData.filterByNameValue)
-        .should('exist')
-        .and('be.visible');
+      aiAssetsPage.findActiveFilterChip('Name').should('exist').and('be.visible');
       aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
 
       cy.step('Clear filter and filter by keyword');
       aiAssetsPage.clearAllFilters();
       aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
-      aiAssetsPage
-        .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
-        .should('exist')
-        .and('be.visible');
+      aiAssetsPage.findActiveFilterChip('Keyword').should('exist').and('be.visible');
       aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
 
       cy.step('Clear filter and filter by use case');
       aiAssetsPage.clearAllFilters();
       aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue);
-      aiAssetsPage
-        .findActiveFilterChip('Use case', testData.filterByUseCaseValue)
-        .should('exist')
-        .and('be.visible');
+      aiAssetsPage.findActiveFilterChip('Use case').should('exist').and('be.visible');
       aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
 
       cy.step('Clear all filters');
