@@ -43,7 +43,7 @@ describe('SubjectRolesTable', () => {
     expect(screen.getByText('No users have roles assigned.')).toBeInTheDocument();
   });
 
-  it('should render role labels and rowSpan grouping, and split rowSpan blocks after sorting', () => {
+  it('should render role links and rowSpan grouping, and split rowSpan blocks after sorting', () => {
     const namespace = 'test-ns';
     const withDisplayName = <T extends { metadata: { annotations?: Record<string, string> } }>(
       resource: T,
@@ -149,10 +149,13 @@ describe('SubjectRolesTable', () => {
     const user1Cell = screen.getByText('test-user-1').closest('td');
     expect(user1Cell).toHaveAttribute('rowspan', '3');
 
-    // Label behavior: AI role appears for dashboard + default roles
-    expect(screen.getAllByText('AI role')).toHaveLength(1);
-    expect(screen.getByText('OpenShift default role')).toBeInTheDocument();
-    expect(screen.getAllByText('OpenShift custom role')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Role A' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Role B' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Role C' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Role D' })).toBeInTheDocument();
+    expect(screen.queryByText('AI role')).not.toBeInTheDocument();
+    expect(screen.queryByText('OpenShift default role')).not.toBeInTheDocument();
+    expect(screen.queryByText('OpenShift custom role')).not.toBeInTheDocument();
 
     // Sort by Date created (asc) -> test-user-1 should split into 2 blocks around test-user-2
     // There are two "Date created" buttons in the header: the sort button and the help popover button

@@ -239,6 +239,14 @@ rules:
       - watch
     resources:
       - featurestores
+  - apiGroups:
+      - mlflow.opendatahub.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - mlflows
   - verbs:
       - create
     apiGroups:
