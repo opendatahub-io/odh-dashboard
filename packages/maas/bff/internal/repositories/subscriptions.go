@@ -134,19 +134,6 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 			return nil, fmt.Errorf("failed to create MaaSAuthPolicy: %w", policyErr)
 		}
 
-		// Add annotation to subscription linking it to the auth policy
-		annotations := createdSub.GetAnnotations()
-		if annotations == nil {
-			annotations = map[string]string{}
-		}
-		annotations["maas.opendatahub.io/auth-policy"] = policyName
-		createdSub.SetAnnotations(annotations)
-		if _, updateErr := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, createdSub, metav1.UpdateOptions{}); updateErr != nil {
-			r.logger.Warn("Failed to annotate subscription with auth policy reference",
-				slog.String("name", request.Name),
-				slog.Any("error", updateErr))
-		}
-
 		authPolicy, convertErr := convertUnstructuredToAuthPolicy(createdPolicy)
 		if convertErr != nil {
 			return nil, convertErr
