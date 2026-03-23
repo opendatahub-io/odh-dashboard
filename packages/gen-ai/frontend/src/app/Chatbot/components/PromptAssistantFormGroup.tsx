@@ -2,6 +2,8 @@ import * as React from 'react';
 import { get } from 'lodash';
 import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import NavigationBlockerModal from '@odh-dashboard/internal/components/NavigationBlockerModal';
+import { useBrowserUnloadBlocker } from '@odh-dashboard/internal/utilities/useBrowserUnloadBlocker';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
@@ -29,6 +31,8 @@ export default function PromptAssistantFormGroup({
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
   const isEdited = systemInstruction !== activeTemplate;
+
+  useBrowserUnloadBlocker(isEdited);
 
   React.useEffect(() => {
     setEditMode(!activePrompt);
@@ -84,70 +88,77 @@ export default function PromptAssistantFormGroup({
   }
 
   return (
-    <Panel
-      style={{
-        borderStyle: 'dashed',
-        borderWidth: 1,
-        borderRadius: 6,
-        borderColor: 'var(--pf-t--global--border--color--default)',
-      }}
-    >
-      <Stack
-        hasGutter
+    <>
+      <NavigationBlockerModal hasUnsavedChanges={isEdited} />
+      <Panel
         style={{
-          padding: 'var(--pf-t--global--spacer--md)',
-          paddingTop: 'var(--pf-t--global--spacer--lg)',
+          borderStyle: 'dashed',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderColor: 'var(--pf-t--global--border--color--default)',
         }}
       >
-        <Flex>
-          <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
-          {!!activePrompt?.version && (
-            <Label
-              isCompact
-              variant={isEdited ? 'filled' : 'outline'}
-              color={isEdited ? 'grey' : 'purple'}
-            >
-              Version {activePrompt.version.toString()}
-            </Label>
-          )}
-          {isEdited && (
-            <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
-          )}
-        </Flex>
-        <TextArea
-          className={!editMode ? 'pf-m-readonly' : undefined}
-          style={{ cursor: editMode ? 'text' : 'pointer' }}
-          id="system-instructions-input"
-          type="text"
-          value={systemInstruction}
-          readOnly={!editMode}
-          onClick={() => setEditMode(true)}
-          onChange={(_event, value) => handleTextChange(value)}
-          aria-label="Prompt instructions input"
-          rows={12}
-          data-testid="system-instructions-input"
-        />
-        {!editMode && (
+        <Stack
+          hasGutter
+          style={{
+            padding: 'var(--pf-t--global--spacer--md)',
+            paddingTop: 'var(--pf-t--global--spacer--lg)',
+          }}
+        >
           <Flex>
-            <Button variant="primary" isDisabled={editMode} onClick={() => setEditMode(!editMode)}>
-              Edit
-            </Button>
-            <Button variant="link" onClick={handleNewPrompt}>
-              Reset
-            </Button>
+            <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
+            {!!activePrompt?.version && (
+              <Label
+                isCompact
+                variant={isEdited ? 'filled' : 'outline'}
+                color={isEdited ? 'grey' : 'purple'}
+              >
+                Version {activePrompt.version.toString()}
+              </Label>
+            )}
+            {isEdited && (
+              <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
+            )}
           </Flex>
-        )}
-        {editMode && (
-          <Flex>
-            <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
-              Save
-            </Button>
-            <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
-              Revert
-            </Button>
-          </Flex>
-        )}
-      </Stack>
-    </Panel>
+          <TextArea
+            className={!editMode ? 'pf-m-readonly' : undefined}
+            style={{ cursor: editMode ? 'text' : 'pointer' }}
+            id="system-instructions-input"
+            type="text"
+            value={systemInstruction}
+            readOnly={!editMode}
+            onClick={() => setEditMode(true)}
+            onChange={(_event, value) => handleTextChange(value)}
+            aria-label="Prompt instructions input"
+            rows={12}
+            data-testid="system-instructions-input"
+          />
+          {!editMode && (
+            <Flex>
+              <Button
+                variant="primary"
+                isDisabled={editMode}
+                onClick={() => setEditMode(!editMode)}
+              >
+                Edit
+              </Button>
+              <Button variant="link" onClick={handleNewPrompt}>
+                Reset
+              </Button>
+            </Flex>
+          )}
+          {editMode && (
+            <Flex>
+              <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+                Save
+              </Button>
+              <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
+                Revert
+              </Button>
+            </Flex>
+          )}
+        </Stack>
+      </Panel>
+    </>
   );
 }
