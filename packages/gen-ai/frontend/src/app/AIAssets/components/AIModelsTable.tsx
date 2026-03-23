@@ -117,6 +117,9 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
+  // Check if any models are custom endpoints to determine if we need the action column
+  const hasCustomEndpoints = models.some((model) => model.model_source_type === 'custom_endpoint');
+
   return (
     <Table
       variant="compact"
@@ -147,6 +150,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           allModels={models}
           playgroundModels={playgroundModels}
           onDelete={onDelete}
+          showActionColumn={hasCustomEndpoints && !!onDelete}
         />
       )}
     />

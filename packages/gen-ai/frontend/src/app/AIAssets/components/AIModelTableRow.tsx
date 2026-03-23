@@ -36,6 +36,7 @@ type AIModelTableRowProps = {
   allModels: AIModel[];
   playgroundModels: LlamaModel[];
   onDelete?: (modelId: string) => Promise<void>;
+  showActionColumn?: boolean;
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
@@ -44,6 +45,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   allModels,
   playgroundModels,
   onDelete,
+  showActionColumn = false,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
@@ -178,38 +180,40 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Button>
           )}
         </Td>
-        <Td isActionCell>
-          {model.model_source_type === 'custom_endpoint' && onDelete && (
-            <Dropdown
-              isOpen={isKebabOpen}
-              onOpenChange={(isOpen) => setIsKebabOpen(isOpen)}
-              popperProps={{ position: 'end', preventOverflow: true }}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  aria-label="Kebab toggle"
-                  variant="plain"
-                  onClick={() => setIsKebabOpen(!isKebabOpen)}
-                >
-                  <EllipsisVIcon />
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownItem
-                  key="delete"
-                  onClick={() => {
-                    setIsKebabOpen(false);
-                    setIsDeleteModalOpen(true);
-                  }}
-                  isDanger
-                >
-                  Remove asset
-                </DropdownItem>
-              </DropdownList>
-            </Dropdown>
-          )}
-        </Td>
+        {showActionColumn && (
+          <Td isActionCell>
+            {model.model_source_type === 'custom_endpoint' && onDelete && (
+              <Dropdown
+                isOpen={isKebabOpen}
+                onOpenChange={(isOpen) => setIsKebabOpen(isOpen)}
+                popperProps={{ position: 'end', preventOverflow: true }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    aria-label="Kebab toggle"
+                    variant="plain"
+                    onClick={() => setIsKebabOpen(!isKebabOpen)}
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    key="delete"
+                    onClick={() => {
+                      setIsKebabOpen(false);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    isDanger
+                  >
+                    Remove asset
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            )}
+          </Td>
+        )}
       </Tr>
       {isEndpointModalOpen && (
         <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
