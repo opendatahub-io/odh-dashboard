@@ -19,11 +19,13 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
   setDeleteSubscription,
 }): React.ReactNode => (
   <Table
+    data-testid="subscriptions-table"
     data={subscriptions}
     columns={subscriptionsColumns}
     enablePagination
     rowRenderer={(subscription: MaaSSubscription) => (
       <SubscriptionTableRow
+        key={subscription.name}
         subscription={subscription}
         setDeleteSubscription={setDeleteSubscription}
       />

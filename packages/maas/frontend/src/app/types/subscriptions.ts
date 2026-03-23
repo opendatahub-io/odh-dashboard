@@ -39,3 +39,8 @@ export type TokenMetadata = {
   costCenter: string;
   labels?: Record<string, string>;
 };
+
+export type MaaSSubscriptionListResponse = {
+  object: string;
+  data: MaaSSubscription[];
+};

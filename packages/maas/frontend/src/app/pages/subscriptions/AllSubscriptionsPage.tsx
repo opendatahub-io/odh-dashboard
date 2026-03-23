@@ -34,7 +34,6 @@ const AllSubscriptionsPage: React.FC = () => {
       : subscriptions;
   }, [subscriptions, filterData]);
 
-  const [, setIsDeleteModalOpen] = React.useState(false);
   const [deleteSubscription, setDeleteSubscription] = React.useState<MaaSSubscription | undefined>(
     undefined,
   );
@@ -60,11 +59,10 @@ const AllSubscriptionsPage: React.FC = () => {
           />
         </PageSection>
       )}
-      {deleteSubscription && deleteSubscription.name && (
+      {deleteSubscription && (
         <DeleteSubscriptionModal
           subscription={deleteSubscription}
           onClose={() => {
-            setIsDeleteModalOpen(false);
             setDeleteSubscription(undefined);
           }}
         />

@@ -12,7 +12,10 @@ import {
 
 type SubscriptionsToolbarProps = {
   filterData: SubscriptionsFilterDataType;
-  onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  onFilterUpdate: (
+    key: SubscriptionsFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
 };
 
 const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
@@ -31,6 +34,7 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
             aria-label="Filter by keyword"
             placeholder="Filter by keyword"
             onChange={(_event, value) => onChange(value)}
+            data-testid="subscriptions-filter-input"
           />
         ),
       }}

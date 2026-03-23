@@ -11,7 +11,7 @@ import { MaaSSubscription } from '../types/subscriptions';
 
 export const useListSubscriptions = (): FetchState<MaaSSubscription[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<MaaSSubscription[]>>(
-    (opts: APIOptions) => listSubscriptions()(opts).then((response) => response),
+    (opts: APIOptions) => listSubscriptions()(opts),
     [],
   );
 

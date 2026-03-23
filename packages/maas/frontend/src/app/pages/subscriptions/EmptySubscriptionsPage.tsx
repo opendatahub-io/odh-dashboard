@@ -14,7 +14,11 @@ const EmptySubscriptionsPage: React.FC = () => {
         description="To get started, create a subscription."
         imageAlt="create a subscription"
         createButton={
-          <Button variant="primary" onClick={() => navigate(`${URL_PREFIX}/subscriptions/create`)}>
+          <Button
+            variant="primary"
+            onClick={() => navigate(`${URL_PREFIX}/subscriptions/create`)}
+            data-testid="create-subscription-button"
+          >
             Create Subscription
           </Button>
         }

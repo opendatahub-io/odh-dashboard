@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, capitalize, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,11 +9,13 @@ import { subscriptionsColumns } from './columns';
 
 type SubscriptionTableRowProps = {
   subscription: MaaSSubscription;
+  key: string;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
 };
 
 const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   subscription,
+  key,
   setDeleteSubscription,
 }) => {
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   };
 
   return (
-    <Tr>
+    <Tr key={key}>
       <Td dataLabel={subscriptionsColumns[0].label}>
         <TableRowTitleDescription
           title={
@@ -41,14 +43,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={subscriptionsColumns[1].label}>
-        <Label color="grey">
-          {capitalize(`${subscription.owner.groups.length.toString()} Groups`)}
-        </Label>
+        <Label color="grey">{`${subscription.owner.groups.length.toString()} Groups`}</Label>
       </Td>
       <Td dataLabel={subscriptionsColumns[2].label}>
-        <Label color="grey">
-          {capitalize(`${subscription.modelRefs.length.toString()} Models`)}
-        </Label>
+        <Label color="grey">{`${subscription.modelRefs.length.toString()} Models`}</Label>
       </Td>
       <Td isActionCell>
         <ActionsColumn

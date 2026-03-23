@@ -97,6 +97,7 @@ import type {
   BulkRevokeResponse,
   CreateAPIKeyResponse,
 } from '@odh-dashboard/maas/types/api-key';
+import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1142,6 +1143,10 @@ declare global {
         ((
           type: 'GET /maas/api/v1/namespaces',
           response: OdhResponse<{ data: { metadata: { name: string } }[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/all-subscriptions',
+          response: OdhResponse<{ data: MaaSSubscription[] }>,
         ) => Cypress.Chainable<null>);
     }
   }
