@@ -98,7 +98,29 @@ const AIAssetsModelsTab: React.FC = () => {
   const emptyState = isExternalModelsEnabled ? (
     <ModelsEmptyState
       title="No endpoints available"
-      description="There are no model endpoints in this project yet. Create an endpoint or deploy a model."
+      description={
+        <Content
+          style={{
+            textAlign: 'left',
+          }}
+        >
+          <Content component="p">
+            Looks like your project is missing at least one model to use the playground. Create an
+            endpoint or follow the steps below to deploy a model and get started.
+          </Content>
+          <Content component={ContentVariants.ol}>
+            <Content component={ContentVariants.li}>
+              Go to your <b>Model Deployments</b> page
+            </Content>
+            <Content component={ContentVariants.li}>
+              Select <b>&apos;Edit&apos;</b> to update your deployment
+            </Content>
+            <Content component={ContentVariants.li}>
+              Check the box: <b>&apos;Make this deployment available as an AI asset&apos;</b>
+            </Content>
+          </Content>
+        </Content>
+      }
       actionButtonText="Create endpoint"
       handleActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
       secondaryActionButtonText="Deploy a model"
