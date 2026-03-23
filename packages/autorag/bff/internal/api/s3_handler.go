@@ -364,6 +364,14 @@ func isS3PostRequestBodyTooLarge(err error) bool {
 	return err != nil && errors.As(err, &maxBytesErr)
 }
 
+// Upload vs GET for HTML and other inline-unsafe types:
+// Users may upload pipeline input files (e.g. text/html) that must be stored in S3 with an
+// accurate Content-Type — see allowedS3UploadMediaTypes. The UI does not need to render those
+// objects inline in the browser; serving them inline from this origin would risk XSS. For the
+// same media types, GetS3FileHandler therefore uses dangerousS3GetMediaTypes / isInlineDangerousContentType
+// to force Content-Disposition: attachment and nosniff. Allowing upload as text/html but
+// downloading as attachment is intentional: store faithfully for RAG input; never execute in-dashboard.
+//
 // dangerousS3GetMediaTypes are served with Content-Disposition: attachment and nosniff so the
 // dashboard origin cannot be used as an XSS/SVG script vector when objects declare these types
 // (including parameterized forms, e.g. text/html; charset=utf-8).
@@ -387,6 +395,8 @@ func isInlineDangerousContentType(v string) bool {
 // allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
 // Anything else is stored as application/octet-stream so GET cannot echo arbitrary
 // caller-controlled MIME types (e.g. image/svg+xml, application/javascript) under the dashboard origin.
+// Includes text/html so pipeline input can be stored correctly; GET still forces download for HTML
+// (see the "Upload vs GET" comment before dangerousS3GetMediaTypes).
 var allowedS3UploadMediaTypes = map[string]struct{}{
 	"application/json":     {},
 	"application/markdown": {}, // some clients use this for .md

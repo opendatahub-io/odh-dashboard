@@ -215,6 +215,8 @@ func (app *App) Routes() http.Handler {
 	// secretName (the handler resolves credentials directly in that case).
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
 	// LSD Models
