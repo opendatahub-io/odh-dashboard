@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { mockMulticlassContext } from '~/app/mocks/mockAutomlResultsContext';
+import { computeRankMap } from '~/app/utilities/utils';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 
 type ModalState = {
@@ -12,17 +13,22 @@ function AutomlResults(): React.JSX.Element {
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 
-  const modelsArray = Object.values(mockMulticlassContext.models);
+  const { models, parameters } = mockMulticlassContext;
+  const rankMap = React.useMemo(
+    () => computeRankMap(models, parameters.task_type),
+    [models, parameters.task_type],
+  );
+  const modelsArray = Object.values(models);
 
   return (
     <div>
       <Dropdown
         isOpen={isDropdownOpen}
         onSelect={(_e, value) => {
-          const index = Number(value);
+          const name = String(value);
           setModalState({
-            modelName: modelsArray[index].display_name,
-            rank: index + 1,
+            modelName: name,
+            rank: rankMap[name],
           });
           setIsDropdownOpen(false);
         }}
@@ -39,9 +45,9 @@ function AutomlResults(): React.JSX.Element {
         )}
       >
         <DropdownList>
-          {modelsArray.map((model, i) => (
-            <DropdownItem key={model.display_name} value={i}>
-              #{i + 1} {model.display_name}
+          {modelsArray.map((model) => (
+            <DropdownItem key={model.display_name} value={model.display_name}>
+              #{rankMap[model.display_name]} {model.display_name}
             </DropdownItem>
           ))}
         </DropdownList>

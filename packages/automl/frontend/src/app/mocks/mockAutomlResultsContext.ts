@@ -195,7 +195,7 @@ export const mockMulticlassConfusionMatrices: Record<string, ConfusionMatrixData
     Goblin: { Ghost: 1, Ghoul: 5, Goblin: 7 },
   },
   NeuralNet_BAG_L1_FULL: {
-    Ghost: { Ghost: 8, Ghoul: 2, Goblin: 2 },
+    Ghost: { Ghost: 9, Ghoul: 2, Goblin: 1 },
     Ghoul: { Ghost: 3, Ghoul: 7, Goblin: 3 },
     Goblin: { Ghost: 2, Ghoul: 4, Goblin: 7 },
   },

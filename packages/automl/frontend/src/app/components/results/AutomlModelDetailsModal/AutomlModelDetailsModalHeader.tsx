@@ -64,9 +64,9 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
             )}
           >
             <DropdownList>
-              {models.map((m, i) => (
+              {models.map((m) => (
                 <DropdownItem key={m.display_name} value={m.display_name}>
-                  #{i + 1} {m.display_name}
+                  {m.display_name}
                 </DropdownItem>
               ))}
             </DropdownList>

@@ -40,3 +40,43 @@ export function toNumericMetric(value: unknown): number {
   }
   return 0;
 }
+
+/**
+ * Returns the default optimized metric for a given task type.
+ */
+export function getOptimizedMetricForTask(taskType: string): string | undefined {
+  switch (taskType) {
+    case 'binary':
+    case 'multiclass':
+      return 'accuracy';
+    case 'regression':
+      return 'r2';
+    case 'timeseries':
+      return 'smape';
+    default:
+      return undefined;
+  }
+}
+
+/** Metrics where lower values indicate better performance. */
+const ERROR_METRICS = new Set(['smape', 'mse', 'mae', 'rmse', 'mape']);
+
+/**
+ * Build a mapping from model name → leaderboard rank (1-based).
+ * Ranks are assigned by sorting on the optimized metric for the task type,
+ */
+export function computeRankMap(
+  models: Record<string, { metrics: { test_data: Record<string, unknown> } }>,
+  taskType: string,
+): Record<string, number> {
+  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const isErrorMetric = ERROR_METRICS.has(optimizedMetric.toLowerCase());
+
+  const sorted = Object.keys(models).toSorted((a, b) => {
+    const aVal = Math.abs(toNumericMetric(models[a].metrics.test_data[optimizedMetric]));
+    const bVal = Math.abs(toNumericMetric(models[b].metrics.test_data[optimizedMetric]));
+    return isErrorMetric ? aVal - bVal : bVal - aVal;
+  });
+
+  return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
+}

@@ -15,6 +15,7 @@ import {
   mockMulticlassFeatureImportances,
   mockMulticlassConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
+import { computeRankMap } from '~/app/utilities/utils';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -55,9 +56,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     setSelectedModelName(modelName);
   }, [modelName]);
 
+  const rankMap = React.useMemo(
+    () => computeRankMap(context.models, taskType),
+    [context.models, taskType],
+  );
   const model = context.models[selectedModelName];
-  const currentIndex = models.findIndex((m) => m.display_name === selectedModelName);
-  const rank = selectedModelName === modelName ? initialRank : currentIndex + 1;
+  const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
   const featureImportance = mockMulticlassFeatureImportances[selectedModelName];
   const confusionMatrix = mockMulticlassConfusionMatrices[selectedModelName];
 
