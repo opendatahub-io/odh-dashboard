@@ -46,12 +46,11 @@ const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runS
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       break;
     case runtimeStateLabels[RuntimeStateKF.CANCELING]:
-      icon = <BanIcon />;
+      icon = <InProgressIcon />;
       label = runtimeStateLabels[RuntimeStateKF.CANCELING];
       break;
     case runtimeStateLabels[RuntimeStateKF.CANCELED]:
       icon = <BanIcon />;
-      status = 'warning';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case runtimeStateLabels[RuntimeStateKF.PAUSED]:

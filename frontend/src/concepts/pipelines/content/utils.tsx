@@ -6,7 +6,6 @@ import {
   InProgressIcon,
   PendingIcon,
   QuestionCircleIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { Icon, LabelProps } from '@patternfly/react-core';
 import {
@@ -25,6 +24,7 @@ export type RunStatusDetails = {
   icon: React.ReactNode;
   label: PipelineRunKF['state'] | string;
   color?: LabelProps['color'];
+  labelStatus?: LabelProps['status'];
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
   createdAt?: string;
@@ -39,6 +39,7 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
+  let labelStatus: LabelProps['status'];
   let details: string | undefined;
   let label: string;
   let color: LabelProps['color'];
@@ -50,6 +51,7 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
     case RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED:
     case undefined:
       icon = <PendingIcon />;
+      color = 'purple';
       label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
     case RuntimeStateKF.RUNNING:
@@ -64,27 +66,29 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
     case RuntimeStateKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
-      color = 'green';
+      labelStatus = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
     case RuntimeStateKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
-      color = 'red';
+      labelStatus = 'danger';
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       details = run.error?.message;
       break;
     case RuntimeStateKF.CANCELING:
-      icon = <SyncAltIcon />;
+      icon = <InProgressIcon />;
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.CANCELING];
       break;
     case RuntimeStateKF.CANCELED:
       icon = <BanIcon />;
-      color = 'orangered';
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case RuntimeStateKF.PAUSED:
       icon = <BanIcon />;
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.PAUSED];
       break;
     default:
@@ -94,7 +98,7 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
       details = run.state;
   }
 
-  return { icon, label, color, status, details, createdAt };
+  return { icon, label, color, labelStatus, status, details, createdAt };
 };
 
 export const getPipelineAndVersionDeleteString = (

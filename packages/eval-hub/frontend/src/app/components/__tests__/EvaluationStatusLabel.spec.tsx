@@ -9,8 +9,8 @@ const EXPECTED_LABELS: Record<EvaluationJobState, string> = {
   completed: 'Complete',
   failed: 'Failed',
   cancelled: 'Canceled',
-  stopping: 'Canceling',
-  stopped: 'Canceled',
+  stopping: 'Stopping',
+  stopped: 'Stopped',
 };
 
 describe('EvaluationStatusLabel', () => {

@@ -158,7 +158,7 @@ describe('ModelRegistryTableRowStatus', () => {
     ).toBeVisible();
   });
 
-  it('renders "Ready" status', () => {
+  it('renders "Available" status', () => {
     render(
       <ModelRegistryTableRowStatus
         conditions={[
@@ -167,9 +167,9 @@ describe('ModelRegistryTableRowStatus', () => {
         ]}
       />,
     );
-    expect(screen.getByText('Ready')).toBeVisible();
+    expect(screen.getByText('Available')).toBeVisible();
   });
-  it('renders "Starting" status when Degraded is True and Available is False', async () => {
+  it('renders "Progressing" status', async () => {
     const user = userEvent.setup();
 
     render(
@@ -198,7 +198,7 @@ describe('ModelRegistryTableRowStatus', () => {
     ).toBeVisible();
     expect(screen.getByText('Some unavailable message')).toBeVisible();
   });
-  it('renders "Stopping" status', async () => {
+  it('renders "Degrading" status', async () => {
     const user = userEvent.setup();
 
     render(
@@ -212,7 +212,7 @@ describe('ModelRegistryTableRowStatus', () => {
       />,
     );
 
-    const label = screen.getByText('Stopping');
+    const label = screen.getByText('Degrading');
     expect(label).toBeVisible();
 
     await user.click(label);
@@ -221,7 +221,7 @@ describe('ModelRegistryTableRowStatus', () => {
     expect(degradingText).toBeInTheDocument();
   });
 
-  it('renders "Starting" status when popover message contains "ContainerCreating"', async () => {
+  it('renders "Progressing" status when popover message contains "ContainerCreating"', async () => {
     render(
       <ModelRegistryTableRowStatus
         conditions={[
@@ -235,17 +235,17 @@ describe('ModelRegistryTableRowStatus', () => {
       />,
     );
 
-    expect(screen.getByText('Starting')).toBeVisible();
+    expect(screen.getByText('Progressing')).toBeVisible();
   });
 
-  it('renders "Starting" status when conditions are empty', () => {
+  it('renders "Progressing" status when conditions are empty', () => {
     render(<ModelRegistryTableRowStatus conditions={[]} />);
-    expect(screen.getByText('Starting')).toBeVisible();
+    expect(screen.getByText('Progressing')).toBeVisible();
   });
 
-  it('renders "Starting" status when conditions are undefined', () => {
+  it('renders "Progressing" status when conditions are undefined', () => {
     render(<ModelRegistryTableRowStatus conditions={undefined} />);
-    expect(screen.getByText('Starting')).toBeVisible();
+    expect(screen.getByText('Progressing')).toBeVisible();
   });
 
   it('renders "Unavailable" with multiple messages in popover', async () => {

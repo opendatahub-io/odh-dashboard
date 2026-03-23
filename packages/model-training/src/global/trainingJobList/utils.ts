@@ -73,7 +73,6 @@ export const getStatusInfo = (
       return {
         status: 'success',
         label: 'Complete',
-        color: 'green',
         IconComponent: CheckCircleIcon,
         alertTitle: 'Job Complete',
         alertVariant: AlertVariant.success,
@@ -82,7 +81,6 @@ export const getStatusInfo = (
       return {
         status: 'danger',
         label: 'Failed',
-        color: 'red',
         IconComponent: ExclamationCircleIcon,
         alertTitle: 'Job Failed',
         alertVariant: AlertVariant.danger,
@@ -132,7 +130,6 @@ export const getStatusInfo = (
     case TrainingJobState.PREEMPTED:
       return {
         label: 'Preempted',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
         alertTitle: 'Job Preempted',
@@ -141,7 +138,6 @@ export const getStatusInfo = (
     case TrainingJobState.INADMISSIBLE:
       return {
         label: 'Inadmissible',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
         alertTitle: 'Job Inadmissible',
