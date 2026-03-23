@@ -3,11 +3,21 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import AutomlResultsPage from '~/app/pages/AutomlResultsPage';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
+import type { PipelineRun } from '~/app/types';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+
+// ============================================================================
+// Mocks
+// ============================================================================
 
 const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
+  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -31,42 +41,28 @@ jest.mock('~/app/hooks/useAutomlResults', () => ({
   useAutomlResults: (...args: unknown[]) => mockUseAutomlResults(...args),
 }));
 
-const mockAutomlResultsContext = jest.fn();
-jest.mock('~/app/context/AutomlResultsContext', () => ({
-  AutomlResultsContext: {
-    Provider: ({ children, value }: { children: React.ReactNode; value: unknown }) => {
-      mockAutomlResultsContext(value);
-      return <div>{children}</div>;
-    },
-  },
-  useAutomlResultsContext: jest.fn(),
-  getAutomlContext: ({
-    pipelineRun,
-    models = {},
-    pipelineRunLoading,
-    modelsLoading,
-  }: {
-    pipelineRun?: { runtime_config?: { parameters?: unknown } };
-    models?: unknown;
-    pipelineRunLoading?: boolean;
-    modelsLoading?: boolean;
-  }) => ({
-    pipelineRun,
-    pipelineRunLoading,
-    models,
-    modelsLoading,
-    parameters: pipelineRun?.runtime_config?.parameters,
-  }),
-}));
-
+// Mock AutomlResults to capture context
+let capturedContext: unknown = null;
 jest.mock('~/app/components/results/AutomlResults', () => ({
   __esModule: true,
-  default: () => <div data-testid="automl-results">AutoML Results Component</div>,
+  default: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { useAutomlResultsContext } = jest.requireActual('~/app/context/AutomlResultsContext');
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const context = useAutomlResultsContext();
+    capturedContext = context;
+    return <div data-testid="automl-results">AutoML Results Component</div>;
+  },
 }));
 
 jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
   __esModule: true,
   default: () => <div data-testid="invalid-run">Invalid Run</div>,
+}));
+
+jest.mock('~/app/components/empty-states/InvalidProject', () => ({
+  __esModule: true,
+  default: () => <div data-testid="invalid-project">Invalid Project</div>,
 }));
 
 jest.mock('mod-arch-shared', () => ({
@@ -75,14 +71,17 @@ jest.mock('mod-arch-shared', () => ({
     empty,
     loaded,
     emptyStatePage,
+    breadcrumb,
   }: {
     children: React.ReactNode;
     empty: boolean;
     loaded: boolean;
     emptyStatePage: React.ReactNode;
+    breadcrumb?: React.ReactNode;
     [key: string]: unknown;
   }) => (
     <div data-testid="applications-page">
+      {breadcrumb}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
@@ -91,9 +90,50 @@ jest.mock('mod-arch-shared', () => ({
   ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
 }));
 
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
+const createMockModel = (name: string, metrics: Record<string, number>): AutomlModel => ({
+  display_name: name,
+  model_config: {
+    eval_metric: 'accuracy',
+  },
+  location: {
+    model_directory: `/models/${name}`,
+    predictor: `/models/${name}/predictor.pkl`,
+    notebook: `/models/${name}/notebook.ipynb`,
+  },
+  metrics: {
+    test_data: metrics,
+  },
+});
+
+const mockModels: Record<string, AutomlModel> = {
+  'model-1': createMockModel('Model 1', { accuracy: 0.95 }),
+  'model-2': createMockModel('Model 2', { accuracy: 0.92 }),
+};
+
+const createMockPipelineRun = (
+  overrides?: Partial<PipelineRun>,
+  parameters?: Partial<ConfigureSchema>,
+): PipelineRun => ({
+  run_id: 'run-123',
+  display_name: 'Test Run',
+  state: 'SUCCEEDED',
+  created_at: '2025-01-17T00:00:00Z',
+  runtime_config: parameters ? ({ parameters } as PipelineRun['runtime_config']) : undefined,
+  ...overrides,
+});
+
+// ============================================================================
+// Tests
+// ============================================================================
+
 describe('AutomlResultsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    capturedContext = null;
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
     mockUseAutomlResults.mockReturnValue({
       models: {},
@@ -102,92 +142,433 @@ describe('AutomlResultsPage', () => {
     });
   });
 
-  it('should pass namespace and runId from URL params to usePipelineRunQuery', () => {
-    mockUsePipelineRunQuery.mockReturnValue({
-      data: undefined,
-      isFetched: false,
-      isError: false,
-      error: null,
+  describe('hook integration', () => {
+    it('should pass namespace and runId from URL params to usePipelineRunQuery', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
     });
 
-    render(<AutomlResultsPage />);
+    it('should pass runId, namespace, and pipelineRun to useAutomlResults', () => {
+      const mockPipelineRun = createMockPipelineRun();
 
-    expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
-  });
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
 
-  it('should render AutomlResults with context when data is loaded', () => {
-    const mockPipelineRun = {
-      run_id: 'run-123',
-      display_name: 'Test Run',
-      state: 'SUCCEEDED',
-      created_at: '',
-    };
+      render(<AutomlResultsPage />);
 
-    mockUsePipelineRunQuery.mockReturnValue({
-      data: mockPipelineRun,
-      isFetched: true,
-      isError: false,
-      error: null,
-    });
-
-    render(<AutomlResultsPage />);
-
-    expect(screen.getByTestId('automl-results')).toBeInTheDocument();
-    expect(mockAutomlResultsContext).toHaveBeenCalledWith({
-      pipelineRun: mockPipelineRun,
-      pipelineRunLoading: undefined,
-      models: {},
-      modelsLoading: false,
-      parameters: undefined,
+      expect(mockUseAutomlResults).toHaveBeenCalledWith('run-123', 'test-ns', mockPipelineRun);
     });
   });
 
-  it('should render InvalidPipelineRun when query errors', () => {
-    mockUsePipelineRunQuery.mockReturnValue({
-      data: undefined,
-      isFetched: true,
-      isError: true,
-      error: new Error('not found'),
-    });
+  describe('context integration', () => {
+    it('should provide context with pipelineRun and models', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        task_type: 'binary',
+        train_data_secret_name: 'my-secret',
+        train_data_bucket_name: 'my-bucket',
+        train_data_file_key: 'data.csv',
+        label_column: 'target',
+        top_n: 3,
+      });
 
-    render(<AutomlResultsPage />);
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
 
-    expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
-  });
+      mockUseAutomlResults.mockReturnValue({
+        models: mockModels,
+        isLoading: false,
+        isError: false,
+      });
 
-  it('should pass parameters from pipelineRun runtime_config to context', () => {
-    const mockPipelineRun = {
-      run_id: 'run-123',
-      display_name: 'Test Run',
-      state: 'SUCCEEDED',
-      created_at: '',
-      runtime_config: {
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        pipelineRun: mockPipelineRun,
+        models: mockModels,
+        pipelineRunLoading: false,
+        modelsLoading: false,
         parameters: {
           task_type: 'binary',
-          label_column: 'target',
           train_data_secret_name: 'my-secret',
           train_data_bucket_name: 'my-bucket',
           train_data_file_key: 'data.csv',
+          label_column: 'target',
           top_n: 3,
         },
-      },
-    };
-
-    mockUsePipelineRunQuery.mockReturnValue({
-      data: mockPipelineRun,
-      isFetched: true,
-      isError: false,
-      error: null,
+      });
     });
 
-    render(<AutomlResultsPage />);
+    it('should set pipelineRunLoading when isPending is true', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
 
-    expect(mockAutomlResultsContext).toHaveBeenCalledWith({
-      pipelineRun: mockPipelineRun,
-      pipelineRunLoading: undefined,
-      models: {},
-      modelsLoading: false,
-      parameters: mockPipelineRun.runtime_config.parameters,
+      render(<AutomlResultsPage />);
+
+      // Page should still be loading
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+
+    it('should set pipelineRunLoading when isFetching is true', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: true,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        pipelineRunLoading: true,
+      });
+    });
+
+    it('should set modelsLoading when useAutomlResults is loading', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutomlResults.mockReturnValue({
+        models: {},
+        isLoading: true,
+        isError: false,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        modelsLoading: true,
+      });
+    });
+
+    it('should default task_type to timeseries when not in parameters', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(capturedContext).toMatchObject({
+        parameters: {
+          task_type: 'timeseries',
+        },
+      });
+    });
+
+    it('should handle all task types', () => {
+      const taskTypes = ['binary', 'multiclass', 'regression', 'timeseries'] as const;
+
+      taskTypes.forEach((taskType) => {
+        jest.clearAllMocks();
+        capturedContext = null;
+
+        const mockPipelineRun = createMockPipelineRun(undefined, {
+          task_type: taskType,
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          top_n: 3,
+        });
+
+        mockUsePipelineRunQuery.mockReturnValue({
+          data: mockPipelineRun,
+          isPending: false,
+          isFetching: false,
+          isError: false,
+          error: null,
+        });
+
+        render(<AutomlResultsPage />);
+
+        expect(capturedContext).toMatchObject({
+          parameters: expect.objectContaining({
+            task_type: taskType,
+          }),
+        });
+      });
+    });
+
+    it('should handle empty models', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutomlResults.mockReturnValue({
+        models: {},
+        isLoading: false,
+        isError: false,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(capturedContext).toMatchObject({
+        models: {},
+      });
+    });
+  });
+
+  describe('empty states', () => {
+    it('should render InvalidPipelineRun when query errors', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('not found'),
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+
+    it('should render InvalidProject for invalid namespace', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [{ name: 'other-ns' }],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: true,
+        namespacesLoadError: undefined,
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+
+    it('should render InvalidProject for no namespaces', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: true,
+        namespacesLoadError: undefined,
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('loading states', () => {
+    it('should not render AutomlResults when namespaces not loaded', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: false,
+        namespacesLoadError: undefined,
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+
+    it('should not render AutomlResults when pipelineRun is pending', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('parameters with different configurations', () => {
+    it('should handle tabular parameters (binary)', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [{ name: 'test-ns' }],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: true,
+        namespacesLoadError: undefined,
+      });
+
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        task_type: 'binary',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'train.csv',
+        label_column: 'label',
+        top_n: 5,
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        parameters: {
+          task_type: 'binary',
+          label_column: 'label',
+          top_n: 5,
+        },
+      });
+    });
+
+    it('should handle timeseries parameters', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [{ name: 'test-ns' }],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: true,
+        namespacesLoadError: undefined,
+      });
+
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        task_type: 'timeseries',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'timeseries.csv',
+        target: 'sales',
+        id_column: 'store_id',
+        timestamp_column: 'date',
+        prediction_length: 30,
+        known_covariates_names: ['holiday', 'promotion'],
+        top_n: 3,
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      render(<AutomlResultsPage />);
+
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        parameters: {
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          known_covariates_names: ['holiday', 'promotion'],
+          top_n: 3,
+        },
+      });
+    });
+  });
+
+  describe('breadcrumb', () => {
+    it('should display pipeline run display_name in breadcrumb', () => {
+      const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+      useNamespaceSelector.mockReturnValue({
+        namespaces: [{ name: 'test-ns' }],
+        updatePreferredNamespace: jest.fn(),
+        namespacesLoaded: true,
+        namespacesLoadError: undefined,
+      });
+
+      const mockPipelineRun = createMockPipelineRun({
+        display_name: 'My Custom Run Name',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      const { container } = render(<AutomlResultsPage />);
+
+      // The breadcrumb should show the display name
+      // It's rendered as part of ApplicationsPage which we mocked, so check the raw render
+      expect(container.textContent).toContain('My Custom Run Name');
     });
   });
 });

@@ -201,7 +201,11 @@ function AutomlLeaderboard(): React.JSX.Element {
   const hasNoModels = Object.keys(models).length === 0;
   if (pipelineRunLoading || modelsLoading || hasNoModels) {
     return (
-      <Table aria-label="AutoML Model Leaderboard" variant="compact">
+      <Table
+        aria-label="AutoML Model Leaderboard"
+        variant="compact"
+        data-testid="leaderboard-loading"
+      >
         <Thead>
           <Tr>
             {Array.from({ length: 8 }).map((__, colIndex) => (
@@ -227,39 +231,60 @@ function AutomlLeaderboard(): React.JSX.Element {
   }
 
   return (
-    <Table aria-label="AutoML Model Leaderboard" variant="compact">
+    <Table aria-label="AutoML Model Leaderboard" variant="compact" data-testid="leaderboard-table">
       <Thead>
         <Tr>
-          <Th sort={getSortParams(0)}>Rank</Th>
-          <Th sort={getSortParams(1)}>Model name</Th>
+          <Th sort={getSortParams(0)} data-testid="rank-header">
+            Rank
+          </Th>
+          <Th sort={getSortParams(1)} data-testid="model-name-header">
+            Model name
+          </Th>
           {metricKeys.map((metricKey, index) => (
-            <Th key={metricKey} sort={getSortParams(index + 2)}>
+            <Th
+              key={metricKey}
+              sort={getSortParams(index + 2)}
+              data-testid={`metric-header-${metricKey}`}
+            >
               {formatMetricName(metricKey)}
-              {metricKey === optimizedMetric ? ' (optimized)' : ''}
+              {metricKey === optimizedMetric ? (
+                <span data-testid="optimized-indicator"> (optimized)</span>
+              ) : (
+                ''
+              )}
             </Th>
           ))}
-          <Th />
+          <Th screenReaderText="Actions" />
         </Tr>
       </Thead>
       <Tbody>
         {data.map((entry) => (
-          <Tr key={entry.rank}>
-            <Td dataLabel="Rank">
+          <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+            <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
               {entry.rank === 1 ? (
-                <Label color="teal" icon={<StarIcon />}>
+                <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
                   {entry.rank}
                 </Label>
               ) : (
                 entry.rank
               )}
             </Td>
-            <Td dataLabel="Model">
-              <Button variant="link" isInline onClick={() => handleViewDetails(entry.model)}>
+            <Td dataLabel="Model" data-testid={`model-name-${entry.rank}`}>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => handleViewDetails(entry.model)}
+                data-testid={`model-link-${entry.rank}`}
+              >
                 {entry.model}
               </Button>
             </Td>
             {metricKeys.map((metricKey) => (
-              <Td key={metricKey} dataLabel={formatMetricName(metricKey)}>
+              <Td
+                key={metricKey}
+                dataLabel={formatMetricName(metricKey)}
+                data-testid={`metric-${metricKey}-${entry.rank}`}
+              >
                 <Tooltip content={String(entry.metrics[metricKey])}>
                   <span>{formatMetricValue(entry.metrics[metricKey])}</span>
                 </Tooltip>
