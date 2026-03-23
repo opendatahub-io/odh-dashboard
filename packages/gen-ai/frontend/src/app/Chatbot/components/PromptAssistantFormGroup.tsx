@@ -21,6 +21,12 @@ const CONFIRMATION_CONFIG = {
     'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
   confirmLabel: 'Revert',
 };
+const RESET_CONFIRMATION_CONFIG = {
+  title: 'Reset to default?',
+  message:
+    "Your current edits haven't been saved. Resetting will restore the default prompt instructions. To keep your changes, cancel and save first.",
+  confirmLabel: 'Reset',
+};
 
 export default function PromptAssistantFormGroup({
   systemInstruction,
@@ -165,8 +171,13 @@ export default function PromptAssistantFormGroup({
               </Button>
               <Button
                 variant="link"
-                isDisabled={!activePrompt}
-                onClick={() => confirm(handleRevert, CONFIRMATION_CONFIG)}
+                isDisabled={!isEdited}
+                onClick={() =>
+                  confirm(
+                    handleRevert,
+                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
+                  )
+                }
               >
                 Revert
               </Button>
