@@ -81,7 +81,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Model deployment name">
+        <Td dataLabel="Model">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
             content={model.model_id}
@@ -182,7 +182,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 toggle={(toggleRef) => (
                   <MenuToggle
                     ref={toggleRef}
-                    aria-label="Kebab toggle"
+                    aria-label={`Actions for ${model.display_name || model.model_id}`}
                     variant="plain"
                     onClick={() => setIsKebabOpen(!isKebabOpen)}
                   >
