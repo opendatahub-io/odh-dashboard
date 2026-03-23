@@ -1,6 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
@@ -31,6 +32,7 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 import {
   HardwareProfileModel,
   InferenceServiceModel,
+  LLMInferenceServiceConfigModel,
   ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
@@ -625,6 +627,75 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@stopLLMInferenceService2');
       cy.get('@stopLLMInferenceService2.all').should('have.length', 1);
+    });
+  });
+
+  describe('Deploy vLLM using LLMInferenceServiceConfig', () => {
+    const initVLLMOnMaaSIntercepts = () => {
+      initIntercepts({});
+
+      // Override config to enable vLLMDeploymentOnMaaS
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          vLLMDeploymentOnMaaS: true,
+        }),
+      );
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gaudi-config',
+            displayName: 'vLLM on Gaudi',
+            runtimeVersion: 'v0.9.1',
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+    };
+
+    it('should show LLM config options when generative model type is selected with vLLMDeploymentOnMaaS enabled', () => {
+      initVLLMOnMaaSIntercepts();
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source - select URI and generative model type
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment - verify LLM config options are shown
+      modelServingWizard.findModelDeploymentNameInput().type('test-vllm-maas');
+      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      // Verify LLMD default option and the mocked configs are available
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist');
+      modelServingWizard.findGlobalScopedTemplateOption('vLLM on Gaudi').should('exist');
+      modelServingWizard.findGlobalScopedTemplateOption('vLLM on GPU').should('exist');
+
+      // Select a vLLM config option
+      modelServingWizard.findGlobalScopedTemplateOption('vLLM on Gaudi').click();
+
+      // Verify the selected option is displayed
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM on Gaudi');
     });
   });
 });

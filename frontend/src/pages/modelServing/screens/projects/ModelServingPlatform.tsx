@@ -39,7 +39,6 @@ import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
@@ -132,7 +131,6 @@ const ModelServingPlatform: React.FC = () => {
               }}
             />
           }
-          footerExtraChildren={<NavigateBackToRegistryButton isEmptyStateAction />}
         />
       );
     }

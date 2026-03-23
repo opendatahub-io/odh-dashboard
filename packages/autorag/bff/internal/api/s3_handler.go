@@ -29,8 +29,10 @@ type resolvedS3 struct {
 }
 
 // resolveS3Client extracts identity and namespace from the request context,
-// fetches S3 credentials from the named Kubernetes secret, resolves the bucket
-// (query param with secret fallback), and returns a ready-to-use S3 client.
+// fetches S3 credentials (from DSPA context or a named Kubernetes secret), resolves
+// the bucket, and returns a ready-to-use S3 client.
+// When secretName is empty the function falls back to the DSPAObjectStorageKey injected
+// by attachPipelineClientIfNeeded; if neither is available a 400 is returned.
 // Returns false if an error response was already written to w.
 func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (*resolvedS3, bool) {
 	ctx := r.Context()
@@ -52,27 +54,71 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 		return nil, false
 	}
 
-	creds, err := app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
-	if err != nil {
-		var httpErr *integrations.HTTPError
-		if errors.As(err, &httpErr) {
-			if httpErr.StatusCode == http.StatusUnauthorized {
-				app.unauthorizedResponse(w, r, httpErr.Message)
+	var creds *s3int.S3Credentials
+	var dspaStorage *models.DSPAObjectStorage
+
+	if secretName == "" {
+		// DSPA path: use DSPAObjectStorageKey injected by attachPipelineClientIfNeeded.
+		if storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && storage != nil {
+			dspaStorage = storage
+			creds, err = app.repositories.S3.GetS3CredentialsFromDSPA(ctx, client, namespace, dspaStorage, identity)
+			if err != nil {
+				var statusErr *apierrors.StatusError
+				if errors.As(err, &statusErr) {
+					if apierrors.IsNotFound(statusErr) {
+						app.notFoundResponseWithMessage(w, r, fmt.Sprintf("secret '%s' not found in namespace '%s'", dspaStorage.SecretName, namespace))
+						return nil, false
+					}
+					if apierrors.IsForbidden(statusErr) {
+						app.forbiddenResponse(w, r, fmt.Sprintf("access to secret '%s' is forbidden", dspaStorage.SecretName))
+						return nil, false
+					}
+				}
+				app.serverErrorResponse(w, r, err)
 				return nil, false
 			}
-			app.errorResponse(w, r, httpErr)
+		} else {
+			app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required when no DSPA object storage config is available"))
 			return nil, false
 		}
-		app.serverErrorResponse(w, r, err)
-		return nil, false
+	} else {
+		creds, err = app.getS3CredentialsFromSecret(ctx, client, namespace, secretName, identity)
+		if err != nil {
+			var httpErr *integrations.HTTPError
+			if errors.As(err, &httpErr) {
+				if httpErr.StatusCode == http.StatusUnauthorized {
+					app.unauthorizedResponse(w, r, httpErr.Message)
+					return nil, false
+				}
+				app.errorResponse(w, r, httpErr)
+				return nil, false
+			}
+			app.serverErrorResponse(w, r, err)
+			return nil, false
+		}
 	}
 
-	bucket := strings.TrimSpace(bucketOverride)
-	if bucket == "" {
-		bucket = strings.TrimSpace(creds.Bucket)
-		if bucket == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+	// Resolve bucket.
+	// On the DSPA path the DSPA-configured bucket always wins; the caller-supplied override
+	// is ignored to prevent bucket substitution and oracle-enumeration attacks.
+	// On the explicit secretName path use the override or fall back to AWS_S3_BUCKET in the secret.
+	var bucket string
+	if dspaStorage != nil {
+		if dspaStorage.Bucket == "" {
+			app.serviceUnavailableResponseWithMessage(w, r,
+				fmt.Errorf("DSPA object storage configuration does not specify a bucket"),
+				"DSPA object storage is missing a bucket — contact your administrator")
 			return nil, false
+		}
+		bucket = dspaStorage.Bucket
+	} else {
+		bucket = strings.TrimSpace(bucketOverride)
+		if bucket == "" {
+			bucket = strings.TrimSpace(creds.Bucket)
+			if bucket == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
+				return nil, false
+			}
 		}
 	}
 
@@ -92,20 +138,23 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
-//   - secretName (required): The name of the Kubernetes secret containing S3 credentials
+//   - secretName (optional): Name of the Kubernetes secret holding S3 credentials.
+//     If omitted, the secret name is taken from the DSPA associated with the
+//     Pipeline Server in this namespace (set by AttachPipelineServerClient middleware).
 //   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
 //   - key (required): The S3 object key to retrieve
-//
-// Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
+	// Resolve S3 credentials from one of two sources:
+	//   1. DSPA object storage config injected by AttachPipelineServerClient (primary in production).
+	//      Uses the credential field names and endpoint coordinates from the DSPA spec, so it
+	//      works for both external S3 and managed MinIO without requiring the caller to know
+	//      which secret is in use.
+	//   2. Explicit secretName query parameter (override / development path).
+	//      Falls back to conventional AWS_* field names for the secret's credential keys.
 	secretName := queryParams.Get("secretName")
-	if secretName == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
-		return
-	}
-	if !isValidDNS1123Subdomain(secretName) {
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
@@ -290,11 +339,9 @@ type s3FilesParams struct {
 func validateGetS3FilesHandlerParameters(r *http.Request) (*s3FilesParams, error) {
 	queryParams := r.URL.Query()
 
+	// secretName is optional — when absent the handler falls back to DSPA object storage context.
 	secretName := queryParams.Get("secretName")
-	if secretName == "" {
-		return nil, errors.New("query parameter 'secretName' is required and cannot be empty")
-	}
-	if !isValidDNS1123Subdomain(secretName) {
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
 		return nil, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 	}
 

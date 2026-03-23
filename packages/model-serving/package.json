@@ -21,6 +21,7 @@
     ],
     "./types/form-data": "./src/components/deploymentWizard/types.ts",
     "./concepts/auth": "./src/concepts/auth.ts",
+    "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {

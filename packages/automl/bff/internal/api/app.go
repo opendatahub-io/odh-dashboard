@@ -14,6 +14,8 @@ import (
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
+	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -35,6 +37,7 @@ const (
 	SecretsPath      = ApiPathPrefix + "/secrets"
 	S3FilePath       = ApiPathPrefix + "/s3/file"
 	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath      = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -43,6 +46,7 @@ type App struct {
 	logger                      *slog.Logger
 	kubernetesClientFactory     k8s.KubernetesClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
+	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
@@ -126,17 +130,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelineServerClientFactory = ps.NewRealClientFactory()
 	}
 
+	// Initialize S3 client factory
+	var s3ClientFactory s3int.S3ClientFactory
+	if cfg.MockS3Client {
+		logger.Info("Using mock S3 client factory")
+		s3ClientFactory = s3mocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real S3 client factory")
+		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{DevMode: cfg.DevMode})
+	}
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories: repositories.NewRepositories(logger, repositories.RepositoryConfig{
-			MockS3Client: cfg.MockS3Client,
-			DevMode:      cfg.DevMode,
-		}),
-		testEnv: testEnv,
-		rootCAs: rootCAs,
+		s3ClientFactory:             s3ClientFactory,
+		repositories:                repositories.NewRepositories(logger),
+		testEnv:                     testEnv,
+		rootCAs:                     rootCAs,
 	}
 	return app, nil
 }
@@ -149,6 +161,21 @@ func (app *App) Shutdown() error {
 	//shutdown the envtest control plane when we are in the mock mode.
 	app.logger.Info("shutting env test...")
 	return app.testEnv.Stop()
+}
+
+// attachPipelineClientIfNeeded is a best-effort shim for the S3 file routes.
+// When the caller supplies an explicit secretName query parameter the handler
+// can resolve S3 credentials directly, so DSPA discovery is skipped and next
+// is called immediately. Otherwise the full AttachPipelineServerClient
+// middleware runs as normal.
+func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if strings.TrimSpace(r.URL.Query().Get("secretName")) != "" {
+			next(w, r, ps)
+			return
+		}
+		app.AttachPipelineServerClient(next)(w, r, ps)
+	}
 }
 
 func (app *App) Routes() http.Handler {
@@ -168,9 +195,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 
-	// S3 operations
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.GetS3FileSchemaHandler))
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.GetS3FileHandler))
+	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
+	// secretName (the handler resolves credentials directly in that case).
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

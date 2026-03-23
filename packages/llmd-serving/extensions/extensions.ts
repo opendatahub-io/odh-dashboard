@@ -8,11 +8,16 @@ import type {
   ModelServingDeploymentTransformExtension,
   ModelServingStartStopAction,
   AssembleModelResourceExtension,
+  WizardField2Extension,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { LLMdDeployment } from '../src/types';
+import type {
+  LLMConfigOptionsData,
+  LLMConfigOptionsFieldValue,
+} from '../src/wizardFields/LlmConfigOptionsField';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
@@ -27,6 +32,7 @@ const extensions: (
   | DeploymentWizardFieldExtension<LLMdDeployment>
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
   | ModelServingStartStopAction<LLMdDeployment>
+  | WizardField2Extension<LLMConfigOptionsFieldValue, LLMConfigOptionsData, LLMdDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -177,6 +183,19 @@ const extensions: (
     },
     flags: {
       required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field2',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/LlmConfigOptionsField').then(
+          (m) => m.LLMConfigOptionsFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
     },
   },
   {

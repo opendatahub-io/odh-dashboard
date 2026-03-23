@@ -3,31 +3,54 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Alert,
+  Button,
   Flex,
   FlexItem,
-  List,
-  ListItem,
   MenuToggle,
   MenuToggleElement,
+  Popover,
   Select,
   SelectList,
   SelectOption,
   Stack,
   StackItem,
+  TextInput,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { URL_PREFIX, BFF_API_VERSION, WORKSPACE_PARAM } from '~/app/utilities/const';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import {
+  MlflowExperimentSelector,
+  type MlflowExperiment,
+  type MlflowSelectorStatus,
+} from '@odh-dashboard/internal/concepts/mlflow';
+import { WORKSPACE_PARAM } from '~/app/utilities/const';
 
-interface Experiment {
-  name: string;
-}
+const BffConnectionAlert: React.FC<{ selectorStatus: MlflowSelectorStatus }> = ({
+  selectorStatus,
+}) => {
+  let alertVariant: React.ComponentProps<typeof Alert>['variant'] = 'success';
+  let alertTitle = 'BFF connected';
+  if (!selectorStatus.loaded) {
+    alertVariant = 'info';
+    alertTitle = 'Checking BFF connectivity...';
+  } else if (selectorStatus.error) {
+    alertVariant = 'danger';
+    alertTitle = 'Could not connect to BFF';
+  }
+
+  return <Alert variant={alertVariant} isInline isPlain title={alertTitle} />;
+};
 
 const MainPage: React.FC = () => {
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [loadError, setLoadError] = useState<Error | undefined>();
-  const [loaded, setLoaded] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedExperiment, setSelectedExperiment] = useState<MlflowExperiment | undefined>();
+  const [selectorStatus, setSelectorStatus] = useState<MlflowSelectorStatus>({
+    loaded: false,
+  });
+  const [filterInput, setFilterInput] = useState('');
+  const [appliedFilter, setAppliedFilter] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespaces, preferredNamespace, updatePreferredNamespace, namespacesLoaded } =
     useNamespaceSelector();
@@ -45,46 +68,47 @@ const MainPage: React.FC = () => {
     preferredNamespace?.name ||
     filteredNamespaces[0]?.name ||
     '';
+  const filter = appliedFilter || undefined;
+  const setWorkspaceSearchParam = React.useCallback(
+    (value: string) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set(WORKSPACE_PARAM, value);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   useEffect(() => {
     if (!workspace || searchParams.get(WORKSPACE_PARAM) === workspace) {
       return;
     }
-    setSearchParams({ [WORKSPACE_PARAM]: workspace }, { replace: true });
-  }, [workspace, searchParams, setSearchParams]);
+    setWorkspaceSearchParam(workspace);
+  }, [workspace, searchParams, setWorkspaceSearchParam]);
 
   useEffect(() => {
-    if (!workspace) {
-      return;
-    }
-    const controller = new AbortController();
-    setLoaded(false);
-    setLoadError(undefined);
+    setSelectedExperiment(undefined);
+    setSelectorStatus({ loaded: false, error: undefined });
+  }, [workspace, appliedFilter]);
 
-    fetch(
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/experiments?${WORKSPACE_PARAM}=${encodeURIComponent(workspace)}`,
-      { signal: controller.signal },
-    )
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`BFF responded with ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((json) => {
-        setExperiments(json?.data?.experiments ?? []);
-        setLoaded(true);
-      })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return;
-        }
-        setLoadError(err instanceof Error ? err : new Error(String(err)));
-        setLoaded(true);
-      });
-
-    return () => controller.abort();
-  }, [workspace]);
+  const projectToggle = React.useCallback(
+    (toggleRef: React.Ref<MenuToggleElement>) => (
+      <MenuToggle
+        ref={toggleRef}
+        onClick={() => setIsOpen((prev) => !prev)}
+        isExpanded={isOpen}
+        isDisabled={!namespacesLoaded || filteredNamespaces.length === 0}
+        style={{ minWidth: '250px' }}
+      >
+        {workspace || 'Select project'}
+      </MenuToggle>
+    ),
+    [isOpen, namespacesLoaded, filteredNamespaces.length, workspace],
+  );
 
   const onProjectSelect = (
     _event: React.MouseEvent<Element> | undefined,
@@ -96,7 +120,7 @@ const MainPage: React.FC = () => {
       if (match) {
         updatePreferredNamespace(match);
       }
-      setSearchParams({ [WORKSPACE_PARAM]: selected }, { replace: true });
+      setWorkspaceSearchParam(selected);
     }
     setIsOpen(false);
   };
@@ -106,7 +130,6 @@ const MainPage: React.FC = () => {
       title="MLflow"
       description="MLflow Experiment Tracking"
       empty={false}
-      loadError={loadError}
       loaded
       provideChildrenPadding
       removeChildrenTopPadding
@@ -122,17 +145,7 @@ const MainPage: React.FC = () => {
                 onSelect={onProjectSelect}
                 onOpenChange={(open) => setIsOpen(open)}
                 isScrollable
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsOpen(!isOpen)}
-                    isExpanded={isOpen}
-                    isDisabled={!namespacesLoaded || filteredNamespaces.length === 0}
-                    style={{ minWidth: '250px' }}
-                  >
-                    {workspace || 'Select project'}
-                  </MenuToggle>
-                )}
+                toggle={projectToggle}
               >
                 <SelectList>
                   {filteredNamespaces.map((ns) => (
@@ -145,25 +158,88 @@ const MainPage: React.FC = () => {
             </FlexItem>
           </Flex>
         </StackItem>
-        {loaded && !loadError && workspace && (
+        {workspace && (
           <>
             <StackItem>
-              <Alert
-                variant="success"
-                isInline
-                isPlain
-                title={`BFF connected — ${experiments.length} experiment${experiments.length !== 1 ? 's' : ''} found`}
-              />
+              <BffConnectionAlert selectorStatus={selectorStatus} />
             </StackItem>
-            {experiments.length > 0 && (
-              <StackItem>
-                <List>
-                  {experiments.map((exp) => (
-                    <ListItem key={exp.name}>{exp.name}</ListItem>
-                  ))}
-                </List>
-              </StackItem>
-            )}
+            <StackItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  Filter{' '}
+                  <Popover
+                    headerContent="MLflow filter syntax"
+                    bodyContent={
+                      <Stack hasGutter>
+                        <StackItem>
+                          Uses SQL-like expressions. Multiple clauses joined with AND.
+                        </StackItem>
+                        <StackItem>
+                          <strong>By name</strong>
+                          <br />
+                          name = &apos;my-experiment&apos;
+                          <br />
+                          name LIKE &apos;%training%&apos;
+                        </StackItem>
+                        <StackItem>
+                          <strong>By tag</strong>
+                          <br />
+                          tags.team = &apos;ml-platform&apos;
+                          <br />
+                          tags.env = &apos;prod&apos;
+                        </StackItem>
+                        <StackItem>
+                          <strong>Combined</strong>
+                          <br />
+                          name LIKE &apos;%train%&apos; AND tags.team = &apos;ml-platform&apos;
+                        </StackItem>
+                      </Stack>
+                    }
+                  >
+                    <DashboardPopupIconButton
+                      icon={<OutlinedQuestionCircleIcon />}
+                      aria-label="MLflow filter help"
+                    />
+                  </Popover>
+                </FlexItem>
+                <FlexItem style={{ width: '400px' }}>
+                  <TextInput
+                    aria-label="Experiment filter"
+                    placeholder="e.g. tags.team = 'ml-platform'"
+                    value={filterInput}
+                    onChange={(_e, value) => {
+                      setFilterInput(value);
+                      if (!value.trim()) {
+                        setAppliedFilter('');
+                      }
+                    }}
+                  />
+                </FlexItem>
+                <FlexItem>
+                  <Button
+                    variant="secondary"
+                    isDisabled={filterInput.trim() === appliedFilter}
+                    onClick={() => setAppliedFilter(filterInput.trim())}
+                  >
+                    Apply
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </StackItem>
+            <StackItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>Experiment</FlexItem>
+                <FlexItem style={{ width: '500px' }}>
+                  <MlflowExperimentSelector
+                    workspace={workspace}
+                    filter={filter}
+                    selection={selectedExperiment?.name}
+                    onSelect={setSelectedExperiment}
+                    onStatusChange={setSelectorStatus}
+                  />
+                </FlexItem>
+              </Flex>
+            </StackItem>
           </>
         )}
       </Stack>

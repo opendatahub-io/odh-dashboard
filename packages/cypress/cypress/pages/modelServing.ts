@@ -1365,6 +1365,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
+  findLegacyModeCheckbox() {
+    return cy.findByTestId('legacy-mode-checkbox');
+  }
+
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
   }

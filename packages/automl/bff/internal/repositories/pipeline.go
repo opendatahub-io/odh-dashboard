@@ -199,8 +199,11 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 		}
 	}
 
-	// Cache the result (even if partial or empty)
-	globalPipelineCache.set(cacheKey, result)
+	// Only cache when at least one pipeline was discovered to avoid long-lived negative caches
+	// that would delay detection of pipelines deployed after the initial miss.
+	if len(result) > 0 {
+		globalPipelineCache.set(cacheKey, result)
+	}
 
 	return result, nil
 }

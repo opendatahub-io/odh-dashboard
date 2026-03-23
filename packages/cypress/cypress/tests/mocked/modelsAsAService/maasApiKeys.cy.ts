@@ -17,8 +17,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        genAiStudio: true,
-        maasApiKeys: true,
       }),
     );
 
@@ -69,7 +67,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findRows().should('have.length', 4);
   });
 
-  it('should bulk revoke all API keys', () => {
+  it('should revoke all my API keys', () => {
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
     apiKeysPage.findActionsToggle().click();
     apiKeysPage.findRevokeAllAPIKeysAction().click();
@@ -78,7 +76,7 @@ describe('API Keys Page', () => {
     bulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
     bulkRevokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
     bulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
-    bulkRevokeAPIKeyModal.findRevokeConfirmationInput().clear().type('revoke');
+    bulkRevokeAPIKeyModal.findRevokeConfirmationInput().clear().type('test-user');
     bulkRevokeAPIKeyModal.findRevokeButton().should('be.enabled');
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/bulk-revoke', {

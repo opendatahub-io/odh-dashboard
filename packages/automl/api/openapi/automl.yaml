@@ -167,15 +167,24 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, connection details (endpoint, credential field names, region, bucket)
+            are resolved from the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
           example: aws-secret-1
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
           example: my-bucket
@@ -216,13 +225,23 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: getS3File
       summary: Get file from S3
       description: >-
-        Retrieves an arbitrary file from S3 storage using credentials from a Kubernetes secret.
-        The file is streamed with transfer-encoding: chunked to efficiently handle large files.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves an arbitrary file from S3 storage. The file is streamed with
+        transfer-encoding: chunked to efficiently handle large files.
+
+        Two credential resolution modes are supported:
+
+        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+
+        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
 
   /api/v1/s3/file/schema:
     summary: Path used to get the schema (column names and types) of a CSV file from S3.
@@ -268,15 +287,24 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, connection details (endpoint, credential field names, region, bucket)
+            are resolved from the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
           example: aws-secret-1
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
           example: my-bucket
@@ -348,11 +376,23 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: getS3FileSchema
       summary: Get CSV schema with inferred types from S3
       description: >-
         Retrieves the column names and inferred data types from a CSV file in S3 storage.
         Reads the header line plus a minimum of 100 data rows to accurately determine column types.
+
+        Two credential resolution modes are supported (same as /api/v1/s3/file):
+
+        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+
+        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
 
 
         Type Inference Priority (highest to lowest):

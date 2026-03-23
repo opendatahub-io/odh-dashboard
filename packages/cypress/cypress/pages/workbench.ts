@@ -242,6 +242,18 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('image-display-name').should('contain.text', name);
   }
 
+  findMigrationRequiredLabel() {
+    return this.find().findByTestId('workbench-migration-required-label');
+  }
+
+  findMigrationRequiredPopoverTitle() {
+    return cy.findByTestId('workbench-migration-required-popover-title');
+  }
+
+  findMigrationRequiredPopover() {
+    return cy.findByTestId('workbench-migration-required-popover');
+  }
+
   findNotebookImageAvailability() {
     return cy.findByTestId('notebook-image-availability');
   }
