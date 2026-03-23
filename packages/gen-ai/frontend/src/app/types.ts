@@ -523,6 +523,7 @@ export type GenAiAPIs = {
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
+  deleteExternalModel: DeleteExternalModel;
 };
 
 export interface MaaSModel {
@@ -599,3 +600,4 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelResponse,
   VerifyExternalModelRequest
 >;
+type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;

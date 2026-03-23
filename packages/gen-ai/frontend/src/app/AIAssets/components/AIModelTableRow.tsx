@@ -1,10 +1,24 @@
 import * as React from 'react';
-import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
+import {
+  Button,
+  Truncate,
+  Label,
+  ButtonVariant,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import {
   InfoCircleIcon,
   OutlinedQuestionCircleIcon,
   PlusCircleIcon,
+  EllipsisVIcon,
 } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
@@ -21,6 +35,7 @@ type AIModelTableRowProps = {
   model: AIModel;
   allModels: AIModel[];
   playgroundModels: LlamaModel[];
+  onDelete?: (modelId: string) => Promise<void>;
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
@@ -28,13 +43,33 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   model,
   allModels,
   playgroundModels,
+  onDelete,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
+  const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
+
+  const handleDelete = React.useCallback(async () => {
+    if (!onDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await onDelete(model.model_id);
+      setIsDeleteModalOpen(false);
+    } catch {
+      // Error handling is done in parent component
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [onDelete, model.model_id]);
 
   return (
     <>
@@ -143,6 +178,38 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Button>
           )}
         </Td>
+        <Td isActionCell>
+          {model.model_source_type === 'custom_endpoint' && onDelete && (
+            <Dropdown
+              isOpen={isKebabOpen}
+              onOpenChange={(isOpen) => setIsKebabOpen(isOpen)}
+              popperProps={{ position: 'end', preventOverflow: true }}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  aria-label="Kebab toggle"
+                  variant="plain"
+                  onClick={() => setIsKebabOpen(!isKebabOpen)}
+                >
+                  <EllipsisVIcon />
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem
+                  key="delete"
+                  onClick={() => {
+                    setIsKebabOpen(false);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  isDanger
+                >
+                  Remove asset
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          )}
+        </Td>
       </Tr>
       {isEndpointModalOpen && (
         <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
@@ -156,6 +223,39 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           extraSelectedModels={[model]}
           redirectToPlayground
         />
+      )}
+      {isDeleteModalOpen && (
+        <Modal
+          variant="small"
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          data-testid="delete-model-modal"
+        >
+          <ModalHeader title="Remove asset?" />
+          <ModalBody>
+            <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
+            list. The endpoint configuration will be deleted.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              key="confirm"
+              variant="danger"
+              onClick={handleDelete}
+              isDisabled={isDeleting}
+              isLoading={isDeleting}
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </Button>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setIsDeleteModalOpen(false)}
+              isDisabled={isDeleting}
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

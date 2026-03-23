@@ -28,6 +28,7 @@ type AIModelsTableProps = {
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   toolbarActions?: React.ReactNode;
+  onDelete?: (modelId: string) => Promise<void>;
 };
 
 const dontSeeModelPopoverContent: React.ReactNode = (
@@ -112,6 +113,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   playgroundModels,
   lsdStatus,
   toolbarActions,
+  onDelete,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
@@ -144,6 +146,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           model={model}
           allModels={models}
           playgroundModels={playgroundModels}
+          onDelete={onDelete}
         />
       )}
     />

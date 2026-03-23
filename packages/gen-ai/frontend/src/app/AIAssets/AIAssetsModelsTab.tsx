@@ -41,6 +41,24 @@ const AIAssetsModelsTab: React.FC = () => {
     refresh();
   }, [refresh]);
 
+  // Delete handler for external models
+  const handleDeleteExternalModel = React.useCallback(
+    async (modelId: string) => {
+      if (!apiAvailable) {
+        throw new Error('API not available');
+      }
+      try {
+        /* eslint-disable-next-line camelcase */
+        await api.deleteExternalModel({}, { model_id: modelId });
+      } finally {
+        // Always refresh the list, even if there was an error
+        // This ensures UI stays in sync with backend state
+        refresh();
+      }
+    },
+    [api, apiAvailable, refresh],
+  );
+
   // Verify handler for validating external endpoint
   const handleVerifyExternalEndpoint = React.useCallback(
     async (request: VerifyExternalModelRequest) => {
@@ -158,6 +176,7 @@ const AIAssetsModelsTab: React.FC = () => {
               </Button>
             ) : undefined
           }
+          onDelete={isExternalModelsEnabled ? handleDeleteExternalModel : undefined}
         />
       )}
       {isExternalModelsEnabled && (
