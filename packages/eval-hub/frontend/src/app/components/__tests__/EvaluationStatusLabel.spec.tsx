@@ -5,12 +5,12 @@ import EvaluationStatusLabel from '~/app/components/EvaluationStatusLabel';
 
 const EXPECTED_LABELS: Record<EvaluationJobState, string> = {
   pending: 'Pending',
-  running: 'In progress',
-  completed: 'Completed',
+  running: 'Running',
+  completed: 'Complete',
   failed: 'Failed',
-  cancelled: 'Cancelled',
-  stopping: 'Stopping',
-  stopped: 'Stopped',
+  cancelled: 'Canceled',
+  stopping: 'Canceling',
+  stopped: 'Canceled',
 };
 
 describe('EvaluationStatusLabel', () => {

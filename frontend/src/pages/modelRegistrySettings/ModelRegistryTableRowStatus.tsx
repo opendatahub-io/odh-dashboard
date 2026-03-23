@@ -19,9 +19,9 @@ enum ModelRegistryStatus {
 }
 
 enum ModelRegistryStatusLabel {
-  Progressing = 'Progressing',
-  Available = 'Available',
-  Degrading = 'Degrading',
+  Progressing = 'Starting',
+  Available = 'Ready',
+  Degrading = 'Stopping',
   Unavailable = 'Unavailable',
 }
 
@@ -43,6 +43,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }, {}) ?? {};
   let statusLabel: string = ModelRegistryStatusLabel.Progressing;
   let icon = <InProgressIcon />;
+  let color: React.ComponentProps<typeof Label>['color'] = 'blue';
   let status: React.ComponentProps<typeof Label>['status'];
   let popoverMessages: string[] = [];
   let popoverTitle = '';
@@ -71,25 +72,27 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
       icon = <ExclamationTriangleIcon />;
+      color = undefined;
       status = 'warning';
     }
     // Degrading
     else if (degradedCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Degrading;
       icon = <InProgressIcon className="odh-u-spin" />;
+      color = 'grey';
       popoverTitle = 'Service is degrading';
     }
     // Available
     else if (availableCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Available;
       icon = <CheckCircleIcon />;
+      color = undefined;
       status = 'success';
     }
     // Progressing
     else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
       icon = <InProgressIcon className="odh-u-spin" />;
-      status = 'info';
     }
   }
   // Handle popover logic for Unavailable status
@@ -132,6 +135,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
         : {})}
       data-testid="model-registry-label"
       icon={icon}
+      color={color}
       status={status}
       isCompact
     >

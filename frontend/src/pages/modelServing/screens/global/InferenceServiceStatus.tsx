@@ -25,14 +25,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
   const bodyContent = getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
-  return (
-    <ModelStatusIcon
-      state={state}
-      defaultHeaderContent="Inference Service Status"
-      bodyContent={bodyContent}
-      stoppedStates={stoppedStates}
-    />
-  );
+  return <ModelStatusIcon state={state} bodyContent={bodyContent} stoppedStates={stoppedStates} />;
 };
 
 export default InferenceServiceStatus;

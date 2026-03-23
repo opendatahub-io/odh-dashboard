@@ -103,11 +103,11 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabel()).toBe('Complete');
   });
 
-  it('should show Running when isRunning and no kueue override', () => {
+  it('should show Ready when isRunning and no kueue override', () => {
     render(
       <NotebookStatusLabel isStarting={false} isStopping={false} isRunning kueueStatus={null} />,
     );
-    expect(getStatusLabel()).toBe('Running');
+    expect(getStatusLabel()).toBe('Ready');
   });
 
   it('should show Stopped when not starting, stopping, or running and no kueue status', () => {

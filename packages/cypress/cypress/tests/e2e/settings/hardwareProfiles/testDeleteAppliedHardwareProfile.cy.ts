@@ -95,7 +95,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the applied toleration');
@@ -146,7 +146,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       cy.step('Verify workbench is still running after hardware profile deletion');
       const workbenchRow = workbenchPage.getNotebookRow(testData.workbenchName);
       workbenchRow.findNotebookDescription(projectDescription);
-      workbenchRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 30000);
+      workbenchRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 30000);
 
       // Verify the Hardware profile column shows "Deleted" badge
       cy.step(`Verify Hardware profile column shows "${testData.deletedStatusBadge}" badge`);
