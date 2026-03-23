@@ -40,6 +40,10 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 			DisplayName: "Llama 2 7B Chat",
 			Description: "Meta Llama 2 7B model fine-tuned for conversational AI and chat applications",
 			Usecase:     "Chat, Question answering",
+			Subscriptions: []models.SubscriptionInfo{
+				{Name: "basic-subscription", DisplayName: "Basic Tier"},
+				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+			},
 		},
 		{
 			ID:          "llama-2-13b-chat",
@@ -51,6 +55,9 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 			DisplayName: "Llama 2 13B Chat",
 			Description: "Meta Llama 2 13B model with enhanced reasoning capabilities for complex conversations",
 			Usecase:     "Chat, Reasoning, Question answering",
+			Subscriptions: []models.SubscriptionInfo{
+				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+			},
 		},
 		{
 			ID:          "mistral-7b-instruct",
@@ -62,6 +69,9 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 			DisplayName: "Mistral 7B Instruct",
 			Description: "Mistral AI 7B model optimized for instruction following and task completion",
 			Usecase:     "Text generation, Instruction following",
+			Subscriptions: []models.SubscriptionInfo{
+				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+			},
 		},
 		{
 			ID:          "granite-7b-lab",
@@ -73,6 +83,9 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 			DisplayName: "Granite 7B Lab",
 			Description: "IBM Granite 7B model optimized for enterprise lab experiments and testing",
 			Usecase:     "Code generation, Text completion",
+			Subscriptions: []models.SubscriptionInfo{
+				{Name: "basic-subscription", DisplayName: "Basic Tier"},
+			},
 		},
 		{
 			ID:          "nomic-embed-text-v1",
@@ -84,6 +97,9 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 			DisplayName: "Nomic Embed Text v1",
 			Description: "High-performance text embedding model for semantic search and retrieval",
 			Usecase:     "Embedding, Semantic search",
+			Subscriptions: []models.SubscriptionInfo{
+				{Name: "basic-subscription", DisplayName: "Basic Tier"},
+			},
 		},
 	}, nil
 }

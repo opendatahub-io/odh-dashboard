@@ -156,7 +156,7 @@ export function toMatchContract(
     if (!isRecord(node)) return node;
 
     const n: Record<string, unknown> = { ...node };
-    const refVal = n['n.$ref'];
+    const refVal = n.$ref;
     if (typeof refVal === 'string' && componentsSchemas) {
       const refPath: string = refVal;
       if (refPath.startsWith('#/components/schemas/')) {
@@ -165,16 +165,8 @@ export function toMatchContract(
         return derefSchema(target, componentsSchemas);
       }
     }
-    const keysToRecurse = [
-      'properties',
-      'items',
-      'allOf',
-      'oneOf',
-      'anyOf',
-      'additionalProperties',
-    ];
-    for (const key of keysToRecurse) {
-      if (key in n) {
+    for (const key of Object.keys(n)) {
+      if (isRecord(n[key]) || Array.isArray(n[key])) {
         n[key] = derefSchema(n[key], componentsSchemas);
       }
     }

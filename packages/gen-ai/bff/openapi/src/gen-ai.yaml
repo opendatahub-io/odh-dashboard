@@ -649,6 +649,19 @@ paths:
                             - llm
                             - embedding
                           example: 'llm'
+                        subscriptions:
+                          type: array
+                          description: >-
+                            Subscriptions that provide access to this model.
+                            Each entry's name field is the value for the X-MaaS-Subscription header.
+                          items:
+                            $ref: '#/components/schemas/SubscriptionInfo'
+                          example:
+                            - name: basic-subscription
+                              displayName: Basic Tier
+                            - name: premium-subscription
+                              displayName: Premium Tier
+                              description: Premium subscription with higher rate limits
                       required:
                         - id
                         - object
@@ -2101,6 +2114,27 @@ components:
           type: string
           example: 'llama_stack'
           description: Model owner/provider
+
+    SubscriptionInfo:
+      type: object
+      description: Metadata about a subscription that provides access to a model
+      properties:
+        name:
+          type: string
+          description: >-
+            Subscription name. Use this value in the X-MaaS-Subscription header
+            when making LLM inference requests.
+          example: 'premium-subscription'
+        displayName:
+          type: string
+          description: Human-readable display name for UI rendering
+          example: 'Premium Tier'
+        description:
+          type: string
+          description: Subscription description
+          example: 'Premium subscription with higher rate limits'
+      required:
+        - name
 
     # External Model Request Schema
     ExternalModelRequest:

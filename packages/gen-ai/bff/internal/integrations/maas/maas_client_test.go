@@ -178,3 +178,71 @@ func TestIssueToken_HandlesSuccessResponse(t *testing.T) {
 	assert.Equal(t, "sk-oai-test-key", resp.Key)
 	assert.Equal(t, "2099-01-01T00:00:00Z", resp.ExpiresAt)
 }
+
+func TestListModels_SendsReturnAllModelsHeader(t *testing.T) {
+	var capturedHeaders http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+		resp := models.MaaSModelsResponse{
+			Object: "list",
+			Data: []models.MaaSModel{
+				{
+					ID:      "test-model",
+					Object:  "model",
+					Created: 1672531200,
+					OwnedBy: "test-ns",
+					Ready:   true,
+					URL:     "https://test.example.com/v1",
+					Subscriptions: []models.SubscriptionInfo{
+						{Name: "basic-sub", DisplayName: "Basic"},
+						{Name: "premium-sub", DisplayName: "Premium", Description: "Higher limits"},
+					},
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewHTTPMaaSClient(server.URL, "", false, nil)
+	result, err := client.ListModels(context.Background(), "test-api-key")
+
+	require.NoError(t, err)
+	assert.Equal(t, "true", capturedHeaders.Get("X-Maas-Return-All-Models"))
+	assert.Equal(t, "Bearer test-api-key", capturedHeaders.Get("Authorization"))
+	require.Len(t, result, 1)
+	assert.Equal(t, "test-model", result[0].ID)
+	require.Len(t, result[0].Subscriptions, 2)
+	assert.Equal(t, "basic-sub", result[0].Subscriptions[0].Name)
+	assert.Equal(t, "Premium", result[0].Subscriptions[1].DisplayName)
+	assert.Equal(t, "Higher limits", result[0].Subscriptions[1].Description)
+}
+
+func TestListModels_HandlesEmptySubscriptions(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		resp := models.MaaSModelsResponse{
+			Object: "list",
+			Data: []models.MaaSModel{
+				{
+					ID:      "no-sub-model",
+					Object:  "model",
+					Created: 1672531200,
+					OwnedBy: "test-ns",
+					Ready:   true,
+					URL:     "https://test.example.com/v1",
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewHTTPMaaSClient(server.URL, "", false, nil)
+	result, err := client.ListModels(context.Background(), "test-api-key")
+
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Nil(t, result[0].Subscriptions)
+}

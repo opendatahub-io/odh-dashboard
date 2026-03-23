@@ -61,6 +61,7 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 	}
 
 	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("X-MaaS-Return-All-Models", "true")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

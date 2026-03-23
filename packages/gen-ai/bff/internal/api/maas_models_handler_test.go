@@ -136,3 +136,40 @@ func TestMaaSModelsHandler(t *testing.T) {
 		assert.Greater(t, notReadyModels, 0, "Should have at least one not-ready model")
 	})
 }
+
+func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+	req = newMaaSModelsTestCtx(app, req)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	defer rr.Result().Body.Close()
+	body, err := io.ReadAll(rr.Result().Body)
+	assert.NoError(t, err)
+
+	var response models.MaaSModelsResponse
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+
+	// First model (llama-2-7b-chat) should have 2 subscriptions
+	firstModel := response.Data[0]
+	assert.Equal(t, "llama-2-7b-chat", firstModel.ID)
+	assert.NotNil(t, firstModel.Subscriptions)
+	assert.Len(t, firstModel.Subscriptions, 2)
+	assert.Equal(t, "basic-subscription", firstModel.Subscriptions[0].Name)
+	assert.Equal(t, "Basic Tier", firstModel.Subscriptions[0].DisplayName)
+	assert.Equal(t, "premium-subscription", firstModel.Subscriptions[1].Name)
+	assert.Equal(t, "Premium Tier", firstModel.Subscriptions[1].DisplayName)
+	assert.Equal(t, "Premium subscription with higher rate limits", firstModel.Subscriptions[1].Description)
+
+	// Second model (llama-2-13b-chat) should have 1 subscription
+	secondModel := response.Data[1]
+	assert.Len(t, secondModel.Subscriptions, 1)
+	assert.Equal(t, "premium-subscription", secondModel.Subscriptions[0].Name)
+}

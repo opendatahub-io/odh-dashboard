@@ -1,17 +1,25 @@
 package models
 
+// SubscriptionInfo contains metadata about which subscription provides access to a model.
+type SubscriptionInfo struct {
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
 // MaaSModel represents a Model as a Service model based on the OpenAPI spec
 type MaaSModel struct {
-	ID          string `json:"id"`
-	Object      string `json:"object"`
-	Created     int64  `json:"created"`
-	OwnedBy     string `json:"owned_by"`
-	Ready       bool   `json:"ready"`
-	URL         string `json:"url"`
-	DisplayName string `json:"display_name,omitempty"`
-	Description string `json:"description,omitempty"`
-	Usecase     string `json:"usecase,omitempty"`
-	ModelType   string `json:"model_type,omitempty"`
+	ID            string             `json:"id"`
+	Object        string             `json:"object"`
+	Created       int64              `json:"created"`
+	OwnedBy       string             `json:"owned_by"`
+	Ready         bool               `json:"ready"`
+	URL           string             `json:"url"`
+	DisplayName   string             `json:"display_name,omitempty"`
+	Description   string             `json:"description,omitempty"`
+	Usecase       string             `json:"usecase,omitempty"`
+	ModelType     string             `json:"model_type,omitempty"`
+	Subscriptions []SubscriptionInfo `json:"subscriptions,omitempty"`
 }
 
 // MaaSModelsResponse represents the response structure for listing MaaS models
