@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import { Pagination, Spinner, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { APIKey } from '~/app/types/api-key';
@@ -21,6 +21,7 @@ type ApiKeysTableProps = {
   toolbarContent?: React.ReactNode;
   onRevokeApiKey: (apiKey: APIKey) => void;
   onClearFilters: () => void;
+  isFetching?: boolean;
 };
 
 const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
@@ -36,6 +37,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   onRevokeApiKey,
   toolbarContent,
   onClearFilters,
+  isFetching,
 }) => {
   const activeSortIndex = apiKeyColumns.findIndex((c) => c.serverSortField === sortField);
 
@@ -110,19 +112,29 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
             ))}
           </Tr>
         </Thead>
-        <Tbody>
-          {apiKeys.length === 0 ? (
+        {isFetching ? (
+          <Tbody>
             <Tr>
-              <Td colSpan={apiKeyColumns.length}>
-                <DashboardEmptyTableView onClearFilters={onClearFilters} />
+              <Td colSpan={apiKeyColumns.length} className="pf-v6-u-text-align-center">
+                <Spinner size="xl" aria-label="Loading results" />
               </Td>
             </Tr>
-          ) : (
-            apiKeys.map((apiKey) => (
-              <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onRevokeApiKey={onRevokeApiKey} />
-            ))
-          )}
-        </Tbody>
+          </Tbody>
+        ) : (
+          <Tbody>
+            {apiKeys.length === 0 ? (
+              <Tr>
+                <Td colSpan={apiKeyColumns.length}>
+                  <DashboardEmptyTableView onClearFilters={onClearFilters} />
+                </Td>
+              </Tr>
+            ) : (
+              apiKeys.map((apiKey) => (
+                <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onRevokeApiKey={onRevokeApiKey} />
+              ))
+            )}
+          </Tbody>
+        )}
       </Table>
 
       {pagination('bottom')}
