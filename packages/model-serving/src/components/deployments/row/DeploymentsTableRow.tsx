@@ -22,10 +22,12 @@ import {
   isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
+  type DeployedModelServingDetails,
 } from '../../../../extension-points';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
+import { ExtensionDataEntry } from '../../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -33,7 +35,15 @@ export const DeploymentRow: React.FC<{
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedToggle?: boolean;
-}> = ({ deployment, platformColumns, onDelete, rowIndex, showExpandedToggle }) => {
+  servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
+}> = ({
+  deployment,
+  platformColumns,
+  onDelete,
+  rowIndex,
+  showExpandedToggle,
+  servingDetailsEntry,
+}) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
 
   const startStopActionExtension = useDeploymentExtension(
@@ -118,7 +128,10 @@ export const DeploymentRow: React.FC<{
           </Td>
         ))}
         <Td dataLabel="Serving runtime">
-          <DeployedModelsVersion deployment={deployment} />
+          <DeployedModelsVersion
+            deployment={deployment}
+            servingDetailsEntry={servingDetailsEntry}
+          />
         </Td>
         <Td dataLabel="Inference endpoints">
           <DeploymentStatus

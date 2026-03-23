@@ -80,6 +80,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
     annotations?: DisplayNameAnnotations & {
       'opendatahub.io/recommended-accelerators'?: string;
       'opendatahub.io/runtime-version'?: string;
+      'opendatahub.io/template-name'?: string;
     };
     labels?: {
       'opendatahub.io/config-type'?: 'accelerator' | string;

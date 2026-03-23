@@ -1,20 +1,22 @@
 import React from 'react';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { Deployment, isDeployedModelServingDetails } from '../../../extension-points';
-import { useDeploymentExtension } from '../../concepts/extensionUtils';
+import type { ExtensionDataEntry } from '../../concepts/extensionHelpers/usePlatformExtensionDataMap';
+import { Deployment, type DeployedModelServingDetails } from '../../../extension-points';
 
 type DeployedModelsVersionProps = {
   deployment: Deployment;
+  servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
 };
 
-const DeployedModelsVersion: React.FC<DeployedModelsVersionProps> = ({ deployment }) => {
-  const servingDetailsExtension = useDeploymentExtension(isDeployedModelServingDetails, deployment);
-
-  if (servingDetailsExtension) {
+const DeployedModelsVersion: React.FC<DeployedModelsVersionProps> = ({
+  deployment,
+  servingDetailsEntry,
+}) => {
+  if (servingDetailsEntry) {
     return (
       <LazyCodeRefComponent
-        component={servingDetailsExtension.properties.ServingDetailsComponent}
-        props={{ deployment }}
+        component={servingDetailsEntry.extension.properties.ServingDetailsComponent}
+        props={{ deployment, data: servingDetailsEntry.data }}
       />
     );
   }
