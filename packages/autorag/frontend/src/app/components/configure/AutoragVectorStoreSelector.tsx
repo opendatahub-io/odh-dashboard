@@ -63,7 +63,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
           isDisabled={isSubmitting || isError || vectorStores.length === 0}
           data-testid="vector-store-select-toggle"
         >
-          {selectedStore?.name ??
+          {(selectedStore?.name || selectedStore?.id) ??
             (vectorStores.length === 0 ? 'No vector stores available' : 'Select vector index')}
         </MenuToggle>
       )}
@@ -71,7 +71,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
       <SelectList data-testid="vector-store-select-list">
         {vectorStores.map((vs) => (
           <SelectOption key={vs.id} value={vs.id} data-testid={`vector-store-option-${vs.id}`}>
-            {vs.name}
+            {vs.name || vs.id}
           </SelectOption>
         ))}
       </SelectList>

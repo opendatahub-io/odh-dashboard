@@ -26,13 +26,21 @@ func (r *LSDVectorStoresRepository) GetLSDVectorStores(ctx context.Context) (*mo
 		return nil, err
 	}
 
+	logger := helper.GetContextLogger(ctx)
+
 	vectorStores := make([]models.LSDVectorStore, 0, len(rawStores))
 	for _, raw := range rawStores {
+		provider := raw.Metadata["provider_id"]
+		if provider == "" {
+			logger.Debug("vector store has no provider_id in metadata, it will be excluded from supported provider filtering",
+				"id", raw.ID, "name", raw.Name)
+		}
+
 		vectorStores = append(vectorStores, models.LSDVectorStore{
 			ID:       raw.ID,
 			Name:     raw.Name,
 			Status:   string(raw.Status),
-			Provider: raw.Metadata["provider_id"],
+			Provider: provider,
 		})
 	}
 

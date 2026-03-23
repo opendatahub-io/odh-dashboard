@@ -4,7 +4,8 @@ import { createSchema } from '~/app/utilities/schema';
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
-// Only Milvus is supported as a vector store provider
+// The BFF returns all providers; this allowlist is applied client-side via the
+// select callback to limit which providers appear in the UI.
 export const SUPPORTED_VECTOR_STORE_PROVIDERS = ['milvus'];
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';

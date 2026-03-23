@@ -52,6 +52,8 @@ export function useLlamaStackVectorStoresQuery(
 ): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
+    // providers is intentionally excluded: select transforms cached data without
+    // affecting the cache, so different provider filters safely share one cache entry.
     queryKey: ['vectorStores', namespace, secretName],
     queryFn: async () => {
       try {
