@@ -4,10 +4,12 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
+import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/results/AutoragResults';
+import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
-import InvalidProject from '../components/empty-states/InvalidProject';
-import { autoragExperimentsPathname } from '../utilities/routes';
+import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -19,8 +21,17 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
-  const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId, namespace);
-  const invalidPipelineRunId = pipelineRunQuery.isError;
+  const {
+    data: pipelineRun,
+    isPending: pipelineRunPending,
+    isFetching: pipelineRunFetching,
+    isError: pipelineRunError,
+    error: pipelineRunLoadError,
+  } = usePipelineRunQuery(runId, namespace);
+  const invalidPipelineRunId = pipelineRunError;
+
+  // Fetch and process AutoRAG results using custom hook
+  const { patterns, isLoading: patternsLoading } = useAutoragResults(runId, namespace, pipelineRun);
 
   return (
     <ApplicationsPage
@@ -46,10 +57,19 @@ function AutoragResultsPage(): React.JSX.Element {
           <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
         )
       }
-      loadError={pipelineRunQuery.error ?? namespacesLoadError}
-      loaded={namespacesLoaded && pipelineRunQuery.isFetched}
+      loadError={pipelineRunLoadError ?? namespacesLoadError}
+      loaded={namespacesLoaded && !pipelineRunPending}
     >
-      <AutoragResults pipelineRun={pipelineRun} />
+      <AutoragResultsContext.Provider
+        value={getAutoragContext({
+          pipelineRun,
+          patterns,
+          pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+          patternsLoading,
+        })}
+      >
+        <AutoragResults />
+      </AutoragResultsContext.Provider>
     </ApplicationsPage>
   );
 }

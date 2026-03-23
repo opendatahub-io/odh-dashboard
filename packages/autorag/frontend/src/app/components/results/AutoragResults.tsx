@@ -2,15 +2,13 @@ import { Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
-import type { PipelineRun } from '~/app/types';
 import type { RunDetailsKF } from '~/app/types/pipeline';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import AutoragLeaderboard from './AutoragLeaderboard';
 import './AutoragResults.scss';
 
-type AutoragResultsProps = {
-  pipelineRun?: PipelineRun;
-};
-
-function AutoragResults({ pipelineRun }: AutoragResultsProps): React.JSX.Element {
+function AutoragResults(): React.JSX.Element {
+  const { pipelineRun } = useAutoragResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -20,13 +18,16 @@ function AutoragResults({ pipelineRun }: AutoragResultsProps): React.JSX.Element
 
   return (
     <Stack hasGutter>
-      <StackItem isFilled>
+      <StackItem>
         <PipelineTopology
           nodes={nodes}
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           className="autorag-topology-container"
         />
+      </StackItem>
+      <StackItem>
+        <AutoragLeaderboard />
       </StackItem>
     </Stack>
   );

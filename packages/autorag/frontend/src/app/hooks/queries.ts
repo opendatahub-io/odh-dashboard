@@ -2,7 +2,13 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { getLlamaStackModels } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
-import { LlamaStackModelsResponse, LlamaStackModelType, PipelineRun } from '~/app/types';
+import {
+  LlamaStackModelsResponse,
+  LlamaStackModelType,
+  PipelineRun,
+  S3ListObjectsResponse,
+} from '~/app/types';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export function useLlamaStackModelsQuery(
   namespace: string,
@@ -37,6 +43,90 @@ export function useLlamaStackModelsQuery(
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,
+  });
+}
+
+/**
+ * Fetches a file from S3 storage and returns it as a Blob.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3File(
+  namespace: string,
+  key: string,
+  secretName?: string,
+  bucket?: string,
+): Promise<Blob> {
+  const params = new URLSearchParams({
+    namespace,
+    key,
+    ...(secretName && { secretName }),
+    ...(bucket && { bucket }),
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`);
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  return response.blob();
+}
+
+/**
+ * Fetches a list of files/folders from S3 storage.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3Files(
+  namespace: string,
+  path: string,
+): Promise<S3ListObjectsResponse> {
+  const params = new URLSearchParams({
+    namespace,
+    path,
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/files?${params.toString()}`);
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch S3 files: ${errorMessage}`);
+  }
+
+  const result = await response.json();
+  return result?.data || result;
+}
+
+export function useS3ListFilesQuery(
+  namespace?: string,
+  path?: string,
+): UseQueryResult<S3ListObjectsResponse, Error> {
+  return useQuery({
+    queryKey: ['s3Files', namespace, path],
+    queryFn: async () => {
+      if (!namespace || !path) {
+        throw new Error('namespace and path are required');
+      }
+      return fetchS3Files(namespace, path);
+    },
+    enabled: Boolean(namespace && path),
+    retry: false,
   });
 }
 
