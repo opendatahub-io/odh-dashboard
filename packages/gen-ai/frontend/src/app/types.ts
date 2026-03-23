@@ -17,7 +17,7 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
   max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
@@ -364,7 +364,7 @@ export interface AAModelResponse {
     token_name: string;
     token: string;
   };
-  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
 }
 
@@ -379,12 +379,6 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  provider_type:
-    | 'remote::vllm'
-    | 'remote::openai'
-    | 'remote::anthropic'
-    | 'remote::gemini'
-    | 'remote::passthrough';
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;

@@ -48,7 +48,7 @@ describe('CreateExternalEndpointModal', () => {
         token_name: '',
         token: '',
       },
-      model_source_type: 'external_provider',
+      model_source_type: 'custom_endpoint',
     });
 
     mockOnVerify.mockResolvedValue({
@@ -62,9 +62,8 @@ describe('CreateExternalEndpointModal', () => {
     it('should render modal with title and form fields', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      expect(screen.getByText('Create external endpoint')).toBeInTheDocument();
+      expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
-      expect(screen.getByText('Provider')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i)).toBeInTheDocument();
       expect(
@@ -90,15 +89,12 @@ describe('CreateExternalEndpointModal', () => {
 
       // Model type dropdown should show "Inferencing model" (llm is default)
       expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
-
-      // Provider dropdown should show "Internal" (remote::vllm is default)
-      expect(screen.getByRole('button', { name: /Internal/i })).toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
       render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByText('Create external endpoint')).not.toBeInTheDocument();
+      expect(screen.queryByText('Create endpoint')).not.toBeInTheDocument();
     });
   });
 
@@ -150,7 +146,6 @@ describe('CreateExternalEndpointModal', () => {
           model_display_name: 'My Custom GPT-4o',
           base_url: 'https://api.openai.com/v1',
           secret_value: 'sk-test-token-123',
-          provider_type: 'remote::vllm',
           model_type: 'llm',
           use_cases: 'Chat and completion',
         });

@@ -10,7 +10,7 @@ import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
-import useAiAssetExternalModelsEnabled from '~/app/hooks/useAiAssetExternalModelsEnabled';
+import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpointsEnabled';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { models, loaded, aiError, maasError, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
-  const isExternalModelsEnabled = useAiAssetExternalModelsEnabled();
+  const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
@@ -142,9 +142,9 @@ const AIAssetsModelsTab: React.FC = () => {
                 <Button
                   variant="primary"
                   onClick={() => setIsCreateEndpointModalOpen(true)}
-                  data-testid="register-external-endpoint-button"
+                  data-testid="create-endpoint-button"
                 >
-                  Register external endpoint
+                  Create endpoint
                 </Button>
               ) : undefined
             }
