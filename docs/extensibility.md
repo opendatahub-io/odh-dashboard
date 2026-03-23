@@ -431,11 +431,15 @@ const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
 
 ## Chunk Naming Strategy
 
-The build system uses a **single-chunk-per-plugin** strategy for code references. This section applies to extension packages that are bundled into the host application (i.e., workspace packages with a `./extensions` export). For Module Federation remotes, chunking is handled by each remote's own webpack build.
+The build system uses a **single-chunk-per-plugin** strategy for extension code references. This section applies to extension packages that are bundled into the host application (i.e., workspace packages with a `./extensions` export). For Module Federation remotes, chunking is handled by each remote's own webpack build.
+
+### Scope
+
+The chunk grouping strategy **only affects dynamic imports originating from extension definition files** (files matching `extensions.ts` or files in an `extensions/` directory). Any other code-splitting within a plugin — such as `React.lazy()` route splitting inside components — retains normal webpack behavior and is not merged into the plugin chunk.
 
 ### Default Behavior
 
-When a plugin defines code references with dynamic imports, the build system automatically groups all modules from the same plugin package into a **single async chunk**. The chunk is named `plugin-<package-short-name>`.
+When a plugin defines code references with dynamic imports in its extension files, the build system automatically groups all modules from the same plugin package into a **single async chunk**. The chunk is named `plugin-<package-short-name>`.
 
 For example, a plugin at `@odh-dashboard/kserve` with multiple code references:
 

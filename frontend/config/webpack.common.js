@@ -9,7 +9,7 @@ const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
 const { getPluginPackageDetails } = require('./discoverPluginPackages');
-const { getPluginChunkName } = require('./pluginChunking');
+const { getExtensionChunksFilter, getPluginChunkName } = require('./pluginChunking');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -233,7 +233,7 @@ module.exports = (env) => ({
             );
           },
           name: getPluginChunkName(pluginPackageDetails),
-          chunks: 'async',
+          chunks: getExtensionChunksFilter(pluginPackageDetails),
           enforce: true,
           priority: 10,
         },
