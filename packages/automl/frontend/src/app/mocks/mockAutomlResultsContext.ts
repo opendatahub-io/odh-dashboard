@@ -86,7 +86,12 @@ const mockModels: Record<string, MockAutomlModel> = {
   CatBoost_BAG_L2_FULL: {
     display_name: 'CatBoost_BAG_L2_FULL',
     model_config: { eval_metric: 'accuracy' },
-    location: buildLocation('automl-pipeline', RUN_ID, TASK_ID, 'CatBoost_BAG_L2_FULL'),
+    location: buildLocation(
+      'autogluon-tabular-training-pipeline',
+      RUN_ID,
+      TASK_ID,
+      'CatBoost_BAG_L2_FULL',
+    ),
     metrics: {
       test_data: {
         accuracy: 0.658,
@@ -101,7 +106,12 @@ const mockModels: Record<string, MockAutomlModel> = {
   RandomForest_BAG_L1_FULL: {
     display_name: 'RandomForest_BAG_L1_FULL',
     model_config: { eval_metric: 'accuracy' },
-    location: buildLocation('automl-pipeline', RUN_ID, TASK_ID, 'RandomForest_BAG_L1_FULL'),
+    location: buildLocation(
+      'autogluon-tabular-training-pipeline',
+      RUN_ID,
+      TASK_ID,
+      'RandomForest_BAG_L1_FULL',
+    ),
     metrics: {
       test_data: {
         accuracy: 0.632,
@@ -116,7 +126,12 @@ const mockModels: Record<string, MockAutomlModel> = {
   NeuralNet_BAG_L1_FULL: {
     display_name: 'NeuralNet_BAG_L1_FULL',
     model_config: { eval_metric: 'accuracy' },
-    location: buildLocation('automl-pipeline', RUN_ID, TASK_ID, 'NeuralNet_BAG_L1_FULL'),
+    location: buildLocation(
+      'autogluon-tabular-training-pipeline',
+      RUN_ID,
+      TASK_ID,
+      'NeuralNet_BAG_L1_FULL',
+    ),
     metrics: {
       test_data: {
         accuracy: 0.605,

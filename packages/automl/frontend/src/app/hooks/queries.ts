@@ -1,7 +1,13 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  UseQueryResult,
+  UseMutationResult,
+} from '@tanstack/react-query';
 import { URL_PREFIX } from '~/app/utilities/const';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun } from '~/app/types';
+import type { PipelineRun, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
 import { createPipelineRun } from '~/app/api/pipelines';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
@@ -33,6 +39,41 @@ export type ColumnSchema = {
   type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
   values?: (string | number)[];
 };
+
+/**
+ * Fetches a file from S3 storage and returns it as a Blob.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3File(
+  namespace: string,
+  key: string,
+  secretName?: string,
+  bucket?: string,
+): Promise<Blob> {
+  const params = new URLSearchParams({
+    namespace,
+    key,
+    ...(secretName && { secretName }),
+    ...(bucket && { bucket }),
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`);
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  return response.blob();
+}
 
 export function useFilesQuery(
   namespace?: string,
@@ -93,6 +134,53 @@ export function usePipelineRunQuery(
       return pipelineRun;
     },
     enabled: !!runId,
+  });
+}
+
+async function fetchS3Json<T>(namespace: string, key: string): Promise<T> {
+  const blob = await fetchS3File(namespace, key);
+  const text = await blob.text();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- trusted pipeline-produced JSON
+  return JSON.parse(text) as T;
+}
+
+export function useModelEvaluationArtifactsQuery(
+  namespace?: string,
+  modelDirectory?: string,
+  isClassification?: boolean,
+): {
+  featureImportance?: FeatureImportanceData;
+  confusionMatrix?: ConfusionMatrixData;
+  isLoading: boolean;
+} {
+  return useQueries({
+    queries: [
+      {
+        queryKey: ['featureImportance', namespace, modelDirectory],
+        queryFn: () =>
+          fetchS3Json<FeatureImportanceData>(
+            namespace!,
+            `${modelDirectory}metrics/feature_importance.json`,
+          ),
+        enabled: Boolean(namespace && modelDirectory),
+        retry: false,
+      },
+      {
+        queryKey: ['confusionMatrix', namespace, modelDirectory],
+        queryFn: () =>
+          fetchS3Json<ConfusionMatrixData>(
+            namespace!,
+            `${modelDirectory}metrics/confusion_matrix.json`,
+          ),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
+    ],
+    combine: (results) => ({
+      featureImportance: results[0].data,
+      confusionMatrix: results[1].data,
+      isLoading: results.some((r) => r.isPending),
+    }),
   });
 }
 

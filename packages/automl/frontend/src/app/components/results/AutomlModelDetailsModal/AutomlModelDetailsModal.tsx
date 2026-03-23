@@ -62,6 +62,16 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   );
   const model = context.models[selectedModelName];
   const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
+
+  // TODO: uncomment when integrating with AutomlResultsContext (PR #6785)
+  // const { namespace } = useParams<{ namespace: string }>();
+  // const isClassification = taskType === 'binary' || taskType === 'multiclass';
+  // const modelDirectory = model?.location.model_directory;
+  // const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
+  //   namespace,
+  //   modelDirectory,
+  //   isClassification,
+  // );
   const featureImportance = mockMulticlassFeatureImportances[selectedModelName];
   const confusionMatrix = mockMulticlassConfusionMatrices[selectedModelName];
 
