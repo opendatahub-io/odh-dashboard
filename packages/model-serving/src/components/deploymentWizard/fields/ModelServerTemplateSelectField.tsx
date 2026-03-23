@@ -49,18 +49,22 @@ export type ModelServerOption = {
   compatibleWithHardwareProfile?: boolean;
 };
 
-// Schema
-export const modelServerSelectFieldSchema = z.custom<ModelServerOption>((val: unknown) => {
-  return !!(
-    typeof val === 'object' &&
-    val &&
-    'name' in val &&
-    typeof val.name === 'string' &&
-    val.name.length > 0
-  );
-});
+export type ModelServerSelectFieldData = {
+  selection?: ModelServerOption | null;
+  autoSelect?: boolean;
+  suggestion?: ModelServerOption | null;
+};
 
-export type ModelServerSelectFieldData = ModelServerOption;
+// Schema
+export const modelServerSelectFieldSchema = z.custom<ModelServerSelectFieldData>((val: unknown) => {
+  return z
+    .object({
+      selection: z.custom<ModelServerOption>(),
+      autoSelect: z.boolean().optional(),
+      suggestion: z.custom<ModelServerOption>().optional(),
+    })
+    .safeParse(val).success;
+});
 
 // utils
 
@@ -74,16 +78,13 @@ export const getAcceleratorIdentifierFromHardwareProfile = (
 
 // Hooks
 export type ModelServerSelectField = {
-  data?: ModelServerOption | null;
-  setData: (data: ModelServerOption | null) => void;
-  isAutoSelectChecked?: boolean;
-  setIsAutoSelectChecked: (isAutoSelectChecked?: boolean) => void;
-  suggestion?: ModelServerOption | null; // the servingRuntime that is going to be used if the auto-select radio button is checked
+  data?: ModelServerSelectFieldData;
+  setData: (data: ModelServerSelectFieldData) => void;
   options: ModelServerOption[]; // servingRuntimes filtered on 'generative' or 'predictive' model type
 };
 
 export const useModelServerSelectField = (
-  existingData?: ModelServerOption,
+  existingData?: ModelServerSelectFieldData,
   modelServerTemplates?: TemplateKind[], // this is already filtered on 'generative' or 'predictive' model type
   modelFormat?: SupportedModelFormats,
   modelType?: ModelTypeFieldData,
@@ -96,23 +97,19 @@ export const useModelServerSelectField = (
   });
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const [modelServer, setModelServer] = React.useState<ModelServerOption | null | undefined>(
-    existingData,
-  );
-  const [isAutoSelectChecked, setIsAutoSelectChecked] = React.useState<boolean | undefined>(
-    undefined,
-  );
+  const [modelServerState, setModelServerState] = React.useState<
+    Omit<ModelServerSelectFieldData, 'suggestion'> | undefined
+  >(existingData);
 
   const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
 
   const previousModelType = React.useRef(modelType);
   React.useEffect(() => {
     if (previousModelType.current !== modelType) {
-      setModelServer(existingData);
-      setIsAutoSelectChecked(undefined);
+      setModelServerState(existingData);
       previousModelType.current = modelType;
     }
-  }, [modelType, existingData, setModelServer, setIsAutoSelectChecked]);
+  }, [modelType, existingData, setModelServerState]);
 
   const suggestion = React.useMemo(() => {
     const extensionSuggestion = modelServerSelectExtension?.suggestion?.(
@@ -195,15 +192,17 @@ export const useModelServerSelectField = (
     profileIdentifiers,
   ]);
 
-  const isDirty = existingData || modelServer || isAutoSelectChecked !== undefined;
-  const autoSelect = (suggestion && !isDirty) || isAutoSelectChecked;
+  const isDirty =
+    existingData || modelServerState?.selection || modelServerState?.autoSelect !== undefined;
+  const autoSelect = (suggestion && !isDirty) || (modelServerState?.autoSelect && !!suggestion);
   return {
-    data: autoSelect ? suggestion : modelServer,
-    setData: setModelServer,
-    isAutoSelectChecked: autoSelect,
-    setIsAutoSelectChecked,
+    data: {
+      selection: autoSelect ? suggestion : modelServerState?.selection,
+      autoSelect,
+      suggestion,
+    },
+    setData: setModelServerState,
     options,
-    suggestion,
   };
 };
 
@@ -238,29 +237,37 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
   modelServerState,
   isEditing,
 }) => {
-  const { data, setData, isAutoSelectChecked, setIsAutoSelectChecked, suggestion, options } =
-    modelServerState;
+  const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
 
   const selectedTemplate = React.useMemo(() => {
-    return options.find((o) => o.name === data?.name && o.namespace === data.namespace) ?? data;
-  }, [options, data]);
+    return (
+      options.find(
+        (o) => o.name === data?.selection?.name && o.namespace === data.selection.namespace,
+      ) ?? data?.selection
+    );
+  }, [options, data?.selection]);
 
   const renderMenuItem = React.useCallback(
     (option: ModelServerOption, index: number, scope: 'project' | 'global') => (
       <MenuItem
         key={`${index}-${scope}-serving-runtime-${option.name}`}
         data-testid={`servingRuntime ${option.name}`}
-        isSelected={data?.name === option.name && data.namespace === option.namespace}
+        isSelected={
+          data?.selection?.name === option.name && data.selection.namespace === option.namespace
+        }
         onClick={() =>
           setData({
-            name: option.name,
-            label: option.label,
-            version: option.version,
-            compatibleWithHardwareProfile: option.compatibleWithHardwareProfile,
-            namespace: option.namespace,
-            scope,
-            template: option.template,
+            ...data,
+            selection: {
+              name: option.name,
+              namespace: option.namespace,
+              label: option.label,
+              version: option.version,
+              compatibleWithHardwareProfile: option.compatibleWithHardwareProfile,
+              scope,
+              template: option.template,
+            },
           })
         }
         icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
@@ -372,13 +379,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             name="horizontal-inline-radio"
             label="Auto-select the best runtime for my model based on model type, model format, and hardware profile"
             id="horizontal-inline-radio-01"
-            isChecked={isAutoSelectChecked}
-            isDisabled={!suggestion}
-            onChange={() => setIsAutoSelectChecked(true)}
+            isChecked={data?.autoSelect}
+            isDisabled={!data?.suggestion}
+            onChange={() => setData({ ...data, autoSelect: true, selection: data?.suggestion })}
             body={
-              isAutoSelectChecked && suggestion ? (
+              data?.autoSelect && data.suggestion ? (
                 <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <OptionDropdownLabel option={suggestion} />
+                  <OptionDropdownLabel option={data.suggestion} />
                 </Flex>
               ) : null
             }
@@ -387,9 +394,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             name="horizontal-inline-radio"
             label="Select from a list of serving runtimes, including custom ones"
             id="horizontal-inline-radio-02"
-            isChecked={!isAutoSelectChecked}
-            onChange={() => setIsAutoSelectChecked(false)}
-            body={isAutoSelectChecked ? null : servingRuntimeDropdown()}
+            isChecked={!data?.autoSelect}
+            onChange={() => setData({ ...data, autoSelect: false, selection: null })}
+            body={data?.autoSelect ? null : servingRuntimeDropdown()}
           />
         </>
       )}

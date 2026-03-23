@@ -22,8 +22,8 @@ import type {
   ModelLocationData,
   InitialWizardFormData,
   WizardField,
+  ModelServerSelectFieldData,
 } from '../src/components/deploymentWizard/types';
-import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
 
 export type DeploymentStatus = {
@@ -61,6 +61,9 @@ export type ModelResourceType = K8sResourceCommon & {
   };
 };
 
+/**
+ * `server` is more of a template / config resource, not a server
+ */
 export type Deployment<
   ModelResource extends ModelResourceType = ModelResourceType,
   ServerResource extends ServerResourceType = ServerResourceType,
@@ -177,7 +180,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     >;
     extractModelType?: CodeRef<(deployment: D) => ModelTypeFieldData | null>;
     extractModelServerTemplate: CodeRef<
-      (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
+      (deployment: D, dashboardNamespace?: string) => ModelServerSelectFieldData | null
     >;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
@@ -242,11 +245,15 @@ export const isModelServingMetricsExtension = <D extends Deployment = Deployment
   extension: Extension,
 ): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';
 
-export type DeployedModelServingDetails<D extends Deployment = Deployment> = Extension<
+export type DeployedModelServingDetails<
+  D extends Deployment = Deployment,
+  Data = unknown,
+> = Extension<
   'model-serving.deployed-model/serving-runtime',
   {
     platform: D['modelServingPlatformId'];
-    ServingDetailsComponent: ComponentCodeRef<{ deployment: D }>;
+    dataHook?: CodeRef<() => Data>;
+    ServingDetailsComponent: ComponentCodeRef<{ deployment: D; data?: Data }>;
   }
 >;
 
