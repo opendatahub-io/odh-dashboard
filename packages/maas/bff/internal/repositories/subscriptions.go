@@ -8,7 +8,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
@@ -124,8 +123,6 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
-			createdSub.GetUID(),
-			createdSub.GetName(),
 		)
 		createdPolicy, policyErr := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(r.namespace).Create(ctx, policyObj, metav1.CreateOptions{})
 		if policyErr != nil {
@@ -182,7 +179,6 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 }
 
 // DeleteSubscription deletes a MaaSSubscription by name.
-// The associated MaaSAuthPolicy is expected to be garbage-collected via owner references.
 func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name string) error {
 	r.logger.Debug("Deleting subscription", slog.String("name", name), slog.String("namespace", r.namespace))
 
@@ -530,23 +526,12 @@ func buildSubscriptionUnstructured(name, namespace string, owner models.OwnerSpe
 	return obj
 }
 
-func buildAuthPolicyUnstructured(name, namespace string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata, ownerUID types.UID, ownerName string) *unstructured.Unstructured {
+func buildAuthPolicyUnstructured(name, namespace string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSAuthPolicy")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
-
-	if ownerUID != "" {
-		obj.SetOwnerReferences([]metav1.OwnerReference{
-			{
-				APIVersion: "maas.opendatahub.io/v1alpha1",
-				Kind:       "MaaSSubscription",
-				Name:       ownerName,
-				UID:        ownerUID,
-			},
-		})
-	}
 
 	mrList := make([]interface{}, len(modelRefs))
 	for i, mr := range modelRefs {

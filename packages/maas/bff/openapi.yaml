@@ -851,8 +851,7 @@ paths:
       summary: Delete a subscription
       operationId: deleteSubscription
       description: >
-        Deletes a MaaSSubscription resource by name. The associated
-        MaaSAuthPolicy is expected to be garbage-collected via owner references.
+        Deletes a MaaSSubscription resource by name.
 
         K8s calls: DELETE /k8s/v1/maassubscription/:name
       parameters:
