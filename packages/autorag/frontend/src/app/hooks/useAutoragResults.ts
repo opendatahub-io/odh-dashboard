@@ -31,7 +31,7 @@ export function useAutoragResults(
 ): UseAutoragResultsReturn {
   // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED';
-  const rootDir = 'autorag-training-pipeline';
+  const rootDir = 'documents-rag-optimization-pipeline';
   const patternGenerationDir = 'autorag-patterns-full-refit';
   const generatedPatternsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${patternGenerationDir}`
@@ -103,7 +103,7 @@ export function useAutoragResults(
       };
     }),
     combine: (results) => ({
-      data: results.map((r) => r.data).filter((d): d is Record<string, unknown> => d !== undefined),
+      data: results.map((r) => r.data).filter((d): d is AutoragPattern => d !== undefined),
       isPending: results.some((r) => r.isPending),
       isError: results.some((r) => r.isError),
     }),
