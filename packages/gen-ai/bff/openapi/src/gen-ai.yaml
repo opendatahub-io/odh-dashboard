@@ -3947,61 +3947,42 @@ components:
     ExternalVectorStoreSummary:
       type: object
       required:
-        - name
+        - vector_store_id
+        - vector_store_name
+        - provider_id
         - provider_type
-        - collection
-        - embedding
-        - embedding_model_available
+        - embedding_model
+        - embedding_dimension
       properties:
-        name:
+        vector_store_id:
           type: string
-          example: 'pgvector-store'
-          description: Vector store name from ConfigMap
-        displayName:
+          example: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+          description: Unique identifier of the vector store collection
+        vector_store_name:
           type: string
-          example: 'Product Embeddings (PGVector)'
-          description: Human-readable display name
+          example: 'Product Docs RAG Store'
+          description: Human-readable name of the vector store
+        provider_id:
+          type: string
+          example: 'pgvector-provider-1'
+          description: Provider ID from the providers section of the ConfigMap
         provider_type:
           type: string
           example: 'remote::pgvector'
-          description: Vector store provider type (e.g., remote::pgvector, remote::qdrant, remote::milvus)
-        collection:
-          type: string
-          example: 'product_embeddings'
-          description: Name of the collection/table in the vector database
-        description:
-          type: string
-          example: 'Product catalog embeddings for semantic search'
-          description: Description of the vector store purpose
-        owner:
-          type: string
-          example: 'platform-team'
-          description: Team or user that owns this vector store
-        domain:
-          type: string
-          example: 'e-commerce'
-          description: Business domain this vector store serves
-        embedding:
-          $ref: '#/components/schemas/EmbeddingConfig'
-        embedding_model_available:
-          type: boolean
-          example: true
-          description: Whether the embedding model is registered in the LlamaStack config
-
-    EmbeddingConfig:
-      type: object
-      required:
-        - model_id
-        - dimension
-      properties:
-        model_id:
+          description: Vector store provider type resolved from the providers section (e.g., remote::pgvector, remote::qdrant, remote::milvus)
+        embedding_model:
           type: string
           example: 'ibm-granite/granite-embedding-125m-english'
           description: Embedding model identifier used for ingestion
-        dimension:
+        embedding_dimension:
           type: integer
           example: 768
           description: Embedding vector dimension
+        description:
+          type: string
+          example: 'Vector store for product documentation'
+          description: Description of the vector store purpose
+
 
     ExternalVectorStoresListData:
       type: object
@@ -4182,17 +4163,13 @@ components:
                   $ref: '#/components/schemas/ExternalVectorStoreSummary'
           example:
             data:
-              - name: 'pgvector-store'
-                displayName: 'Product Embeddings (PGVector)'
+              - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                vector_store_name: 'Product Docs RAG Store'
+                provider_id: 'pgvector-provider-1'
                 provider_type: 'remote::pgvector'
-                collection: 'product_embeddings'
-                description: 'Product catalog embeddings for semantic search'
-                owner: 'platform-team'
-                domain: 'e-commerce'
-                embedding:
-                  model_id: 'ibm-granite/granite-embedding-125m-english'
-                  dimension: 768
-                embedding_model_available: true
+                embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                embedding_dimension: 768
+                description: 'Vector store for product documentation'
 
     ExternalVectorStoresListResponse:
       description: List of external vector stores with ConfigMap metadata
@@ -4211,17 +4188,13 @@ components:
               value:
                 data:
                   vector_stores:
-                    - name: 'pgvector-store'
-                      displayName: 'Product Embeddings (PGVector)'
+                    - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                      vector_store_name: 'Product Docs RAG Store'
+                      provider_id: 'pgvector-provider-1'
                       provider_type: 'remote::pgvector'
-                      collection: 'product_embeddings'
-                      description: 'Product catalog embeddings for semantic search'
-                      owner: 'platform-team'
-                      domain: 'e-commerce'
-                      embedding:
-                        model_id: 'ibm-granite/granite-embedding-125m-english'
-                        dimension: 768
-                      embedding_model_available: true
+                      embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                      embedding_dimension: 768
+                      description: 'Vector store for product documentation'
                   total_count: 1
                   config_map_info:
                     name: 'gen-ai-aa-vector-stores'

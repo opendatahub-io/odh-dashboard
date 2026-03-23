@@ -3,25 +3,21 @@ import {
   Button,
   Toolbar,
   ToolbarContent,
-  ToolbarGroup,
   ToolbarItem,
   Pagination,
   PageSection,
-  MenuToggle,
-  MenuToggleElement,
   Flex,
-  Select,
-  Label,
   SearchInput,
   Timestamp,
   PaginationVariant,
   TimestampFormat,
   Spinner,
-  LabelGroup,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   debounce,
+  LabelGroup,
+  Label,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -36,7 +32,6 @@ type PromptTableProps = {
 
 export default function PromptTable({ onClickLoad, onClose }: PromptTableProps): React.ReactNode {
   const [perPage, setPerPage] = useState(10);
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
@@ -164,39 +159,21 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   const tableToolbar = (
     <Toolbar id="pagination-toolbar">
       <ToolbarContent>
-        <ToolbarItem>
-          <Select
-            id="select-example"
-            aria-label="Select Input"
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-              <MenuToggle
-                ref={toggleRef}
-                onClick={() => setIsSelectOpen(!isSelectOpen)}
-                isExpanded={isSelectOpen}
-              >
-                Name
-              </MenuToggle>
-            )}
-            isOpen={false}
+        <ToolbarItem style={{ minWidth: '300px' }}>
+          <SearchInput
+            aria-label="Search prompts"
+            placeholder="Find by name prefix"
+            value={filterName}
+            onChange={(_event, value) => {
+              setFilterName(value);
+              debouncedSetFilterName(value);
+            }}
+            onClear={() => {
+              setFilterName('');
+              setDebouncedFilterName('');
+            }}
           />
         </ToolbarItem>
-        <ToolbarGroup>
-          <ToolbarItem>
-            <SearchInput
-              aria-label="Search prompts"
-              placeholder="Find by name"
-              value={filterName}
-              onChange={(_event, value) => {
-                setFilterName(value);
-                debouncedSetFilterName(value);
-              }}
-              onClear={() => {
-                setFilterName('');
-                setDebouncedFilterName('');
-              }}
-            />
-          </ToolbarItem>
-        </ToolbarGroup>
         <ToolbarItem variant="pagination">{renderPagination('top', true)}</ToolbarItem>
       </ToolbarContent>
     </Toolbar>
