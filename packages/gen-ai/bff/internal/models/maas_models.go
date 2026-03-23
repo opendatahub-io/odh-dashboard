@@ -21,11 +21,12 @@ type MaaSModelsResponse struct {
 	Data   []MaaSModel `json:"data"`
 }
 
-// MaaSTokenRequest represents a request to create a new API key
+// MaaSTokenRequest represents a request to create a new ephemeral API key
 type MaaSTokenRequest struct {
-	Name        string `json:"name"`
+	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	ExpiresIn   string `json:"expiresIn,omitempty"`
+	Ephemeral   bool   `json:"ephemeral"`
 }
 
 // MaaSTokenResponse represents the response when an API key is created

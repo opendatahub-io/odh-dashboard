@@ -89,16 +89,17 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 	return response.Data, nil
 }
 
-// IssueToken creates a new API key via the MaaS API
+// IssueToken creates an ephemeral API key via the MaaS API.
+// All gen-ai-minted keys are ephemeral (max 1h TTL, excluded from key list by default).
 func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
 	url := fmt.Sprintf("%s/v1/api-keys", c.baseURL)
 
-	if request.Name == "" {
-		request.Name = fmt.Sprintf("odh-dashboard-api-key-%d", time.Now().Unix())
-	}
+	request.Ephemeral = true
 	if request.ExpiresIn == "" {
-		request.ExpiresIn = "4h"
+		request.ExpiresIn = "1h"
 	}
+	// NOTE: the MaaS API enforces a max 1h TTL for ephemeral keys server-side;
+	// any caller-provided value exceeding that limit will be rejected by the API.
 
 	requestBody, err := json.Marshal(request)
 	if err != nil {

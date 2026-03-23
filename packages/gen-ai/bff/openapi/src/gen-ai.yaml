@@ -670,10 +670,11 @@ paths:
       description: Gets a list of all available models from MaaS service.
 
   /gen-ai/api/v1/maas/tokens:
-    summary: Manage MaaS authentication tokens
+    summary: Manage MaaS ephemeral API keys
     description: >-
-      Issue new ephemeral tokens and revoke existing tokens for MaaS service authentication.
-      Tokens are JWT-based with configurable TTL (time-to-live).
+      Issue new ephemeral API keys and revoke existing tokens for MaaS service authentication.
+      All keys created through Gen AI Studio are ephemeral (short-lived, max 1h TTL)
+      and are excluded from the MaaS API key list by default.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
@@ -688,8 +689,11 @@ paths:
           schema:
             type: string
             example: 'default'
-      summary: Issue New Token
-      description: Create a new ephemeral token with specified TTL for API authentication.
+      summary: Issue Ephemeral API Key
+      description: >-
+        Create an ephemeral API key for MaaS authentication. The BFF always
+        creates ephemeral keys (max 1h TTL), which are excluded from the
+        MaaS API key list by default.
       requestBody:
         required: false
         content:
@@ -697,34 +701,50 @@ paths:
             schema:
               type: object
               properties:
-                expiration:
+                name:
                   type: string
-                  description: Token time-to-live in Go duration format. Supports ns, us, ms, s, m, h units.
-                  default: '4h'
-                  example: '2h'
-                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+                  description: Optional name for the key. If omitted, the MaaS service assigns a name automatically.
+                description:
+                  type: string
+                  description: Optional description for the key.
+                expiresIn:
+                  type: string
+                  description: Expiration duration (e.g., "30m", "1h"). Defaults to 1h, max 1h for ephemeral keys.
+                  default: '1h'
+                  example: '1h'
+                  pattern: '^[0-9]+(m|h)$'
+                ephemeral:
+                  type: boolean
+                  description: Always set to true by the BFF. Callers cannot override this value. Ephemeral keys have a 1h max TTL and are hidden from the API key list.
+                  readOnly: true
+                  default: true
             example:
-              expiration: '4h'
+              expiresIn: '1h'
       responses:
         '201':
-          description: Token created successfully
+          description: Ephemeral API key created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  token:
-                    type: string
-                    description: Generated JWT token
-                    example: 'maas-token-placeholder-12345'
-                  expiresAt:
-                    type: integer
-                    format: int64
-                    description: Token expiration timestamp as Unix timestamp
-                    example: 1735406400
-                required:
-                  - token
-                  - expiresAt
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Generated API key (shown only once)
+                        example: 'sk-oai-...'
+                      expiresAt:
+                        type: string
+                        description: Key expiration timestamp in RFC3339 format
+                        example: '2026-03-23T15:00:00Z'
+                    required:
+                      - key
+              example:
+                data:
+                  key: 'sk-oai-...'
+                  expiresAt: '2026-03-23T15:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

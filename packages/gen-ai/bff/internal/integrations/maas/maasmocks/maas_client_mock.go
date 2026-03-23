@@ -88,11 +88,18 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 	}, nil
 }
 
-// IssueToken returns a mock API key response
+// IssueToken returns a mock ephemeral API key response.
+// Respects request.ExpiresIn when provided; defaults to 1h.
 func (m *MockMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
+	ttl := 1 * time.Hour
+	if request.ExpiresIn != "" {
+		if parsed, err := time.ParseDuration(request.ExpiresIn); err == nil {
+			ttl = parsed
+		}
+	}
 	return &models.MaaSTokenResponse{
 		Key:       "sk-oai-mock-api-key-for-testing-purposes-only",
-		ExpiresAt: time.Now().Add(90 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		ExpiresAt: time.Now().Add(ttl).UTC().Format(time.RFC3339),
 	}, nil
 }
 

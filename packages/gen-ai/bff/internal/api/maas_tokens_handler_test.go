@@ -54,8 +54,8 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.Contains(t, responseEnvelope.Data.Key, "sk-oai-")
 	})
 
-	t.Run("should issue API key with name and description when provided", func(t *testing.T) {
-		tokenRequest := models.MaaSTokenRequest{Name: "my-key", Description: "test key", ExpiresIn: "30d"}
+	t.Run("should issue ephemeral API key with custom expiration when provided", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{Description: "test key", ExpiresIn: "30m"}
 		requestBody, err := json.Marshal(tokenRequest)
 		assert.NoError(t, err)
 
