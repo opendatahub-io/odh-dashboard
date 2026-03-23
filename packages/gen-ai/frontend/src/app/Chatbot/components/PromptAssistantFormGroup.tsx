@@ -7,10 +7,19 @@ import { useBrowserUnloadBlocker } from '@odh-dashboard/internal/utilities/useBr
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { useConfirmation } from '../hooks/useConfirmation';
+import { usePromptEdited } from '../hooks/usePromptEdited';
 
 type PromptAssistantFormGroupProps = {
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
+};
+
+const CONFIRMATION_CONFIG = {
+  title: 'Revert to saved version?',
+  message:
+    'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
+  confirmLabel: 'Revert',
 };
 
 export default function PromptAssistantFormGroup({
@@ -30,9 +39,10 @@ export default function PromptAssistantFormGroup({
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = systemInstruction !== activeTemplate;
+  const isEdited = usePromptEdited();
 
   useBrowserUnloadBlocker(isEdited);
+  const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
   React.useEffect(() => {
     setEditMode(!activePrompt);
@@ -90,6 +100,7 @@ export default function PromptAssistantFormGroup({
   return (
     <>
       <NavigationBlockerModal hasUnsavedChanges={isEdited} />
+      {confirmationModal}
       <Panel
         style={{
           borderStyle: 'dashed',
@@ -152,7 +163,11 @@ export default function PromptAssistantFormGroup({
               <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
                 Save
               </Button>
-              <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
+              <Button
+                variant="link"
+                isDisabled={!activePrompt}
+                onClick={() => confirm(handleRevert, CONFIRMATION_CONFIG)}
+              >
                 Revert
               </Button>
             </Flex>
