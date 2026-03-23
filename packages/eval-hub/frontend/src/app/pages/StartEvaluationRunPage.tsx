@@ -347,6 +347,7 @@ const StartEvaluationRunPage: React.FC = () => {
               <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 500 }}>
                 <MlflowExperimentSelector
                   workspace={namespace}
+                  filter="tags.context = 'eval-hub'"
                   selection={selectedExperiment?.name}
                   onSelect={setSelectedExperiment}
                 />
