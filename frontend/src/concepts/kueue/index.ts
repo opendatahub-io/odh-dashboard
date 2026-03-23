@@ -134,15 +134,15 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
     case KueueWorkloadStatus.Preempted:
       return {
         label: 'Preempted',
-        color: 'orange',
         status: 'warning',
+        color: 'orange',
         IconComponent: ExclamationTriangleIcon,
       };
     case KueueWorkloadStatus.Inadmissible:
       return {
         label: 'Inadmissible',
-        color: 'orange',
         status: 'warning',
+        color: 'orange',
         IconComponent: ExclamationTriangleIcon,
       };
     case KueueWorkloadStatus.Running:
