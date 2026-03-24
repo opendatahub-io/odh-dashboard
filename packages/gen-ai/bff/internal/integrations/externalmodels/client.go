@@ -188,6 +188,7 @@ func NewExternalModelsClient(
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
+				MinVersion:         tls.VersionTLS12,
 			},
 		}
 	} else if rootCAs != nil {
