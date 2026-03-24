@@ -1446,6 +1446,23 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			if vs.CredEnvVarName == "" || injectedEnvVars[vs.CredEnvVarName] {
 				continue
 			}
+
+			// Verify the credential secret exists and contains the expected key before
+			// referencing it in the LSD pod spec. This gives a clear error at install time
+			// rather than a cryptic pod failure after the LSD is created.
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      vs.CredSecretRef.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q not found in namespace %s: %w",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, namespace, err)
+			}
+			if _, ok := secret.Data[vs.CredSecretRef.Key]; !ok {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q is missing key %q",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, vs.CredSecretRef.Key)
+			}
+
 			envVars = append(envVars, corev1.EnvVar{
 				Name: vs.CredEnvVarName,
 				ValueFrom: &corev1.EnvVarSource{
