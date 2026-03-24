@@ -7,8 +7,8 @@ import {
 } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { usePVCFreeAmount } from '#~/api';
-import { getPvcTotalSize } from '#~/pages/projects/utils';
-import { bytesAsRoundedGiB } from '#~/utilities/number';
+import { bytesAsPreciseGiB } from '#~/utilities/number';
+import { convertToUnit, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
 import { getFullStatusFromPercentage } from './utils';
 import useStorageStatusAlert from './useStorageStatusAlert';
 
@@ -24,11 +24,17 @@ const StorageWarningStatus: React.FC<StorageWarningStatusProps> = ({
   onAddPVC,
 }) => {
   const [inUseInBytes, loaded] = usePVCFreeAmount(obj);
-  const percentage = loaded
-    ? Number(
-        ((bytesAsRoundedGiB(inUseInBytes) / parseFloat(getPvcTotalSize(obj))) * 100).toFixed(2),
-      )
-    : NaN;
+  const percentage = React.useMemo(() => {
+    if (!loaded) {
+      return NaN;
+    }
+    const rawTotalSize = obj.status?.capacity?.storage || obj.spec.resources.requests.storage;
+    const [totalSizeInGiB] = convertToUnit(rawTotalSize, MEMORY_UNITS_FOR_PARSING, 'Gi');
+    if (totalSizeInGiB <= 0) {
+      return NaN;
+    }
+    return Number(((bytesAsPreciseGiB(inUseInBytes) / totalSizeInGiB) * 100).toFixed(2));
+  }, [loaded, inUseInBytes, obj.status?.capacity?.storage, obj.spec.resources.requests.storage]);
   useStorageStatusAlert(obj, percentage);
 
   const percentageStatus = getFullStatusFromPercentage(percentage);

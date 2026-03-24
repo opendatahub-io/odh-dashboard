@@ -4,7 +4,8 @@ import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/reac
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
 import { usePVCFreeAmount } from '#~/api';
-import { bytesAsRoundedGiB } from '#~/utilities/number';
+import { bytesAsRoundedGiB, bytesAsPreciseGiB } from '#~/utilities/number';
+import { convertToUnit, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import ProgressBarWithLabels from '#~/components/ProgressBarWithLabels';
 
@@ -47,7 +48,11 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   }
 
   const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}GiB`;
-  const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
+  const rawTotalSize = pvc.status?.capacity?.storage || pvc.spec.resources.requests.storage;
+  const [totalSizeInGiB] = convertToUnit(rawTotalSize, MEMORY_UNITS_FOR_PARSING, 'Gi');
+  const percentage = totalSizeInGiB > 0
+    ? ((bytesAsPreciseGiB(inUseInBytes) / totalSizeInGiB) * 100).toFixed(2)
+    : '0';
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 
   let inUseRender: React.ReactNode;
