@@ -77,7 +77,7 @@ Some packages have their own AGENTS.md with package-specific guidance. Check the
 
 Before performing certain tasks, read and follow the corresponding specialized rules.
 
-Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, and `.gemini/rules/`. The rule files in `.cursor/` and `.gemini/` point to their `.claude/` counterparts.
+Rules live in `.claude/rules/`. Read the relevant rule file before starting the task.
 
 | Rule                        | File                          | Trigger                                                                        |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
@@ -99,7 +99,7 @@ Rules are available in `.claude/rules/` (canonical source), `.cursor/rules/`, an
 
 ## Agent Skills
 
-Skills provide multi-step workflows. They are available in `.claude/skills/` (canonical), `.cursor/skills/`, and `.gemini/skills/`.
+Skills provide multi-step workflows. They live in `.claude/skills/`. Read the relevant skill file before starting the task.
 
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
