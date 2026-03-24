@@ -1,5 +1,6 @@
 import type React from 'react';
 import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
+// TODO: Replace MockAutomlModel with AutomlModel from AutomlResultsContext when integrating
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
 import {
   TASK_TYPE_BINARY,

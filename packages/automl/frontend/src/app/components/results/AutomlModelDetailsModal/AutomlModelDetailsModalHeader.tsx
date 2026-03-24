@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
+// TODO: Replace MockAutomlModel with AutomlModel from AutomlResultsContext when integrating
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
 import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
