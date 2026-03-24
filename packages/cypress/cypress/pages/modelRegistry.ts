@@ -70,7 +70,7 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-tab-page-title').should('exist');
     cy.findByText('Select a model registry to view and manage your registered models.', {
       exact: false,
     }).should('exist');

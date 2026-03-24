@@ -142,7 +142,7 @@ describe('Model Catalog core', () => {
     // The "Models" nav item still exists (it has Registry and Deployments tabs),
     // but the Catalog tab should not appear when the feature is disabled.
     cy.visitWithLogin('/ai-hub/models');
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-tab-page-title').should('exist');
     cy.findByTestId('tab-catalog').should('not.exist');
 
     // Visiting the catalog URL directly should redirect to a valid tab

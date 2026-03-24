@@ -5,7 +5,7 @@ class TabRoutePage {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-tab-page-title').should('exist');
     cy.testA11y();
   }
 
@@ -14,7 +14,7 @@ class TabRoutePage {
   }
 
   findPageTitle() {
-    return cy.findByTestId('app-page-title');
+    return cy.findByTestId('app-tab-page-title');
   }
 }
 

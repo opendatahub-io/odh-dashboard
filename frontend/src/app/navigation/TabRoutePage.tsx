@@ -150,7 +150,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const pageTitle = (
     <PageSection hasBodyWrapper={false}>
-      <Content component="h1" data-testid="app-page-title">
+      <Content component="h1" data-testid="app-tab-page-title">
         {objectType ? (
           <TitleWithIcon title={extension.properties.title} objectType={objectType} />
         ) : (
