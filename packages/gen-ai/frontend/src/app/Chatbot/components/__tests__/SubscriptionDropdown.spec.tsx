@@ -124,7 +124,8 @@ describe('SubscriptionDropdown', () => {
     expect(screen.getByTestId('subscription-selector-toggle')).toBeInTheDocument();
   });
 
-  it('shows placeholder text when no subscription is selected', () => {
+  it('auto-selects first subscription when model has multiple subscriptions and no selection', () => {
+    const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
@@ -135,13 +136,15 @@ describe('SubscriptionDropdown', () => {
 
     render(
       <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown {...defaultProps} selectedSubscription="" />
+        <SubscriptionDropdown
+          {...defaultProps}
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
-      'Select a subscription',
-    );
+    expect(onSubscriptionChange).toHaveBeenCalledWith('basic-sub');
   });
 
   it('shows display name in toggle when subscription is selected', () => {

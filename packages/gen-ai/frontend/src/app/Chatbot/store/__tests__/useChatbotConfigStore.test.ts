@@ -122,6 +122,23 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('');
     });
 
+    it('should preserve selectedSubscription on no-op model update', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'same-model');
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'same-model');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('same-model');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('premium-sub');
+    });
+
     it('should not update non-existent config', () => {
       act(() => {
         useChatbotConfigStore.getState().updateSystemInstruction('non-existent', 'New instruction');

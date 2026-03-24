@@ -23,7 +23,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
+	if !ok || identity == nil || identity.Token == "" {
 		app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 		return
 	}

@@ -164,6 +164,22 @@ func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
+func TestMaaSModelsHandler_EmptyToken(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
 func TestMaaSModelsHandler_ForwardsUserToken(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
 

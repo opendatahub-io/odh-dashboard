@@ -28,21 +28,17 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     return matchingModel?.subscriptions ?? [];
   }, [selectedModel, maasModels]);
 
-  // Auto-select when exactly one subscription; clear when model changes and current selection is invalid
+  // Auto-select highest-priority subscription when current selection is empty or invalid.
+  // Subscriptions arrive pre-sorted by priority (desc) from the MaaS API.
   React.useEffect(() => {
-    if (subscriptions.length === 1) {
-      if (selectedSubscription !== subscriptions[0].name) {
-        onSubscriptionChange(subscriptions[0].name);
-      }
+    if (subscriptions.length === 0) {
       return;
     }
-
-    const isCurrentSelectionValid =
-      selectedSubscription && subscriptions.some((s) => s.name === selectedSubscription);
-    if (!isCurrentSelectionValid && selectedSubscription) {
-      onSubscriptionChange('');
+    const isCurrentSelectionValid = subscriptions.some((s) => s.name === selectedSubscription);
+    if (!isCurrentSelectionValid) {
+      onSubscriptionChange(subscriptions[0].name);
     }
-  }, [subscriptions, selectedModel, selectedSubscription, onSubscriptionChange]);
+  }, [subscriptions, selectedSubscription, onSubscriptionChange]);
 
   if (subscriptions.length === 0) {
     return null;

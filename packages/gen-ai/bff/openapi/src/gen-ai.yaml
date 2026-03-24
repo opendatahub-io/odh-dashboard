@@ -653,7 +653,7 @@ paths:
                           type: array
                           description: >-
                             Subscriptions that provide access to this model.
-                            Each entry's name field is the value for the X-MaaS-Subscription header.
+                            Each entry's name field is passed as the subscription field when minting ephemeral API keys for inference.
                           items:
                             $ref: '#/components/schemas/SubscriptionInfo'
                           example:
@@ -2122,8 +2122,8 @@ components:
         name:
           type: string
           description: >-
-            Subscription name. Use this value in the X-MaaS-Subscription header
-            when making LLM inference requests.
+            Subscription name. Passed as the subscription field when minting
+            ephemeral API keys for inference via POST /v1/api-keys.
           example: 'premium-subscription'
         displayName:
           type: string

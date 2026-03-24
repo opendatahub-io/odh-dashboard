@@ -267,7 +267,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         set(
           (state) => {
             const config = state.configurations[id];
-            if (config) {
+            if (config && config.selectedModel !== value) {
               config.selectedModel = value;
               config.selectedSubscription = '';
             }
