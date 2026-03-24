@@ -175,13 +175,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize MLflow client factory
-	//
-	// TODO(mlflow-url-discovery): Refactor this three-way logic once MLflow URL discovery is resolved.
-	// Currently MLFLOW_URL must be set via env var. The UnavailableClientFactory fallback exists
-	// because production deployments don't have MLFLOW_URL configured yet (would break nightlies).
-	// Once we have a real URL strategy (operator ServiceURL, convention, or deployment config),
-	// this should be simplified — likely removing the UnavailableClientFactory path entirely.
-	// See ADR-0014 for full analysis of the discovery problem.
 	var mlflowFactory mlflowpkg.MLflowClientFactory
 	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
@@ -190,12 +183,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
 		}
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
-	} else if cfg.MLflowURL != "" {
-		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
-		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL, rootCAs, cfg.InsecureSkipVerify)
 	} else {
-		logger.Warn("MLflow URL not configured, MLflow endpoints will return 503")
-		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
+		mlflowURL := resolveMLflowURL(cfg, logger)
+		if mlflowURL != "" {
+			logger.Info("Using real MLflow client factory", "url", mlflowURL)
+			mlflowFactory = mlflowpkg.NewRealClientFactory(mlflowURL, rootCAs, cfg.InsecureSkipVerify)
+		} else {
+			logger.Warn("MLflow URL not configured and auto-discovery failed, MLflow endpoints will return 503")
+			mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
+		}
 	}
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
@@ -236,6 +232,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowState:             mlflowState,
 	}
 	return app, nil
+}
+
+// resolveMLflowURL returns the MLflow tracking URL from config or auto-discovery.
+// Priority: 1) MLFLOW_URL env var, 2) MLflow CR status.address.url discovery.
+// Returns empty string if neither is available (graceful degradation).
+func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
+	if cfg.MLflowURL != "" {
+		return cfg.MLflowURL
+	}
+
+	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
+	if err != nil {
+		logger.Debug("MLflow CR auto-discovery failed", slog.Any("error", err))
+		return ""
+	}
+	if discoveredURL != "" {
+		logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
+	}
+	return discoveredURL
 }
 
 func (app *App) Shutdown() error {
