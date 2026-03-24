@@ -87,6 +87,7 @@ func isInternalHost(baseURL string) bool {
 		return false
 	}
 	h := u.Hostname()
+	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
 	return h == "localhost" ||
 		h == "::1" ||
 		strings.HasPrefix(h, "127.") ||
