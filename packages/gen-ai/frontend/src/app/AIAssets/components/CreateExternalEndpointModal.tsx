@@ -447,7 +447,11 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               value={displayName}
               onChange={(_event, value) => setDisplayName(value)}
               onBlur={() => setTouched({ ...touched, displayName: true })}
-              validated={touched.displayName && displayNameConflict ? 'error' : 'default'}
+              validated={
+                (touched.displayName || !displayName.trim()) && displayNameConflict
+                  ? 'error'
+                  : 'default'
+              }
               isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
@@ -459,10 +463,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             <FormHelperText>
               <HelperText>
                 <HelperTextItem
-                  variant={touched.displayName && displayNameConflict ? 'error' : 'default'}
+                  variant={
+                    (touched.displayName || !displayName.trim()) && displayNameConflict
+                      ? 'error'
+                      : 'default'
+                  }
                 >
-                  {touched.displayName && displayNameConflict
-                    ? `Display name "${displayName.trim()}" is already in use.`
+                  {(touched.displayName || !displayName.trim()) && displayNameConflict
+                    ? `Display name "${displayName.trim() || modelId.trim()}" is already in use.`
                     : 'Optional. A friendly display name for this model.'}
                 </HelperTextItem>
               </HelperText>
