@@ -11,7 +11,7 @@ export const getMcpServerAvailability =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/mcp_server_available`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/mcp_catalog/mcp_server_available`,
         {},
         opts,
       ),

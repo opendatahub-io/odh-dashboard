@@ -97,7 +97,7 @@ const (
 	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
-	McpServerAvailabilityPath  = ApiPathPrefix + "/mcp_server_available"
+	McpServerAvailabilityPath  = McpServerCatalogPathPrefix + "/mcp_server_available"
 )
 
 const (
