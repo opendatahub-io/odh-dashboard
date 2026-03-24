@@ -29,11 +29,7 @@ export const useNotificationListener = (): void => {
 
       try {
         const messageStr =
-          typeof notification.messageText === 'string'
-            ? notification.messageText
-            : typeof notification.message === 'string'
-              ? notification.message
-              : undefined;
+          typeof notification.message === 'string' ? notification.message : undefined;
 
         const ts = new Date(notification.timestamp);
         const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
@@ -43,11 +39,6 @@ export const useNotificationListener = (): void => {
           title: notification.title,
           message: messageStr,
           timestamp: timestamp.toISOString(),
-          ...(notification.linkUrl &&
-            notification.linkLabel && {
-              linkUrl: notification.linkUrl,
-              linkLabel: notification.linkLabel,
-            }),
         };
 
         window.dispatchEvent(new CustomEvent(NOTIFICATION_BRIDGE_EVENT, { detail }));
