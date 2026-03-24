@@ -320,7 +320,10 @@ describe('fetchS3File', () => {
 
     const result = await fetchS3File('test-namespace', 'path/to/file.json');
 
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/s3/file?'));
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/file?'),
+      expect.objectContaining({ signal: undefined }),
+    );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('key=path%2Fto%2Ffile.json');
@@ -334,7 +337,7 @@ describe('fetchS3File', () => {
       blob: async () => mockBlob,
     });
 
-    await fetchS3File('ns', 'key.csv', 'my-secret', 'my-bucket');
+    await fetchS3File('ns', 'key.csv', { secretName: 'my-secret', bucket: 'my-bucket' });
 
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('secretName=my-secret');

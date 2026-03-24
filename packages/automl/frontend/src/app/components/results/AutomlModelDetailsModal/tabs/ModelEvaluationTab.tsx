@@ -11,7 +11,7 @@ function formatMetricValue(key: string, value: unknown): string {
 }
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
-  const metrics = model.metrics.test_data;
+  const metrics = model.metrics.test_data ?? {};
   const entries = Object.entries(metrics);
 
   if (entries.length === 0) {

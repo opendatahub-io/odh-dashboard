@@ -144,7 +144,7 @@ describe('AutomlModelDetailsModal', () => {
     );
   });
 
-  it('should disable download button when feature importance data is not loaded', () => {
+  it('should enable download button when feature importance data is loaded', () => {
     render(
       <AutomlModelDetailsModal
         {...defaultProps}
@@ -153,7 +153,6 @@ describe('AutomlModelDetailsModal', () => {
       />,
     );
 
-    // For regression with mock data, featureImportance exists so button should be enabled
     const downloadButton = screen.getByTestId('model-details-download');
     expect(downloadButton).toBeEnabled();
   });

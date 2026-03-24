@@ -2,7 +2,6 @@ import React from 'react';
 import { Skeleton } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
-import '~/app/components/results/AutomlModelDetailsModal/AutomlModelDetailsModal.scss';
 
 function getCellStyle(
   rowLabel: string,
@@ -61,20 +60,17 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
   }
 
   const labels = Object.keys(confusionMatrix);
+  const getCell = (row: string, col: string): number => confusionMatrix[row]?.[col] ?? 0;
 
   // Find max value for color scaling
-  const allValues = labels.flatMap((row) => labels.map((col) => confusionMatrix[row][col]));
+  const allValues = labels.flatMap((row) => labels.map((col) => getCell(row, col)));
   const maxValue = Math.max(...allValues);
 
   // Compute per-row totals
-  const rowTotals = labels.map((row) =>
-    labels.reduce((sum, col) => sum + confusionMatrix[row][col], 0),
-  );
+  const rowTotals = labels.map((row) => labels.reduce((sum, col) => sum + getCell(row, col), 0));
 
   // Compute per-column totals
-  const colTotals = labels.map((col) =>
-    labels.reduce((sum, row) => sum + confusionMatrix[row][col], 0),
-  );
+  const colTotals = labels.map((col) => labels.reduce((sum, row) => sum + getCell(row, col), 0));
 
   return (
     <>
@@ -92,7 +88,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
         </Thead>
         <Tbody>
           {labels.map((rowLabel, rowIdx) => {
-            const rowCorrect = confusionMatrix[rowLabel][rowLabel];
+            const rowCorrect = getCell(rowLabel, rowLabel);
             const rowTotal = rowTotals[rowIdx];
             const pct = rowTotal > 0 ? ((rowCorrect / rowTotal) * 100).toFixed(1) : '0.0';
 
@@ -102,7 +98,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
                   <strong>{rowLabel}</strong>
                 </Td>
                 {labels.map((colLabel) => {
-                  const val = confusionMatrix[rowLabel][colLabel];
+                  const val = getCell(rowLabel, colLabel);
                   return (
                     <Td
                       key={colLabel}
@@ -122,7 +118,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
               <strong>Percent correct</strong>
             </Td>
             {labels.map((colLabel, colIdx) => {
-              const colCorrect = confusionMatrix[colLabel][colLabel];
+              const colCorrect = getCell(colLabel, colLabel);
               const colTotal = colTotals[colIdx];
               const pct = colTotal > 0 ? ((colCorrect / colTotal) * 100).toFixed(1) : '0.0';
               return (
@@ -132,10 +128,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
               );
             })}
             {(() => {
-              const totalCorrect = labels.reduce(
-                (sum, label) => sum + confusionMatrix[label][label],
-                0,
-              );
+              const totalCorrect = labels.reduce((sum, label) => sum + getCell(label, label), 0);
               const total = rowTotals.reduce((sum, t) => sum + t, 0);
               const overallPct =
                 total > 0 ? `${((totalCorrect / total) * 100).toFixed(1)}%` : '0.0%';

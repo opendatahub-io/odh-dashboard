@@ -40,6 +40,12 @@ export type ColumnSchema = {
   values?: (string | number)[];
 };
 
+type FetchS3FileOptions = {
+  secretName?: string;
+  bucket?: string;
+  signal?: AbortSignal;
+};
+
 /**
  * Fetches a file from S3 storage and returns it as a Blob.
  * This is a utility function that can be used in both hooks and query functions.
@@ -47,9 +53,9 @@ export type ColumnSchema = {
 export async function fetchS3File(
   namespace: string,
   key: string,
-  secretName?: string,
-  bucket?: string,
+  options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
     key,
@@ -57,7 +63,7 @@ export async function fetchS3File(
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`);
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -83,11 +89,11 @@ export function useS3GetFileQuery(
 ): UseQueryResult<Blob, Error> {
   return useQuery({
     queryKey: ['file', namespace, secretName, bucket, key],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !key) {
         throw new Error('namespace and key are required');
       }
-      return fetchS3File(namespace, key, secretName, bucket);
+      return fetchS3File(namespace, key, { secretName, bucket, signal });
     },
     enabled: Boolean(namespace && key),
     retry: false,
@@ -156,8 +162,8 @@ export function usePipelineRunQuery(
   });
 }
 
-async function fetchS3Json<T>(namespace: string, key: string): Promise<T> {
-  const blob = await fetchS3File(namespace, key);
+async function fetchS3Json<T>(namespace: string, key: string, signal?: AbortSignal): Promise<T> {
+  const blob = await fetchS3File(namespace, key, { signal });
   const text = await blob.text();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- trusted pipeline-produced JSON
   return JSON.parse(text) as T;
@@ -172,24 +178,27 @@ export function useModelEvaluationArtifactsQuery(
   confusionMatrix?: ConfusionMatrixData;
   isLoading: boolean;
 } {
+  const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
   return useQueries({
     queries: [
       {
         queryKey: ['featureImportance', namespace, modelDirectory],
-        queryFn: () =>
+        queryFn: ({ signal }) =>
           fetchS3Json<FeatureImportanceData>(
             namespace!,
-            `${modelDirectory}metrics/feature_importance.json`,
+            `${baseDir}metrics/feature_importance.json`,
+            signal,
           ),
         enabled: Boolean(namespace && modelDirectory),
         retry: false,
       },
       {
         queryKey: ['confusionMatrix', namespace, modelDirectory],
-        queryFn: () =>
+        queryFn: ({ signal }) =>
           fetchS3Json<ConfusionMatrixData>(
             namespace!,
-            `${modelDirectory}metrics/confusion_matrix.json`,
+            `${baseDir}metrics/confusion_matrix.json`,
+            signal,
           ),
         enabled: Boolean(namespace && modelDirectory && isClassification),
         retry: false,

@@ -18,7 +18,7 @@ type AutomlModelDetailsModalHeaderProps = {
 
 function getOptimizedMetric(model: MockAutomlModel): { name: string; value: number } | undefined {
   const evalMetric = model.model_config.eval_metric;
-  const metrics = model.metrics.test_data;
+  const metrics = model.metrics.test_data ?? {};
   if (!(evalMetric in metrics)) {
     return undefined;
   }

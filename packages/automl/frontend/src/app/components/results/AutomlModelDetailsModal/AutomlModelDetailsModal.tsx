@@ -120,11 +120,15 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isPrinting) {
       return;
     }
+    const handleAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('afterprint', handleAfterPrint);
     const frameId = requestAnimationFrame(() => {
       window.print();
-      setIsPrinting(false);
     });
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, [isPrinting]);
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);

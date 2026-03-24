@@ -75,15 +75,15 @@ export function isErrorMetric(metric: string): boolean {
  * Ranks are assigned by sorting on the optimized metric for the task type,
  */
 export function computeRankMap(
-  models: Record<string, { metrics: { test_data: Record<string, unknown> } }>,
+  models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
 ): Record<string, number> {
   const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
   const useAbs = isErrorMetric(optimizedMetric);
 
   const sorted = Object.keys(models).toSorted((a, b) => {
-    const aRaw = toNumericMetric(models[a].metrics.test_data[optimizedMetric]);
-    const bRaw = toNumericMetric(models[b].metrics.test_data[optimizedMetric]);
+    const aRaw = toNumericMetric(models[a].metrics.test_data?.[optimizedMetric]);
+    const bRaw = toNumericMetric(models[b].metrics.test_data?.[optimizedMetric]);
     const aVal = useAbs ? Math.abs(aRaw) : aRaw;
     const bVal = useAbs ? Math.abs(bRaw) : bRaw;
     return useAbs ? aVal - bVal : bVal - aVal;

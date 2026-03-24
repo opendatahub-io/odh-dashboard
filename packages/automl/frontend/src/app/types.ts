@@ -115,4 +115,4 @@ export type FeatureImportanceData = {
   p99_low?: Record<string, number>;
 };
 
-export type ConfusionMatrixData = Record<string, Record<string, number>>;
+export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;
