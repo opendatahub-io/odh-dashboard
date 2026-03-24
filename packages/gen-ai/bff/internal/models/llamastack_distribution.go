@@ -21,8 +21,15 @@ type LlamaStackDistributionResponse struct {
 
 // LlamaStackDistributionInstallRequest represents the request body for installing models
 type LlamaStackDistributionInstallRequest struct {
-	Models           []InstallModel `json:"models"`
-	EnableGuardrails bool           `json:"enable_guardrails,omitempty"` // If true, adds safety configuration with guardrail shields for all selected models
+	Models           []InstallModel       `json:"models"`
+	EnableGuardrails bool                 `json:"enable_guardrails,omitempty"` // If true, adds safety configuration with guardrail shields for all selected models
+	VectorStores     []InstallVectorStore `json:"vector_stores,omitempty"`     // Optional vector stores to configure; embedding models must be included in Models
+}
+
+// InstallVectorStore identifies a vector store to include in the LSD install.
+// The store must exist in the gen-ai-aa-vector-stores ConfigMap.
+type InstallVectorStore struct {
+	VectorStoreID string `json:"vector_store_id"`
 }
 
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
