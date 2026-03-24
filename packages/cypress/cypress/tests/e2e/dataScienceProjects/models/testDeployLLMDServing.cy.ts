@@ -23,12 +23,8 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
-import {
-  checkLLMInferenceServiceState,
-  deleteCudaReplicaSets,
-} from '../../../../utils/oc_commands/modelServing';
-import { stubClipboard, verifyClipboardHasContent } from '../../../../utils/clipboardUtils';
+import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -38,8 +34,8 @@ let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
 let servingRuntime: string;
-let resourceType: string;
-let Image: string;
+let existingImage: string;
+let replaceImage: string;
 let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
 
@@ -55,8 +51,8 @@ describe('A user can deploy an LLMD model', () => {
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
-        resourceType = testData.resourceType;
-        Image = testData.Image;
+        existingImage = testData.existingImage;
+        replaceImage = testData.replaceImage;
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
@@ -136,8 +132,20 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
+
+      cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
+      // Add the CPU image to the containers spec so deployment works without GPU
+      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
-      verifyClipboardHasContent('copiedYAML');
+      // Verify the actual copied YAML content
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
+        expect(yamlContent).to.include('kind: LLMInferenceService');
+        expect(yamlContent).to.include(`name: ${modelName}`);
+        expect(yamlContent).to.include(replaceImage);
+      });
       modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
@@ -156,15 +164,9 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
-      cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
-      // Patch the LLM Inference Service to set image to VLLM CPU
-      // workaround for model to be deployed without GPUs.
-      // After patching, delete the old ReplicaSet (with CUDA image) to allow the new one to progress.
+      cy.step('Verify that the Model is ready');
+      // Image was patched in YAML editor before submit, so no post-deployment patching needed
       cy.get<string>('@resourceName').then((resourceName) => {
-        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
-        deleteCudaReplicaSets(resourceName, projectName);
-
-        cy.step('Verify that the Model is ready');
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
@@ -197,9 +199,6 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
-      // If we have only one serving model platform, then it is selected by default.
-      // So we don't need to click the button.
-      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');

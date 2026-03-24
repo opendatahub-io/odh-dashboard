@@ -284,9 +284,8 @@ export type DataScienceProjectData = {
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
-  Image: string;
-  scaleDown: string;
-  scaleUp: string;
+  existingImage: string;
+  replaceImage: string;
   serviceAccountName1: string;
   serviceAccountName2: string;
   connectionNameSuffix: string;
