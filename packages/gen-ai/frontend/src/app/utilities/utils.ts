@@ -122,7 +122,7 @@ export const parseEndpointByPrefix = (
 // eslint-disable-next-line prefer-const
 export let CLUSTER_DOMAINS: string[] = [];
 // eslint-disable-next-line prefer-const
-export let ALLOW_EXTERNAL_ENDPOINTS = false;
+export let ALLOW_EXTERNAL_ENDPOINTS = true;
 
 /**
  * Checks if a URL points to a Kubernetes cluster-local service.
