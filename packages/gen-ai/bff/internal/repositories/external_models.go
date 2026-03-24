@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strings"
 
@@ -97,9 +98,9 @@ func isInternalHost(baseURL string) bool {
 	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
 	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
 	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
+	ip := net.ParseIP(h)
 	return h == "localhost" ||
-		h == "::1" ||
-		strings.HasPrefix(h, "127.") ||
+		(ip != nil && ip.IsLoopback()) ||
 		isK8sService
 }
 
