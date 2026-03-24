@@ -74,7 +74,6 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   return (
     <ApplicationsPage
       {...pageProps}
-      noTitle // rendered inside a TabRoutePage which provides the title
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

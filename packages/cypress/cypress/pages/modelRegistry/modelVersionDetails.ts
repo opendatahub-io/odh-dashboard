@@ -11,7 +11,6 @@ class ModelVersionDetails {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('breadcrumb-version-name').should('exist');
     cy.testA11y();
   }
 

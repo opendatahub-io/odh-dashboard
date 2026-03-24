@@ -183,7 +183,6 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         loadError={modelLoadError}
         loaded={modelLoaded}
         errorMessage="Unable to load model catalog"
-        noTitle // rendered inside a TabRoutePage which provides the title
         provideChildrenPadding
         headerAction={
           modelLoaded &&

@@ -86,7 +86,6 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
   return (
     <ApplicationsPage
       {...pageProps}
-      noTitle // rendered inside a TabRoutePage which provides the title
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

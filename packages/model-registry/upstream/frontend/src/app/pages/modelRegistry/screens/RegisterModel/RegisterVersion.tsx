@@ -144,7 +144,6 @@ const RegisterVersion: React.FC = () => {
 
   return (
     <ApplicationsPage
-      noTitle // rendered inside a TabRoutePage which provides the title
       title="Register new version"
       description="Register a latest version to the model you selected below."
       breadcrumb={

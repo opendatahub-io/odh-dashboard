@@ -51,7 +51,6 @@ class ArchiveVersionModal extends Modal {
 class ModelVersionArchive {
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('archive-version-page-breadcrumb').should('exist');
     cy.testA11y();
   }
 

@@ -97,7 +97,6 @@ const McpServerDetailsPage: React.FC = () => {
           ) : undefined
         }
         headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
-        noTitle // rendered inside a TabRoutePage which provides the title
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"
