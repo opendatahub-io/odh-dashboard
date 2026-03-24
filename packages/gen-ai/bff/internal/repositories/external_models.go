@@ -134,7 +134,7 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 			SkipSSRFValidation: isInternalHost(req.BaseURL),
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify,
+			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL),
 			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
 		},
 	)
