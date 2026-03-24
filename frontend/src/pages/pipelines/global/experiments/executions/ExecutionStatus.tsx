@@ -60,7 +60,7 @@ export const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isComp
   }
 
   return (
-    <Label color={color} status={statusProp} icon={icon} isCompact={isCompact}>
+    <Label variant="outline" color={color} status={statusProp} icon={icon} isCompact={isCompact}>
       {label}
     </Label>
   );

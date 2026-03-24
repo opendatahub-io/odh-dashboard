@@ -57,7 +57,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, namespac
     </Td>
     <Td dataLabel={autoragRunsColumns[3].label}>
       {run.state ? (
-        <Label isCompact {...getStatusLabelProps(run.state)}>
+        <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
           {run.state}
         </Label>
       ) : (

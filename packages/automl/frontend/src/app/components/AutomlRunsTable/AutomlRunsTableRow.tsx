@@ -63,7 +63,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace 
     </Td>
     <Td dataLabel={automlRunsColumns[3].label}>
       {run.state ? (
-        <Label isCompact {...getStatusLabelProps(run.state)}>
+        <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
           {run.state}
         </Label>
       ) : (
