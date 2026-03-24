@@ -627,12 +627,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           key="create"
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={
-            !isFormValid ||
-            isSubmitting ||
-            isVerifying ||
-            (verificationResult !== null && !verificationResult.success)
-          }
+          isDisabled={!isFormValid || isSubmitting || isVerifying}
           isLoading={isSubmitting}
           spinnerAriaValueText={isSubmitting ? 'Creating...' : undefined}
           data-testid="create-external-model-submit-button"
