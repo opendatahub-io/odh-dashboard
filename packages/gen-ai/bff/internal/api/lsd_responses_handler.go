@@ -910,6 +910,11 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 		return nil
 	}
 
+	if apiKey == "" {
+		// No token configured — endpoint requires no auth, skip injection
+		return nil
+	}
+
 	// Inject API key as provider data
 	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
 	return map[string]interface{}{

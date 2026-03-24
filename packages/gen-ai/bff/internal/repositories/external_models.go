@@ -34,18 +34,23 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to generate provider ID: %w", err)
 	}
 
-	// Create Secret for API key
-	secretName := fmt.Sprintf("endpoint-api-key-%s", providerID)
-	if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
-		return nil, fmt.Errorf("failed to create secret: %w", err)
+	// Create Secret for API key only when a token was provided
+	var secretName string
+	if req.SecretValue != "" {
+		secretName = fmt.Sprintf("endpoint-api-key-%s", providerID)
+		if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
+			return nil, fmt.Errorf("failed to create secret: %w", err)
+		}
 	}
 
 	// Create or update ConfigMap with the new provider and model
 	if err := client.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req); err != nil {
-		// Clean up secret if ConfigMap creation fails
-		if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
-			// Return both the original error and the cleanup error to surface leaked state
-			return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+		// Clean up secret if ConfigMap creation fails (only if one was created)
+		if secretName != "" {
+			if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
+				// Return both the original error and the cleanup error to surface leaked state
+				return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
