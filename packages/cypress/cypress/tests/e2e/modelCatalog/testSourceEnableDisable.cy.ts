@@ -7,6 +7,7 @@ import {
   waitForModelCatalogCards,
   waitForModelCatalogAfterDisable,
   enableModelCatalogSource,
+  ensureModelCatalogSourceEnabled,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
@@ -19,6 +20,10 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
+      })
+      .then(() => {
+        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
+        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId2);
       });
   });
 
