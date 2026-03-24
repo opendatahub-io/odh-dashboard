@@ -115,7 +115,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
@@ -134,7 +134,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
       await user.type(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
@@ -145,7 +145,7 @@ describe('CreateExternalEndpointModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           model_id: 'gpt-4o',
           model_display_name: 'My Custom GPT-4o',
-          base_url: 'https://api.openai.com/v1',
+          base_url: 'https://model.svc.cluster.local/v1',
           secret_value: 'sk-test-token-123',
           model_type: 'llm',
           use_cases: 'Chat and completion',
@@ -160,7 +160,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
@@ -183,7 +183,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
 
