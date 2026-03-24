@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-core';
 import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import {
+  AIModel,
   ExternalModelRequest,
   ExternalModelResponse,
   VerifyExternalModelRequest,
@@ -37,6 +38,7 @@ type CreateExternalEndpointModalProps = {
   onSuccess: () => void;
   onSubmit: (request: ExternalModelRequest) => Promise<ExternalModelResponse>;
   onVerify: (request: VerifyExternalModelRequest) => Promise<VerifyExternalModelResponse>;
+  existingModels: AIModel[];
 };
 
 type ModelTypeOption = {
@@ -64,6 +66,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   onSuccess,
   onSubmit,
   onVerify,
+  existingModels,
 }) => {
   // Form fields
   const [modelType, setModelType] =
@@ -81,6 +84,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   // Touched state for validation
   const [touched, setTouched] = React.useState({
     modelId: false,
+    displayName: false,
     endpointUrl: false,
     token: false,
     embeddingDimension: false,
@@ -108,7 +112,13 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       setToken('');
       setUseCases('');
       setEmbeddingDimension('');
-      setTouched({ modelId: false, endpointUrl: false, token: false, embeddingDimension: false });
+      setTouched({
+        modelId: false,
+        displayName: false,
+        endpointUrl: false,
+        token: false,
+        embeddingDimension: false,
+      });
       setIsSubmitting(false);
       setError(undefined);
       setVerificationResult(null);
@@ -120,11 +130,30 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setVerificationResult(null);
   }, [modelId, endpointUrl, token, modelType]);
 
+  // Conflict validation
+  const modelIdConflict = React.useMemo(() => {
+    const trimmedId = modelId.trim();
+    if (!trimmedId) {
+      return null;
+    }
+    return existingModels.find((m) => m.model_id === trimmedId);
+  }, [modelId, existingModels]);
+
+  const displayNameConflict = React.useMemo(() => {
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
+      return null;
+    }
+    return existingModels.find((m) => m.display_name === trimmedName);
+  }, [displayName, existingModels]);
+
   // Validation
   const isFormValid =
     modelId.trim() !== '' &&
     endpointUrl.trim() !== '' &&
     token.trim() !== '' &&
+    !modelIdConflict &&
+    !displayNameConflict &&
     (modelType === MODEL_TYPE_LLM ||
       (embeddingDimension.trim() !== '' && parseInt(embeddingDimension, 10) > 0));
 
@@ -341,7 +370,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               value={modelId}
               onChange={(_event, value) => setModelId(value)}
               onBlur={() => setTouched({ ...touched, modelId: true })}
-              validated={touched.modelId && !modelId.trim() ? 'error' : 'default'}
+              validated={
+                touched.modelId && (!modelId.trim() || modelIdConflict) ? 'error' : 'default'
+              }
               isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
@@ -352,8 +383,10 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>
-                  The verbatim model ID from your provider. Must match exactly.
+                <HelperTextItem variant={touched.modelId && modelIdConflict ? 'error' : 'default'}>
+                  {touched.modelId && modelIdConflict
+                    ? `Model ID "${modelId.trim()}" is already in use.`
+                    : 'The verbatim model ID from your provider. Must match exactly.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -380,6 +413,8 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               name="display-name"
               value={displayName}
               onChange={(_event, value) => setDisplayName(value)}
+              onBlur={() => setTouched({ ...touched, displayName: true })}
+              validated={touched.displayName && displayNameConflict ? 'error' : 'default'}
               isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
@@ -390,7 +425,13 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>Optional. A friendly display name for this model.</HelperTextItem>
+                <HelperTextItem
+                  variant={touched.displayName && displayNameConflict ? 'error' : 'default'}
+                >
+                  {touched.displayName && displayNameConflict
+                    ? `Display name "${displayName.trim()}" is already in use.`
+                    : 'Optional. A friendly display name for this model.'}
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
