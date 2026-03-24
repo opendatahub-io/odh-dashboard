@@ -540,6 +540,74 @@ class CopyApiKeyModal extends Modal {
   }
 }
 
+class SubscriptionsPage {
+  visit(): void {
+    cy.visitWithLogin('/maas/subscriptions');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-actions');
+  }
+
+  getRow(name: string): SubscriptionTableRow {
+    return new SubscriptionTableRow(() =>
+      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-filter-input');
+  }
+
+  findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  findCreateSubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-subscription-button');
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
+}
+
+class SubscriptionTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Groups"]');
+  }
+
+  findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Models"]');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -550,3 +618,4 @@ export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();
+export const subscriptionsPage = new SubscriptionsPage();

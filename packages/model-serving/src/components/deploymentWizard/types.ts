@@ -123,7 +123,7 @@ export type InitialWizardFormData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerOption;
+  modelServer?: ModelServerSelectFieldData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;

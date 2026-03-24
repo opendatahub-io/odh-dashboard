@@ -68,7 +68,7 @@ export const useModelDeploymentSubmit = (
           );
         }
 
-        const serverResourceTemplateName = formState.modelServer.data?.name;
+        const serverResourceTemplateName = formState.modelServer.data?.selection?.name;
         const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
         const serverResource = serverResourceTemplateName
           ? getServingRuntimeFromTemplate(

@@ -247,7 +247,7 @@ const getStatusSections = (
         {
           key: 'modelServer',
           label: 'Serving runtime',
-          comp: (state) => state.modelServer.data?.label || 'Auto-selected',
+          comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
         },
         {
           key: 'numReplicas',
