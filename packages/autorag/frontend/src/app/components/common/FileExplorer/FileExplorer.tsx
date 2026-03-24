@@ -63,6 +63,7 @@ export interface File {
   type: string;
   items?: number;
   details?: object;
+  hidden?: boolean;
 }
 export type Files<T extends File = File> = T[];
 
@@ -201,7 +202,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
     items: defaults.labels.tableColumnItems,
   };
 
-  const skeletonRowCount = 10;
+  const skeletonRowCount = perPage;
   const isEmpty = !loading && (!Array.isArray(files) || files.length === 0);
 
   return (
@@ -257,59 +258,70 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {!loading &&
               !isEmpty &&
               Array.isArray(files) &&
-              files.map((file, fileIndex) => (
-                <Tr key={file.name}>
-                  <Td
-                    select={{
-                      rowIndex: fileIndex,
-                      onSelect: (_event, isSelecting) => {
-                        if (selection === 'radio') {
-                          setSelectedFiles(isSelecting ? [file] : []);
-                        } else {
-                          const current = Array.isArray(selectedFiles) ? selectedFiles : [];
-                          if (isSelecting) {
-                            setSelectedFiles([...current, file]);
-                          } else {
-                            setSelectedFiles(current.filter((f) => f !== file));
-                          }
-                        }
-                      },
-                      isSelected: Array.isArray(selectedFiles) && selectedFiles.includes(file),
-                      isDisabled: false,
-                      variant: selection,
-                    }}
-                  />
-                  <Td dataLabel={columns.name}>
-                    {/* Should this be a Content/a/href or should it be Button variant link */}
-                    {isDirectory(file) && (
-                      <Content
-                        component="a"
-                        href="#"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          onDirectoryClick?.(file);
+              files.reduce<{ elements: React.ReactNode[]; visibleIndex: number }>(
+                (acc, file) => {
+                  if (file.hidden) {
+                    return acc;
+                  }
+                  const rowIndex = acc.visibleIndex;
+                  acc.visibleIndex++;
+                  acc.elements.push(
+                    <Tr key={file.name}>
+                      <Td
+                        select={{
+                          rowIndex,
+                          onSelect: (_event, isSelecting) => {
+                            if (selection === 'radio') {
+                              setSelectedFiles(isSelecting ? [file] : []);
+                            } else {
+                              const current = Array.isArray(selectedFiles) ? selectedFiles : [];
+                              if (isSelecting) {
+                                setSelectedFiles([...current, file]);
+                              } else {
+                                setSelectedFiles(current.filter((f) => f !== file));
+                              }
+                            }
+                          },
+                          isSelected: Array.isArray(selectedFiles) && selectedFiles.includes(file),
+                          isDisabled: false,
+                          variant: selection,
                         }}
-                      >
-                        {file.name}
-                      </Content>
-                    )}
-                    {!isDirectory(file) && file.name}
-                  </Td>
-                  <Td dataLabel={columns.type}>
-                    {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
-                  </Td>
-                  <Td dataLabel={columns.items}>
-                    {typeof file.items === 'number' && (
-                      <Label variant="outline" color="green" isCompact>
-                        {file.items}{' '}
-                        {file.items === 1
-                          ? defaults.labels.tableItemsSingular
-                          : defaults.labels.tableItemsPlural}
-                      </Label>
-                    )}
-                  </Td>
-                </Tr>
-              ))}
+                      />
+                      <Td dataLabel={columns.name}>
+                        {/* Should this be a Content/a/href or should it be Button variant link */}
+                        {isDirectory(file) && (
+                          <Content
+                            component="a"
+                            href="#"
+                            onClick={(e: React.MouseEvent) => {
+                              e.preventDefault();
+                              onDirectoryClick?.(file);
+                            }}
+                          >
+                            {file.name}
+                          </Content>
+                        )}
+                        {!isDirectory(file) && file.name}
+                      </Td>
+                      <Td dataLabel={columns.type}>
+                        {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
+                      </Td>
+                      <Td dataLabel={columns.items}>
+                        {typeof file.items === 'number' && (
+                          <Label variant="outline" color="green" isCompact>
+                            {file.items}{' '}
+                            {file.items === 1
+                              ? defaults.labels.tableItemsSingular
+                              : defaults.labels.tableItemsPlural}
+                          </Label>
+                        )}
+                      </Td>
+                    </Tr>,
+                  );
+                  return acc;
+                },
+                { elements: [], visibleIndex: 0 },
+              ).elements}
           </Tbody>
         </Table>
         <Pagination
@@ -607,7 +619,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 onSearch?.('');
               }}
               resultsCount={searchResultsCount}
-              isDisabled={loading}
             />
           </FlexItem>
           <FlexItem>

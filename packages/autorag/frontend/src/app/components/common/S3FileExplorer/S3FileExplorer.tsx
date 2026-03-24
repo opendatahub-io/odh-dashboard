@@ -2,7 +2,8 @@
 
 // Modules -------------------------------------------------------------------->
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { debounce } from 'es-toolkit';
 import { APIOptions, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type {
@@ -33,14 +34,27 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
 
   if (result.common_prefixes) {
     for (const cp of result.common_prefixes) {
+      // Mark root directory markers as hidden — "/" and "" are the bucket root
+      const isRoot = cp.prefix === '/' || cp.prefix === '';
       const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
       const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-      items.push({ name, path: prefixPath, type: 'directory', items: 0 });
+      items.push({
+        name,
+        path: prefixPath,
+        type: 'directory',
+        items: 0,
+        ...(isRoot && { hidden: true }),
+      });
     }
   }
 
   if (result.contents) {
     for (const obj of result.contents) {
+      // Mark root directory markers as hidden
+      if (obj.key === '/' || obj.key === '') {
+        items.push({ name: '/', path: '/', type: 'directory', items: 0, hidden: true });
+        continue;
+      }
       // Skip keys that end with / (directory markers)
       if (obj.key.endsWith('/')) {
         const dirPath = `/${obj.key.replace(/\/$/, '')}`;
@@ -69,7 +83,7 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
     }
   }
 
-  return items;
+  return items.toSorted((a, b) => a.name.localeCompare(b.name));
 };
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
@@ -144,7 +158,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }
       setLoadingToRender(true);
 
-      const apiPath = path === '/' ? undefined : path.replace(/^\//, '');
+      // Strip leading slash and ensure trailing slash so S3 treats it as a prefix
+      const apiPath = path === '/' ? undefined : path.replace(/^\//, '').replace(/\/?$/, '/');
       const opts: { path?: string; search?: string; limit?: number; next?: string } = {
         limit: perPage,
       };
@@ -200,6 +215,21 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     fetchPath(path, perPage, 1);
   };
 
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((query: string) => {
+        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
+        setPageToRender(1);
+        continuationTokensRef.current = new Map();
+        setSearchResultsCountToRender(undefined);
+        fetchPath(currentPath, perPage, 1, query || undefined);
+      }, 300),
+    [currentPath, perPageToRender, fetchPath],
+  );
+
+  // Cancel debounce on unmount
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+
   // Rendering ---------------------------------------------------------------->
 
   // TODO [ Gustavo ] Add an empty state if s3Connection is not passed in
@@ -234,16 +264,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }}
       onSearch={(query) => {
         setSearchQuery(query);
-        setPageToRender(1);
-        continuationTokensRef.current = new Map();
-        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
-        if (query) {
-          setSearchResultsCountToRender(undefined);
-          fetchPath(currentPath, perPage, 1, query);
-        } else {
-          setSearchResultsCountToRender(undefined);
-          fetchPath(currentPath, perPage, 1);
-        }
+        debouncedSearch(query);
       }}
       onSetPage={(newPage) => {
         const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
