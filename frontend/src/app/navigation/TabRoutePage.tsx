@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Content, PageSection, Spinner, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import type { LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -66,13 +66,67 @@ const tabRoutePageContextValue: { isInsideTabPage: boolean } = { isInsideTabPage
 const isProjectObjectType = (value: string): value is ProjectObjectType =>
   Object.values<string>(ProjectObjectType).includes(value);
 
+type MultiTabContentProps = {
+  pageTitle: React.ReactNode;
+  tabExtensions: LoadedExtension<TabRouteTabExtension>[];
+  extension: LoadedExtension<TabRoutePageExtension>;
+  defaultTab: string;
+  tabContentFallback: React.ReactNode;
+};
+
+const MultiTabContent: React.FC<MultiTabContentProps> = ({
+  pageTitle,
+  tabExtensions,
+  extension,
+  defaultTab,
+  tabContentFallback,
+}) => {
+  const { tabId = '' } = useParams<{ tabId: string }>();
+  const navigate = useNavigate();
+
+  const activeTab = tabExtensions.find((t) => t.properties.id === tabId);
+
+  if (!activeTab) {
+    return <Navigate to={`../${defaultTab}`} replace />;
+  }
+
+  return (
+    <>
+      {pageTitle}
+      <PageSection type="tabs">
+        <Tabs
+          activeKey={tabId}
+          onSelect={(_event, tabKey) => {
+            navigate(`${extension.properties.href}/${String(tabKey)}`);
+          }}
+        >
+          {tabExtensions.map((t) => (
+            <Tab
+              key={t.properties.id}
+              eventKey={t.properties.id}
+              title={<TabTitleText>{t.properties.title}</TabTitleText>}
+              data-testid={`tab-${t.properties.id}`}
+            />
+          ))}
+        </Tabs>
+      </PageSection>
+      <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
+        <LazyCodeRefComponent
+          key={activeTab.properties.id}
+          component={activeTab.properties.component}
+          fallback={tabContentFallback}
+        />
+      </TabRoutePageContext.Provider>
+    </>
+  );
+};
+
 const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   const pageId = extension.properties.id;
   const { objectType: objectTypeStr } = extension.properties;
   const objectType =
     objectTypeStr && isProjectObjectType(objectTypeStr) ? objectTypeStr : undefined;
   const allTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
-  const navigate = useNavigate();
   const location = useLocation();
 
   const tabExtensions = React.useMemo(
@@ -117,6 +171,8 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     </PageSection>
   );
 
+  const defaultTab = getDefaultTab(pageId, tabExtensions);
+
   // Single tab: render content directly without tab bar
   if (tabExtensions.length === 1) {
     const singleTab = tabExtensions[0];
@@ -141,43 +197,21 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     );
   }
 
-  // Multiple tabs: render tab bar with URL-driven selection
-  const defaultTab = getDefaultTab(pageId, tabExtensions);
+  // Multiple tabs: single parametric route with tab ID from URL
   return (
     <Routes>
-      {tabExtensions.map((tab) => (
-        <Route
-          key={tab.properties.id}
-          path={`${tab.properties.id}/*`}
-          element={
-            <>
-              {pageTitle}
-              <PageSection type="tabs">
-                <Tabs
-                  activeKey={tab.properties.id}
-                  onSelect={(_event, tabKey) => {
-                    navigate(`${extension.properties.href}/${String(tabKey)}`);
-                  }}
-                >
-                  {tabExtensions.map((t) => (
-                    <Tab
-                      key={t.properties.id}
-                      eventKey={t.properties.id}
-                      title={<TabTitleText>{t.properties.title}</TabTitleText>}
-                    />
-                  ))}
-                </Tabs>
-              </PageSection>
-              <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
-                <LazyCodeRefComponent
-                  component={tab.properties.component}
-                  fallback={tabContentFallback}
-                />
-              </TabRoutePageContext.Provider>
-            </>
-          }
-        />
-      ))}
+      <Route
+        path=":tabId/*"
+        element={
+          <MultiTabContent
+            pageTitle={pageTitle}
+            tabExtensions={tabExtensions}
+            extension={extension}
+            defaultTab={defaultTab}
+            tabContentFallback={tabContentFallback}
+          />
+        }
+      />
       <Route path="*" element={<Navigate to={defaultTab} replace />} />
     </Routes>
   );
