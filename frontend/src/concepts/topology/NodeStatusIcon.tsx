@@ -1,10 +1,12 @@
 import React from 'react';
 import {
+  AngleDoubleRightIcon,
+  BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  BanIcon,
   InProgressIcon,
   OutlinedWindowRestoreIcon,
+  PauseCircleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
 import { Icon, Tooltip } from '@patternfly/react-core';
@@ -32,7 +34,8 @@ const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runS
       label = runtimeStateLabels[RuntimeStateKF.CACHED];
       break;
     case runtimeStateLabels[RuntimeStateKF.SKIPPED]:
-      icon = <CheckCircleIcon />;
+      icon = <AngleDoubleRightIcon />;
+      status = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SKIPPED];
       break;
     case runtimeStateLabels[RuntimeStateKF.SUCCEEDED]:
@@ -54,7 +57,7 @@ const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runS
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case runtimeStateLabels[RuntimeStateKF.PAUSED]:
-      icon = <BanIcon />;
+      icon = <PauseCircleIcon />;
       label = runtimeStateLabels[RuntimeStateKF.PAUSED];
       break;
     case undefined:

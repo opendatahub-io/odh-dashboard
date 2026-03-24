@@ -4,11 +4,12 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InProgressIcon,
+  OutlinedClockIcon,
+  OutlinedQuestionCircleIcon,
+  PauseCircleIcon,
+  PauseIcon,
   PendingIcon,
   PlayIcon,
-  PauseIcon,
-  OutlinedClockIcon,
-  PauseCircleIcon,
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
@@ -152,8 +153,8 @@ export const getStatusInfo = (
     default:
       return {
         label: 'Unknown',
-        status: 'warning',
-        IconComponent: ExclamationCircleIcon,
+        color: 'grey',
+        IconComponent: OutlinedQuestionCircleIcon,
       };
   }
 };

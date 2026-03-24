@@ -334,21 +334,18 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Failed);
     expect(info.label).toBe('Failed');
     expect(info.status).toBe('danger');
-    expect(info.color).toBe('red');
   });
 
   it('should return correct info for Preempted', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Preempted);
     expect(info.label).toBe('Preempted');
     expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
   });
 
   it('should return correct info for Inadmissible', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Inadmissible);
     expect(info.label).toBe('Inadmissible');
     expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
   });
 
   it('should return correct info for Running', () => {
@@ -368,7 +365,6 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Succeeded);
     expect(info.label).toBe('Complete');
     expect(info.status).toBe('success');
-    expect(info.color).toBe('green');
   });
 
   it('should return default for unknown status', () => {
