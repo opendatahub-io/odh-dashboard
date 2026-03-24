@@ -1,3 +1,9 @@
+---
+description: Contract test guidelines for ODH Dashboard modules with BFF API validation
+globs: "**/contract-tests/**"
+alwaysApply: false
+---
+
 # Contract Test Rules
 
 Comprehensive guidelines for creating and maintaining contract tests for ODH Dashboard modules.
@@ -441,6 +447,8 @@ func main() {
 ```
 
 **Default mock flags**: `--mock-k8s-client --mock-mr-client --port 8108 --allowed-origins=*`
+
+> **Note**: `--allowed-origins=*` is for local developer testing only. In shared or CI environments, use specific origins (e.g., `--allowed-origins=http://localhost:4010`) or set the value via an environment variable.
 
 ### Required Health Endpoint
 
