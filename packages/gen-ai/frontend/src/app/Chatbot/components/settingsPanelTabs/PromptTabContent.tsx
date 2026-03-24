@@ -4,6 +4,7 @@ import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
+import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 
 interface PromptTabContentProps {
@@ -15,7 +16,7 @@ function PromptTabContent({
   systemInstruction,
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
-  const { setIsPromptManagementModalOpen } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
   const [promptManagementEnabled] = useFeatureFlag('promptManagement');
 
   function buildHeaderActions() {
@@ -27,7 +28,7 @@ function PromptTabContent({
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
         onClick={() => {
-          setIsPromptManagementModalOpen(true);
+          openModal('allPrompts');
         }}
       >
         Load Prompt
@@ -37,13 +38,23 @@ function PromptTabContent({
 
   return (
     <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
-      <Form style={{ paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
-        <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">
-          <SystemPromptFormGroup
-            systemInstruction={systemInstruction}
-            onSystemInstructionChange={onSystemInstructionChange}
-          />
-        </FormGroup>
+      <Form>
+        {!promptManagementEnabled && (
+          <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">
+            <SystemPromptFormGroup
+              systemInstruction={systemInstruction}
+              onSystemInstructionChange={onSystemInstructionChange}
+            />
+          </FormGroup>
+        )}
+        {promptManagementEnabled && (
+          <FormGroup fieldId="prompt-instructions" data-testid="prompt-instructions-section">
+            <PromptAssistantFormGroup
+              systemInstruction={systemInstruction}
+              onSystemInstructionChange={onSystemInstructionChange}
+            />
+          </FormGroup>
+        )}
       </Form>
     </TabContentWrapper>
   );

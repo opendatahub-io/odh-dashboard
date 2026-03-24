@@ -108,7 +108,7 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
       }
       buttonActions={[
         {
-          label: 'Confirm',
+          label: 'Save',
           onClick: handleConfirm,
           variant: 'primary',
           dataTestId: 'assign-roles-confirm-save',

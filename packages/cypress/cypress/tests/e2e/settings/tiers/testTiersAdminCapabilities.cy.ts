@@ -3,6 +3,7 @@ import {
   ModelTypeLabel,
   ModelStateToggleLabel,
   ModelStateLabel,
+  YAMLViewerToggleOption,
 } from '@odh-dashboard/model-serving/types/form-data';
 import {
   tiersPage,
@@ -25,7 +26,6 @@ import {
 } from '../../../../pages/modelServing';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { getCustomResource } from '../../../../utils/oc_commands/customResources';
-import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   createCleanHardwareProfile,
@@ -60,8 +60,8 @@ describe.skip('Verify Tiers Creation and Deploy Model with Tier and Delete Tier'
   let modelName: string;
   let modelURI: string;
   let servingRuntime: string;
-  let resourceType: string;
-  let Image: string;
+  let existingImage: string;
+  let replaceImage: string;
   let hardwareProfileResourceName: string;
   let hardwareProfileYamlPath: string;
   let groupsString: string;
@@ -109,8 +109,8 @@ describe.skip('Verify Tiers Creation and Deploy Model with Tier and Delete Tier'
           servingRuntime = dspTestData.servingRuntime;
           hardwareProfileResourceName = `${dspTestData.hardwareProfileName}`;
           hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
-          resourceType = dspTestData.resourceType;
-          Image = dspTestData.Image;
+          existingImage = dspTestData.existingImage;
+          replaceImage = dspTestData.replaceImage;
         })
         .then(() => {
           cy.log(`Loaded project name: ${projectName}`);
@@ -222,7 +222,7 @@ describe.skip('Verify Tiers Creation and Deploy Model with Tier and Delete Tier'
 
       cy.step('Deploy model with this test Resource Tier');
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin('/?devFeatureFlags=deploymentWizardYAMLViewer=true', LDAP_CONTRIBUTOR_USER);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -253,12 +253,17 @@ describe.skip('Verify Tiers Creation and Deploy Model with Tier and Delete Tier'
       maasWizardField.selectMaaSTierNames([name]);
 
       modelServingWizard.findNextButton().click();
-      modelServingWizard.findSubmitButton().click();
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
+      modelServingWizard.findYAMLCodeEditor().waitForReady();
+
+      cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
+      // Add the CPU image to the containers spec so deployment works without GPU
+      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
+      modelServingWizard.findYAMLCodeEditor().waitForReady();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
       modelServingSection.findModelServerDeployedName(modelName);
       const kServeRow = modelServingSection.getKServeRow(modelName);
       cy.get<string>('@resourceName').then((resourceName) => {
-        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
-
         cy.step('Verify that the Model is ready');
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
         kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();

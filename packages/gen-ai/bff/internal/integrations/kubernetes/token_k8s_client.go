@@ -1490,7 +1490,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	var externalModelsConfig *models.ExternalModelsConfig
 	for _, model := range installModels {
 		if models.IsExternalModelSource(model.ModelSourceType) {
-			cfg, err := kc.getExternalModelsConfig(ctx, namespace)
+			cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
@@ -1630,8 +1630,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	return configYAML, nil
 }
 
-// getExternalModelsConfig retrieves and parses the gen-ai-aa-external-models ConfigMap
-func (kc *TokenKubernetesClient) getExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+// GetExternalModelsConfig retrieves and parses the gen-ai-aa-external-models ConfigMap
+func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
 	// Get the ConfigMap
 	configMap := &corev1.ConfigMap{}
 	configMapName := types.NamespacedName{
@@ -2564,4 +2564,31 @@ func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *int
 
 	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
 	return nil
+}
+
+// GetSecretValue retrieves a specific value from a Kubernetes Secret
+func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secret := &corev1.Secret{}
+	secretNamespacedName := types.NamespacedName{
+		Name:      secretName,
+		Namespace: namespace,
+	}
+
+	if err := kc.Client.Get(ctx, secretNamespacedName, secret); err != nil {
+		kc.Logger.Error("failed to get Secret", "error", err, "namespace", namespace, "secretName", secretName)
+		return "", fmt.Errorf("failed to get Secret: %w", err)
+	}
+
+	// Get the value from the secret
+	value, ok := secret.Data[secretKey]
+	if !ok {
+		kc.Logger.Warn("secret key not found in Secret", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
+		return "", fmt.Errorf("key '%s' not found in Secret '%s'", secretKey, secretName)
+	}
+
+	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
+	return string(value), nil
 }

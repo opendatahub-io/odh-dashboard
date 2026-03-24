@@ -16,6 +16,10 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
   getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+  splitLlamaModelId: jest.fn((modelId: string) => ({
+    providerId: 'provider-id',
+    id: modelId,
+  })),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
