@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -n \"setupApiTest\" internal/api/*.go)",
-      "Bash(grep -A 50 \"func setupApiTest\" internal/api/*.go)",
-      "Bash(wsl:*)"
-    ]
-  }
-}
