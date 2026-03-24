@@ -13,7 +13,8 @@ import type {
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import type { LLMdDeployment } from '../src/types';
+import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
 import type {
   LLMConfigOptionsData,
   LLMConfigOptionsFieldValue,
@@ -24,7 +25,7 @@ export const LLMD_SERVING_ID = 'llmd-serving';
 const extensions: (
   | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
-  | DeployedModelServingDetails<LLMdDeployment>
+  | DeployedModelServingDetails<LLMdDeployment, FetchStateObject<LLMInferenceServiceConfigKind[]>>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
@@ -57,7 +58,12 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: LLMD_SERVING_ID,
-      ServingDetailsComponent: () => import('../src/components/servingRuntime'),
+      dataHook: () =>
+        import('../src/components/ServingDetails').then((m) => m.useServingDetailsData),
+      ServingDetailsComponent: () =>
+        import('../src/components/ServingDetails').then((m) => ({
+          default: m.default,
+        })),
     },
     flags: {
       required: [LLMD_SERVING_ID],

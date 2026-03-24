@@ -1,3 +1,9 @@
+---
+description: Cypress E2E test creation and maintenance guidelines for live cluster testing
+globs: "packages/cypress/cypress/tests/e2e/**"
+alwaysApply: false
+---
+
 # Cypress E2E Test Rules
 
 Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing.
@@ -67,7 +73,7 @@ packages/cypress/cypress/
 - User configuration is ALWAYS stored in `test-variables.yml`
 - Reference users, buckets, clusters from this file like other tests
 - Use `test-variables.yml.example` as template for what gets checked in
-- Load test variables: `cy.getTestConfig().then((config) => { ... })`
+- Load test variables by importing from `utils/e2eUsers` (e.g., `import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';`)
 
 **Fixture files for test configuration**:
 - Store test-specific data in YAML fixture files
@@ -373,7 +379,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
 4. **Verify no quarantine markers remain**:
    ```bash
    # Check for any remaining quarantine markers
-   grep -r "@Bug\|@Maintain\|\[Product Bug\|\[Automation Bug" \
+   grep -rE "@Bug|@Maintain|\[Product Bug|\[Automation Bug" \
      packages/cypress/cypress/tests/e2e/
    ```
 

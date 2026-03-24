@@ -119,6 +119,10 @@ const initIntercepts = ({
     mockK8sResourceList([mockProjectK8sResource({ enableKServe: true })]),
   );
   cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList(llmInferenceServices));
+  cy.interceptK8sList(
+    { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+    mockK8sResourceList([]),
+  );
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
 
@@ -630,9 +634,18 @@ describe('Model Serving LLMD', () => {
     });
   });
 
-  describe('Deploy vLLM using LLMInferenceServiceConfig', () => {
+  describe('vLLM using LLMInferenceServiceConfig', () => {
     const initVLLMOnMaaSIntercepts = () => {
-      initIntercepts({});
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-vllm-gpu',
+            displayName: 'GPU vLLM Deployment',
+            baseRefs: [{ name: 'test-vllm-gpu' }],
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
 
       // Override config to enable vLLMDeploymentOnMaaS
       cy.interceptOdh(
@@ -652,19 +665,63 @@ describe('Model Serving LLMD', () => {
         mockK8sResourceList([
           mockLLMInferenceServiceConfigK8sResource({
             name: 'vllm-gaudi-config',
-            displayName: 'vLLM on Gaudi',
+            displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
             runtimeVersion: 'v0.9.1',
           }),
           mockLLMInferenceServiceConfigK8sResource({
             name: 'vllm-gpu-config',
-            displayName: 'vLLM on GPU',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
             runtimeVersion: 'v0.8.2',
           }),
         ]),
       );
+
+      // Child config in project namespace — linked to the IS via matching name
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'test-vllm-gpu',
+            namespace: 'test-project',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+            templateName: 'vllm-gpu-config',
+          }),
+        ]),
+      );
+
+      cy.intercept('PUT', '**/llminferenceservices/test-vllm-gpu*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
     };
 
-    it('should show LLM config options when generative model type is selected with vLLMDeploymentOnMaaS enabled', () => {
+    it('should display serving runtime name and version, then pre-fill when editing', () => {
+      initVLLMOnMaaSIntercepts();
+
+      modelServingGlobal.visit('test-project');
+
+      // Verify the table shows the serving runtime name and version label
+      const row = modelServingGlobal.getDeploymentRow('GPU vLLM Deployment');
+      row.findServingRuntime().should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      row.findServingRuntimeVersionLabel().should('contain.text', 'v0.8.2');
+
+      // Open the edit wizard and verify the Serving runtime field is pre-filled on step 2
+      modelServingGlobal.getModelRow('GPU vLLM Deployment').findKebabAction('Edit').click();
+
+      // Step 1: Model source — select URI, enter the model location, and proceed
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().type('hf://facebook/opt-125m');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Verify the Serving runtime selector is pre-filled with the vLLM config name
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+    });
+
+    it('Deploy vLLM using LLMInferenceServiceConfig', () => {
       initVLLMOnMaaSIntercepts();
 
       modelServingGlobal.visit('test-project');
@@ -686,16 +743,22 @@ describe('Model Serving LLMD', () => {
       modelServingWizard
         .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('exist');
-      modelServingWizard.findGlobalScopedTemplateOption('vLLM on Gaudi').should('exist');
-      modelServingWizard.findGlobalScopedTemplateOption('vLLM on GPU').should('exist');
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .should('exist');
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
 
       // Select a vLLM config option
-      modelServingWizard.findGlobalScopedTemplateOption('vLLM on Gaudi').click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .click();
 
       // Verify the selected option is displayed
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
-        .should('contain.text', 'vLLM on Gaudi');
+        .should('contain.text', 'vLLM on Gaudi LLMInferenceServiceConfig');
     });
   });
 });

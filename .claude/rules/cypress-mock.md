@@ -1,3 +1,9 @@
+---
+description: Cypress mock test creation and maintenance guidelines for isolated component testing
+globs: "packages/cypress/cypress/tests/mocked/**,packages/*/frontend/src/__tests__/cypress/**"
+alwaysApply: false
+---
+
 # Cypress Mock Test Rules
 
 Comprehensive guidelines for creating and maintaining Cypress mock tests with fully mocked backends for fast, isolated component and integration testing.
@@ -321,7 +327,6 @@ describe('User Management', () => {
   });
 
   it('Administrator group setting', () => {
-    // ✅ Tests the complete admin group flow in one test
     const administratorGroupSection = userManagement.getAdministratorGroupSection();
     userManagement.findSubmitButton().should('be.disabled');
     administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
@@ -334,7 +339,6 @@ describe('User Management', () => {
   });
 
   it('User group setting', () => {
-    // ✅ Tests the main user group flow with save and payload validation
     const userGroupSection = userManagement.getUserGroupSection();
     userGroupSection.clearMultiChipItem();
     userGroupSection.selectMultiGroup('odh-admins');
@@ -344,7 +348,6 @@ describe('User Management', () => {
 
     userManagement.findSubmitButton().click();
     cy.wait('@saveGroupSetting').then((interception) => {
-      // Validate the actual PATCH payload structure
       expect(interception.request.body).to.eql([
         { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
         { value: ['odh-admins'], op: 'replace', path: '/spec/allowedGroups' },
@@ -354,7 +357,6 @@ describe('User Management', () => {
   });
 
   it('redirect from v2 to v3 route', () => {
-    // ✅ Tests route redirect
     cy.visitWithLogin('/groupSettings');
     cy.findByTestId('app-page-title').contains('User management');
     cy.url().should('include', '/settings/user-management');
@@ -576,8 +578,11 @@ class ChatbotPage {
 
 // In test file:
 it('should load message input', () => {
-  // ✅ GOOD - Timeout specified in test when needed
-  chatbotPage.findMessageInput({ timeout: 20000 }).should('be.visible');
+  // ✅ GOOD - Timeout specified at the assertion level in the test
+  chatbotPage.findMessageInput().should('be.visible');
+
+  // If a longer timeout is needed, chain .then() or increase defaultCommandTimeout
+  // in cypress.config for the specific test, or use a preceding cy.wait('@alias')
 });
 ```
 
