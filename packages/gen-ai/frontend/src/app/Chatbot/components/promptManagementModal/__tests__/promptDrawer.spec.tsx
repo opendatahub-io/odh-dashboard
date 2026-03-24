@@ -95,6 +95,6 @@ describe('PromptDrawer', () => {
   it('should render close button in drawer', () => {
     render(<PromptDrawer {...defaultProps} selectedVersion={2} />);
 
-    expect(screen.getByRole('button', { name: 'Close drawer panel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close drawer' })).toBeInTheDocument();
   });
 });

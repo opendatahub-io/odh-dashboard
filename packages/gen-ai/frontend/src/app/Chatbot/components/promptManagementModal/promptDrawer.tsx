@@ -1,16 +1,17 @@
 import React from 'react';
 import {
+  Button,
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
   Drawer,
+  DrawerCloseButton,
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
   DrawerHead,
   DrawerActions,
-  DrawerCloseButton,
   TextArea,
   Spinner,
   Title,
@@ -20,6 +21,7 @@ import {
   LabelGroup,
   Label,
 } from '@patternfly/react-core';
+import { CompressAltIcon } from '@patternfly/react-icons';
 import { SimpleSelect } from '@patternfly/react-templates';
 import { MLflowPromptVersion } from '~/app/types';
 
@@ -39,14 +41,14 @@ export default function PromptDrawer({
   children: React.ReactNode;
 }): React.ReactNode {
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
-  const isExpanded = !!selectedPrompt;
+  const isExpanded = !!selectedPrompt || isLoadingDetails;
 
   function buildContent() {
     if (isLoadingDetails) {
       return (
         <DrawerPanelContent>
           <DrawerHead>
-            <Title headingLevel="h2">Loading Prompt Details...</Title>
+            <Title headingLevel="h3">Loading Prompt Details...</Title>
             <DrawerActions>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
@@ -88,7 +90,9 @@ export default function PromptDrawer({
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <DrawerCloseButton onClick={onClose} />
+            <Button variant="plain" aria-label="Close drawer" onClick={onClose}>
+              <CompressAltIcon />
+            </Button>
           </DrawerActions>
         </DrawerHead>
         <Flex

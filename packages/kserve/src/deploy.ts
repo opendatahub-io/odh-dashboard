@@ -47,7 +47,7 @@ export const deployKServeDeployment = async (
             project: projectName,
             name: wizardData.k8sNameDesc.data.k8sName.value,
             servingRuntime: serverResource,
-            scope: wizardData.modelServer.data?.scope || '',
+            scope: wizardData.modelServer.data?.selection?.scope,
             templateName: serverResourceTemplateName,
           },
           dryRun,

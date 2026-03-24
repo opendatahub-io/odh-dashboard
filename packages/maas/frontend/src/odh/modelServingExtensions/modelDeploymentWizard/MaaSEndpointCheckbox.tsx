@@ -67,7 +67,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   isActive: (wizardFormData) =>
     wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
     !wizardFormData.modelType.data.legacyVLLM &&
-    wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID,
+    wizardFormData.modelServer?.data?.selection?.name === LLMD_SERVING_ID,
   reducerFunctions: {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,
