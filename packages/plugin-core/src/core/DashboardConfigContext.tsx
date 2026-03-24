@@ -1,10 +1,5 @@
 import * as React from 'react';
-
-/**
- * Dashboard configuration data from the OdhDashboardConfig CR spec.
- * This type should match DashboardConfigKind['spec'] from the main app.
- */
-export type DashboardConfigData = Record<string, unknown>;
+import type { DashboardConfigKind } from '@odh-dashboard/internal/k8sTypes';
 
 /**
  * Shared React context for dashboard configuration.
@@ -15,4 +10,4 @@ export type DashboardConfigData = Record<string, unknown>;
  * Federated modules consume it:
  *   const config = React.useContext(DashboardConfigContext);
  */
-export const DashboardConfigContext = React.createContext<DashboardConfigData | null>(null);
+export const DashboardConfigContext = React.createContext<DashboardConfigKind['spec'] | null>(null);
