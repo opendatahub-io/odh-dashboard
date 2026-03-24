@@ -2,6 +2,7 @@ import React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelTransferJob } from '~/app/types';
 import useModelTransferJobs from '~/app/hooks/useModelTransferJobs';
 import { useModelRegistryAPI } from '~/app/hooks/useModelRegistryAPI';
@@ -20,6 +21,7 @@ type ModelTransferJobsProps = Omit<
 >;
 
 const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
   const [jobs, jobsLoaded, jobsLoadError, refetchJobs] = useModelTransferJobs();
   const { api, apiAvailable } = useModelRegistryAPI();
@@ -86,6 +88,7 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
   return (
     <ApplicationsPage
       {...pageProps}
+      noTitle={tabRouteContext?.isInsideTabPage}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

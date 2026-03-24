@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
@@ -24,6 +25,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
   tab,
   ...pageProps
 }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);
 
@@ -44,6 +46,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
     <>
       <ApplicationsPage
         {...pageProps}
+        noTitle={tabRouteContext?.isInsideTabPage}
         breadcrumb={
           <RegisteredModelArchiveDetailsBreadcrumb
             preferredModelRegistry={preferredModelRegistry?.name}

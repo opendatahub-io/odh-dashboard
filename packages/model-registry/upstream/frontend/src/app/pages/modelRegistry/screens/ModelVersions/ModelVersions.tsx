@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelVersionsTab } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
 import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
@@ -25,6 +26,7 @@ type ModelVersionsProps = {
 >;
 
 const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { registeredModelId: rmId } = useParams();
   const [modelVersions, mvLoaded, mvLoadError, mvRefresh] = useModelVersionsByRegisteredModel(rmId);
@@ -52,6 +54,7 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
   return (
     <ApplicationsPage
       {...pageProps}
+      noTitle={tabRouteContext?.isInsideTabPage}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
