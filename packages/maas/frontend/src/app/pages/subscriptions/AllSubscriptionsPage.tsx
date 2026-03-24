@@ -14,7 +14,7 @@ import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import EmptySubscriptionsPage from './EmptySubscriptionsPage';
 
 const AllSubscriptionsPage: React.FC = () => {
-  const [subscriptions, loaded, error] = useListSubscriptions();
+  const [subscriptions, loaded, error, refresh] = useListSubscriptions();
   const [filterData, setFilterData] = React.useState<SubscriptionsFilterDataType>(
     initialSubscriptionsFilterData,
   );
@@ -64,6 +64,7 @@ const AllSubscriptionsPage: React.FC = () => {
           subscription={deleteSubscription}
           onClose={() => {
             setDeleteSubscription(undefined);
+            refresh();
           }}
         />
       )}
