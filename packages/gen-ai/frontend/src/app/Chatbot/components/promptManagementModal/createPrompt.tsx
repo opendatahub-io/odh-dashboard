@@ -9,7 +9,11 @@ import {
   Split,
   SplitItem,
   MenuToggle,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt } from './usePromptQueries';
@@ -19,6 +23,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     usePlaygroundStore();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
+  const [nameError, setNameError] = React.useState<string | null>(null);
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
@@ -28,23 +33,37 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       updateSystemInstruction('default', instruction);
       onClose();
     },
+    onError: (error) => {
+      if (error.message.toLowerCase().includes('already exists')) {
+        setNameError('A prompt with this name already exists. Choose a different name.');
+      } else {
+        setNameError(error.message || 'An error occurred while saving the prompt.');
+      }
+    },
   });
 
   const handleSave = () => {
-    if (!dirtyPrompt?.name) {
+    if (!dirtyPrompt?.name || !dirtyPrompt.name.trim()) {
+      setNameError('Name is required.');
       return;
     }
+    setNameError(null);
     createPrompt({
       name: dirtyPrompt.name,
       messages: [{ role: 'system', content: dirtyPrompt.template || '' }],
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
+      // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+      create_only: !isEditMode,
     });
   };
 
   function handleChange(field: string, value: string) {
     if (!dirtyPrompt) {
       return;
+    }
+    if (field === 'name' && nameError) {
+      setNameError(null);
     }
     setDirtyPrompt({
       ...dirtyPrompt,
@@ -66,7 +85,17 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
               value={dirtyPrompt?.name}
               isDisabled={isEditMode}
               onChange={(_event, value) => handleChange('name', value)}
+              validated={nameError ? 'error' : 'default'}
             />
+            {nameError && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {nameError}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </SplitItem>
           {isEditMode && (
             <SplitItem>

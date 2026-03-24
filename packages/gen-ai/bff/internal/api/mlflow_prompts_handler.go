@@ -77,6 +77,13 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if req.CreateOnly {
+		if _, err := app.repositories.MLflowPrompts.LoadPrompt(ctx, req.Name, nil); err == nil {
+			app.conflictResponse(w, r, fmt.Errorf("a prompt with the name %q already exists", req.Name))
+			return
+		}
+	}
+
 	result, err := app.repositories.MLflowPrompts.RegisterPrompt(ctx, req)
 	if err != nil {
 		app.handleMLflowClientError(w, r, err)
