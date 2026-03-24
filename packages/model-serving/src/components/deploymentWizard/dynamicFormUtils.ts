@@ -7,7 +7,6 @@ import {
   isWizardField2Extension,
 } from '../../../extension-points';
 
-// Implementation
 export const useWizardFieldFromExtension = <T extends DeploymentWizardField>(
   predicate: (field: DeploymentWizardField) => field is T,
   formData: RecursivePartial<WizardFormData['state']>,

@@ -1345,8 +1345,8 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-step-model-details');
   }
 
-  findYAMLViewerToggle(name: 'YAML' | 'Form') {
-    return cy.findByRole('button', { name });
+  findYAMLViewerToggle(toggle: string) {
+    return cy.findByRole('button', { name: toggle });
   }
 
   findYAMLCodeEditor() {
@@ -1367,6 +1367,10 @@ class ModelServingWizard extends Wizard {
 
   findLegacyModeCheckbox() {
     return cy.findByTestId('legacy-mode-checkbox');
+  }
+
+  findYAMLEditFallbackAlert() {
+    return cy.findByTestId('yaml-fallback-alert');
   }
 }
 

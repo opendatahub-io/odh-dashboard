@@ -56,7 +56,7 @@ type EvaluationJob struct {
 	Tags         []string         `json:"tags,omitempty"`
 	Model        JobModel         `json:"model"`
 	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []JobBenchmark   `json:"benchmarks"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
 	Collection   *JobCollectionID `json:"collection,omitempty"`
 	Experiment   *JobExperiment   `json:"experiment,omitempty"`
 	Custom       map[string]any   `json:"custom,omitempty"`
@@ -307,7 +307,7 @@ type CreateEvaluationJobRequest struct {
 	Tags         []string         `json:"tags,omitempty"`
 	Model        JobModel         `json:"model"`
 	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []JobBenchmark   `json:"benchmarks"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
 	Collection   *JobCollectionID `json:"collection,omitempty"`
 	Experiment   *JobExperiment   `json:"experiment,omitempty"`
 	Custom       map[string]any   `json:"custom,omitempty"`
@@ -315,7 +315,8 @@ type CreateEvaluationJobRequest struct {
 }
 
 type JobCollectionID struct {
-	ID string `json:"id"`
+	ID         string         `json:"id"`
+	Benchmarks []JobBenchmark `json:"benchmarks,omitempty"`
 }
 
 type JobExperiment struct {

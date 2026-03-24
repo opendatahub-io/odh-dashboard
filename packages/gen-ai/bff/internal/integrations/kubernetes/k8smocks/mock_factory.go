@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -215,6 +216,16 @@ func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx co
 		return false, c.CanListLSDError
 	}
 	return c.CanListLSDAllowed, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+	// Return error to simulate inability to access ConfigMap
+	return nil, fmt.Errorf("mock: external models ConfigMap not accessible")
+}
+
+func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	// Return error to simulate inability to access Secret
+	return "", fmt.Errorf("mock: secret not accessible")
 }
 
 // Helper functions to create k8s error types for testing

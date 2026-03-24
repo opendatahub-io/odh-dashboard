@@ -80,6 +80,11 @@ export enum WizardStepTitle {
   REVIEW = 'Review',
 }
 
+export enum YAMLViewerToggleOption {
+  YAML = 'YAML',
+  FORM = 'Form',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
@@ -118,7 +123,7 @@ export type InitialWizardFormData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerOption;
+  modelServer?: ModelServerSelectFieldData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;

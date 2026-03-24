@@ -93,7 +93,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.Equal(t, "GPT-4 Optimized", dataMap["display_name"])
 		assert.Equal(t, "remote::openai", dataMap["serving_runtime"])
 		assert.Equal(t, "REST", dataMap["api_protocol"])
-		assert.Equal(t, "Running", dataMap["status"])
+		assert.Equal(t, "Unknown", dataMap["status"])
 		assert.Equal(t, "Classification, Text Generation", dataMap["usecase"])
 
 		endpoints, ok := dataMap["endpoints"].([]interface{})

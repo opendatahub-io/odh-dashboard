@@ -23,6 +23,7 @@ const PORT = process.env._PORT;
 const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
+const MLFLOW_PROXY_PORT = process.env.MLFLOW_PROXY_PORT || '4000';
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
@@ -90,6 +91,16 @@ module.exports = smp.wrap(
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,
               port: PROXY_PORT,
+            },
+            changeOrigin: true,
+            headers: getProxyHeaders(),
+          },
+          {
+            context: ['/mlflow'],
+            target: {
+              host: PROXY_HOST,
+              protocol: PROXY_PROTOCOL,
+              port: MLFLOW_PROXY_PORT,
             },
             changeOrigin: true,
             headers: getProxyHeaders(),

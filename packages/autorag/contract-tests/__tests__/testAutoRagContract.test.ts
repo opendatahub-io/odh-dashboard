@@ -119,6 +119,90 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('LSD Vector Stores Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should successfully retrieve LSD vector stores list', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/LSDVectorStoresResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return vector stores with expected data structure', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: {
+              vector_stores?: Array<{
+                id: string;
+                name: string;
+                status: string;
+                provider: string;
+              }>;
+            };
+          };
+          expect(responseData.data).toBeDefined();
+          expect(responseData.data?.vector_stores).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_stores)).toBe(true);
+          if (responseData.data?.vector_stores && responseData.data.vector_stores.length > 0) {
+            const vectorStore = responseData.data.vector_stores[0];
+            expect(vectorStore).toHaveProperty('id');
+            expect(vectorStore).toHaveProperty('name');
+            expect(vectorStore).toHaveProperty('status');
+            expect(vectorStore).toHaveProperty('provider');
+          }
+        }
+      });
+    });
+
+    describe('Error Cases', () => {
+      it('should return 400 when namespace query parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/vector-stores?secretName=test-lls-secret');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when secretName query parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/vector-stores?namespace=default');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=INVALID_NAME',
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=INVALID_NS&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 400 when both query parameters are missing', async () => {
+        const result = await apiClient.get('/api/v1/lsd/vector-stores');
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+    });
+  });
+
   describe('Secrets Endpoint', () => {
     // Helper type for secret response data
     type SecretItem = {
