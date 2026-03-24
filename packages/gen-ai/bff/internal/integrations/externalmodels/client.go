@@ -267,7 +267,9 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	}
 
 	// Set headers
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	// SSRF protection: validate destination at request time (prevents DNS rebinding attacks)

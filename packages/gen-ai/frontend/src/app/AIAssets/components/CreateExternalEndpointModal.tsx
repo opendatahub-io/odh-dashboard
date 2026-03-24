@@ -184,7 +184,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   const isFormValid =
     modelId.trim() !== '' &&
     endpointUrl.trim() !== '' &&
-    token.trim() !== '' &&
     !modelIdConflict &&
     !displayNameConflict &&
     !hasUrlError &&
@@ -540,16 +539,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormHelperText>
           </FormGroup>
 
-          <FormGroup label="Token" isRequired fieldId="token">
+          <FormGroup label="Token" fieldId="token">
             <TextInput
-              isRequired
               type="password"
               id="token"
               name="token"
               value={token}
               onChange={(_event, value) => setToken(value)}
               onBlur={() => setTouched({ ...touched, token: true })}
-              validated={touched.token && !token.trim() ? 'error' : 'default'}
               isDisabled={isVerifying || isSubmitting}
               placeholder="Your API key or token"
               data-testid="create-external-model-token-input"
@@ -569,7 +566,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isDisabled={
                 !modelId.trim() ||
                 !endpointUrl.trim() ||
-                !token.trim() ||
                 (modelType === MODEL_TYPE_EMBEDDING &&
                   (!embeddingDimension.trim() || parseInt(embeddingDimension, 10) <= 0)) ||
                 isVerifying ||

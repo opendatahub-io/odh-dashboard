@@ -54,10 +54,6 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("base_url is required"))
 		return
 	}
-	if req.SecretValue == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
-		return
-	}
 	if req.ModelType == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
 		return
@@ -183,10 +179,6 @@ func (app *App) VerifyExternalModelHandler(
 	}
 	if req.BaseURL == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("base_url is required"))
-		return
-	}
-	if req.SecretValue == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
 		return
 	}
 	if req.ModelType == "" {
