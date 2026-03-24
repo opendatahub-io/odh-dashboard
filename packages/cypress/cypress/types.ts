@@ -284,7 +284,8 @@ export type DataScienceProjectData = {
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
-  Image: string;
+  existingImage: string;
+  replaceImage: string;
   serviceAccountName1: string;
   serviceAccountName2: string;
   connectionNameSuffix: string;
@@ -293,6 +294,7 @@ export type DataScienceProjectData = {
   connectionDescription: string;
   userSubjectKind: string;
   groupSubjectKind: string;
+  yamlEditorModelName: string;
 };
 
 export type NotebookImageData = {
