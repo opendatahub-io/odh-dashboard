@@ -1,6 +1,6 @@
 # ODH Dashboard Constitution
 
-ODH Dashboard is a React/TypeScript monorepo providing the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub. It comprises a main frontend application, a Node.js/Express backend, and multiple feature packages (model-registry, model-serving, gen-ai, and others). Some packages include Go-based BFF (Backend-for-Frontend) services.
+ODH Dashboard is a React/TypeScript monorepo providing the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub. It comprises a main frontend application, a Node.js/Fastify backend, and multiple feature packages (model-registry, model-serving, gen-ai, and others). Some packages include Go-based BFF (Backend-for-Frontend) services.
 
 This constitution establishes non-negotiable development principles for all components: frontend, backend, feature packages, and BFF services. It supersedes conflicting practices found in other documents or conventions.
 
