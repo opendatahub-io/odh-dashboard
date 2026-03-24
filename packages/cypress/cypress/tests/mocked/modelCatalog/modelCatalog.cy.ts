@@ -139,8 +139,10 @@ describe('Model Catalog core', () => {
     initIntercepts({
       disableModelCatalogFeature: true,
     });
-    modelCatalog.landingPage();
-    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
+    // The "Models" nav item still exists (it has Registry and Deployments tabs),
+    // but the Catalog tab should not appear when the feature is disabled.
+    cy.visitWithLogin('/ai-hub/models');
+    cy.findByTestId('tab-catalog').should('not.exist');
 
     cy.visitWithLogin(`/ai-hub/models/catalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
