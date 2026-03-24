@@ -28,6 +28,7 @@ import {
   VerifyExternalModelRequest,
   VerifyExternalModelResponse,
 } from '~/app/types';
+import { isClusterLocalURL, ALLOW_EXTERNAL_ENDPOINTS } from '~/app/utilities/utils';
 
 const MODEL_TYPE_LLM = 'llm' as const;
 const MODEL_TYPE_EMBEDDING = 'embedding' as const;
@@ -147,6 +148,32 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     return existingModels.find((m) => m.display_name === trimmedName);
   }, [displayName, existingModels]);
 
+  // URL validation
+  const urlValidation = React.useMemo(() => {
+    const trimmedUrl = endpointUrl.trim();
+    if (!trimmedUrl) {
+      return { isValid: true, error: null };
+    }
+
+    // Check if URL starts with http:// or https://
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      return { isValid: false, error: 'URL must start with http:// or https://' };
+    }
+
+    // Check if external endpoints are allowed
+    const isExternal = !isClusterLocalURL(trimmedUrl);
+    if (!ALLOW_EXTERNAL_ENDPOINTS && isExternal) {
+      return {
+        isValid: false,
+        error: `Model endpoints must be internal to the cluster.`,
+      };
+    }
+
+    return { isValid: true, error: null };
+  }, [endpointUrl]);
+
+  const hasUrlError = !urlValidation.isValid;
+
   // Validation
   const isFormValid =
     modelId.trim() !== '' &&
@@ -154,6 +181,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     token.trim() !== '' &&
     !modelIdConflict &&
     !displayNameConflict &&
+    !hasUrlError &&
     (modelType === MODEL_TYPE_LLM ||
       (embeddingDimension.trim() !== '' && parseInt(embeddingDimension, 10) > 0));
 
@@ -488,14 +516,20 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               value={endpointUrl}
               onChange={(_event, value) => setEndpointUrl(value)}
               onBlur={() => setTouched({ ...touched, endpointUrl: true })}
-              validated={touched.endpointUrl && !endpointUrl.trim() ? 'error' : 'default'}
+              validated={
+                touched.endpointUrl && (!endpointUrl.trim() || hasUrlError) ? 'error' : 'default'
+              }
               isDisabled={isVerifying || isSubmitting}
               placeholder="e.g. https://api.openai.com/v1"
               data-testid="create-external-model-url-input"
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>The endpoint URL for this model.</HelperTextItem>
+                <HelperTextItem variant={touched.endpointUrl && hasUrlError ? 'error' : 'default'}>
+                  {touched.endpointUrl && urlValidation.error
+                    ? urlValidation.error
+                    : 'The endpoint URL for this model.'}
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
