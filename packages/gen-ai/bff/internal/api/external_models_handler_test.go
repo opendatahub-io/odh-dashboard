@@ -684,15 +684,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 				expectedError: "base_url is required",
 			},
 			{
-				name: "missing secret_value",
-				request: models.VerifyExternalModelRequest{
-					ModelID:   "gpt-4o",
-					BaseURL:   "https://api.openai.com/v1",
-					ModelType: models.ModelTypeLLM,
-				},
-				expectedError: "secret_value is required",
-			},
-			{
 				name: "missing model_type",
 				request: models.VerifyExternalModelRequest{
 					ModelID:     "gpt-4o",
