@@ -132,4 +132,14 @@ describe('AutomlModelDetailsModalHeader', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
     expect(screen.getByText('Model details')).toBeInTheDocument();
   });
+
+  it('should disable download button when isDownloadDisabled is true', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} isDownloadDisabled />);
+    expect(screen.getByTestId('model-details-download')).toBeDisabled();
+  });
+
+  it('should enable download button when isDownloadDisabled is false', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} isDownloadDisabled={false} />);
+    expect(screen.getByTestId('model-details-download')).toBeEnabled();
+  });
 });

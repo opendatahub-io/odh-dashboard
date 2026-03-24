@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
-import type { MockAutomlModel, MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext';
+import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -15,7 +15,7 @@ import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 export type TabContentProps = {
   model: MockAutomlModel;
   taskType: TaskType;
-  parameters: MockAutomlParameters;
+  parameters: Record<string, unknown>;
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;

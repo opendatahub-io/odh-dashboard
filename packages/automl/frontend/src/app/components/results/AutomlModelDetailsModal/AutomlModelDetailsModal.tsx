@@ -152,6 +152,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           onSelectModel={(name) => setSelectedModelName(name)}
           onDownload={() => setIsPrinting(true)}
           onSaveNotebook={handleSaveNotebook}
+          isDownloadDisabled={!featureImportance}
         />
         <Grid hasGutter className="automl-model-details-screen-only">
           <GridItem span={2} className="automl-model-details-sidebar">

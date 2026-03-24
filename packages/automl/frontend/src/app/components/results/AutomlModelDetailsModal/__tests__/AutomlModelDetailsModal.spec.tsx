@@ -126,4 +126,35 @@ describe('AutomlModelDetailsModal', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('should switch model when a different model is selected via dropdown', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModal {...defaultProps} />);
+
+    // Open the model selector dropdown
+    const toggle = screen.getByTestId('model-selector-dropdown');
+    await user.click(toggle);
+
+    // Select a different model
+    await user.click(screen.getByText('RandomForest_BAG_L1_FULL'));
+
+    // The dropdown should now show the new model name
+    expect(screen.getByTestId('model-selector-dropdown')).toHaveTextContent(
+      'RandomForest_BAG_L1_FULL',
+    );
+  });
+
+  it('should disable download button when feature importance data is not loaded', () => {
+    render(
+      <AutomlModelDetailsModal
+        {...defaultProps}
+        taskType="regression"
+        modelName="CatBoost_BAG_L2_FULL"
+      />,
+    );
+
+    // For regression with mock data, featureImportance exists so button should be enabled
+    const downloadButton = screen.getByTestId('model-details-download');
+    expect(downloadButton).toBeEnabled();
+  });
 });

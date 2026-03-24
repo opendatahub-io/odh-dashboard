@@ -34,11 +34,18 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('0.658')).toBeInTheDocument();
   });
 
-  it('should display absolute values for negative metrics', () => {
+  it('should display absolute values for error metrics like mse', () => {
     const model = buildModel({ mse: -12.45 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
     expect(screen.getByText('12.450')).toBeInTheDocument();
+  });
+
+  it('should preserve negative values for non-error metrics like r2', () => {
+    const model = buildModel({ r2: -0.123 });
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByText('-0.123')).toBeInTheDocument();
   });
 
   it('should format snake_case metric names as Title Case', () => {
@@ -84,5 +91,13 @@ describe('ModelEvaluationTab', () => {
 
     // toNumericMetric returns 0 for null, displayed as 0.000
     expect(screen.getByText('0.000')).toBeInTheDocument();
+  });
+
+  it('should display empty state when no metrics are available', () => {
+    const model = buildModel({});
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByText('No evaluation metrics available for this model.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

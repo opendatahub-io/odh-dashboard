@@ -2,16 +2,21 @@ import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
-import { formatMetricName, toNumericMetric } from '~/app/utilities/utils';
+import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
 
-/** AutoGluon reports some metrics as negative (lower-is-better). Display absolute values. */
-function formatMetricValue(value: unknown): string {
-  return Math.abs(toNumericMetric(value)).toFixed(3);
+/** Format a metric value for display. Only apply Math.abs() for error metrics (lower-is-better). */
+function formatMetricValue(key: string, value: unknown): string {
+  const rawMetricValue = toNumericMetric(value);
+  return (isErrorMetric(key) ? Math.abs(rawMetricValue) : rawMetricValue).toFixed(3);
 }
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
   const metrics = model.metrics.test_data;
   const entries = Object.entries(metrics);
+
+  if (entries.length === 0) {
+    return <p>No evaluation metrics available for this model.</p>;
+  }
 
   return (
     <>
@@ -29,7 +34,7 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
           {entries.map(([key, value]) => (
             <Tr key={key}>
               <Td dataLabel="Measures">{formatMetricName(key)}</Td>
-              <Td dataLabel="Holdout score">{formatMetricValue(value)}</Td>
+              <Td dataLabel="Holdout score">{formatMetricValue(key, value)}</Td>
             </Tr>
           ))}
         </Tbody>

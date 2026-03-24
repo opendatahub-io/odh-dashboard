@@ -12,6 +12,7 @@ type AutomlModelDetailsModalHeaderProps = {
   onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
   onSaveNotebook: () => void;
+  isDownloadDisabled?: boolean;
 };
 
 function getOptimizedMetric(model: MockAutomlModel): { name: string; value: number } | undefined {
@@ -34,6 +35,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   onSelectModel,
   onDownload,
   onSaveNotebook,
+  isDownloadDisabled,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const model = models.find((m) => m.display_name === currentModelName);
@@ -95,6 +97,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
           variant="secondary"
           icon={<DownloadIcon />}
           onClick={onDownload}
+          isDisabled={isDownloadDisabled}
           data-testid="model-details-download"
         >
           Download

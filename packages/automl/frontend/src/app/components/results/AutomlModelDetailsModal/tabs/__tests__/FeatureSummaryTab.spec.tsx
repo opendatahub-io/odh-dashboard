@@ -120,4 +120,24 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('Feature name')).toBeInTheDocument();
     expect(screen.getByText('Importance')).toBeInTheDocument();
   });
+
+  it('should handle all-zero importance values without NaN bar widths', () => {
+    const zeroImportance: FeatureImportanceData = {
+      importance: { feature_a: 0, feature_b: 0 },
+    };
+
+    const { container } = render(
+      <FeatureSummaryTab {...defaultProps} featureImportance={zeroImportance} />,
+    );
+
+    expect(screen.getByText('feature_a')).toBeInTheDocument();
+    expect(screen.getByText('feature_b')).toBeInTheDocument();
+
+    // All bars should have 0% width, not NaN%
+    const bars = container.querySelectorAll('[style]');
+    bars.forEach((bar) => {
+      const style = bar.getAttribute('style') ?? '';
+      expect(style).not.toContain('NaN');
+    });
+  });
 });

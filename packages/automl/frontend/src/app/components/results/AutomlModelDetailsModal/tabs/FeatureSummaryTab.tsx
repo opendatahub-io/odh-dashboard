@@ -79,7 +79,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
               <Td>
                 <div
                   style={{
-                    width: `${(importance / maxImportance) * 100}%`,
+                    width: `${maxImportance > 0 ? (importance / maxImportance) * 100 : 0}%`,
                     height: 12,
                     backgroundColor: 'var(--pf-t--global--color--brand--default)',
                     borderRadius: 2,
