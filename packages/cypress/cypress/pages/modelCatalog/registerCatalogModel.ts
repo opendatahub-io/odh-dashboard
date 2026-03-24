@@ -10,11 +10,9 @@ class RegisterCatalogModelPage {
     this.wait(modelName);
   }
 
-  private wait(name?: string) {
-    const modelName = name ?? 'granite-8b-code-instruct';
-
+  private wait(name: string) {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('breadcrumb-model-name').should('exist');
+    cy.findByTestId('breadcrumb-model-name').should('contain.text', name);
     cy.testA11y();
   }
 
