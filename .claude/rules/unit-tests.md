@@ -1,3 +1,9 @@
+---
+description: Jest unit test guidelines for utilities, hooks, and components
+globs: "**/__tests__/**/*.spec.ts,**/__tests__/**/*.spec.tsx"
+alwaysApply: false
+---
+
 # Unit Test Rules
 
 Guidelines for creating Jest unit tests for ODH Dashboard utility functions, React hooks, and React components.
