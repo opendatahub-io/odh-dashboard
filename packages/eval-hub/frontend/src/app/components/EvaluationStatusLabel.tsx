@@ -64,6 +64,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state }) 
 
   return (
     <Label
+      variant="outline"
       color={config.color}
       status={config.status}
       icon={<Icon isInline>{config.icon}</Icon>}
