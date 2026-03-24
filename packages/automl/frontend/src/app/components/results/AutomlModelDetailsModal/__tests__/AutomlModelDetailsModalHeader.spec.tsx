@@ -49,7 +49,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByText('0.658')).toBeInTheDocument();
   });
 
-  it('should use absolute value for negative metrics', () => {
+  it('should display raw value for non-error metrics like r2', () => {
     const negativeModel = buildModel('Model', 'r2', { r2: -0.123 });
     render(
       <AutomlModelDetailsModalHeader
@@ -58,7 +58,19 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('0.123')).toBeInTheDocument();
+    expect(screen.getByText('-0.123')).toBeInTheDocument();
+  });
+
+  it('should use absolute value for error metrics like smape', () => {
+    const errorModel = buildModel('Model', 'smape', { smape: -0.082 });
+    render(
+      <AutomlModelDetailsModalHeader
+        {...defaultProps}
+        models={[errorModel]}
+        currentModelName="Model"
+      />,
+    );
+    expect(screen.getByText('0.082')).toBeInTheDocument();
   });
 
   it('should not display optimized metric when eval_metric is missing from test_data', () => {

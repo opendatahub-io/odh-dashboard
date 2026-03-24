@@ -62,6 +62,15 @@ export function getOptimizedMetricForTask(taskType: string): string | undefined 
 const ERROR_METRICS = new Set(['smape', 'mse', 'mae', 'rmse', 'mape']);
 
 /**
+ * Check whether a metric is an error metric (lower-is-better).
+ * AutoGluon reports these as negative values; callers should use Math.abs()
+ * only for these metrics to recover the true value.
+ */
+export function isErrorMetric(metric: string): boolean {
+  return ERROR_METRICS.has(metric.toLowerCase());
+}
+
+/**
  * Build a mapping from model name → leaderboard rank (1-based).
  * Ranks are assigned by sorting on the optimized metric for the task type,
  */
@@ -70,12 +79,14 @@ export function computeRankMap(
   taskType: string,
 ): Record<string, number> {
   const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
-  const isErrorMetric = ERROR_METRICS.has(optimizedMetric.toLowerCase());
+  const useAbs = isErrorMetric(optimizedMetric);
 
   const sorted = Object.keys(models).toSorted((a, b) => {
-    const aVal = Math.abs(toNumericMetric(models[a].metrics.test_data[optimizedMetric]));
-    const bVal = Math.abs(toNumericMetric(models[b].metrics.test_data[optimizedMetric]));
-    return isErrorMetric ? aVal - bVal : bVal - aVal;
+    const aRaw = toNumericMetric(models[a].metrics.test_data[optimizedMetric]);
+    const bRaw = toNumericMetric(models[b].metrics.test_data[optimizedMetric]);
+    const aVal = useAbs ? Math.abs(aRaw) : aRaw;
+    const bVal = useAbs ? Math.abs(bRaw) : bRaw;
+    return useAbs ? aVal - bVal : bVal - aVal;
   });
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));

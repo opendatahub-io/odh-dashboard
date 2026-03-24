@@ -3,6 +3,7 @@ import {
   toNumericMetric,
   getOptimizedMetricForTask,
   computeRankMap,
+  isErrorMetric,
 } from '../utils';
 
 describe('formatMetricName', () => {
@@ -134,7 +135,7 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should use absolute values for negative metrics', () => {
+  it('should rank by raw value for non-error metrics like r2', () => {
     const models = {
       ModelA: buildModel(-0.097, 'r2'),
       ModelB: buildModel(-0.084, 'r2'),
@@ -142,9 +143,25 @@ describe('computeRankMap', () => {
 
     const rankMap = computeRankMap(models, 'regression');
 
+    // -0.084 > -0.097, so ModelB is better
     expect(rankMap).toEqual({
-      ModelA: 1,
-      ModelB: 2,
+      ModelB: 1,
+      ModelA: 2,
+    });
+  });
+
+  it('should use absolute values for error metrics like smape', () => {
+    const models = {
+      ModelA: buildModel(-0.15, 'smape'),
+      ModelB: buildModel(-0.05, 'smape'),
+    };
+
+    const rankMap = computeRankMap(models, 'timeseries');
+
+    // |−0.05| < |−0.15|, so ModelB is better (lower error)
+    expect(rankMap).toEqual({
+      ModelB: 1,
+      ModelA: 2,
     });
   });
 
@@ -175,5 +192,27 @@ describe('computeRankMap', () => {
       ModelB: 1,
       ModelA: 2,
     });
+  });
+});
+
+describe('isErrorMetric', () => {
+  it('should return true for known error metrics', () => {
+    expect(isErrorMetric('smape')).toBe(true);
+    expect(isErrorMetric('mse')).toBe(true);
+    expect(isErrorMetric('mae')).toBe(true);
+    expect(isErrorMetric('rmse')).toBe(true);
+    expect(isErrorMetric('mape')).toBe(true);
+  });
+
+  it('should return false for non-error metrics', () => {
+    expect(isErrorMetric('accuracy')).toBe(false);
+    expect(isErrorMetric('r2')).toBe(false);
+    expect(isErrorMetric('f1')).toBe(false);
+    expect(isErrorMetric('precision')).toBe(false);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isErrorMetric('SMAPE')).toBe(true);
+    expect(isErrorMetric('MSE')).toBe(true);
   });
 });

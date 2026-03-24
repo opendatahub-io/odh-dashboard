@@ -45,7 +45,8 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
     .toSorted(([, a], [, b]) => b - a)
     .filter(([name]) => name.toLowerCase().includes(searchValue.toLowerCase()));
 
-  const maxImportance = Math.max(...Object.values(featureImportance.importance));
+  const importanceValues = Object.values(featureImportance.importance);
+  const maxImportance = importanceValues.length > 0 ? Math.max(...importanceValues) : 0;
 
   return (
     <>

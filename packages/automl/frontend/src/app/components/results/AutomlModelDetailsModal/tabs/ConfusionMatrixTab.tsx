@@ -131,16 +131,16 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
                 </Td>
               );
             })}
-            <Td textCenter>
-              {(() => {
-                const totalCorrect = labels.reduce(
-                  (sum, label) => sum + confusionMatrix[label][label],
-                  0,
-                );
-                const total = rowTotals.reduce((sum, t) => sum + t, 0);
-                return total > 0 ? `${((totalCorrect / total) * 100).toFixed(1)}%` : '0.0%';
-              })()}
-            </Td>
+            {(() => {
+              const totalCorrect = labels.reduce(
+                (sum, label) => sum + confusionMatrix[label][label],
+                0,
+              );
+              const total = rowTotals.reduce((sum, t) => sum + t, 0);
+              const overallPct =
+                total > 0 ? `${((totalCorrect / total) * 100).toFixed(1)}%` : '0.0%';
+              return <Td textCenter>{overallPct}</Td>;
+            })()}
           </Tr>
         </Tbody>
       </Table>

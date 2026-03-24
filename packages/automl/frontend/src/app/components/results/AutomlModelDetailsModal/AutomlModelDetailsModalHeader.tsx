@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
-import { formatMetricName, toNumericMetric } from '~/app/utilities/utils';
+import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
@@ -20,7 +20,11 @@ function getOptimizedMetric(model: MockAutomlModel): { name: string; value: numb
   if (!(evalMetric in metrics)) {
     return undefined;
   }
-  return { name: evalMetric, value: Math.abs(toNumericMetric(metrics[evalMetric])) };
+  const numericMetricValue = toNumericMetric(metrics[evalMetric]);
+  return {
+    name: evalMetric,
+    value: isErrorMetric(evalMetric) ? Math.abs(numericMetricValue) : numericMetricValue,
+  };
 }
 
 const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps> = ({
