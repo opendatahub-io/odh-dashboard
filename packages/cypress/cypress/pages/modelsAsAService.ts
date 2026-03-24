@@ -499,6 +499,10 @@ class CreateApiKeyModal extends Modal {
     return cy.findByTestId(`api-key-expiration-option-${value}`);
   }
 
+  findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-custom-days-input');
+  }
+
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('submit-create-api-key-button');
   }
