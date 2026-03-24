@@ -40,13 +40,17 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
       const isRoot = cp.prefix === '/' || cp.prefix === '';
       const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
       const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-      items.push({
+      const directory: Directory = {
         name,
         path: prefixPath,
         type: 'directory',
         items: 0,
         ...(isRoot && { hidden: true }),
-      });
+        details: {
+          ...{ Type: 'Directory' },
+        },
+      };
+      items.push(directory);
     }
   }
 
@@ -90,9 +94,10 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
               </Timestamp>
             ),
           }),
-          ...(obj.etag && { ETag: obj.etag }),
-          ...(obj.storage_class && { 'Storage Class': obj.storage_class }),
+          // ...(obj.etag && { ETag: obj.etag }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
+          // ...(obj.storage_class && { 'Storage Class': obj.storage_class }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
           ...(obj.size !== undefined && { Size: serializedSize }),
+          ...{ Type: 'File' },
         },
       });
     }
@@ -144,9 +149,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [lastDirectoryClicked, setLastDirectoryClicked] = useState<Directory | null>(null);
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>([]);
-  const [sourceToRender, setSourceToRender] = useState<Source | undefined>(
-    s3Secret ? { name: s3Secret.name, bucket } : undefined,
-  );
+  const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
   const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
   const [loadingToRender, setLoadingToRender] = useState(false);
   const [searchResultsCountToRender, setSearchResultsCountToRender] = useState<number | undefined>(
@@ -265,9 +268,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onClose={onClose}
       onSelectSource={(source) => {
         setSelectedSource(source);
-      }}
-      onViewDetails={(file) => {
-        // TODO [ Gustavo ] Implement onViewDetails
       }}
       onDirectoryClick={(directory) => {
         setLastDirectoryClicked(directory);

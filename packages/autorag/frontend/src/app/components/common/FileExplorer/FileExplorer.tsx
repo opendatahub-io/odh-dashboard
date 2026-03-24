@@ -12,6 +12,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -124,6 +125,7 @@ const defaults = {
     tableActionRemoveSelection: 'Remove selection',
 
     detailsPanelTitle: 'Details',
+    detailsPanelTitleFiles: 'Selected files',
     detailsPanelName: 'Name',
     detailsPanelSource: 'Source',
     detailsPanelBucket: 'Bucket',
@@ -413,16 +415,19 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   loading,
 }) => {
   const rootLabel = source ? `${source.name} (root)` : 'Root';
-  const isAtRoot = !Array.isArray(directories) || directories.length === 0;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dirs = Array.isArray(directories) ? directories : [];
+  const isAtRoot = dirs.length === 0;
   const shouldCollapse = dirs.length > BREADCRUMB_COLLAPSE_THRESHOLD;
   const leadingDirs = shouldCollapse ? dirs.slice(0, BREADCRUMB_LEADING_VISIBLE) : [];
   const hiddenDirs = shouldCollapse
     ? dirs.slice(BREADCRUMB_LEADING_VISIBLE, dirs.length - BREADCRUMB_TRAILING_VISIBLE)
     : [];
-  const visibleDirs = shouldCollapse ? dirs.slice(dirs.length - BREADCRUMB_TRAILING_VISIBLE) : dirs;
+  const navigableDirs = shouldCollapse
+    ? dirs.slice(dirs.length - BREADCRUMB_TRAILING_VISIBLE, -1)
+    : dirs.slice(0, -1);
+  const currentDir = dirs.length > 0 ? dirs[dirs.length - 1] : undefined;
 
   if (loading) {
     return (
@@ -482,21 +487,54 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
           </Dropdown>
         </BreadcrumbItem>
       )}
-      {visibleDirs.map((dir) => (
+      {navigableDirs.map((dir) => (
         <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
           {dir.name}
         </BreadcrumbItem>
       ))}
+      {currentDir && <BreadcrumbItem isActive>{currentDir.name}</BreadcrumbItem>}
     </Breadcrumb>
   );
 };
 
+interface FileDetailsProps {
+  file: File;
+}
+const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
+  <>
+    <DescriptionListGroup>
+      <DescriptionListTerm>{defaults.labels.detailsPanelName}</DescriptionListTerm>
+      <DescriptionListDescription>{file.name}</DescriptionListDescription>
+    </DescriptionListGroup>
+    {file.details &&
+      Object.entries(file.details)
+        .filter(
+          (entry): entry is [string, RenderableDetailValue] =>
+            Boolean(entry[0]) && isRenderableDetailValue(entry[1]),
+        )
+        .map(([key, value]) => (
+          <DescriptionListGroup key={key}>
+            <DescriptionListTerm>{key}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {typeof value === 'boolean' ? String(value) : value}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ))}
+  </>
+);
+
 interface DetailsPanelProps {
   source?: Source;
   selectedFiles?: Files;
+  filesToView?: Files;
   loading?: boolean;
 }
-const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, loading }) => {
+const DetailsPanel: React.FC<DetailsPanelProps> = ({
+  source,
+  selectedFiles,
+  filesToView,
+  loading,
+}) => {
   if (loading) {
     return (
       <Card isFullHeight>
@@ -525,10 +563,11 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
     );
   }
 
-  return (
-    <Card isFullHeight>
+  const renderDetailsSubCard = Boolean(source);
+  const detailsSubCard = (
+    <Card isPlain isCompact>
       <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
-      <CardBody>
+      <CardBody isFilled={false}>
         <DescriptionList>
           {source && (
             <>
@@ -544,33 +583,37 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
               )}
             </>
           )}
-          {/* // TODO [ Gustavo ] Render a selected files section with slight left margins to differentiate these details from the source details. Selected files should also show an X so we can remove them from this panel */}
-          {Array.isArray(selectedFiles) &&
-            selectedFiles.length > 0 &&
-            selectedFiles.map((selectedFile) => (
-              <React.Fragment key={selectedFile.path}>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>{defaults.labels.detailsPanelName}</DescriptionListTerm>
-                  <DescriptionListDescription>{selectedFile.name}</DescriptionListDescription>
-                </DescriptionListGroup>
-                {selectedFile.details &&
-                  Object.entries(selectedFile.details)
-                    .filter(
-                      (entry): entry is [string, RenderableDetailValue] =>
-                        Boolean(entry[0]) && isRenderableDetailValue(entry[1]),
-                    )
-                    .map(([key, value]) => (
-                      <DescriptionListGroup key={key}>
-                        <DescriptionListTerm>{key}</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          {typeof value === 'boolean' ? String(value) : value}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ))}
-              </React.Fragment>
+          {Array.isArray(filesToView) &&
+            filesToView.length > 0 &&
+            filesToView.map((fileToView) => (
+              <FileDetails key={fileToView.path} file={fileToView} />
             ))}
         </DescriptionList>
       </CardBody>
+    </Card>
+  );
+
+  const renderSelectedFilesSubCard = Array.isArray(selectedFiles) && selectedFiles.length > 0;
+  const selectedFilesSubCard = (
+    <Card isPlain isCompact>
+      <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
+      <CardBody>
+        <DescriptionList>
+          {Array.isArray(selectedFiles) &&
+            selectedFiles.length > 0 &&
+            selectedFiles.map((selectedFile) => (
+              <FileDetails key={selectedFile.path} file={selectedFile} />
+            ))}
+        </DescriptionList>
+      </CardBody>
+    </Card>
+  );
+
+  return (
+    <Card isFullHeight isCompact>
+      {renderDetailsSubCard && detailsSubCard}
+      {renderDetailsSubCard && renderSelectedFilesSubCard && <Divider />}
+      {renderSelectedFilesSubCard && selectedFilesSubCard}
     </Card>
   );
 };
@@ -591,7 +634,6 @@ interface FileExplorerProps {
   selection?: 'radio' | 'checkbox';
   onSelectSource: (source: Source) => void;
   onDirectoryClick?: (directory: Directory) => void;
-  onViewDetails?: (file: File) => void;
   onNavigate?: (directory: Directory) => void;
   onNavigateRoot?: () => void;
   onSearch?: (query: string) => void;
@@ -615,7 +657,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   selection = 'radio',
   onSelectSource,
   onDirectoryClick,
-  onViewDetails,
   onNavigate,
   onNavigateRoot,
   onSearch,
@@ -624,6 +665,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onPrimary,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+  const [filesToView, setFilesToView] = useState<Files>([]);
 
   // Consider introducing a FileExplorerContext if prop drilling deepens.
   // Revisit when: a child component needs to pass props through to its own children,
@@ -632,6 +674,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const resetState = () => {
     setSelectedFiles([]);
+    setFilesToView([]);
     setSearchQuery('');
   };
 
@@ -698,7 +741,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
                   onDirectoryClick={onDirectoryClick}
-                  onViewDetails={onViewDetails}
+                  onViewDetails={(file) => setFilesToView([file])}
                   loading={loading}
                   page={page}
                   perPage={perPage}
@@ -708,7 +751,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </GridItem>
               <GridItem span={4}>
-                <DetailsPanel source={source} selectedFiles={selectedFiles} loading={loading} />
+                <DetailsPanel
+                  source={source}
+                  selectedFiles={selectedFiles}
+                  filesToView={filesToView}
+                  loading={loading}
+                />
               </GridItem>
             </Grid>
           </FlexItem>
