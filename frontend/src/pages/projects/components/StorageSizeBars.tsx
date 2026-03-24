@@ -2,10 +2,9 @@ import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
+import { getPvcPercentageUsed, getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
 import { usePVCFreeAmount } from '#~/api';
-import { bytesAsRoundedGiB, bytesAsPreciseGiB } from '#~/utilities/number';
-import { convertToUnit, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import { bytesAsRoundedGiB } from '#~/utilities/number';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import ProgressBarWithLabels from '#~/components/ProgressBarWithLabels';
 
@@ -48,12 +47,10 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   }
 
   const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}GiB`;
-  const rawTotalSize = pvc.status?.capacity?.storage || pvc.spec.resources.requests.storage;
-  const [totalSizeInGiB] = convertToUnit(rawTotalSize, MEMORY_UNITS_FOR_PARSING, 'Gi');
-  const percentage = totalSizeInGiB > 0
-    ? ((bytesAsPreciseGiB(inUseInBytes) / totalSizeInGiB) * 100).toFixed(2)
-    : '0';
-  const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
+  const percentage = getPvcPercentageUsed(pvc, inUseInBytes);
+  const progressValue = Number.isNaN(percentage) ? 0 : percentage;
+  const percentageLabel =
+    error || !loaded || Number.isNaN(percentage) ? '' : `Storage is ${percentage.toFixed(2)}% full`;
 
   let inUseRender: React.ReactNode;
   if (error) {
@@ -74,7 +71,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
       contentComponentVariant={ContentVariants.small}
       maxValueLabel={maxValue}
       aria-label={percentageLabel || 'Storage progress bar'}
-      value={Number(percentage)}
+      value={progressValue}
     />
   );
 
