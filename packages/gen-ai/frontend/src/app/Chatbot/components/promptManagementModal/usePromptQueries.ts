@@ -130,6 +130,7 @@ export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreate
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['prompts', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['prompts', data.name, 'versions'] });
       onSuccess?.(data);
     },
     onError,

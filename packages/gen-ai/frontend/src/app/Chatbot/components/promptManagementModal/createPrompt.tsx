@@ -1,14 +1,31 @@
 import React from 'react';
-import { Flex, FlexItem, Button, TextInput, TextArea, Title } from '@patternfly/react-core';
+import {
+  Flex,
+  FlexItem,
+  Button,
+  TextInput,
+  TextArea,
+  Title,
+  Split,
+  SplitItem,
+  MenuToggle,
+} from '@patternfly/react-core';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt } from './usePromptQueries';
 
 export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
-  const { dirtyPrompt, setActivePrompt, setDirtyPrompt } = usePlaygroundStore();
+  const { activePrompt, dirtyPrompt, setActivePrompt, setDirtyPrompt, modalMode } =
+    usePlaygroundStore();
+  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
+  const isEditMode = modalMode === 'edit';
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
       setActivePrompt(newPrompt);
+      const instruction =
+        newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
+      updateSystemInstruction('default', instruction);
       onClose();
     },
   });
@@ -35,21 +52,39 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     });
   }
 
+  const nextVersion = (activePrompt?.version ?? 0) + 1;
+
   return (
     <Flex direction={{ default: 'column' }}>
       <FlexItem spacer={{ default: 'spacerMd' }}>
-        <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-          Name
-        </Title>
-        <TextInput
-          value={dirtyPrompt?.name}
-          onChange={(_event, value) => handleChange('name', value)}
-        />
+        <Split hasGutter>
+          <SplitItem isFilled>
+            <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              Name
+            </Title>
+            <TextInput
+              value={dirtyPrompt?.name}
+              isDisabled={isEditMode}
+              onChange={(_event, value) => handleChange('name', value)}
+            />
+          </SplitItem>
+          {isEditMode && (
+            <SplitItem>
+              <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                Version
+              </Title>
+              <TextInput value={nextVersion.toString()} isDisabled style={{ width: '80px' }} />
+            </SplitItem>
+          )}
+        </Split>
       </FlexItem>
       <FlexItem spacer={{ default: 'spacerMd' }}>
         <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
           Prompt
         </Title>
+        <MenuToggle isDisabled style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+          System
+        </MenuToggle>
         <TextArea
           value={dirtyPrompt?.template}
           resizeOrientation="vertical"
@@ -59,11 +94,12 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       </FlexItem>
       <FlexItem spacer={{ default: 'spacerMd' }}>
         <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-          Commit Message
+          Commit message
         </Title>
         <TextInput
           value={dirtyPrompt?.commit_message}
           onChange={(_event, value) => handleChange('commit_message', value)}
+          placeholder="Describe your changes"
         />
       </FlexItem>
       <Flex
@@ -72,7 +108,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       >
         <Flex rowGap={{ default: 'rowGapXs' }}>
           <Button variant="primary" onClick={handleSave} isLoading={isCreating}>
-            Save
+            {isEditMode ? 'Save' : 'Create'}
           </Button>
           <Button variant="link" onClick={onClose} isDisabled={isCreating}>
             Cancel

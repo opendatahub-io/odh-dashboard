@@ -60,7 +60,10 @@ export default function PromptAssistantFormGroup({
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
-    openModal('create', newPrompt);
+    const mode = activePrompt ? 'edit' : 'create';
+    // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+    newPrompt.commit_message = '';
+    openModal(mode, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -121,23 +124,24 @@ export default function PromptAssistantFormGroup({
           value={systemInstruction}
           readOnly={!editMode}
           onChange={(_event, value) => handleTextChange(value)}
+          onDoubleClick={!editMode ? handleSaveClicked : undefined}
           aria-label="Prompt instructions input"
           rows={12}
           data-testid="system-instructions-input"
         />
         {!editMode && (
           <Flex>
-            <Button variant="primary" isDisabled={editMode} onClick={() => setEditMode(!editMode)}>
+            <Button variant="primary" onClick={handleSaveClicked}>
               Edit
             </Button>
             <Button variant="link" onClick={handleNewPrompt}>
-              Reset
+              Clear
             </Button>
           </Flex>
         )}
         {editMode && (
           <Flex>
-            <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+            <Button variant="primary" onClick={handleSaveClicked}>
               Save
             </Button>
             <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
