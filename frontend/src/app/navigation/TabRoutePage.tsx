@@ -99,16 +99,19 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
               key={t.properties.id}
               eventKey={t.properties.id}
               title={<TabTitleText>{t.properties.title}</TabTitleText>}
+              tabContentId={`tab-content-${t.properties.id}`}
               data-testid={`tab-${t.properties.id}`}
             />
           ))}
         </Tabs>
       </PageSection>
-      <LazyCodeRefComponent
-        key={activeTab.properties.id}
-        component={activeTab.properties.component}
-        fallback={tabContentFallback}
-      />
+      <div id={`tab-content-${activeTab.properties.id}`} role="tabpanel">
+        <LazyCodeRefComponent
+          key={activeTab.properties.id}
+          component={activeTab.properties.component}
+          fallback={tabContentFallback}
+        />
+      </div>
     </>
   );
 };
