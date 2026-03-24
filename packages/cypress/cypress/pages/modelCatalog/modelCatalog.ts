@@ -21,7 +21,7 @@ class ModelCatalog {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-tab-page-title').should('exist');
     cy.findByText('Discover models that are available for your organization', {
       exact: false,
     }).should('exist');
