@@ -217,7 +217,7 @@ func (app *App) VerifyExternalModelHandler(
 	}
 
 	// 3. Call repository
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req)
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {

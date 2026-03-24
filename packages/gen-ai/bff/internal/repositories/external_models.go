@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -97,11 +98,26 @@ func isInternalHost(baseURL string) bool {
 		isK8sService
 }
 
-// VerifyExternalModel tests an external model endpoint using the external models client
+// internalHostRootCAs returns the provided CA pool only when the URL targets an internal
+// host. For external hosts it returns nil so the client falls back to the system CA pool,
+// which contains the public root CAs needed to verify certificates from services like
+// api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
+func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool {
+	if isInternalHost(baseURL) {
+		return rootCAs
+	}
+	return nil
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client.
+// rootCAs is the application CA pool (nil falls back to system pool for external hosts).
+// insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
 	req models.VerifyExternalModelRequest,
+	rootCAs *x509.CertPool,
+	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
 	client, err := externalmodels.NewExternalModelsClient(
 		logger,
@@ -109,9 +125,12 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:           isInternalHost(req.BaseURL),
-			SkipSSRFValidation:  isInternalHost(req.BaseURL),
-			SkipTLSVerification: isInternalHost(req.BaseURL),
+			AllowHTTP:          isInternalHost(req.BaseURL),
+			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			// Only supply the cluster CA pool for internal hosts; external hosts
+			// must use the system CA pool to verify public certificates.
+			SkipTLSVerification: insecureSkipVerify,
+			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
 		},
 	)
 	if err != nil {
