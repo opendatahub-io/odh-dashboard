@@ -89,12 +89,12 @@ type MaaSModelRefSummary struct {
 
 // CreateSubscriptionRequest is the request body for creating a new subscription.
 type CreateSubscriptionRequest struct {
-	Name          string                 `json:"name"`
-	Namespace     string                 `json:"namespace"`
-	Owner         OwnerSpec              `json:"owner"`
-	ModelRefs     []ModelSubscriptionRef `json:"modelRefs"`
-	TokenMetadata *TokenMetadata         `json:"tokenMetadata,omitempty"`
-	Priority      int32                  `json:"priority,omitempty"`
+	Name             string                 `json:"name"`
+	Owner            OwnerSpec              `json:"owner"`
+	ModelRefs        []ModelSubscriptionRef `json:"modelRefs"`
+	TokenMetadata    *TokenMetadata         `json:"tokenMetadata,omitempty"`
+	Priority         int32                  `json:"priority,omitempty"`
+	CreateAuthPolicy bool                   `json:"createAuthPolicy,omitempty"`
 }
 
 // UpdateSubscriptionRequest is the request body for updating a subscription.
@@ -108,7 +108,7 @@ type UpdateSubscriptionRequest struct {
 // CreateSubscriptionResponse is the response after creating or updating a subscription.
 type CreateSubscriptionResponse struct {
 	Subscription MaaSSubscription `json:"subscription"`
-	AuthPolicy   MaaSAuthPolicy   `json:"authPolicy"`
+	AuthPolicy   *MaaSAuthPolicy  `json:"authPolicy,omitempty"`
 }
 
 // SubscriptionInfoResponse contains detailed subscription info with related resources.

@@ -74,7 +74,7 @@ var _ = Describe("TiersHandlers", Ordered, func() {
 				GatewayName:             "maas-default-gateway",
 			}
 
-			repos, err := repositories.NewRepositories(nil, k8Factory, badCfg)
+			repos, err := repositories.NewRepositories(nil, k8Factory, badCfg, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			app := &App{
 				config:                  badCfg,

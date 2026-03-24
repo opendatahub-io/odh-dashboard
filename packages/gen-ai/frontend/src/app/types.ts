@@ -99,6 +99,7 @@ export type CreateResponseRequest = {
   mcp_servers?: MCPServerConfig[];
   input_shield_id?: string;
   output_shield_id?: string;
+  model_source_type?: string;
 };
 
 export type SimplifiedUsage = {

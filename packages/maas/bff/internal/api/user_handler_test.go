@@ -37,7 +37,7 @@ var _ = Describe("TestUserHandler", func() {
 
 		BeforeAll(func() {
 			By("creating the test app")
-			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				kubernetesClientFactory: k8Factory,
