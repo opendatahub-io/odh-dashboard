@@ -354,7 +354,7 @@ const StartEvaluationRunPage: React.FC = () => {
             labelHelp={
               <LabelHelpPopover
                 ariaLabel="More info for MLflow experiment"
-                content="Choose an existing MLflow experiment to log results to, or create a new one."
+                content="Select an existing MLFlow experiment to log this evaluation run to, or create a new one. If you don't have any experiments, the default 'EvalHub' experiment will be used."
               />
             }
           >
@@ -371,7 +371,7 @@ const StartEvaluationRunPage: React.FC = () => {
             />
 
             {experimentMode === 'existing' && namespace && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 500 }}>
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                 <MlflowExperimentSelector
                   workspace={namespace}
                   filter={EXPERIMENT_FILTER}
@@ -396,7 +396,7 @@ const StartEvaluationRunPage: React.FC = () => {
             </div>
 
             {experimentMode === 'new' && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)', maxWidth: 500 }}>
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 <TextInput
                   id="new-experiment-name"
                   data-testid="new-experiment-name-input"
