@@ -35,14 +35,22 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
         )}
         {statusIcon && (
           <SplitItem>
-            <Label variant="outline" color={color} status={labelStatus} icon={icon} data-testid="status-icon">
+            <Label
+              variant="outline"
+              color={color}
+              status={labelStatus}
+              icon={icon}
+              data-testid="status-icon"
+            >
               {label}
             </Label>
           </SplitItem>
         )}
         {isRegistered && (
           <SplitItem>
-            <Label variant="outline" color="green">Model registered</Label>
+            <Label variant="outline" color="green">
+              Model registered
+            </Label>
           </SplitItem>
         )}
         {isArchived && (
