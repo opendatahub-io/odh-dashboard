@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // MLflow CRD constants for Kubernetes CR auto-discovery.
@@ -46,22 +43,10 @@ const crDiscoveryTimeout = 10 * time.Second
 // The pod's service account must have RBAC permission to list
 // mlflows.mlflow.opendatahub.io at the cluster scope for auto-discovery
 // to succeed.
-//
-// For local development, falls back to ~/.kube/config if in-cluster config
-// is not available.
 func DiscoverMLflowURL() (string, error) {
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
-		// Fallback to kubeconfig for local development
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			home, _ := os.UserHomeDir()
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		}
-		restCfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return "", fmt.Errorf("failed to get cluster config: %w", err)
-		}
+		return "", fmt.Errorf("failed to get in-cluster config: %w", err)
 	}
 
 	dynClient, err := dynamic.NewForConfig(restCfg)
