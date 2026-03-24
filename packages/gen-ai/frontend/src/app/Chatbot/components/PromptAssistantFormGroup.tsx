@@ -7,8 +7,8 @@ import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlo
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
-import { useConfirmation } from '../hooks/useConfirmation';
-import { usePromptEdited } from '../hooks/usePromptEdited';
+import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 type PromptAssistantFormGroupProps = {
   systemInstruction: string;
