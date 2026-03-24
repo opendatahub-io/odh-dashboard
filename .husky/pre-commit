@@ -12,7 +12,7 @@ fi
 echo "🔍 Running lint-staged to check staged files..."
 
 # If any package.json or federation manifest is staged, validate port uniqueness
-if git diff --cached --name-only | grep -qE 'package\.json$|manifests/modular-architecture/'; then
+if git diff --cached --name-only | grep -qE 'package\.json$|federation-configmap\.yaml$'; then
     echo "📦 Port-related file changed — validating module federation ports..."
     if ! node scripts/validate-module-ports.js; then
         echo ""

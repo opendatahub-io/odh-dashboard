@@ -33,41 +33,44 @@ function getWorkspacePackages() {
 }
 
 /**
- * Extracts the local dev port from a module-federation config, handling both
- * the old format (local.port) and the new format (backend.localService.port).
- * Also checks proxyService entries for packages that only define proxy ports.
+ * Extracts all local dev ports from a module-federation config.
+ * A single package may define multiple ports (e.g. webpack dev server + proxy target).
+ * Returns an array of { port, source } objects.
  */
-function extractLocalPort(mfConfig) {
+function extractLocalPorts(mfConfig) {
+  const ports = [];
   if (mfConfig.local?.port != null) {
-    return mfConfig.local.port;
+    ports.push({ port: mfConfig.local.port, source: 'local.port' });
   }
   if (mfConfig.backend?.localService?.port != null) {
-    return mfConfig.backend.localService.port;
+    ports.push({ port: mfConfig.backend.localService.port, source: 'backend.localService.port' });
   }
   if (Array.isArray(mfConfig.proxyService)) {
     for (const proxy of mfConfig.proxyService) {
       if (proxy.localService?.port != null) {
-        return proxy.localService.port;
+        ports.push({ port: proxy.localService.port, source: 'proxyService.localService.port' });
       }
     }
   }
-  return null;
+  return ports;
 }
 
 function extractName(mfConfig) {
   return mfConfig.name ?? 'unknown';
 }
 
+const CONFIGMAP_PATHS = [
+  '../manifests/modular-architecture/federation-configmap.yaml',
+  '../manifests/rhoai/shared/base/federation-configmap.yaml',
+];
+
 /**
- * Parses the federation-configmap.yaml to extract production service ports.
+ * Parses a federation-configmap.yaml to extract production service ports.
  * The configmap contains a JSON array embedded in YAML under
  * data."module-federation-config.json".
  */
-function parseFederationConfigMap() {
-  const configMapPath = path.resolve(
-    __dirname,
-    '../manifests/modular-architecture/federation-configmap.yaml',
-  );
+function parseFederationConfigMap(relativePath) {
+  const configMapPath = path.resolve(__dirname, relativePath);
 
   if (!fs.existsSync(configMapPath)) {
     return null;
@@ -75,8 +78,6 @@ function parseFederationConfigMap() {
 
   const content = fs.readFileSync(configMapPath, 'utf8');
 
-  // Extract the JSON array from the YAML. It starts after the
-  // "module-federation-config.json: |" line and is indented.
   const jsonMatch = content.match(/module-federation-config\.json:\s*\|\s*\n([\s\S]+)/);
   if (!jsonMatch) {
     return null;
@@ -84,15 +85,29 @@ function parseFederationConfigMap() {
 
   const lines = jsonMatch[1].split('\n');
   const indent = lines.find((l) => l.trim())?.match(/^(\s*)/)?.[1].length ?? 0;
-  const rawJson = lines
-    .map((line) => (indent > 0 ? line.slice(indent) : line))
-    .join('\n')
-    .trim();
+
+  // Stop capturing when indentation drops back to or below the data key level,
+  // so we don't accidentally include subsequent YAML keys.
+  const jsonLines = [];
+  for (const line of lines) {
+    if (line.trim() === '') {
+      jsonLines.push('');
+      continue;
+    }
+    const lineIndent = line.match(/^(\s*)/)?.[1].length ?? 0;
+    if (lineIndent < indent) {
+      break;
+    }
+    jsonLines.push(indent > 0 ? line.slice(indent) : line);
+  }
+  const rawJson = jsonLines.join('\n').trim();
 
   try {
     return JSON.parse(rawJson);
   } catch {
-    console.warn(`${colors.yellow}⚠ Could not parse federation-configmap.yaml JSON${colors.reset}`);
+    console.warn(
+      `${colors.yellow}⚠ Could not parse JSON from ${path.basename(configMapPath)}${colors.reset}`,
+    );
     return null;
   }
 }
@@ -136,21 +151,23 @@ function validate() {
     }
 
     totalModules++;
-    const port = extractLocalPort(mfConfig);
+    const ports = extractLocalPorts(mfConfig);
     const mfName = extractName(mfConfig);
     const packageName = pkg.name || pkg.path;
 
-    if (port == null) {
+    if (ports.length === 0) {
       console.warn(
         `${colors.yellow}⚠ ${packageName} (${mfName}): no local dev port configured${colors.reset}`,
       );
       continue;
     }
 
-    if (!localPortMap.has(port)) {
-      localPortMap.set(port, []);
+    for (const { port, source } of ports) {
+      if (!localPortMap.has(port)) {
+        localPortMap.set(port, []);
+      }
+      localPortMap.get(port).push({ name: `${mfName} [${source}] (${packageName})` });
     }
-    localPortMap.get(port).push({ name: `${mfName} (${packageName})` });
   }
 
   console.log(`\n${colors.cyan}Local Dev Ports (package.json)${colors.reset}`);
@@ -172,30 +189,43 @@ function validate() {
     console.error(`See docs/onboard-modular-architecture.md for port conventions.\n`);
   }
 
-  // --- 2. Validate production service ports from federation-configmap.yaml ---
-  const configMapEntries = parseFederationConfigMap();
+  // --- 2. Validate production service ports from federation-configmap.yaml files ---
+  for (const configMapRelPath of CONFIGMAP_PATHS) {
+    const configMapEntries = parseFederationConfigMap(configMapRelPath);
+    const configMapLabel = `${path.basename(
+      path.dirname(configMapRelPath),
+    )}/federation-configmap.yaml`;
 
-  if (configMapEntries) {
+    if (!configMapEntries) {
+      continue;
+    }
+
     const servicePortMap = new Map();
 
     for (const entry of configMapEntries) {
       const name = entry.name ?? 'unknown';
-      const servicePort = entry.service?.port;
 
-      if (servicePort == null) {
-        continue;
+      if (entry.service?.port != null) {
+        if (!servicePortMap.has(entry.service.port)) {
+          servicePortMap.set(entry.service.port, []);
+        }
+        servicePortMap.get(entry.service.port).push({ name: `${name} [service]` });
       }
 
-      if (!servicePortMap.has(servicePort)) {
-        servicePortMap.set(servicePort, []);
+      if (Array.isArray(entry.proxyService)) {
+        for (const proxy of entry.proxyService) {
+          if (proxy.service?.port != null) {
+            if (!servicePortMap.has(proxy.service.port)) {
+              servicePortMap.set(proxy.service.port, []);
+            }
+            servicePortMap.get(proxy.service.port).push({ name: `${name} [proxyService]` });
+          }
+        }
       }
-      servicePortMap.get(servicePort).push({ name });
     }
 
     if (servicePortMap.size > 0) {
-      console.log(
-        `${colors.cyan}Production Service Ports (federation-configmap.yaml)${colors.reset}`,
-      );
+      console.log(`${colors.cyan}Production Service Ports (${configMapLabel})${colors.reset}`);
       console.log('─'.repeat(60));
       const serviceConflicts = checkPortMap(servicePortMap);
       console.log('─'.repeat(60));
@@ -206,7 +236,7 @@ function validate() {
       if (serviceConflicts.length > 0) {
         hasErrors = true;
         console.error(
-          `${colors.red}✗ Production service port conflicts detected:${colors.reset}\n`,
+          `${colors.red}✗ Production service port conflicts in ${configMapLabel}:${colors.reset}\n`,
         );
         for (const { port, owners } of serviceConflicts) {
           const names = owners.map((o) => o.name).join(', ');
