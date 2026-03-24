@@ -17,7 +17,7 @@ const baseModel: MockAutomlModel = {
 const defaultProps = {
   model: baseModel,
   taskType: 'multiclass' as const,
-  labelColumn: 'label',
+  parameters: { task_type: 'multiclass' as const, label_column: 'label' },
 };
 
 const sampleImportance: FeatureImportanceData = {

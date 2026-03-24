@@ -1,10 +1,5 @@
 /* eslint-disable camelcase */
-import type {
-  TaskType,
-  FeatureImportanceData,
-  ConfusionMatrixData,
-  PipelineRun,
-} from '~/app/types';
+import type { FeatureImportanceData, ConfusionMatrixData, PipelineRun } from '~/app/types';
 
 export type MockAutomlModel = {
   display_name: string;
@@ -21,16 +16,29 @@ export type MockAutomlModel = {
   };
 };
 
+type TabularParameters = {
+  task_type: 'binary' | 'multiclass' | 'regression';
+  label_column: string;
+  [key: string]: unknown;
+};
+
+type TimeseriesParameters = {
+  task_type: 'timeseries';
+  target: string;
+  id_column: string;
+  timestamp_column: string;
+  prediction_length?: number;
+  [key: string]: unknown;
+};
+
+export type MockAutomlParameters = TabularParameters | TimeseriesParameters;
+
 export type MockAutomlResultsContext = {
   pipelineRun: PipelineRun;
   pipelineRunLoading: boolean;
   models: Record<string, MockAutomlModel>;
   modelsLoading: boolean;
-  parameters: {
-    task_type: TaskType;
-    label_column: string;
-    [key: string]: unknown;
-  };
+  parameters: MockAutomlParameters;
 };
 
 // ---------------------------------------------------------------------------
@@ -149,7 +157,7 @@ const mockModels: Record<string, MockAutomlModel> = {
 // Mock context
 // ---------------------------------------------------------------------------
 
-export const mockMulticlassContext: MockAutomlResultsContext = {
+export const mockTabularContext: MockAutomlResultsContext = {
   pipelineRun: mockPipelineRun,
   pipelineRunLoading: false,
   models: mockModels,
@@ -165,10 +173,157 @@ export const mockMulticlassContext: MockAutomlResultsContext = {
 };
 
 // ---------------------------------------------------------------------------
+// Timeseries mock pipeline run
+// ---------------------------------------------------------------------------
+
+const mockTimeseriesPipelineRun: PipelineRun = {
+  run_id: 'b2c3d4e5-6789-abcd-ef01-234567890abc',
+  display_name: 'timeseries-1773928600000',
+  experiment_id: 'f2a3b4c5-d6e7-8901-bcde-f01234567890',
+  state: 'SUCCEEDED',
+  storage_state: 'AVAILABLE',
+  created_at: '2026-03-20T10:00:00Z',
+  finished_at: '2026-03-20T15:30:00Z',
+  runtime_config: {
+    parameters: {
+      target: 'sales',
+      id_column: 'store_id',
+      timestamp_column: 'date',
+      prediction_length: '7',
+      top_n: '3',
+      train_data_bucket_name: 'my-automl-bucket',
+      train_data_file_key: 'store_sales.csv',
+      train_data_secret_name: 's3-with-bucket',
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Timeseries mock models
+// ---------------------------------------------------------------------------
+
+const TS_RUN_ID = mockTimeseriesPipelineRun.run_id;
+const TS_TASK_ID = '33bc4567-8901-def0-2345-678901abcdef';
+
+const buildTimeseriesLocation = (
+  runId: string,
+  taskId: string,
+  modelName: string,
+): MockAutomlModel['location'] => {
+  const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
+  return {
+    model_directory: `${base}/`,
+    predictor: `${base}/predictor/predictor.pkl`,
+    notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
+  };
+};
+
+const mockTimeseriesModels: Record<string, MockAutomlModel> = {
+  TemporalFusionTransformer: {
+    display_name: 'TemporalFusionTransformer',
+    model_config: { eval_metric: 'smape' },
+    location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'TemporalFusionTransformer'),
+    metrics: {
+      test_data: {
+        smape: 0.082,
+        mape: 0.091,
+        mse: 12.45,
+        rmse: 3.528,
+        mae: 2.81,
+      },
+    },
+  },
+  DeepAR: {
+    display_name: 'DeepAR',
+    model_config: { eval_metric: 'smape' },
+    location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'DeepAR'),
+    metrics: {
+      test_data: {
+        smape: 0.105,
+        mape: 0.118,
+        mse: 18.72,
+        rmse: 4.327,
+        mae: 3.42,
+      },
+    },
+  },
+  AutoETS: {
+    display_name: 'AutoETS',
+    model_config: { eval_metric: 'smape' },
+    location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'AutoETS'),
+    metrics: {
+      test_data: {
+        smape: 0.134,
+        mape: 0.152,
+        mse: 24.31,
+        rmse: 4.931,
+        mae: 4.05,
+      },
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Timeseries mock context
+// ---------------------------------------------------------------------------
+
+export const mockTimeseriesContext: MockAutomlResultsContext = {
+  pipelineRun: mockTimeseriesPipelineRun,
+  pipelineRunLoading: false,
+  models: mockTimeseriesModels,
+  modelsLoading: false,
+  parameters: {
+    task_type: 'timeseries',
+    target: 'sales',
+    id_column: 'store_id',
+    timestamp_column: 'date',
+    prediction_length: 7,
+    top_n: 3,
+    train_data_bucket_name: 'my-automl-bucket',
+    train_data_file_key: 'store_sales.csv',
+    train_data_secret_name: 's3-with-bucket',
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Timeseries per-model supplementary data
+// ---------------------------------------------------------------------------
+
+export const mockTimeseriesFeatureImportances: Record<string, FeatureImportanceData> = {
+  TemporalFusionTransformer: {
+    importance: {
+      day_of_week: 0.215,
+      month: 0.185,
+      promotion: 0.142,
+      holiday: 0.098,
+      temperature: 0.065,
+    },
+  },
+  DeepAR: {
+    importance: {
+      month: 0.198,
+      day_of_week: 0.176,
+      promotion: 0.131,
+      holiday: 0.088,
+      temperature: 0.072,
+    },
+  },
+  AutoETS: {
+    importance: {
+      month: 0.241,
+      day_of_week: 0.158,
+      promotion: 0.105,
+      temperature: 0.082,
+      holiday: 0.061,
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Per-model supplementary data (fetched from S3 in real usage)
 // ---------------------------------------------------------------------------
 
-export const mockMulticlassFeatureImportances: Record<string, FeatureImportanceData> = {
+export const mockTabularFeatureImportances: Record<string, FeatureImportanceData> = {
   CatBoost_BAG_L2_FULL: {
     importance: {
       color: 0.183,
@@ -198,7 +353,7 @@ export const mockMulticlassFeatureImportances: Record<string, FeatureImportanceD
   },
 };
 
-export const mockMulticlassConfusionMatrices: Record<string, ConfusionMatrixData> = {
+export const mockTabularConfusionMatrices: Record<string, ConfusionMatrixData> = {
   CatBoost_BAG_L2_FULL: {
     Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
     Ghoul: { Ghost: 1, Ghoul: 10, Goblin: 2 },

@@ -11,10 +11,13 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
-  mockMulticlassContext,
-  mockMulticlassFeatureImportances,
-  mockMulticlassConfusionMatrices,
+  mockTabularContext,
+  mockTimeseriesContext,
+  mockTabularFeatureImportances,
+  mockTabularConfusionMatrices,
+  mockTimeseriesFeatureImportances,
 } from '~/app/mocks/mockAutomlResultsContext';
+import type { TaskType } from '~/app/types';
 import { computeRankMap } from '~/app/utilities/utils';
 // TODO: uncomment when integrating with AutomlResultsContext
 // import { useS3GetFileQuery, useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
@@ -27,6 +30,8 @@ type AutomlModelDetailsModalProps = {
   onClose: () => void;
   modelName: string;
   rank: number;
+  // TODO: Remove taskType prop when integrating with AutomlResultsContext
+  taskType: TaskType;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -45,11 +50,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClose,
   modelName,
   rank: initialRank,
+  taskType,
 }) => {
-  const context = mockMulticlassContext;
+  // TODO: Replace with useAutomlResultsContext() when available
+  const context = taskType === 'timeseries' ? mockTimeseriesContext : mockTabularContext;
   const models = Object.values(context.models);
-  const taskType = context.parameters.task_type;
-  const labelColumn = context.parameters.label_column;
+  const { parameters } = context;
   const createdAt = context.pipelineRun.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);
@@ -74,8 +80,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   //   modelDirectory,
   //   isClassification,
   // );
-  const featureImportance = mockMulticlassFeatureImportances[selectedModelName];
-  const confusionMatrix = mockMulticlassConfusionMatrices[selectedModelName];
+  const featureImportanceMap =
+    taskType === 'timeseries' ? mockTimeseriesFeatureImportances : mockTabularFeatureImportances;
+  const featureImportance = featureImportanceMap[selectedModelName];
+  const confusionMatrix =
+    taskType === 'timeseries' ? undefined : mockTabularConfusionMatrices[selectedModelName];
 
   // TODO: uncomment when integrating with AutomlResultsContext
   // const notebookKey = model.location.notebook;
@@ -188,7 +197,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     <ActiveComponent
                       model={model}
                       taskType={taskType}
-                      labelColumn={labelColumn}
+                      parameters={parameters}
                       createdAt={createdAt}
                       featureImportance={featureImportance}
                       confusionMatrix={confusionMatrix}
@@ -217,7 +226,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   <TabComponent
                     model={model}
                     taskType={taskType}
-                    labelColumn={labelColumn}
+                    parameters={parameters}
                     createdAt={createdAt}
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}

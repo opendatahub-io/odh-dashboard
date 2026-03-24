@@ -1,10 +1,11 @@
 import type React from 'react';
 import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
-import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import type { MockAutomlModel, MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
 } from '~/app/schemas/configure.schema';
 import ModelInformationTab from './tabs/ModelInformationTab';
 import FeatureSummaryTab from './tabs/FeatureSummaryTab';
@@ -14,7 +15,7 @@ import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 export type TabContentProps = {
   model: MockAutomlModel;
   taskType: TaskType;
-  labelColumn: string;
+  parameters: MockAutomlParameters;
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
@@ -29,10 +30,11 @@ export type TabDefinition = {
   component: React.ComponentType<TabContentProps>;
 };
 
-const ALL_TABULAR_TYPES: readonly TaskType[] = [
+const ALL_TASK_TYPES: readonly TaskType[] = [
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
 ];
 
 const CLASSIFICATION_TYPES: readonly TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
@@ -43,7 +45,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     label: 'Model information',
     tooltip: "Overview of the model's experiment parameters and configuration",
     section: 'Model viewer',
-    visibleFor: ALL_TABULAR_TYPES,
+    visibleFor: ALL_TASK_TYPES,
     component: ModelInformationTab,
   },
   {
@@ -51,7 +53,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     label: 'Feature summary',
     tooltip: 'Feature importance rankings based on permutation importance testing',
     section: 'Model viewer',
-    visibleFor: ALL_TABULAR_TYPES,
+    visibleFor: ALL_TASK_TYPES,
     component: FeatureSummaryTab,
   },
   {
@@ -59,7 +61,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     label: 'Model evaluation',
     tooltip: 'Performance metrics measured on holdout test data',
     section: 'Evaluation',
-    visibleFor: ALL_TABULAR_TYPES,
+    visibleFor: ALL_TASK_TYPES,
     component: ModelEvaluationTab,
   },
   {

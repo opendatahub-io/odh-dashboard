@@ -104,7 +104,7 @@ export type SecretListItem = {
   description?: string;
 };
 
-export type TaskType = 'binary' | 'multiclass' | 'regression';
+export type TaskType = 'binary' | 'multiclass' | 'regression' | 'timeseries';
 
 export type FeatureImportanceData = {
   importance: Record<string, number>;
