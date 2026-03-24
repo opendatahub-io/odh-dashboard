@@ -81,9 +81,17 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
+    if (canEditNodes) {
+      items.push({
+        title: 'Edit node count',
+        onClick: () => setModalOpen(true),
+      });
+    }
+
     if (canPauseResume) {
       items.push({
         title: isPaused ? 'Resume job' : 'Pause job',
+        isDisabled: isSubmitting || isExternallyToggling,
         onClick: isPaused ? handleResume : onPauseClick,
       });
     }
@@ -103,7 +111,19 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
     );
 
     return items;
-  }, [canPauseResume, isPaused, handleResume, onPauseClick, job, onSelectJob, onDelete]);
+  }, [
+    canPauseResume,
+    isPaused,
+    handleResume,
+    onPauseClick,
+    isSubmitting,
+    isExternallyToggling,
+    canEditNodes,
+    setModalOpen,
+    job,
+    onSelectJob,
+    onDelete,
+  ]);
 
   const renderRayClusterCell = () => {
     if (!rayClusterName) {

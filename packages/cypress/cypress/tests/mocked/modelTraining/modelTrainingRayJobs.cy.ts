@@ -906,6 +906,24 @@ describe('Edit node count modal for RayJobs', () => {
     trainingJobTable.getTableRow('ray-workspace-job').findEditNodeCountButton().should('not.exist');
   });
 
+  it('should show Edit node count in the kebab menu and open the modal', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findKebabButton().click();
+    trainingJobTable
+      .getTableRow('ray-multi-group-job')
+      .findKebabMenuItem('Edit node count')
+      .should('exist')
+      .click();
+    editRayJobNodeCountModal.shouldBeOpen();
+  });
+
+  it('should not show Edit node count in the kebab menu for workspace-cluster jobs', () => {
+    trainingJobTable.getTableRow('ray-workspace-job').findKebabButton().click();
+    trainingJobTable
+      .getTableRow('ray-workspace-job')
+      .findKebabMenuItem('Edit node count')
+      .should('not.exist');
+  });
+
   it('should open the modal with correct initial state: head node disabled, Save disabled', () => {
     trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
 
