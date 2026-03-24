@@ -10,7 +10,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// MaaSModelsHandler handles GET /v1/models
+// MaaSModelsHandler handles GET /v1/models.
+// Uses the user's OIDC token directly for authentication with the MaaS API,
+// bypassing the need to mint an ephemeral API key for model listing.
 func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -26,15 +28,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	apiKey := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, "list-models")
-
-	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, apiKey)
+	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
 	if err != nil {
 		app.handleMaaSClientError(w, r, err)
 		return

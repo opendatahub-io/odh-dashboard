@@ -137,6 +137,53 @@ func TestMaaSModelsHandler(t *testing.T) {
 	})
 }
 
+func TestMaaSModelsHandler_MissingNamespace(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestMaaSModelsHandler_ForwardsUserToken(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	mockClient := maasmocks.NewMockMaaSClient()
+	ctx := context.WithValue(req.Context(), constants.MaaSClientKey, mockClient)
+	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "my-oidc-token"})
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "my-oidc-token", mockClient.LastAuthToken,
+		"handler must forward identity.Token to ListModels")
+}
+
 func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
 

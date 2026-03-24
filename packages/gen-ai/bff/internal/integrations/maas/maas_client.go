@@ -51,8 +51,9 @@ func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
 }
 
 // ListModels retrieves all available models from the MaaS API.
-// apiKey must be a valid MaaS API key obtained via IssueToken.
-func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
+// authToken is a bearer token used for authentication — either the user's OIDC token
+// (for direct user-token auth) or a MaaS API key obtained via IssueToken.
+func (c *HTTPMaaSClient) ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error) {
 	url := fmt.Sprintf("%s/v1/models", c.baseURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -60,7 +61,7 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+authToken)
 	req.Header.Set("X-MaaS-Return-All-Models", "true")
 
 	resp, err := c.httpClient.Do(req)

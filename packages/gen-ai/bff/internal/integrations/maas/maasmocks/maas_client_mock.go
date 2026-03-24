@@ -10,7 +10,7 @@ import (
 
 // MockMaaSClient provides a mock implementation of the MaaSClient for testing
 type MockMaaSClient struct {
-	// Add fields here if you need to store state for testing
+	LastAuthToken string
 }
 
 // NewMockMaaSClient creates a new mock MaaS client
@@ -19,13 +19,13 @@ func NewMockMaaSClient() *MockMaaSClient {
 }
 
 // ListModels returns mock MaaS model data
-func (m *MockMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
+func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error) {
 	// Special case: empty-test-namespace should return no models for testing empty state
 	// Check context for namespace (set by namespace middleware)
 	if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace == "empty-test-namespace" {
 		return []models.MaaSModel{}, nil
 	}
-
+	m.LastAuthToken = authToken
 	// Create timestamp for consistent mock data
 	created := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 

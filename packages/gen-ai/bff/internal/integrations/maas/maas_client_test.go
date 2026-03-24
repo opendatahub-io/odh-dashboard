@@ -206,11 +206,11 @@ func TestListModels_SendsReturnAllModelsHeader(t *testing.T) {
 	defer server.Close()
 
 	client := NewHTTPMaaSClient(server.URL, "", false, nil)
-	result, err := client.ListModels(context.Background(), "test-api-key")
+	result, err := client.ListModels(context.Background(), "test-auth-token")
 
 	require.NoError(t, err)
 	assert.Equal(t, "true", capturedHeaders.Get("X-Maas-Return-All-Models"))
-	assert.Equal(t, "Bearer test-api-key", capturedHeaders.Get("Authorization"))
+	assert.Equal(t, "Bearer test-auth-token", capturedHeaders.Get("Authorization"))
 	require.Len(t, result, 1)
 	assert.Equal(t, "test-model", result[0].ID)
 	require.Len(t, result[0].Subscriptions, 2)
@@ -240,7 +240,7 @@ func TestListModels_HandlesEmptySubscriptions(t *testing.T) {
 	defer server.Close()
 
 	client := NewHTTPMaaSClient(server.URL, "", false, nil)
-	result, err := client.ListModels(context.Background(), "test-api-key")
+	result, err := client.ListModels(context.Background(), "test-auth-token")
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
