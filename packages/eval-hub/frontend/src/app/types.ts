@@ -172,6 +172,7 @@ type JobBenchmark = {
 
 type JobCollection = {
   id: string;
+  benchmarks?: JobBenchmark[];
 };
 
 type ExperimentTag = {
@@ -211,7 +212,7 @@ export type EvaluationJob = {
   tags?: string[];
   model: JobModel;
   pass_criteria?: JobPassCriteria;
-  benchmarks: JobBenchmark[] | null;
+  benchmarks?: JobBenchmark[] | null;
   collection?: JobCollection;
   experiment?: JobExperiment;
   custom?: Record<string, unknown>;
@@ -375,7 +376,7 @@ export type CreateEvaluationJobRequest = {
     };
   };
   pass_criteria?: JobPassCriteria;
-  benchmarks: JobBenchmark[];
+  benchmarks?: JobBenchmark[];
   collection?: JobCollection;
   experiment?: JobExperiment;
   custom?: Record<string, unknown>;
