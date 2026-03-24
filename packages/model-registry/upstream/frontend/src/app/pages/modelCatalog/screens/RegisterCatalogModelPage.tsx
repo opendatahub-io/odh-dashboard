@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistryContextProvider } from '~/app/context/ModelRegistryContext';
 import {
   ModelRegistrySelectorContextProvider,
@@ -17,7 +16,6 @@ import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import RegisterCatalogModelForm from './RegisterCatalogModelForm';
 
 const RegisterCatalogModelPageInner: React.FC = () => {
-  const tabRouteContext = useTabRoutePageContext();
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const { modelRegistries, modelRegistriesLoaded } = React.useContext(ModelRegistrySelectorContext);
@@ -46,7 +44,7 @@ const RegisterCatalogModelPageInner: React.FC = () => {
 
   return (
     <ApplicationsPage
-      noTitle={tabRouteContext?.isInsideTabPage}
+      noTitle // rendered inside a TabRoutePage which provides the title
       title={`Register ${getModelName(model?.name || '') || ''} model`}
       description="Create and register the first version of a new model."
       breadcrumb={

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Content, Tooltip, Truncate } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
 import useModelVersionById from '~/app/hooks/useModelVersionById';
@@ -23,7 +22,6 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
   tab,
   ...pageProps
 }) => {
-  const tabRouteContext = useTabRoutePageContext();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
@@ -50,7 +48,7 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
   return (
     <ApplicationsPage
       {...pageProps}
-      noTitle={tabRouteContext?.isInsideTabPage}
+      noTitle // rendered inside a TabRoutePage which provides the title
       breadcrumb={
         <ArchiveModelVersionDetailsBreadcrumb
           preferredModelRegistry={preferredModelRegistry?.name}

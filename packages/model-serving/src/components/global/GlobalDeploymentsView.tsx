@@ -5,7 +5,7 @@ import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useNavigate, useParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useExtensions, useTabRoutePageContext } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Alert, Flex, FlexItem, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
@@ -25,7 +25,6 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   projects,
   projectsLoaded,
 }) => {
-  const tabRouteContext = useTabRoutePageContext();
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
 
@@ -92,7 +91,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
           )}
         </Flex>
       }
-      noTitle={tabRouteContext?.isInsideTabPage}
+      noTitle // rendered inside a TabRoutePage which provides the title
       title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
       headerContent={
         <ModelServingProjectSelection
