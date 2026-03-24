@@ -574,6 +574,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isDisabled={
                 !modelId.trim() ||
                 !endpointUrl.trim() ||
+                !urlValidation.isValid ||
                 (modelType === MODEL_TYPE_EMBEDDING &&
                   (!embeddingDimension.trim() || parseInt(embeddingDimension, 10) <= 0)) ||
                 isVerifying ||
