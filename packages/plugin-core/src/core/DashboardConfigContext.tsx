@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 /**
  * Dashboard configuration data from the OdhDashboardConfig CR spec.
  * This type should match DashboardConfigKind['spec'] from the main app.
@@ -7,22 +5,22 @@ import * as React from 'react';
 export type DashboardConfigData = Record<string, unknown>;
 
 /**
- * Context for providing dashboard configuration to federated modules.
+ * Internal module-level storage for dashboard configuration.
  */
-const DashboardConfigContext = React.createContext<DashboardConfigData | null>(null);
-
-export const DashboardConfigProvider = DashboardConfigContext.Provider;
+let dashboardConfig: DashboardConfigData | null = null;
 
 /**
- * Hook to access dashboard configuration from federated modules.
- * Returns the entire dashboardConfig.spec object.
+ * Sets the dashboard configuration. Called by the main app on initialization.
+ * @param config - The dashboardConfig.spec object from OdhDashboardConfig CR
  */
-export const useDashboardConfig = (): DashboardConfigData => {
-  const context = React.useContext(DashboardConfigContext);
+export const setDashboardConfig = (config: DashboardConfigData): void => {
+  dashboardConfig = config;
+};
 
-  if (context === null) {
-    throw new Error('useDashboardConfig must be used within a DashboardConfigProvider');
-  }
-
-  return context;
+/**
+ * Gets the dashboard configuration for use in federated modules.
+ * Returns the entire dashboardConfig.spec object, or null if not yet initialized.
+ */
+export const getDashboardConfig = (): DashboardConfigData | null => {
+  return dashboardConfig;
 };
