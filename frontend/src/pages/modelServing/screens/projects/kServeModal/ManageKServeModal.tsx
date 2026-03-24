@@ -123,6 +123,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
       visibleIn: MODEL_SERVING_VISIBILITY,
       paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      autoSelectProfile: false,
     });
 
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({

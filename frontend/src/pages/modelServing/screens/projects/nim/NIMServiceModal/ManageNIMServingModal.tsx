@@ -127,6 +127,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
       visibleIn: MODEL_SERVING_VISIBILITY,
       paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      autoSelectProfile: false,
     });
 
   const servingRuntimeParamsEnabled = useIsAreaAvailable(

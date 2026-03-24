@@ -112,6 +112,7 @@ export const useHardwareProfileConfig = (
   visibleIn?: HardwareProfileFeatureVisibility[],
   resourceNamespace?: string,
   hardwareProfileNamespace?: string | null,
+  autoSelectProfile = true,
 ): UseHardwareProfileConfigResult => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -178,7 +179,8 @@ export const useHardwareProfileConfig = (
       }
 
       // if not editing existing profile, select the first enabled profile
-      else {
+      // (unless autoSelectProfile is false, e.g. for model serving where platform defaults apply)
+      else if (autoSelectProfile) {
         const filteredProfiles = filterProfilesByKueue(
           profiles.filter(isHardwareProfileEnabled),
           kueueFilteringState,
@@ -205,6 +207,7 @@ export const useHardwareProfileConfig = (
     dashboardProfiles,
     dashboardNamespace,
     kueueFilteringState,
+    autoSelectProfile,
   ]);
 
   return {

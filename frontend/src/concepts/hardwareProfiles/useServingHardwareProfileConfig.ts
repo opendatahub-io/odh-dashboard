@@ -25,6 +25,7 @@ export const extractHardwareProfileConfigFromInferenceService = (
     MODEL_SERVING_VISIBILITY,
     namespace,
     hardwareProfileNamespace,
+    false, // Don't auto-select profile; let platform apply its own defaults
   ];
 };
 
@@ -51,6 +52,7 @@ const useServingHardwareProfileConfig = (
     visibility,
     isProjectScoped ? namespace : undefined,
     hardwareProfileNamespace,
+    false, // Don't auto-select profile for model serving; let platform apply its own defaults
   );
 };
 

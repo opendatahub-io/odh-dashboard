@@ -29,6 +29,7 @@ export const extractHardwareProfileConfig = (
     MODEL_SERVING_VISIBILITY,
     kserveDeployment.model.metadata.namespace,
     hardwareProfileNamespace,
+    false, // Don't auto-select profile; let platform apply its own defaults
   ];
 };
 

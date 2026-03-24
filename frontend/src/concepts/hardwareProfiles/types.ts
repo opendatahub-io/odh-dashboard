@@ -85,4 +85,5 @@ export type CrPathConfig = {
 export type HardwareProfileOptions = {
   visibleIn: HardwareProfileFeatureVisibility[];
   paths?: CrPathConfig;
+  autoSelectProfile?: boolean;
 };

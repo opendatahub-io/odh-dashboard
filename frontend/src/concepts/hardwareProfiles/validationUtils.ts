@@ -172,6 +172,10 @@ export const hardwareProfileValidationSchema = z
   });
 
 export const isHardwareProfileConfigValid = (data: HardwareProfileConfig): boolean => {
+  // if no profile selected and no resources set, valid (use platform defaults)
+  if (!data.selectedProfile && !data.resources && !data.useExistingSettings) {
+    return true;
+  }
   // if no resources, and not using existing settings, then not valid
   if (!data.useExistingSettings && !data.resources) {
     return false;
