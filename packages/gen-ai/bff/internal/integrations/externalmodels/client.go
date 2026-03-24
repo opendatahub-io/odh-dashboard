@@ -53,6 +53,8 @@ const (
 type ClientOptions struct {
 	// SkipSSRFValidation bypasses SSRF protection (testing only)
 	SkipSSRFValidation bool
+	// AllowHTTP permits HTTP (non-HTTPS) base URLs; SSRF protection still applies
+	AllowHTTP bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
 }
@@ -161,7 +163,7 @@ func NewExternalModelsClient(
 	}
 
 	// Basic URL validation (no DNS lookup - SSRF check happens at request time)
-	if err := validateBaseURL(baseURL, opts.SkipSSRFValidation); err != nil {
+	if err := validateBaseURL(baseURL, opts.AllowHTTP || opts.SkipSSRFValidation); err != nil {
 		return nil, err
 	}
 

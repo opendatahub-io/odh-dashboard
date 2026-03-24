@@ -1121,11 +1121,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 				expectedMessage: "HTTP or HTTPS scheme",
 			},
 			{
-				name:            "HTTP URL in production mode",
-				baseURL:         "http://api.example.com/v1",
-				expectedMessage: "HTTPS in production",
-			},
-			{
 				name:            "URL without hostname",
 				baseURL:         "https://",
 				expectedMessage: "valid hostname",

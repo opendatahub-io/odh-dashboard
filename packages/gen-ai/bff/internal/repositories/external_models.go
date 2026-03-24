@@ -78,20 +78,36 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
+// isInternalHost reports whether a URL targets a host that is known to be internal
+// (localhost or a Kubernetes in-cluster service). These legitimately resolve to private
+// IPs, so SSRF validation is skipped for them. All other URLs are subject to SSRF checks.
+func isInternalHost(baseURL string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	return h == "localhost" ||
+		h == "::1" ||
+		strings.HasPrefix(h, "127.") ||
+		strings.HasSuffix(h, ".svc.cluster.local") ||
+		strings.HasSuffix(h, ".cluster.local")
+}
+
 // VerifyExternalModel tests an external model endpoint using the external models client
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
 	req models.VerifyExternalModelRequest,
 ) (*models.VerifyExternalModelResponse, error) {
-	// Create client with SSRF validation disabled for localhost URLs (testing/development)
 	client, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			SkipSSRFValidation: isLocalhost(req.BaseURL),
+			AllowHTTP:          isInternalHost(req.BaseURL),
+			SkipSSRFValidation: isInternalHost(req.BaseURL),
 		},
 	)
 	if err != nil {
@@ -100,14 +116,4 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 
 	// Verify the model using the client (pass embedding dimension for embedding models)
 	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
-}
-
-// isLocalhost checks if a URL points to localhost by parsing the hostname.
-func isLocalhost(baseURL string) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	hostname := u.Hostname()
-	return hostname == "localhost" || hostname == "::1" || strings.HasPrefix(hostname, "127.")
 }
