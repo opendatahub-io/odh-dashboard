@@ -114,9 +114,10 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                   <Tooltip content="This storage class is deleted.">
                     <Label
                       data-testid="storage-class-deleted"
+                      variant="outline"
                       isCompact
                       icon={<ExclamationTriangleIcon />}
-                      color="yellow"
+                      status="warning"
                     >
                       Deleted
                     </Label>
@@ -129,9 +130,10 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                     >
                       <Label
                         data-testid="storage-class-deprecated"
+                        variant="outline"
                         isCompact
                         icon={<ExclamationTriangleIcon />}
-                        color="yellow"
+                        status="warning"
                       >
                         Deprecated
                       </Label>

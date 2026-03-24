@@ -128,21 +128,18 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
       return {
         label: 'Failed',
         status: 'danger',
-        color: 'red',
         IconComponent: ExclamationCircleIcon,
       };
     case KueueWorkloadStatus.Preempted:
       return {
         label: 'Preempted',
         status: 'warning',
-        color: 'orange',
         IconComponent: ExclamationTriangleIcon,
       };
     case KueueWorkloadStatus.Inadmissible:
       return {
         label: 'Inadmissible',
         status: 'warning',
-        color: 'orange',
         IconComponent: ExclamationTriangleIcon,
       };
     case KueueWorkloadStatus.Running:
@@ -158,7 +155,6 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
       return {
         label: 'Complete',
         status: 'success',
-        color: 'green',
         IconComponent: CheckCircleIcon,
       };
     default:

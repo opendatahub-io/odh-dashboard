@@ -33,9 +33,12 @@ const getStatusLabelProps = (
     return { status: 'danger' };
   }
   if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
-    return { status: 'info' };
+    return { color: 'blue' };
   }
-  if (s === RUN_STATE.INCOMPLETE || s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+  if (s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+    return { color: 'purple' };
+  }
+  if (s === RUN_STATE.INCOMPLETE) {
     return { status: 'warning' };
   }
   return { color: 'grey' };
