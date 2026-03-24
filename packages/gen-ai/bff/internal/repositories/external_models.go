@@ -88,11 +88,13 @@ func isInternalHost(baseURL string) bool {
 	}
 	h := u.Hostname()
 	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
+	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
+	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
 	return h == "localhost" ||
 		h == "::1" ||
 		strings.HasPrefix(h, "127.") ||
-		strings.HasSuffix(h, ".svc.cluster.local") ||
-		strings.HasSuffix(h, ".cluster.local")
+		isK8sService
 }
 
 // VerifyExternalModel tests an external model endpoint using the external models client
