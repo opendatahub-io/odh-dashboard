@@ -75,6 +75,25 @@ export async function fetchS3File(
   return response.blob();
 }
 
+export function useS3GetFileQuery(
+  namespace?: string,
+  secretName?: string,
+  bucket?: string,
+  key?: string,
+): UseQueryResult<Blob, Error> {
+  return useQuery({
+    queryKey: ['file', namespace, secretName, bucket, key],
+    queryFn: async () => {
+      if (!namespace || !key) {
+        throw new Error('namespace and key are required');
+      }
+      return fetchS3File(namespace, key, secretName, bucket);
+    },
+    enabled: Boolean(namespace && key),
+    retry: false,
+  });
+}
+
 export function useFilesQuery(
   namespace?: string,
   secretName?: string,

@@ -26,6 +26,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     rank: 1,
     onSelectModel: jest.fn(),
     onDownload: jest.fn(),
+    onSaveNotebook: jest.fn(),
   };
 
   beforeEach(() => {
@@ -84,11 +85,17 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(defaultProps.onDownload).toHaveBeenCalledTimes(1);
   });
 
-  it('should render disabled Save as button', () => {
+  it('should render Save as notebook button', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    const saveButton = screen.getByTestId('model-details-save-as');
+    const saveButton = screen.getByTestId('model-details-save-notebook');
     expect(saveButton).toBeInTheDocument();
-    expect(saveButton).toBeDisabled();
+    expect(saveButton).toBeEnabled();
+  });
+
+  it('should call onSaveNotebook when Save as notebook is clicked', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    screen.getByTestId('model-details-save-notebook').click();
+    expect(defaultProps.onSaveNotebook).toHaveBeenCalledTimes(1);
   });
 
   it('should render model name as plain text when only one model', () => {

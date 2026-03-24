@@ -16,6 +16,8 @@ import {
   mockMulticlassConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
 import { computeRankMap } from '~/app/utilities/utils';
+// TODO: uncomment when integrating with AutomlResultsContext
+// import { useS3GetFileQuery, useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -63,10 +65,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const model = context.models[selectedModelName];
   const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
 
-  // TODO: uncomment when integrating with AutomlResultsContext (PR #6785)
+  // TODO: uncomment when integrating with AutomlResultsContext
   // const { namespace } = useParams<{ namespace: string }>();
   // const isClassification = taskType === 'binary' || taskType === 'multiclass';
-  // const modelDirectory = model?.location.model_directory;
+  // const modelDirectory = model.location.model_directory;
   // const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
   //   namespace,
   //   modelDirectory,
@@ -74,6 +76,24 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   // );
   const featureImportance = mockMulticlassFeatureImportances[selectedModelName];
   const confusionMatrix = mockMulticlassConfusionMatrices[selectedModelName];
+
+  // TODO: uncomment when integrating with AutomlResultsContext
+  // const notebookKey = model.location.notebook;
+  // const { data: notebook } = useS3GetFileQuery(namespace, undefined, undefined, notebookKey);
+  // const handleSaveNotebook = React.useCallback(() => {
+  //   if (!notebook) {
+  //     return;
+  //   }
+  //   const url = URL.createObjectURL(notebook);
+  //   const link = document.createElement('a');
+  //   link.href = url;
+  //   link.download = 'automl_predictor_notebook.ipynb';
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  //   URL.revokeObjectURL(url);
+  // }, [notebook]);
+  const handleSaveNotebook = React.useCallback(() => undefined, []);
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
@@ -122,6 +142,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           rank={rank}
           onSelectModel={(name) => setSelectedModelName(name)}
           onDownload={() => setIsPrinting(true)}
+          onSaveNotebook={handleSaveNotebook}
         />
         <Grid hasGutter className="automl-model-details-screen-only">
           <GridItem span={2} className="automl-model-details-sidebar">

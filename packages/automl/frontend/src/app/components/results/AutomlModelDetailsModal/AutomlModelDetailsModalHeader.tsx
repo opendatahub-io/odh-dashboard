@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  MenuToggle,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
 import { formatMetricName, toNumericMetric } from '~/app/utilities/utils';
@@ -18,6 +11,7 @@ type AutomlModelDetailsModalHeaderProps = {
   rank: number;
   onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
+  onSaveNotebook: () => void;
 };
 
 function getOptimizedMetric(model: MockAutomlModel): { name: string; value: number } | undefined {
@@ -35,6 +29,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   rank,
   onSelectModel,
   onDownload,
+  onSaveNotebook,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const model = models.find((m) => m.display_name === currentModelName);
@@ -100,11 +95,13 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
         >
           Download
         </Button>
-        <Tooltip content="Coming soon">
-          <Button variant="primary" isDisabled data-testid="model-details-save-as">
-            Save as
-          </Button>
-        </Tooltip>
+        <Button
+          variant="primary"
+          onClick={onSaveNotebook}
+          data-testid="model-details-save-notebook"
+        >
+          Save as notebook
+        </Button>
       </div>
     </div>
   );
