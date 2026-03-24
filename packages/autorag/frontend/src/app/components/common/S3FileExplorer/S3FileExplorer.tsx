@@ -3,6 +3,8 @@
 // Modules -------------------------------------------------------------------->
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { debounce } from 'es-toolkit';
 import { APIOptions, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
@@ -68,16 +70,29 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
       const fileName = segments.pop() ?? obj.key;
       const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
 
+      const serializedSize = obj.size !== undefined ? formatBytes(obj.size) : undefined;
       items.push({
         name: fileName,
         path: fullPath,
         type: ext || 'file',
-        size: obj.size !== undefined ? formatBytes(obj.size) : undefined,
+        size: serializedSize,
         details: {
-          ...(obj.last_modified && { 'Last Modified': obj.last_modified }),
+          ...(obj.last_modified && {
+            'Last Modified': (
+              <Timestamp
+                data-testid="last-deployed-timestamp"
+                date={new Date(obj.last_modified)}
+                tooltip={{
+                  variant: TimestampTooltipVariant.default,
+                }}
+              >
+                {relativeTime(Date.now(), new Date(obj.last_modified).getTime())}
+              </Timestamp>
+            ),
+          }),
           ...(obj.etag && { ETag: obj.etag }),
           ...(obj.storage_class && { 'Storage Class': obj.storage_class }),
-          ...(obj.size !== undefined && { 'Size (bytes)': obj.size }),
+          ...(obj.size !== undefined && { Size: serializedSize }),
         },
       });
     }

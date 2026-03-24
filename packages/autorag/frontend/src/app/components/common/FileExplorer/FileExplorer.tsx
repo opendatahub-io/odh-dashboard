@@ -45,7 +45,7 @@ import {
   Tbody,
   Td,
 } from '@patternfly/react-table';
-import React, { useState } from 'react';
+import React, { type ReactNode, useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
 
@@ -74,6 +74,13 @@ export interface Directory extends File {
 
 const isDirectory = (file: File): file is Directory => file.type === 'directory';
 
+type RenderableDetailValue = string | number | boolean | ReactNode;
+const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean' ||
+  React.isValidElement(value);
+
 // Globals -------------------------------------------------------------------->
 
 const defaults = {
@@ -101,6 +108,12 @@ const defaults = {
     tableItemsPlural: 'items',
 
     detailsPanelTitle: 'Details',
+    detailsPanelName: 'Name',
+    detailsPanelSource: 'Source',
+    detailsPanelBucket: 'Bucket',
+
+    emptyStateTitle: 'No files found',
+    emptyStateBody: 'No files are available in the current directory.',
 
     paginationIndeterminateToggleTemplate: (first: number, last: number) => (
       <>
@@ -244,10 +257,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {isEmpty && (
               <Tr>
                 <Td colSpan={4}>
-                  <EmptyState headingLevel="h3" titleText="No files found">
-                    <EmptyStateBody>
-                      No files are available in the current directory.
-                    </EmptyStateBody>
+                  <EmptyState headingLevel="h3" titleText={defaults.labels.emptyStateTitle}>
+                    <EmptyStateBody>{defaults.labels.emptyStateBody}</EmptyStateBody>
                     <EmptyStateFooter>
                       <EmptyStateActions />
                     </EmptyStateFooter>
@@ -477,12 +488,12 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
           {source && (
             <>
               <DescriptionListGroup>
-                <DescriptionListTerm>Source</DescriptionListTerm>
+                <DescriptionListTerm>{defaults.labels.detailsPanelSource}</DescriptionListTerm>
                 <DescriptionListDescription>{source.name}</DescriptionListDescription>
               </DescriptionListGroup>
               {source.bucket && (
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Bucket</DescriptionListTerm>
+                  <DescriptionListTerm>{defaults.labels.detailsPanelBucket}</DescriptionListTerm>
                   <DescriptionListDescription>{source.bucket}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
@@ -494,20 +505,21 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ source, selectedFiles, load
             selectedFiles.map((selectedFile) => (
               <React.Fragment key={selectedFile.path}>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>{selectedFile.name}</DescriptionListTerm>
-                  <DescriptionListDescription>{selectedFile.path}</DescriptionListDescription>
+                  <DescriptionListTerm>{defaults.labels.detailsPanelName}</DescriptionListTerm>
+                  <DescriptionListDescription>{selectedFile.name}</DescriptionListDescription>
                 </DescriptionListGroup>
                 {selectedFile.details &&
                   Object.entries(selectedFile.details)
-                    // Only render basic details Record<string, string>. Type might evolve once S3FileExplorer exists
                     .filter(
-                      ([key, value]) =>
-                        key && (typeof value === 'string' || typeof value === 'number'),
+                      (entry): entry is [string, RenderableDetailValue] =>
+                        Boolean(entry[0]) && isRenderableDetailValue(entry[1]),
                     )
                     .map(([key, value]) => (
                       <DescriptionListGroup key={key}>
                         <DescriptionListTerm>{key}</DescriptionListTerm>
-                        <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+                        <DescriptionListDescription>
+                          {typeof value === 'boolean' ? String(value) : value}
+                        </DescriptionListDescription>
                       </DescriptionListGroup>
                     ))}
               </React.Fragment>
