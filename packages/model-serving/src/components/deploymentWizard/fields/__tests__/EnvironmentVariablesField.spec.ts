@@ -59,6 +59,15 @@ describe('environmentVariablesFieldSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should reject enabled state with empty variable names', () => {
+    const data = {
+      enabled: true,
+      variables: [{ name: '', value: '' }],
+    };
+    const result = environmentVariablesFieldSchema.safeParse(data);
+    expect(result.success).toBe(false);
+  });
+
   // Core bug scenario: RHOAIENG-48888
   // When env vars are disabled, empty/invalid variable names should NOT cause validation failure
   it('should accept disabled state with empty variable names (bug fix regression)', () => {
