@@ -220,38 +220,7 @@ func (r *ModelCatalogSettingsRepository) CreateCatalogSourceConfig(
 	return r.GetCatalogSourceConfig(ctx, client, namespace, payload.Id)
 }
 
-const maxConflictRetries = 3
-
 func (r *ModelCatalogSettingsRepository) UpdateCatalogSourceConfig(
-	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	namespace string,
-	sourceId string,
-	payload models.CatalogSourceConfigPayload,
-) (*models.CatalogSourceConfig, error) {
-	var lastErr error
-	for attempt := 1; attempt <= maxConflictRetries; attempt++ {
-		result, err := r.tryUpdateCatalogSourceConfig(ctx, client, namespace, sourceId, payload)
-		if err == nil {
-			return result, nil
-		}
-		if !errors.Is(err, ErrCatalogSourceConflict) {
-			return nil, err
-		}
-		lastErr = err
-		if attempt < maxConflictRetries {
-			sessionLogger := ctx.Value(constants.TraceLoggerKey).(*slog.Logger)
-			sessionLogger.Warn("configmap conflict detected, retrying",
-				"sourceId", sourceId,
-				"attempt", attempt,
-				"maxRetries", maxConflictRetries,
-			)
-		}
-	}
-	return nil, lastErr
-}
-
-func (r *ModelCatalogSettingsRepository) tryUpdateCatalogSourceConfig(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
 	namespace string,
@@ -380,6 +349,7 @@ func (r *ModelCatalogSettingsRepository) tryUpdateCatalogSourceConfig(
 	}
 
 	return r.GetCatalogSourceConfig(ctx, client, namespace, sourceId)
+
 }
 
 func (r *ModelCatalogSettingsRepository) DeleteCatalogSourceConfig(
