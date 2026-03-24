@@ -157,7 +157,10 @@ export default function PromptAssistantFormGroup({
               >
                 Edit
               </Button>
-              <Button variant="link" onClick={handleNewPrompt}>
+              <Button
+                variant="link"
+                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+              >
                 Reset
               </Button>
             </Flex>
