@@ -23,6 +23,7 @@ describe('CreateExternalEndpointModal', () => {
     onSuccess: mockOnSuccess,
     onSubmit: mockOnSubmit,
     onVerify: mockOnVerify,
+    existingModels: [],
   });
 
   beforeEach(() => {
