@@ -19,6 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { ChartBarIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import {
   decodeParams,
   getModelName,
@@ -42,6 +43,7 @@ type ModelDetailsPageProps = {
 };
 
 const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -183,6 +185,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         loadError={modelLoadError}
         loaded={modelLoaded}
         errorMessage="Unable to load model catalog"
+        noTitle={tabRouteContext?.isInsideTabPage}
         provideChildrenPadding
         headerAction={
           modelLoaded &&

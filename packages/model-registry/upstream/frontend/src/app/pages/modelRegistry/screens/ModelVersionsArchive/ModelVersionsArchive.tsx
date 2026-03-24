@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
 import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
@@ -16,6 +17,7 @@ type ModelVersionsArchiveProps = Omit<
 >;
 
 const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProps }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
   const { registeredModelId: rmId } = useParams();
@@ -25,6 +27,7 @@ const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProp
   return (
     <ApplicationsPage
       {...pageProps}
+      noTitle={tabRouteContext?.isInsideTabPage}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

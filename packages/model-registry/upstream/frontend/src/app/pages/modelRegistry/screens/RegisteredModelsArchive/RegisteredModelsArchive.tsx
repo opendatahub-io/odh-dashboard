@@ -2,6 +2,7 @@ import React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { filterArchiveModels } from '~/app/utils';
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
@@ -15,6 +16,7 @@ type RegisteredModelsArchiveProps = Omit<
 >;
 
 const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pageProps }) => {
+  const tabRouteContext = useTabRoutePageContext();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [registeredModels, modelsLoaded, modelsLoadError, refreshModels] = useRegisteredModels();
   const [modelVersions, versionsLoaded, versionsLoadError, refreshVersions] = useModelVersions();
@@ -30,6 +32,7 @@ const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pa
   return (
     <ApplicationsPage
       {...pageProps}
+      noTitle={tabRouteContext?.isInsideTabPage}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

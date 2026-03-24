@@ -14,6 +14,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import {
   modelRegistryUrl,
@@ -41,6 +42,7 @@ import { SubmitLabel, RegistrationErrorType } from './const';
 import { useRegistrationNotification } from './useRegistrationNotification';
 
 const RegisterVersion: React.FC = () => {
+  const tabRouteContext = useTabRoutePageContext();
   const { modelRegistry: mrName, registeredModelId: prefilledRegisteredModelId } = useParams();
   const registryNamespace = useModelRegistryNamespace();
   const navigate = useNavigate();
@@ -144,6 +146,7 @@ const RegisterVersion: React.FC = () => {
 
   return (
     <ApplicationsPage
+      noTitle={tabRouteContext?.isInsideTabPage}
       title="Register new version"
       description="Register a latest version to the model you selected below."
       breadcrumb={

@@ -7,10 +7,12 @@ import {
   NavSectionExtension,
   NavExtension,
   TabRoutePageExtension,
+  TabRouteTabExtension,
   isHrefNavItemExtension,
   isNavSectionExtension,
   isNavExtension,
   isTabRoutePageExtension,
+  isTabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtensions';
@@ -62,9 +64,18 @@ export const NavSection: React.FC<Props> = ({
   const { pathname } = useLocation();
   const navOnlyExtensions = useExtensions(isNavExtension);
   const tabRoutePageExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
+  const tabRouteTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
+  // Only include tab-route pages that have at least one registered tab
+  const tabRoutePagesWithTabs = React.useMemo(
+    () =>
+      tabRoutePageExtensions.filter((page) =>
+        tabRouteTabExtensions.some((tab) => tab.properties.pageId === page.properties.id),
+      ),
+    [tabRoutePageExtensions, tabRouteTabExtensions],
+  );
   const extensions: LoadedExtension<AnyNavExtension>[] = React.useMemo(
-    () => [...navOnlyExtensions, ...tabRoutePageExtensions],
-    [navOnlyExtensions, tabRoutePageExtensions],
+    () => [...navOnlyExtensions, ...tabRoutePagesWithTabs],
+    [navOnlyExtensions, tabRoutePagesWithTabs],
   );
 
   const navExtensions = React.useMemo(

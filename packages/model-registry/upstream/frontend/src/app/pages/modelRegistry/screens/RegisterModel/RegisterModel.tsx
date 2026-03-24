@@ -10,6 +10,7 @@ import {
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage, FormSection } from 'mod-arch-shared';
+import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useCheckNamespaceRegistryAccess } from '~/app/hooks/useCheckNamespaceRegistryAccess';
 import { useModelRegistryNamespace } from '~/app/hooks/useModelRegistryNamespace';
@@ -37,6 +38,7 @@ import RegisterModelDetailsFormSection from './RegisterModelDetailsFormSection';
 import { useRegistrationNotification } from './useRegistrationNotification';
 
 const RegisterModel: React.FC = () => {
+  const tabRouteContext = useTabRoutePageContext();
   const { modelRegistry: mrName } = useParams();
   const registryNamespace = useModelRegistryNamespace();
   const navigate = useNavigate();
@@ -134,6 +136,7 @@ const RegisterModel: React.FC = () => {
 
   return (
     <ApplicationsPage
+      noTitle={tabRouteContext?.isInsideTabPage}
       title="Register model"
       description="Create and register the first version of a new model."
       breadcrumb={

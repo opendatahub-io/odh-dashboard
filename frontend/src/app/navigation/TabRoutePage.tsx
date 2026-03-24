@@ -14,6 +14,7 @@ import {
 } from '@odh-dashboard/plugin-core';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import NotFound from '#~/pages/NotFound';
 
 type TabRoutePageProps = {
   extension: LoadedExtension<TabRoutePageExtension>;
@@ -95,7 +96,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   }, [location.pathname, extension.properties.href, pageId, tabExtensions]);
 
   if (tabExtensions.length === 0) {
-    return null;
+    return <NotFound />;
   }
 
   const pageTitle = (
