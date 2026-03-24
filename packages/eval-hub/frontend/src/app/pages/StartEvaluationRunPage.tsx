@@ -31,6 +31,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   MlflowExperimentSelector,
+  useMlflowExperiments,
   type MlflowExperiment,
 } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
@@ -50,6 +51,9 @@ import InlineHelpIcon from '~/app/components/InlineHelpIcon';
 type InputMode = 'inference' | 'prerecorded';
 type ExperimentMode = 'existing' | 'new';
 
+const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
+const EXPERIMENT_FILTER = "tags.context = 'eval-hub'";
+
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
@@ -57,6 +61,11 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
+
+  const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
+    workspace: namespace ?? '',
+    filter: EXPERIMENT_FILTER,
+  });
 
   const [evaluationName, setEvaluationName] = React.useState(() =>
     new Date().toLocaleString('en-US', {
@@ -84,6 +93,23 @@ const StartEvaluationRunPage: React.FC = () => {
     undefined,
   );
   const [newExperimentName, setNewExperimentName] = React.useState('');
+  const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!experimentsLoaded || !namespace || experimentAutoSelected) {
+      return;
+    }
+    setExperimentAutoSelected(true);
+
+    if (experiments.length === 0) {
+      setExperimentMode('new');
+      setNewExperimentName(DEFAULT_EXPERIMENT_NAME);
+    } else {
+      const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
+      setExperimentMode('existing');
+      setSelectedExperiment(defaultExp ?? experiments[0]);
+    }
+  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected]);
 
   const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(false);
   const [additionalArgs, setAdditionalArgs] = React.useState('');
@@ -199,8 +225,8 @@ const StartEvaluationRunPage: React.FC = () => {
       }
     }
 
-    const experimentName =
-      experimentMode === 'existing' ? selectedExperiment?.name : newExperimentName.trim();
+    const isNewExperiment = experimentMode === 'new';
+    const experimentName = isNewExperiment ? newExperimentName.trim() : selectedExperiment?.name;
 
     const request = buildEvaluationRequest({
       evaluationName,
@@ -216,6 +242,7 @@ const StartEvaluationRunPage: React.FC = () => {
       accessToken,
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
+      experimentTags: undefined,
     });
 
     const controller = new AbortController();
@@ -347,7 +374,7 @@ const StartEvaluationRunPage: React.FC = () => {
               <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 500 }}>
                 <MlflowExperimentSelector
                   workspace={namespace}
-                  filter="tags.context = 'eval-hub'"
+                  filter={EXPERIMENT_FILTER}
                   selection={selectedExperiment?.name}
                   onSelect={setSelectedExperiment}
                 />

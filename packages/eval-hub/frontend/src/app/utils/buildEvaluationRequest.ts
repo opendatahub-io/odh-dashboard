@@ -14,6 +14,7 @@ type BuildEvaluationRequestParams = {
   accessToken: string;
   additionalArgs: Record<string, unknown>;
   experimentName?: string;
+  experimentTags?: { key: string; value: string }[];
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
@@ -32,6 +33,7 @@ const buildEvaluationRequest = ({
   accessToken,
   additionalArgs,
   experimentName,
+  experimentTags,
 }: BuildEvaluationRequestParams): CreateEvaluationJobRequest => {
   const topLevelOverrides: Record<string, unknown> = {};
   const benchmarkParams: Record<string, unknown> = {};
@@ -60,10 +62,10 @@ const buildEvaluationRequest = ({
         }
       : {};
 
-  const benchmarks: CreateEvaluationJobRequest['benchmarks'] = [];
+  const benchmarkEntries: NonNullable<CreateEvaluationJobRequest['benchmarks']> = [];
 
   if (benchmark) {
-    benchmarks.push({
+    benchmarkEntries.push({
       id: benchmark.id,
       // eslint-disable-next-line camelcase
       provider_id: benchmark.providerId,
@@ -87,12 +89,18 @@ const buildEvaluationRequest = ({
       : undefined;
 
   const experiment = experimentName
-    ? { ...experimentOverride, name: experimentName }
+    ? {
+        ...experimentOverride,
+        name: experimentName,
+        ...(experimentTags ? { tags: experimentTags } : {}),
+      }
     : experimentOverride;
 
   const restOverrides = Object.fromEntries(
     Object.entries(topLevelOverrides).filter(([key]) => key !== 'experiment'),
   );
+
+  const isCollectionFlow = !!collection;
 
   return {
     name: evaluationName.trim(),
@@ -103,8 +111,9 @@ const buildEvaluationRequest = ({
       // eslint-disable-next-line camelcase
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
     },
-    benchmarks,
-    ...(collection ? { collection: { id: collection.resource.id } } : {}),
+    ...(isCollectionFlow
+      ? { collection: { id: collection.resource.id } }
+      : { benchmarks: benchmarkEntries }),
     ...restOverrides,
     ...(experiment ? { experiment } : {}),
   };
