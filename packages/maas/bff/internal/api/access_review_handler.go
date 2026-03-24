@@ -56,6 +56,10 @@ func AccessReviewHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	if request.Data.Resource == "" || request.Data.Verb == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("resource and verb are required"))
+		return
+	}
 
 	client, err := k8s.NewTokenKubernetesClient(token, app.logger)
 	if err != nil {

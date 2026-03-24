@@ -15,7 +15,8 @@ const (
 	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
 
 	// Access review
-	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
+	IsMaasAdminPath  = ApiPathPrefix + "/is-maas-admin"
+	AccessReviewPath = ApiPathPrefix + "/access-review"
 
 	// Subscription routes
 	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"

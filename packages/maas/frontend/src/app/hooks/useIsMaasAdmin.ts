@@ -6,13 +6,13 @@ type IsMaasAdminResult = {
   allowed: boolean;
 };
 
-export const useIsMaasAdmin = (): [boolean, boolean] => {
+export const useIsMaasAdmin = (): [boolean, boolean, Error | undefined] => {
   const callback = React.useCallback<FetchStateCallbackPromise<IsMaasAdminResult>>(
     (opts: APIOptions) => getIsMaasAdmin()(opts),
     [],
   );
 
-  const [result, loaded] = useFetchState<IsMaasAdminResult>(callback, { allowed: false });
+  const [result, loaded, error] = useFetchState<IsMaasAdminResult>(callback, { allowed: false });
 
-  return [result.allowed, loaded];
+  return [result.allowed, loaded, error];
 };

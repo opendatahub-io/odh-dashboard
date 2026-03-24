@@ -34,7 +34,6 @@ const (
 	HealthCheckPath = "/healthcheck"
 	UserPath        = constants.ApiPathPrefix + "/user"
 	NamespacePath   = constants.ApiPathPrefix + "/namespaces"
-	IsMaasAdminPath = constants.ApiPathPrefix + "/is-maas-admin"
 )
 
 type App struct {
@@ -183,7 +182,8 @@ func (app *App) Routes() http.Handler {
 	attachSubscriptionHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
-	apiRouter.GET(IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
+	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
+	apiRouter.POST(constants.AccessReviewPath, handlerWithApp(app, AccessReviewHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)
