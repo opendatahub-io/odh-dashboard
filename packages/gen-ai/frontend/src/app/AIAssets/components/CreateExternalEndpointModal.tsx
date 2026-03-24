@@ -141,12 +141,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   }, [modelId, existingModels]);
 
   const displayNameConflict = React.useMemo(() => {
-    const trimmedName = displayName.trim();
-    if (!trimmedName) {
+    const effectiveName = displayName.trim() || modelId.trim();
+    if (!effectiveName) {
       return null;
     }
-    return existingModels.find((m) => m.display_name === trimmedName);
-  }, [displayName, existingModels]);
+    return existingModels.find((m) => m.display_name === effectiveName);
+  }, [displayName, modelId, existingModels]);
 
   // URL validation
   const urlValidation = React.useMemo(() => {
