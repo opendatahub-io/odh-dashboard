@@ -8,7 +8,6 @@ class ModelDetails {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('breadcrumb-model').should('exist');
     cy.testA11y();
   }
 

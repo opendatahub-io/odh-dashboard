@@ -44,7 +44,6 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
     <>
       <ApplicationsPage
         {...pageProps}
-        noTitle // rendered inside a TabRoutePage which provides the title
         breadcrumb={
           <RegisteredModelArchiveDetailsBreadcrumb
             preferredModelRegistry={preferredModelRegistry?.name}

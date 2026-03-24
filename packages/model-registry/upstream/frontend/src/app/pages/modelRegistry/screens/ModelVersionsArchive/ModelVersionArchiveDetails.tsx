@@ -63,7 +63,6 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
     <>
       <ApplicationsPage
         {...pageProps}
-        noTitle // rendered inside a TabRoutePage which provides the title
         breadcrumb={
           <ModelVersionArchiveDetailsBreadcrumb
             preferredModelRegistry={preferredModelRegistry?.name}

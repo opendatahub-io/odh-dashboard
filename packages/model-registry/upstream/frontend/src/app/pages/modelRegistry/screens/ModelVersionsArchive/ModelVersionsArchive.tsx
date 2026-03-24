@@ -25,7 +25,6 @@ const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProp
   return (
     <ApplicationsPage
       {...pageProps}
-      noTitle // rendered inside a TabRoutePage which provides the title
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

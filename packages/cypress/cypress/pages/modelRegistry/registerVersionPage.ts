@@ -27,7 +27,7 @@ class RegisterVersionPage {
   private wait() {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByText('Register a latest version to the model you selected below.').should('exist');
+    cy.findByTestId('app-page-title').contains('Register new version');
     cy.findByText(`Model registry - ${preferredModelRegistry}`).should('exist');
     cy.testA11y();
   }
