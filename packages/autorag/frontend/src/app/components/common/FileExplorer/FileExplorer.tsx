@@ -42,8 +42,11 @@ import {
   Thead,
   Tr,
   Th,
+  type BaseCellProps,
   Tbody,
   Td,
+  ActionsColumn,
+  type IAction,
 } from '@patternfly/react-table';
 import React, { type ReactNode, useState } from 'react';
 
@@ -74,6 +77,14 @@ export interface Directory extends File {
 
 const isDirectory = (file: File): file is Directory => file.type === 'directory';
 
+interface Column {
+  id: string;
+  label: string;
+  width: BaseCellProps['width'];
+  screenReaderText?: string;
+  skeleton?: ReactNode;
+}
+
 type RenderableDetailValue = string | number | boolean | ReactNode;
 const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue =>
   typeof value === 'string' ||
@@ -102,10 +113,15 @@ const defaults = {
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
     tableColumnType: 'Type',
+    tableColumnSelect: 'File select',
     tableColumnItems: 'Items',
+    tableColumnActions: 'Actions',
 
     tableItemsSingular: 'item',
     tableItemsPlural: 'items',
+
+    tableActionViewDetails: 'View details',
+    tableActionRemoveSelection: 'Remove selection',
 
     detailsPanelTitle: 'Details',
     detailsPanelName: 'Name',
@@ -175,6 +191,7 @@ interface FilesTableProps {
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
   onDirectoryClick?: (directory: Directory) => void;
+  onViewDetails?: (file: File) => void;
   loading?: boolean;
   page?: number;
   perPage?: number;
@@ -188,6 +205,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   setSelectedFiles,
   selection = 'radio',
   onDirectoryClick,
+  onViewDetails,
   loading,
   page = 1,
   perPage = 100,
@@ -209,10 +227,32 @@ const FilesTable: React.FC<FilesTableProps> = ({
       defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
   }
 
-  const columns = {
-    name: defaults.labels.tableColumnName,
-    type: defaults.labels.tableColumnType,
-    items: defaults.labels.tableColumnItems,
+  const columns: Record<string, Column> = {
+    select: {
+      id: 'select',
+      label: '',
+      width: 10,
+      screenReaderText: defaults.labels.tableColumnSelect,
+      skeleton: <Skeleton width="16px" height="16px" />,
+    },
+    name: {
+      id: 'name',
+      label: defaults.labels.tableColumnName,
+      width: 40,
+      skeleton: <Skeleton width="75%" height="1em" />,
+    },
+    type: {
+      id: 'type',
+      label: defaults.labels.tableColumnType,
+      width: 40,
+      skeleton: <Skeleton width="50%" height="1em" />,
+    },
+    actions: {
+      id: 'actions',
+      label: '',
+      width: undefined,
+      screenReaderText: defaults.labels.tableColumnActions,
+    },
   };
 
   const skeletonRowCount = perPage;
@@ -224,34 +264,29 @@ const FilesTable: React.FC<FilesTableProps> = ({
         <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders isStickyHeader>
           <Thead>
             <Tr>
-              <Th isStickyColumn width={10} screenReaderText="File select" />
-              <Th isStickyColumn width={40}>
-                {columns.name}
-              </Th>
-              <Th isStickyColumn width={40}>
-                {columns.type}
-              </Th>
-              <Th isStickyColumn width={10}>
-                {columns.items}
-              </Th>
+              {Object.values(columns).map((column) => (
+                <Th
+                  key={column.id}
+                  isStickyColumn
+                  width={column.width}
+                  {...(column.screenReaderText
+                    ? { screenReaderText: column.screenReaderText }
+                    : {})}
+                >
+                  {column.label}
+                </Th>
+              ))}
             </Tr>
           </Thead>
           <Tbody>
             {loading &&
               Array.from({ length: skeletonRowCount }, (_, i) => (
                 <Tr key={`skeleton-${i}`}>
-                  <Td>
-                    <Skeleton width="16px" height="16px" />
-                  </Td>
-                  <Td>
-                    <Skeleton width="75%" height="1em" />
-                  </Td>
-                  <Td>
-                    <Skeleton width="50%" height="1em" />
-                  </Td>
-                  <Td>
-                    <Skeleton width="40%" height="1em" />
-                  </Td>
+                  {Object.values(columns).map((column) => (
+                    <Td key={column.id} isStickyColumn width={column.width}>
+                      {column.skeleton}
+                    </Td>
+                  ))}
                 </Tr>
               ))}
             {isEmpty && (
@@ -279,6 +314,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   acc.elements.push(
                     <Tr key={file.name}>
                       <Td
+                        width={columns.select.width}
                         select={{
                           rowIndex,
                           onSelect: (_event, isSelecting) => {
@@ -298,7 +334,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           variant: selection,
                         }}
                       />
-                      <Td dataLabel={columns.name}>
+                      <Td width={columns.name.width} dataLabel={columns.name.label}>
                         {/* Should this be a Content/a/href or should it be Button variant link */}
                         {isDirectory(file) && (
                           <Content
@@ -314,18 +350,27 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         )}
                         {!isDirectory(file) && file.name}
                       </Td>
-                      <Td dataLabel={columns.type}>
+                      <Td width={columns.type.width} dataLabel={columns.type.label}>
                         {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
                       </Td>
-                      <Td dataLabel={columns.items}>
-                        {typeof file.items === 'number' && (
-                          <Label variant="outline" color="green" isCompact>
-                            {file.items}{' '}
-                            {file.items === 1
-                              ? defaults.labels.tableItemsSingular
-                              : defaults.labels.tableItemsPlural}
-                          </Label>
-                        )}
+                      <Td width={columns.actions.width} isActionCell>
+                        {(() => {
+                          const actions: IAction[] = [];
+                          if (onViewDetails) {
+                            actions.push({
+                              title: defaults.labels.tableActionViewDetails,
+                              onClick: () => onViewDetails(file),
+                            });
+                          }
+                          if (Array.isArray(selectedFiles) && selectedFiles.includes(file)) {
+                            actions.push({
+                              title: defaults.labels.tableActionRemoveSelection,
+                              onClick: () =>
+                                setSelectedFiles(selectedFiles.filter((f) => f !== file)),
+                            });
+                          }
+                          return <ActionsColumn items={actions} />;
+                        })()}
                       </Td>
                     </Tr>,
                   );
@@ -546,6 +591,7 @@ interface FileExplorerProps {
   selection?: 'radio' | 'checkbox';
   onSelectSource: (source: Source) => void;
   onDirectoryClick?: (directory: Directory) => void;
+  onViewDetails?: (file: File) => void;
   onNavigate?: (directory: Directory) => void;
   onNavigateRoot?: () => void;
   onSearch?: (query: string) => void;
@@ -569,6 +615,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   selection = 'radio',
   onSelectSource,
   onDirectoryClick,
+  onViewDetails,
   onNavigate,
   onNavigateRoot,
   onSearch,
@@ -651,6 +698,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
                   onDirectoryClick={onDirectoryClick}
+                  onViewDetails={onViewDetails}
                   loading={loading}
                   page={page}
                   perPage={perPage}

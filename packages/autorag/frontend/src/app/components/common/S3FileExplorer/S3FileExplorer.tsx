@@ -266,6 +266,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSelectSource={(source) => {
         setSelectedSource(source);
       }}
+      onViewDetails={(file) => {
+        // TODO [ Gustavo ] Implement onViewDetails
+      }}
       onDirectoryClick={(directory) => {
         setLastDirectoryClicked(directory);
         navigateTo(directory.path, perPageToRender ?? DEFAULT_PER_PAGE);
