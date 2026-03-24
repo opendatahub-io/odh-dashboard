@@ -117,10 +117,6 @@ func CreateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
-	if strings.TrimSpace(request.Namespace) == "" {
-		app.badRequestResponse(w, r, errors.New("namespace is required"))
-		return
-	}
 	if len(request.ModelRefs) == 0 {
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
 		return
