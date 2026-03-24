@@ -55,6 +55,9 @@ type ClientOptions struct {
 	SkipSSRFValidation bool
 	// AllowHTTP permits HTTP (non-HTTPS) base URLs; SSRF protection still applies
 	AllowHTTP bool
+	// SkipTLSVerification skips TLS certificate verification for cluster-local services
+	// that use self-signed certificates not present in the system CA pool
+	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
 }
@@ -180,12 +183,11 @@ func NewExternalModelsClient(
 
 	// Configure HTTP transport
 	var transport http.RoundTripper
-	if opts.SkipSSRFValidation {
-		// Internal hosts (localhost, cluster-local) use self-signed certs not in the
-		// system CA pool, so TLS verification is skipped for them.
+	if opts.SkipTLSVerification {
+		// Skip TLS verification for cluster-local URLs
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec // internal cluster services use self-signed certs not in the system CA pool
+				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
 			},
 		}
 	} else if rootCAs != nil {

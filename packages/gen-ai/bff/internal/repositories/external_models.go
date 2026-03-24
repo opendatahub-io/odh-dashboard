@@ -107,8 +107,9 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:          isInternalHost(req.BaseURL),
-			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			AllowHTTP:           isInternalHost(req.BaseURL),
+			SkipSSRFValidation:  isInternalHost(req.BaseURL),
+			SkipTLSVerification: isInternalHost(req.BaseURL),
 		},
 	)
 	if err != nil {
