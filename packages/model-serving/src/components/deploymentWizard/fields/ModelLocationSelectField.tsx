@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Form,
   FormGroup,
   FormHelperText,
   Alert,
@@ -297,8 +296,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return baseOptions;
   }, [baseOptions]);
   return (
-    <Form>
-      <FormSection title="Model details">
+    <FormSection title="Model details">
         <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
         {modelLocationData?.prefillAlertText && (
           <Alert
@@ -432,6 +430,5 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           </Stack>
         </FormGroup>
       </FormSection>
-    </Form>
   );
 };
