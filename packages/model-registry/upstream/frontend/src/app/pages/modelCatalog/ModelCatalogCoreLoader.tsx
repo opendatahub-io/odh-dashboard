@@ -33,6 +33,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
   if (catalogSourcesLoadError) {
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={<TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         headerContent={null}
@@ -52,6 +53,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
   if (!catalogSourcesLoaded) {
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         headerContent={null}
@@ -68,6 +70,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
 
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         empty
