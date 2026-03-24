@@ -86,6 +86,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
 | **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
 | **CSS & PatternFly**        | `css-patternfly.md`           | When writing or modifying styles, SCSS, or PatternFly components               |
+| **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
 | **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
 | **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
 | **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
