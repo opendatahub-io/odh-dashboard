@@ -35,11 +35,14 @@ export const useNotificationListener = (): void => {
               ? notification.message
               : undefined;
 
+        const ts = new Date(notification.timestamp);
+        const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
+
         const detail: Record<string, unknown> = {
           status: notification.status,
           title: notification.title,
           message: messageStr,
-          timestamp: notification.timestamp.toISOString() || new Date().toISOString(),
+          timestamp: timestamp.toISOString(),
           ...(notification.linkUrl &&
             notification.linkLabel && {
               linkUrl: notification.linkUrl,
