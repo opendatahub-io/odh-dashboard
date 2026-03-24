@@ -9,6 +9,7 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
+  Label,
   Modal,
   ModalBody,
   ModalFooter,
@@ -49,15 +50,39 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
 
   return (
     <Modal isOpen onClose={handleClose} variant={ModalVariant.medium} aria-label="Endpoints">
-      <ModalHeader title="Endpoints" />
+      <ModalHeader
+        title={
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>Endpoints</FlexItem>
+            {isMaaS && (
+              <FlexItem>
+                <Label color="blue" isCompact>
+                  Model as a Service
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
+        }
+      />
       <ModalBody>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-          <FlexItem>
-            <Content component={ContentVariants.p}>
-              Use this endpoint to connect your application to this model. Copy the endpoint URL
-              below along with the authentication details to start making requests.
-            </Content>
-          </FlexItem>
+          {isMaaS && (
+            <FlexItem>
+              <Content component={ContentVariants.p}>
+                The underlying model is managed by a cluster administrator and shared across
+                projects via the API gateway. Use this endpoint to connect your application to this
+                model. Copy the endpoint URL below to start making requests.
+              </Content>
+            </FlexItem>
+          )}
+          {!isMaaS && (
+            <FlexItem>
+              <Content component={ContentVariants.p}>
+                Use this endpoint to connect your application to this model. Copy the endpoint URL
+                below along with the authentication details to start making requests.
+              </Content>
+            </FlexItem>
+          )}
 
           {hasExternal && (
             <FlexItem>

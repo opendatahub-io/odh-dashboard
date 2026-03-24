@@ -581,6 +581,10 @@ export const verifyExternalModel = (
   };
 };
 
+export const deleteExternalModel = modArchRestDELETE<string, Record<string, never>>(
+  '/models/external',
+);
+
 export const getMCPServers = (
   hostPath: string,
   baseQueryParams: Record<string, unknown> = {},
