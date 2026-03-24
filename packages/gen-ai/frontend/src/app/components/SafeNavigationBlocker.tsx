@@ -1,4 +1,5 @@
 import React from 'react';
+import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 
 interface SafeNavigationBlockerProps {
   hasUnsavedChanges: boolean;
@@ -36,12 +37,20 @@ const LazyNavigationBlockerModal = React.lazy(() =>
   })),
 );
 
-const SafeNavigationBlocker: React.FC<SafeNavigationBlockerProps> = (props) => (
-  <NavigationBlockerErrorBoundary>
-    <React.Suspense fallback={null}>
-      <LazyNavigationBlockerModal {...props} />
-    </React.Suspense>
-  </NavigationBlockerErrorBoundary>
-);
+const SafeNavigationBlocker: React.FC<SafeNavigationBlockerProps> = (props) => {
+  const { config } = useModularArchContext();
+
+  if (config.deploymentMode === DeploymentMode.Standalone) {
+    return null;
+  }
+
+  return (
+    <NavigationBlockerErrorBoundary>
+      <React.Suspense fallback={null}>
+        <LazyNavigationBlockerModal {...props} />
+      </React.Suspense>
+    </NavigationBlockerErrorBoundary>
+  );
+};
 
 export default SafeNavigationBlocker;
