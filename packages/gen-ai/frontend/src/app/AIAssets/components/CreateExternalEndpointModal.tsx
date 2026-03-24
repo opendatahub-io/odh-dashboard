@@ -155,8 +155,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       return { isValid: true, error: null };
     }
 
-    // Check if URL starts with http:// or https://
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmedUrl);
+    } catch {
+      return { isValid: false, error: 'URL must start with http:// or https://' };
+    }
+
+    if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || !parsed.hostname) {
       return { isValid: false, error: 'URL must start with http:// or https://' };
     }
 
