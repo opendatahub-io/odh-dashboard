@@ -198,6 +198,49 @@ describe('CreateExternalEndpointModal', () => {
     });
   });
 
+  describe('Conflict Validation', () => {
+    it('should show conflict error and disable Verify and Create when model_id already exists', async () => {
+      const user = userEvent.setup();
+      const existingModel = {
+        model_id: 'existing-model',
+        display_name: 'Existing Model',
+      };
+      render(
+        <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+      );
+
+      const modelIdInput = screen.getByTestId('create-external-model-id-input');
+      await user.type(modelIdInput, existingModel.model_id);
+      await user.tab(); // trigger blur/touched
+
+      expect(
+        screen.getByText(`Model ID "${existingModel.model_id}" is already in use.`),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-verify-button')).toBeDisabled();
+      expect(screen.getByTestId('create-external-model-submit-button')).toBeDisabled();
+    });
+
+    it('should show conflict error and disable Create when display_name already exists', async () => {
+      const user = userEvent.setup();
+      const existingModel = {
+        model_id: 'other-model',
+        display_name: 'Taken Display Name',
+      };
+      render(
+        <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+      );
+
+      const displayNameInput = screen.getByTestId('create-external-model-display-name-input');
+      await user.type(displayNameInput, existingModel.display_name);
+      await user.tab(); // trigger blur/touched
+
+      expect(
+        screen.getByText(`Display name "${existingModel.display_name}" is already in use.`),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-submit-button')).toBeDisabled();
+    });
+  });
+
   describe('Modal Close Behavior', () => {
     it('should call onClose when cancel button is clicked', async () => {
       const user = userEvent.setup();
