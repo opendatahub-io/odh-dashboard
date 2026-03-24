@@ -1767,7 +1767,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 		}
 
-		// Track which providers have already been added (multiple registered vector store collections can share one provider).
+		// Collect built-in/default VectorIO provider IDs so we can detect collisions with external providers.
+		builtinProviderIDs := make(map[string]bool, len(config.Providers.VectorIO))
+		for _, p := range config.Providers.VectorIO {
+			builtinProviderIDs[p.ProviderID] = true
+		}
+
+		// Track which external providers have already been added (dedup when multiple vector stores share one provider).
 		addedProviders := make(map[string]bool)
 
 		for _, vs := range vectorStores {
@@ -1780,6 +1786,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Add the provider once, copying the pass-through config fields and injecting the credential env var ref.
 			if !addedProviders[vs.Provider.ProviderID] {
+				if builtinProviderIDs[vs.Provider.ProviderID] {
+					return "", fmt.Errorf("external vector store provider %q conflicts with a built-in provider ID; choose a unique provider_id", vs.Provider.ProviderID)
+				}
 				providerConfig := make(map[string]interface{}, len(vs.Provider.Config.Extra))
 				for k, v := range vs.Provider.Config.Extra {
 					providerConfig[k] = v

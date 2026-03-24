@@ -624,6 +624,28 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		assert.Len(t, cfg.RegisteredResources.VectorStores, 2)
 	})
 
+	t.Run("error when external provider_id collides with built-in provider", func(t *testing.T) {
+		// "milvus" is pre-registered by NewDefaultLlamaStackConfig; using the same ID for an
+		// external provider must be rejected, not silently produce a duplicate provider entry.
+		vs := ValidatedVectorStore{
+			Provider: models.VectorIOProvider{
+				ProviderID:   "milvus", // same as the built-in default
+				ProviderType: "remote::milvus",
+				Config:       models.VectorIOProviderConfig{Extra: map[string]interface{}{"uri": "http://external-milvus:19530"}},
+			},
+			RegisteredStore: models.RegisteredVectorStore{
+				VectorStoreID:  "vs-conflict",
+				ProviderID:     "milvus",
+				EmbeddingModel: defaultEmbeddingModel,
+			},
+		}
+
+		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "milvus")
+		assert.Contains(t, err.Error(), "conflicts")
+	})
+
 	t.Run("error when vector store embedding model is not registered", func(t *testing.T) {
 		vs := ValidatedVectorStore{
 			Provider: models.VectorIOProvider{
