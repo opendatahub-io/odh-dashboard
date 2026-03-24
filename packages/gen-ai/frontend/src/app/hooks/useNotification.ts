@@ -27,12 +27,12 @@ export const useNotification = (): NotificationFunc => {
   const { dispatch } = useContext(NotificationContext);
   const idRef = useRef<() => number>(() => ++globalNotificationId);
 
-  const success: NotificationProps = React.useCallback(
-    (title, message) => {
+  const notify = React.useCallback(
+    (status: AlertVariant, title: string, message?: React.ReactNode) => {
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
-          status: AlertVariant.success,
+          status,
           title,
           timestamp: new Date(),
           message,
@@ -41,54 +41,26 @@ export const useNotification = (): NotificationFunc => {
       });
     },
     [dispatch],
+  );
+
+  const success: NotificationProps = React.useCallback(
+    (title, message) => notify(AlertVariant.success, title, message),
+    [notify],
   );
 
   const warning: NotificationProps = React.useCallback(
-    (title, message) => {
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.warning,
-          title,
-          timestamp: new Date(),
-          message,
-          id: idRef.current(),
-        },
-      });
-    },
-    [dispatch],
+    (title, message) => notify(AlertVariant.warning, title, message),
+    [notify],
   );
 
   const error: NotificationProps = React.useCallback(
-    (title, message) => {
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.danger,
-          title,
-          timestamp: new Date(),
-          message,
-          id: idRef.current(),
-        },
-      });
-    },
-    [dispatch],
+    (title, message) => notify(AlertVariant.danger, title, message),
+    [notify],
   );
 
   const info: NotificationProps = React.useCallback(
-    (title, message) => {
-      dispatch({
-        type: NotificationActionTypes.ADD_NOTIFICATION,
-        payload: {
-          status: AlertVariant.info,
-          title,
-          timestamp: new Date(),
-          message,
-          id: idRef.current(),
-        },
-      });
-    },
-    [dispatch],
+    (title, message) => notify(AlertVariant.info, title, message),
+    [notify],
   );
 
   const remove: NotificationRemoveProps = React.useCallback(
