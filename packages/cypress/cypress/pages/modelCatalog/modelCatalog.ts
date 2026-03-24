@@ -22,7 +22,9 @@ class ModelCatalog {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Models');
+    cy.findByText('Discover models that are available for your organization', {
+      exact: false,
+    }).should('exist');
     cy.testA11y();
   }
 

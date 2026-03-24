@@ -33,14 +33,14 @@ class RegisterModelPage {
   private wait() {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Register model');
+    cy.findByText('Create and register the first version of a new model.').should('exist');
     cy.findByText(`Model registry - ${preferredModelRegistry}`).should('exist');
     cy.testA11y();
   }
 
   private waitWithRegistry(registryName: string) {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Register model');
+    cy.findByText('Create and register the first version of a new model.').should('exist');
     cy.findByText(`Model registry - ${registryName}`).should('exist');
     cy.testA11y();
   }

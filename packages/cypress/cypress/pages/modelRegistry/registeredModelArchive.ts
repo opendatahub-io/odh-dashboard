@@ -51,6 +51,7 @@ class ArchiveModelModal extends Modal {
 class ModelArchive {
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('archive-model-page-breadcrumb').should('exist');
     cy.testA11y();
   }
 

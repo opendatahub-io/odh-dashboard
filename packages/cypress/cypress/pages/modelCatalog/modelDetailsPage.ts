@@ -8,6 +8,7 @@ class ModelDetailsPage {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('register-model-button').should('exist');
     cy.testA11y();
   }
 

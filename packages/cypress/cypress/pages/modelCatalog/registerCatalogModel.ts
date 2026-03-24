@@ -14,7 +14,7 @@ class RegisterCatalogModelPage {
     const modelName = name ?? 'granite-8b-code-instruct';
 
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains(`Register ${modelName} model`);
+    cy.findByTestId('breadcrumb-model-name').should('exist');
     cy.testA11y();
   }
 
