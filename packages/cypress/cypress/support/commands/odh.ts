@@ -1151,7 +1151,7 @@ declare global {
         ((
           type: 'DELETE /maas/api/v1/subscription/:name',
           options: { path: { name: string } },
-          response: { message: string },
+          response: OdhResponse<{ message: string }>,
         ) => Cypress.Chainable<null>);
     }
   }

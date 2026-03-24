@@ -56,7 +56,13 @@ export const deleteSubscription =
   (hostPath = '') =>
   (opts: APIOptions, name: string): Promise<void> =>
     handleRestFailures(
-      restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${name}`, {}, opts),
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
+        {},
+        {},
+        opts,
+      ),
     ).then((response) => {
       if (isDeleteSubscriptionResponse(response)) {
         return;

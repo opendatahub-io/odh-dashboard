@@ -81,9 +81,18 @@ describe('Subscriptions Page', () => {
 
     subscriptionsPage.getRow('premium-team-sub').findKebabAction('Delete subscription').click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
+
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions().filter((subscription) => subscription.name !== 'premium-team-sub'),
+    }).as('getSubscriptions');
+
     deleteSubscriptionModal.findSubmitButton().click();
     cy.wait('@deleteSubscription').then((response) => {
-      expect(response.response?.body.data);
+      expect(response.response?.body).to.deep.equal({
+        message: "MaaSSubscription 'premium-team-sub' deleted successfully",
+      });
     });
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });

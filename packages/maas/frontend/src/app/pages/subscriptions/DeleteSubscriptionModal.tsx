@@ -27,7 +27,6 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
       deleting={isDeleting}
       onDelete={async () => {
         await deleteSubscriptionCallback(subscription.name);
-        deleteSubscriptionCallback(subscription.name);
         onClose(true);
       }}
       submitButtonLabel="Delete"

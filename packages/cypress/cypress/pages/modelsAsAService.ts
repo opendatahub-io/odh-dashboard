@@ -610,7 +610,7 @@ class SubscriptionTableRow extends TableRow {
 
 class DeleteSubscriptionModal extends DeleteModal {
   constructor() {
-    super('Delete subscription?');
+    super('Delete Subscription?');
   }
 
   findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
