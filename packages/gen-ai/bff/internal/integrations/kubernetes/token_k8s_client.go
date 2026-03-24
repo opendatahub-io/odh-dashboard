@@ -1793,17 +1793,14 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				for k, v := range vs.Provider.Config.Extra {
 					providerConfig[k] = v
 				}
-				// Ensure persistence is present for providers that require it to avoid LSD pod crash.
+				// Ensure persistence is present (in some providers LSD pod will crash if not included).
 				// Use the user-supplied value if present; otherwise inject a safe default.
 				if _, hasPersistence := providerConfig["persistence"]; !hasPersistence {
-					switch vs.Provider.ProviderType {
-					case "remote::pgvector", "remote::milvus":
-						providerConfig["persistence"] = map[string]interface{}{
-							"backend":   "kv_default",
-							"namespace": fmt.Sprintf("vector_io::%s", vs.Provider.ProviderID),
-						}
-						kc.Logger.Info("injected default persistence config for provider", "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType)
+					providerConfig["persistence"] = map[string]interface{}{
+						"backend":   "kv_default",
+						"namespace": fmt.Sprintf("vector_io::%s", vs.Provider.ProviderID),
 					}
+					kc.Logger.Info("injected default persistence config for provider", "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType)
 				}
 				if vs.CredEnvVarName != "" {
 					credField, err := credentialEnvVarField(vs.Provider.ProviderType)

@@ -401,7 +401,7 @@ const defaultEmbeddingModel = "sentence-transformers/ibm-granite/granite-embeddi
 func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("pgvector provider gets credential field and persistence injected", func(t *testing.T) {
+	t.Run("pgvector provider gets credential field and persistence injected when not supplied", func(t *testing.T) {
 		vs := ValidatedVectorStore{
 			Provider: models.VectorIOProvider{
 				ProviderID:   "pg-provider",
@@ -525,6 +525,46 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		}
 		require.NotNil(t, milvusProv)
 		assert.Equal(t, "", milvusProv.Config["token"])
+	})
+
+	t.Run("qdrant provider gets persistence injected when not supplied", func(t *testing.T) {
+		vs := ValidatedVectorStore{
+			Provider: models.VectorIOProvider{
+				ProviderID:   "qdrant-provider",
+				ProviderType: "remote::qdrant",
+				Config: models.VectorIOProviderConfig{
+					Extra: map[string]interface{}{
+						"url": "http://qdrant.svc.cluster.local:6333",
+					},
+				},
+			},
+			RegisteredStore: models.RegisteredVectorStore{
+				VectorStoreID:  "vs-qdrant",
+				ProviderID:     "qdrant-provider",
+				EmbeddingModel: defaultEmbeddingModel,
+			},
+			CredEnvVarName: "VS_CREDENTIAL_1",
+			CredSecretRef:  &models.SecretKeyRef{Name: "qdrant-creds", Key: "api_key"},
+		}
+
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		require.NoError(t, cfg.FromYAML(result))
+
+		var qdrantProv *Provider
+		for i := range cfg.Providers.VectorIO {
+			if cfg.Providers.VectorIO[i].ProviderID == "qdrant-provider" {
+				qdrantProv = &cfg.Providers.VectorIO[i]
+			}
+		}
+		require.NotNil(t, qdrantProv, "qdrant-provider should be in vector_io providers")
+
+		persistence, ok := qdrantProv.Config["persistence"].(map[interface{}]interface{})
+		require.True(t, ok, "persistence should be a map")
+		assert.Equal(t, "kv_default", persistence["backend"])
+		assert.Equal(t, "vector_io::qdrant-provider", persistence["namespace"])
 	})
 
 	t.Run("user-supplied persistence is not overwritten", func(t *testing.T) {
