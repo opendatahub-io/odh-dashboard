@@ -11,7 +11,7 @@ enum NotificationTypes {
 
 type NotificationProps = (title: string, message?: React.ReactNode) => void;
 
-type NotificationRemoveProps = (id: number | undefined) => void;
+type NotificationRemoveProps = (id: number) => void;
 
 type NotificationTypeFunc = {
   [key in NotificationTypes]: NotificationProps;
