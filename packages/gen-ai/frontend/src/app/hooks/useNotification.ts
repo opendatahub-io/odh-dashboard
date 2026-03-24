@@ -11,7 +11,7 @@ enum NotificationTypes {
 
 type NotificationProps = (title: string, message?: React.ReactNode) => void;
 
-type NotificationRemoveProps = (id: number) => void;
+type NotificationRemoveProps = (id: number | undefined) => void;
 
 type NotificationTypeFunc = {
   [key in NotificationTypes]: NotificationProps;
@@ -93,6 +93,9 @@ export const useNotification = (): NotificationFunc => {
 
   const remove: NotificationRemoveProps = React.useCallback(
     (id) => {
+      if (id == null) {
+        return;
+      }
       dispatch({
         type: NotificationActionTypes.DELETE_NOTIFICATION,
         payload: { id },
