@@ -17,7 +17,6 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsIcon, SearchIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { useMcpServerWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServer';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
@@ -26,7 +25,6 @@ import McpServerDetailsView from './McpServerDetailsView';
 import McpDeployButton from '~/odh/components/McpDeployButton';
 
 const McpServerDetailsPage: React.FC = () => {
-  const tabRouteContext = useTabRoutePageContext();
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { mcpApiState } = React.useContext(McpCatalogContext);
   const [server, serverLoaded, serverLoadError] = useMcpServerWithAPI(mcpApiState, serverId);
@@ -99,7 +97,7 @@ const McpServerDetailsPage: React.FC = () => {
           ) : undefined
         }
         headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
-        noTitle={tabRouteContext?.isInsideTabPage}
+        noTitle // rendered inside a TabRoutePage which provides the title
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"

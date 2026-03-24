@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PageSection, Sidebar, SidebarContent, SidebarPanel } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
-import { LazyCodeRefComponent, useExtensions, useTabRoutePageContext } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isModelCatalogBannerExtension } from '~/odh/extension-points';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
@@ -21,7 +21,6 @@ const ModelCatalog: React.FC = () => {
   const isAllModelsView =
     selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
 
-  const tabRouteContext = useTabRoutePageContext();
   const bannerExtensions = useExtensions(isModelCatalogBannerExtension);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -51,7 +50,7 @@ const ModelCatalog: React.FC = () => {
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
       <ApplicationsPage
-        noTitle={tabRouteContext?.isInsideTabPage}
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         empty={false}

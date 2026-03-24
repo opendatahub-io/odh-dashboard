@@ -7,11 +7,7 @@ import {
   TabRoutePageExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import {
-  LazyCodeRefComponent,
-  TabRoutePageContext,
-  useExtensions,
-} from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import NotFound from '#~/pages/NotFound';
@@ -61,8 +57,6 @@ const getDefaultTab = (
   return tabExtensions[0].properties.id;
 };
 
-const tabRoutePageContextValue: { isInsideTabPage: boolean } = { isInsideTabPage: true };
-
 const isProjectObjectType = (value: string): value is ProjectObjectType =>
   Object.values<string>(ProjectObjectType).includes(value);
 
@@ -110,13 +104,11 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
           ))}
         </Tabs>
       </PageSection>
-      <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
-        <LazyCodeRefComponent
-          key={activeTab.properties.id}
-          component={activeTab.properties.component}
-          fallback={tabContentFallback}
-        />
-      </TabRoutePageContext.Provider>
+      <LazyCodeRefComponent
+        key={activeTab.properties.id}
+        component={activeTab.properties.component}
+        fallback={tabContentFallback}
+      />
     </>
   );
 };
@@ -183,12 +175,10 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
           element={
             <>
               {pageTitle}
-              <TabRoutePageContext.Provider value={tabRoutePageContextValue}>
-                <LazyCodeRefComponent
-                  component={singleTab.properties.component}
-                  fallback={tabContentFallback}
-                />
-              </TabRoutePageContext.Provider>
+              <LazyCodeRefComponent
+                component={singleTab.properties.component}
+                fallback={tabContentFallback}
+              />
             </>
           }
         />

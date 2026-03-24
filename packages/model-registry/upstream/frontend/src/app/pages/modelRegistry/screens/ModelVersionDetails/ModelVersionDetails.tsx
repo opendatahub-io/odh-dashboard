@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useTabRoutePageContext } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { KnownLabels } from '~/odh/k8sTypes';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
@@ -41,7 +40,6 @@ type ModelVersionsDetailProps = {
 >;
 
 const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
-  const tabRouteContext = useTabRoutePageContext();
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -76,7 +74,7 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   return (
     <ApplicationsPage
       {...pageProps}
-      noTitle={tabRouteContext?.isInsideTabPage}
+      noTitle // rendered inside a TabRoutePage which provides the title
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
