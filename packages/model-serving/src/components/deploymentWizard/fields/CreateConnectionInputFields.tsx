@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, Popover, Flex, FlexItem, Form, Alert } from '@patternfly/react-core';
+import { Checkbox, Popover, Flex, FlexItem, Alert } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
@@ -137,7 +137,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   return (
     <>
       {showK8sNameDescriptionField && !createConnectionData.hideFields && (
-        <Form maxWidth="450px">
+        <div style={{ maxWidth: '450px' }}>
           <Flex>
             <FlexItem>
               <Checkbox
@@ -224,7 +224,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
               configuration parameters and credentials.
             </Alert>
           )}
-        </Form>
+        </div>
       )}
     </>
   );
