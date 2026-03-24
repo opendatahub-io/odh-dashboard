@@ -180,7 +180,15 @@ func NewExternalModelsClient(
 
 	// Configure HTTP transport
 	var transport http.RoundTripper
-	if rootCAs != nil {
+	if opts.SkipSSRFValidation {
+		// Internal hosts (localhost, cluster-local) use self-signed certs not in the
+		// system CA pool, so TLS verification is skipped for them.
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // internal cluster services use self-signed certs not in the system CA pool
+			},
+		}
+	} else if rootCAs != nil {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs:    rootCAs,
