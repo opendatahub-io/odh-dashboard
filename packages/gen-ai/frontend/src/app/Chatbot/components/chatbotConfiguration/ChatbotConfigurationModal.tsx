@@ -197,14 +197,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           });
         };
 
-        const prevRequired = new Map<string, AIModel>();
-        prev.forEach((c) => {
-          const m = findEmbeddingModel(c.embedding_model);
-          if (m) {
-            prevRequired.set(m.model_name, m);
-          }
-        });
-
+        // Only act on newly selected collections — never remove models when deselecting
         const nextRequired = new Map<string, AIModel>();
         next.forEach((c) => {
           const m = findEmbeddingModel(c.embedding_model);
@@ -216,22 +209,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         setSelectedModels((prevModels) => {
           const byName = new Map(prevModels.map((m) => [m.model_name, m]));
           nextRequired.forEach((model, name) => byName.set(name, model));
-          prevRequired.forEach((_, name) => {
-            if (!nextRequired.has(name)) {
-              byName.delete(name);
-            }
-          });
           return Array.from(byName.values());
         });
 
         setModelTypeMap((prevMap) => {
           const newMap = new Map(prevMap);
           nextRequired.forEach((_, name) => newMap.set(name, 'Embedding'));
-          prevRequired.forEach((_, name) => {
-            if (!nextRequired.has(name)) {
-              newMap.delete(name);
-            }
-          });
           return newMap;
         });
 
