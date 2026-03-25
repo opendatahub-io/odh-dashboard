@@ -1808,9 +1808,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 						return "", fmt.Errorf("failed to configure credentials for provider %q: %w", vs.Provider.ProviderID, err)
 					}
 					providerConfig[credField] = fmt.Sprintf("${env.%s:=}", vs.CredEnvVarName)
-				} else if vs.Provider.ProviderType == "remote::milvus" {
-					// Milvus requires the token field even when unauthenticated; supply an empty string.
-					providerConfig["token"] = ""
 				}
 				config.AddVectorIOProvider(Provider{
 					ProviderID:   vs.Provider.ProviderID,
