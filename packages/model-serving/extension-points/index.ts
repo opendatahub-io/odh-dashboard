@@ -22,7 +22,6 @@ import type {
   ModelLocationData,
   InitialWizardFormData,
   WizardField,
-  // ModelServerSelectFieldData,
 } from '../src/components/deploymentWizard/types';
 import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelServerSelectFieldData } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';

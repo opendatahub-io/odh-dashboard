@@ -27,9 +27,12 @@ describe('applyConfigBaseRef', () => {
     expect(svc.spec.baseRefs).toBeUndefined();
   });
 
-  it('returns unchanged resource when baseRef is undefined', () => {
-    const svc = mockLLMInferenceServiceK8sResource({ baseRefs: [{ name: 'existing' }] });
+  it('removes baseRef with same name as the LLMInferenceService if baseRef is undefined', () => {
+    const svc = mockLLMInferenceServiceK8sResource({
+      name: 'llm-deployment',
+      baseRefs: [{ name: 'llm-deployment' }, { name: 'other-config' }],
+    });
     const result = applyConfigBaseRef(svc, undefined);
-    expect(result.spec.baseRefs).toEqual([{ name: 'existing' }]);
+    expect(result.spec.baseRefs).toEqual([{ name: 'other-config' }]);
   });
 });

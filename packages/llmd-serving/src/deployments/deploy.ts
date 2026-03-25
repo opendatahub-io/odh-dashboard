@@ -154,7 +154,7 @@ const assembleLLMInferenceService = (
 /**
  * Returns the config object to be deployed alongside the LLMInferenceService.
  * If no config is determined, undefined is returned.
- * - If a config templated was selected, clone it and set the deployment name and project namespace
+ * - If a config template was selected, clone it and set the deployment name and project namespace
  * - If a config already exists on an existing deployment, return it
  */
 const assembleLLMInferenceServiceConfig = (
@@ -203,7 +203,8 @@ export const assembleLLMdDeployment = (
   connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
 ): LLMdDeployment => {
   const k8sName = wizardData.state.k8sNameDesc.data.k8sName.value;
-  const LLMInferenceServiceConfig = assembleLLMInferenceServiceConfig(
+
+  const llmInferenceServiceConfig = assembleLLMInferenceServiceConfig(
     {
       deploymentName: k8sName,
       deploymentNamespace: wizardData.state.project.projectName ?? '',
@@ -213,7 +214,6 @@ export const assembleLLMdDeployment = (
     },
     existingDeployment?.server,
   );
-  const baseRef = LLMInferenceServiceConfig ? k8sName : undefined;
 
   let result: LLMdDeployment = {
     modelServingPlatformId: LLMD_SERVING_ID,
@@ -235,13 +235,13 @@ export const assembleLLMdDeployment = (
         environmentVariables: wizardData.state.environmentVariables.data,
         modelAvailability: wizardData.state.modelAvailability.data,
         tokenAuthentication: wizardData.state.tokenAuthentication.data,
-        baseRef,
+        baseRef: llmInferenceServiceConfig ? k8sName : undefined,
       },
       existingDeployment?.model,
       connectionSecretName,
       false,
     ),
-    server: LLMInferenceServiceConfig,
+    server: llmInferenceServiceConfig,
   };
   result = applyFieldData?.(result) ?? result;
   return result;
