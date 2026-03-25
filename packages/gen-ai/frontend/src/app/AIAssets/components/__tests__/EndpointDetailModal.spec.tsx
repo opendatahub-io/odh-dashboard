@@ -139,7 +139,7 @@ describe('EndpointDetailModal', () => {
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
       expect(screen.getByText('API key')).toBeInTheDocument();
-      expect(screen.getByText(/existing API keys/)).toBeInTheDocument();
+      expect(screen.getByText(/To create a permanent API key, visit the/)).toBeInTheDocument();
       expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
     });
 
