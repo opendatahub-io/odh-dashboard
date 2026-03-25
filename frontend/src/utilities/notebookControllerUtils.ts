@@ -102,7 +102,7 @@ export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata.annotations || !notebook.metadata.labels) {
+  if (!notebook?.metadata.annotations) {
     return null;
   }
 
@@ -111,13 +111,16 @@ export const getNotebookControllerUserState = (
     'notebooks.opendatahub.io/last-image-selection': lastSelectedImage = '',
     'notebooks.opendatahub.io/last-size-selection': lastSelectedSize = '',
     'opendatahub.io/username': annotationUser = '',
+    'opendatahub.io/user': annotationTranslatedUser = '',
   } = notebook.metadata.annotations;
 
   let user = annotationUser;
   if (!annotationUser) {
     // Need to always have user -- if we don't, check if the current user is viable to translate to it
-    const notebookLabelUser = notebook.metadata.labels['opendatahub.io/user'];
-    if (usernameTranslate(loggedInUser) === notebookLabelUser) {
+    // Check annotation first, then fall back to label for backward compatibility with older workbenches
+    const translatedUser =
+      annotationTranslatedUser || notebook.metadata.labels?.['opendatahub.io/user'];
+    if (usernameTranslate(loggedInUser) === translatedUser) {
       user = loggedInUser;
     } else {
       /* eslint-disable-next-line no-console */
