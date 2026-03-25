@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Flex,
   FlexItem,
   Button,
@@ -19,11 +20,11 @@ import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt } from './usePromptQueries';
 
 export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
-  const { activePrompt, dirtyPrompt, setActivePrompt, setDirtyPrompt, modalMode } =
-    usePlaygroundStore();
+  const { dirtyPrompt, setActivePrompt, setDirtyPrompt, modalMode } = usePlaygroundStore();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
   const [nameError, setNameError] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
@@ -37,7 +38,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       if (error.message.toLowerCase().includes('already exists')) {
         setNameError('A prompt with this name already exists. Choose a different name.');
       } else {
-        setNameError(error.message || 'An error occurred while saving the prompt.');
+        setSaveError(error.message || 'An error occurred while saving the prompt.');
       }
     },
   });
@@ -48,6 +49,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       return;
     }
     setNameError(null);
+    setSaveError(null);
     createPrompt({
       name: dirtyPrompt.name,
       messages: [{ role: 'system', content: dirtyPrompt.template || '' }],
@@ -70,8 +72,6 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       [field]: value,
     });
   }
-
-  const nextVersion = (activePrompt?.version ?? 0) + 1;
 
   return (
     <Flex direction={{ default: 'column' }}>
@@ -102,7 +102,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
               <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
                 Version
               </Title>
-              <TextInput value={nextVersion.toString()} isDisabled style={{ width: '80px' }} />
+              <TextInput value="Next" isDisabled style={{ width: '80px' }} />
             </SplitItem>
           )}
         </Split>
@@ -131,6 +131,13 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           placeholder="Describe your changes"
         />
       </FlexItem>
+      {saveError && (
+        <FlexItem>
+          <Alert variant="danger" isInline title="Failed to save prompt">
+            {saveError}
+          </Alert>
+        </FlexItem>
+      )}
       <Flex
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
         style={{ width: '100%', paddingTop: 'var(--pf-t--global--spacer--md)' }}
