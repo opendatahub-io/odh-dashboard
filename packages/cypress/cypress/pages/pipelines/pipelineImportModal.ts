@@ -95,7 +95,8 @@ class PipelineImportModal extends Modal {
 
   submit(): void {
     // Wait for file upload/validation to complete (button no longer in progress state)
-    this.findSubmitButton().should('not.have.class', 'pf-m-progress');
+    // Use longer timeout for file upload processing
+    this.findSubmitButton().should('not.have.class', 'pf-m-progress', { timeout: 20000 });
     // Then wait for button to be enabled and click
     this.findSubmitButton().should('be.enabled').click();
   }
