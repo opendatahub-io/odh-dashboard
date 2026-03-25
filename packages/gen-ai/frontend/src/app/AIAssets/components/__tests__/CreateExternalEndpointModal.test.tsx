@@ -24,6 +24,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -41,6 +42,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -79,6 +81,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -122,6 +125,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -167,6 +171,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -208,6 +213,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -248,6 +254,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -288,6 +295,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onSuccess={mockOnSuccess}
           onSubmit={mockOnSubmit}
           onVerify={mockOnVerify}
+          existingModels={[]}
         />,
       );
 
@@ -310,7 +318,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
       });
 
       const createButton = screen.getByTestId('create-external-model-submit-button');
-      expect(createButton).toBeDisabled();
+      expect(createButton).toBeEnabled();
     });
   });
 });

@@ -208,6 +208,7 @@ const AIAssetsModelsTab: React.FC = () => {
           onSuccess={handleCreationSuccess}
           onSubmit={handleCreateExternalEndpoint}
           onVerify={handleVerifyExternalEndpoint}
+          existingModels={models}
         />
       )}
     </>

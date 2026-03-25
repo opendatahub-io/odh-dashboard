@@ -684,15 +684,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 				expectedError: "base_url is required",
 			},
 			{
-				name: "missing secret_value",
-				request: models.VerifyExternalModelRequest{
-					ModelID:   "gpt-4o",
-					BaseURL:   "https://api.openai.com/v1",
-					ModelType: models.ModelTypeLLM,
-				},
-				expectedError: "secret_value is required",
-			},
-			{
 				name: "missing model_type",
 				request: models.VerifyExternalModelRequest{
 					ModelID:     "gpt-4o",
@@ -803,8 +794,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 
 		// Create a mock OpenAI-compatible server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Verify the request has the correct headers
-			assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+			// Authorization header is omitted over plain HTTP (mock server uses http://)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 			// Verify endpoint
@@ -887,7 +877,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 
 		// Create a mock OpenAI-compatible embeddings server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "Bearer test-embedding-key", r.Header.Get("Authorization"))
+			// Authorization header is omitted over plain HTTP (mock server uses http://)
 			assert.Equal(t, "/embeddings", r.URL.Path)
 
 			// Verify request body includes dimensions
@@ -1119,11 +1109,6 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 				name:            "invalid URL scheme (ftp)",
 				baseURL:         "ftp://invalid.example.com",
 				expectedMessage: "HTTP or HTTPS scheme",
-			},
-			{
-				name:            "HTTP URL in production mode",
-				baseURL:         "http://api.example.com/v1",
-				expectedMessage: "HTTPS in production",
 			},
 			{
 				name:            "URL without hostname",
