@@ -2,6 +2,8 @@ package maas
 
 import (
 	"embed"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,6 +29,17 @@ func CreateMaasFakeServer() *httptest.Server {
 
 		case http.MethodPost:
 			if r.URL.Path == "/v1/api-keys" {
+				body, _ := io.ReadAll(r.Body)
+				var req struct {
+					ExpiresIn string `json:"expiresIn"`
+				}
+				_ = json.Unmarshal(body, &req)
+				if req.ExpiresIn == "trigger_expiration_exceeded" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(`{"error":"requested expiration (8760h0m0s) exceeds maximum allowed (90 days)"}`))
+					return
+				}
 				sendFakeResponse("create-api-key-response.json", http.StatusCreated, w)
 				return
 			}

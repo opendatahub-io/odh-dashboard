@@ -2,13 +2,30 @@ import * as React from 'react';
 import { get } from 'lodash';
 import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 type PromptAssistantFormGroupProps = {
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
+};
+
+const CONFIRMATION_CONFIG = {
+  title: 'Revert to saved version?',
+  message:
+    'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
+  confirmLabel: 'Revert',
+};
+const RESET_CONFIRMATION_CONFIG = {
+  title: 'Reset to default?',
+  message:
+    "Your current edits haven't been saved. Resetting will restore the default prompt instructions. To keep your changes, cancel and save first.",
+  confirmLabel: 'Reset',
 };
 
 export default function PromptAssistantFormGroup({
@@ -28,7 +45,10 @@ export default function PromptAssistantFormGroup({
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = systemInstruction !== activeTemplate;
+  const isEdited = usePromptEdited();
+
+  useSafeBrowserUnloadBlocker(isEdited);
+  const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
   React.useEffect(() => {
     setEditMode(!activePrompt);
@@ -86,68 +106,88 @@ export default function PromptAssistantFormGroup({
   }
 
   return (
-    <Panel
-      style={{
-        borderStyle: 'dashed',
-        borderWidth: 1,
-        borderRadius: 6,
-        borderColor: 'var(--pf-t--global--border--color--default)',
-      }}
-    >
-      <Stack
-        hasGutter
+    <>
+      <SafeNavigationBlocker hasUnsavedChanges={isEdited} />
+      {confirmationModal}
+      <Panel
         style={{
-          padding: 'var(--pf-t--global--spacer--md)',
-          paddingTop: 'var(--pf-t--global--spacer--lg)',
+          borderStyle: 'dashed',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderColor: 'var(--pf-t--global--border--color--default)',
         }}
       >
-        <Flex>
-          <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
-          {!!activePrompt?.version && (
-            <Label
-              isCompact
-              variant={isEdited ? 'filled' : 'outline'}
-              color={isEdited ? 'grey' : 'purple'}
-            >
-              Version {activePrompt.version.toString()}
-            </Label>
-          )}
-          {isEdited && (
-            <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
-          )}
-        </Flex>
-        <TextArea
-          className={!editMode ? 'pf-m-readonly' : undefined}
-          id="system-instructions-input"
-          type="text"
-          value={systemInstruction}
-          readOnly={!editMode}
-          onChange={(_event, value) => handleTextChange(value)}
-          aria-label="Prompt instructions input"
-          rows={12}
-          data-testid="system-instructions-input"
-        />
-        {!editMode && (
+        <Stack
+          hasGutter
+          style={{
+            padding: 'var(--pf-t--global--spacer--md)',
+            paddingTop: 'var(--pf-t--global--spacer--lg)',
+          }}
+        >
           <Flex>
-            <Button variant="primary" onClick={() => setEditMode(true)}>
-              Edit
-            </Button>
-            <Button variant="link" onClick={handleNewPrompt}>
-              Clear
-            </Button>
+            <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
+            {!!activePrompt?.version && (
+              <Label
+                isCompact
+                variant={isEdited ? 'filled' : 'outline'}
+                color={isEdited ? 'grey' : 'purple'}
+              >
+                Version {activePrompt.version.toString()}
+              </Label>
+            )}
+            {isEdited && (
+              <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
+            )}
           </Flex>
-        )}
-        {editMode && (
-          <Flex>
-            <Button variant="primary" onClick={handleSaveClicked}>
-              Save
-            </Button>
-            <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>
-              Revert
-            </Button>
-          </Flex>
-        )}
-      </Stack>
-    </Panel>
+          <TextArea
+            className={!editMode ? 'pf-m-readonly' : undefined}
+            id="system-instructions-input"
+            type="text"
+            value={systemInstruction}
+            readOnly={!editMode}
+            onChange={(_event, value) => handleTextChange(value)}
+            aria-label="Prompt instructions input"
+            rows={12}
+            data-testid="system-instructions-input"
+          />
+          {!editMode && (
+            <Flex>
+              <Button
+                variant="primary"
+                isDisabled={editMode}
+                onClick={() => setEditMode(!editMode)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="link"
+                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+              >
+                Reset
+              </Button>
+            </Flex>
+          )}
+          {editMode && (
+            <Flex>
+              <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+                Save
+              </Button>
+              <Button
+                variant="link"
+                isDisabled={!isEdited}
+                onClick={() =>
+                  confirm(
+                    handleRevert,
+                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
+                  )
+                }
+              >
+                Revert
+              </Button>
+            </Flex>
+          )}
+        </Stack>
+      </Panel>
+    </>
   );
 }

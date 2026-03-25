@@ -1,12 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ModularArchConfig, ModularArchContextProvider } from 'mod-arch-core';
+import {
+  ModularArchConfig,
+  ModularArchContextProvider,
+  NotificationContextProvider,
+} from 'mod-arch-core';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axe from 'react-axe';
 import { DEPLOYMENT_MODE, URL_PREFIX } from '~/app/utilities/const';
 import App from '~/app/App';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
+import ToastNotifications from '~/app/components/ToastNotifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,7 +50,10 @@ root.render(
       <Router>
         <PluginStoreContextProvider>
           <ModularArchContextProvider config={modularArchConfig}>
-            <App />
+            <NotificationContextProvider>
+              <App />
+              <ToastNotifications />
+            </NotificationContextProvider>
           </ModularArchContextProvider>
         </PluginStoreContextProvider>
       </Router>

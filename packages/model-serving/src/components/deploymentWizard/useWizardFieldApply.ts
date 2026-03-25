@@ -2,7 +2,7 @@ import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardFormData } from './types';
+import type { WizardField, WizardFormData } from './types';
 import {
   isWizardFieldApplyExtension,
   isWizardField2Extension,
@@ -33,19 +33,20 @@ export const useWizardFieldApply = (
 
   const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
 
-  // Get the set of active field IDs
-  const activeFieldIds = React.useMemo(() => {
-    return new Set(
-      fieldExtensions
-        .filter((ext) => ext.properties.field.isActive(wizardState))
-        .map((ext) => ext.properties.field.id),
-    );
+  const activeFields = React.useMemo((): Map<string, WizardField> => {
+    const map = new Map<string, WizardField>();
+    for (const ext of fieldExtensions) {
+      const { field } = ext.properties;
+      if (field.isActive(wizardState)) {
+        map.set(field.id, field);
+      }
+    }
+    return map;
   }, [fieldExtensions, wizardState]);
 
-  // Filter apply extensions to only those whose associated field is active
   const activeApplyExtensions = React.useMemo((): ResolvedApplyExtension[] => {
-    return applyExtensions.filter((ext) => activeFieldIds.has(ext.properties.fieldId));
-  }, [applyExtensions, activeFieldIds]);
+    return applyExtensions.filter((ext) => activeFields.has(ext.properties.fieldId));
+  }, [applyExtensions, activeFields]);
 
   const applyFieldData = React.useCallback(
     (deployment: Deployment): Deployment => {
@@ -53,7 +54,11 @@ export const useWizardFieldApply = (
 
       for (const applyExt of activeApplyExtensions) {
         const { fieldId } = applyExt.properties;
-        const fieldData: unknown = wizardState[fieldId];
+        const rawFieldData: unknown = wizardState[fieldId];
+        const field = activeFields.get(fieldId);
+        const fieldData: unknown = field?.reducerFunctions.getFieldData
+          ? field.reducerFunctions.getFieldData(rawFieldData, wizardState)
+          : rawFieldData;
 
         if (fieldData !== undefined) {
           result = applyExt.properties.apply(result, fieldData, wizardState);
@@ -76,7 +81,7 @@ export const useWizardFieldApply = (
 
       return result;
     },
-    [activeApplyExtensions, wizardState, navSourceMetadata],
+    [activeApplyExtensions, activeFields, wizardState, navSourceMetadata],
   );
 
   return React.useMemo(

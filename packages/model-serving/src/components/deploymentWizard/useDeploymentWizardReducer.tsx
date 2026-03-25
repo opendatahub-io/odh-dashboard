@@ -1,7 +1,12 @@
 import React from 'react';
 import { isEqual } from 'lodash-es';
 import type { ExternalDataMap } from './ExternalDataLoader';
-import type { InitialWizardFormData, WizardField, WizardFormData } from './types';
+import type {
+  InitialWizardFormData,
+  WizardField,
+  WizardFormData,
+  WizardStateOverrides,
+} from './types';
 import { getFieldDependencies, useActiveFields } from './dynamicFormUtils';
 
 ///// Field type stuff
@@ -92,6 +97,7 @@ export type UseDeploymentWizardReducerResult = {
   dispatch: React.Dispatch<WizardFormAction>;
   fields: WizardField<unknown>[];
   externalDataLoaded: boolean;
+  computedOverrides: WizardStateOverrides;
 };
 
 /**
@@ -184,13 +190,34 @@ export const useDeploymentWizardReducer = (
     prevMergedState.current = mergedState;
   }, [activeFields, dispatch, externalDataMap, initialData, mergedState]);
 
+  const computedOverrides = React.useMemo((): WizardStateOverrides => {
+    let overrides: WizardStateOverrides = {};
+    for (const field of activeFields) {
+      const storedValue: unknown = mergedState[field.id];
+      if (storedValue == null) {
+        continue;
+      }
+      const effectiveValue: unknown =
+        field.reducerFunctions.getFieldData?.(storedValue, mergedState) ?? storedValue;
+      const fieldOverrides = field.reducerFunctions.getFieldOverrides?.(
+        effectiveValue,
+        mergedState,
+      );
+      if (fieldOverrides) {
+        overrides = { ...overrides, ...fieldOverrides };
+      }
+    }
+    return overrides;
+  }, [activeFields, mergedState]);
+
   return React.useMemo(
     () => ({
       state: mergedState,
       dispatch: enhancedDispatch,
       fields: activeFields,
       externalDataLoaded: true,
+      computedOverrides,
     }),
-    [mergedState, enhancedDispatch, activeFields],
+    [mergedState, enhancedDispatch, activeFields, computedOverrides],
   );
 };

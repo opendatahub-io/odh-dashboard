@@ -6,7 +6,6 @@ import {
   CardTitle,
   ClipboardCopy,
   ClipboardCopyVariant,
-  DatePicker,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -18,11 +17,16 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  MenuToggle,
+  MenuToggleElement,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Select,
+  SelectList,
+  SelectOption,
   Stack,
   StackItem,
   TextArea,
@@ -33,61 +37,49 @@ import { CheckCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { formatApiKeyError } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '../../api/api-keys';
 
-const getTodaysDate = () => {
-  const date = new Date();
-  return date;
-};
+const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
-const dateToGoDuration = (selectedDate: Date): string => {
-  const today = getTodaysDate();
-  const selected = new Date(selectedDate);
-  selected.setHours(23, 59, 59, 999);
+type ExpirationOptionValue = (typeof EXPIRATION_OPTION_VALUES)[number];
 
-  const diffMs = selected.getTime() - today.getTime();
-  const totalMinutes = Math.round(diffMs / (1000 * 60));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+const EXPIRATION_OPTIONS: { value: ExpirationOptionValue; label: string; expiresIn?: string }[] = [
+  { value: '30d', label: '30 days', expiresIn: '30d' },
+  { value: '60d', label: '60 days', expiresIn: '60d' },
+  { value: '90d', label: '90 days', expiresIn: '90d' },
+  { value: '180d', label: '180 days', expiresIn: '180d' },
+  { value: '1y', label: '1 year', expiresIn: '365d' },
+  { value: 'custom', label: 'Custom (days)' },
+];
 
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-  return `${hours}h${minutes}m`;
-};
+const isValidExpirationOption = (v: string | number | undefined): v is ExpirationOptionValue =>
+  EXPIRATION_OPTION_VALUES.some((val) => val === v);
 
-const createApiKeySchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .refine((val) => /^[a-zA-Z0-9_-]+$/.test(val), {
-      message: 'Name can only contain letters, numbers, dashes, and underscores',
-    }),
-  description: z.string().optional(),
-  expirationDate: z
-    .date()
-    .optional()
-    .refine(
-      (date) => {
-        if (!date) {
-          return true;
-        }
-        const dateAtMidnight = new Date(date);
-        dateAtMidnight.setHours(0, 0, 0, 0);
-        const today = getTodaysDate();
-        const maxDate = new Date();
-        maxDate.setFullYear(maxDate.getFullYear() + 1);
-        if (dateAtMidnight <= today) {
-          return false;
-        }
-        if (dateAtMidnight > maxDate) {
-          return false;
-        }
-        return true;
-      },
-      { message: 'Date must be in the future (not today) and not more than 1 year from today' },
-    ),
-});
+const createApiKeySchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .refine((val) => /^[a-zA-Z0-9_-]+$/.test(val), {
+        message: 'Name can only contain letters, numbers, dashes, and underscores',
+      }),
+    description: z.string().optional(),
+    expirationOption: z.enum(EXPIRATION_OPTION_VALUES),
+    customDays: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.expirationOption === 'custom') {
+      const days = parseInt(data.customDays ?? '', 10);
+      if (!data.customDays || !/^\d+$/.test(data.customDays) || days < 1 || days > 365) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Enter a value between 1 and 365 days',
+          path: ['customDays'],
+        });
+      }
+    }
+  });
 
 type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
@@ -99,8 +91,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
-    expirationDate: undefined,
+    expirationOption: '30d',
+    customDays: '',
   });
+  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
@@ -110,24 +104,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     createApiKeySchema,
   );
 
-  const dateValidator = (date: Date) => {
-    const maxDate = new Date();
-    maxDate.setFullYear(maxDate.getFullYear() + 1);
-    const dateAtMidnight = new Date(date);
-    dateAtMidnight.setHours(0, 0, 0, 0);
-    const today = getTodaysDate();
-    if (dateAtMidnight <= today) {
-      return 'Date must be in the future (not today)';
-    }
-    if (dateAtMidnight > maxDate) {
-      return 'Date must be not more than 1 year from today';
-    }
-    return '';
-  };
-
   const isFormValid = () => {
     const result = createApiKeySchema.safeParse(formData);
     return result.success;
+  };
+
+  const selectedOption = EXPIRATION_OPTIONS.find((opt) => opt.value === formData.expirationOption);
+
+  const getExpiresIn = (): string | undefined => {
+    if (formData.expirationOption === 'custom') {
+      const days = parseInt(formData.customDays ?? '', 10);
+      return Number.isNaN(days) ? undefined : `${days}d`;
+    }
+    return selectedOption?.expiresIn;
   };
 
   const handleSubmit = async () => {
@@ -135,25 +124,26 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     setError(undefined);
 
     try {
-      const expirationDuration = formData.expirationDate
-        ? dateToGoDuration(formData.expirationDate)
-        : undefined;
       const response = await createApiKey()(
         {},
         {
           name: formData.name.trim(),
           description: formData.description?.trim() || undefined,
-          expiresIn: expirationDuration,
+          expiresIn: getExpiresIn(),
         },
       );
 
       setCreatedToken(response.key);
-      setIsCreating(false);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to create API key'));
+      const msg = err instanceof Error ? err.message : 'Failed to create API key';
+      setError(new Error(formatApiKeyError(msg)));
+    } finally {
       setIsCreating(false);
     }
   };
+
+  const expirationLabel =
+    formData.expirationOption === 'custom' ? `${formData.customDays} days` : selectedOption?.label;
 
   return (
     <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
@@ -219,21 +209,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     )}
-                    {formData.expirationDate ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Expiration</DescriptionListTerm>
-                        <DescriptionListDescription data-testid="api-key-display-expiration">
-                          {formData.expirationDate.toISOString().split('T')[0]}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Expiration</DescriptionListTerm>
-                        <DescriptionListDescription data-testid="api-key-display-expiration">
-                          4 hours
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    )}
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Expiration</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="api-key-display-expiration">
+                        {expirationLabel}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
                   </DescriptionList>
                 </CardBody>
               </Card>
@@ -300,36 +281,75 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   </FormHelperText>
                 </FormGroup>
 
-                <FormGroup label="Expiration date" fieldId="api-key-expiration">
-                  <DatePicker
+                <FormGroup label="Expiration" fieldId="api-key-expiration">
+                  <Select
                     id="api-key-expiration"
-                    value={
-                      formData.expirationDate
-                        ? formData.expirationDate.toISOString().split('T')[0]
-                        : undefined
-                    }
-                    onChange={(_event, value, date) => {
-                      if (date) {
-                        const dateAtMidnight = new Date(date);
-                        dateAtMidnight.setHours(0, 0, 0, 0);
-                        setFormData({ ...formData, expirationDate: dateAtMidnight });
-                      } else {
-                        setFormData({ ...formData, expirationDate: undefined });
+                    isOpen={isSelectOpen}
+                    onOpenChange={(open) => setIsSelectOpen(open)}
+                    selected={formData.expirationOption}
+                    onSelect={(_event, value) => {
+                      if (isValidExpirationOption(value)) {
+                        setFormData({ ...formData, expirationOption: value, customDays: '' });
+                        setError(undefined);
                       }
+                      setIsSelectOpen(false);
                     }}
-                    placeholder="YYYY-MM-DD"
-                    data-testid="api-key-date-input"
-                    validators={[dateValidator]}
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Optional expiration date for this API key. If not specified, the API key
-                        will expire in 4 hours.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsSelectOpen(!isSelectOpen)}
+                        isExpanded={isSelectOpen}
+                        isFullWidth
+                        data-testid="api-key-expiration-toggle"
+                      >
+                        {selectedOption?.label ?? '30 days'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      {EXPIRATION_OPTIONS.map((opt) => (
+                        <SelectOption
+                          key={opt.value}
+                          value={opt.value}
+                          data-testid={`api-key-expiration-option-${opt.value}`}
+                        >
+                          {opt.label}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
                 </FormGroup>
+
+                {formData.expirationOption === 'custom' && (
+                  <FormGroup label="Number of days" isRequired fieldId="api-key-custom-days">
+                    <TextInput
+                      isRequired
+                      type="number"
+                      id="api-key-custom-days"
+                      name="api-key-custom-days"
+                      placeholder="Enter number of days (1-365)"
+                      min={1}
+                      max={365}
+                      step={1}
+                      value={formData.customDays}
+                      onChange={(_event, value) => setFormData({ ...formData, customDays: value })}
+                      {...getFieldValidationProps(['customDays'])}
+                      data-testid="api-key-custom-days-input"
+                    />
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem
+                          variant={
+                            getFieldValidation(['customDays']).length > 0 ? 'error' : 'default'
+                          }
+                        >
+                          {getFieldValidation(['customDays'])[0]?.message ??
+                            'Enter a value between 1 and 365 days'}
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  </FormGroup>
+                )}
               </Form>
             </StackItem>
           </Stack>
@@ -353,7 +373,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
               onClick={handleSubmit}
               isDisabled={!isFormValid() || isCreating}
               isLoading={isCreating}
-              data-testid="create-api-key-button"
+              data-testid="submit-create-api-key-button"
             >
               Create API key
             </Button>
