@@ -122,9 +122,11 @@ const NotebooksCard: React.FC = () => {
                     <Button
                       isAriaDisabled={isCreateDisabled}
                       variant={ButtonVariant.primary}
-                      component={(props: React.ComponentProps<'a'>) => (
-                        <Link {...props} to={createWorkbenchHref} />
-                      )}
+                      {...(!isCreateDisabled && {
+                        component: (props: React.ComponentProps<'a'>) => (
+                          <Link {...props} to={createWorkbenchHref} />
+                        ),
+                      })}
                     >
                       <Flex
                         gap={{ default: 'gapMd' }}

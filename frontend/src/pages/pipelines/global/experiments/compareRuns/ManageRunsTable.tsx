@@ -101,9 +101,11 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
               <Tooltip content="Select up to 10 runs to compare.">
                 <Button
                   data-testid="manage-runs-update-button"
-                  component={(props: React.ComponentProps<'a'>) => (
-                    <Link {...props} to={updateHref} />
-                  )}
+                  {...(!isUpdateDisabled && {
+                    component: (props: React.ComponentProps<'a'>) => (
+                      <Link {...props} to={updateHref} />
+                    ),
+                  })}
                   isAriaDisabled={isUpdateDisabled}
                 >
                   Update

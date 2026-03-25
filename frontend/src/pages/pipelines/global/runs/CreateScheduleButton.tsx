@@ -26,9 +26,11 @@ const CreateScheduleButton: React.FC = () => {
       <Button
         data-testid="schedule-run-button"
         variant="primary"
-        component={(props: React.ComponentProps<'a'>) => (
-          <Link {...props} to={createScheduleHref} />
-        )}
+        {...(!isExperimentArchived && {
+          component: (props: React.ComponentProps<'a'>) => (
+            <Link {...props} to={createScheduleHref} />
+          ),
+        })}
         isAriaDisabled={isExperimentArchived}
         ref={tooltipRef}
       >

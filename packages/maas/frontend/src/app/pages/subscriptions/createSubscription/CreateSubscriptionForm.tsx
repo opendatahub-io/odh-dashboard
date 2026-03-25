@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   ActionGroup,
   Alert,
@@ -22,6 +21,7 @@ import {
   MultiSelection,
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
+import { useNavigate } from 'react-router-dom';
 import { mockAvailableGroups, RateLimit, Tier } from '~/app/types/tier';
 import { RateLimitCheckbox } from './RateLimitCheckbox';
 
@@ -51,6 +51,8 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   submitError = null,
   allTiers,
 }) => {
+  const navigate = useNavigate();
+
   const existingTierLevels = new Map(
     allTiers
       .filter((t): t is Tier & { level: number } => t.level !== undefined && t.name !== tier?.name)
@@ -292,15 +294,10 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
         </Button>
         <Button
           key="cancel"
-          component={
-            isSubmitting
-              ? 'button'
-              : (props: React.ComponentProps<'a'>) => <Link {...props} to="/maas/tiers" />
-          }
+          onClick={() => navigate('/maas/tiers')}
           variant="link"
           data-testid="cancel-tier-button"
-          isAriaDisabled={isSubmitting}
-          tabIndex={isSubmitting ? -1 : undefined}
+          isDisabled={isSubmitting}
         >
           Cancel
         </Button>
