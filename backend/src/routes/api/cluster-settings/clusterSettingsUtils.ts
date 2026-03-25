@@ -93,6 +93,18 @@ export const updateClusterSettings = async (
       fastify.log.error(`Failed to update segment key enabled: ${e.message}`);
     });
     if (pvcSize && cullerTimeout) {
+      let currentCullerEnabled = false;
+      let currentCullerTimeMin = 0;
+      try {
+        const cullerConfigMap = await coreV1Api.readNamespacedConfigMap(nbcCfg, namespace);
+        currentCullerEnabled = cullerConfigMap.body.data?.ENABLE_CULLING === 'true';
+        currentCullerTimeMin = Number(cullerConfigMap.body.data?.CULL_IDLE_TIME ?? 0);
+      } catch (e) {
+        if (e.statusCode !== 404) {
+          fastify.log.error(`Failed to read culler config: ${e.message}`);
+        }
+      }
+
       await setDashboardConfig(fastify, {
         spec: {
           notebookController: {
@@ -136,8 +148,14 @@ export const updateClusterSettings = async (
           }
         });
       }
+
+      const cullerSettingsChanged =
+        isEnabled !== currentCullerEnabled ||
+        (isEnabled && currentCullerEnabled && cullingTimeMin !== currentCullerTimeMin);
+      if (cullerSettingsChanged) {
+        await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
+      }
     }
-    await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     return { success: true, error: '' };
   } catch (e) {
     fastify.log.error(e, `Setting cluster settings error: ${errorHandler(e)}`);
