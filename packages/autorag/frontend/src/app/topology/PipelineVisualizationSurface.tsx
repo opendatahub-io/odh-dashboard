@@ -72,17 +72,37 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
           controlButtons={createTopologyControlButtons({
             ...defaultControlButtonsOptions,
             zoomInCallback: action(() => {
-              controller.getGraph().scaleBy(4 / 3);
+              const graph = controller.getGraph();
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (!graph) {
+                return;
+              }
+              graph.scaleBy(4 / 3);
             }),
             zoomOutCallback: action(() => {
-              controller.getGraph().scaleBy(0.75);
+              const graph = controller.getGraph();
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (!graph) {
+                return;
+              }
+              graph.scaleBy(0.75);
             }),
             fitToScreenCallback: action(() => {
-              controller.getGraph().fit(80);
+              const graph = controller.getGraph();
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (!graph) {
+                return;
+              }
+              graph.fit(80);
             }),
             resetViewCallback: action(() => {
-              controller.getGraph().reset();
-              controller.getGraph().layout();
+              const graph = controller.getGraph();
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (!graph) {
+                return;
+              }
+              graph.reset();
+              graph.layout();
             }),
             legend: false,
           })}
