@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Checkbox,
-  TextInput,
-  StackItem,
-  Stack,
-  FormGroup,
-  Label,
-  Flex,
-  FlexItem,
-  Content,
-} from '@patternfly/react-core';
+import { StackItem, Stack } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
@@ -17,6 +7,10 @@ import { GenericFieldRenderer } from './GenericFieldRenderer';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
+// DEPRECATED: This type is maintained for backward compatibility with existing code.
+// AAA checkbox data is now handled by the gen-ai package via WizardField2Extension.
+// MaaS checkbox data is handled by the maas package via WizardField2Extension.
+// See: RHOAIENG-37896
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
   saveAsMaaS?: boolean;
@@ -39,6 +33,9 @@ export const modelAvailabilityFieldsSchema = z.custom<ModelAvailabilityFieldsDat
   return isValidModelAvailabilityFieldsData();
 });
 
+// DEPRECATED: This hook is maintained for backward compatibility.
+// Model availability fields are now managed by extensions (gen-ai and maas packages).
+// See: RHOAIENG-37896
 export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
@@ -68,74 +65,24 @@ export const useModelAvailabilityFields = (
   };
 };
 
+// RHOAIENG-37896: data and setData are now optional for backward compatibility
+// The component no longer uses these props directly; extensions handle the data
 type AvailableAiAssetsFieldsComponentProps = {
-  data: ModelAvailabilityFieldsData;
-  setData: (data: ModelAvailabilityFieldsData) => void;
+  data?: ModelAvailabilityFieldsData;
+  setData?: (data: ModelAvailabilityFieldsData) => void;
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
 };
 
+// Fix for RHOAIENG-37896: AAA checkbox is now rendered via gen-ai package extension
+// This component now only renders extension-based fields (AAA and MaaS checkboxes)
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
-  data,
-  setData,
   wizardState,
   externalData,
 }) => {
-  const setDataWithClearUseCase = React.useCallback(
-    (newData: ModelAvailabilityFieldsData) => {
-      if (!newData.saveAsAiAsset) {
-        setData({ ...newData, useCase: '' });
-      } else {
-        setData(newData);
-      }
-    },
-    [setData],
-  );
-
   return (
     <StackItem>
       <Stack hasGutter>
-        <StackItem>
-          <Checkbox
-            id="save-as-ai-asset-checkbox"
-            data-testid="save-as-ai-asset-checkbox"
-            label={
-              <>
-                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
-                <Flex>
-                  <FlexItem>
-                    Enable users in your namespace to test this model in the playground by adding
-                    its endpoint to the{' '}
-                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
-                  </FlexItem>
-                  <Label isCompact color="yellow" variant="outline">
-                    Tech preview
-                  </Label>
-                </Flex>
-              </>
-            }
-            isChecked={data.saveAsAiAsset}
-            onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
-          />
-        </StackItem>
-        {data.saveAsAiAsset && (
-          <StackItem>
-            <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
-              <FormGroup label="Use case">
-                <Content style={{ marginTop: '-8px' }}>
-                  Enter the types of tasks that your model performs, such as chat, multimodal, or
-                  natural language processing.
-                </Content>
-                <TextInput
-                  id="use-case-input"
-                  data-testid="use-case-input"
-                  value={data.useCase}
-                  onChange={(_, value) => setData({ ...data, useCase: value })}
-                />
-              </FormGroup>
-            </div>
-          </StackItem>
-        )}
         <GenericFieldRenderer
           parentId="model-playground-availability"
           wizardState={wizardState}

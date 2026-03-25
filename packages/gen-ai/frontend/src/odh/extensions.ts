@@ -12,6 +12,9 @@ import {
   globGenAiAll,
 } from '~/app/utilities/routes';
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
+import MODEL_SERVING_EXTENSIONS, {
+  type ModelServingExtensions,
+} from './modelServingExtensions/modelServingExtensions';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const GUARDRAILS = 'guardrails';
@@ -19,7 +22,13 @@ const PROMPT_MANAGEMENT = 'promptManagement';
 const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 const AI_ASSET_VECTOR_STORES = 'ai-asset-vector-stores';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | AIAssetsTabExtension
+  | ModelServingExtensions
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -144,6 +153,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
     },
   },
+  // Model Serving Extensions - Fix for RHOAIENG-37896
+  ...MODEL_SERVING_EXTENSIONS,
 ];
 
 export default extensions;

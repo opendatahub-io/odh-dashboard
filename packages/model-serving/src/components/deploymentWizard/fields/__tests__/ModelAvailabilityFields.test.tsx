@@ -72,42 +72,24 @@ describe('AvailableAiAssetsFields', () => {
       expect(result.current.data.useCase).toBe('test');
     });
   });
+  // RHOAIENG-37896: Component no longer renders hardcoded checkbox, only extension point
   describe('AvailableAiAssetsFieldsComponent', () => {
-    it('should render with default props', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: false, useCase: '' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
+    it('should render container for extension-based fields', () => {
+      const { container } = render(
+        <AvailableAiAssetsFieldsComponent wizardState={mockWizardState} />,
       );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).not.toBeChecked();
+      // Component should render a StackItem container
+      expect(container.querySelector('.pf-v6-c-stack__item')).toBeInTheDocument();
     });
-    it('should render with saveAsAiAsset true', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, useCase: '' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
+
+    it('should render without errors when no extensions are registered', () => {
+      expect(() => {
+        render(<AvailableAiAssetsFieldsComponent wizardState={mockWizardState} />);
+      }).not.toThrow();
     });
-    it('should render with useCase input', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, useCase: 'test' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
-      expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
-      expect(screen.getByTestId('use-case-input')).toHaveValue('test');
-    });
+
+    // Note: Tests for AAA checkbox rendering are now in the gen-ai package
+    // at packages/gen-ai/frontend/src/odh/modelServingExtensions/modelDeploymentWizard/__tests__/
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {
     it('should show field when model type is generative', () => {
