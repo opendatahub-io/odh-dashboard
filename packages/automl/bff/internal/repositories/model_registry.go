@@ -170,7 +170,9 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 			return &models.ModelRegistriesData{ModelRegistries: []models.ModelRegistry{}}, nil
 		}
 		if k8serrors.IsForbidden(err) {
-			return nil, ErrModelRegistryForbidden
+			// Join sentinel with original so errors.Is(err, ErrModelRegistryForbidden)
+			// succeeds in the handler while the API server message is retained for logs.
+			return nil, errors.Join(ErrModelRegistryForbidden, err)
 		}
 		return nil, fmt.Errorf("failed to list ModelRegistries: %w", err)
 	}
@@ -232,12 +234,16 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 // When status.hosts is absent or empty we fall back to constructing the in-cluster URL
 // from the service name and the standard registries namespace.
 func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (serverURL, externalURL string) {
+	// Short forms injected by the operator that are not external routes.
+	shortForm := fmt.Sprintf("%s.%s", name, modelRegistriesNamespace)
 	for _, host := range hosts {
-		// Classify the host. Internal addresses contain ".svc." or ".cluster.local".
-		// External OpenShift Route hostnames contain ".apps.".
-		// Short forms like "name.namespace" or bare "name" are skipped.
+		// Classify the host.
+		// Internal: contains ".svc." or ".cluster.local" (cluster-DNS FQDN).
+		// External: not internal, not a short form (bare name or name.namespace),
+		//           and contains no spaces — avoids hardcoding platform-specific
+		//           suffixes like ".apps." that do not apply outside OpenShift.
 		isInternal := strings.Contains(host, ".svc.") || strings.Contains(host, ".cluster.local")
-		isExternal := !isInternal && strings.Contains(host, ".apps.") && !strings.Contains(host, " ")
+		isExternal := !isInternal && host != name && host != shortForm && !strings.Contains(host, " ")
 
 		if isInternal && serverURL == "" {
 			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryAPIPath)
