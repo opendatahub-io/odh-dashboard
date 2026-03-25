@@ -1640,13 +1640,14 @@ func ensureVLLMCompatibleURL(url string) string {
 
 // buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
 // as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
-// to the full LlamaStack model identifier (provider_id/effective_provider_model_id), 
+// to the full LlamaStack model identifier (provider_id/effective_provider_model_id),
 // mirroring the logic in llama-stack models.py: identifier = f"{provider_id}/{provider_model_id or model_id}"
 // Both model_id and provider_model_id are added as keys so the lookup succeeds regardless
 // of which value the admin used in the ConfigMap.
 // Example of lookup entries this would produce:
-//      embedding_model: ibm-granite/granite-embedding-125m-english -> sentence-transformers/ibm-granite/granite-embedding-125m-english
-//      embedding_model: RedHatAI/granite-embedding-english-r2      -> granite-embed-provider/RedHatAI/granite-embedding-english-r2
+//
+//	embedding_model: ibm-granite/granite-embedding-125m-english -> sentence-transformers/ibm-granite/granite-embedding-125m-english
+//	embedding_model: RedHatAI/granite-embedding-english-r2      -> granite-embed-provider/RedHatAI/granite-embedding-english-r2
 func buildEmbeddingModelLookup(ms []Model) map[string]string {
 	lookup := make(map[string]string, len(ms))
 	for _, m := range ms {
