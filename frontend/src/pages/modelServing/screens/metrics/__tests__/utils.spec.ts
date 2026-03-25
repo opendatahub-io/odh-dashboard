@@ -1,4 +1,8 @@
-import { convertInputType, toPercentage, per100 } from '#~/pages/modelServing/screens/metrics/utils';
+import {
+  convertInputType,
+  toPercentage,
+  per100,
+} from '#~/pages/modelServing/screens/metrics/utils';
 
 describe('convertInputType', () => {
   describe('string inputs', () => {
@@ -41,16 +45,15 @@ describe('convertInputType', () => {
   });
 });
 
-// Regression test for RHOAIENG-17618: Memory utilization percentage tooltip displays excessive decimal digits
 describe('toPercentage', () => {
   it('should round percentage values to 2 decimal places', () => {
     const input = { x: 1000, y: 0.09896161479334678, name: 'test' };
     const result = toPercentage(input);
-    expect(result.y).toBe(9.90);
+    expect(result.y).toBe(9.9);
   });
 
   it('should handle values that round up', () => {
-    const input = { x: 1000, y: 0.15228456789012345, name: 'test' };
+    const input = { x: 1000, y: Number('0.15228456789012345'), name: 'test' };
     const result = toPercentage(input);
     expect(result.y).toBe(15.23);
   });
@@ -64,19 +67,19 @@ describe('toPercentage', () => {
   it('should handle edge case near 100%', () => {
     const input = { x: 1000, y: 0.999999, name: 'test' };
     const result = toPercentage(input);
-    expect(result.y).toBe(100.00);
+    expect(result.y).toBe(100);
   });
 
   it('should handle edge case near 0%', () => {
     const input = { x: 1000, y: 0.005, name: 'test' };
     const result = toPercentage(input);
-    expect(result.y).toBe(0.50);
+    expect(result.y).toBe(0.5);
   });
 
   it('should handle exact zero', () => {
     const input = { x: 1000, y: 0, name: 'test' };
     const result = toPercentage(input);
-    expect(result.y).toBe(0.00);
+    expect(result.y).toBe(0);
   });
 
   it('should preserve x and name properties', () => {
@@ -90,7 +93,7 @@ describe('toPercentage', () => {
     // Test that floating-point errors like 99.99999999999999 get properly rounded
     const input = { x: 1000, y: 0.9999999999999999, name: 'test' };
     const result = toPercentage(input);
-    expect(result.y).toBe(100.00);
+    expect(result.y).toBe(100);
   });
 });
 
@@ -98,11 +101,11 @@ describe('per100', () => {
   it('should divide by 100 and round to 2 decimal places', () => {
     const input = { x: 1000, y: 989.6161479334678, name: 'test' };
     const result = per100(input);
-    expect(result.y).toBe(9.90);
+    expect(result.y).toBe(9.9);
   });
 
   it('should handle values that round up', () => {
-    const input = { x: 1000, y: 1522.8456789012345, name: 'test' };
+    const input = { x: 1000, y: Number('1522.8456789012345'), name: 'test' };
     const result = per100(input);
     expect(result.y).toBe(15.23);
   });
@@ -110,7 +113,7 @@ describe('per100', () => {
   it('should handle exact zero', () => {
     const input = { x: 1000, y: 0, name: 'test' };
     const result = per100(input);
-    expect(result.y).toBe(0.00);
+    expect(result.y).toBe(0);
   });
 
   it('should preserve x and name properties', () => {

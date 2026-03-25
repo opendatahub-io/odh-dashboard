@@ -105,7 +105,6 @@ export const per100: TranslatePoint = (point) => ({
   y: Number((point.y / 100).toFixed(2)),
 });
 
-// Fix for RHOAIENG-17618: Round percentage values to 2 decimal places for tooltip display
 export const toPercentage: TranslatePoint = (point) => ({
   ...point,
   y: Number((point.y * 100).toFixed(2)),
