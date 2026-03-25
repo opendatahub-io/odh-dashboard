@@ -1638,6 +1638,34 @@ func ensureVLLMCompatibleURL(url string) string {
 	return url + "/v1"
 }
 
+// buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
+// as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
+// to the full LlamaStack model identifier (provider_id/effective_provider_model_id), 
+// mirroring the logic in llama-stack models.py: identifier = f"{provider_id}/{provider_model_id or model_id}"
+// Both model_id and provider_model_id are added as keys so the lookup succeeds regardless
+// of which value the admin used in the ConfigMap.
+// Example of lookup entries this would produce:
+//      embedding_model: ibm-granite/granite-embedding-125m-english -> sentence-transformers/ibm-granite/granite-embedding-125m-english
+//      embedding_model: RedHatAI/granite-embedding-english-r2      -> granite-embed-provider/RedHatAI/granite-embedding-english-r2
+func buildEmbeddingModelLookup(ms []Model) map[string]string {
+	lookup := make(map[string]string, len(ms))
+	for _, m := range ms {
+		if m.ModelType != string(models.ModelTypeEmbedding) {
+			continue
+		}
+		effectiveProviderModelID := m.ProviderModelID
+		if effectiveProviderModelID == "" {
+			effectiveProviderModelID = m.ModelID
+		}
+		identifier := fmt.Sprintf("%s/%s", m.ProviderID, effectiveProviderModelID)
+		lookup[m.ModelID] = identifier
+		if m.ProviderModelID != "" {
+			lookup[m.ProviderModelID] = identifier
+		}
+	}
+	return lookup
+}
+
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
 func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface) (string, error) {
 	// Create a new config to build
@@ -1774,16 +1802,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// This allows us to know the full list of models, including default embedding model, to be included,
 	// and thus to validate that each vector store collection has an associated embedding model that will be available.
 	if len(vectorStores) > 0 {
-		// Build a set of registered model IDs for quick lookup (include both model_id and provider_model_id)
-		registeredEmbeddingModels := make(map[string]bool, len(config.RegisteredResources.Models))
-		for _, m := range config.RegisteredResources.Models {
-			if m.ModelType == string(models.ModelTypeEmbedding) {
-				registeredEmbeddingModels[m.ModelID] = true
-				if m.ProviderModelID != "" {
-					registeredEmbeddingModels[m.ProviderModelID] = true
-				}
-			}
-		}
+		// Build a map from user-supplied embedding_model in gen-ai-aa-vector-stores ConfigMap → full LlamaStack identifier.
+		embeddingModelLookup := buildEmbeddingModelLookup(config.RegisteredResources.Models)
 
 		// Collect built-in/default VectorIO provider IDs so we can detect collisions with external providers.
 		builtinProviderIDs := make(map[string]bool, len(config.Providers.VectorIO))
@@ -1797,8 +1817,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		for _, vs := range vectorStores {
 			rs := vs.RegisteredStore
 
-			// Validate the embedding model for this vector store is in registered models (either as model_id or provider_model_id).
-			if !registeredEmbeddingModels[rs.EmbeddingModel] {
+			// Resolve the gen-ai-aa-vector-stores ConfigMap supplied embedding_model (bare provider_model_id) to the full
+			// LlamaStack identifier (provider_id/effective_provider_model_id).
+			resolvedEmbeddingModel, ok := embeddingModelLookup[rs.EmbeddingModel]
+			if !ok {
 				return "", fmt.Errorf("vector store %q requires embedding model %q but it's not included in the registered models", rs.VectorStoreID, rs.EmbeddingModel)
 			}
 
@@ -1834,7 +1856,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			vsEntry := VectorStore{
 				ProviderID:            rs.ProviderID,
 				VectorStoreID:         rs.VectorStoreID,
-				EmbeddingModel:        rs.EmbeddingModel,
+				EmbeddingModel:        resolvedEmbeddingModel,
 				EmbeddingDimension:    rs.EmbeddingDimension,
 				VectorStoreName:       rs.VectorStoreName,
 				ProviderVectorStoreID: rs.ProviderVectorStoreID,

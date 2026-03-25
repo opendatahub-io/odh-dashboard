@@ -32,6 +32,97 @@ func TestSanitizeEnvVarSegment(t *testing.T) {
 	}
 }
 
+func TestBuildEmbeddingModelLookup(t *testing.T) {
+	t.Run("sentence-transformers model: admin supplies provider_model_id, resolves to provider_id/provider_model_id", func(t *testing.T) {
+		// Sentence-transformers is the built-in embedding provider. Its model has both ModelID and ProviderModelID set.
+		// Admin ConfigMap supplies the bare ProviderModelID (no provider prefix).
+		ms := []Model{
+			{
+				ProviderID:      "sentence-transformers",
+				ModelID:         "sentence-transformers/ibm-granite/granite-embedding-125m-english",
+				ProviderModelID: "ibm-granite/granite-embedding-125m-english",
+				ModelType:       string(models.ModelTypeEmbedding),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		// Both keys resolve to the same full identifier.
+		want := "sentence-transformers/ibm-granite/granite-embedding-125m-english"
+		assert.Equal(t, want, lookup["ibm-granite/granite-embedding-125m-english"], "lookup by provider_model_id")
+		assert.Equal(t, want, lookup["sentence-transformers/ibm-granite/granite-embedding-125m-english"], "lookup by model_id")
+	})
+
+	t.Run("custom endpoint embedding model: provider_model_id empty, resolves to provider_id/model_id", func(t *testing.T) {
+		// Custom endpoint embedding models may not set ProviderModelID; LlamaStack falls back to model_id.
+		// Admin ConfigMap supplies the bare model_id (no provider prefix).
+		ms := []Model{
+			{
+				ProviderID:      "granite-embed-provider",
+				ModelID:         "RedHatAI/granite-embedding-english-r2",
+				ProviderModelID: "",
+				ModelType:       string(models.ModelTypeEmbedding),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		want := "granite-embed-provider/RedHatAI/granite-embedding-english-r2"
+		assert.Equal(t, want, lookup["RedHatAI/granite-embedding-english-r2"], "lookup by model_id")
+		// provider_model_id is empty so no second key should be added.
+		assert.Len(t, lookup, 1)
+	})
+
+	t.Run("custom endpoint embedding model: provider_model_id set, resolves to provider_id/provider_model_id", func(t *testing.T) {
+		// When ProviderModelID is explicitly set it is used as the effective identifier (mirroring LlamaStack behaviour).
+		ms := []Model{
+			{
+				ProviderID:      "granite-embed-provider",
+				ModelID:         "RedHatAI/granite-embedding-english-r2",
+				ProviderModelID: "granite-embedding-english-r2",
+				ModelType:       string(models.ModelTypeEmbedding),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		want := "granite-embed-provider/granite-embedding-english-r2"
+		assert.Equal(t, want, lookup["granite-embedding-english-r2"], "lookup by provider_model_id")
+		assert.Equal(t, want, lookup["RedHatAI/granite-embedding-english-r2"], "lookup by model_id")
+	})
+
+	t.Run("non-embedding models are ignored", func(t *testing.T) {
+		ms := []Model{
+			{
+				ProviderID: "vllm-inference-1",
+				ModelID:    "llama-32-1b-instruct",
+				ModelType:  string(models.ModelTypeLLM),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		assert.Empty(t, lookup)
+	})
+
+	t.Run("empty model list returns empty map", func(t *testing.T) {
+		lookup := buildEmbeddingModelLookup(nil)
+		assert.Empty(t, lookup)
+	})
+
+	t.Run("multiple embedding models are all indexed", func(t *testing.T) {
+		ms := []Model{
+			{
+				ProviderID:      "sentence-transformers",
+				ModelID:         "sentence-transformers/model-a",
+				ProviderModelID: "model-a",
+				ModelType:       string(models.ModelTypeEmbedding),
+			},
+			{
+				ProviderID: "custom-provider",
+				ModelID:    "custom-model",
+				ModelType:  string(models.ModelTypeEmbedding),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		assert.Equal(t, "sentence-transformers/model-a", lookup["model-a"])
+		assert.Equal(t, "sentence-transformers/model-a", lookup["sentence-transformers/model-a"])
+		assert.Equal(t, "custom-provider/custom-model", lookup["custom-model"])
+	})
+}
+
 // --- extractCredentialSecretRef ---
 
 func TestExtractCredentialSecretRef(t *testing.T) {
@@ -375,9 +466,12 @@ func newTestClient() *TokenKubernetesClient {
 	return &TokenKubernetesClient{Logger: slog.Default()}
 }
 
-// defaultEmbeddingModel is the model_id always auto-registered by generateLlamaStackConfig.
-// Using it as a vector store's embedding_model lets the embedding validation pass without
-// requiring any additional models in the install request.
+// defaultEmbeddingProviderModelID is the bare provider_model_id of the default embedding model —
+// the value an admin would put in the gen-ai-aa-vector-stores ConfigMap embedding_model field.
+const defaultEmbeddingProviderModelID = "ibm-granite/granite-embedding-125m-english"
+
+// defaultEmbeddingModel is the full LlamaStack identifier for the default embedding model —
+// the resolved value that the BFF writes into the generated llama-stack-config.
 const defaultEmbeddingModel = "sentence-transformers/ibm-granite/granite-embedding-125m-english"
 
 func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
@@ -398,7 +492,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-001",
 				ProviderID:     "pg-provider",
-				EmbeddingModel: defaultEmbeddingModel,
+				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 			CredEnvVarName: "VS_CREDENTIAL_1",
 			CredSecretRef:  &models.SecretKeyRef{Name: "pg-secret", Key: "password"},
@@ -447,7 +541,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-002",
 				ProviderID:     "milvus-secure",
-				EmbeddingModel: defaultEmbeddingModel,
+				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 			CredEnvVarName: "VS_CREDENTIAL_1",
 			CredSecretRef:  &models.SecretKeyRef{Name: "milvus-creds", Key: "token"},
@@ -473,7 +567,6 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		assert.Equal(t, "vector_io::milvus-secure", persistence["namespace"])
 	})
 
-
 	t.Run("qdrant provider gets persistence injected when not supplied", func(t *testing.T) {
 		vs := ValidatedVectorStore{
 			Provider: models.VectorIOProvider{
@@ -488,7 +581,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-qdrant",
 				ProviderID:     "qdrant-provider",
-				EmbeddingModel: defaultEmbeddingModel,
+				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 			CredEnvVarName: "VS_CREDENTIAL_1",
 			CredSecretRef:  &models.SecretKeyRef{Name: "qdrant-creds", Key: "api_key"},
@@ -532,7 +625,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-004",
 				ProviderID:     "pg-custom-persist",
-				EmbeddingModel: defaultEmbeddingModel,
+				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 		}
 
@@ -587,7 +680,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 				RegisteredStore: models.RegisteredVectorStore{
 					VectorStoreID:  vsID,
 					ProviderID:     "shared-pg",
-					EmbeddingModel: defaultEmbeddingModel,
+					EmbeddingModel: defaultEmbeddingProviderModelID,
 				},
 				CredEnvVarName: "VS_CREDENTIAL_1",
 				CredSecretRef:  &models.SecretKeyRef{Name: "pg-secret", Key: "password"},
@@ -623,7 +716,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-conflict",
 				ProviderID:     "milvus",
-				EmbeddingModel: defaultEmbeddingModel,
+				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 		}
 
