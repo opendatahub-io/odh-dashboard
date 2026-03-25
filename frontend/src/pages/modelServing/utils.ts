@@ -344,7 +344,8 @@ export const isModelServerEditInfoChanged = (
       editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
         String(createData.tokenAuth) ||
       isPodSpecOptionsChanged(podSpecOptionsState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
