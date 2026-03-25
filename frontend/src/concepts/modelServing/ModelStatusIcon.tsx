@@ -82,6 +82,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           label: 'Starting',
           color: 'blue',
           icon: <InProgressIcon className="odh-u-spin" />,
+          message: 'Model deployment is starting.',
         };
       case ModelDeploymentState.FAILED_TO_LOAD:
         return {
