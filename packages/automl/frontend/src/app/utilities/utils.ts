@@ -81,11 +81,24 @@ export function computeRankMap(
   const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
   const useAbs = isErrorMetric(optimizedMetric);
 
+  // Use worst-case for missing metrics so they sort last
+  const worstCase = useAbs ? Infinity : -Infinity;
+
   const sorted = Object.keys(models).toSorted((a, b) => {
-    const aRaw = toNumericMetric(models[a].metrics.test_data?.[optimizedMetric]);
-    const bRaw = toNumericMetric(models[b].metrics.test_data?.[optimizedMetric]);
-    const aVal = useAbs ? Math.abs(aRaw) : aRaw;
-    const bVal = useAbs ? Math.abs(bRaw) : bRaw;
+    const aMetric = models[a].metrics.test_data?.[optimizedMetric];
+    const bMetric = models[b].metrics.test_data?.[optimizedMetric];
+    const aVal =
+      aMetric != null
+        ? useAbs
+          ? Math.abs(toNumericMetric(aMetric))
+          : toNumericMetric(aMetric)
+        : worstCase;
+    const bVal =
+      bMetric != null
+        ? useAbs
+          ? Math.abs(toNumericMetric(bMetric))
+          : toNumericMetric(bMetric)
+        : worstCase;
     return useAbs ? aVal - bVal : bVal - aVal;
   });
 

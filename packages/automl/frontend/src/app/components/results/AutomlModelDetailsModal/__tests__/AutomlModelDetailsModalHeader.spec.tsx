@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
 import AutomlModelDetailsModalHeader from '../AutomlModelDetailsModalHeader';
 
@@ -24,6 +25,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     models: [modelA, modelB],
     currentModelName: 'CatBoost',
     rank: 1,
+    rankMap: { CatBoost: 1, RandomForest: 2 },
     onSelectModel: jest.fn(),
     onDownload: jest.fn(),
     onSaveNotebook: jest.fn(),
@@ -73,7 +75,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByText('0.082')).toBeInTheDocument();
   });
 
-  it('should not display optimized metric when eval_metric is missing from test_data', () => {
+  it('should display N/A when eval_metric is missing from test_data', () => {
     const noMetricModel = buildModel('Model', 'f1', { accuracy: 0.9 });
     render(
       <AutomlModelDetailsModalHeader
@@ -82,7 +84,26 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.queryByText('(Optimized)')).not.toBeInTheDocument();
+    expect(screen.getByText('F1 (Optimized)')).toBeInTheDocument();
+    expect(screen.getByText('N/A')).toBeInTheDocument();
+  });
+
+  it('should render dropdown models sorted by rank', async () => {
+    const user = userEvent.setup();
+    const modelC = buildModel('Worst', 'accuracy', { accuracy: 0.5 });
+    const models = [modelC, modelA, modelB]; // unsorted order
+    render(
+      <AutomlModelDetailsModalHeader
+        {...defaultProps}
+        models={models}
+        rankMap={{ CatBoost: 1, RandomForest: 2, Worst: 3 }}
+      />,
+    );
+    await user.click(screen.getByTestId('model-selector-dropdown'));
+    const items = screen.getAllByRole('menuitem');
+    expect(items[0]).toHaveTextContent('CatBoost');
+    expect(items[1]).toHaveTextContent('RandomForest');
+    expect(items[2]).toHaveTextContent('Worst');
   });
 
   it('should render Download button', () => {

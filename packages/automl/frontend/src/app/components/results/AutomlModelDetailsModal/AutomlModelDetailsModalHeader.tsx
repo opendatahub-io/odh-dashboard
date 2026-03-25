@@ -1,5 +1,12 @@
 import React from 'react';
-import { Button, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+  Tooltip,
+} from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 // TODO: Replace MockAutomlModel with AutomlModel from AutomlResultsContext when integrating
 import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
@@ -10,6 +17,7 @@ type AutomlModelDetailsModalHeaderProps = {
   models: MockAutomlModel[];
   currentModelName: string;
   rank: number;
+  rankMap: Record<string, number>;
   onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
   onSaveNotebook: () => void;
@@ -33,6 +41,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   models,
   currentModelName,
   rank,
+  rankMap,
   onSelectModel,
   onDownload,
   onSaveNotebook,
@@ -40,6 +49,11 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const model = models.find((m) => m.display_name === currentModelName);
+  const sortedModels = React.useMemo(
+    () =>
+      models.toSorted((a, b) => (rankMap[a.display_name] ?? 0) - (rankMap[b.display_name] ?? 0)),
+    [models, rankMap],
+  );
   const optimizedMetric = model ? getOptimizedMetric(model) : undefined;
 
   return (
@@ -66,7 +80,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
             )}
           >
             <DropdownList>
-              {models.map((m) => (
+              {sortedModels.map((m) => (
                 <DropdownItem key={m.display_name} value={m.display_name}>
                   {m.display_name}
                 </DropdownItem>
@@ -82,13 +96,22 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
           <span className="automl-model-details-header-label">Rank</span>
           <span className="automl-model-details-header-value">{rank}</span>
         </div>
-        {optimizedMetric && (
+        {model && (
           <div className="automl-model-details-header-item">
             <span className="automl-model-details-header-label">
-              {formatMetricName(optimizedMetric.name)} (Optimized)
+              {formatMetricName(model.model_config.eval_metric)} (Optimized)
             </span>
             <span className="automl-model-details-header-value">
-              {optimizedMetric.value.toFixed(3)}
+              {optimizedMetric ? (
+                optimizedMetric.value.toFixed(3)
+              ) : (
+                <Tooltip
+                  position="right"
+                  content="Metric not available in this model's evaluation data"
+                >
+                  <span>N/A</span>
+                </Tooltip>
+              )}
             </span>
           </div>
         )}

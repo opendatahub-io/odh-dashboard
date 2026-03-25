@@ -154,6 +154,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           models={models}
           currentModelName={selectedModelName}
           rank={rank}
+          rankMap={rankMap}
           onSelectModel={(name) => setSelectedModelName(name)}
           onDownload={() => setIsPrinting(true)}
           onSaveNotebook={handleSaveNotebook}

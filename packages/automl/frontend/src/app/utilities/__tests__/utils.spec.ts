@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import {
   formatMetricName,
   toNumericMetric,
@@ -178,6 +179,52 @@ describe('computeRankMap', () => {
   it('should handle empty models', () => {
     const rankMap = computeRankMap({}, 'binary');
     expect(rankMap).toEqual({});
+  });
+
+  it('should rank models with missing metrics last for higher-is-better metrics', () => {
+    const models = {
+      ModelA: buildModel(0.85),
+      ModelB: { metrics: { test_data: {} } }, // missing accuracy
+      ModelC: buildModel(0.7),
+    };
+
+    const rankMap = computeRankMap(models, 'binary');
+
+    expect(rankMap).toEqual({
+      ModelA: 1,
+      ModelC: 2,
+      ModelB: 3,
+    });
+  });
+
+  it('should rank models with missing metrics last for error metrics', () => {
+    const models = {
+      ModelA: buildModel(0.15, 'smape'),
+      ModelB: { metrics: { test_data: {} } }, // missing smape
+      ModelC: buildModel(0.05, 'smape'),
+    };
+
+    const rankMap = computeRankMap(models, 'timeseries');
+
+    expect(rankMap).toEqual({
+      ModelC: 1,
+      ModelA: 2,
+      ModelB: 3,
+    });
+  });
+
+  it('should rank models with undefined test_data last', () => {
+    const models = {
+      ModelA: buildModel(0.9),
+      ModelB: { metrics: {} }, // undefined test_data
+    };
+
+    const rankMap = computeRankMap(models, 'binary');
+
+    expect(rankMap).toEqual({
+      ModelA: 1,
+      ModelB: 2,
+    });
   });
 
   it('should fall back to accuracy for unknown task types', () => {
