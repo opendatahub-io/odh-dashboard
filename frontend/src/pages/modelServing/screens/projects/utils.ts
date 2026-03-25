@@ -59,6 +59,18 @@ export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServic
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
+export const translateModelServingError = (error: Error): Error => {
+  const message = error.message || String(error);
+  if (message.includes('already exists')) {
+    const nameMatch = message.match(/"([^"]+)"/);
+    const name = nameMatch ? nameMatch[1] : 'this name';
+    return new Error(
+      `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`,
+    );
+  }
+  return error;
+};
+
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
   servingRuntime: ServingRuntimeKind,

@@ -12,6 +12,7 @@ import {
   isValueFromEnvVar,
   isPVCUri,
   getPVCNameFromURI,
+  translateModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
@@ -611,5 +612,30 @@ describe('getPVCNameFromURI', () => {
   it('should return an empty string if the URI is not a PVC URI', () => {
     const uri = 'http://pvc-1/model-path';
     expect(getPVCNameFromURI(uri)).toEqual('');
+  });
+});
+
+describe('translateModelServingError', () => {
+  it('should translate a kserve "already exists" error to a user-friendly message', () => {
+    const error = new Error('servingruntimes.serving.kserve.io "test-model" already exists');
+    const result = translateModelServingError(error);
+    expect(result.message).toBe(
+      'A model deployment with the name "test-model" already exists. Please choose a different model deployment name.',
+    );
+  });
+
+  it('should translate an inferenceservices "already exists" error', () => {
+    const error = new Error('inferenceservices.serving.kserve.io "my-model" already exists');
+    const result = translateModelServingError(error);
+    expect(result.message).toBe(
+      'A model deployment with the name "my-model" already exists. Please choose a different model deployment name.',
+    );
+  });
+
+  it('should return the original error if it does not match', () => {
+    const error = new Error('some other error');
+    const result = translateModelServingError(error);
+    expect(result).toBe(error);
+    expect(result.message).toBe('some other error');
   });
 });
