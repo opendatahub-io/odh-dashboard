@@ -93,8 +93,14 @@ function AutomlLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(models).forEach((model: AutomlModel) => {
-      // Defensive check: verify test_data is a plain object at runtime
-      const testData = typeof model.metrics.test_data === 'object' ? model.metrics.test_data : {};
+      // Defensive check: verify test_data is a non-null plain object (not array)
+      const testData =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics.test_data &&
+        typeof model.metrics.test_data === 'object' &&
+        !Array.isArray(model.metrics.test_data)
+          ? model.metrics.test_data
+          : {};
       Object.keys(testData).forEach((key) => {
         keysSet.add(key);
       });
@@ -107,15 +113,22 @@ function AutomlLeaderboard(): React.JSX.Element {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
       // Helper to get metric value from test_data
       const getMetricValue = (metricName: string): number | string => {
-        // Defensive check: verify test_data is a plain object at runtime
-        const testData = typeof model.metrics.test_data === 'object' ? model.metrics.test_data : {};
+        // Defensive check: verify test_data is a non-null plain object (not array)
+        const testData =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          model.metrics.test_data &&
+          typeof model.metrics.test_data === 'object' &&
+          !Array.isArray(model.metrics.test_data)
+            ? model.metrics.test_data
+            : {};
         const value = testData[metricName];
         if (typeof value === 'number') {
           return value;
         }
         if (typeof value === 'string') {
-          const parsed = parseFloat(value);
-          return Number.isNaN(parsed) ? 'N/A' : parsed;
+          // Strict validation: ensure the entire string is a valid number
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : 'N/A';
         }
         return 'N/A';
       };

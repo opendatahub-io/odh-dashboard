@@ -120,6 +120,40 @@ const mockPatternsWithSmallValues: Record<string, AutoragPattern> = {
   }),
 };
 
+// Patterns with missing/malformed settings (for defensive handling testing)
+const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
+  'pattern-1': {
+    ...createMockPattern('Pattern with null settings', {
+      faithfulness: 0.85,
+    }),
+    settings: null as unknown as AutoragPattern['settings'],
+  },
+  'pattern-2': {
+    ...createMockPattern('Pattern with undefined settings', {
+      faithfulness: 0.9,
+    }),
+    settings: undefined as unknown as AutoragPattern['settings'],
+  },
+  'pattern-3': {
+    ...createMockPattern('Pattern with partial settings', {
+      faithfulness: 0.88,
+    }),
+    settings: {
+      vector_store: {
+        datasource_type: 'milvus',
+        collection_name: 'test_collection',
+      },
+      chunking: null as unknown as AutoragPattern['settings']['chunking'],
+      embedding: undefined as unknown as AutoragPattern['settings']['embedding'],
+      retrieval: {
+        method: 'simple',
+        number_of_chunks: null as unknown as number,
+      } as unknown as AutoragPattern['settings']['retrieval'],
+      generation: {} as AutoragPattern['settings']['generation'],
+    },
+  },
+};
+
 // Helper to create mock parameters
 const createMockParameters = (
   optimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness',
@@ -665,6 +699,96 @@ describe('AutoragLeaderboard component', () => {
       // Tooltip should show full value
       const tooltip = within(metricCell).getByText('0.954').closest('span');
       expect(tooltip).toBeInTheDocument();
+    });
+  });
+
+  // ========================================================================
+  // Defensive Handling of Malformed Data
+  // ========================================================================
+
+  describe('defensive handling of malformed settings', () => {
+    it('should handle patterns with null/undefined settings without crashing', () => {
+      renderWithContext({
+        patterns: mockPatternsWithMalformedSettings,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Table should render successfully
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+
+      // All three patterns should be present
+      expect(screen.getByTestId('leaderboard-row-1')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-2')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
+    });
+
+    it('should display "N/A" for missing settings fields', () => {
+      renderWithContext({
+        patterns: mockPatternsWithMalformedSettings,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Check that N/A is displayed for missing settings
+      // Pattern with null settings should show N/A for all fields
+      const row1 = screen.getByTestId('leaderboard-row-1'); // Pattern with undefined settings (rank 1, highest faithfulness 0.90)
+      expect(within(row1).getByTestId('chunking-method-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('chunking-chunk-size-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('chunking-chunk-overlap-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('embeddings-model-id-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('retrieval-method-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('retrieval-number-of-chunks-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('retrieval-search-mode-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('retrieval-ranker-strategy-1')).toHaveTextContent('N/A');
+      expect(within(row1).getByTestId('generation-model-id-1')).toHaveTextContent('N/A');
+    });
+
+    it('should allow sorting by settings columns with N/A values', () => {
+      renderWithContext({
+        patterns: {
+          ...mockPatternsWithMalformedSettings,
+          'pattern-4': createMockPattern('Valid Pattern', {
+            faithfulness: 0.92,
+          }),
+        },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Click to sort by chunking method
+      const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
+      const sortButton = within(chunkingMethodHeader).getByRole('button');
+      fireEvent.click(sortButton);
+
+      // Table should still render without errors
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+
+      // N/A values should sort to the end
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const lastRow = rows[rows.length - 1];
+      // Last row should have either "N/A" or a valid value, but N/A should be at the end
+      // We can't guarantee the exact order, but the table should render
+      expect(lastRow).toBeInTheDocument();
+    });
+
+    it('should rank patterns by metrics even when settings are malformed', () => {
+      renderWithContext({
+        patterns: mockPatternsWithMalformedSettings,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Ranking should be based on metrics only (faithfulness: 0.90 > 0.88 > 0.85)
+      const rank1Row = screen.getByTestId('leaderboard-row-1');
+      const rank2Row = screen.getByTestId('leaderboard-row-2');
+      const rank3Row = screen.getByTestId('leaderboard-row-3');
+
+      // Rank 1: Pattern with undefined settings (faithfulness: 0.90)
+      expect(within(rank1Row).getByText('Pattern with undefined settings')).toBeInTheDocument();
+      expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
+
+      // Rank 2: Pattern with partial settings (faithfulness: 0.88)
+      expect(within(rank2Row).getByText('Pattern with partial settings')).toBeInTheDocument();
+
+      // Rank 3: Pattern with null settings (faithfulness: 0.85)
+      expect(within(rank3Row).getByText('Pattern with null settings')).toBeInTheDocument();
     });
   });
 

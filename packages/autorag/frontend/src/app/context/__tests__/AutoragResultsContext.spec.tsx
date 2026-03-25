@@ -102,7 +102,20 @@ describe('getAutoragContext', () => {
         patterns,
         patternsLoading: false,
         parameters: {
+          display_name: '',
+          description: '',
+          input_data_secret_name: '',
+          input_data_bucket_name: '',
+          input_data_key: '',
+          test_data_secret_name: '',
+          test_data_bucket_name: '',
+          test_data_key: '',
+          llama_stack_secret_name: '',
+          llama_stack_vector_database_id: '',
+          generation_models: [],
+          embeddings_models: [],
           optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
         },
       });
     });
@@ -118,7 +131,22 @@ describe('getAutoragContext', () => {
         pipelineRunLoading: undefined,
         patterns: mockPatterns,
         patternsLoading: undefined,
-        parameters: {},
+        parameters: {
+          display_name: '',
+          description: '',
+          input_data_secret_name: '',
+          input_data_bucket_name: '',
+          input_data_key: '',
+          test_data_secret_name: '',
+          test_data_bucket_name: '',
+          test_data_key: '',
+          llama_stack_secret_name: '',
+          llama_stack_vector_database_id: '',
+          generation_models: [],
+          embeddings_models: [],
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
       });
     });
 
@@ -176,6 +204,7 @@ describe('getAutoragContext', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
         llama_stack_secret_name: 'llama-secret',
+        llama_stack_vector_database_id: '',
         generation_models: ['llama-3', 'gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
@@ -195,7 +224,22 @@ describe('getAutoragContext', () => {
         pipelineRun,
       });
 
-      expect(context.parameters).toEqual({});
+      expect(context.parameters).toEqual({
+        display_name: '',
+        description: '',
+        input_data_secret_name: '',
+        input_data_bucket_name: '',
+        input_data_key: '',
+        test_data_secret_name: '',
+        test_data_bucket_name: '',
+        test_data_key: '',
+        llama_stack_secret_name: '',
+        llama_stack_vector_database_id: '',
+        generation_models: [],
+        embeddings_models: [],
+        optimization_metric: 'faithfulness',
+        optimization_max_rag_patterns: 8,
+      });
     });
 
     it('should handle pipeline run with empty parameters', () => {
@@ -205,7 +249,22 @@ describe('getAutoragContext', () => {
         pipelineRun,
       });
 
-      expect(context.parameters).toEqual({});
+      expect(context.parameters).toEqual({
+        display_name: '',
+        description: '',
+        input_data_secret_name: '',
+        input_data_bucket_name: '',
+        input_data_key: '',
+        test_data_secret_name: '',
+        test_data_bucket_name: '',
+        test_data_key: '',
+        llama_stack_secret_name: '',
+        llama_stack_vector_database_id: '',
+        generation_models: [],
+        embeddings_models: [],
+        optimization_metric: 'faithfulness',
+        optimization_max_rag_patterns: 8,
+      });
     });
   });
 
@@ -221,13 +280,13 @@ describe('getAutoragContext', () => {
       });
     });
 
-    it('should not have optimization_metric when not provided', () => {
+    it('should apply default optimization_metric when not provided', () => {
       const pipelineRun = createMockPipelineRun({
         generation_models: ['llama-3'],
       });
       const context = getAutoragContext({ pipelineRun });
 
-      expect(context.parameters).not.toHaveProperty('optimization_metric');
+      expect(context.parameters?.optimization_metric).toBe('faithfulness');
     });
   });
 

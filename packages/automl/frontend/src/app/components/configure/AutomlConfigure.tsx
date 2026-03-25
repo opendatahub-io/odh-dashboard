@@ -38,7 +38,8 @@ import {
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import createConfigureSchema, {
+import {
+  createConfigureSchema,
   ConfigureSchema,
   MIN_TOP_N,
   MAX_TOP_N,

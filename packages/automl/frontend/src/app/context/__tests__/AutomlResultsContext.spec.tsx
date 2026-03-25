@@ -65,7 +65,19 @@ describe('getAutomlContext', () => {
         models,
         modelsLoading: false,
         parameters: {
+          display_name: expect.any(String), // Dynamic timestamp
+          description: '',
           task_type: 'binary',
+          train_data_secret_name: '',
+          train_data_bucket_name: '',
+          train_data_file_key: '',
+          top_n: 3,
+          label_column: '',
+          target: '',
+          id_column: '',
+          timestamp_column: '',
+          prediction_length: 1,
+          known_covariates_names: [],
         },
       });
     });
@@ -82,7 +94,19 @@ describe('getAutomlContext', () => {
         models: mockModels,
         modelsLoading: undefined,
         parameters: {
-          task_type: 'timeseries', // Default when no pipeline run
+          display_name: expect.any(String), // Dynamic timestamp
+          description: '',
+          task_type: 'timeseries', // Special default when no task_type provided
+          train_data_secret_name: '',
+          train_data_bucket_name: '',
+          train_data_file_key: '',
+          top_n: 3,
+          label_column: '',
+          target: '',
+          id_column: '',
+          timestamp_column: '',
+          prediction_length: 1,
+          known_covariates_names: [],
         },
       });
     });
@@ -125,12 +149,19 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.parameters).toEqual({
+        display_name: expect.any(String), // Dynamic timestamp
+        description: '',
         task_type: 'binary',
         train_data_secret_name: 'my-secret',
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'data.csv',
         label_column: 'target',
         top_n: 5,
+        target: '',
+        id_column: '',
+        timestamp_column: '',
+        prediction_length: 1,
+        known_covariates_names: [],
       });
     });
 
@@ -149,7 +180,14 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.parameters).toEqual({
+        display_name: expect.any(String), // Dynamic timestamp
+        description: '',
         task_type: 'timeseries',
+        train_data_secret_name: '',
+        train_data_bucket_name: '',
+        train_data_file_key: '',
+        top_n: 3,
+        label_column: '',
         target: 'sales',
         id_column: 'store_id',
         timestamp_column: 'date',
@@ -171,7 +209,19 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.parameters).toEqual({
-        task_type: 'timeseries', // Default
+        display_name: expect.any(String), // Dynamic timestamp
+        description: '',
+        task_type: 'timeseries', // Special default when no task_type provided
+        train_data_secret_name: '',
+        train_data_bucket_name: '',
+        train_data_file_key: '',
+        top_n: 3,
+        label_column: '',
+        target: '',
+        id_column: '',
+        timestamp_column: '',
+        prediction_length: 1,
+        known_covariates_names: [],
       });
     });
 
@@ -183,7 +233,19 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.parameters).toEqual({
-        task_type: 'timeseries', // Default when task_type not in parameters
+        display_name: expect.any(String), // Dynamic timestamp
+        description: '',
+        task_type: 'timeseries', // Special default when no task_type provided
+        train_data_secret_name: '',
+        train_data_bucket_name: '',
+        train_data_file_key: '',
+        top_n: 3,
+        label_column: '',
+        target: '',
+        id_column: '',
+        timestamp_column: '',
+        prediction_length: 1,
+        known_covariates_names: [],
       });
     });
   });

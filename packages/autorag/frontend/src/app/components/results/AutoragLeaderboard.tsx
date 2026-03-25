@@ -24,11 +24,11 @@ type LeaderboardEntry = {
   metrics: Record<string, { mean: number | string }>;
   optimizedMetricValue: number | string;
   chunkingMethod: string;
-  chunkingChunkSize: number;
-  chunkingChunkOverlap: number;
+  chunkingChunkSize: number | string;
+  chunkingChunkOverlap: number | string;
   embeddingsModelId: string;
   retrievalMethod: string;
-  retrievalNumberOfChunks: number;
+  retrievalNumberOfChunks: number | string;
   retrievalSearchMode: string;
   retrievalRankerStrategy: string;
   generationModelId: string;
@@ -74,6 +74,10 @@ const formatMetricValue = (value: number | string): string => {
 
 // Helper function to extract the last segment of a model ID
 const getModelIdShortName = (modelId: string): string => {
+  // Don't try to extract a short name from N/A or other non-model-ID values
+  if (modelId === 'N/A' || !modelId.includes('/')) {
+    return modelId;
+  }
   const segments = modelId.split('/');
   return segments[segments.length - 1] || modelId;
 };
@@ -97,8 +101,12 @@ function AutoragLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
-      // Defensive check: verify scores is a plain object at runtime
-      const scores = typeof pattern.scores === 'object' ? pattern.scores : {};
+      // Defensive check: verify scores is a non-null plain object (not array)
+      const scores =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
+          ? pattern.scores
+          : {};
       Object.keys(scores).forEach((key) => {
         keysSet.add(key);
       });
@@ -112,8 +120,12 @@ function AutoragLeaderboard(): React.JSX.Element {
       ([patternName, pattern]: [string, AutoragPattern]) => {
         // Helper to get metric object from scores
         const getMetricObject = (metricName: string) => {
-          // Defensive check: verify scores is a plain object at runtime
-          const scores = typeof pattern.scores === 'object' ? pattern.scores : {};
+          // Defensive check: verify scores is a non-null plain object (not array)
+          const scores =
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
+              ? pattern.scores
+              : {};
           const metricData = scores[metricName];
           return {
             mean: metricData?.mean ?? 'N/A',
@@ -133,15 +145,24 @@ function AutoragLeaderboard(): React.JSX.Element {
           pattern: pattern.name || patternName,
           metrics,
           optimizedMetricValue,
-          chunkingMethod: pattern.settings.chunking.method,
-          chunkingChunkSize: pattern.settings.chunking.chunk_size,
-          chunkingChunkOverlap: pattern.settings.chunking.chunk_overlap,
-          embeddingsModelId: pattern.settings.embedding.model_id,
-          retrievalMethod: pattern.settings.retrieval.method,
-          retrievalNumberOfChunks: pattern.settings.retrieval.number_of_chunks,
-          retrievalSearchMode: pattern.settings.retrieval.search_mode ?? '-',
-          retrievalRankerStrategy: pattern.settings.retrieval.ranker_strategy ?? '-',
-          generationModelId: pattern.settings.generation.model_id,
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          chunkingMethod: pattern.settings?.chunking?.method || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          chunkingChunkSize: pattern.settings?.chunking?.chunk_size || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          chunkingChunkOverlap: pattern.settings?.chunking?.chunk_overlap || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          embeddingsModelId: pattern.settings?.embedding?.model_id || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          retrievalMethod: pattern.settings?.retrieval?.method || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          retrievalNumberOfChunks: pattern.settings?.retrieval?.number_of_chunks || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          retrievalSearchMode: pattern.settings?.retrieval?.search_mode || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          retrievalRankerStrategy: pattern.settings?.retrieval?.ranker_strategy || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          generationModelId: pattern.settings?.generation?.model_id || 'N/A',
         };
       },
     );
@@ -243,6 +264,17 @@ function AutoragLeaderboard(): React.JSX.Element {
       return rankedEntries.toSorted((a, b) => {
         const aVal = a[sortField];
         const bVal = b[sortField];
+
+        // N/A always sorts last regardless of type or direction
+        if (aVal === 'N/A' && bVal === 'N/A') {
+          return 0;
+        }
+        if (aVal === 'N/A') {
+          return 1;
+        }
+        if (bVal === 'N/A') {
+          return -1;
+        }
 
         // Handle string sorting
         if (typeof aVal === 'string' && typeof bVal === 'string') {
