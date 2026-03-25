@@ -498,6 +498,9 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
 	}
+	annotations := obj.GetAnnotations()
+	summary.DisplayName = annotations[displayNameAnnotation]
+	summary.Description = annotations[descriptionAnnotation]
 
 	annotations := obj.GetAnnotations()
 	summary.DisplayName = annotations[displayNameAnnotation]

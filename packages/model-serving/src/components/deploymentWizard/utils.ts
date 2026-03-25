@@ -78,7 +78,7 @@ export const deployModel = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn,
-): Promise<void> => {
+): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
     throw new Error('Project is required');
@@ -171,6 +171,8 @@ export const deployModel = async (
       false,
     );
   }
+
+  return deploymentResult;
 };
 
 export const resolveConnectionType = (

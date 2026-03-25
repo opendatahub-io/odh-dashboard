@@ -463,3 +463,38 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension: Extension,
 ): extension is WizardFieldExtractorExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-extractor';
+
+/**
+ * Extension for performing async side effects after a deployment is saved.
+ * This runs after the model resource exists in Kubernetes (and has a UID), making
+ * it suitable for operations that depend on the deployed resource — such as
+ * creating a related resource with an owner reference.
+ *
+ * The `fieldId` links this to a specific WizardField2Extension so it is only
+ * executed when that field is active.
+ */
+export type WizardFieldPostDeployExtension<
+  T = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
+  'model-serving.deployment/wizard-field-post-deploy',
+  {
+    /** The ID of the WizardField this post-deploy extension is associated with */
+    fieldId: string;
+    /** The platform this post-deploy extension applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Async function that runs after the deployment is saved.
+     * @param fieldData - The current data from the associated wizard field
+     * @param deployedModel - The fully saved model resource (has uid, namespace, name)
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     */
+    postDeploy: CodeRef<
+      (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
+    >;
+  }
+>;
+export const isWizardFieldPostDeployExtension = <T = unknown, D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardFieldPostDeployExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-post-deploy';
