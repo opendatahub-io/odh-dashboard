@@ -16,8 +16,10 @@ type UseNIMCompatiblePVCsState = {
 };
 
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const containers = servingRuntime.spec?.containers;
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return !!containers?.some(
     (container) =>
       container.image?.includes('nvcr.io/nim/') ||
@@ -48,12 +50,15 @@ const parseNimModelFromImage = (image: string): string | null => {
 };
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const supportedFormats = servingRuntime.spec?.supportedModelFormats;
   if (supportedFormats?.length && supportedFormats[0]?.name) {
     return supportedFormats[0].name;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const containers = servingRuntime.spec?.containers;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   for (const container of containers ?? []) {
     const parsed = parseNimModelFromImage(container.image ?? '');
     if (parsed) {
