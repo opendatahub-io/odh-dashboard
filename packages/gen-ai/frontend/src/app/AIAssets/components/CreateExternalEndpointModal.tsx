@@ -75,7 +75,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
     [genAiConfig],
   );
-  const allowExternalEndpoints = genAiConfig?.aiAssetCustomEndpoints?.externalProviders ?? true;
+  const allowExternalEndpoints = genAiConfig?.aiAssetCustomEndpoints?.externalProviders ?? false;
 
   // Form fields
   const [modelType, setModelType] =
