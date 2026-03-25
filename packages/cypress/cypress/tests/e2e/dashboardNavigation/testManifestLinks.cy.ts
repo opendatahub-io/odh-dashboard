@@ -14,7 +14,7 @@ interface ManifestTestConfig {
   excludedSubstrings?: string[];
 }
 
-describe('[Automation Bug: RHOAIENG-52642] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -37,17 +37,14 @@ describe('[Automation Bug: RHOAIENG-52642] Verify that all the URLs referenced i
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-327',
-        '@ODS-492',
-        '@Dashboard',
-        '@RHOAIENG-9235',
-        '@Maintain',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'],
     },
     () => {
+      // Allow skipping external URL validation in fast CI runs
+      if (Cypress.env('SKIP_EXTERNAL_URL_VALIDATION')) {
+        cy.step('Skipping external URL validation (SKIP_EXTERNAL_URL_VALIDATION=true)');
+        return;
+      }
       const manifestsDir = '../../manifests';
       cy.step(`Resolved manifests directory: ${manifestsDir}`);
 

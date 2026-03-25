@@ -28,8 +28,9 @@ type LlamaStackDistributionInstallRequest struct {
 // installModelJSON is used for JSON unmarshaling to handle max_tokens as either int or float64
 type installModelJSON struct {
 	ModelName       string      `json:"model_name"`
-	ModelSourceType string      `json:"model_source_type"`    // Source type as string for unmarshaling (required)
-	MaxTokens       interface{} `json:"max_tokens,omitempty"` // Can be int, float64, or nil
+	ModelSourceType string      `json:"model_source_type"`          // Source type as string for unmarshaling (required)
+	MaxTokens       interface{} `json:"max_tokens,omitempty"`       // Can be int, float64, or nil
+	IsClusterLocal  bool        `json:"is_cluster_local,omitempty"` // True for in-cluster *.svc.cluster.local endpoints
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for InstallModel to handle max_tokens
@@ -46,6 +47,7 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 	}
 
 	im.ModelName = raw.ModelName
+	im.IsClusterLocal = raw.IsClusterLocal
 
 	// Validate and set ModelSourceType (now required)
 	switch raw.ModelSourceType {
@@ -93,8 +95,9 @@ func (im *InstallModel) UnmarshalJSON(data []byte) error {
 
 type InstallModel struct {
 	ModelName       string              `json:"model_name"`
-	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`    // Source type of the model (required: namespace, custom_endpoint, maas)
-	MaxTokens       *int                `json:"max_tokens,omitempty"` // Optional per-model token limit (128-128000)
+	ModelSourceType ModelSourceTypeEnum `json:"model_source_type"`          // Source type of the model (required: namespace, custom_endpoint, maas)
+	MaxTokens       *int                `json:"max_tokens,omitempty"`       // Optional per-model token limit (128-128000)
+	IsClusterLocal  bool                `json:"is_cluster_local,omitempty"` // True for in-cluster *.svc.cluster.local endpoints
 }
 
 type LlamaStackDistributionInstallModel struct {

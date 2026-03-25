@@ -1,3 +1,9 @@
+---
+description: ODH Dashboard monorepo architecture, package boundaries, and BFF structure
+globs: "packages/**,frontend/**,backend/**"
+alwaysApply: false
+---
+
 # ODH Dashboard Architecture
 
 ## Monorepo Structure

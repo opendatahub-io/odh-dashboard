@@ -1147,6 +1147,11 @@ declare global {
         ((
           type: 'GET /maas/api/v1/all-subscriptions',
           response: OdhResponse<{ data: MaaSSubscription[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/subscription/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ message: string }>,
         ) => Cypress.Chainable<null>);
     }
   }

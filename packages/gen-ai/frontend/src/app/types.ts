@@ -358,7 +358,7 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
-  status: 'Running' | 'Stop';
+  status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
   sa_token: {
     name: string;
@@ -480,6 +480,7 @@ export type MLflowRegisterPromptRequest = {
   template?: string;
   commit_message?: string;
   tags?: Record<string, string>;
+  create_only?: boolean;
 };
 
 export type MLflowPromptVersion = {
@@ -550,6 +551,7 @@ export type GenAiAPIs = {
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
+  deleteExternalModel: DeleteExternalModel;
 };
 
 export interface MaaSModel {
@@ -627,3 +629,4 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelResponse,
   VerifyExternalModelRequest
 >;
+type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;

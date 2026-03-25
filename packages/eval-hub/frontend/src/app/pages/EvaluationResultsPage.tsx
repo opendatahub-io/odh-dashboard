@@ -26,6 +26,7 @@ import {
   getBenchmarkName,
   getBenchmarkResultScore,
   getEvaluationName,
+  getJobBenchmarks,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
@@ -39,8 +40,8 @@ const EvaluationResultsPage: React.FC = () => {
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);
 
   const benchmarkIds = React.useMemo(
-    () => job?.benchmarks?.map((b) => b.id) ?? [],
-    [job?.benchmarks],
+    () => (job ? getJobBenchmarks(job).map((b) => b.id) : []),
+    [job],
   );
 
   const [selectedBenchmarkId, setSelectedBenchmarkId] = React.useState<string | null>(null);
@@ -111,7 +112,7 @@ const EvaluationResultsPage: React.FC = () => {
             style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
           />
           {job.collection?.id
-            ? `${job.collection.id} (${job.benchmarks?.length ?? 0} benchmarks)`
+            ? `${job.collection.id} (${getJobBenchmarks(job).length} benchmarks)`
             : getBenchmarkName(job)}
         </Content>
       </FlexItem>

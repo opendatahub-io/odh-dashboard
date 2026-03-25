@@ -1,10 +1,11 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getLlamaStackModels } from '~/app/api/k8s';
+import { getLlamaStackModels, getLlamaStackVectorStores } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import {
   LlamaStackModelsResponse,
   LlamaStackModelType,
+  LlamaStackVectorStoresResponse,
   PipelineRun,
   S3ListObjectsResponse,
 } from '~/app/types';
@@ -169,6 +170,50 @@ export function useS3ListFilesQuery(
     },
     enabled: Boolean(namespace && path),
     retry: false,
+  });
+}
+
+export function useLlamaStackVectorStoresQuery(
+  namespace: string,
+  secretName: string,
+  providers?: string[],
+): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
+  return useQuery({
+    enabled: !!namespace && !!secretName,
+    // providers is intentionally excluded: select transforms cached data without
+    // affecting the cache, so different provider filters safely share one cache entry.
+    queryKey: ['vectorStores', namespace, secretName],
+    queryFn: async () => {
+      try {
+        const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
+        z.object({
+          // eslint-disable-next-line camelcase
+          vector_stores: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              status: z.string(),
+              provider: z.string(),
+            }),
+          ),
+        }).parse(response);
+        return response;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw new Error('Invalid llama stack vector stores response');
+        }
+        throw error;
+      }
+    },
+    // Only show completed vector stores. Additionally filter by provider
+    // when a non-empty providers array is given (undefined or [] skips provider filtering).
+    select: (data) => ({
+      // eslint-disable-next-line camelcase
+      vector_stores: data.vector_stores.filter(
+        (vs) =>
+          vs.status === 'completed' && (!providers?.length || providers.includes(vs.provider)),
+      ),
+    }),
   });
 }
 

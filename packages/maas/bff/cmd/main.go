@@ -55,6 +55,7 @@ func main() {
 	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"), "Namespace where the MaaS Gateway is deployed in")
 	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "maas-default-gateway"), "The names of the MaaS Gateway")
 	flag.StringVar(&cfg.MaasApiUrl, "maas-api-url", getEnvAsString("MAAS_API_URL", ""), "The URL of the MaaS API")
+	flag.StringVar(&cfg.MaaSSubscriptionNamespace, "maas-subscription-namespace", getEnvAsString("MAAS_SUBSCRIPTION_NAMESPACE", "models-as-a-service"), "Namespace for MaaSSubscription and MaaSAuthPolicy resources")
 
 	flag.Parse()
 

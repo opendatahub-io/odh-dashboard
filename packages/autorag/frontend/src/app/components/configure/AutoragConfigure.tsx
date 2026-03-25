@@ -40,6 +40,7 @@ import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
+import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
@@ -267,7 +268,9 @@ function AutoragConfigure(): React.JSX.Element {
                 <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
                   Where would you like to index your documents?
                 </StackItem>
-                <StackItem data-temp-placeholder>Vector index dropdown</StackItem>
+                <StackItem>
+                  <AutoragVectorStoreSelector />
+                </StackItem>
 
                 <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
                   Add the data source you would like to use for evaluation.{' '}
