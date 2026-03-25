@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 export type MCPServer = {
+  id: string;
   name: string;
   url: string;
   status: string;
@@ -16,11 +17,13 @@ export type MCPServersResponse = {
 };
 
 export const mockMCPServer = ({
+  id,
   name = 'Test-MCP-Server',
   url = 'http://test-mcp-server.test.svc.cluster.local:8080/sse',
   status = 'Ready',
   description = 'Test MCP server',
 }: Partial<MCPServer> = {}): MCPServer => ({
+  id: id || url, // Use provided id or default to url
   name,
   url,
   status,
