@@ -179,72 +179,6 @@ export const mockNotebookK8sResource = ({
                 ],
                 workingDir: '/opt/app-root/src',
               },
-              {
-                env: [
-                  {
-                    name: 'NAMESPACE',
-                    valueFrom: {
-                      fieldRef: {
-                        fieldPath: 'metadata.namespace',
-                      },
-                    },
-                  },
-                ],
-                image: 'quay.io/openshift/kube-rbac-proxy:latest',
-                imagePullPolicy: 'Always',
-                livenessProbe: {
-                  failureThreshold: 3,
-                  httpGet: {
-                    path: '/healthz',
-                    port: 'kube-rbac-proxy',
-                    scheme: 'HTTPS',
-                  },
-                  initialDelaySeconds: 30,
-                  periodSeconds: 5,
-                  successThreshold: 1,
-                  timeoutSeconds: 1,
-                },
-                name: 'kube-rbac-proxy',
-                ports: [
-                  {
-                    containerPort: 8443,
-                    name: 'kube-rbac-proxy',
-                    protocol: 'TCP',
-                  },
-                ],
-                readinessProbe: {
-                  failureThreshold: 3,
-                  httpGet: {
-                    path: '/healthz',
-                    port: 'kube-rbac-proxy',
-                    scheme: 'HTTPS',
-                  },
-                  initialDelaySeconds: 5,
-                  periodSeconds: 5,
-                  successThreshold: 1,
-                  timeoutSeconds: 1,
-                },
-                resources: {
-                  limits: {
-                    cpu: '100m',
-                    memory: '64Mi',
-                  },
-                  requests: {
-                    cpu: '100m',
-                    memory: '64Mi',
-                  },
-                },
-                volumeMounts: [
-                  {
-                    mountPath: '/etc/kube-rbac-proxy',
-                    name: 'kube-rbac-proxy-config',
-                  },
-                  {
-                    mountPath: '/etc/tls/private',
-                    name: 'tls-certificates',
-                  },
-                ],
-              },
             ],
             enableServiceLinks: false,
             tolerations: [
@@ -265,18 +199,6 @@ export const mockNotebookK8sResource = ({
                 name: 'test-storage-1',
                 persistentVolumeClaim: {
                   claimName: 'test-storage-1',
-                },
-              },
-              {
-                name: 'kube-rbac-proxy-config',
-                secret: {
-                  secretName: 'workbench-oauth-config',
-                },
-              },
-              {
-                name: 'tls-certificates',
-                secret: {
-                  secretName: 'workbench-tls',
                 },
               },
               ...additionalVolumes,

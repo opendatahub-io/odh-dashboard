@@ -302,60 +302,6 @@ export const getNotebookEventStatus = (
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
 
-  const isAuthProxyEvent =
-    event.message.includes('oauth-proxy') ||
-    event.message.includes('ose-oauth-proxy') ||
-    event.message.includes('kube-rbac-proxy');
-
-  if (isAuthProxyEvent) {
-    switch (event.reason) {
-      case 'Pulling':
-        return {
-          step: ProgressionStep.PULLING_AUTH_PROXY,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Pulled':
-        return {
-          step: ProgressionStep.AUTH_PROXY_PULLED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Created':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Started':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Killing':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
-          status: EventStatus.WARNING,
-          timestamp,
-        };
-      default:
-        if (event.type === 'Warning') {
-          return {
-            step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-            status: EventStatus.WARNING,
-            timestamp,
-          };
-        }
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
-          status: EventStatus.WARNING,
-          timestamp,
-        };
-    }
-  }
-
-  // For notebook-related events
   switch (event.reason) {
     case 'SuccessfulCreate':
       return {
@@ -557,10 +503,9 @@ export const useNotebookProgress = (
     }
   });
 
-  // If the auth proxy container is started and the server is running, mark the server started step complete
   if (
     isRunning &&
-    progressSteps.find((p) => p.step === ProgressionStep.AUTH_PROXY_CONTAINER_STARTED)?.status ===
+    progressSteps.find((p) => p.step === ProgressionStep.NOTEBOOK_CONTAINER_STARTED)?.status ===
       EventStatus.SUCCESS
   ) {
     const startedStep = progressSteps.find((p) => p.step === ProgressionStep.WORKBENCH_STARTED);

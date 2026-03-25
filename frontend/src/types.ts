@@ -695,11 +695,6 @@ export enum ProgressionStep {
   NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
   NOTEBOOK_CONTAINER_PROBLEM = 'NOTEBOOK_CONTAINER_PROBLEM',
   NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
-  PULLING_AUTH_PROXY = 'PULLING_AUTH_PROXY',
-  AUTH_PROXY_PULLED = 'AUTH_PROXY_PULLED',
-  AUTH_PROXY_CONTAINER_CREATED = 'AUTH_PROXY_CONTAINER_CREATED',
-  AUTH_PROXY_CONTAINER_PROBLEM = 'AUTH_PROXY_CONTAINER_PROBLEM',
-  AUTH_PROXY_CONTAINER_STARTED = 'AUTH_PROXY_CONTAINER_STARTED',
   WORKBENCH_STARTED = 'WORKBENCH_STARTED',
 }
 
@@ -715,11 +710,6 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
   [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
-  [ProgressionStep.PULLING_AUTH_PROXY]: 'Pulling auth proxy',
-  [ProgressionStep.AUTH_PROXY_PULLED]: 'Auth proxy pulled',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_CREATED]: 'Auth proxy container created',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM]: 'There was a problem with auth proxy',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: 'Auth proxy container started',
   [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
 };
 
@@ -729,11 +719,6 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
     ProgressionStep.PULLING_NOTEBOOK_IMAGE,
     ProgressionStep.NOTEBOOK_IMAGE_PULLED,
   ],
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: [
-    ProgressionStep.PULLING_AUTH_PROXY,
-    ProgressionStep.AUTH_PROXY_PULLED,
-    ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-  ],
   [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
   [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
 };
@@ -741,7 +726,6 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
 export const OptionalSteps: ProgressionStep[] = [
   ProgressionStep.POD_PROBLEM,
   ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-  ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
   ProgressionStep.PVC_ATTACHED,
 ];
 

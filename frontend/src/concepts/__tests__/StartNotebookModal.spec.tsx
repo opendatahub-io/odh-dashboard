@@ -34,7 +34,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(13);
+    expect(steps).toHaveLength(9);
     expect(steps[0]).toHaveTextContent('Workbench requested');
     expect(steps[1]).toHaveTextContent('Pod created');
     expect(steps[2]).toHaveTextContent('Pod assigned');
@@ -43,11 +43,7 @@ describe('Start Notebook modal', () => {
     expect(steps[5]).toHaveTextContent('Workbench image pulled');
     expect(steps[6]).toHaveTextContent('Workbench container created');
     expect(steps[7]).toHaveTextContent('Workbench container started');
-    expect(steps[8]).toHaveTextContent('Pulling auth proxy');
-    expect(steps[9]).toHaveTextContent('Auth proxy pulled');
-    expect(steps[10]).toHaveTextContent('Auth proxy container created');
-    expect(steps[11]).toHaveTextContent('Auth proxy container started');
-    expect(steps[12]).toHaveTextContent('Workbench started');
+    expect(steps[8]).toHaveTextContent('Workbench started');
   });
 
   it('should show failed notebook startup status', async () => {
@@ -75,7 +71,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
+    expect(steps).toHaveLength(10);
     expect(steps[1]).toHaveTextContent('There was a problem with the pod');
   });
 
@@ -97,14 +93,14 @@ describe('Start Notebook modal', () => {
     expect(header).toHaveTextContent('Workbench statusStarting');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
-    expect(statusLabel).toHaveTextContent('Pulling auth proxy');
+    expect(statusLabel).toHaveTextContent('Workbench container started');
 
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
-    expect(screen.getAllByRole('listitem')).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(10);
-    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(4);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(9);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(1);
   });
 
   it('should show completed notebook startup status', async () => {
@@ -128,8 +124,8 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+    expect(steps).toHaveLength(10);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(10);
   });
 
   it('should show completed notebook startup status for standalone notebooks', async () => {
@@ -153,8 +149,8 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+    expect(steps).toHaveLength(10);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(10);
   });
 
   it('should show stopping notebook status', async () => {
@@ -180,7 +176,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(13);
-    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(13);
+    expect(steps).toHaveLength(9);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(9);
   });
 });

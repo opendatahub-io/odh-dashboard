@@ -64,18 +64,6 @@ export const mockPodK8sResource = ({
         },
       },
       {
-        name: 'kube-rbac-proxy-config',
-        secret: {
-          secretName: `${name}-oauth-config`,
-        },
-      },
-      {
-        name: 'tls-certificates',
-        secret: {
-          secretName: `${name}-tls`,
-        },
-      },
-      {
         name: 'kube-api-access-zzc98',
       },
     ],
@@ -154,77 +142,6 @@ export const mockPodK8sResource = ({
             scheme: 'HTTP',
           },
           initialDelaySeconds: 10,
-          timeoutSeconds: 1,
-          periodSeconds: 5,
-          successThreshold: 1,
-          failureThreshold: 3,
-        },
-        imagePullPolicy: 'Always',
-      },
-      {
-        name: 'kube-rbac-proxy',
-        image: 'quay.io/openshift/kube-rbac-proxy:latest',
-        ports: [
-          {
-            name: 'kube-rbac-proxy',
-            containerPort: 8443,
-            protocol: 'TCP',
-          },
-        ],
-        env: [
-          {
-            name: 'NAMESPACE',
-            valueFrom: {
-              fieldRef: {
-                apiVersion: 'v1',
-                fieldPath: 'metadata.namespace',
-              },
-            },
-          },
-        ],
-        resources: {
-          limits: {
-            cpu: '100m',
-            memory: '64Mi',
-          },
-          requests: {
-            cpu: '100m',
-            memory: '64Mi',
-          },
-        },
-        volumeMounts: [
-          {
-            name: 'kube-rbac-proxy-config',
-            mountPath: '/etc/kube-rbac-proxy',
-          },
-          {
-            name: 'tls-certificates',
-            mountPath: '/etc/tls/private',
-          },
-          {
-            name: 'kube-api-access-zzc98',
-            mountPath: '/var/run/secrets/kubernetes.io/serviceaccount',
-          },
-        ],
-        livenessProbe: {
-          httpGet: {
-            path: '/healthz',
-            port: 'kube-rbac-proxy',
-            scheme: 'HTTPS',
-          },
-          initialDelaySeconds: 30,
-          timeoutSeconds: 1,
-          periodSeconds: 5,
-          successThreshold: 1,
-          failureThreshold: 3,
-        },
-        readinessProbe: {
-          httpGet: {
-            path: '/healthz',
-            port: 'kube-rbac-proxy',
-            scheme: 'HTTPS',
-          },
-          initialDelaySeconds: 5,
           timeoutSeconds: 1,
           periodSeconds: 5,
           successThreshold: 1,

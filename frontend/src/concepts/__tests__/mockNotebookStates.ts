@@ -87,72 +87,6 @@ const notebook: NotebookKind = {
             volumeMounts: [],
             workingDir: '/opt/app-root/src',
           },
-          {
-            env: [
-              {
-                name: 'NAMESPACE',
-                valueFrom: {
-                  fieldRef: {
-                    fieldPath: 'metadata.namespace',
-                  },
-                },
-              },
-            ],
-            image: 'quay.io/openshift/kube-rbac-proxy:latest',
-            imagePullPolicy: 'Always',
-            livenessProbe: {
-              failureThreshold: 3,
-              httpGet: {
-                path: '/healthz',
-                port: 'kube-rbac-proxy',
-                scheme: 'HTTPS',
-              },
-              initialDelaySeconds: 30,
-              periodSeconds: 5,
-              successThreshold: 1,
-              timeoutSeconds: 1,
-            },
-            name: 'kube-rbac-proxy',
-            ports: [
-              {
-                containerPort: 8443,
-                name: 'kube-rbac-proxy',
-                protocol: 'TCP',
-              },
-            ],
-            readinessProbe: {
-              failureThreshold: 3,
-              httpGet: {
-                path: '/healthz',
-                port: 'kube-rbac-proxy',
-                scheme: 'HTTPS',
-              },
-              initialDelaySeconds: 5,
-              periodSeconds: 5,
-              successThreshold: 1,
-              timeoutSeconds: 1,
-            },
-            resources: {
-              limits: {
-                cpu: '100m',
-                memory: '64Mi',
-              },
-              requests: {
-                cpu: '100m',
-                memory: '64Mi',
-              },
-            },
-            volumeMounts: [
-              {
-                mountPath: '/etc/kube-rbac-proxy',
-                name: 'kube-rbac-proxy-config',
-              },
-              {
-                mountPath: '/etc/tls/private',
-                name: 'tls-certificates',
-              },
-            ],
-          },
         ],
         enableServiceLinks: false,
         volumes: [],
@@ -363,9 +297,9 @@ export const mockFailedStates = {
 };
 
 const inProgressNotebookStatus: NotebookStatus = {
-  currentEvent: 'Pulling auth proxy',
-  currentEventReason: 'Pulling',
-  currentEventDescription: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
+  currentEvent: 'Workbench container started',
+  currentEventReason: 'Started',
+  currentEventDescription: 'Started container new-pipeline',
   currentStatus: EventStatus.SUCCESS,
 };
 
@@ -494,22 +428,6 @@ const inProgressNotebookEvents: EventKind[] = [
     type: 'Normal',
     apiVersion: 'v1',
   },
-  {
-    lastTimestamp: '2025-01-22T20:18:58Z',
-    reason: 'Pulling',
-    involvedObject: {
-      name: 'new-pipeline-0',
-    },
-    message: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
-    eventTime: '2025-01-22T20:18:58Z',
-    metadata: {
-      name: 'new-pipeline-0.181d1d3386caf5de',
-      namespace: 'testing',
-    },
-    kind: 'Event',
-    type: 'Normal',
-    apiVersion: 'v1',
-  },
 ];
 
 export const mockInProgressStates = {
@@ -562,52 +480,6 @@ const completedNotebookEvents: EventKind[] = [
     eventTime: '2025-01-22T20:18:55Z',
     metadata: {
       name: 'new-pipeline-0.181d1d32d15f58c5',
-      namespace: 'testing',
-    },
-    kind: 'Event',
-    type: 'Normal',
-    apiVersion: 'v1',
-  },
-  {
-    reason: 'Created',
-    involvedObject: {
-      name: 'new-pipeline-0',
-    },
-    message: 'Created container kube-rbac-proxy',
-    eventTime: '2025-01-22T20:18:58Z',
-    metadata: {
-      name: 'new-pipeline-0.181d1d33a9a163cd',
-      namespace: 'testing',
-    },
-    kind: 'Event',
-    type: 'Normal',
-    apiVersion: 'v1',
-  },
-  {
-    reason: 'Pulled',
-    involvedObject: {
-      name: 'new-pipeline-0',
-    },
-    message:
-      'Successfully pulled image "quay.io/openshift/kube-rbac-proxy:latest" in 364.698388ms (364.711132ms including waiting)',
-    eventTime: '2025-01-22T20:18:58Z',
-    metadata: {
-      name: 'new-pipeline-0.181d1d339c883533',
-      namespace: 'testing',
-    },
-    kind: 'Event',
-    type: 'Normal',
-    apiVersion: 'v1',
-  },
-  {
-    reason: 'Pulling',
-    involvedObject: {
-      name: 'new-pipeline-0',
-    },
-    message: 'Pulling image "quay.io/openshift/kube-rbac-proxy:latest"',
-    eventTime: '2025-01-22T20:18:58Z',
-    metadata: {
-      name: 'new-pipeline-0.181d1d3386caf5de',
       namespace: 'testing',
     },
     kind: 'Event',
@@ -670,21 +542,6 @@ const completedNotebookEvents: EventKind[] = [
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d3386c210e4',
-      namespace: 'testing',
-    },
-    kind: 'Event',
-    type: 'Normal',
-    apiVersion: 'v1',
-  },
-  {
-    reason: 'Started',
-    involvedObject: {
-      name: 'new-pipeline-0',
-    },
-    message: 'Started container kube-rbac-proxy',
-    eventTime: '2025-01-22T20:18:58Z',
-    metadata: {
-      name: 'new-pipeline-0.181d1d33aa50e084',
       namespace: 'testing',
     },
     kind: 'Event',
