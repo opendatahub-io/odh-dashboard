@@ -429,6 +429,10 @@ class APIKeysPage {
   findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findFilterInput().find('button[type="submit"]');
   }
+
+  findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-tooltip');
+  }
 }
 
 class APIKeyTableRow extends TableRow {

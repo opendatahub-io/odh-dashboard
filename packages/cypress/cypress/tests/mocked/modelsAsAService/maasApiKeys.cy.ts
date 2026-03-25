@@ -77,7 +77,9 @@ describe('API Keys Page', () => {
       'searchByUsername',
     );
 
-    apiKeysPage.findFilterInput().type('alice').type('{enter}');
+    apiKeysPage.findFilterInput().type('alice');
+    apiKeysPage.findUsernameFilterTooltip().should('be.visible');
+    apiKeysPage.findFilterInput().type('{enter}');
 
     cy.wait('@searchByUsername').then((interception) => {
       expect(interception.request.body.data.filters.username).to.eq('alice');

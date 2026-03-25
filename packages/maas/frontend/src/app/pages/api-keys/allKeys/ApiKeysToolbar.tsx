@@ -12,6 +12,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
   SearchInput,
+  Tooltip,
 } from '@patternfly/react-core';
 import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
@@ -116,20 +117,25 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               }}
               categoryName="Username"
             >
-              <SearchInput
-                aria-label="Filter by username"
-                placeholder="Filter by username"
-                data-testid="username-filter-input"
-                value={localUsername}
-                onChange={(_event, value) => {
-                  setLocalUsername(value);
-                }}
-                onSearch={(_event, value) => onUsernameChange(value)}
-                onClear={() => {
-                  setLocalUsername('');
-                  onUsernameChange('');
-                }}
-              />
+              <Tooltip
+                content="Please enter the full username"
+                data-testid="username-filter-tooltip"
+              >
+                <SearchInput
+                  aria-label="Filter by username"
+                  placeholder="Filter by username"
+                  data-testid="username-filter-input"
+                  value={localUsername}
+                  onChange={(_event, value) => {
+                    setLocalUsername(value);
+                  }}
+                  onSearch={(_event, value) => onUsernameChange(value)}
+                  onClear={() => {
+                    setLocalUsername('');
+                    onUsernameChange('');
+                  }}
+                />
+              </Tooltip>
             </ToolbarFilter>
           </ToolbarGroup>
         </ToolbarToggleGroup>
