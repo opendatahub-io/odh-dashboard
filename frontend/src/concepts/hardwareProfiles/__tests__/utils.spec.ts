@@ -369,7 +369,7 @@ describe('getExistingHardwareProfileData', () => {
       },
     });
     // Remove the default annotation added by mock
-    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
+    delete notebook.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
 
     const result = getExistingHardwareProfileData(notebook);
 
@@ -421,7 +421,7 @@ describe('getHardwareProfileName', () => {
       },
     });
     // Remove the default annotation added by mock
-    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
+    delete notebook.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
 
     expect(getHardwareProfileName(notebook)).toBe('legacy-profile');
   });
@@ -906,8 +906,8 @@ describe('getDeletedHardwareProfilePatches', () => {
       },
     });
     // Remove default annotations added by mock
-    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
-    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-namespace'];
+    delete notebook.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+    delete notebook.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
     const result = getDeletedHardwareProfilePatches(
       { state: HardwareProfileBindingState.DELETED },
@@ -972,7 +972,7 @@ describe('getDeletedHardwareProfilePatches', () => {
       },
     });
     // Remove namespace annotation that mock adds
-    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-namespace'];
+    delete notebook.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
     const result = getDeletedHardwareProfilePatches(
       { state: HardwareProfileBindingState.DELETED },

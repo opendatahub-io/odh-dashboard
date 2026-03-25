@@ -80,7 +80,7 @@ export const useHardwareProfileBindingState = (
 
   const isDisabled = !isHardwareProfileEnabled(profile);
   const storedResourceVersion =
-    resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
+    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
     storedResourceVersion && profile.metadata.resourceVersion
       ? storedResourceVersion !== profile.metadata.resourceVersion
