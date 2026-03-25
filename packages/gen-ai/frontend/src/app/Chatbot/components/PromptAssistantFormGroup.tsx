@@ -18,9 +18,9 @@ export default function PromptAssistantFormGroup({
   const {
     activePrompt,
     dirtyPrompt,
-    setActivePrompt,
     setDirtyPrompt,
     resetDirtyPrompt,
+    clearPromptState,
     openModal,
   } = usePlaygroundStore();
   const [editMode, setEditMode] = React.useState(true);
@@ -49,8 +49,7 @@ export default function PromptAssistantFormGroup({
 
   function handleNewPrompt() {
     const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    setActivePrompt(null);
-    setDirtyPrompt(promptStub);
+    clearPromptState(promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
@@ -60,7 +59,10 @@ export default function PromptAssistantFormGroup({
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
-    openModal('create', newPrompt);
+    const mode = activePrompt ? 'edit' : 'create';
+    // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+    newPrompt.commit_message = '';
+    openModal(mode, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -127,17 +129,17 @@ export default function PromptAssistantFormGroup({
         />
         {!editMode && (
           <Flex>
-            <Button variant="primary" isDisabled={editMode} onClick={() => setEditMode(!editMode)}>
+            <Button variant="primary" onClick={() => setEditMode(true)}>
               Edit
             </Button>
             <Button variant="link" onClick={handleNewPrompt}>
-              Reset
+              Clear
             </Button>
           </Flex>
         )}
         {editMode && (
           <Flex>
-            <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+            <Button variant="primary" onClick={handleSaveClicked}>
               Save
             </Button>
             <Button variant="link" isDisabled={!activePrompt} onClick={handleRevert}>

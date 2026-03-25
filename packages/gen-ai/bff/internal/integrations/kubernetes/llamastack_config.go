@@ -463,12 +463,22 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 // This is a helper for building LlamaStack configurations with OpenAI-compatible custom endpoint model providers
 // The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference
 // Provider type is hardcoded to "remote::openai" - all custom endpoints must be OpenAI-compatible.
-func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+// isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
+// since cluster services typically use self-signed certificates.
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
 	// Full configuration (including secrets) is managed via the gen-ai-aa-external-models ConfigMap
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
 	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap
+
+	if isClusterLocal {
+		providerConfig["network"] = map[string]interface{}{
+			"tls": map[string]interface{}{
+				"verify": false,
+			},
+		}
+	}
 
 	// Add provider - hardcoded to remote::openai (only supported type for custom endpoints)
 	provider := NewProvider(providerID, "remote::openai", providerConfig)

@@ -84,7 +84,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   }, [existingModels, extraSelectedModels, allModels]);
 
   const availableModels = React.useMemo(
-    () => preSelectedModels.filter((model) => model.status === 'Running'),
+    () =>
+      preSelectedModels.filter(
+        (model) => model.status === 'Running' || model.model_source_type === 'custom_endpoint',
+      ),
     [preSelectedModels],
   );
 
