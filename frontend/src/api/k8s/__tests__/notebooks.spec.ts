@@ -1118,8 +1118,6 @@ describe('removeNotebookPVC', () => {
                 claimName: 'test-storage-1',
               },
             },
-            { name: 'oauth-config', secret: { secretName: 'workbench-oauth-config' } },
-            { name: 'tls-certificates', secret: { secretName: 'workbench-tls' } },
           ],
         },
         {
@@ -1203,8 +1201,6 @@ describe('removeNotebookPVC', () => {
                 claimName: 'test-storage-1',
               },
             },
-            { name: 'oauth-config', secret: { secretName: 'workbench-oauth-config' } },
-            { name: 'tls-certificates', secret: { secretName: 'workbench-tls' } },
           ],
         },
         {

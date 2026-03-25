@@ -173,73 +173,6 @@ export const mockNotebookK8sResource = ({
                 ],
                 workingDir: '/opt/app-root/src',
               },
-              {
-                env: [
-                  {
-                    name: 'NAMESPACE',
-                    valueFrom: {
-                      fieldRef: {
-                        fieldPath: 'metadata.namespace',
-                      },
-                    },
-                  },
-                ],
-                image:
-                  'registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4bef31eb993feb6f1096b51b4876c65a6fb1f4401fee97fa4f4542b6b7c9bc46',
-                imagePullPolicy: 'Always',
-                livenessProbe: {
-                  failureThreshold: 3,
-                  httpGet: {
-                    path: '/oauth/healthz',
-                    port: 'oauth-proxy',
-                    scheme: 'HTTPS',
-                  },
-                  initialDelaySeconds: 30,
-                  periodSeconds: 5,
-                  successThreshold: 1,
-                  timeoutSeconds: 1,
-                },
-                name: 'oauth-proxy',
-                ports: [
-                  {
-                    containerPort: 8443,
-                    name: 'oauth-proxy',
-                    protocol: 'TCP',
-                  },
-                ],
-                readinessProbe: {
-                  failureThreshold: 3,
-                  httpGet: {
-                    path: '/oauth/healthz',
-                    port: 'oauth-proxy',
-                    scheme: 'HTTPS',
-                  },
-                  initialDelaySeconds: 5,
-                  periodSeconds: 5,
-                  successThreshold: 1,
-                  timeoutSeconds: 1,
-                },
-                resources: {
-                  limits: {
-                    cpu: '100m',
-                    memory: '64Mi',
-                  },
-                  requests: {
-                    cpu: '100m',
-                    memory: '64Mi',
-                  },
-                },
-                volumeMounts: [
-                  {
-                    mountPath: '/etc/oauth/config',
-                    name: 'oauth-config',
-                  },
-                  {
-                    mountPath: '/etc/tls/private',
-                    name: 'tls-certificates',
-                  },
-                ],
-              },
             ],
             enableServiceLinks: false,
             tolerations: [
@@ -260,18 +193,6 @@ export const mockNotebookK8sResource = ({
                 name: 'test-storage-1',
                 persistentVolumeClaim: {
                   claimName: 'test-storage-1',
-                },
-              },
-              {
-                name: 'oauth-config',
-                secret: {
-                  secretName: 'workbench-oauth-config',
-                },
-              },
-              {
-                name: 'tls-certificates',
-                secret: {
-                  secretName: 'workbench-tls',
                 },
               },
               ...additionalVolumes,

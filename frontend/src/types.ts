@@ -614,11 +614,6 @@ export enum ProgressionStep {
   NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
   NOTEBOOK_CONTAINER_PROBLEM = 'NOTEBOOK_CONTAINER_PROBLEM',
   NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
-  PULLING_OAUTH = 'PULLING_OAUTH',
-  OAUTH_PULLED = 'OAUTH_PULLED',
-  OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
-  OAUTH_CONTAINER_PROBLEM = 'OAUTH_CONTAINER_PROBLEM',
-  OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
   SERVER_STARTED = 'SERVER_STARTED',
 }
 
@@ -634,11 +629,6 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
   [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the notebook',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
-  [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
-  [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
-  [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
-  [ProgressionStep.OAUTH_CONTAINER_PROBLEM]: 'There was a problem with Oauth',
-  [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
   [ProgressionStep.SERVER_STARTED]: 'Server started',
 };
 
@@ -648,11 +638,6 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
     ProgressionStep.PULLING_NOTEBOOK_IMAGE,
     ProgressionStep.NOTEBOOK_IMAGE_PULLED,
   ],
-  [ProgressionStep.OAUTH_CONTAINER_STARTED]: [
-    ProgressionStep.PULLING_OAUTH,
-    ProgressionStep.OAUTH_PULLED,
-    ProgressionStep.OAUTH_CONTAINER_CREATED,
-  ],
   [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
   [ProgressionStep.SERVER_STARTED]: Object.values(ProgressionStep),
 };
@@ -660,7 +645,6 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
 export const OptionalSteps: ProgressionStep[] = [
   ProgressionStep.POD_PROBLEM,
   ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-  ProgressionStep.OAUTH_CONTAINER_PROBLEM,
   ProgressionStep.PVC_ATTACHED,
 ];
 

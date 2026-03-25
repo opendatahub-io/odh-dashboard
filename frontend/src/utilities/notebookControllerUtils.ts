@@ -312,56 +312,6 @@ export const getNotebookEventStatus = (
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
 
-  // For Oauth-related events
-  if (event.message.includes('oauth-proxy') || event.message.includes('ose-oauth-proxy')) {
-    switch (event.reason) {
-      case 'Pulling':
-        return {
-          step: ProgressionStep.PULLING_OAUTH,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Pulled':
-        return {
-          step: ProgressionStep.OAUTH_PULLED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Created':
-        return {
-          step: ProgressionStep.OAUTH_CONTAINER_CREATED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Started':
-        return {
-          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
-          status: EventStatus.SUCCESS,
-          timestamp,
-        };
-      case 'Killing':
-        return {
-          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
-          status: EventStatus.WARNING,
-          timestamp,
-        };
-      default:
-        if (event.type === 'Warning') {
-          return {
-            step: ProgressionStep.OAUTH_CONTAINER_CREATED,
-            status: EventStatus.WARNING,
-            timestamp,
-          };
-        }
-        return {
-          step: ProgressionStep.OAUTH_CONTAINER_PROBLEM,
-          status: EventStatus.WARNING,
-          timestamp,
-        };
-    }
-  }
-
-  // For notebook-related events
   switch (event.reason) {
     case 'SuccessfulCreate':
       return {
@@ -563,10 +513,9 @@ export const useNotebookProgress = (
     }
   });
 
-  // If the container is started and the server is running, mark the server started step complete
   if (
     isRunning &&
-    progressSteps.find((p) => p.step === ProgressionStep.OAUTH_CONTAINER_STARTED)?.status ===
+    progressSteps.find((p) => p.step === ProgressionStep.NOTEBOOK_CONTAINER_STARTED)?.status ===
       EventStatus.SUCCESS
   ) {
     const startedStep = progressSteps.find((p) => p.step === ProgressionStep.SERVER_STARTED);
