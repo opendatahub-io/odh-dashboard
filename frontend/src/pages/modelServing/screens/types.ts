@@ -70,6 +70,7 @@ export type InferenceServiceStorage = {
   path: string;
   dataConnection: string;
   awsData: EnvVariableDataEntry[];
+  uri?: string;
 };
 
 export type InferenceServiceFormat = {

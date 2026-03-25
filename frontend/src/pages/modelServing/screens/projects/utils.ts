@@ -170,6 +170,7 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.name ||
     '';
   const existingStorage = existingData?.spec?.predictor.model.storage || undefined;
+  const existingStorageUri = existingData?.spec?.predictor.model.storageUri;
   const existingServingRuntime = existingData?.spec?.predictor.model.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
   const existingFormat = existingData?.spec?.predictor.model.modelFormat || undefined;
@@ -184,6 +185,7 @@ export const useCreateInferenceServiceObject = (
         path: existingStorage?.path || '',
         dataConnection: existingStorage?.key || '',
         awsData: EMPTY_AWS_SECRET_DATA,
+        ...(existingStorageUri && { uri: existingStorageUri }),
       });
       setCreateData(
         'format',
@@ -195,6 +197,7 @@ export const useCreateInferenceServiceObject = (
   }, [
     existingName,
     existingStorage,
+    existingStorageUri,
     existingFormat,
     existingServingRuntime,
     existingProject,

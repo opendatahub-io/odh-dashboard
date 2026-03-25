@@ -21,7 +21,7 @@ export const assembleInferenceService = (
 ): InferenceServiceKind => {
   const { storage, format, servingRuntimeName, project } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
-  const { path, dataConnection } = storage;
+  const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
 
   return {
@@ -53,10 +53,14 @@ export const assembleInferenceService = (
             ...(format.version && { version: format.version }),
           },
           runtime: servingRuntimeName,
-          storage: {
-            key: dataConnectionKey,
-            path,
-          },
+          ...(uri
+            ? { storageUri: uri }
+            : {
+                storage: {
+                  key: dataConnectionKey,
+                  path,
+                },
+              }),
         },
       },
     },
@@ -136,9 +140,18 @@ export const updateInferenceService = (
     isModelMesh,
   );
 
+  const merged = _.merge({}, existingData, inferenceService);
+
+  // Ensure storageUri and storage don't conflict — use only one
+  if (inferenceService.spec.predictor.model.storageUri) {
+    delete merged.spec.predictor.model.storage;
+  } else {
+    delete merged.spec.predictor.model.storageUri;
+  }
+
   return k8sUpdateResource<InferenceServiceKind>({
     model: InferenceServiceModel,
-    resource: _.merge({}, existingData, inferenceService),
+    resource: merged,
   });
 };
 
