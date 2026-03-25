@@ -35,10 +35,11 @@ const (
 	UserPath         = ApiPathPrefix + "/user"
 	NamespacePath    = ApiPathPrefix + "/namespaces"
 	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	S3FilePath            = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath      = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath           = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath      = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath   = ApiPathPrefix + "/model-registries"
 )
 
 type App struct {
@@ -189,6 +190,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+
+	// Model Registry discovery — cluster-scoped, no namespace required
+	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
 
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
