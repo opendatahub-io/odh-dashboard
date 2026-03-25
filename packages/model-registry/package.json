@@ -19,8 +19,9 @@
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
-    "branch": "main",
+    "DO_NOT_MERGE_OVERRIDDEN_FOR_PR": "https://github.com/kubeflow/model-registry/pull/2480",
+    "repo": "https://github.com/mturley/model-registry-midstream.git",
+    "branch": "namespace-input-fallback",
     "src": "clients/ui",
     "target": "upstream",
     "commit": "426e616d6ecf47a9f7f40201b628df6b24f8e6e7"
@@ -45,7 +46,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@ModelRegistryCI"],
+  "e2eCiTags": [
+    "@ModelRegistryCI"
+  ],
   "bffConfig": {
     "enabled": true,
     "port": 4000,
