@@ -8,6 +8,7 @@ import {
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
 } from '#~/concepts/hardwareProfiles/utils';
+import { getHardwareProfileName } from '#~/concepts/hardwareProfiles/const';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   Identifier,
@@ -351,6 +352,85 @@ describe('getExistingHardwareProfileData', () => {
     // mockNotebookK8sResource may return null or empty string instead of undefined
     expect(result.namespace).toBeFalsy();
   });
+
+  it('should fall back to legacy annotation when current annotation is missing', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/legacy-hardware-profile-name': 'legacy-profile',
+          },
+        },
+      },
+    });
+
+    const result = getExistingHardwareProfileData(notebook);
+
+    expect(result.name).toBe('legacy-profile');
+  });
+
+  it('should prefer current annotation over legacy annotation', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'current-profile',
+            'opendatahub.io/legacy-hardware-profile-name': 'legacy-profile',
+          },
+        },
+      },
+    });
+
+    const result = getExistingHardwareProfileData(notebook);
+
+    expect(result.name).toBe('current-profile');
+  });
+});
+
+describe('getHardwareProfileName', () => {
+  it('should return current annotation value', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'current-profile',
+          },
+        },
+      },
+    });
+
+    expect(getHardwareProfileName(notebook)).toBe('current-profile');
+  });
+
+  it('should fall back to legacy annotation', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/legacy-hardware-profile-name': 'legacy-profile',
+          },
+        },
+      },
+    });
+
+    expect(getHardwareProfileName(notebook)).toBe('legacy-profile');
+  });
+
+  it('should return undefined when no annotation exists', () => {
+    const notebook = mockNotebookK8sResource({});
+    // Clear annotations to test the undefined case
+    notebook.metadata.annotations = {};
+
+    expect(getHardwareProfileName(notebook)).toBeUndefined();
+  });
+
+  it('should return undefined for null resource', () => {
+    expect(getHardwareProfileName(null)).toBeUndefined();
+  });
+
+  it('should return undefined for undefined resource', () => {
+    expect(getHardwareProfileName(undefined)).toBeUndefined();
+  });
 });
 
 describe('assemblePodSpecOptions', () => {
@@ -626,6 +706,65 @@ describe('applyHardwareProfileConfig', () => {
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'test-profile',
     );
+  });
+
+  it('should remove legacy annotation when applying a hardware profile', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'new-profile',
+      namespace: 'test-namespace',
+    });
+
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/legacy-hardware-profile-name': 'old-legacy-profile',
+          },
+        },
+      },
+    });
+
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: false,
+      resources: {
+        requests: { cpu: '2', memory: '8Gi' },
+        limits: { cpu: '2', memory: '8Gi' },
+      },
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'new-profile',
+    );
+    expect(
+      result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'],
+    ).toBeUndefined();
+  });
+
+  it('should remove legacy annotation when deselecting hardware profile', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/legacy-hardware-profile-name': 'old-legacy-profile',
+          },
+        },
+      },
+    });
+
+    const config = {
+      selectedProfile: undefined,
+      useExistingSettings: false,
+      resources: undefined,
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(
+      result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'],
+    ).toBeUndefined();
   });
 
   it('should work with different path configurations', () => {

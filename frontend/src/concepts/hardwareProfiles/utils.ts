@@ -19,6 +19,8 @@ import {
 import {
   HardwareProfileBindingState,
   REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+  LEGACY_HARDWARE_PROFILE_ANNOTATION,
+  getHardwareProfileName,
 } from '#~/concepts/hardwareProfiles/const';
 import {
   HardwarePodSpecOptions,
@@ -200,7 +202,7 @@ export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
   bindingState: HardwareProfileBindingStateInfo | null,
   cr: T,
 ): Patch[] => {
-  const hwpAnnotations = cr.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
+  const hwpAnnotations = getHardwareProfileName(cr);
   return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
     ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
     : [];
@@ -245,7 +247,7 @@ export const getExistingHardwareProfileData = <T extends K8sResourceCommon>(
   name?: string;
   namespace?: string;
 } => {
-  const name = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
+  const name = getHardwareProfileName(resource);
   const namespace = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-namespace'];
   return {
     name,
@@ -306,11 +308,14 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     annotations['opendatahub.io/hardware-profile-namespace'] = selectedProfile.metadata.namespace;
     annotations['opendatahub.io/hardware-profile-resource-version'] =
       selectedProfile.metadata.resourceVersion ?? '';
+    // Clean up legacy annotation when writing the current one
+    delete annotations[LEGACY_HARDWARE_PROFILE_ANNOTATION];
     result.metadata.annotations = annotations;
   } else if (result.metadata.annotations) {
     delete result.metadata.annotations['opendatahub.io/hardware-profile-name'];
     delete result.metadata.annotations['opendatahub.io/hardware-profile-namespace'];
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
+    delete result.metadata.annotations[LEGACY_HARDWARE_PROFILE_ANNOTATION];
   }
 
   if (!useExistingSettings && selectedProfile && paths) {

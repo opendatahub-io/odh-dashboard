@@ -4,12 +4,12 @@ import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
-import { MODEL_SERVING_VISIBILITY } from './const';
+import { MODEL_SERVING_VISIBILITY, getHardwareProfileName } from './const';
 
 export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
 ): Parameters<typeof useHardwareProfileConfig> => {
-  const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const name = getHardwareProfileName(inferenceService);
   const resources = inferenceService?.spec.predictor.model?.resources;
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
