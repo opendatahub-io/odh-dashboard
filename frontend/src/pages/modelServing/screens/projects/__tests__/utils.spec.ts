@@ -638,4 +638,18 @@ describe('translateModelServingError', () => {
     expect(result).toBe(error);
     expect(result.message).toBe('some other error');
   });
+
+  it('should not translate non-KServe "already exists" errors', () => {
+    const error = new Error('secrets "conn-a" already exists');
+    const result = translateModelServingError(error);
+    expect(result).toBe(error);
+    expect(result.message).toBe('secrets "conn-a" already exists');
+  });
+
+  it('should not translate generic "already exists" errors', () => {
+    const error = new Error('Something "my-thing" already exists');
+    const result = translateModelServingError(error);
+    expect(result).toBe(error);
+    expect(result.message).toBe('Something "my-thing" already exists');
+  });
 });

@@ -333,7 +333,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         watchDeployment();
       })
       .catch((e) => {
-        const translatedError = e instanceof Error ? translateModelServingError(e) : e;
+        const normalizedError =
+          e instanceof Error
+            ? e
+            : new Error(typeof e === 'string' ? e : 'An unexpected error occurred.');
+        const translatedError = translateModelServingError(normalizedError);
         props.success = false;
         props.errorMessage = translatedError;
         setErrorModal(translatedError);
