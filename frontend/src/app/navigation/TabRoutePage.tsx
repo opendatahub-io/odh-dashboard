@@ -105,13 +105,21 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
           ))}
         </Tabs>
       </PageSection>
-      <div id={`tab-content-${activeTab.properties.id}`} role="tabpanel">
-        <LazyCodeRefComponent
-          key={activeTab.properties.id}
-          component={activeTab.properties.component}
-          fallback={tabContentFallback}
-        />
-      </div>
+      {tabExtensions.map((t) => (
+        <div
+          key={t.properties.id}
+          id={`tab-content-${t.properties.id}`}
+          role="tabpanel"
+          hidden={t.properties.id !== activeTab.properties.id || undefined}
+        >
+          {t.properties.id === activeTab.properties.id && (
+            <LazyCodeRefComponent
+              component={t.properties.component}
+              fallback={tabContentFallback}
+            />
+          )}
+        </div>
+      ))}
     </>
   );
 };
