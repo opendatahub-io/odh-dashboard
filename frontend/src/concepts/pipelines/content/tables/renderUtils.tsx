@@ -43,28 +43,41 @@ export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> =
   run,
 }) => {
   const { icon, status, color, labelStatus, label, details, createdAt } = computeRunStatus(run);
-  let tooltipContent: React.ReactNode = details;
-  let content = (
-    <Label variant="outline" color={color} status={labelStatus} icon={icon} isCompact={isCompact}>
-      {label}
-    </Label>
-  );
+  const tooltipContent: React.ReactNode = details;
 
   if (hasNoLabel && !tooltipContent) {
-    content = (
+    const iconContent = (
       <Icon isInline status={status}>
         {icon}
       </Icon>
     );
 
     // If we are just an icon with no tooltip -- make it the status for ease of understanding
-    tooltipContent = (
-      <Stack>
-        <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
-        <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
-      </Stack>
+    return (
+      <Tooltip
+        content={
+          <Stack>
+            <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
+            <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
+          </Stack>
+        }
+      >
+        {iconContent}
+      </Tooltip>
     );
   }
+
+  const content = (
+    <Label
+      variant={tooltipContent ? 'filled' : 'outline'}
+      color={color}
+      status={labelStatus}
+      icon={icon}
+      isCompact={isCompact}
+    >
+      {label}
+    </Label>
+  );
 
   if (tooltipContent) {
     return <Tooltip content={tooltipContent}>{content}</Tooltip>;

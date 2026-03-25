@@ -67,13 +67,13 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabel()).toBe('Stopping');
   });
 
-  it('should show Stopping when isStopping even if kueueStatus is Succeeded', () => {
+  it('should show Stopping when isStopping even if kueueStatus is Complete', () => {
     render(
       <NotebookStatusLabel
         isStarting={false}
         isStopping
         isRunning={false}
-        kueueStatus={{ status: KueueWorkloadStatus.Succeeded }}
+        kueueStatus={{ status: KueueWorkloadStatus.Complete }}
       />,
     );
     expect(getStatusLabel()).toBe('Stopping');
@@ -97,7 +97,7 @@ describe('NotebookStatusLabel', () => {
         isStarting={false}
         isStopping={false}
         isRunning={false}
-        kueueStatus={{ status: KueueWorkloadStatus.Succeeded }}
+        kueueStatus={{ status: KueueWorkloadStatus.Complete }}
       />,
     );
     expect(getStatusLabel()).toBe('Complete');

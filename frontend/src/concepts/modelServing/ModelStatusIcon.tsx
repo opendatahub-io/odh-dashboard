@@ -71,12 +71,17 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     // Only check the state if not stopped
     switch (state) {
       case ModelDeploymentState.LOADED:
-      case ModelDeploymentState.STANDBY:
         return {
           label: 'Ready',
           status: 'success',
           icon: <CheckCircleIcon />,
           message: 'Model deployment is active.',
+        };
+      case ModelDeploymentState.STANDBY:
+        return {
+          label: 'Starting',
+          color: 'blue',
+          icon: <InProgressIcon className="odh-u-spin" />,
         };
       case ModelDeploymentState.FAILED_TO_LOAD:
         return {

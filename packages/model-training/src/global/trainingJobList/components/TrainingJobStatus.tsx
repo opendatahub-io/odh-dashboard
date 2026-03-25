@@ -43,6 +43,7 @@ const TrainingJobStatus = ({
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
       <FlexItem>
         <Label
+          variant={onClick ? 'filled' : 'outline'}
           isCompact={isCompact}
           status={statusInfo.status}
           color={statusInfo.color}
