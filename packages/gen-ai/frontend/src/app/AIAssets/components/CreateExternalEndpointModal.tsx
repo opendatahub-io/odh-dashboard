@@ -28,7 +28,8 @@ import {
   VerifyExternalModelRequest,
   VerifyExternalModelResponse,
 } from '~/app/types';
-import { isClusterLocalURL, ALLOW_EXTERNAL_ENDPOINTS } from '~/app/utilities/utils';
+import { isClusterLocalURL } from '~/app/utilities/utils';
+import useGenAiDashboardConfig from '~/app/hooks/useGenAiDashboardConfig';
 
 const MODEL_TYPE_LLM = 'llm' as const;
 const MODEL_TYPE_EMBEDDING = 'embedding' as const;
@@ -69,6 +70,13 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   onVerify,
   existingModels,
 }) => {
+  const genAiConfig = useGenAiDashboardConfig();
+  const clusterDomains = React.useMemo(
+    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
+    [genAiConfig],
+  );
+  const allowExternalEndpoints = genAiConfig?.aiAssetCustomEndpoints?.externalProviders ?? false;
+
   // Form fields
   const [modelType, setModelType] =
     React.useState<ExternalModelRequest['model_type']>(MODEL_TYPE_LLM);
@@ -167,8 +175,8 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     }
 
     // Check if external endpoints are allowed
-    const isExternal = !isClusterLocalURL(trimmedUrl);
-    if (!ALLOW_EXTERNAL_ENDPOINTS && isExternal) {
+    const isExternal = !isClusterLocalURL(trimmedUrl, clusterDomains);
+    if (!allowExternalEndpoints && isExternal) {
       return {
         isValid: false,
         error: `Model endpoints must be internal to the cluster.`,
@@ -176,7 +184,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     }
 
     return { isValid: true, error: null };
-  }, [endpointUrl]);
+  }, [endpointUrl, clusterDomains, allowExternalEndpoints]);
 
   const hasUrlError = !urlValidation.isValid;
 

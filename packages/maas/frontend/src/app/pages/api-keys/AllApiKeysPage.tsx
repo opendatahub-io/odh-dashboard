@@ -4,6 +4,7 @@ import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
 import { APIKey } from '~/app/types/api-key';
+import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
@@ -14,6 +15,10 @@ const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+
+  // TODO: use this for hiding the username search for non-admins and for allowing admins to see all keys
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isMaasAdmin] = useIsMaasAdmin();
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 

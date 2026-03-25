@@ -2,5 +2,5 @@ package constants
 
 // External Models ConfigMap
 const (
-	ExternalModelsConfigMapName = "gen-ai-aa-external-models"
+	ExternalModelsConfigMapName = "gen-ai-aa-custom-model-endpoints"
 )
