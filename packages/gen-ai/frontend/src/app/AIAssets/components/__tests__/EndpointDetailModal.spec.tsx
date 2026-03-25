@@ -178,8 +178,9 @@ describe('EndpointDetailModal', () => {
       });
       renderModal(model);
 
-      expect(screen.getByText('Important: Copy and store this token')).toBeInTheDocument();
-      expect(screen.getByTestId('endpoint-modal-api-key-copy')).toBeInTheDocument();
+      expect(screen.getByText('This is an ephemeral API key')).toBeInTheDocument();
+      expect(screen.getByText(/This key expires in 1 hour/)).toBeInTheDocument();
+      expect(screen.getByTestId('endpoint-modal-api-key-input')).toBeInTheDocument();
       expect(screen.queryByTestId('endpoint-modal-generate-api-key')).not.toBeInTheDocument();
     });
 
@@ -323,7 +324,7 @@ describe('EndpointDetailModal', () => {
         expect(selectButton).toHaveTextContent('Premium Subscription');
       });
 
-      it('should hide subscription dropdown after token is generated', () => {
+      it('should keep subscription dropdown visible after token is generated', () => {
         mockUseGenerateMaaSToken = jest.fn(() => ({
           isGenerating: false,
           tokenData: { key: 'generated-token-123' },
@@ -345,8 +346,11 @@ describe('EndpointDetailModal', () => {
         });
         renderModal(model);
 
-        // Subscription dropdown should not be visible when token is present
-        expect(screen.queryByTestId('endpoint-modal-subscription-select')).not.toBeInTheDocument();
+        // Subscription dropdown should remain visible when token is present
+        expect(screen.getByTestId('endpoint-modal-subscription-select')).toBeInTheDocument();
+        expect(screen.getByTestId('endpoint-modal-subscription-select')).toHaveTextContent(
+          'Basic Subscription',
+        );
       });
 
       it('should show alert when no subscriptions are available', () => {
