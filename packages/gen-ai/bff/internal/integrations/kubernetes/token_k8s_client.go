@@ -90,12 +90,13 @@ type modelDetailsResult struct {
 }
 
 type externalModelDetailsResult struct {
-	modelID      string
-	modelType    string
-	endpointURL  string
-	metadata     map[string]interface{}
-	providerID   string
-	providerType string
+	modelID        string
+	modelType      string
+	endpointURL    string
+	metadata       map[string]interface{}
+	providerID     string
+	providerType   string
+	isClusterLocal bool
 }
 
 type TokenKubernetesClient struct {
@@ -1541,7 +1542,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens, extDetails.isClusterLocal)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
@@ -1785,12 +1786,13 @@ func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.External
 	}
 
 	return externalModelDetailsResult{
-		modelID:      foundModel.ModelID,
-		modelType:    string(foundModel.ModelType),
-		metadata:     metadata,
-		endpointURL:  foundProvider.Config.BaseURL,
-		providerType: string(foundProvider.ProviderType),
-		providerID:   foundModel.ProviderID,
+		modelID:        foundModel.ModelID,
+		modelType:      string(foundModel.ModelType),
+		metadata:       metadata,
+		endpointURL:    foundProvider.Config.BaseURL,
+		providerType:   string(foundProvider.ProviderType),
+		providerID:     foundModel.ProviderID,
+		isClusterLocal: foundProvider.Config.IsClusterLocal,
 	}, nil
 }
 
@@ -2367,7 +2369,8 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		ProviderID:   fmt.Sprintf("endpoint-%s", providerID),
 		ProviderType: models.ProviderTypeOpenAI,
 		Config: models.ProviderConfig{
-			BaseURL: req.BaseURL,
+			BaseURL:        req.BaseURL,
+			IsClusterLocal: req.IsClusterLocal,
 			CustomGenAI: models.CustomGenAI{
 				APIKey: models.APIKeyConfig{
 					SecretRef: models.SecretRef{

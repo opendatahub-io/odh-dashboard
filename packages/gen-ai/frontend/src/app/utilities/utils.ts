@@ -75,7 +75,9 @@ export const isLlamaModelEnabled = (
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
-    return enabledModel.status === 'Running';
+    return (
+      enabledModel.status === 'Running' || enabledModel.model_source_type === 'custom_endpoint'
+    );
   }
 
   const maasModel = maasModels.find((m) => m.id === id);
