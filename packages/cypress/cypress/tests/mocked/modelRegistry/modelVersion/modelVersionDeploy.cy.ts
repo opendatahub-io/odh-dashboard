@@ -479,10 +479,6 @@ describe('Deploy model version', () => {
     modelServingWizard
       .findModelDeploymentNameInput()
       .should('have.value', 'test-1 - test model version 4');
-
-    // Wait for both hardware profile namespaces to load before interacting
-    cy.wait('@globalHardwareProfiles');
-    cy.wait('@projectHardwareProfiles');
   });
 
   it('Prefills new connection in case of no matching connections', () => {
