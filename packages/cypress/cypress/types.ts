@@ -636,3 +636,15 @@ export type TiersTestData = {
   groupsCount: number;
   limits: string;
 };
+
+export type PromptManagementPromptData = {
+  name: string;
+  versionLabel: string;
+  template: string;
+  commitMessage: string;
+};
+
+export type PromptManagementTestData = {
+  projectName: string;
+  prompts: PromptManagementPromptData[];
+};
