@@ -12,7 +12,8 @@ import { StarIcon } from '@patternfly/react-icons';
 import { Button, Label, Skeleton, Tooltip } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import { useAutoragResultsContext, type AutoragPattern } from '~/app/context/AutoragResultsContext';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { getOptimizedMetricForRAG } from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
@@ -20,11 +21,17 @@ import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProg
 type LeaderboardEntry = {
   rank: number;
   pattern: string;
-  metrics: Record<
-    string,
-    { mean: number | string; ci_high: number | string; ci_low: number | string }
-  >;
+  metrics: Record<string, { mean: number | string }>;
   optimizedMetricValue: number | string;
+  chunkingMethod: string;
+  chunkingChunkSize: number;
+  chunkingChunkOverlap: number;
+  embeddingsModelId: string;
+  retrievalMethod: string;
+  retrievalNumberOfChunks: number;
+  retrievalSearchMode: string;
+  retrievalRankerStrategy: string;
+  generationModelId: string;
 };
 
 // Helper function to format metric names for display
@@ -65,6 +72,12 @@ const formatMetricValue = (value: number | string): string => {
   return fixed;
 };
 
+// Helper function to extract the last segment of a model ID
+const getModelIdShortName = (modelId: string): string => {
+  const segments = modelId.split('/');
+  return segments[segments.length - 1] || modelId;
+};
+
 function AutoragLeaderboard(): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
@@ -100,18 +113,11 @@ function AutoragLeaderboard(): React.JSX.Element {
           const metricData = pattern.scores[metricName];
           return {
             mean: metricData?.mean ?? 'N/A',
-            // eslint-disable-next-line camelcase
-            ci_high: metricData?.ci_high ?? 'N/A',
-            // eslint-disable-next-line camelcase
-            ci_low: metricData?.ci_low ?? 'N/A',
           };
         };
 
         // Build metrics object with all available metrics
-        const metrics: Record<
-          string,
-          { mean: number | string; ci_high: number | string; ci_low: number | string }
-        > = {};
+        const metrics: Record<string, { mean: number | string }> = {};
         metricKeys.forEach((key) => {
           metrics[key] = getMetricObject(key);
         });
@@ -123,6 +129,15 @@ function AutoragLeaderboard(): React.JSX.Element {
           pattern: pattern.name || patternName,
           metrics,
           optimizedMetricValue,
+          chunkingMethod: pattern.settings.chunking.method,
+          chunkingChunkSize: pattern.settings.chunking.chunk_size,
+          chunkingChunkOverlap: pattern.settings.chunking.chunk_overlap,
+          embeddingsModelId: pattern.settings.embedding.model_id,
+          retrievalMethod: pattern.settings.retrieval.method,
+          retrievalNumberOfChunks: pattern.settings.retrieval.number_of_chunks,
+          retrievalSearchMode: pattern.settings.retrieval.search_mode ?? '-',
+          retrievalRankerStrategy: pattern.settings.retrieval.ranker_strategy ?? '-',
+          generationModelId: pattern.settings.generation.model_id,
         };
       },
     );
@@ -170,30 +185,74 @@ function AutoragLeaderboard(): React.JSX.Element {
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
-    // Sort by metric column (index 2+ maps to metricKeys)
-    const metricIndex = activeSortIndex - 2;
-    const metricKey = metricKeys[metricIndex];
-    if (metricKey) {
+
+    // Check if sorting by metric column (indices 2 through 2 + metricKeys.length - 1)
+    const metricStartIndex = 2;
+    const metricEndIndex = metricStartIndex + metricKeys.length - 1;
+    if (activeSortIndex >= metricStartIndex && activeSortIndex <= metricEndIndex) {
+      const metricIndex = activeSortIndex - metricStartIndex;
+      const metricKey = metricKeys[metricIndex];
+      if (metricKey) {
+        return rankedEntries.toSorted((a, b) => {
+          const aVal = a.metrics[metricKey].mean;
+          const bVal = b.metrics[metricKey].mean;
+
+          // N/A always sorts last regardless of direction
+          if (aVal === 'N/A' && bVal === 'N/A') {
+            return 0;
+          }
+          if (aVal === 'N/A') {
+            return 1;
+          }
+          if (bVal === 'N/A') {
+            return -1;
+          }
+
+          // Both are numbers
+          const aNum = typeof aVal === 'number' ? aVal : 0;
+          const bNum = typeof bVal === 'number' ? bVal : 0;
+          const comparison = aNum - bNum;
+          return activeSortDirection === 'asc' ? comparison : -comparison;
+        });
+      }
+    }
+
+    // Settings columns start after metrics
+    const settingsStartIndex = metricStartIndex + metricKeys.length;
+    const settingsColumnIndex = activeSortIndex - settingsStartIndex;
+
+    // Map column index to sorting field
+    const settingsFields = [
+      'chunkingMethod',
+      'chunkingChunkSize',
+      'chunkingChunkOverlap',
+      'embeddingsModelId',
+      'retrievalMethod',
+      'retrievalNumberOfChunks',
+      'retrievalSearchMode',
+      'retrievalRankerStrategy',
+      'generationModelId',
+    ] as const;
+
+    if (settingsColumnIndex >= 0 && settingsColumnIndex < settingsFields.length) {
+      const sortField = settingsFields[settingsColumnIndex];
       return rankedEntries.toSorted((a, b) => {
-        const aVal = a.metrics[metricKey].mean;
-        const bVal = b.metrics[metricKey].mean;
+        const aVal = a[sortField];
+        const bVal = b[sortField];
 
-        // N/A always sorts last regardless of direction
-        if (aVal === 'N/A' && bVal === 'N/A') {
-          return 0;
-        }
-        if (aVal === 'N/A') {
-          return 1;
-        }
-        if (bVal === 'N/A') {
-          return -1;
+        // Handle string sorting
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          const comparison = aVal.localeCompare(bVal);
+          return activeSortDirection === 'asc' ? comparison : -comparison;
         }
 
-        // Both are numbers
-        const aNum = typeof aVal === 'number' ? aVal : 0;
-        const bNum = typeof bVal === 'number' ? bVal : 0;
-        const comparison = aNum - bNum;
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        // Handle number sorting
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          const comparison = aVal - bVal;
+          return activeSortDirection === 'asc' ? comparison : -comparison;
+        }
+
+        return 0;
       });
     }
 
@@ -225,7 +284,7 @@ function AutoragLeaderboard(): React.JSX.Element {
     return <AutoragRunInProgress namespace={namespace!} />;
   }
 
-  // Show loading state with 5 rows and 8 columns
+  // Show loading state with 5 rows and 14 columns
   if (pipelineRunLoading || patternsLoading) {
     return (
       <Table
@@ -235,7 +294,7 @@ function AutoragLeaderboard(): React.JSX.Element {
       >
         <Thead>
           <Tr>
-            {Array.from({ length: 8 }).map((__, colIndex) => (
+            {Array.from({ length: 14 }).map((__, colIndex) => (
               <Th key={colIndex}>
                 <Skeleton />
               </Th>
@@ -245,7 +304,7 @@ function AutoragLeaderboard(): React.JSX.Element {
         <Tbody>
           {Array.from({ length: 5 }).map((__, rowIndex) => (
             <Tr key={rowIndex}>
-              {Array.from({ length: 8 }).map((_, colIndex) => (
+              {Array.from({ length: 14 }).map((_, colIndex) => (
                 <Td key={colIndex}>
                   <Skeleton />
                 </Td>
@@ -283,116 +342,182 @@ function AutoragLeaderboard(): React.JSX.Element {
   }
 
   return (
-    <Table
-      aria-label="AutoRAG Pattern Leaderboard"
-      variant="compact"
-      data-testid="leaderboard-table"
-    >
-      <Thead>
-        <Tr>
-          <Th sort={getSortParams(0)} data-testid="rank-header">
-            Rank
-          </Th>
-          <Th sort={getSortParams(1)} data-testid="pattern-name-header">
-            Pattern name
-          </Th>
-          {metricKeys.map((metricKey, index) => (
-            <React.Fragment key={metricKey}>
-              <Th sort={getSortParams(index + 2)} data-testid={`metric-header-${metricKey}-mean`}>
-                {formatMetricName(metricKey)} (mean)
+    <div style={{ overflowX: 'auto' }}>
+      <Table
+        aria-label="AutoRAG Pattern Leaderboard"
+        variant="compact"
+        data-testid="leaderboard-table"
+      >
+        <Thead>
+          <Tr>
+            <Th sort={getSortParams(0)} data-testid="rank-header">
+              Rank
+            </Th>
+            <Th sort={getSortParams(1)} data-testid="pattern-name-header">
+              Pattern name
+            </Th>
+            {metricKeys.map((metricKey, index) => (
+              <Th
+                key={metricKey}
+                sort={getSortParams(index + 2)}
+                data-testid={`metric-header-${metricKey}`}
+              >
+                Mean {formatMetricName(metricKey)}
                 {metricKey === optimizedMetric ? (
-                  <span data-testid="optimized-indicator"> (optimized)</span>
+                  <span data-testid="optimized-indicator">&nbsp;(optimized)</span>
                 ) : (
                   ''
                 )}
               </Th>
-              <Th data-testid={`metric-header-${metricKey}-ci_high`}>
-                {formatMetricName(metricKey)} (CI high)
-              </Th>
-              <Th data-testid={`metric-header-${metricKey}-ci_low`}>
-                {formatMetricName(metricKey)} (CI low)
-              </Th>
-            </React.Fragment>
-          ))}
-          <Th screenReaderText="Actions" />
-        </Tr>
-      </Thead>
-      <Tbody>
-        {data.map((entry) => (
-          <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-            <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
-              {entry.rank === 1 ? (
-                <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
-                  {entry.rank}
-                </Label>
-              ) : (
-                entry.rank
-              )}
-            </Td>
-            <Td dataLabel="Pattern" data-testid={`pattern-name-${entry.rank}`}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => handleViewDetails(entry.pattern)}
-                data-testid={`pattern-link-${entry.rank}`}
-              >
-                {entry.pattern}
-              </Button>
-            </Td>
-            {metricKeys.map((metricKey) => (
-              <React.Fragment key={metricKey}>
+            ))}
+            <Th sort={getSortParams(2 + metricKeys.length)} data-testid="chunking-method-header">
+              Chunking method
+            </Th>
+            <Th
+              sort={getSortParams(3 + metricKeys.length)}
+              data-testid="chunking-chunk-size-header"
+            >
+              Chunking chunk size
+            </Th>
+            <Th
+              sort={getSortParams(4 + metricKeys.length)}
+              data-testid="chunking-chunk-overlap-header"
+            >
+              Chunking chunk overlap
+            </Th>
+            <Th
+              sort={getSortParams(5 + metricKeys.length)}
+              data-testid="embeddings-model-id-header"
+            >
+              Embeddings model ID
+            </Th>
+            <Th sort={getSortParams(6 + metricKeys.length)} data-testid="retrieval-method-header">
+              Retrieval method
+            </Th>
+            <Th
+              sort={getSortParams(7 + metricKeys.length)}
+              data-testid="retrieval-number-of-chunks-header"
+            >
+              Retrieval number of chunks
+            </Th>
+            <Th
+              sort={getSortParams(8 + metricKeys.length)}
+              data-testid="retrieval-search-mode-header"
+            >
+              Retrieval search mode
+            </Th>
+            <Th
+              sort={getSortParams(9 + metricKeys.length)}
+              data-testid="retrieval-ranker-strategy-header"
+            >
+              Retrieval ranker strategy
+            </Th>
+            <Th
+              sort={getSortParams(10 + metricKeys.length)}
+              data-testid="generation-model-id-header"
+            >
+              Generation model ID
+            </Th>
+            <Th screenReaderText="Actions" />
+          </Tr>
+        </Thead>
+        <Tbody>
+          {data.map((entry) => (
+            <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+                {entry.rank === 1 ? (
+                  <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
+                    {entry.rank}
+                  </Label>
+                ) : (
+                  entry.rank
+                )}
+              </Td>
+              <Td dataLabel="Pattern" data-testid={`pattern-name-${entry.rank}`}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => handleViewDetails(entry.pattern)}
+                  data-testid={`pattern-link-${entry.rank}`}
+                >
+                  {entry.pattern}
+                </Button>
+              </Td>
+              {metricKeys.map((metricKey) => (
                 <Td
-                  dataLabel={`${formatMetricName(metricKey)} (mean)`}
-                  data-testid={`metric-${metricKey}-mean-${entry.rank}`}
+                  key={metricKey}
+                  dataLabel={`Mean ${formatMetricName(metricKey)}`}
+                  data-testid={`metric-${metricKey}-${entry.rank}`}
                 >
                   <Tooltip content={String(entry.metrics[metricKey].mean)}>
                     <span>{formatMetricValue(entry.metrics[metricKey].mean)}</span>
                   </Tooltip>
                 </Td>
-                <Td
-                  dataLabel={`${formatMetricName(metricKey)} (CI high)`}
-                  data-testid={`metric-${metricKey}-ci_high-${entry.rank}`}
-                >
-                  <Tooltip content={String(entry.metrics[metricKey].ci_high)}>
-                    <span>{formatMetricValue(entry.metrics[metricKey].ci_high)}</span>
-                  </Tooltip>
-                </Td>
-                <Td
-                  dataLabel={`${formatMetricName(metricKey)} (CI low)`}
-                  data-testid={`metric-${metricKey}-ci_low-${entry.rank}`}
-                >
-                  <Tooltip content={String(entry.metrics[metricKey].ci_low)}>
-                    <span>{formatMetricValue(entry.metrics[metricKey].ci_low)}</span>
-                  </Tooltip>
-                </Td>
-              </React.Fragment>
-            ))}
-            <Td isActionCell>
-              <ActionsColumn
-                items={[
-                  {
-                    title: 'View details',
-                    onClick: () => handleViewDetails(entry.pattern),
-                  },
-                  {
-                    title: 'Register pattern',
-                    onClick: () => {
-                      // TODO: Implement register pattern
+              ))}
+              <Td dataLabel="Chunking method" data-testid={`chunking-method-${entry.rank}`}>
+                {entry.chunkingMethod}
+              </Td>
+              <Td dataLabel="Chunking chunk size" data-testid={`chunking-chunk-size-${entry.rank}`}>
+                {entry.chunkingChunkSize}
+              </Td>
+              <Td
+                dataLabel="Chunking chunk overlap"
+                data-testid={`chunking-chunk-overlap-${entry.rank}`}
+              >
+                {entry.chunkingChunkOverlap}
+              </Td>
+              <Td dataLabel="Embeddings model ID" data-testid={`embeddings-model-id-${entry.rank}`}>
+                <Tooltip content={entry.embeddingsModelId}>
+                  <span>{getModelIdShortName(entry.embeddingsModelId)}</span>
+                </Tooltip>
+              </Td>
+              <Td dataLabel="Retrieval method" data-testid={`retrieval-method-${entry.rank}`}>
+                {entry.retrievalMethod}
+              </Td>
+              <Td
+                dataLabel="Retrieval number of chunks"
+                data-testid={`retrieval-number-of-chunks-${entry.rank}`}
+              >
+                {entry.retrievalNumberOfChunks}
+              </Td>
+              <Td
+                dataLabel="Retrieval search mode"
+                data-testid={`retrieval-search-mode-${entry.rank}`}
+              >
+                {entry.retrievalSearchMode}
+              </Td>
+              <Td
+                dataLabel="Retrieval ranker strategy"
+                data-testid={`retrieval-ranker-strategy-${entry.rank}`}
+              >
+                {entry.retrievalRankerStrategy}
+              </Td>
+              <Td dataLabel="Generation model ID" data-testid={`generation-model-id-${entry.rank}`}>
+                <Tooltip content={entry.generationModelId}>
+                  <span>{getModelIdShortName(entry.generationModelId)}</span>
+                </Tooltip>
+              </Td>
+              <Td isActionCell>
+                <ActionsColumn
+                  items={[
+                    {
+                      title: 'View details',
+                      onClick: () => handleViewDetails(entry.pattern),
                     },
-                  },
-                  {
-                    title: 'Save notebook',
-                    onClick: () => {
-                      // TODO: Implement save notebook
+                    {
+                      title: 'Save notebook',
+                      onClick: () => {
+                        // TODO: Implement save notebook
+                      },
                     },
-                  },
-                ]}
-              />
-            </Td>
-          </Tr>
-        ))}
-      </Tbody>
-    </Table>
+                  ]}
+                />
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { AutoRAGPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 
 const basePattern = {
   max_combinations: 20,
@@ -7,7 +7,18 @@ const basePattern = {
   settings: {
     vector_store: { datasource_type: 'ls_milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
-    embedding: { model_id: 'mock-embed-a', distance_metric: 'cosine' },
+    embedding: {
+      model_id: 'mock-embed-a',
+      distance_metric: 'cosine',
+      embedding_params: {
+        embedding_dimension: 768,
+        context_length: 512,
+        timeout: null,
+        model_type: null,
+        provider_id: null,
+        provider_resource_id: null,
+      },
+    },
     retrieval: { method: 'window', number_of_chunks: 5 },
     generation: {
       model_id: '',
@@ -40,7 +51,7 @@ const seededRandom = (seed: number): number => {
   return x - Math.floor(x);
 };
 
-const makePattern = (index: number, modelId: string): AutoRAGPattern => {
+const makePattern = (index: number, modelId: string): AutoragPattern => {
   // Generate deterministic values based on index
   const finalScore = 0.4 + seededRandom(index * 3) * 0.4;
   const acMean = 0.4 + seededRandom(index * 3 + 1) * 0.4;
@@ -77,7 +88,7 @@ const makePattern = (index: number, modelId: string): AutoRAGPattern => {
   };
 };
 
-export const mockAutoRAGPatterns: AutoRAGPattern[] = [
+export const mockAutoragPatterns: AutoragPattern[] = [
   makePattern(0, models[0]),
   makePattern(1, models[0]),
   makePattern(2, models[0]),

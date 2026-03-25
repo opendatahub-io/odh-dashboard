@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
-import type { AutoragPattern } from '~/app/context/AutoragResultsContext';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 

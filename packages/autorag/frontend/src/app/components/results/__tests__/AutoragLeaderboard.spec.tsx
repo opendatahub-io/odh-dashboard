@@ -4,7 +4,8 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutoragLeaderboard from '~/app/components/results/AutoragLeaderboard';
-import { AutoragResultsContext, type AutoragPattern } from '~/app/context/AutoragResultsContext';
+import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
@@ -229,15 +230,15 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
-      expect(screen.getByTestId('metric-header-faithfulness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
 
       // For faithfulness optimization, faithfulness should be marked as optimized
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
       expect(faithfulnessHeader).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
@@ -253,8 +254,8 @@ describe('AutoragLeaderboard utility functions', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      expect(screen.getByTestId('metric-header-custom_metric-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-another_test_metric-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-custom_metric')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-another_test_metric')).toBeInTheDocument();
     });
   });
 
@@ -270,7 +271,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Value should be formatted to 3 decimal places
-      const metricCell = screen.getByTestId('metric-faithfulness-mean-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-1');
       expect(metricCell).toHaveTextContent('0.954');
     });
 
@@ -281,7 +282,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Very small values should use scientific notation
-      const faithfulnessCell = screen.getByTestId('metric-faithfulness-mean-1');
+      const faithfulnessCell = screen.getByTestId('metric-faithfulness-1');
       expect(faithfulnessCell.textContent).toMatch(/1\.230e-5|1\.23e-5/);
     });
   });
@@ -517,7 +518,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
@@ -530,7 +531,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
 
-      const header = screen.getByTestId('metric-header-answer_correctness-mean');
+      const header = screen.getByTestId('metric-header-answer_correctness');
       expect(within(header).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
@@ -540,7 +541,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-mean');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
       expect(
         within(answerCorrectnessHeader).queryByTestId('optimized-indicator'),
       ).not.toBeInTheDocument();
@@ -590,7 +591,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-mean');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
       const sortButton = within(answerCorrectnessHeader).getByRole('button');
 
       fireEvent.click(sortButton);
@@ -637,25 +638,13 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      // Check that all metric headers are present (mean, ci_high, ci_low for each)
-      expect(screen.getByTestId('metric-header-faithfulness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness-ci_low')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness-ci_low')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness-ci_low')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy-ci_low')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision-ci_low')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall-mean')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall-ci_high')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall-ci_low')).toBeInTheDocument();
+      // Check that all metric headers are present (only mean values)
+      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
     });
 
     it('should display metric values with tooltip showing full precision', () => {
@@ -666,7 +655,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const metricCell = screen.getByTestId('metric-faithfulness-mean-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-1');
       expect(metricCell).toHaveTextContent('0.954');
 
       // Tooltip should show full value

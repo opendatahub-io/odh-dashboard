@@ -6,8 +6,8 @@ import {
   AutoragResultsContext,
   useAutoragResultsContext,
   getAutoragContext,
-  type AutoragPattern,
 } from '~/app/context/AutoragResultsContext';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 
 // ============================================================================

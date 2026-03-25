@@ -1,7 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
-import type { AutoragPattern } from '~/app/context/AutoragResultsContext';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 type UseAutoragResultsReturn = {
