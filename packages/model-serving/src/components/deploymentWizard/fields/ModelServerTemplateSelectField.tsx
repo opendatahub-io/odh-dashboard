@@ -379,6 +379,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       ) : (
         <>
           <Radio
+            data-testid="model-server-auto-select-radio"
             name="horizontal-inline-radio"
             label={`Auto-select the best ${label.toLocaleLowerCase()} for my model based on model type, model format, and hardware profile`}
             id="horizontal-inline-radio-01"
@@ -387,13 +388,18 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             onChange={() => setData({ ...data, autoSelect: true, selection: data?.suggestion })}
             body={
               data?.autoSelect && data.suggestion ? (
-                <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  data-testid="model-server-auto-select-suggestion"
+                >
                   <OptionDropdownLabel option={data.suggestion} />
                 </Flex>
               ) : null
             }
           />
           <Radio
+            data-testid="model-server-manual-select-radio"
             name="horizontal-inline-radio"
             label={`Select from a list of ${label.toLocaleLowerCase()}s, including custom ones`}
             id="horizontal-inline-radio-02"
