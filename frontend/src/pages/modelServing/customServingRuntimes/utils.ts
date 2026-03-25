@@ -156,8 +156,7 @@ export const findTemplateByName = (
 ): TemplateKind | undefined =>
   templates.find(
     (t) =>
-      getServingRuntimeNameFromTemplate(t) === templateName ||
-      t.metadata.name === templateName,
+      getServingRuntimeNameFromTemplate(t) === templateName || t.metadata.name === templateName,
   );
 
 export const isTemplateKind = (
