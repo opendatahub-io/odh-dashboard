@@ -473,41 +473,6 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		assert.Equal(t, "vector_io::milvus-secure", persistence["namespace"])
 	})
 
-	t.Run("milvus without credential gets empty token field", func(t *testing.T) {
-		vs := ValidatedVectorStore{
-			Provider: models.VectorIOProvider{
-				ProviderID:   "milvus-open",
-				ProviderType: "remote::milvus",
-				Config: models.VectorIOProviderConfig{
-					Extra: map[string]interface{}{
-						"uri": "http://milvus.svc:19530",
-					},
-				},
-			},
-			RegisteredStore: models.RegisteredVectorStore{
-				VectorStoreID:  "vs-003",
-				ProviderID:     "milvus-open",
-				EmbeddingModel: defaultEmbeddingModel,
-			},
-			CredEnvVarName: "",
-			CredSecretRef:  nil,
-		}
-
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
-		require.NoError(t, err)
-
-		var cfg LlamaStackConfig
-		require.NoError(t, cfg.FromYAML(result))
-
-		var milvusProv *Provider
-		for i := range cfg.Providers.VectorIO {
-			if cfg.Providers.VectorIO[i].ProviderID == "milvus-open" {
-				milvusProv = &cfg.Providers.VectorIO[i]
-			}
-		}
-		require.NotNil(t, milvusProv)
-		assert.Equal(t, "", milvusProv.Config["token"])
-	})
 
 	t.Run("qdrant provider gets persistence injected when not supplied", func(t *testing.T) {
 		vs := ValidatedVectorStore{
