@@ -89,7 +89,9 @@ export const handleConnectionCreation = async (
     modelLocationData.fieldValues,
   );
 
-  // Apply annotations
+  // Apply annotations. When saveConnection is unchecked, mark the connection
+  // hidden from the UI while keeping the dashboard label 'true' so the
+  // model-serving controller still includes the secret in storage-config.
   const annotatedConnection = {
     ...newConnection,
     metadata: {
@@ -98,17 +100,14 @@ export const handleConnectionCreation = async (
       annotations: {
         ...newConnection.metadata.annotations,
         'opendatahub.io/connection-type-protocol': protocolType,
+        ...(!createConnectionData.saveConnection && {
+          'opendatahub.io/connection-hidden': 'true',
+        }),
       },
     },
   };
   if (!description || description === '') {
     delete annotatedConnection.metadata.annotations['openshift.io/description'];
-  }
-
-  // If not saving as connection
-  if (!createConnectionData.saveConnection) {
-    // Remove dashboard resource label so it doesn't show in connections list
-    annotatedConnection.metadata.labels['opendatahub.io/dashboard'] = 'false';
   }
 
   if (dryRun) {
