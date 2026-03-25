@@ -12,11 +12,7 @@ export const mockDsciStatus = ({
   conditions = [],
   requiredCapabilities = [],
   phase = 'Ready',
-  monitoringNamespace = 'opendatahub',
 }: MockDsciStatus): DataScienceClusterInitializationKindStatus => ({
-  monitoring: {
-    namespace: monitoringNamespace,
-  },
   conditions: [
     ...[
       {

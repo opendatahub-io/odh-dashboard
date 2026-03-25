@@ -10,9 +10,7 @@ The ODH Dashboard uses [Perses](https://perses.dev/) dashboards for observabilit
 
 ### Resource Location
 
-Dashboard resources **must** be created in the product namespace (e.g., `opendatahub`).
-
-The UI fetches dashboards via the Perses API provided by the Perses service and automatically loads them.
+Dashboard resources can be created in any Perses project. The UI fetches all dashboards via the global Perses API (`/api/v1/dashboards`) and automatically loads them. Dashboards are filtered by name prefix and admin status regardless of which project they belong to.
 
 ### File Location
 

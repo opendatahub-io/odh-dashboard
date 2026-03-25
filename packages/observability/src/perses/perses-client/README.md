@@ -38,7 +38,7 @@ configurations from a Perses server, you need this client code.
   - Build proxy URLs for datasource queries (`/perses/api/proxy/...`)
   - Fetch datasources and global datasources through the ODH backend proxy
 - **`odhPersesFetchJson` function** (`perses-client.ts`): Wrapper around Perses `fetchJson` for ODH-specific fetch handling
-- **`fetchProjectDashboards` function** (`perses-client.ts`): Helper to fetch all dashboards for a specific project
+- **`fetchPersesDashboardsMetadata` function** (`perses-client.ts`): Helper to fetch all dashboards
 
 ## Future
 
