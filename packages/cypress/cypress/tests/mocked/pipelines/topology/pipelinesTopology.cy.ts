@@ -306,6 +306,14 @@ describe('Pipeline topology', () => {
       pipelineDetails.selectActionDropdownItem('Upload new version');
       pipelineVersionImportModal.findImportPipelineRadio().check();
       pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+      // Mock the duplicate name check for the version import modal
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+        {
+          path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id },
+        },
+        buildMockPipelineVersions([]),
+      );
       cy.interceptOdh(
         'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
         {

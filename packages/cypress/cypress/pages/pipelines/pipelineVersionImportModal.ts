@@ -90,13 +90,12 @@ class PipelineImportModal extends Modal {
 
   submit(): void {
     // Wait for file upload/validation to complete (button no longer in progress state)
-    // Use longer timeout for file upload processing - wait up to 60 seconds for progress to complete
-    // Wait for progress class to be removed
+    // Wait for progress class to be removed (60s timeout for file upload processing)
     cy.get('[data-testid="modal-submit-button"].pf-m-progress', { timeout: 60000 }).should(
       'not.exist',
     );
     // Then click the enabled button
-    cy.findByTestId('modal-submit-button').should('be.enabled').click();
+    this.findSubmitButton().should('be.enabled').click();
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {
