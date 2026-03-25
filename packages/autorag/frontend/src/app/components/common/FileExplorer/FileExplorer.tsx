@@ -38,7 +38,6 @@ import {
   ModalFooter,
   ModalHeader,
   Pagination,
-  PaginationVariant,
   type PaginationProps,
   SearchInput,
   Skeleton,
@@ -106,7 +105,10 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
 const defaults = {
   labels: {
     modalTitle: 'Select documents from connections',
-    modalDescription: 'Select which files to use for your data collection and evaluation sources',
+    modalDescription: (sourceName?: string) =>
+      sourceName
+        ? `Viewing files from: ${sourceName}`
+        : 'Select which files to use for your data collection and evaluation sources',
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
 
@@ -117,7 +119,8 @@ const defaults = {
     noSourcesMessage: 'No source of documents provided',
 
     searchAriaLabel: 'Search input to find by name',
-    searchPlaceholder: 'Find by name',
+    searchPlaceholder: (folderName?: string) =>
+      folderName ? `Search within '${folderName}'` : 'Find by name',
 
     tableAriaLabel: 'Files table',
     tableColumnName: 'Name',
@@ -224,11 +227,7 @@ interface FilesTableProps {
   onDirectoryClick?: (directory: Directory) => void;
   onViewDetails?: (file: File) => void;
   loading?: boolean;
-  page?: number;
   perPage?: number;
-  itemCount?: number;
-  onSetPage?: (page: number) => void;
-  onPerPageSelect?: (perPage: number) => void;
 }
 const FilesTable: React.FC<FilesTableProps> = ({
   files,
@@ -238,26 +237,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
   onDirectoryClick,
   onViewDetails,
   loading,
-  page = 1,
   perPage = 100,
-  itemCount,
-  onSetPage,
-  onPerPageSelect,
 }) => {
-  const isIndeterminate = itemCount === undefined;
-  const fileCount = Array.isArray(files) ? files.length : 0;
-  // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
-  // If the current page is full, assume there's at least one more page (+1 keeps "next" enabled).
-  const syntheticItemCount = isIndeterminate
-    ? (page - 1) * perPage + fileCount + (fileCount >= perPage ? 1 : 0)
-    : itemCount;
-
-  const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};
-  if (isIndeterminate) {
-    extraPaginationProps.toggleTemplate = ({ firstIndex = 0, lastIndex = 0 }) =>
-      defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
-  }
-
   const columns: Record<string, Column> = {
     select: {
       id: 'select',
@@ -409,19 +390,6 @@ const FilesTable: React.FC<FilesTableProps> = ({
               ).elements}
           </Tbody>
         </Table>
-        <Pagination
-          widgetId="FileExplorer-table-pagination"
-          itemCount={syntheticItemCount}
-          perPage={perPage}
-          page={page}
-          onSetPage={(_event, newPage) => onSetPage?.(newPage)}
-          onPerPageSelect={(_event, newPerPage) => onPerPageSelect?.(newPerPage)}
-          isSticky
-          isDisabled={loading}
-          variant={PaginationVariant.bottom}
-          isCompact
-          {...extraPaginationProps}
-        />
       </InnerScrollContainer>
     </OuterScrollContainer>
   );
@@ -460,12 +428,12 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
     return (
       <Breadcrumb>
         <BreadcrumbItem>{rootLabel}</BreadcrumbItem>
-        <BreadcrumbItem>
-          <Skeleton width="120px" height="1em" />
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <Skeleton width="80px" height="1em" />
-        </BreadcrumbItem>
+        {dirs.length > 0 &&
+          dirs.map((dir) => (
+            <BreadcrumbItem key={dir.path}>
+              <Skeleton width="120px" height="1em" />
+            </BreadcrumbItem>
+          ))}
       </Breadcrumb>
     );
   }
@@ -794,11 +762,26 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     setSearchQuery('');
   };
 
+  const isIndeterminate = itemCount === undefined;
+  const fileCount = Array.isArray(files) ? files.length : 0;
+  const currentPerPage = perPage ?? 100;
+  const currentPage = page ?? 1;
+  // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
+  // If the current page is full, assume there's at least one more page (+1 keeps "next" enabled).
+  const syntheticItemCount = isIndeterminate
+    ? (currentPage - 1) * currentPerPage + fileCount + (fileCount >= currentPerPage ? 1 : 0)
+    : itemCount;
+
+  const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};
+  if (isIndeterminate) {
+    extraPaginationProps.toggleTemplate = ({ firstIndex = 0, lastIndex = 0 }) =>
+      defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
+  }
+
   const rowHeight = 37.8;
   const headerHeight = 38;
-  const paginationHeight = 53;
   const numberOfRowsToShow = 10;
-  const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight + paginationHeight;
+  const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight;
 
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
@@ -816,7 +799,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
-        description={defaults.labels.modalDescription}
+        description={defaults.labels.modalDescription(source?.name)}
         labelId="FileExplorer-modal-title"
       />
       <ModalBody id="FileExplorer-modal-body">
@@ -824,24 +807,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <FlexItem>
             <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
           </FlexItem>
-          <FlexItem className="pf-v6-u-w-50">
-            <SearchInput
-              id="FileExplorer-search-input"
-              aria-label={defaults.labels.searchAriaLabel}
-              placeholder={defaults.labels.searchPlaceholder}
-              value={searchQuery}
-              onChange={(_event, value) => {
-                setSearchQuery(value);
-                onSearch?.(value);
-              }}
-              onClear={() => {
-                setSearchQuery('');
-                onSearch?.('');
-              }}
-              resultsCount={searchResultsCount}
-            />
-          </FlexItem>
-          <FlexItem>
+          <FlexItem className="pf-v6-u-mb-md">
             <PathBreadcrumbs
               directories={directories}
               source={source}
@@ -849,6 +815,45 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               onNavigateRoot={onNavigateRoot}
               loading={loading}
             />
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem grow={{ default: 'grow' }}>
+                <SearchInput
+                  id="FileExplorer-search-input"
+                  className="pf-v6-u-w-50"
+                  aria-label={defaults.labels.searchAriaLabel}
+                  placeholder={defaults.labels.searchPlaceholder(
+                    directories && directories.length > 0
+                      ? directories[directories.length - 1].name
+                      : source?.name,
+                  )}
+                  value={searchQuery}
+                  onChange={(_event, value) => {
+                    setSearchQuery(value);
+                    onSearch?.(value);
+                  }}
+                  onClear={() => {
+                    setSearchQuery('');
+                    onSearch?.('');
+                  }}
+                  resultsCount={searchResultsCount}
+                />
+              </FlexItem>
+              <FlexItem>
+                <Pagination
+                  widgetId="FileExplorer-table-pagination"
+                  itemCount={syntheticItemCount}
+                  perPage={currentPerPage}
+                  page={currentPage}
+                  onSetPage={(_event, newPage) => onSetPage?.(newPage)}
+                  onPerPageSelect={(_event, newPerPage) => onPerPageSelect?.(newPerPage)}
+                  isDisabled={loading}
+                  isCompact
+                  {...extraPaginationProps}
+                />
+              </FlexItem>
+            </Flex>
           </FlexItem>
           <FlexItem>
             <Grid hasGutter>
@@ -864,11 +869,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   onDirectoryClick={onDirectoryClick}
                   onViewDetails={(file) => setFilesToView([file])}
                   loading={loading}
-                  page={page}
-                  perPage={perPage}
-                  itemCount={itemCount}
-                  onSetPage={onSetPage}
-                  onPerPageSelect={onPerPageSelect}
+                  perPage={currentPerPage}
                 />
               </GridItem>
               {shouldRenderDetails.panel && (
