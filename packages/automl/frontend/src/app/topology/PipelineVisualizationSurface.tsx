@@ -27,25 +27,26 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   const [error, setError] = React.useState<Error | null>();
 
   React.useEffect(() => {
-    const currentModel = controller.toModel();
-    const updateNodes = nodes.map((node) => {
-      const currentNode = currentModel.nodes?.find((n) => n.id === node.id);
-      if (currentNode) {
-        return { ...node, collapsed: currentNode.collapsed };
-      }
-      return node;
-    });
-
-    const renderNodes = addSpacerNodes(updateNodes);
-    const edges = getEdgesFromNodes(renderNodes);
-
     try {
+      const currentModel = controller.toModel();
+      const updateNodes = nodes.map((node) => {
+        const currentNode = currentModel.nodes?.find((n) => n.id === node.id);
+        if (currentNode) {
+          return { ...node, collapsed: currentNode.collapsed };
+        }
+        return node;
+      });
+
+      const renderNodes = addSpacerNodes(updateNodes);
+      const edges = getEdgesFromNodes(renderNodes);
+
       controller.fromModel({ nodes: renderNodes, edges }, true);
       setError(null);
     } catch (e) {
       if (e instanceof Error) {
         setError(e);
       }
+      controller.fromModel({ nodes: [], edges: [] }, true);
     }
   }, [controller, nodes]);
 

@@ -20,8 +20,11 @@ import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProg
 type LeaderboardEntry = {
   rank: number;
   pattern: string;
-  metrics: Record<string, { mean: number; ci_high: number; ci_low: number }>;
-  optimizedMetricValue: number;
+  metrics: Record<
+    string,
+    { mean: number | string; ci_high: number | string; ci_low: number | string }
+  >;
+  optimizedMetricValue: number | string;
 };
 
 // Helper function to format metric names for display
@@ -50,7 +53,10 @@ const formatMetricName = (metricKey: string): string => {
 };
 
 // Helper function to format metric values for display
-const formatMetricValue = (value: number): string => {
+const formatMetricValue = (value: number | string): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
   // If the value would round to 0.000, use scientific notation
   const fixed = value.toFixed(3);
   if (fixed === '0.000' || fixed === '-0.000') {
@@ -93,16 +99,19 @@ function AutoragLeaderboard(): React.JSX.Element {
         const getMetricObject = (metricName: string) => {
           const metricData = pattern.scoring[metricName];
           return {
-            mean: metricData?.mean ?? 0,
+            mean: metricData?.mean ?? 'N/A',
             // eslint-disable-next-line camelcase
-            ci_high: metricData?.ci_high ?? 0,
+            ci_high: metricData?.ci_high ?? 'N/A',
             // eslint-disable-next-line camelcase
-            ci_low: metricData?.ci_low ?? 0,
+            ci_low: metricData?.ci_low ?? 'N/A',
           };
         };
 
         // Build metrics object with all available metrics
-        const metrics: Record<string, { mean: number; ci_high: number; ci_low: number }> = {};
+        const metrics: Record<
+          string,
+          { mean: number | string; ci_high: number | string; ci_low: number | string }
+        > = {};
         metricKeys.forEach((key) => {
           metrics[key] = getMetricObject(key);
         });
@@ -120,9 +129,26 @@ function AutoragLeaderboard(): React.JSX.Element {
 
     // Initial ranking by optimized metric value
     // All RAG metrics: higher is better (descending sort)
-    const sortedByMetric = entries.toSorted(
-      (a, b) => b.optimizedMetricValue - a.optimizedMetricValue,
-    );
+    const sortedByMetric = entries.toSorted((a, b) => {
+      const aVal = a.optimizedMetricValue;
+      const bVal = b.optimizedMetricValue;
+
+      // N/A always sorts last
+      if (aVal === 'N/A' && bVal === 'N/A') {
+        return 0;
+      }
+      if (aVal === 'N/A') {
+        return 1;
+      }
+      if (bVal === 'N/A') {
+        return -1;
+      }
+
+      // Both are numbers, higher is better
+      const aNum = typeof aVal === 'number' ? aVal : 0;
+      const bNum = typeof bVal === 'number' ? bVal : 0;
+      return bNum - aNum;
+    });
 
     // Assign initial rank
     const rankedEntries = sortedByMetric.map((entry, index) => ({
@@ -149,7 +175,24 @@ function AutoragLeaderboard(): React.JSX.Element {
     const metricKey = metricKeys[metricIndex];
     if (metricKey) {
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.metrics[metricKey].mean - b.metrics[metricKey].mean;
+        const aVal = a.metrics[metricKey].mean;
+        const bVal = b.metrics[metricKey].mean;
+
+        // N/A always sorts last regardless of direction
+        if (aVal === 'N/A' && bVal === 'N/A') {
+          return 0;
+        }
+        if (aVal === 'N/A') {
+          return 1;
+        }
+        if (bVal === 'N/A') {
+          return -1;
+        }
+
+        // Both are numbers
+        const aNum = typeof aVal === 'number' ? aVal : 0;
+        const bNum = typeof bVal === 'number' ? bVal : 0;
+        const comparison = aNum - bNum;
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -183,8 +226,7 @@ function AutoragLeaderboard(): React.JSX.Element {
   }
 
   // Show loading state with 5 rows and 8 columns
-  const hasNoPatterns = Object.keys(patterns).length === 0;
-  if (pipelineRunLoading || patternsLoading || hasNoPatterns) {
+  if (pipelineRunLoading || patternsLoading) {
     return (
       <Table
         aria-label="AutoRAG Pattern Leaderboard"
@@ -210,6 +252,31 @@ function AutoragLeaderboard(): React.JSX.Element {
               ))}
             </Tr>
           ))}
+        </Tbody>
+      </Table>
+    );
+  }
+
+  // Show empty state when no patterns were produced
+  if (Object.keys(patterns).length === 0) {
+    return (
+      <Table
+        aria-label="AutoRAG Pattern Leaderboard"
+        variant="compact"
+        data-testid="leaderboard-empty"
+      >
+        <Thead>
+          <Tr>
+            <Th>No patterns produced</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          <Tr>
+            <Td>
+              The pipeline run completed but did not generate any patterns. Please check the
+              pipeline configuration and logs.
+            </Td>
+          </Tr>
         </Tbody>
       </Table>
     );

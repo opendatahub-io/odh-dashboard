@@ -28,10 +28,18 @@ function AutomlResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
-  const invalidPipelineRunId = pipelineRunError;
+  const invalidPipelineRunId =
+    pipelineRunError &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
+    (pipelineRunLoadError as any)?.response?.status === 404;
 
   // Fetch and process AutoML results using custom hook
-  const { models, isLoading: modelsLoading } = useAutomlResults(runId, namespace, pipelineRun);
+  const {
+    models,
+    isLoading: modelsLoading,
+    isError: modelsError,
+  } = useAutomlResults(runId, namespace, pipelineRun);
+  const modelsLoadError = modelsError ? new Error('Failed to load AutoML results') : undefined;
 
   return (
     <ApplicationsPage
@@ -57,19 +65,21 @@ function AutomlResultsPage(): React.JSX.Element {
           <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
         )
       }
-      loadError={pipelineRunLoadError ?? namespacesLoadError}
+      loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
       loaded={namespacesLoaded && !pipelineRunPending}
     >
-      <AutomlResultsContext.Provider
-        value={getAutomlContext({
-          pipelineRun,
-          models,
-          pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
-          modelsLoading,
-        })}
-      >
-        <AutomlResults />
-      </AutomlResultsContext.Provider>
+      {!modelsError && (
+        <AutomlResultsContext.Provider
+          value={getAutomlContext({
+            pipelineRun,
+            models,
+            pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+            modelsLoading,
+          })}
+        >
+          <AutomlResults />
+        </AutomlResultsContext.Provider>
+      )}
     </ApplicationsPage>
   );
 }

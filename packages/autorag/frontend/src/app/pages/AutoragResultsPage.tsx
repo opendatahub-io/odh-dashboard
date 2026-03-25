@@ -28,10 +28,18 @@ function AutoragResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
-  const invalidPipelineRunId = pipelineRunError;
+  const invalidPipelineRunId =
+    pipelineRunError &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
+    (pipelineRunLoadError as any)?.response?.status === 404;
 
   // Fetch and process AutoRAG results using custom hook
-  const { patterns, isLoading: patternsLoading } = useAutoragResults(runId, namespace, pipelineRun);
+  const {
+    patterns,
+    isLoading: patternsLoading,
+    isError: patternsError,
+  } = useAutoragResults(runId, namespace, pipelineRun);
+  const patternsLoadError = patternsError ? new Error('Failed to load AutoRAG results') : undefined;
 
   return (
     <ApplicationsPage
@@ -57,19 +65,21 @@ function AutoragResultsPage(): React.JSX.Element {
           <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
         )
       }
-      loadError={pipelineRunLoadError ?? namespacesLoadError}
+      loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
       loaded={namespacesLoaded && !pipelineRunPending}
     >
-      <AutoragResultsContext.Provider
-        value={getAutoragContext({
-          pipelineRun,
-          patterns,
-          pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
-          patternsLoading,
-        })}
-      >
-        <AutoragResults />
-      </AutoragResultsContext.Provider>
+      {!patternsError && (
+        <AutoragResultsContext.Provider
+          value={getAutoragContext({
+            pipelineRun,
+            patterns,
+            pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+            patternsLoading,
+          })}
+        >
+          <AutoragResults />
+        </AutoragResultsContext.Provider>
+      )}
     </ApplicationsPage>
   );
 }

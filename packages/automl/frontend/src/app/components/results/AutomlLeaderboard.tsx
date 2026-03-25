@@ -20,8 +20,8 @@ import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgre
 type LeaderboardEntry = {
   rank: number;
   model: string;
-  metrics: Record<string, number>;
-  optimizedMetricValue: number;
+  metrics: Record<string, number | string>;
+  optimizedMetricValue: number | string;
 };
 
 // Helper function to format metric names for display
@@ -53,7 +53,10 @@ const formatMetricName = (metricKey: string): string => {
 };
 
 // Helper function to format metric values for display
-const formatMetricValue = (value: number): string => {
+const formatMetricValue = (value: number | string): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
   // If the value would round to 0.000, use scientific notation
   const fixed = value.toFixed(3);
   if (fixed === '0.000' || fixed === '-0.000') {
@@ -101,19 +104,20 @@ function AutomlLeaderboard(): React.JSX.Element {
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
       // Helper to get metric value from test_data
-      const getMetricValue = (metricName: string): number => {
+      const getMetricValue = (metricName: string): number | string => {
         const value = model.metrics.test_data[metricName];
         if (typeof value === 'number') {
           return value;
         }
         if (typeof value === 'string') {
-          return parseFloat(value) || 0;
+          const parsed = parseFloat(value);
+          return Number.isNaN(parsed) ? 'N/A' : parsed;
         }
-        return 0;
+        return 'N/A';
       };
 
       // Build metrics object with all available metrics
-      const metrics: Record<string, number> = {};
+      const metrics: Record<string, number | string> = {};
       metricKeys.forEach((key) => {
         metrics[key] = getMetricValue(key);
       });
@@ -133,11 +137,28 @@ function AutomlLeaderboard(): React.JSX.Element {
     const errorMetrics = ['smape', 'mse', 'mae', 'rmse', 'mape'];
     const isErrorMetric = errorMetrics.includes(optimizedMetric.toLowerCase());
 
-    const sortedByMetric = isErrorMetric
-      ? // For error metrics, lower is better (ascending sort)
-        entries.toSorted((a, b) => a.optimizedMetricValue - b.optimizedMetricValue)
-      : // For performance metrics, higher is better (descending sort)
-        entries.toSorted((a, b) => b.optimizedMetricValue - a.optimizedMetricValue);
+    const sortedByMetric = entries.toSorted((a, b) => {
+      const aVal = a.optimizedMetricValue;
+      const bVal = b.optimizedMetricValue;
+
+      // N/A always sorts last
+      if (aVal === 'N/A' && bVal === 'N/A') {
+        return 0;
+      }
+      if (aVal === 'N/A') {
+        return 1;
+      }
+      if (bVal === 'N/A') {
+        return -1;
+      }
+
+      // Both are numbers
+      const aNum = typeof aVal === 'number' ? aVal : 0;
+      const bNum = typeof bVal === 'number' ? bVal : 0;
+      return isErrorMetric
+        ? aNum - bNum // Lower is better
+        : bNum - aNum; // Higher is better
+    });
 
     // Assign initial rank
     const rankedEntries = sortedByMetric.map((entry, index) => ({
@@ -164,7 +185,24 @@ function AutomlLeaderboard(): React.JSX.Element {
     const metricKey = metricKeys[metricIndex];
     if (metricKey) {
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.metrics[metricKey] - b.metrics[metricKey];
+        const aVal = a.metrics[metricKey];
+        const bVal = b.metrics[metricKey];
+
+        // N/A always sorts last regardless of direction
+        if (aVal === 'N/A' && bVal === 'N/A') {
+          return 0;
+        }
+        if (aVal === 'N/A') {
+          return 1;
+        }
+        if (bVal === 'N/A') {
+          return -1;
+        }
+
+        // Both are numbers
+        const aNum = typeof aVal === 'number' ? aVal : 0;
+        const bNum = typeof bVal === 'number' ? bVal : 0;
+        const comparison = aNum - bNum;
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -198,8 +236,7 @@ function AutomlLeaderboard(): React.JSX.Element {
   }
 
   // Show loading state with 5 rows and 8 columns
-  const hasNoModels = Object.keys(models).length === 0;
-  if (pipelineRunLoading || modelsLoading || hasNoModels) {
+  if (pipelineRunLoading || modelsLoading) {
     return (
       <Table
         aria-label="AutoML Model Leaderboard"
@@ -225,6 +262,31 @@ function AutomlLeaderboard(): React.JSX.Element {
               ))}
             </Tr>
           ))}
+        </Tbody>
+      </Table>
+    );
+  }
+
+  // Show empty state when no models were produced
+  if (Object.keys(models).length === 0) {
+    return (
+      <Table
+        aria-label="AutoML Model Leaderboard"
+        variant="compact"
+        data-testid="leaderboard-empty"
+      >
+        <Thead>
+          <Tr>
+            <Th>No models produced</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          <Tr>
+            <Td>
+              The pipeline run completed but did not generate any models. Please check the pipeline
+              configuration and logs.
+            </Td>
+          </Tr>
         </Tbody>
       </Table>
     );

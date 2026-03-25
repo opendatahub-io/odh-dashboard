@@ -1,4 +1,5 @@
 import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import * as z from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
@@ -33,6 +34,17 @@ export type ColumnSchema = {
   type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
   values?: (string | number)[];
 };
+
+/**
+ * Zod schema to validate ColumnSchema array shape
+ */
+const ColumnSchemaArraySchema = z.array(
+  z.object({
+    name: z.string(),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    values: z.array(z.union([z.string(), z.number()])).optional(),
+  }),
+);
 
 /**
  * Fetches a file from S3 storage and returns it as a Blob.
@@ -123,18 +135,60 @@ export function useS3GetFileSchemaQuery(
         throw new Error(`Failed to fetch file schema: ${errorMessage}`);
       }
 
-      const data = await response.json();
-      const columns = data?.data?.columns;
+      const result = await response.json();
+      const columns = result?.data?.columns;
+
       if (!Array.isArray(columns)) {
         return [];
       }
-      return columns;
+
+      try {
+        return ColumnSchemaArraySchema.parse(columns);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const issues = error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join(', ');
+          throw new Error(`Invalid column schema response: ${issues}`);
+        }
+        throw error;
+      }
     },
     enabled: Boolean(namespace && secretName && key),
     retry: false,
     placeholderData: [],
   });
 }
+
+/**
+ * Zod schema to validate S3ListObjectsResponse shape
+ */
+/* eslint-disable camelcase */
+const S3ListObjectsResponseSchema = z.object({
+  common_prefixes: z.array(
+    z.object({
+      prefix: z.string(),
+    }),
+  ),
+  contents: z.array(
+    z.object({
+      key: z.string(),
+      size: z.number(),
+      last_modified: z.string().optional(),
+      etag: z.string().optional(),
+      storage_class: z.string().optional(),
+    }),
+  ),
+  is_truncated: z.boolean(),
+  key_count: z.number(),
+  max_keys: z.number(),
+  continuation_token: z.string().optional(),
+  delimiter: z.string().optional(),
+  name: z.string().optional(),
+  next_continuation_token: z.string().optional(),
+  prefix: z.string().optional(),
+});
+/* eslint-enable camelcase */
 
 /**
  * Fetches a list of files/folders from S3 storage.
@@ -165,7 +219,19 @@ export async function fetchS3Files(
   }
 
   const result = await response.json();
-  return result?.data || result;
+  const data = result?.data || result;
+
+  try {
+    return S3ListObjectsResponseSchema.parse(data);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
+    }
+    throw error;
+  }
 }
 
 export function useS3ListFilesQuery(

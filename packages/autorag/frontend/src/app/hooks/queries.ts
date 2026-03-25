@@ -82,6 +82,36 @@ export async function fetchS3File(
 }
 
 /**
+ * Zod schema to validate S3ListObjectsResponse shape
+ */
+/* eslint-disable camelcase */
+const S3ListObjectsResponseSchema = z.object({
+  common_prefixes: z.array(
+    z.object({
+      prefix: z.string(),
+    }),
+  ),
+  contents: z.array(
+    z.object({
+      key: z.string(),
+      size: z.number(),
+      last_modified: z.string().optional(),
+      etag: z.string().optional(),
+      storage_class: z.string().optional(),
+    }),
+  ),
+  is_truncated: z.boolean(),
+  key_count: z.number(),
+  max_keys: z.number(),
+  continuation_token: z.string().optional(),
+  delimiter: z.string().optional(),
+  name: z.string().optional(),
+  next_continuation_token: z.string().optional(),
+  prefix: z.string().optional(),
+});
+/* eslint-enable camelcase */
+
+/**
  * Fetches a list of files/folders from S3 storage.
  * This is a utility function that can be used in both hooks and query functions.
  */
@@ -110,7 +140,19 @@ export async function fetchS3Files(
   }
 
   const result = await response.json();
-  return result?.data || result;
+  const data = result?.data || result;
+
+  try {
+    return S3ListObjectsResponseSchema.parse(data);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
+    }
+    throw error;
+  }
 }
 
 export function useS3ListFilesQuery(

@@ -42,7 +42,11 @@ export function useAutomlResults(
   const generatedModelsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
-  const { data: s3Files } = useS3ListFilesQuery(namespace, generatedModelsPath);
+  const {
+    data: s3Files,
+    isLoading: isS3Loading,
+    isError: isS3Error,
+  } = useS3ListFilesQuery(namespace, generatedModelsPath);
 
   // Step 2: Fetch model artifact directories from each common prefix
   const modelArtifactQueries = useQueries({
@@ -100,7 +104,16 @@ export function useAutomlResults(
           const blob = await fetchS3File(namespace, metricsPath);
           const text = await blob.text();
           const data = JSON.parse(text);
-          return data?.data?.columns || data;
+          const metricsData = data?.data?.columns || data;
+
+          // Validate that metricsData is a non-null object
+          if (!metricsData || typeof metricsData !== 'object' || Array.isArray(metricsData)) {
+            throw new Error(
+              `Invalid metrics data structure in ${metricsPath}: expected object, got ${typeof metricsData}`,
+            );
+          }
+
+          return metricsData;
         },
         enabled: Boolean(
           namespace && modelDirectories.length > 0 && !modelArtifactQueries.isPending,
@@ -130,6 +143,15 @@ export function useAutomlResults(
 
     modelDirectories.forEach((model, index) => {
       const metricsData = metricsQueries.data[index];
+
+      // Defensive validation: skip models with invalid metrics data
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!metricsData || typeof metricsData !== 'object' || Array.isArray(metricsData)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Skipping model ${model.name}: invalid metrics data structure`);
+        return;
+      }
+
       /* eslint-disable camelcase */
       const evalMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
       results[model.name] = {
@@ -154,7 +176,7 @@ export function useAutomlResults(
 
   return {
     models,
-    isLoading: modelArtifactQueries.isPending || metricsQueries.isPending,
-    isError: modelArtifactQueries.isError || metricsQueries.isError,
+    isLoading: isS3Loading || modelArtifactQueries.isPending || metricsQueries.isPending,
+    isError: isS3Error || modelArtifactQueries.isError || metricsQueries.isError,
   };
 }

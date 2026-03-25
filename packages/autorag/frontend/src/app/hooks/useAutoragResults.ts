@@ -36,7 +36,11 @@ export function useAutoragResults(
   const generatedPatternsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${patternGenerationDir}`
     : undefined;
-  const { data: s3Files } = useS3ListFilesQuery(namespace, generatedPatternsPath);
+  const {
+    data: s3Files,
+    isLoading: isS3Loading,
+    isError: isS3Error,
+  } = useS3ListFilesQuery(namespace, generatedPatternsPath);
 
   // Step 2: Fetch pattern artifact directories from each common prefix
   const patternArtifactQueries = useQueries({
@@ -94,7 +98,33 @@ export function useAutoragResults(
           const blob = await fetchS3File(namespace, metricsPath);
           const text = await blob.text();
           const data = JSON.parse(text);
-          return data?.data?.columns || data;
+          const patternData = data?.data?.columns || data;
+
+          // Validate that patternData is a non-null object with required AutoragPattern fields
+          if (!patternData || typeof patternData !== 'object' || Array.isArray(patternData)) {
+            throw new Error(
+              `Invalid pattern data structure in ${metricsPath}: expected object, got ${typeof patternData}`,
+            );
+          }
+
+          // Validate required fields for AutoragPattern
+          const required = [
+            'name',
+            'iteration',
+            'max_combinations',
+            'duration_seconds',
+            'settings',
+            'scoring',
+          ];
+          const missing = required.filter((field) => !(field in patternData));
+          if (missing.length > 0) {
+            throw new Error(
+              `Invalid pattern data in ${metricsPath}: missing required fields: ${missing.join(', ')}`,
+            );
+          }
+
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          return patternData as AutoragPattern;
         },
         enabled: Boolean(
           namespace && patternDirectories.length > 0 && !patternArtifactQueries.isPending,
@@ -123,6 +153,34 @@ export function useAutoragResults(
 
     patternDirectories.forEach((pattern, index) => {
       const patternData = metricsQueries.data[index];
+
+      // Defensive validation: skip patterns with invalid data structure
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!patternData || typeof patternData !== 'object' || Array.isArray(patternData)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Skipping pattern ${pattern.name}: invalid data structure`);
+        return;
+      }
+
+      // Defensive validation: check required fields
+      const required = [
+        'name',
+        'iteration',
+        'max_combinations',
+        'duration_seconds',
+        'settings',
+        'scoring',
+      ];
+      const missing = required.filter((field) => !(field in patternData));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (missing.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Skipping pattern ${pattern.name}: missing required fields: ${missing.join(', ')}`,
+        );
+        return;
+      }
+
       // S3 data already matches AutoragPattern schema
       results[pattern.name] = patternData;
     });
@@ -132,7 +190,7 @@ export function useAutoragResults(
 
   return {
     patterns,
-    isLoading: patternArtifactQueries.isPending || metricsQueries.isPending,
-    isError: patternArtifactQueries.isError || metricsQueries.isError,
+    isLoading: isS3Loading || patternArtifactQueries.isPending || metricsQueries.isPending,
+    isError: isS3Error || patternArtifactQueries.isError || metricsQueries.isError,
   };
 }
