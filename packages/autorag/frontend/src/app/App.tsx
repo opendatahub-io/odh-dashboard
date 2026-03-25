@@ -24,6 +24,17 @@ import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 
 const App: React.FC = () => {
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          mutations: {
+            gcTime: Infinity,
+          },
+        },
+      }),
+  );
+
   const {
     configSettings,
     userSettings,
@@ -105,14 +116,6 @@ const App: React.FC = () => {
   );
 
   if (isStandalone) {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        mutations: {
-          gcTime: Infinity,
-        },
-      },
-    });
-
     return <QueryClientProvider client={queryClient}>{page}</QueryClientProvider>;
   }
 

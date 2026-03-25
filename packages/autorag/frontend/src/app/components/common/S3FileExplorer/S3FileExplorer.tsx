@@ -74,7 +74,7 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
       items.push({
         name: fileName,
         path: fullPath,
-        type: ext || 'file',
+        type: ext || 'File',
         size: serializedSize,
         details: {
           ...(obj.last_modified && {
@@ -155,6 +155,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Track continuation tokens per page for forward/backward navigation
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
   const lastResultRef = useRef<S3ListObjectsResult | null>(null);
+  const fetchIdRef = useRef(0);
 
   // Effects ------------------------------------------------------------------>
 
@@ -180,6 +181,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         opts.next = continuationToken;
       }
 
+      const requestId = ++fetchIdRef.current;
+
       getFiles('')(
         namespace,
         secretName,
@@ -187,12 +190,18 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         opts,
       )({ signal: new AbortController().signal })
         .then((result) => {
+          if (fetchIdRef.current !== requestId) {
+            return;
+          }
           lastResultRef.current = result;
           const items = mapResultToItems(result);
           setFilesToRender(items);
           setLoadingToRender(false);
         })
         .catch(() => {
+          if (fetchIdRef.current !== requestId) {
+            return;
+          }
           setFilesToRender([]);
           setLoadingToRender(false);
         });
@@ -200,15 +209,30 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [namespace, secretName, bucket],
   );
 
-  // Initial fetch on mount / when secret changes
-  const hasFetchedRef = useRef(false);
+  // Initial fetch on mount / when connection changes
+  const connectionKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!secretName || hasFetchedRef.current) {
+    if (!secretName) {
       return;
     }
-    hasFetchedRef.current = true;
+
+    const connectionKey = `${namespace}/${secretName}`;
+    if (connectionKeyRef.current === connectionKey) {
+      return;
+    }
+    connectionKeyRef.current = connectionKey;
+
+    // Reset state for the new connection
+    setCurrentPath('/');
+    setDirectoriesToRender([]);
+    setSearchQuery('');
+    setPageToRender(1);
+    setPerPageToRender(DEFAULT_PER_PAGE);
+    continuationTokensRef.current = new Map();
+    lastResultRef.current = null;
+
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [secretName, fetchPath]);
+  }, [secretName, namespace, fetchPath]);
 
   // Helpers ------------------------------------------------------------------>
 
@@ -294,7 +318,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }}
       onPrimary={(files) => {
         onSelectFiles?.(files);
-        onClose();
       }}
     />
   );

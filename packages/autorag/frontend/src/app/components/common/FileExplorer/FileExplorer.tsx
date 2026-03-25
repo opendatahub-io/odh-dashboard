@@ -342,13 +342,17 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             } else {
                               const current = Array.isArray(selectedFiles) ? selectedFiles : [];
                               if (isSelecting) {
-                                setSelectedFiles([...current, file]);
+                                if (!current.some((f) => f.path === file.path)) {
+                                  setSelectedFiles([...current, file]);
+                                }
                               } else {
-                                setSelectedFiles(current.filter((f) => f !== file));
+                                setSelectedFiles(current.filter((f) => f.path !== file.path));
                               }
                             }
                           },
-                          isSelected: Array.isArray(selectedFiles) && selectedFiles.includes(file),
+                          isSelected:
+                            Array.isArray(selectedFiles) &&
+                            selectedFiles.some((f) => f.path === file.path),
                           isDisabled: false,
                           variant: selection,
                         }}
@@ -379,11 +383,14 @@ const FilesTable: React.FC<FilesTableProps> = ({
                               onClick: () => onViewDetails(file),
                             });
                           }
-                          if (Array.isArray(selectedFiles) && selectedFiles.includes(file)) {
+                          if (
+                            Array.isArray(selectedFiles) &&
+                            selectedFiles.some((f) => f.path === file.path)
+                          ) {
                             actions.push({
                               title: defaults.labels.tableActionRemoveSelection,
                               onClick: () =>
-                                setSelectedFiles(selectedFiles.filter((f) => f !== file)),
+                                setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path)),
                             });
                           }
                           return <ActionsColumn items={actions} />;
@@ -889,7 +896,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     filesToView={filesToView}
                     onViewDetails={(file) => setFilesToView([file])}
                     onRemoveSelection={(file) =>
-                      setSelectedFiles(selectedFiles.filter((f) => f !== file))
+                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path))
                     }
                     onClearDetails={() => setFilesToView([])}
                   />

@@ -21,7 +21,6 @@ const getProxyHeaders = () => {
     const token = execSync('oc whoami -t').toString().trim();
     const username = execSync('oc whoami').toString().trim();
     console.info('Logged in as user:', username);
-    console.info('Token value:', token);
     return {
       Authorization: `Bearer ${token}`,
       'x-forwarded-access-token': token,
