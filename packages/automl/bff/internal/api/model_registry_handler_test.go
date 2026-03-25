@@ -72,10 +72,18 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		data := response["data"].(map[string]interface{})
+		data, ok := response["data"].(map[string]interface{})
+		assert.True(t, ok, "data should be a map")
+		if !ok {
+			return
+		}
 		assert.Contains(t, data, "model_registries")
 
-		registries := data["model_registries"].([]interface{})
+		registries, ok := data["model_registries"].([]interface{})
+		assert.True(t, ok, "model_registries should be an array")
+		if !ok {
+			return
+		}
 		assert.Len(t, registries, 2, "mock should return 2 registries")
 	})
 
@@ -91,10 +99,22 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		data := response["data"].(map[string]interface{})
-		registries := data["model_registries"].([]interface{})
+		data, ok := response["data"].(map[string]interface{})
+		assert.True(t, ok, "data should be a map")
+		if !ok {
+			return
+		}
+		registries, ok := data["model_registries"].([]interface{})
+		assert.True(t, ok, "model_registries should be an array")
+		if !ok || len(registries) == 0 {
+			return
+		}
 
-		first := registries[0].(map[string]interface{})
+		first, ok := registries[0].(map[string]interface{})
+		assert.True(t, ok, "registry entry should be a map")
+		if !ok {
+			return
+		}
 		assert.Contains(t, first, "id")
 		assert.Contains(t, first, "name")
 		assert.Contains(t, first, "display_name")
@@ -118,9 +138,22 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		data := response["data"].(map[string]interface{})
-		for _, reg := range data["model_registries"].([]interface{}) {
-			r := reg.(map[string]interface{})
+		data, ok := response["data"].(map[string]interface{})
+		assert.True(t, ok, "data should be a map")
+		if !ok {
+			return
+		}
+		regs, ok := data["model_registries"].([]interface{})
+		assert.True(t, ok, "model_registries should be an array")
+		if !ok {
+			return
+		}
+		for _, reg := range regs {
+			r, ok := reg.(map[string]interface{})
+			assert.True(t, ok, "registry entry should be a map")
+			if !ok {
+				continue
+			}
 			displayName, ok := r["display_name"].(string)
 			assert.True(t, ok, "display_name should be a string")
 			assert.NotEmpty(t, displayName, "display_name should never be empty")

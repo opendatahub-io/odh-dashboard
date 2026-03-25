@@ -22,12 +22,15 @@ type ModelRegistriesEnvelope Envelope[*models.ModelRegistriesData, None]
 // includes the registry name, id, readiness, and server URL needed to route
 // subsequent model registration calls to the correct registry service.
 //
-// Note: all authenticated users can list ModelRegistries regardless of namespace
-// permissions, consistent with the RHOAI dashboard behaviour for this resource type.
+// Authorization: the dynamic list runs under the requesting user's identity
+// (Bearer token for user_token auth; SA impersonation for internal auth).
+// If the user lacks RBAC permission to list modelregistries.modelregistry.opendatahub.io
+// in the rhoai-model-registries namespace, the repository returns ErrModelRegistryForbidden
+// and this handler responds with 403. See ListModelRegistries for details.
 //
 // Error Responses:
 //   - 400: Missing RequestIdentity in context
-//   - 403: Insufficient permissions to list ModelRegistries
+//   - 403: Insufficient permissions to list ModelRegistries (ErrModelRegistryForbidden)
 //   - 500: Internal server error
 func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -51,7 +54,7 @@ func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, k8sClient, app.config.MockK8Client, logger)
+	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, k8sClient, identity, app.config.MockK8Client, logger)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")

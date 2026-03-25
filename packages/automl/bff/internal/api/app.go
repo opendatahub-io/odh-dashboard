@@ -191,7 +191,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
-	// Model Registry discovery — cluster-scoped, no namespace required
+	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
+	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
 	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
 
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
