@@ -7,6 +7,7 @@ import {
   installLSD,
   deleteLSD,
   getAAModels,
+  getAAVectorStores,
   getMaaSModels,
   exportCode,
   generateMaaSToken,
@@ -29,6 +30,7 @@ import {
   listMLflowPromptVersions,
   createExternalModel,
   verifyExternalModel,
+  deleteExternalModel,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -52,6 +54,7 @@ const useGenAiAPIState = (
       installLSD: installLSD(path, queryParameters),
       deleteLSD: deleteLSD(path, queryParameters),
       getAAModels: getAAModels(path, queryParameters),
+      getAAVectorStores: getAAVectorStores(path, queryParameters),
       getMaaSModels: getMaaSModels(path, queryParameters),
       generateMaaSToken: generateMaaSToken(path, queryParameters),
       getMCPServerTools: getMCPServerTools(path, queryParameters),
@@ -66,6 +69,7 @@ const useGenAiAPIState = (
       listMLflowPromptVersions: listMLflowPromptVersions(path, queryParameters),
       createExternalModel: createExternalModel(path, queryParameters),
       verifyExternalModel: verifyExternalModel(path, queryParameters),
+      deleteExternalModel: deleteExternalModel(path, queryParameters),
     }),
     [queryParameters],
   );

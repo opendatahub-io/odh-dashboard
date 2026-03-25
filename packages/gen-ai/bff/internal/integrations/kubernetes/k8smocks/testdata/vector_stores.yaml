@@ -1,43 +1,66 @@
-version: 1
-vectorStores:
-  - name: pgvector-store
-    displayName: "Product Embeddings (PGVector)"
-    provider_type: "remote::pgvector"
-    collection: product_embeddings
-    config:
-      host: pgvector.databases.svc.cluster.local
-      port: 5432
-      db: embeddings
-    credentialSecret:
-      name: pgvector-credentials
-      key: connection-string
-    embedding:
-      model_id: ibm-granite/granite-embedding-125m-english
-      dimension: 768
-    description: "Product catalog embeddings for semantic search"
-    owner: platform-team
-    domain: e-commerce
-  - name: qdrant-store
-    displayName: "Document Search (Qdrant)"
-    provider_type: "remote::qdrant"
-    collection: documents
-    config:
-      url: https://qdrant.vector.svc.cluster.local:6334
-    tlsSecretRef:
-      name: qdrant-tls
-      key: ca.crt
-    embedding:
-      model_id: ibm-granite/granite-embedding-125m-english
-      dimension: 768
-    description: "Document search index for internal knowledge base"
-    owner: data-team
-    domain: knowledge-management
-  - name: milvus-store
-    provider_type: "remote::milvus"
-    collection: code_vectors
-    config:
-      uri: http://milvus.vector.svc.cluster.local:19530
-    embedding:
-      model_id: unknown-embedding-model
-      dimension: 384
-    description: "Code embeddings for repository search"
+# This file gives sample gen-ai-aa-vector-stores configuration (it includes the data that'd be inlined inside the 'config.yaml' portion of the configmap), 
+# with multiple vector store providers and registered vector stores
+
+providers:
+  vector_io:
+    - provider_id: pgvector-provider
+      provider_type: remote::pgvector
+      config:
+        host: pgvector.databases.svc.cluster.local
+        port: 5432
+        db: embeddings
+        user: vectoruser
+        distance_metric: COSINE
+        vector_index:
+          type: HNSW
+          m: 16
+          ef_construction: 64
+        custom_gen_ai:
+          credentials:
+            secretRefs:
+              - name: pgvector-credentials
+                key: password
+
+    - provider_id: qdrant-provider
+      provider_type: remote::qdrant
+      config:
+        url: http://qdrant.vector.svc.cluster.local
+        port: 6333
+        grpc_port: 6334
+        prefer_grpc: false
+        custom_gen_ai:
+          credentials:
+            secretRefs:
+              - name: qdrant-credentials
+                key: api_key
+
+    - provider_id: milvus-provider
+      provider_type: remote::milvus
+      config:
+        uri: http://milvus.vector.svc.cluster.local:19530
+
+registered_resources:
+  vector_stores:
+    - provider_id: pgvector-provider
+      vector_store_id: vs_282695f8-7e3e-48da-abac-d81a0aa225a4
+      embedding_model: ibm-granite/granite-embedding-125m-english
+      embedding_dimension: 768
+      vector_store_name: "Product Embeddings (PGVector)"
+      metadata:
+        description: "Product catalog embeddings for semantic search"
+
+    - provider_id: qdrant-provider
+      vector_store_id: vs_4c4b74e3-30ac-4e46-9057-213154f83dba
+      embedding_model: ibm-granite/granite-embedding-125m-english
+      embedding_dimension: 768
+      vector_store_name: "Document Search (Qdrant)"
+      metadata:
+        description: "Document search index for internal knowledge base"
+
+    - provider_id: milvus-provider
+      vector_store_id: vs_a2607363-cea0-4d2a-8a93-7fb76863403b
+      embedding_model: unknown-embedding-model
+      embedding_dimension: 384
+      vector_store_name: "Code Vector Store (Milvus)"
+      metadata:
+        description: "Code embeddings for repository search"

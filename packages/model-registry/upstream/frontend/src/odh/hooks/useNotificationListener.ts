@@ -17,13 +17,16 @@ const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 export const useNotificationListener = (): void => {
   const { notifications } = useContext(NotificationContext);
-  const lastBridgedIndexRef = useRef(0);
+  // Relies on mod-arch-core's NotificationContext reducer preserving object references for existing notifications
+  const bridgedRef = useRef<WeakSet<object>>(new WeakSet());
 
   useEffect(() => {
-    const newNotifications = notifications.slice(lastBridgedIndexRef.current);
-    lastBridgedIndexRef.current = notifications.length;
+    notifications.forEach((notification) => {
+      if (bridgedRef.current.has(notification)) {
+        return;
+      }
+      bridgedRef.current.add(notification);
 
-    newNotifications.forEach((notification) => {
       if (notification.hidden || typeof notification.title !== 'string') {
         return;
       }

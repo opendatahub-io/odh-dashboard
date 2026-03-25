@@ -17,6 +17,16 @@ func IsExternalModelSource(sourceType ModelSourceTypeEnum) bool {
 	return sourceType == ModelSourceTypeCustomEndpoint
 }
 
+// Model status constants
+const (
+	// ModelStatusRunning indicates the model is running and ready to serve requests
+	ModelStatusRunning = "Running"
+	// ModelStatusStop indicates the model is stopped or inactive
+	ModelStatusStop = "Stop"
+	// ModelStatusUnknown indicates the model status could not be determined
+	ModelStatusUnknown = "Unknown"
+)
+
 type AAModel struct {
 	ModelName       string              `json:"model_name"`
 	ModelID         string              `json:"model_id"`

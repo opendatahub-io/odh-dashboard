@@ -851,8 +851,7 @@ paths:
       summary: Delete a subscription
       operationId: deleteSubscription
       description: >
-        Deletes a MaaSSubscription resource by name. The associated
-        MaaSAuthPolicy is expected to be garbage-collected via owner references.
+        Deletes a MaaSSubscription resource by name.
 
         K8s calls: DELETE /k8s/v1/maassubscription/:name
       parameters:
@@ -1497,16 +1496,12 @@ components:
 
     CreateSubscriptionRequest:
       type: object
-      description: Request body for creating a new subscription (creates both MaaSSubscription and MaaSAuthPolicy)
+      description: Request body for creating a new subscription. Optionally creates a MaaSAuthPolicy if createAuthPolicy is true. The namespace is determined by server configuration (MAAS_SUBSCRIPTION_NAMESPACE).
       properties:
         name:
           type: string
           description: Name for the MaaSSubscription resource
           example: premium-team-sub
-        namespace:
-          type: string
-          description: Namespace for the resources
-          example: maas-system
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -1522,15 +1517,18 @@ components:
           format: int32
           description: Subscription priority (higher = higher priority)
           default: 0
+        createAuthPolicy:
+          type: boolean
+          description: Whether to also create a MaaSAuthPolicy for this subscription
+          default: false
       required:
         - name
-        - namespace
         - owner
         - modelRefs
 
     UpdateSubscriptionRequest:
       type: object
-      description: Request body for updating an existing subscription (updates both MaaSSubscription and MaaSAuthPolicy)
+      description: Request body for updating an existing subscription (MaaSSubscription only; auth policy is not managed during update)
       properties:
         owner:
           $ref: '#/components/schemas/OwnerSpec'
@@ -1552,7 +1550,7 @@ components:
 
     CreateSubscriptionResponse:
       type: object
-      description: Response after creating or updating a subscription
+      description: Response after creating or updating a subscription. authPolicy is only present when createAuthPolicy was true on creation.
       properties:
         subscription:
           $ref: '#/components/schemas/MaaSSubscription'
@@ -1560,7 +1558,6 @@ components:
           $ref: '#/components/schemas/MaaSAuthPolicy'
       required:
         - subscription
-        - authPolicy
 
     SubscriptionInfoResponse:
       type: object

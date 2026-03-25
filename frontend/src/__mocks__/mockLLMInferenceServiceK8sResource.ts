@@ -20,6 +20,7 @@ type MockLLMInferenceServiceConfigType = {
   isNonDashboardItem?: boolean;
   modelType?: ServingRuntimeModelType;
   isStopped?: boolean;
+  baseRefs?: { name?: string }[];
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -36,6 +37,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   url,
   addresses,
   isStopped = false,
+  baseRefs,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -59,6 +61,7 @@ export const mockLLMInferenceServiceK8sResource = ({
     uid: genUID('llm-service'),
   },
   spec: {
+    ...(baseRefs && { baseRefs }),
     model: {
       name: modelName,
       uri: modelUri,

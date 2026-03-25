@@ -41,15 +41,10 @@ func (app *App) ExternalVectorStoresListHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	stores := make([]models.ExternalVectorStoreSummary, 0, len(result.VectorStores))
-	for _, entry := range result.VectorStores {
-		stores = append(stores, entry.ToSummary())
-	}
-
 	response := ExternalVectorStoresListEnvelope{
 		Data: models.ExternalVectorStoresListData{
-			VectorStores:  stores,
-			TotalCount:    len(stores),
+			VectorStores:  result.VectorStores,
+			TotalCount:    len(result.VectorStores),
 			ConfigMapInfo: result.ConfigMapInfo,
 		},
 	}

@@ -53,7 +53,9 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     if (!modelServerData || !templates || templates.length === 0) {
       return undefined;
     }
-    const template = templates.find((tmpl) => tmpl.metadata.name === modelServerData.name);
+    const template = templates.find(
+      (tmpl) => tmpl.metadata.name === modelServerData.selection?.name,
+    );
 
     return template?.objects[0];
   }, [
