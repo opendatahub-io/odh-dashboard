@@ -6,8 +6,15 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
   CardTitle,
   Content,
+  DataList,
+  DataListAction,
+  DataListCell,
+  DataListItem,
+  DataListItemCells,
+  DataListItemRow,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -35,6 +42,7 @@ import {
   type PaginationProps,
   SearchInput,
   Skeleton,
+  Truncate,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -49,6 +57,7 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
+import { EllipsisVIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { type ReactNode, useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
@@ -148,6 +157,8 @@ const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
 const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
 
+const RENDER_SOURCE_DETAILS_IN_PANEL = false;
+
 // Components ----------------------------------------------------------------->
 
 interface SourceSelectorProps {
@@ -233,20 +244,20 @@ const FilesTable: React.FC<FilesTableProps> = ({
     select: {
       id: 'select',
       label: '',
-      width: 10,
+      width: undefined,
       screenReaderText: defaults.labels.tableColumnSelect,
       skeleton: <Skeleton width="16px" height="16px" />,
     },
     name: {
       id: 'name',
       label: defaults.labels.tableColumnName,
-      width: 40,
+      width: 70,
       skeleton: <Skeleton width="75%" height="1em" />,
     },
     type: {
       id: 'type',
       label: defaults.labels.tableColumnType,
-      width: 40,
+      width: 10,
       skeleton: <Skeleton width="50%" height="1em" />,
     },
     actions: {
@@ -339,18 +350,16 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       <Td width={columns.name.width} dataLabel={columns.name.label}>
                         {/* Should this be a Content/a/href or should it be Button variant link */}
                         {isDirectory(file) && (
-                          <Content
-                            component="a"
+                          <Truncate
                             href="#"
                             onClick={(e: React.MouseEvent) => {
                               e.preventDefault();
                               onDirectoryClick?.(file);
                             }}
-                          >
-                            {file.name}
-                          </Content>
+                            content={file.name}
+                          />
                         )}
-                        {!isDirectory(file) && file.name}
+                        {!isDirectory(file) && <Truncate content={file.name} />}
                       </Td>
                       <Td width={columns.type.width} dataLabel={columns.type.label}>
                         {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
@@ -523,17 +532,111 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
   </>
 );
 
+interface SelectedFilesDataListProps {
+  selectedFiles: Files;
+  onViewDetails?: (file: File) => void;
+  onRemoveSelection?: (file: File) => void;
+}
+const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
+  selectedFiles,
+  onViewDetails,
+  onRemoveSelection,
+}) => {
+  const [openMenuFileKey, setOpenMenuFileKey] = useState<string | null>(null);
+
+  return (
+    <DataList aria-label={defaults.labels.detailsPanelTitleFiles} isCompact>
+      {selectedFiles.map((file) => (
+        <DataListItem
+          key={file.path}
+          aria-labelledby={`selected-file-${file.path}`}
+          onClick={() => onViewDetails?.(file)}
+        >
+          <DataListItemRow>
+            <DataListItemCells
+              dataListCells={[
+                <DataListCell key="name">
+                  <Truncate
+                    id={`selected-file-${file.path}`}
+                    content={file.name}
+                    tooltipPosition="right"
+                  />
+                </DataListCell>,
+              ]}
+            />
+            <DataListAction
+              aria-labelledby={`selected-file-${file.path}`}
+              aria-label={`${file.name} actions`}
+              id={`selected-file-actions-${file.path}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Dropdown
+                isOpen={openMenuFileKey === file.path}
+                onOpenChange={(isOpen) => setOpenMenuFileKey(isOpen ? file.path : null)}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="plain"
+                    aria-label={`${file.name} overflow menu`}
+                    onClick={() =>
+                      setOpenMenuFileKey((prev) => (prev === file.path ? null : file.path))
+                    }
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+                popperProps={{ position: 'right' }}
+              >
+                <DropdownList>
+                  {onViewDetails && (
+                    <DropdownItem
+                      key="view-details"
+                      onClick={() => {
+                        onViewDetails(file);
+                        setOpenMenuFileKey(null);
+                      }}
+                    >
+                      {defaults.labels.tableActionViewDetails}
+                    </DropdownItem>
+                  )}
+                  {onRemoveSelection && (
+                    <DropdownItem
+                      key="remove-selection"
+                      onClick={() => {
+                        onRemoveSelection(file);
+                        setOpenMenuFileKey(null);
+                      }}
+                    >
+                      {defaults.labels.tableActionRemoveSelection}
+                    </DropdownItem>
+                  )}
+                </DropdownList>
+              </Dropdown>
+            </DataListAction>
+          </DataListItemRow>
+        </DataListItem>
+      ))}
+    </DataList>
+  );
+};
+
 interface DetailsPanelProps {
   source?: Source;
   selectedFiles?: Files;
   filesToView?: Files;
   loading?: boolean;
+  onViewDetails: (file: File) => void;
+  onRemoveSelection: (file: File) => void;
+  onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
   source,
   selectedFiles,
   filesToView,
   loading,
+  onViewDetails,
+  onRemoveSelection,
+  onClearDetails,
 }) => {
   if (loading) {
     return (
@@ -563,13 +666,28 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     );
   }
 
-  const renderDetailsSubCard = Boolean(source);
+  const renderDetailsSubCard = Boolean(Array.isArray(filesToView) && filesToView.length > 0);
   const detailsSubCard = (
     <Card isPlain isCompact>
-      <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+      <CardHeader
+        actions={{
+          actions: [
+            <Button
+              variant="plain"
+              aria-label="Close details"
+              key="close"
+              icon={<TimesIcon />}
+              onClick={() => onClearDetails()}
+            />,
+          ],
+        }}
+      >
+        <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
+      </CardHeader>
       <CardBody isFilled={false}>
         <DescriptionList>
-          {source && (
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+          {RENDER_SOURCE_DETAILS_IN_PANEL && source && (
             <>
               <DescriptionListGroup>
                 <DescriptionListTerm>{defaults.labels.detailsPanelSource}</DescriptionListTerm>
@@ -598,16 +716,27 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     <Card isPlain isCompact>
       <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
       <CardBody>
-        <DescriptionList>
-          {Array.isArray(selectedFiles) &&
-            selectedFiles.length > 0 &&
-            selectedFiles.map((selectedFile) => (
-              <FileDetails key={selectedFile.path} file={selectedFile} />
-            ))}
-        </DescriptionList>
+        {/*<DescriptionList>*/}
+        {/*  {Array.isArray(selectedFiles) &&*/}
+        {/*    selectedFiles.length > 0 &&*/}
+        {/*    selectedFiles.map((selectedFile) => (*/}
+        {/*      <FileDetails key={selectedFile.path} file={selectedFile} />*/}
+        {/*    ))}*/}
+        {/*</DescriptionList>*/}
+        {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
+          <SelectedFilesDataList
+            selectedFiles={selectedFiles}
+            onViewDetails={onViewDetails}
+            onRemoveSelection={onRemoveSelection}
+          />
+        )}
       </CardBody>
     </Card>
   );
+
+  if (!renderDetailsSubCard && !renderSelectedFilesSubCard) {
+    return null;
+  }
 
   return (
     <Card isFullHeight isCompact>
@@ -756,6 +885,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selectedFiles={selectedFiles}
                   filesToView={filesToView}
                   loading={loading}
+                  onViewDetails={(file) => setFilesToView([file])}
+                  onRemoveSelection={(file) =>
+                    setSelectedFiles(selectedFiles.filter((f) => f !== file))
+                  }
+                  onClearDetails={() => setFilesToView([])}
                 />
               </GridItem>
             </Grid>
