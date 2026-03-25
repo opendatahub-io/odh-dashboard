@@ -120,9 +120,7 @@ const AIAssetsModelsTab: React.FC = () => {
         </Content>
       }
       actionButtonText="Deploy a model"
-      handleActionButtonClick={() => {
-        navigate(`/ai-hub/deployments/${namespace?.name}`);
-      }}
+      actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
       secondaryActionButtonText="Create endpoint"
       handleSecondaryActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
     />
