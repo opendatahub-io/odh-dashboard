@@ -70,14 +70,20 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
           {noClusterQueue && isAdmin && (
             <>
               Configure the cluster queue to enable distributed workload metrics.{' '}
-              <ExternalLink text="Learn how to configure cluster queues" to={CLUSTER_QUEUE_DOCS_LINK} />
+              <ExternalLink
+                text="Learn how to configure cluster queues"
+                to={CLUSTER_QUEUE_DOCS_LINK}
+              />
             </>
           )}
           {noClusterQueue && !isAdmin && 'Ask your cluster admin to configure the cluster queue.'}
           {!noClusterQueue && (
             <>
               Configure the queue for this project, or select a different project.{' '}
-              <ExternalLink text="Learn how to configure project queues" to={PROJECT_QUEUE_DOCS_LINK} />
+              <ExternalLink
+                text="Learn how to configure project queues"
+                to={PROJECT_QUEUE_DOCS_LINK}
+              />
             </>
           )}
         </EmptyStateBody>
