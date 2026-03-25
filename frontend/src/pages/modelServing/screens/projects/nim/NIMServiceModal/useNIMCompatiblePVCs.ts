@@ -33,7 +33,8 @@ const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
 };
 
 const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
-  const { volumes } = servingRuntime.spec;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const volumes = servingRuntime.spec?.volumes;
   if (!volumes) {
     return null;
   }
