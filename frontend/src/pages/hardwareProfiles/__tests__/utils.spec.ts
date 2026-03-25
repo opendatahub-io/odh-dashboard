@@ -2,9 +2,11 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
+  getRecognizedVisibility,
   isHardwareProfileIdentifierValid,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
@@ -383,6 +385,100 @@ describe('isHardwareProfileIdentifierValid', () => {
       defaultCount: '2.999Gi',
     };
     expect(isHardwareProfileIdentifierValid(identifierMock)).toEqual(false);
+  });
+});
+
+describe('getRecognizedVisibility', () => {
+  it('should return an empty array when no annotation is present', () => {
+    const profile = mockHardwareProfile({ uid: 'vis-1' });
+    expect(getRecognizedVisibility(profile)).toEqual([]);
+  });
+
+  it('should return recognized enum values from the annotation', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-2',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+          HardwareProfileFeatureVisibility.WORKBENCH,
+          HardwareProfileFeatureVisibility.MODEL_SERVING,
+        ]),
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([
+      HardwareProfileFeatureVisibility.WORKBENCH,
+      HardwareProfileFeatureVisibility.MODEL_SERVING,
+    ]);
+  });
+
+  it('should filter out unrecognized legacy values', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-3',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+          'unknown-legacy-value',
+          HardwareProfileFeatureVisibility.WORKBENCH,
+        ]),
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([
+      HardwareProfileFeatureVisibility.WORKBENCH,
+    ]);
+  });
+
+  it('should return an empty array when all values are unrecognized', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-4',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify(['legacy-only']),
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([]);
+  });
+
+  it('should return an empty array for an empty annotation array', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-5',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': '[]',
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([]);
+  });
+
+  it('should return an empty array for malformed JSON', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-6',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': 'not-valid-json',
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([]);
+  });
+
+  it('should return an empty array for non-array JSON', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-7',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': '"workbench"',
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([]);
+  });
+
+  it('should skip non-string values in the array', () => {
+    const profile = mockHardwareProfile({
+      uid: 'vis-8',
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+          123,
+          null,
+          HardwareProfileFeatureVisibility.MODEL_SERVING,
+        ]),
+      },
+    });
+    expect(getRecognizedVisibility(profile)).toEqual([
+      HardwareProfileFeatureVisibility.MODEL_SERVING,
+    ]);
   });
 });
 

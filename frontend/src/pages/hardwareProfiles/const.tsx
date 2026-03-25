@@ -7,7 +7,7 @@ import {
   ManageHardwareProfileSectionTitlesType,
 } from '#~/pages/hardwareProfiles/manage/types';
 import { IdentifierResourceType } from '#~/types';
-import { getHardwareProfileDisplayName } from './utils';
+import { getHardwareProfileDisplayName, getRecognizedVisibility } from './utils';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -31,25 +31,15 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     field: 'visibility',
     label: 'Visibility',
     sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {
-      try {
-        const aUseCases = JSON.parse(
-          a.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] ?? '[]',
-        ).toSorted();
-        const bUseCases = JSON.parse(
-          b.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] ?? '[]',
-        ).toSorted();
+      const aUseCases = getRecognizedVisibility(a).toSorted();
+      const bUseCases = getRecognizedVisibility(b).toSorted();
 
-        // First sort by length
-        const lengthDiff = aUseCases.length - bUseCases.length;
-        if (lengthDiff !== 0) {
-          return lengthDiff;
-        }
-
-        // Compare the sorted arrays element by element
-        return aUseCases.join().localeCompare(bUseCases.join());
-      } catch {
-        return 0;
+      const lengthDiff = aUseCases.length - bUseCases.length;
+      if (lengthDiff !== 0) {
+        return lengthDiff;
       }
+
+      return aUseCases.join().localeCompare(bUseCases.join());
     },
     info: {
       popover: (

@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
 import {
   HardwareProfileWarningType,
@@ -235,4 +235,36 @@ export const orderHardwareProfiles = (
     });
   }
   return alphaSortHardwareProfilesByName(profiles);
+};
+
+const RECOGNIZED_VISIBILITY_VALUES = new Set<string>(
+  Object.values(HardwareProfileFeatureVisibility),
+);
+
+/**
+ * Parses the dashboard-feature-visibility annotation and returns only values
+ * that are recognized by the current HardwareProfileFeatureVisibility enum.
+ * Legacy or removed values (e.g. "pipelines" after it is dropped from the enum)
+ * are silently filtered out so that profiles remain usable after an upgrade.
+ */
+export const getRecognizedVisibility = (
+  hardwareProfile: HardwareProfileKind,
+): HardwareProfileFeatureVisibility[] => {
+  const raw =
+    hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'];
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter(
+      (v): v is HardwareProfileFeatureVisibility =>
+        typeof v === 'string' && RECOGNIZED_VISIBILITY_VALUES.has(v),
+    );
+  } catch {
+    return [];
+  }
 };

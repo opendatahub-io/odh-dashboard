@@ -14,6 +14,7 @@ import {
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
+  getRecognizedVisibility,
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils';
 import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
@@ -65,21 +66,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           setState('scheduling', hardwareProfile.spec.scheduling);
         }
 
-        // set the visibility from the annotations
-        try {
-          if (
-            hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']
-          ) {
-            const visibleIn = JSON.parse(
-              hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
-            );
-            setVisibility(visibleIn);
-          } else {
-            setVisibility([]);
-          }
-        } catch (error) {
-          setVisibility([]);
-        }
+        setVisibility(getRecognizedVisibility(hardwareProfile));
       }
     },
     [setState],

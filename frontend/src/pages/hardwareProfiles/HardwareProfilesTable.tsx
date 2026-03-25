@@ -18,6 +18,7 @@ import { MigrationAction } from './migration/types';
 import MigrationModal from './migration/MigrationModal';
 import {
   getHardwareProfileDisplayName,
+  getRecognizedVisibility,
   isHardwareProfileEnabled,
   orderHardwareProfiles,
 } from './utils';
@@ -75,17 +76,14 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           return false;
         }
 
-        try {
-          if (cr.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
-            const visibility = JSON.parse(
-              cr.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
-            );
-            if (visibilityFilter && !visibility.includes(visibilityFilter)) {
-              return false;
-            }
+        if (visibilityFilter) {
+          const recognizedVisibility = getRecognizedVisibility(cr);
+          if (
+            recognizedVisibility.length > 0 &&
+            !(recognizedVisibility as string[]).includes(visibilityFilter)
+          ) {
+            return false;
           }
-        } catch (e) {
-          // If the use cases are not set, don't filter
         }
 
         return (

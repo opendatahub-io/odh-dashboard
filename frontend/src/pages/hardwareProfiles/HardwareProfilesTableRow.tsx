@@ -20,7 +20,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '#~/utilities/time';
 import { TableRowTitleDescription } from '#~/components/table';
 import HardwareProfileEnableToggle from '#~/pages/hardwareProfiles/HardwareProfileEnableToggle';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import NodeResourceTable from '#~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTable';
@@ -29,6 +29,7 @@ import {
   createHardwareProfileWarningTitle,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
+  getRecognizedVisibility,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
@@ -59,18 +60,10 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const navigate = useNavigate();
 
-  const useCases: HardwareProfileFeatureVisibility[] = React.useMemo(() => {
-    if (hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
-      try {
-        return JSON.parse(
-          hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
-        );
-      } catch (error) {
-        return [];
-      }
-    }
-    return [];
-  }, [hardwareProfile.metadata.annotations]);
+  const useCases = React.useMemo(
+    () => getRecognizedVisibility(hardwareProfile),
+    [hardwareProfile],
+  );
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 

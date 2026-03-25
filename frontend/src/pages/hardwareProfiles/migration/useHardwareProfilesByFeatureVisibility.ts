@@ -1,6 +1,9 @@
 import React from 'react';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
+import {
+  getRecognizedVisibility,
+  isHardwareProfileValid,
+} from '#~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
@@ -43,23 +46,13 @@ export const useHardwareProfilesByFeatureVisibility = (
   const filteredHardwareProfiles = React.useMemo(
     () =>
       validHardwareProfiles.filter((profile) => {
-        try {
-          if (!profile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
-            return true;
-          }
+        const recognizedVisibility = getRecognizedVisibility(profile);
 
-          const visibleIn = JSON.parse(
-            profile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
-          );
-
-          if (visibleIn.length === 0) {
-            return true;
-          }
-
-          return visibility ? visibility.some((a) => visibleIn.includes(a)) : true;
-        } catch (error) {
+        if (recognizedVisibility.length === 0) {
           return true;
         }
+
+        return visibility ? visibility.some((a) => recognizedVisibility.includes(a)) : true;
       }),
     [validHardwareProfiles, visibility],
   );
