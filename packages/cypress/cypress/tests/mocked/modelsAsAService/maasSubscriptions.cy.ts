@@ -95,4 +95,109 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
+
+  it('should display no subscriptions message when model has no subscriptions', () => {
+    // Mock MaaS model without subscriptions
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+      body: [
+        /* eslint-disable camelcase */
+        {
+          id: 'llama-3-8b',
+          object: 'model',
+          created: 1734000000,
+          owned_by: 'meta',
+          ready: true,
+          url: 'https://llama-model.apps.cluster.com',
+          display_name: 'Llama 3 8B',
+          description: 'Llama family of LLMs',
+          usecase: 'Text Generation',
+          model_type: 'llm',
+          subscriptions: [],
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    // Reload the page to get the new model data
+    cy.visit('/aiAssets');
+
+    cy.contains('Llama 3 8B').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Verify endpoint modal is open
+    cy.get('[role="dialog"]').should('exist');
+    cy.contains('Endpoints').should('exist');
+
+    // Verify Authentication heading is NOT shown when no subscriptions
+    cy.contains('Authentication').should('not.exist');
+
+    // Verify no subscriptions alert is shown
+    cy.contains('No subscriptions available').should('exist');
+    cy.contains(
+      "You don't have any subscriptions for this model. Contact your administrator to request access.",
+    ).should('exist');
+
+    // Verify subscription dropdown is not shown
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('not.exist');
+
+    // Verify Generate API key button is not shown
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('not.exist');
+  });
+
+  it('should handle API key generation error', () => {
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Mock token generation error
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      statusCode: 500,
+      body: { error: 'Failed to generate token' },
+    });
+
+    // Select subscription
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
+
+    // Click generate button
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
+
+    // Verify error alert appears
+    cy.contains('Error generating API key').should('exist');
+
+    // Verify token input is not shown
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('not.exist');
+
+    // Verify Generate button is still available to retry
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('exist');
+  });
+
+  it('should disable generate button while loading', () => {
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Mock token generation with delay to catch loading state
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      delay: 1000,
+      body: {
+        key: 'test-ephemeral-token-12345',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+    });
+
+    // Select subscription
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
+
+    // Click generate button
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
+
+    // Verify button is disabled during loading
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('be.disabled');
+
+    // Wait for token to be generated
+    cy.get('[data-testid="endpoint-modal-api-key-input"]', { timeout: 2000 }).should('exist');
+  });
 });
