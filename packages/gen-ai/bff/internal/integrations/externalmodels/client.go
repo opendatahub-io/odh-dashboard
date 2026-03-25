@@ -266,8 +266,8 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	// Set headers
-	if c.apiKey != "" {
+	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens
+	if c.apiKey != "" && req.URL.Scheme == "https" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 	}
 	req.Header.Set("Content-Type", "application/json")
