@@ -18,7 +18,6 @@ import {
 } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig.ts';
 import {
   HardwareProfileBindingState,
-  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
   LEGACY_HARDWARE_PROFILE_ANNOTATION,
   getHardwareProfileName,
 } from '#~/concepts/hardwareProfiles/const';
@@ -202,10 +201,28 @@ export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
   bindingState: HardwareProfileBindingStateInfo | null,
   cr: T,
 ): Patch[] => {
-  const hwpAnnotations = getHardwareProfileName(cr);
-  return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
-    ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
-    : [];
+  if (bindingState?.state !== HardwareProfileBindingState.DELETED) {
+    return [];
+  }
+
+  const annotations = cr.metadata?.annotations;
+  if (!annotations || !getHardwareProfileName(cr)) {
+    return [];
+  }
+
+  const annotationKeys = [
+    'opendatahub.io/hardware-profile-name',
+    'opendatahub.io/hardware-profile-namespace',
+    'opendatahub.io/hardware-profile-resource-version',
+    LEGACY_HARDWARE_PROFILE_ANNOTATION,
+  ];
+
+  return annotationKeys
+    .filter((key) => Object.prototype.hasOwnProperty.call(annotations, key))
+    .map((key) => ({
+      op: 'remove' as const,
+      path: `/metadata/annotations/${key.replace(/\//g, '~1')}`,
+    }));
 };
 
 export const getExistingResources = <T extends K8sResourceCommon>(

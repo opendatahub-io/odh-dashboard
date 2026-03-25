@@ -16,7 +16,7 @@ export const LEGACY_HARDWARE_PROFILE_ANNOTATION = 'opendatahub.io/legacy-hardwar
 export const getHardwareProfileName = <T extends K8sResourceCommon>(
   resource?: T | null,
 ): string | undefined =>
-  resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'] ||
+  resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'] ??
   resource?.metadata?.annotations?.[LEGACY_HARDWARE_PROFILE_ANNOTATION];
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =

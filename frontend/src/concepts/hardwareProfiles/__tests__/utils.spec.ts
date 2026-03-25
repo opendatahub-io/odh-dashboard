@@ -7,8 +7,12 @@ import {
   getExistingHardwareProfileData,
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
+  getDeletedHardwareProfilePatches,
 } from '#~/concepts/hardwareProfiles/utils';
-import { getHardwareProfileName } from '#~/concepts/hardwareProfiles/const';
+import {
+  getHardwareProfileName,
+  HardwareProfileBindingState,
+} from '#~/concepts/hardwareProfiles/const';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   Identifier,
@@ -355,6 +359,7 @@ describe('getExistingHardwareProfileData', () => {
 
   it('should fall back to legacy annotation when current annotation is missing', () => {
     const notebook = mockNotebookK8sResource({
+      hardwareProfileName: undefined,
       opts: {
         metadata: {
           annotations: {
@@ -363,6 +368,8 @@ describe('getExistingHardwareProfileData', () => {
         },
       },
     });
+    // Remove the default annotation added by mock
+    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
 
     const result = getExistingHardwareProfileData(notebook);
 
@@ -404,6 +411,7 @@ describe('getHardwareProfileName', () => {
 
   it('should fall back to legacy annotation', () => {
     const notebook = mockNotebookK8sResource({
+      hardwareProfileName: undefined,
       opts: {
         metadata: {
           annotations: {
@@ -412,6 +420,8 @@ describe('getHardwareProfileName', () => {
         },
       },
     });
+    // Remove the default annotation added by mock
+    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
 
     expect(getHardwareProfileName(notebook)).toBe('legacy-profile');
   });
@@ -814,6 +824,170 @@ describe('applyHardwareProfileConfig', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result as any).metadata?.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'custom-path-test',
+    );
+  });
+});
+
+describe('getDeletedHardwareProfilePatches', () => {
+  it('should return empty array when binding state is not DELETED', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'test-profile',
+          },
+        },
+      },
+    });
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.UPDATED },
+      notebook,
+    );
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when no hardware profile annotation exists', () => {
+    const notebook = mockNotebookK8sResource({});
+    notebook.metadata.annotations = {};
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.DELETED },
+      notebook,
+    );
+
+    expect(result).toEqual([]);
+  });
+
+  it('should only remove annotations that exist (current annotations only)', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'test-profile',
+            'opendatahub.io/hardware-profile-namespace': 'test-namespace',
+            'opendatahub.io/hardware-profile-resource-version': '12345',
+          },
+        },
+      },
+    });
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.DELETED },
+      notebook,
+    );
+
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+    });
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+    });
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
+    });
+  });
+
+  it('should only remove annotations that exist (legacy annotation only)', () => {
+    const notebook = mockNotebookK8sResource({
+      hardwareProfileName: undefined,
+      hardwareProfileNamespace: undefined,
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/legacy-hardware-profile-name': 'legacy-profile',
+          },
+        },
+      },
+    });
+    // Remove default annotations added by mock
+    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-name'];
+    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-namespace'];
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.DELETED },
+      notebook,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1legacy-hardware-profile-name',
+    });
+  });
+
+  it('should remove all annotations when both current and legacy exist', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'current-profile',
+            'opendatahub.io/hardware-profile-namespace': 'test-namespace',
+            'opendatahub.io/hardware-profile-resource-version': '12345',
+            'opendatahub.io/legacy-hardware-profile-name': 'legacy-profile',
+          },
+        },
+      },
+    });
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.DELETED },
+      notebook,
+    );
+
+    expect(result).toHaveLength(4);
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+    });
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+    });
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
+    });
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1legacy-hardware-profile-name',
+    });
+  });
+
+  it('should only remove specific hardware profile annotations, not others', () => {
+    const notebook = mockNotebookK8sResource({
+      hardwareProfileName: 'test-profile',
+      hardwareProfileNamespace: undefined,
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/some-other-annotation': 'some-value',
+          },
+        },
+      },
+    });
+    // Remove namespace annotation that mock adds
+    delete notebook.metadata.annotations['opendatahub.io/hardware-profile-namespace'];
+
+    const result = getDeletedHardwareProfilePatches(
+      { state: HardwareProfileBindingState.DELETED },
+      notebook,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result).toContainEqual({
+      op: 'remove',
+      path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+    });
+    expect(result).not.toContainEqual(
+      expect.objectContaining({
+        path: '/metadata/annotations/opendatahub.io~1some-other-annotation',
+      }),
     );
   });
 });
