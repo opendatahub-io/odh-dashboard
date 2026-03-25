@@ -1759,7 +1759,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		// Build a set of registered model IDs for quick lookup (include both model_id and provider_model_id)
 		registeredEmbeddingModels := make(map[string]bool, len(config.RegisteredResources.Models))
 		for _, m := range config.RegisteredResources.Models {
-			if m.ModelType == "embedding" {
+			if m.ModelType == string(models.ModelTypeEmbedding) {
 				registeredEmbeddingModels[m.ModelID] = true
 				if m.ProviderModelID != "" {
 					registeredEmbeddingModels[m.ProviderModelID] = true

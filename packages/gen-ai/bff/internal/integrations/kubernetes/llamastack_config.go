@@ -351,7 +351,7 @@ func NewEmbeddingModel(modelID, providerID, providerModelID string, embeddingDim
 		ModelID:         modelID,
 		ProviderID:      providerID,
 		ProviderModelID: providerModelID,
-		ModelType:       "embedding",
+		ModelType:       string(models.ModelTypeEmbedding),
 		Metadata: map[string]interface{}{
 			"embedding_dimension": embeddingDimension,
 		},
@@ -363,7 +363,7 @@ func NewLLMModel(modelID, providerID string, displayName string) Model {
 	return Model{
 		ModelID:    modelID,
 		ProviderID: providerID,
-		ModelType:  "llm",
+		ModelType:  string(models.ModelTypeLLM),
 		Metadata: map[string]interface{}{
 			"display_name": displayName,
 		},
