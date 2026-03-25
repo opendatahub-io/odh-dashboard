@@ -32,29 +32,39 @@ spec:
 
     ## Available Agents
 
-    - **LangGraph ReAct Agent** -- Graph-based reasoning and acting loop
-    for general-purpose tool use
+    - **LangGraph ReAct Agent** -- General-purpose agent using a ReAct
+    loop with tool calling
 
-    - **LlamaIndex Workflow Agent** -- Event-driven multi-step workflow
-    for web-integrated agents
+    - **LangGraph Agentic RAG** -- RAG agent with Milvus vector store
+    for knowledge-grounded answers
 
-    - **Pure LlamaStack Agent** -- Minimal agent using the Llama Stack
-    client directly
+    - **LangGraph ReAct + DB Memory** -- ReAct agent with PostgreSQL-backed
+    conversation memory and FIFO sliding window
 
-    - **Agentic RAG** -- Retrieval-augmented generation with autonomous
-    retrieval decisions using Milvus
+    - **LlamaIndex WebSearch Agent** -- Event-driven agent with web search
+    tool integration
+
+    - **CrewAI WebSearch Agent** -- CrewAI-based agent with web search
+
+    - **Vanilla Python OpenAI Responses** -- Minimal agent using only the
+    OpenAI Python client with no framework dependencies
+
+    - **AutoGen MCP Agent** -- AutoGen AssistantAgent with MCP tools over SSE
+
+    - **Langflow Tool-Calling Agent** -- Visual flow-based agent with
+    weather, air quality, and NPS tools
 
     ## Getting Started
 
     1. Clone the repository from GitHub.
 
-    2. Choose an agent pattern from the four available kits.
+    2. Choose an agent pattern organized by framework.
 
     3. Follow the agent-specific README to configure environment variables
     and deploy locally with Ollama or on OpenShift.
 
     Each agent exposes a FastAPI server with `/chat` and `/health` endpoints.
   description: >-
-    Reference implementations for building AI agents on OpenShift AI,
-    featuring LangGraph, LlamaIndex, LlamaStack, and Agentic RAG patterns.
+    Production-ready agent templates for OpenShift AI featuring LangGraph,
+    LlamaIndex, CrewAI, AutoGen, Langflow, and vanilla Python patterns.
   category: AI agents

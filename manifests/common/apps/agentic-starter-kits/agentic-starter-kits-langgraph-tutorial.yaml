@@ -11,6 +11,6 @@ spec:
     Learn to build a reasoning and acting agent using LangGraph's graph-based
     state machine. Covers tool orchestration, state persistence, and the
     agentic decision loop.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/base/langgraph_react_agent'
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/langgraph/react_agent'
   provider: Open Data Hub
   appName: agentic-starter-kits
