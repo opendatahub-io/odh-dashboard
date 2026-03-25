@@ -2899,13 +2899,6 @@ components:
             - maas
           example: 'custom_endpoint'
           description: Source type of the model. Required when using custom_endpoint models.
-        is_cluster_local:
-          type: boolean
-          example: true
-          description: >
-            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
-            When true, the BFF injects vllm_api_token instead of openai_api_key as provider data.
-            Only relevant when model_source_type is custom_endpoint.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:

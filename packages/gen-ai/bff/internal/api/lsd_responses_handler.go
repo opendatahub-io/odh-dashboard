@@ -145,7 +145,6 @@ type CreateResponseRequest struct {
 	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
 	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
 	ModelSourceType    string               `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
-	IsClusterLocal     bool                 `json:"is_cluster_local,omitempty"`     // True for in-cluster *.svc.cluster.local custom endpoints
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -364,7 +363,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.IsClusterLocal)
+	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -698,10 +697,10 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 }
 
 // getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, isClusterLocal bool) map[string]interface{} {
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string) map[string]interface{} {
 	// If model_source_type is custom_endpoint, fetch API key from ConfigMap secret
 	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		return app.getCustomEndpointProviderSecret(ctx, modelID, isClusterLocal)
+		return app.getCustomEndpointProviderSecret(ctx, modelID)
 	}
 
 	// For all other cases, use existing auto-detection logic
@@ -822,7 +821,7 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 }
 
 // getCustomEndpointProviderSecret retrieves API keys for custom endpoint models from ConfigMap secrets
-func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID string, isClusterLocal bool) map[string]interface{} {
+func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -899,33 +898,24 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 	// Get secret reference from provider config
 	secretName := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Name
 	secretKey := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Key
-	if secretName == "" || secretKey == "" {
-		app.logger.Warn("Missing secret reference in provider config", "model", actualModelID, "providerID", foundProvider.ProviderID, "secretName", secretName, "secretKey", secretKey)
-		return nil
+
+	// Default to fake for models that don't require an API key
+	apiKey := "fake"
+	if secretName != "" && secretKey != "" {
+		// Fetch the actual API key from Kubernetes
+		var err error
+		apiKey, err = k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+		if err != nil {
+			app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
+		}
+		if apiKey == "" {
+			apiKey = "fake"
+		}
 	}
 
-	// Get the secret value from Kubernetes
-	apiKey, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
-	if err != nil {
-		app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
-		return nil
-	}
-
-	if apiKey == "" {
-		// No token configured — pass a fake key so the provider still sends an
-		// Authorization header (some endpoints require it even without auth).
-		apiKey = "fake"
-	}
-
-	// Inject API key as provider data.
-	// Cluster-local endpoints (e.g. vLLM on-cluster) use vllm_api_token;
-	// external OpenAI-compatible endpoints use openai_api_key.
-	apiKeyField := "openai_api_key"
-	if isClusterLocal {
-		apiKeyField = "vllm_api_token"
-	}
-	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID, "keyField", apiKeyField)
+	// All custom endpoints use remote::openai which requires openai_api_key in provider data
+	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
 	return map[string]interface{}{
-		apiKeyField: apiKey,
+		"openai_api_key": apiKey,
 	}
 }
