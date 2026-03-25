@@ -80,6 +80,11 @@ export enum WizardStepTitle {
   REVIEW = 'Review',
 }
 
+export enum YAMLViewerToggleOption {
+  YAML = 'YAML',
+  FORM = 'Form',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;

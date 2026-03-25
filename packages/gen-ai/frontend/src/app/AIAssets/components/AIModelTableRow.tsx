@@ -1,11 +1,25 @@
 import * as React from 'react';
-import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Truncate,
+  Label,
+  ButtonVariant,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
   InfoCircleIcon,
+  OutlinedQuestionCircleIcon,
   PlusCircleIcon,
+  EllipsisVIcon,
 } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
@@ -13,7 +27,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { getSourceLabel, getSourceLabelColor, getModelTypeLabel } from '~/app/utilities/utils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 import EndpointDetailModal from './EndpointDetailModal';
@@ -23,6 +36,8 @@ type AIModelTableRowProps = {
   model: AIModel;
   allModels: AIModel[];
   playgroundModels: LlamaModel[];
+  onDelete?: (modelId: string) => Promise<void>;
+  showActionColumn?: boolean;
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
@@ -30,34 +45,73 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   model,
   allModels,
   playgroundModels,
+  onDelete,
+  showActionColumn = false,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
-  const sourceLabel = getSourceLabel(model);
+  const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
+
+  const handleDelete = React.useCallback(async () => {
+    if (!onDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(model.model_id);
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to remove asset. Please try again.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [onDelete, model.model_id]);
 
   return (
     <>
       <Tr>
-        <Td dataLabel="Model deployment name">
+        <Td dataLabel="Model">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
-            content={model.description}
-            style={{
-              fontSize: 'var(--pf-t--global--font--size--xs)',
-              color: 'var(--pf-t--global--text--color--subtle)',
-              marginTop: 'var(--pf-t--global--spacer--xs)',
-              cursor: 'help',
-            }}
+            content={model.model_id}
+            className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
           />
+          {model.description && (
+            <Truncate
+              content={model.description}
+              className="pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-sm"
+              style={{ cursor: 'help' }}
+            />
+          )}
         </Td>
-        <Td dataLabel="Source">
-          <Label color={getSourceLabelColor(sourceLabel)} isCompact>
-            {sourceLabel}
-          </Label>
+        <Td dataLabel="Use case">
+          <TruncatedText maxLines={2} content={model.usecase} />
+        </Td>
+        <Td dataLabel="Status">
+          {model.status === 'Running' ? (
+            <Label status="success" variant="outline">
+              Ready
+            </Label>
+          ) : model.status === 'Stop' ? (
+            <Label status="danger" variant="outline">
+              Inactive
+            </Label>
+          ) : (
+            <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
+              Unknown
+            </Label>
+          )}
         </Td>
         <Td dataLabel="Endpoints">
           {model.externalEndpoint || model.internalEndpoint ? (
@@ -78,23 +132,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Label>
           )}
         </Td>
-        <Td dataLabel="Model type">
-          <Truncate content={getModelTypeLabel(model.model_type)} />
-        </Td>
-        <Td dataLabel="Use case">
-          <TruncatedText maxLines={2} content={model.usecase} />
-        </Td>
-        <Td dataLabel="Status">
-          {model.status === 'Running' ? (
-            <Label color="green" icon={<CheckCircleIcon />}>
-              Active
-            </Label>
-          ) : (
-            <Label color="red" icon={<ExclamationCircleIcon />}>
-              Inactive
-            </Label>
-          )}
-        </Td>
         <Td dataLabel="Playground">
           {enabledModel ? (
             <Button
@@ -112,7 +149,11 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 });
               }}
               // Embedding models cannot be tried in the chat playground (vector output is not supported)
-              isDisabled={model.status !== 'Running' || model.model_type === 'embedding'}
+              // Custom endpoint models are always available if they're in the list
+              isDisabled={
+                model.model_type === 'embedding' ||
+                (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
+              }
             >
               Try in playground
             </Button>
@@ -122,12 +163,49 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               icon={<PlusCircleIcon />}
               onClick={() => setIsConfigurationModalOpen(true)}
               // Add stays enabled for embedding models (may be used in RAG configurations)
-              isDisabled={model.status !== 'Running'}
+              // Custom endpoint models are always available if they're in the list
+              isDisabled={
+                model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
+              }
             >
               Add to playground
             </Button>
           )}
         </Td>
+        {showActionColumn && (
+          <Td isActionCell>
+            {model.model_source_type === 'custom_endpoint' && onDelete && (
+              <Dropdown
+                isOpen={isKebabOpen}
+                onOpenChange={(isOpen) => setIsKebabOpen(isOpen)}
+                popperProps={{ position: 'end', preventOverflow: true }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    aria-label={`Actions for ${model.display_name || model.model_id}`}
+                    variant="plain"
+                    onClick={() => setIsKebabOpen(!isKebabOpen)}
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    key="delete"
+                    onClick={() => {
+                      setIsKebabOpen(false);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    isDanger
+                  >
+                    Remove asset
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            )}
+          </Td>
+        )}
       </Tr>
       {isEndpointModalOpen && (
         <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
@@ -141,6 +219,52 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           extraSelectedModels={[model]}
           redirectToPlayground
         />
+      )}
+      {isDeleteModalOpen && (
+        <Modal
+          variant="small"
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeleteError(null);
+          }}
+          data-testid="delete-model-modal"
+        >
+          <ModalHeader title="Remove asset?" />
+          <ModalBody>
+            {deleteError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Error"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                {deleteError}
+              </Alert>
+            )}
+            <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
+            list. The endpoint configuration will be deleted.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              key="confirm"
+              variant="danger"
+              onClick={handleDelete}
+              isDisabled={isDeleting}
+              isLoading={isDeleting}
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </Button>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setIsDeleteModalOpen(false)}
+              isDisabled={isDeleting}
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

@@ -13,6 +13,10 @@ This service exposes the following endpoints:
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/secrets` – list and filter Kubernetes secrets by type
+- GET `/api/v1/s3/file` – retrieve a file from S3 storage
+- GET `/api/v1/lsd/models` – list available models from LlamaStack Distribution
+- GET `/api/v1/lsd/vector-stores` – list available vector stores from LlamaStack Distribution
 - GET `/api/v1/pipeline-runs` – query pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -103,6 +107,10 @@ The following JSON endpoints are available plus static asset serving (index.html
 GET /healthcheck
 GET /api/v1/user
 GET /api/v1/namespaces             (dev / mock mode only)
+GET  /api/v1/secrets                 (requires namespace parameter)
+GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
+GET  /api/v1/lsd/models              (requires namespace and secretName parameters)
+GET  /api/v1/lsd/vector-stores       (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -135,7 +143,10 @@ curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: applica
 ```
 
 For detailed API documentation, see:
+- [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
+- [LSD Models API](docs/lsd-models-endpoint.md)
+- [LSD Vector Stores API](docs/lsd-vector-stores-endpoint.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 

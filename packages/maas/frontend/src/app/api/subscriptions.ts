@@ -1,4 +1,10 @@
-import { handleRestFailures, isModArchResponse, APIOptions, restGET } from 'mod-arch-core';
+import {
+  handleRestFailures,
+  isModArchResponse,
+  APIOptions,
+  restGET,
+  restDELETE,
+} from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '../utilities/const';
 import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '../types/subscriptions';
 
@@ -39,6 +45,27 @@ export const listSubscriptions =
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isMaaSSubscriptionArray(response.data)) {
         return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+const isDeleteSubscriptionResponse = (v: unknown): v is { message: string } =>
+  isRecord(v) && typeof v.message === 'string';
+
+export const deleteSubscription =
+  (hostPath = '') =>
+  (opts: APIOptions, name: string): Promise<void> =>
+    handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
+        {},
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isDeleteSubscriptionResponse(response)) {
+        return;
       }
       throw new Error('Invalid response format');
     });

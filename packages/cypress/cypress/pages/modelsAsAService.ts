@@ -608,6 +608,20 @@ class SubscriptionTableRow extends TableRow {
   }
 }
 
+class DeleteSubscriptionModal extends DeleteModal {
+  constructor() {
+    super('Delete Subscription?');
+  }
+
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Delete modal input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -619,3 +633,4 @@ export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();
 export const subscriptionsPage = new SubscriptionsPage();
+export const deleteSubscriptionModal = new DeleteSubscriptionModal();

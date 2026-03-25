@@ -112,7 +112,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
       <CheckboxTd
         id={model.model_name}
         isChecked={isChecked}
-        isDisabled={model.status !== 'Running'}
+        isDisabled={model.status !== 'Running' && model.model_source_type !== 'custom_endpoint'}
         onToggle={onToggleCheck}
         data-testid={`${sanitizedModelName}-checkbox`}
       />
@@ -147,9 +147,19 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
         />
       </Td>
       <Td dataLabel="Status">
-        <Icon status={model.status === 'Running' ? 'success' : 'danger'} size="md">
-          {model.status === 'Running' ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
-        </Icon>
+        {model.status === 'Running' ? (
+          <Icon status="success" size="md">
+            <CheckCircleIcon />
+          </Icon>
+        ) : model.status === 'Unknown' ? (
+          <Icon size="md">
+            <OutlinedQuestionCircleIcon />
+          </Icon>
+        ) : (
+          <Icon status="danger" size="md">
+            <ExclamationCircleIcon />
+          </Icon>
+        )}
       </Td>
       <Td dataLabel="Use case">{model.usecase}</Td>
       <Td dataLabel="Max tokens">

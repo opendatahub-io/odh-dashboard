@@ -23,12 +23,20 @@
       "port": 8043
     }
   },
+  "e2eCiTags": ["@MaaSCI"],
+  "bffConfig": {
+    "enabled": true,
+    "port": 8081,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make dev-bff-e2e-mock",
+    "startCommandCluster": "make dev-bff-e2e-cluster"
+  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9104 -s -L",
-    "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9104 npm run start:dev",
+    "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9104 PROXY_PORT=8081 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9104"
   },
   "exports": {

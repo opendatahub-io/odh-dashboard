@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/app/shared/DeleteModal';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { useDeleteSubscription } from '~/app/hooks/useDeleteSubscription';
 
 type DeleteSubscriptionModalProps = {
   subscription: MaaSSubscription;
@@ -12,6 +13,7 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
   subscription,
   onClose,
 }) => {
+  const { isDeleting, error, deleteSubscriptionCallback } = useDeleteSubscription();
   if (!subscription.name) {
     return null;
   }
@@ -22,13 +24,14 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
       onClose={() => {
         onClose();
       }}
-      deleting={false}
-      onDelete={() => {
+      deleting={isDeleting}
+      onDelete={async () => {
+        await deleteSubscriptionCallback(subscription.name);
         onClose(true);
       }}
       submitButtonLabel="Delete"
       deleteName={subscription.name}
-      error={undefined}
+      error={error}
       genericLabel
       data-testid="delete-subscription-modal"
     >

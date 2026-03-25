@@ -1232,7 +1232,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Usecase:         useCases,
 			Description:     "",
 			Endpoints:       []string{provider.Config.BaseURL},
-			Status:          "Running",
+			Status:          models.ModelStatusUnknown,
 			SAToken:         models.SAToken{},
 			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			ModelType:       model.ModelType,
@@ -1726,7 +1726,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens, model.IsClusterLocal)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
