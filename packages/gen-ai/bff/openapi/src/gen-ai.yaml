@@ -2089,7 +2089,6 @@ components:
         - model_id
         - model_display_name
         - base_url
-        - secret_value
         - model_type
       properties:
         model_id:
@@ -2133,7 +2132,6 @@ components:
           required:
             - model_id
             - base_url
-            - secret_value
             - model_type
           properties:
             model_id:
@@ -2158,7 +2156,6 @@ components:
           required:
             - model_id
             - base_url
-            - secret_value
             - model_type
             - embedding_dimension
           properties:
@@ -2894,6 +2891,14 @@ components:
 
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          example: 'custom_endpoint'
+          description: Source type of the model. Required when using custom_endpoint models.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -3511,6 +3516,14 @@ components:
           minimum: 128
           maximum: 128000
           example: 8192
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, LlamaStack will disable TLS verification for this provider since cluster
+            services typically use self-signed certificates. Only relevant when model_source_type
+            is custom_endpoint.
 
     LlamaStackDistributionInstallModel:
       type: object

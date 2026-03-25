@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -38,7 +39,12 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 
 	response, err := app.repositories.APIKeys.CreateAPIKey(r.Context(), request.Data)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		var upstreamErr *maas.MaasUpstreamError
+		if errors.As(err, &upstreamErr) {
+			app.badRequestResponse(w, r, upstreamErr)
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

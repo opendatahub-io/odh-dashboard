@@ -480,6 +480,7 @@ export type MLflowRegisterPromptRequest = {
   template?: string;
   commit_message?: string;
   tags?: Record<string, string>;
+  create_only?: boolean;
 };
 
 export type MLflowPromptVersion = {

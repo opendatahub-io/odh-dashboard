@@ -25,12 +25,14 @@ type MLflowMessage struct {
 
 // MLflowRegisterPromptRequest is the request body for creating or updating a prompt.
 // Either Messages (chat prompt) or Template (text prompt) must be set, but not both.
+// When CreateOnly is true, the request fails with 409 if a prompt with the given name already exists.
 type MLflowRegisterPromptRequest struct {
 	Name          string            `json:"name"`
 	Messages      []MLflowMessage   `json:"messages,omitempty"`
 	Template      string            `json:"template,omitempty"`
 	CommitMessage string            `json:"commit_message,omitempty"`
 	Tags          map[string]string `json:"tags,omitempty"`
+	CreateOnly    bool              `json:"create_only,omitempty"`
 }
 
 // MLflowPromptVersion represents a full prompt version with content.

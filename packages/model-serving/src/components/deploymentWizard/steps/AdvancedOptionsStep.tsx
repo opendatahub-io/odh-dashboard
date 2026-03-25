@@ -154,7 +154,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               >
                 <TokenAuthenticationField
                   tokens={tokenAuthData}
-                  allowCreate={allowCreate}
+                  allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
                   onChange={wizardState.state.tokenAuthentication.setData}
                 />
               </FormGroup>
