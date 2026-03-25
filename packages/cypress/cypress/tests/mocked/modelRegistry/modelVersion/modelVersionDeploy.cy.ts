@@ -445,10 +445,14 @@ describe('Deploy model version', () => {
     modelServingWizard.findProjectScopedTemplateOption('Caikit').click();
     modelServingWizard.findProjectScopedLabel().should('exist');
 
-    // Ensure dropdown is fully closed before reopening
+    // Reopen dropdown and select a global serving runtime
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('be.visible');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('be.visible').click();
+    modelServingWizard
+      .findGlobalScopedTemplateOption('OpenVINO')
+      .scrollIntoView()
+      .should('be.visible')
+      .click();
     modelServingWizard.findGlobalScopedLabel().should('exist');
   });
 
@@ -674,6 +678,15 @@ describe('Deploy model version', () => {
 
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
+
+    // Delay connection types so the wizard's model source step stays in a loading
+    // state long enough for the spinner assertion to catch it
+    cy.intercept('GET', '/api/connection-types*', (req) => {
+      req.on('response', (res) => {
+        res.setDelay(1000);
+      });
+    });
+
     modelVersionDetails.visit(undefined, undefined, '4');
     modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
