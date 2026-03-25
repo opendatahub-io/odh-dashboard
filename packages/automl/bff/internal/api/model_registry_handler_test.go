@@ -123,7 +123,7 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, "default-modelregistry", first["name"])
 		assert.Equal(t, true, first["is_ready"])
-		assert.Contains(t, first["server_url"].(string), "/api/model_registry/v1beta1")
+		assert.Contains(t, first["server_url"].(string), "/api/model_registry/v1alpha3")
 	})
 
 	t.Run("display_name is always present in response", func(t *testing.T) {
