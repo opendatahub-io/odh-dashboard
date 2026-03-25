@@ -30,7 +30,7 @@ const formatBytes = (bytes: number): string => {
 const mapResultToItems = (result: S3ListObjectsResult): Files => {
   const items: Files = [];
 
-  if (result.common_prefixes) {
+  if (Array.isArray(result.common_prefixes)) {
     for (const cp of result.common_prefixes) {
       // Mark root directory markers as hidden — "/" and "" are the bucket root
       const isRoot = cp.prefix === '/' || cp.prefix === '';
@@ -50,7 +50,7 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
     }
   }
 
-  if (result.contents) {
+  if (Array.isArray(result.contents)) {
     for (const obj of result.contents) {
       // Mark root directory markers as hidden
       if (obj.key === '/' || obj.key === '') {
@@ -80,7 +80,6 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
           ...(obj.last_modified && {
             'Last Modified': (
               <Timestamp
-                data-testid="last-deployed-timestamp"
                 date={new Date(obj.last_modified)}
                 tooltip={{
                   variant: TimestampTooltipVariant.default,
@@ -201,6 +200,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           setLoadingToRender(false);
         })
         .catch(() => {
+          // TODO [ Gustavo ] Handle errors gracefully
           if (fetchIdRef.current !== requestId) {
             return;
           }

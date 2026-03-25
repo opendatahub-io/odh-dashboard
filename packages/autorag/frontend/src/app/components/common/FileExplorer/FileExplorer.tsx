@@ -165,6 +165,8 @@ const BREADCRUMB_TRAILING_VISIBLE = 2;
 
 const RENDER_SOURCE_DETAILS_IN_PANEL = false;
 
+const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
+
 // Private -------------------------------------------------------------------->
 
 const shouldDetailsPanelRender = (state: {
@@ -556,7 +558,7 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
       {selectedFiles.map((file) => (
         <DataListItem
           key={file.path}
-          aria-labelledby={`selected-file-${file.path}`}
+          aria-labelledby={`selected-file-${sanitizeId(file.path)}`}
           onClick={() => onViewDetails(file)}
         >
           <DataListItemRow>
@@ -564,7 +566,7 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
               dataListCells={[
                 <DataListCell key="name">
                   <Truncate
-                    id={`selected-file-${file.path}`}
+                    id={`selected-file-${sanitizeId(file.path)}`}
                     content={file.name}
                     tooltipPosition="right"
                   />
@@ -572,9 +574,9 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
               ]}
             />
             <DataListAction
-              aria-labelledby={`selected-file-${file.path}`}
+              aria-labelledby={`selected-file-${sanitizeId(file.path)}`}
               aria-label={`${file.name} actions`}
-              id={`selected-file-actions-${file.path}`}
+              id={`selected-file-actions-${sanitizeId(file.path)}`}
               onClick={(e) => e.stopPropagation()}
             >
               <Dropdown

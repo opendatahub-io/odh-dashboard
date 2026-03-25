@@ -26,17 +26,14 @@ const getProxyHeaders = () => {
       'x-forwarded-access-token': token,
     };
   } catch (error: unknown) {
-    console.error(
-      'Failed to get Kubernetes token:',
-      error instanceof Error ? error.message : error,
-    );
-    return {};
+    throw new Error('Failed to get Kubernetes token. Ensure you are logged in with `oc login`.', {
+      cause: error,
+    });
   }
 };
 
-const ENV_PREFIX = 'AUTORAG_PLAYGROUND_S3';
-const ENV_OTHER = [
-  'APP_ENV',
+const ENV_TO_INCLUDE = ['AUTORAG_PLAYGROUND_S3_NAMESPACE', 'AUTORAG_PLAYGROUND_S3_SECRET_NAME'];
+const ENV_STUB_FALSE = [
   'APP_ENV',
   'BACKEND_PORT',
   'COMMUNITY_LINK',
@@ -66,13 +63,12 @@ const ENV_OTHER = [
 
 dotenv.config({ path: path.resolve(ODH_ROOT, '.env.local') });
 
-const playgroundEnv = Object.fromEntries(
-  Object.entries(process.env)
-    .filter(([k]) => k.startsWith(ENV_PREFIX))
-    .map(([k, v]) => [`process.env.${k}`, JSON.stringify(v)]),
-);
-ENV_OTHER.forEach((o) => {
-  playgroundEnv[`process.env.${o}`] = 'false';
+const playgroundEnv: Record<string, string> = {};
+ENV_TO_INCLUDE.forEach((key) => {
+  playgroundEnv[`process.env.${key}`] = JSON.stringify(process.env[key] ?? '');
+});
+ENV_STUB_FALSE.forEach((key) => {
+  playgroundEnv[`process.env.${key}`] = 'false';
 });
 const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
 
@@ -129,7 +125,6 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
         },
         changeOrigin: true,
         pathRewrite: { '^/autorag': '' },
-        // @ts-expect-error TS2322 - proxy headers type mismatch
         headers: getProxyHeaders(),
       },
     ],
