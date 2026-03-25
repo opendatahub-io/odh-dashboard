@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-memory-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a ReAct Agent with Database Memory'
+  description: >-
+    Build a LangGraph ReAct agent with PostgreSQL-backed conversation
+    memory. Full chat history is persisted in the database while a FIFO
+    sliding window keeps only the last N messages in the LLM context.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/langgraph/react_with_database_memory'
+  provider: Open Data Hub
+  appName: agentic-starter-kits
