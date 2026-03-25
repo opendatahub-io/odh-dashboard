@@ -1,17 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 // Modules -------------------------------------------------------------------->
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { debounce } from 'es-toolkit';
-import { APIOptions, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type {
   Files,
   Source,
-  Sources,
   Directory,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
@@ -127,6 +123,7 @@ interface S3FileExplorerProps {
   id?: string;
   isOpen: boolean;
   onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
+  onSelectFiles?: (files: Files) => void;
 
   namespace: string;
   s3Secret?: ConnectionSecret;
@@ -135,6 +132,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
   isOpen,
   onClose,
+  onSelectFiles,
   namespace,
   s3Secret,
 }) => {
@@ -143,23 +141,14 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const secretName = s3Secret?.name;
   const bucket = '';
 
-  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
-  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
-  const [lastDirectoryClicked, setLastDirectoryClicked] = useState<Directory | null>(null);
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>([]);
   const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
-  const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
+
   const [loadingToRender, setLoadingToRender] = useState(false);
-  const [searchResultsCountToRender, setSearchResultsCountToRender] = useState<number | undefined>(
-    undefined,
-  );
+
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
-  const [selectionToRender, setSelectionToRender] = useState<'radio' | 'checkbox' | undefined>(
-    undefined,
-  );
   const [currentPath, setCurrentPath] = useState('/');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -227,7 +216,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setCurrentPath(path);
     setDirectoriesToRender(getBreadcrumbTrail(path));
     setSearchQuery('');
-    setSearchResultsCountToRender(undefined);
     setPageToRender(1);
     continuationTokensRef.current = new Map();
     fetchPath(path, perPage, 1);
@@ -239,7 +227,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
         setPageToRender(1);
         continuationTokensRef.current = new Map();
-        setSearchResultsCountToRender(undefined);
         fetchPath(currentPath, perPage, 1, query || undefined);
       }, 300),
     [currentPath, perPageToRender, fetchPath],
@@ -257,24 +244,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       id={id}
       files={filesToRender}
       source={sourceToRender}
-      sources={sourcesToRender}
       directories={directoriesToRender}
       loading={loadingToRender}
-      searchResultsCount={searchResultsCountToRender}
       page={pageToRender}
       perPage={perPageToRender}
-      selection={selectionToRender}
+      selection="radio"
       isOpen={isOpen}
       onClose={onClose}
-      onSelectSource={(source) => {
-        setSelectedSource(source);
-      }}
       onDirectoryClick={(directory) => {
-        setLastDirectoryClicked(directory);
         navigateTo(directory.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onNavigate={(dir) => {
-        setLastNavigatedDir(dir);
         navigateTo(dir.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onNavigateRoot={() => {
@@ -313,7 +293,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         fetchPath(currentPath, newPerPage, 1, searchQuery || undefined);
       }}
       onPrimary={(files) => {
-        setSelectedFiles(files);
+        onSelectFiles?.(files);
         onClose();
       }}
     />

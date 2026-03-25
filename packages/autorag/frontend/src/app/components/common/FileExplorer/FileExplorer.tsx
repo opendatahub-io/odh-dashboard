@@ -90,7 +90,7 @@ interface Column {
   label: string;
   width: BaseCellProps['width'];
   screenReaderText?: string;
-  skeleton?: ReactNode;
+  skeleton?: (index?: number) => ReactNode;
 }
 
 type RenderableDetailValue = string | number | boolean | ReactNode;
@@ -106,9 +106,13 @@ const defaults = {
   labels: {
     modalTitle: 'Select documents from connections',
     modalDescription: (sourceName?: string) =>
-      sourceName
-        ? `Viewing files from: ${sourceName}`
-        : 'Select which files to use for your data collection and evaluation sources',
+      sourceName ? (
+        <span>
+          Viewing files from: <b>{sourceName}</b>
+        </span>
+      ) : (
+        'Select which files to use for your data collection and evaluation sources'
+      ),
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
 
@@ -245,19 +249,22 @@ const FilesTable: React.FC<FilesTableProps> = ({
       label: '',
       width: undefined,
       screenReaderText: defaults.labels.tableColumnSelect,
-      skeleton: <Skeleton width="16px" height="16px" />,
     },
     name: {
       id: 'name',
       label: defaults.labels.tableColumnName,
       width: 70,
-      skeleton: <Skeleton width="75%" height="1em" />,
+      skeleton: (index = 0) => {
+        const widths = [75, 60, 70, 45, 65, 50, 55, 40, 72, 58];
+        const width = `${widths[index % widths.length]}%`;
+        return <Skeleton className="pf-v6-u-mb-md" width={width} height="1em" />;
+      },
     },
     type: {
       id: 'type',
       label: defaults.labels.tableColumnType,
       width: 10,
-      skeleton: <Skeleton width="50%" height="1em" />,
+      skeleton: () => <Skeleton className="pf-v6-u-mb-md" width="50%" height="1em" />,
     },
     actions: {
       id: 'actions',
@@ -292,11 +299,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
           </Thead>
           <Tbody>
             {loading &&
-              Array.from({ length: skeletonRowCount }, (_, i) => (
-                <Tr key={`skeleton-${i}`}>
+              Array.from({ length: skeletonRowCount }, (_, rowIndex) => (
+                <Tr key={`skeleton-${rowIndex}`}>
                   {Object.values(columns).map((column) => (
                     <Td key={column.id} isStickyColumn width={column.width}>
-                      {column.skeleton}
+                      {column.skeleton && column.skeleton(rowIndex)}
                     </Td>
                   ))}
                 </Tr>
@@ -716,7 +723,7 @@ interface FileExplorerProps {
   perPage?: number;
   itemCount?: number;
   selection?: 'radio' | 'checkbox';
-  onSelectSource: (source: Source) => void;
+  onSelectSource?: (source: Source) => void;
   onDirectoryClick?: (directory: Directory) => void;
   onNavigate?: (directory: Directory) => void;
   onNavigateRoot?: () => void;
@@ -778,7 +785,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
   }
 
-  const rowHeight = 37.8;
+  const rowHeight = 47;
   const headerHeight = 38;
   const numberOfRowsToShow = 10;
   const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight;
@@ -804,9 +811,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       />
       <ModalBody id="FileExplorer-modal-body">
         <Flex direction={{ default: 'column' }}>
-          <FlexItem>
-            <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
-          </FlexItem>
+          {typeof onSelectSource === 'function' && (
+            <FlexItem>
+              <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
+            </FlexItem>
+          )}
           <FlexItem className="pf-v6-u-mb-md">
             <PathBreadcrumbs
               directories={directories}

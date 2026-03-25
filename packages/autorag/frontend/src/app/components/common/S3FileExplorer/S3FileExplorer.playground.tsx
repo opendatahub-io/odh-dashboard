@@ -16,6 +16,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import type { SecretListItem } from '~/app/types.ts';
+import type { Files } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
@@ -42,7 +43,8 @@ interface Scenario {
 
 const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
-    { label: 'No S3 secret (null)', namespace: 'mock-playground-namespace', s3Secret: undefined },
+    // TODO [ Gustavo ] Add a scenario for empty state
+    // TODO [ Gustavo ] Add a scenario for no bucket passed in
     {
       label: 'From env configuration',
       namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
@@ -58,6 +60,7 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
   const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
+  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -123,6 +126,14 @@ const App: React.FC = () => {
             <p>Modal open: {isOpen ? 'Yes' : 'No'}</p>
             <p>Active namespace: {activeNamespace}</p>
             <p>Active secret: {activeSecret?.name ?? <em>none</em>}</p>
+            <p>
+              Selected files ({selectedFiles.length}):{' '}
+              {selectedFiles.length > 0 ? (
+                selectedFiles.map((f) => f.name).join(', ')
+              ) : (
+                <em>none</em>
+              )}
+            </p>
           </CardBody>
         </Card>
         <Card>
@@ -154,10 +165,11 @@ const App: React.FC = () => {
 
       <S3FileExplorer
         id="playground-s3-file-explorer"
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
         namespace={activeNamespace}
         s3Secret={activeSecret}
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSelectFiles={(files) => setSelectedFiles(files)}
       />
     </div>
   );
