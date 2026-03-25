@@ -72,8 +72,14 @@ RUN go mod download
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 
+#Root Permission
+USER 0
+
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+
+#Default User
+USER 1001
 
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
