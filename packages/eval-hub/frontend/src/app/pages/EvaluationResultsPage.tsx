@@ -2,12 +2,14 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
   Content,
   Flex,
   FlexItem,
   Gallery,
   Label,
+  Spinner,
   Title,
 } from '@patternfly/react-core';
 import {
@@ -17,7 +19,9 @@ import {
   ProjectDiagramIcon,
 } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
+import { loadRemote } from '@module-federation/runtime';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import {
@@ -33,11 +37,29 @@ import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
 import InlineHelpIcon from '~/app/components/InlineHelpIcon';
 
+interface MlflowRunTabsProps {
+  experimentId: string;
+  runUuid: string;
+  workspace?: string;
+}
+
+const MlflowRunTabs = React.lazy(() =>
+  loadRemote<{ default: React.ComponentType<MlflowRunTabsProps> }>(
+    'mlflowEmbedded/MlflowRunTabsWrapper',
+  )
+    .then((mod) => mod ?? { default: () => null })
+    .catch(() => ({ default: () => null })),
+);
+
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
 const EvaluationResultsPage: React.FC = () => {
   const { namespace, jobId } = useParams<{ namespace: string; jobId: string }>();
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);
+
+  const {
+    config: { deploymentMode },
+  } = useModularArchContext();
 
   const benchmarkIds = React.useMemo(
     () => (job ? getJobBenchmarks(job).map((b) => b.id) : []),
@@ -78,6 +100,21 @@ const EvaluationResultsPage: React.FC = () => {
     }
     return getResultScore(job);
   }, [job, selectedBenchmarkId, benchmarkIds.length]);
+
+  const mlflowExperimentId = job?.resource.mlflow_experiment_id;
+  const mlflowRunId = React.useMemo(() => {
+    if (!selectedBenchmarkId || !job?.results.benchmarks) {
+      return undefined;
+    }
+    return job.results.benchmarks.find((b) => b.id === selectedBenchmarkId)?.mlflow_run_id;
+  }, [selectedBenchmarkId, job?.results.benchmarks]);
+
+  const mlflowRunTabsKey = React.useMemo(() => {
+    if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkId) {
+      return undefined;
+    }
+    return `${namespace ?? ''}:${mlflowExperimentId}:${selectedBenchmarkId}:${mlflowRunId}`;
+  }, [namespace, mlflowExperimentId, mlflowRunId, selectedBenchmarkId]);
 
   const metadataRow = job ? (
     <Flex
@@ -213,6 +250,26 @@ const EvaluationResultsPage: React.FC = () => {
           {/* Selected benchmark summary (primary metric + threshold) */}
           {selectedBenchmarkId && (
             <BenchmarkResultDetails benchmarkId={selectedBenchmarkId} job={job} />
+          )}
+
+          {/* MLflow run tabs for the selected benchmark */}
+          {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
+            <div className="pf-v6-u-mt-lg" data-testid="mlflow-run-tabs-section">
+              <React.Suspense
+                fallback={
+                  <Bullseye>
+                    <Spinner />
+                  </Bullseye>
+                }
+              >
+                <MlflowRunTabs
+                  key={mlflowRunTabsKey}
+                  experimentId={mlflowExperimentId}
+                  runUuid={mlflowRunId}
+                  workspace={namespace}
+                />
+              </React.Suspense>
+            </div>
           )}
         </div>
       )}

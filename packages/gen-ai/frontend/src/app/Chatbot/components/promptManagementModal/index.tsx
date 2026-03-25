@@ -8,7 +8,8 @@ import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
-  const { setActivePrompt, setIsPromptManagementModalOpen, modalMode } = usePlaygroundStore();
+  const { setActivePrompt, setIsPromptManagementModalOpen, restoreDirtyPromptSnapshot, modalMode } =
+    usePlaygroundStore();
 
   const displayTextLookup = {
     allPrompts: {
@@ -26,6 +27,9 @@ export default function PromptManagementModal(): React.ReactNode {
   };
   const displayText = displayTextLookup[modalMode];
   function handleClose() {
+    if (modalMode === 'create' || modalMode === 'edit') {
+      restoreDirtyPromptSnapshot();
+    }
     setIsPromptManagementModalOpen(false);
   }
 
@@ -44,7 +48,7 @@ export default function PromptManagementModal(): React.ReactNode {
         {modalMode === 'allPrompts' && (
           <PromptTable onClose={handleClose} onClickLoad={handleClickLoad} />
         )}
-        {modalMode === 'create' && <CreatePrompt onClose={handleClose} />}
+        {(modalMode === 'create' || modalMode === 'edit') && <CreatePrompt onClose={handleClose} />}
       </ModalBody>
     </Modal>
   );

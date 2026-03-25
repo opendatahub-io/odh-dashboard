@@ -55,6 +55,55 @@ paths:
         '500':
           description: Internal Server Error
 
+  /api/v1/is-maas-admin:
+    get:
+      summary: Check MaaS Admin Access
+      operationId: isMaasAdmin
+      description: >
+        Checks whether the requesting user has MaaS admin privileges by performing
+        a SelfSubjectAccessReview against the `maasauthpolicies` resource in the
+        `models-as-a-service` namespace. Returns `allowed: true` only for users
+        who can create MaaSAuthPolicy resources (i.e. cluster/MaaS admins).
+
+        Token resolution priority:
+
+        1. `Authorization: Bearer <token>` — used by the ODH dashboard backend;
+           correctly substituted with the impersonated user's token when the ODH
+           dev impersonation feature (`DEV_IMPERSONATE_USER`) is active.
+
+        2. `x-forwarded-access-token` — fallback for standalone federated dev mode
+           where the webpack proxy injects the real user's token directly.
+      responses:
+        '200':
+          description: Access check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      allowed:
+                        type: boolean
+                        description: Whether the user has MaaS admin access
+                    required:
+                      - allowed
+              example:
+                data:
+                  allowed: true
+        '400':
+          description: Bad Request (missing authentication token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/namespaces:
     get:
       summary: Get Namespaces

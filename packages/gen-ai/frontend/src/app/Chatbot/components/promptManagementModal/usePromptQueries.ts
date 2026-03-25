@@ -101,6 +101,29 @@ export function usePromptVersions(promptName: string | null): UsePromptVersionsR
   };
 }
 
+type UseLatestPromptVersionResult = {
+  latestVersion: number | null;
+  isLoading: boolean;
+  error: Error | null;
+};
+
+export function useLatestPromptVersion(promptName: string | null): UseLatestPromptVersionResult {
+  const { api, apiAvailable } = useGenAiAPI();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['prompts', promptName, 'latest'],
+    queryFn: () => api.getMLflowPrompt({ name: promptName! }),
+    enabled: !!promptName && apiAvailable,
+    staleTime: 0,
+  });
+
+  return {
+    latestVersion: data?.version ?? null,
+    isLoading,
+    error: error ?? null,
+  };
+}
+
 type UseCreatePromptOptions = {
   onSuccess?: (data: MLflowPromptVersion) => void;
   onError?: (error: Error) => void;
@@ -130,6 +153,7 @@ export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreate
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['prompts', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['prompts', data.name, 'versions'] });
       onSuccess?.(data);
     },
     onError,

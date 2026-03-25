@@ -205,6 +205,10 @@ export type GenericFieldProps = {
   isEditing?: boolean;
 };
 
+export type WizardStateOverrides = {
+  tokenAuthentication?: { isDisabled?: boolean };
+};
+
 export type WizardField<
   FieldData = unknown,
   ExternalData = unknown,
@@ -215,6 +219,7 @@ export type WizardField<
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
     setFieldData: (fieldData: FieldData) => FieldData;
+    getFieldData?: (storedValue: FieldData, wizardState: WizardFormData['state']) => FieldData;
     getInitialFieldData: (
       existingFieldData?: FieldData,
       externalData?: ExternalData,
@@ -222,6 +227,10 @@ export type WizardField<
     ) => FieldData;
     resolveDependencies?: (formData: WizardFormData['state']) => Dependencies;
     validationSchema?: z.ZodSchema<FieldData>;
+    getFieldOverrides?: (
+      effectiveValue: FieldData,
+      wizardState: RecursivePartial<WizardFormData['state']>,
+    ) => WizardStateOverrides;
   };
   externalDataHook?: (initialData?: InitialWizardFormData) => {
     data: ExternalData;
@@ -235,6 +244,7 @@ export type WizardField<
       onChange: (value: FieldData) => void;
       externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
       dependencies?: Dependencies;
+      isDisabled?: boolean;
     } & GenericFieldProps
   >;
   getReviewSections?: (
@@ -242,6 +252,16 @@ export type WizardField<
     wizardState: WizardFormData['state'],
     externalData?: ExternalData,
   ) => WizardReviewSection[];
+};
+
+export const resolveFieldValue = (field: WizardField, state: WizardFormData['state']): unknown => {
+  const storedValue: unknown = state[field.id];
+  if (storedValue == null) {
+    return undefined;
+  }
+  return field.reducerFunctions.getFieldData
+    ? field.reducerFunctions.getFieldData(storedValue, state)
+    : storedValue;
 };
 
 // actual fields
