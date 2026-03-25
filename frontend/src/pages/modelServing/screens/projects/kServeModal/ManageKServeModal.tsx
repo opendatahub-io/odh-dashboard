@@ -339,7 +339,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             : new Error(typeof e === 'string' ? e : 'An unexpected error occurred.');
         const translatedError = translateModelServingError(normalizedError);
         props.success = false;
-        props.errorMessage = translatedError;
+        props.errorMessage = translatedError.message;
         setErrorModal(translatedError);
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
