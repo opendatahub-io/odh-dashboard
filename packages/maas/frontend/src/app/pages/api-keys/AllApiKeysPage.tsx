@@ -50,6 +50,8 @@ const AllApiKeysPage: React.FC = () => {
   );
 
   const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+  const [localUsername, setLocalUsername] = React.useState('');
+
   const apiKeys = response.data;
   const hasMore = response.has_more;
 
@@ -60,11 +62,14 @@ const AllApiKeysPage: React.FC = () => {
     setIsFetching(false);
   }, [response]);
 
-  const onUsernameChange = React.useCallback((value: string) => {
-    setFilterData((prev) => ({ ...prev, username: value }));
-    setPage(1);
-    setIsFetching(true);
-  }, []);
+  const onUsernameChange = React.useCallback(
+    (value: string) => {
+      setFilterData((prev) => ({ ...prev, username: value }));
+      setPage(1);
+      setIsFetching(value !== localUsername);
+    },
+    [localUsername],
+  );
 
   const onStatusToggle = React.useCallback((status: APIKeyStatus) => {
     setFilterData((prev) => ({
@@ -107,7 +112,6 @@ const AllApiKeysPage: React.FC = () => {
     filterData.username !== initialApiKeyFilterData.username ||
     JSON.stringify([...filterData.statuses].toSorted()) !==
       JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
-  const [localUsername, setLocalUsername] = React.useState('');
 
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialApiKeyFilterData);
