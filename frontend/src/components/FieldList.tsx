@@ -40,12 +40,8 @@ export const FieldListField = ({
         value={value}
         placeholder={options.placeholder}
         onChange={(e, newValue) => onChange(options.key, newValue)}
-        onBlur={(e) =>
-          trimInputOnBlur(value, (trimmed) => onChange(options.key, trimmed))(e)
-        }
-        onPaste={(e) =>
-          trimInputOnPaste(value, (trimmed) => onChange(options.key, trimmed))(e)
-        }
+        onBlur={(e) => trimInputOnBlur(value, (trimmed) => onChange(options.key, trimmed))(e)}
+        onPaste={(e) => trimInputOnPaste(value, (trimmed) => onChange(options.key, trimmed))(e)}
       />
     </FormGroup>
   );
