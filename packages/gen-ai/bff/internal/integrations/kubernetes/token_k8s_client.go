@@ -626,7 +626,7 @@ func validateVectorStores(vectorStores []models.InstallVectorStore, doc *models.
 			if secretRef != nil {
 				credCounter++
 				cred = providerCred{
-					envVarName: fmt.Sprintf("VS_CREDENTIAL_%d", credCounter),
+					envVarName: fmt.Sprintf("VS_CREDENTIAL_%s_%d", sanitizeEnvVarSegment(provider.ProviderID), credCounter),
 					secretRef:  secretRef,
 				}
 			}
@@ -662,6 +662,27 @@ func (kc *TokenKubernetesClient) LoadAndValidateVectorStores(
 	}
 
 	return validateVectorStores(vectorStores, doc)
+}
+
+// sanitizeEnvVarSegment converts s into a safe env var name segment by uppercasing it,
+// replacing any character that is not A-Z, 0-9, or _ with an underscore, and truncating
+// to 50 characters to keep env var names manageable.
+const maxEnvVarSegmentLen = 50
+
+func sanitizeEnvVarSegment(s string) string {
+	result := strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
+			return r
+		}
+		if r >= 'a' && r <= 'z' {
+			return r - 32 // to uppercase
+		}
+		return '_'
+	}, s)
+	if len(result) > maxEnvVarSegmentLen {
+		result = result[:maxEnvVarSegmentLen]
+	}
+	return result
 }
 
 // extractCredentialSecretRef returns the first secretRef from custom_gen_ai.credentials.secretRefs

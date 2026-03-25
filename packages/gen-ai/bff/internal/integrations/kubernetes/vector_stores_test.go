@@ -3,12 +3,34 @@ package kubernetes
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSanitizeEnvVarSegment(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"milvus-bff-provider", "MILVUS_BFF_PROVIDER"},
+		{"pg-1", "PG_1"},
+		{"remote::milvus", "REMOTE__MILVUS"},
+		{"already_UPPER", "ALREADY_UPPER"},
+		{"with spaces", "WITH_SPACES"},
+		{"special!@#chars", "SPECIAL___CHARS"},
+		{"", ""},
+		{strings.Repeat("a", 60), strings.Repeat("A", 50)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			assert.Equal(t, tc.want, sanitizeEnvVarSegment(tc.input))
+		})
+	}
+}
 
 // --- extractCredentialSecretRef ---
 
@@ -180,7 +202,7 @@ func TestValidateVectorStores(t *testing.T) {
 		require.Len(t, result, 1)
 		assert.Equal(t, "pg-1", result[0].Provider.ProviderID)
 		assert.Equal(t, "vs-001", result[0].RegisteredStore.VectorStoreID)
-		assert.Equal(t, "VS_CREDENTIAL_1", result[0].CredEnvVarName)
+		assert.Equal(t, "VS_CREDENTIAL_PG_1_1", result[0].CredEnvVarName)
 		require.NotNil(t, result[0].CredSecretRef)
 		assert.Equal(t, "pg-secret", result[0].CredSecretRef.Name)
 		assert.Equal(t, "password", result[0].CredSecretRef.Key)
@@ -223,8 +245,8 @@ func TestValidateVectorStores(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 2)
 		// Both stores use the same provider; credential counter increments only once.
-		assert.Equal(t, "VS_CREDENTIAL_1", result[0].CredEnvVarName)
-		assert.Equal(t, "VS_CREDENTIAL_1", result[1].CredEnvVarName)
+		assert.Equal(t, "VS_CREDENTIAL_SHARED_PG_1", result[0].CredEnvVarName)
+		assert.Equal(t, "VS_CREDENTIAL_SHARED_PG_1", result[1].CredEnvVarName)
 	})
 
 	t.Run("two stores with different providers get distinct credential env vars", func(t *testing.T) {
@@ -249,8 +271,8 @@ func TestValidateVectorStores(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, result, 2)
-		assert.Equal(t, "VS_CREDENTIAL_1", result[0].CredEnvVarName)
-		assert.Equal(t, "VS_CREDENTIAL_2", result[1].CredEnvVarName)
+		assert.Equal(t, "VS_CREDENTIAL_PG_A_1", result[0].CredEnvVarName)
+		assert.Equal(t, "VS_CREDENTIAL_MILVUS_B_2", result[1].CredEnvVarName)
 	})
 
 	t.Run("result order matches request order", func(t *testing.T) {
