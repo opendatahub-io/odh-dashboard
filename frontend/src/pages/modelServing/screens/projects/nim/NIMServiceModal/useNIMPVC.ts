@@ -18,7 +18,8 @@ export const useNIMPVC = (
   React.useEffect(() => {
     const fetchPVC = async () => {
       if (namespace && servingRuntimeEditInfo) {
-        const pvcName = servingRuntimeEditInfo.spec.volumes?.find(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        const pvcName = servingRuntimeEditInfo.spec?.volumes?.find(
           (vol) => vol.persistentVolumeClaim?.claimName,
         )?.persistentVolumeClaim?.claimName;
         if (pvcName) {

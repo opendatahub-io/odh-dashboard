@@ -99,7 +99,9 @@ export const updateServingRuntimeTemplate = (
 ): ServingRuntimeKind => {
   const updatedServingRuntime = { ...servingRuntime };
 
-  updatedServingRuntime.spec.containers = updatedServingRuntime.spec.containers.map((container) => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const containers = updatedServingRuntime.spec?.containers ?? [];
+  updatedServingRuntime.spec.containers = containers.map((container) => {
     if (container.volumeMounts) {
       const updatedVolumeMounts = container.volumeMounts.map((volumeMount) => {
         if (volumeMount.mountPath === '/mnt/models/cache') {
@@ -123,7 +125,8 @@ export const updateServingRuntimeTemplate = (
     return container;
   });
 
-  if (updatedServingRuntime.spec.volumes) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (updatedServingRuntime.spec?.volumes) {
     const updatedVolumes = updatedServingRuntime.spec.volumes.map((volume) => {
       if (volume.name.startsWith('nim-pvc')) {
         return {
