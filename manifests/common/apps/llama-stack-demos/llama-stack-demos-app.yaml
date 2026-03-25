@@ -27,20 +27,20 @@ spec:
 
     ## Learning Path
 
-    1. **Foundations** -- Setup and configuration
+    1. **Foundations** -- Client setup, chat completions, vector DB basics
 
-    2. **Responses API** -- Basic inference patterns
+    2. **Responses API** -- Tool calling, conversations, streaming, formats
 
     3. **RAG** -- Retrieval-augmented generation with Milvus and FAISS
 
-    4. **Advanced Tools** -- Tool calling and MCP integration
+    4. **Agents** -- Simple to advanced agents with tools and RAG
 
-    5. **Multi-Agent Systems** -- Agent orchestration and coordination
+    5. **Observability** -- OpenTelemetry, Jaeger, Prometheus, Grafana
 
-    6. **Production Patterns** -- Logging, monitoring, caching, async
+    6. **OpenAI Compatibility** -- Use existing OpenAI code with Llama Stack
 
-    7. **Full Applications** -- Knowledge Assistant, Code Assistant,
-    Ops Automation, Data Analysis
+    Plus specialized demos for A2A multi-agent systems, client tools,
+    and RAG evaluation.
 
     ## Getting Started
 
@@ -48,13 +48,12 @@ spec:
 
     2. Install dependencies with `pip install -e .`
 
-    3. Start with Phase 1 and work through progressively, or jump
-    directly to Phase 7 for complete applications.
+    3. Start with demo 01 and work through progressively, or jump
+    directly to advanced demos.
 
-    Each phase includes runnable notebooks and scripts with Streamlit
-    web interfaces for the full applications.
+    Each demo includes runnable Python scripts with step-by-step examples.
   description: >-
     Progressive learning path for building AI applications with Llama Stack,
-    from basic inference to production-ready agents with RAG, tool use, and
+    from basic inference to agents, observability, OpenAI compatibility, and
     multi-agent orchestration.
   category: AI agents

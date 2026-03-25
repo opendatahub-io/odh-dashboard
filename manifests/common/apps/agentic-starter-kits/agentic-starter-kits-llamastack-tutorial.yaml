@@ -6,11 +6,11 @@ metadata:
     opendatahub.io/categories: 'AI agents,Getting started'
 spec:
   type: tutorial
-  displayName: 'Build a Minimal Agent with LlamaStack'
+  displayName: 'Build a Minimal Agent with OpenAI Responses API'
   description: >-
-    Create a lightweight agent using the llama-stack-client directly
-    with no additional framework dependencies. The simplest path to
-    a working AI agent on OpenShift AI.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/base/llamastack_agent'
+    Create a lightweight agent using only the OpenAI Python client and
+    an Action/Observation loop with tools. No framework dependencies --
+    works with OpenAI or any compatible API including Llama Stack.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/vanilla_python/openai_responses_agent'
   provider: Open Data Hub
   appName: agentic-starter-kits

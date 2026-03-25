@@ -6,3 +6,7 @@ resources:
   - agentic-starter-kits-llamaindex-tutorial.yaml
   - agentic-starter-kits-llamastack-tutorial.yaml
   - agentic-starter-kits-rag-tutorial.yaml
+  - agentic-starter-kits-crewai-tutorial.yaml
+  - agentic-starter-kits-autogen-tutorial.yaml
+  - agentic-starter-kits-langflow-tutorial.yaml
+  - agentic-starter-kits-memory-tutorial.yaml
