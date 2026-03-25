@@ -17,16 +17,24 @@ type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
   selectedModels: AIModel[];
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
+  modelTypeMap: Map<string, string>;
+  onModelTypeChange: (modelName: string, value: string) => void;
   maxTokensMap: Map<string, number | undefined>;
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
+  embeddingDimensionMap: Map<string, number | undefined>;
+  onEmbeddingDimensionChange: (modelName: string, value: number | undefined) => void;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   allModels,
   selectedModels,
   setSelectedModels,
+  modelTypeMap,
+  onModelTypeChange,
   maxTokensMap,
   onMaxTokensChange,
+  embeddingDimensionMap,
+  onEmbeddingDimensionChange,
 }) => {
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
@@ -110,8 +118,19 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               isChecked={isSelected(model)}
               onToggleCheck={() => toggleSelection(model)}
               model={model}
+              modelType={
+                modelTypeMap.get(model.model_name) ??
+                (model.model_type === 'embedding' ? 'Embedding' : 'Inference')
+              }
+              onModelTypeChange={(value) => onModelTypeChange(model.model_name, value)}
               maxTokens={maxTokensMap.get(model.model_name)}
               onMaxTokensChange={(value) => onMaxTokensChange(model.model_name, value)}
+              embeddingDimension={
+                embeddingDimensionMap.get(model.model_name) ?? model.embedding_dimension
+              }
+              onEmbeddingDimensionChange={(value) =>
+                onEmbeddingDimensionChange(model.model_name, value)
+              }
             />
           )}
           selectAll={{

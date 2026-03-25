@@ -429,7 +429,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 
 // AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
 // This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
@@ -456,6 +456,20 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 		model.MaxTokens = maxTokens
 	}
 
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
+	}
+
 	c.AddModel(model)
 }
 
@@ -465,7 +479,7 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 // Provider type is hardcoded to "remote::openai" - all custom endpoints must be OpenAI-compatible.
 // isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
 // since cluster services typically use self-signed certificates.
-func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, isClusterLocal bool) {
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
 	// Full configuration (including secrets) is managed via the gen-ai-aa-external-models ConfigMap
 	providerConfig := EmptyConfig()
@@ -495,6 +509,20 @@ func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpoin
 	// Set per-model max_tokens if provided
 	if maxTokens != nil {
 		model.MaxTokens = maxTokens
+	}
+
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
 	}
 
 	c.AddModel(model)

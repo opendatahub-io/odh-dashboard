@@ -92,9 +92,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   );
 
   const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(availableModels);
+  const [modelTypeMap, setModelTypeMap] = React.useState<Map<string, string>>(new Map());
   const [maxTokensMap, setMaxTokensMap] = React.useState<Map<string, number | undefined>>(
     new Map(),
   );
+  const [embeddingDimensionMap, setEmbeddingDimensionMap] = React.useState<
+    Map<string, number | undefined>
+  >(new Map());
 
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -109,6 +113,25 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
    * @param modelName - The name of the model whose max_tokens value is being changed
    * @param value - The new max_tokens value, or undefined to remove the limit
    */
+  const handleModelTypeChange = React.useCallback((modelName: string, value: string) => {
+    setModelTypeMap((prev) => new Map(prev).set(modelName, value));
+  }, []);
+
+  const handleEmbeddingDimensionChange = React.useCallback(
+    (modelName: string, value: number | undefined) => {
+      setEmbeddingDimensionMap((prev) => {
+        const newMap = new Map(prev);
+        if (value === undefined) {
+          newMap.delete(modelName);
+        } else {
+          newMap.set(modelName, value);
+        }
+        return newMap;
+      });
+    },
+    [],
+  );
+
   const handleMaxTokensChange = React.useCallback(
     (modelName: string, value: number | undefined) => {
       setMaxTokensMap((prev) => {
@@ -152,12 +175,20 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       api
         .installLSD({
           models: selectedModels.map((model) => {
-            const maxTokens = maxTokensMap.get(model.model_name);
             const isMaaS = model.model_source_type === 'maas';
+            const resolvedType =
+              modelTypeMap.get(model.model_name) ??
+              (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+            const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
+            const maxTokens = maxTokensMap.get(model.model_name);
+            const embeddingDimension = embeddingDimensionMap.get(model.model_name);
             return {
               model_name: isMaaS ? model.model_id : model.model_name,
               model_source_type: model.model_source_type,
-              ...(maxTokens !== undefined && { max_tokens: maxTokens }),
+              model_type: apiModelType,
+              ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
+              ...(apiModelType === 'embedding' &&
+                embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
             };
           }),
           enable_guardrails: guardrailsEnabled,
@@ -203,7 +234,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setConfiguringPlayground(false);
     setError(undefined);
     setAlertTitle(undefined);
-    setMaxTokensMap(new Map()); // Reset max_tokens on close
+    setModelTypeMap(new Map());
+    setMaxTokensMap(new Map());
+    setEmbeddingDimensionMap(new Map());
     fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
       namespace: namespace?.name,
@@ -259,8 +292,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             allModels={allModels}
             selectedModels={selectedModels}
             setSelectedModels={setSelectedModels}
+            modelTypeMap={modelTypeMap}
+            onModelTypeChange={handleModelTypeChange}
             maxTokensMap={maxTokensMap}
             onMaxTokensChange={handleMaxTokensChange}
+            embeddingDimensionMap={embeddingDimensionMap}
+            onEmbeddingDimensionChange={handleEmbeddingDimensionChange}
           />
         )}
       </ModalBody>

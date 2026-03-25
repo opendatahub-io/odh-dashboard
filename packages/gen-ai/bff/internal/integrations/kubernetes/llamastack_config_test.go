@@ -1134,7 +1134,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens := 8192
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1162,7 +1162,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1188,8 +1188,8 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
 		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2)
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
