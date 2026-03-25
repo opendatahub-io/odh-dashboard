@@ -114,7 +114,11 @@ export function useAutomlResults(
             );
           }
 
-          return metricsData;
+          return {
+            modelName: name,
+            directory,
+            data: metricsData,
+          };
         },
         enabled: Boolean(
           namespace && modelDirectories.length > 0 && !modelArtifactQueries.isPending,
@@ -123,7 +127,7 @@ export function useAutomlResults(
       };
     }),
     combine: (results) => ({
-      data: results.map((r) => r.data).filter((d): d is Record<string, unknown> => d !== undefined),
+      data: results.map((r) => r.data),
       isPending: results.some((r) => r.isPending),
       isError: results.some((r) => r.isError),
     }),
@@ -131,39 +135,44 @@ export function useAutomlResults(
 
   // Step 5: Transform data into final AutomlModel format
   const models = React.useMemo(() => {
-    if (
-      metricsQueries.isPending ||
-      modelDirectories.length === 0 ||
-      metricsQueries.data.length !== modelDirectories.length
-    ) {
+    if (metricsQueries.isPending || modelDirectories.length === 0) {
       return {};
     }
 
     const results: Record<string, AutomlModel> = {};
     const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? 'timeseries';
 
-    modelDirectories.forEach((model, index) => {
-      const metricsData = metricsQueries.data[index];
+    metricsQueries.data.forEach((entry) => {
+      // Skip entries that failed to load or are missing
+      if (!entry || !entry.modelName || !entry.directory || !entry.data) {
+        if (entry?.modelName) {
+          // eslint-disable-next-line no-console
+          console.warn(`Skipping model ${entry.modelName}: failed to load metrics`);
+        }
+        return;
+      }
+
+      const { modelName, directory, data: metricsData } = entry;
 
       // Defensive validation: skip models with invalid metrics data
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!metricsData || typeof metricsData !== 'object' || Array.isArray(metricsData)) {
         // eslint-disable-next-line no-console
-        console.warn(`Skipping model ${model.name}: invalid metrics data structure`);
+        console.warn(`Skipping model ${modelName}: invalid metrics data structure`);
         return;
       }
 
       /* eslint-disable camelcase */
       const evalMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
-      results[model.name] = {
-        display_name: model.name,
+      results[modelName] = {
+        display_name: modelName,
         model_config: {
           eval_metric: evalMetric,
         },
         location: {
-          model_directory: model.directory,
-          predictor: `${model.directory}predictor/predictor.pkl`,
-          notebook: `${model.directory}notebooks/automl_predictor_notebook.ipynb`,
+          model_directory: directory,
+          predictor: `${directory}predictor/predictor.pkl`,
+          notebook: `${directory}notebooks/automl_predictor_notebook.ipynb`,
         },
         metrics: {
           test_data: metricsData,

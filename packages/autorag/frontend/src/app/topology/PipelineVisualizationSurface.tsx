@@ -44,6 +44,9 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       setError(null);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
+      // Log detailed error for diagnostics
+      // eslint-disable-next-line no-console
+      console.error('Pipeline visualization error:', err);
       setError(err);
       controller.fromModel({ nodes: [], edges: [] }, true);
     }
@@ -57,7 +60,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         titleText="Incorrect pipeline definition"
         data-id="error-empty-state"
       >
-        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateBody>Failed to load pipeline visualization</EmptyStateBody>
       </EmptyState>
     );
   }

@@ -171,15 +171,19 @@ export function useAutoragResults(
             );
           }
 
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          return patternData as AutoragPattern;
+          return {
+            patternName: name,
+            directory,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            data: patternData as AutoragPattern,
+          };
         },
         enabled: Boolean(namespace && patternDirectories.length > 0),
         retry: false,
       };
     }),
     combine: (results) => ({
-      data: results.map((r) => r.data).filter((d): d is AutoragPattern => d !== undefined),
+      data: results.map((r) => r.data),
       isPending: results.some((r) => r.isPending),
       isError: results.some((r) => r.isError),
     }),
@@ -187,24 +191,36 @@ export function useAutoragResults(
 
   // Step 4: Transform data into final AutoragPattern format
   const patterns = React.useMemo(() => {
-    if (
-      patternQueries.isPending ||
-      patternDirectories.length === 0 ||
-      patternQueries.data.length !== patternDirectories.length
-    ) {
+    if (patternQueries.isPending || patternDirectories.length === 0) {
       return {};
     }
 
     const results: Record<string, AutoragPattern> = {};
 
-    patternDirectories.forEach((pattern, index) => {
-      const patternData = patternQueries.data[index];
+    patternQueries.data.forEach((entry) => {
+      // Skip entries that failed to load or are missing
+      if (!entry) {
+        return;
+      }
+      if (!entry.patternName) {
+        // eslint-disable-next-line no-console
+        console.warn('Skipping pattern: missing pattern name');
+        return;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!entry.data) {
+        // eslint-disable-next-line no-console
+        console.warn(`Skipping pattern ${entry.patternName}: failed to load data`);
+        return;
+      }
+
+      const { patternName, data: patternData } = entry;
 
       // Defensive validation: skip patterns with invalid data structure
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!patternData || typeof patternData !== 'object' || Array.isArray(patternData)) {
         // eslint-disable-next-line no-console
-        console.warn(`Skipping pattern ${pattern.name}: invalid data structure`);
+        console.warn(`Skipping pattern ${patternName}: invalid data structure`);
         return;
       }
 
@@ -223,13 +239,13 @@ export function useAutoragResults(
       if (missing.length > 0) {
         // eslint-disable-next-line no-console
         console.warn(
-          `Skipping pattern ${pattern.name}: missing required fields: ${missing.join(', ')}`,
+          `Skipping pattern ${patternName}: missing required fields: ${missing.join(', ')}`,
         );
         return;
       }
 
       // S3 data already matches AutoragPattern schema
-      results[pattern.name] = patternData;
+      results[patternName] = patternData;
     });
 
     return results;
