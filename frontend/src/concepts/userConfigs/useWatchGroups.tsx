@@ -2,13 +2,14 @@ import * as React from 'react';
 import { GroupsConfig } from '#~/concepts/userConfigs/groupTypes';
 import { fetchAuthGroups, updateAuthGroups } from '#~/concepts/userConfigs/utils';
 import useNotification from '#~/utilities/useNotification';
-import { useGroups } from '#~/api';
+import { useGroups, GROUP_LIST_LIMIT } from '#~/api';
 
 export const useWatchGroups = (): {
   groupSettings: GroupsConfig;
   loaded: boolean;
   isLoading: boolean;
   isGroupSettingsChanged: boolean;
+  isGroupsTruncated: boolean;
   loadError: Error | undefined;
   updateGroups: (group: GroupsConfig) => void;
   setGroupSettings: (group: GroupsConfig) => void;
@@ -24,6 +25,7 @@ export const useWatchGroups = (): {
     allowedGroups: [],
   });
   const [groupsData, groupsDataLoaded] = useGroups();
+  const isGroupsTruncated = groupsData.length >= GROUP_LIST_LIMIT;
 
   const hasDirectAccessDataLoaded = groupsDataLoaded;
 
@@ -77,6 +79,7 @@ export const useWatchGroups = (): {
     loaded,
     isLoading,
     isGroupSettingsChanged,
+    isGroupsTruncated,
     loadError,
     updateGroups,
     setGroupSettings,

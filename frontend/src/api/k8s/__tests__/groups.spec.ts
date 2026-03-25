@@ -83,4 +83,16 @@ describe('useGroups', () => {
     );
     expect(result.current).toStrictEqual(mockReturnValue);
   });
+
+  it('should return partial data as loaded when there is data with an error', () => {
+    const groups = [mockGroup({ name: 'group-1' }), mockGroup({ name: 'group-2' })];
+    useAccessReviewMock.mockReturnValue([true, true]);
+    useK8sWatchResourceListMock.mockReturnValue([
+      groups,
+      false,
+      new Error('Pagination error'),
+    ]);
+    const { result } = testHook(useGroups)();
+    expect(result.current).toStrictEqual([groups, true, undefined]);
+  });
 });
