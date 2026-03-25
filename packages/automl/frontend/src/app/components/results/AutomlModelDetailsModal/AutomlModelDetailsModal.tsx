@@ -20,6 +20,7 @@ import {
 } from '~/app/mocks/mockAutomlResultsContext';
 import type { TaskType } from '~/app/types';
 import { computeRankMap } from '~/app/utilities/utils';
+// TODO: import { downloadBlob } from '~/app/utilities/utils'; when integrating with AutomlResultsContext
 // TODO: uncomment when integrating with AutomlResultsContext
 // import { useS3GetFileQuery, useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
@@ -89,20 +90,13 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   // TODO: uncomment when integrating with AutomlResultsContext
   // const notebookKey = model.location.notebook;
+  // const notebookFilename = notebookKey.split('/').pop() ?? 'notebook.ipynb';
   // const { data: notebook } = useS3GetFileQuery(namespace, undefined, undefined, notebookKey);
   // const handleSaveNotebook = React.useCallback(() => {
-  //   if (!notebook) {
-  //     return;
+  //   if (notebook) {
+  //     downloadBlob(notebook, notebookFilename);
   //   }
-  //   const url = URL.createObjectURL(notebook);
-  //   const link = document.createElement('a');
-  //   link.href = url;
-  //   link.download = 'automl_predictor_notebook.ipynb';
-  //   document.body.appendChild(link);
-  //   link.click();
-  //   document.body.removeChild(link);
-  //   URL.revokeObjectURL(url);
-  // }, [notebook]);
+  // }, [notebook, notebookFilename]);
   const handleSaveNotebook = React.useCallback(() => undefined, []);
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
