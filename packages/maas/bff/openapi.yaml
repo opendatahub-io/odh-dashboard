@@ -1536,6 +1536,14 @@ components:
           type: string
           description: Endpoint URL for the model (from status)
           example: https://llama-2-7b-chat.example.com
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+          example: Llama 2 7B Chat
+        description:
+          type: string
+          description: Human-readable description (from openshift.io/description annotation)
+          example: A conversational language model fine-tuned for chat use cases
       required:
         - name
         - namespace
@@ -1671,6 +1679,18 @@ components:
           type: string
           description: Optional endpoint URL override
           example: ""
+        uid:
+          type: string
+          description: UID of the OwnerReference Resource
+          example: ""
+        displayName:
+          type: string
+          description: Human-readable display name stored as openshift.io/display-name annotation
+          example: Granite 3 8B Instruct
+        description:
+          type: string
+          description: Human-readable description stored as openshift.io/description annotation
+          example: A high-performance instruction-tuned language model
       required:
         - name
         - namespace
@@ -1686,5 +1706,13 @@ components:
           type: string
           description: Optional endpoint URL override
           example: ""
+        displayName:
+          type: string
+          description: Human-readable display name stored as openshift.io/display-name annotation
+          example: Granite 3 8B Instruct
+        description:
+          type: string
+          description: Human-readable description stored as openshift.io/description annotation
+          example: A high-performance instruction-tuned language model
       required:
         - modelRef

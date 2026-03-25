@@ -1,0 +1,70 @@
+import React from 'react';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import type { WizardFormData } from './types';
+import {
+  isWizardFieldPostDeployExtension,
+  isWizardField2Extension,
+  type Deployment,
+} from '../../../extension-points';
+
+/**
+ * Hook that returns an async function to run all active post-deploy extensions after
+ * a deployment is saved. Each extension receives the field's current data, the newly
+ * saved model resource (which now has a uid), and the original deployment (if editing).
+ *
+ * Post-deploy extensions are only executed if their associated WizardField2 is active.
+ *
+ * @param wizardState - The current wizard form state at the point of submission
+ */
+export const useWizardFieldPostDeploy = (
+  wizardState: WizardFormData['state'],
+): {
+  runPostDeploy: (
+    deployedModel: Deployment['model'],
+    existingDeployment?: Deployment,
+  ) => Promise<void>;
+  postDeployExtensionsLoaded: boolean;
+  postDeployExtensionErrors: Error[];
+} => {
+  const [postDeployExtensions, postDeployExtensionsLoaded, postDeployExtensionErrors] =
+    useResolvedExtensions(isWizardFieldPostDeployExtension);
+
+  const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
+
+  const activeFieldIds = React.useMemo(
+    () =>
+      new Set(
+        fieldExtensions
+          .filter((ext) => ext.properties.field.isActive(wizardState))
+          .map((ext) => ext.properties.field.id),
+      ),
+    [fieldExtensions, wizardState],
+  );
+
+  const activePostDeployExtensions = React.useMemo(
+    () => postDeployExtensions.filter((ext) => activeFieldIds.has(ext.properties.fieldId)),
+    [postDeployExtensions, activeFieldIds],
+  );
+
+  const runPostDeploy = React.useCallback(
+    async (deployedModel: Deployment['model'], existingDeployment?: Deployment): Promise<void> => {
+      for (const ext of activePostDeployExtensions) {
+        const { fieldId } = ext.properties;
+        const fieldData: unknown = wizardState[fieldId];
+        await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+      }
+    },
+    [activePostDeployExtensions, wizardState],
+  );
+
+  return React.useMemo(
+    () => ({
+      runPostDeploy,
+      postDeployExtensionsLoaded,
+      postDeployExtensionErrors: postDeployExtensionErrors.filter(
+        (error): error is Error => error instanceof Error,
+      ),
+    }),
+    [runPostDeploy, postDeployExtensionsLoaded, postDeployExtensionErrors],
+  );
+};

@@ -80,11 +80,13 @@ type ModelReference struct {
 
 // MaaSModelRefSummary is the BFF representation of a MaaSModelRef CR.
 type MaaSModelRefSummary struct {
-	Name      string         `json:"name"`
-	Namespace string         `json:"namespace"`
-	ModelRef  ModelReference `json:"modelRef"`
-	Phase     string         `json:"phase,omitempty"`
-	Endpoint  string         `json:"endpoint,omitempty"`
+	Name        string         `json:"name"`
+	Namespace   string         `json:"namespace"`
+	ModelRef    ModelReference `json:"modelRef"`
+	Phase       string         `json:"phase,omitempty"`
+	Endpoint    string         `json:"endpoint,omitempty"`
+	DisplayName string         `json:"displayName,omitempty"`
+	Description string         `json:"description,omitempty"`
 }
 
 // CreateSubscriptionRequest is the request body for creating a new subscription.
