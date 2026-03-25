@@ -99,7 +99,7 @@ describe('create', () => {
   it('Shows user-friendly error message when connection type name already exists', () => {
     cy.interceptOdh('POST /api/connection-types', {
       success: false,
-      error: 'A connection type with this name already exists. Please choose a different name.',
+      error: 'Unable to add connection type: configmaps "existing-name" already exists.',
     });
     const categorySection = createConnectionTypePage.getCategorySection();
     createConnectionTypePage.visitCreatePage();
