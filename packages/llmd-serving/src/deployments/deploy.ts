@@ -305,20 +305,23 @@ export const deployLLMdDeployment = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
 ): Promise<LLMdDeployment> => {
-  const llmInferenceService = modelResource;
-
-  if (!llmInferenceService || !isLLMInferenceService(llmInferenceService)) {
+  if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
   }
 
+  let llmInferenceServiceConfig: LLMInferenceServiceConfigKind | undefined;
   if (serverResource) {
-    await deployLLMInferenceServiceConfig(serverResource, existingDeployment?.server, {
-      dryRun,
-      overwrite,
-    });
+    llmInferenceServiceConfig = await deployLLMInferenceServiceConfig(
+      serverResource,
+      existingDeployment?.server,
+      {
+        dryRun,
+        overwrite,
+      },
+    );
   }
-  const llmdDeployment = await deployLLMInferenceService(
-    llmInferenceService,
+  const llmInferenceService = await deployLLMInferenceService(
+    modelResource,
     existingDeployment?.model,
     { dryRun, overwrite },
   );
@@ -333,7 +336,7 @@ export const deployLLMdDeployment = async (
       llmInferenceService.metadata.name,
       llmInferenceService.metadata.namespace,
       createTokenAuth,
-      llmdDeployment,
+      llmInferenceService,
       initialWizardData?.existingAuthTokens,
       { dryRun },
     );
@@ -341,6 +344,7 @@ export const deployLLMdDeployment = async (
 
   return {
     modelServingPlatformId: LLMD_SERVING_ID,
-    model: llmdDeployment,
+    model: llmInferenceService,
+    ...(llmInferenceServiceConfig && { server: llmInferenceServiceConfig }),
   };
 };
