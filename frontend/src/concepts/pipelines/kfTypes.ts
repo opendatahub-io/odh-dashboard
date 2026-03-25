@@ -490,6 +490,29 @@ export type RunDetailsKF = {
   task_details: TaskDetailKF[];
 };
 
+export enum PluginStateKF {
+  PLUGIN_STATE_UNSPECIFIED = 'PLUGIN_STATE_UNSPECIFIED',
+  PLUGIN_RUNNING = 'PLUGIN_RUNNING',
+  PLUGIN_SUCCEEDED = 'PLUGIN_SUCCEEDED',
+  PLUGIN_FAILED = 'PLUGIN_FAILED',
+}
+
+export enum MetadataValueRenderType {
+  UNSPECIFIED = 'UNSPECIFIED',
+  URL = 'URL',
+}
+
+export type MetadataValueKF = {
+  value: string;
+  render_type?: MetadataValueRenderType;
+};
+
+export type PluginOutputKF = {
+  entries: Record<string, MetadataValueKF>;
+  state?: PluginStateKF;
+  state_message?: string;
+};
+
 export type PipelineRunKF = PipelineCoreResourceKF & {
   experiment_id: string;
   run_id: string;
@@ -507,6 +530,8 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
   run_details: RunDetailsKF;
   recurring_run_id?: string;
   state_history: object[];
+  plugins_input?: Record<string, Record<string, unknown>>;
+  plugins_output?: Record<string, PluginOutputKF>;
 };
 
 export type PipelineVersionReference = {

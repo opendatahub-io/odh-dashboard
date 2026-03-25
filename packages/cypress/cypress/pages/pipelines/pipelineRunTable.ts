@@ -24,6 +24,10 @@ class PipelineRunTableRow extends PipelineRunsRow {
   findModelRegisteredLabel() {
     return this.find().findByTestId('model-registered-label');
   }
+
+  findExperimentLink() {
+    return this.find().find('[data-label=Experiment]').find('a');
+  }
 }
 
 class PipelineRecurringRunTableRow extends PipelineRunsRow {
