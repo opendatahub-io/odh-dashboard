@@ -21,9 +21,10 @@ type MaaSFieldProps = {
   id: string;
   value: MaaSFieldValue;
   onChange: (value: MaaSFieldValue) => void;
+  isDisabled?: boolean;
 };
 
-const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange }) => {
+const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => {
   const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
     onChange({ isChecked: checked });
   };
@@ -50,6 +51,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange }) => {
             </>
           }
           isChecked={value.isChecked}
+          isDisabled={isDisabled}
           onChange={handleCheckboxChange}
         />
       </Stack>
@@ -72,6 +74,9 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
+    getFieldOverrides: (fieldValue) => ({
+      tokenAuthentication: { isDisabled: fieldValue.isChecked },
+    }),
   },
   component: MaaSField,
   getReviewSections: (value) => [
