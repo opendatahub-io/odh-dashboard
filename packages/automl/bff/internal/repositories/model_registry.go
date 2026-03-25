@@ -43,11 +43,6 @@ const (
 	// global in the RHOAI UX; this namespace is their physical home on the cluster.
 	modelRegistriesNamespace = "rhoai-model-registries"
 
-	// modelRegistryAPIPath is the REST API path prefix served by the Model Registry.
-	// NOTE: this reflects v1beta1 of the Kubeflow Model Registry REST API. If the
-	// operator upgrades the REST API version this constant must be updated accordingly.
-	modelRegistryAPIPath = "/api/model_registry/v1beta1"
-
 	// modelRegistryServicePort is the HTTPS port of the kube-rbac-proxy deployed in
 	// front of every ModelRegistry service by the model-registry-operator.
 	modelRegistryServicePort = 8443
@@ -55,7 +50,23 @@ const (
 	// defaultModelRegistryClusterDomain is the fallback cluster-internal DNS search domain.
 	// Override with MODEL_REGISTRY_CLUSTER_DOMAIN env var for non-standard clusters.
 	defaultModelRegistryClusterDomain = "svc.cluster.local"
+
+	// defaultModelRegistryRESTAPIPath is the REST API path prefix served by the Model Registry
+	// service. Note: this is the Kubeflow Model Registry REST API version (v1alpha3), which is
+	// distinct from the modelregistry.opendatahub.io CRD API version (v1beta1) used to list
+	// ModelRegistry CRs. Override with MODEL_REGISTRY_REST_API_PATH env var if the operator
+	// upgrades the REST API version.
+	defaultModelRegistryRESTAPIPath = "/api/model_registry/v1alpha3"
 )
+
+// modelRegistryRESTAPIPath returns the REST API path prefix for the Model Registry service,
+// reading from MODEL_REGISTRY_REST_API_PATH env var with a default of "/api/model_registry/v1alpha3".
+func modelRegistryRESTAPIPath() string {
+	if v := os.Getenv("MODEL_REGISTRY_REST_API_PATH"); v != "" {
+		return v
+	}
+	return defaultModelRegistryRESTAPIPath
+}
 
 // modelRegistryClusterDomain returns the cluster DNS domain, reading from
 // MODEL_REGISTRY_CLUSTER_DOMAIN env var with a default of "svc.cluster.local".
@@ -246,9 +257,9 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 		isExternal := !isInternal && host != name && host != shortForm && !strings.Contains(host, " ")
 
 		if isInternal && serverURL == "" {
-			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryAPIPath)
+			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryRESTAPIPath())
 		} else if isExternal && externalURL == "" {
-			externalURL = fmt.Sprintf("https://%s%s", host, modelRegistryAPIPath)
+			externalURL = fmt.Sprintf("https://%s%s", host, modelRegistryRESTAPIPath())
 		}
 	}
 
@@ -263,7 +274,7 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 			modelRegistriesNamespace,
 			modelRegistryClusterDomain(),
 			modelRegistryServicePort,
-			modelRegistryAPIPath,
+			modelRegistryRESTAPIPath(),
 		)
 	}
 
@@ -280,8 +291,8 @@ func getMockModelRegistries() *models.ModelRegistriesData {
 				DisplayName: "Default Model Registry",
 				Description: "Default shared model registry for the organization",
 				IsReady:     true,
-				ServerURL:   "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1beta1",
-				ExternalURL: "https://default-modelregistry-rest.apps.example.com/api/model_registry/v1beta1",
+				ServerURL:   "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
+				ExternalURL: "https://default-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
 			},
 			{
 				ID:          "b2c3d4e5-f6a7-8901-bcde-222222222222",
@@ -289,8 +300,8 @@ func getMockModelRegistries() *models.ModelRegistriesData {
 				DisplayName: "Team Model Registry",
 				Description: "Dedicated model registry for the ML team",
 				IsReady:     true,
-				ServerURL:   "https://team-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1beta1",
-				ExternalURL: "https://team-modelregistry-rest.apps.example.com/api/model_registry/v1beta1",
+				ServerURL:   "https://team-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
+				ExternalURL: "https://team-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
 			},
 		},
 	}
