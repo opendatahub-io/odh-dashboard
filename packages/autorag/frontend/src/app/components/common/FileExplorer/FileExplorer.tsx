@@ -84,7 +84,6 @@ export interface Directory extends File {
   type: 'directory';
   items: number;
 }
-
 const isDirectory = (file: File): file is Directory => file.type === 'directory';
 
 interface Column {
@@ -158,6 +157,25 @@ const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
 
 const RENDER_SOURCE_DETAILS_IN_PANEL = false;
+
+// Private -------------------------------------------------------------------->
+
+const shouldDetailsPanelRender = (state: {
+  filesToView: Files | undefined;
+  selectedFiles: Files | undefined;
+}) => {
+  const { filesToView, selectedFiles } = state;
+
+  const shouldDetailsRender = Boolean(Array.isArray(filesToView) && filesToView.length > 0);
+  const shouldSelectedFilesRender = Boolean(
+    Array.isArray(selectedFiles) && selectedFiles.length > 0,
+  );
+  return {
+    details: shouldDetailsRender,
+    selected: shouldSelectedFilesRender,
+    panel: shouldDetailsRender || shouldSelectedFilesRender,
+  };
+};
 
 // Components ----------------------------------------------------------------->
 
@@ -534,8 +552,8 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 
 interface SelectedFilesDataListProps {
   selectedFiles: Files;
-  onViewDetails?: (file: File) => void;
-  onRemoveSelection?: (file: File) => void;
+  onViewDetails: (file: File) => void;
+  onRemoveSelection: (file: File) => void;
 }
 const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   selectedFiles,
@@ -544,13 +562,20 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 }) => {
   const [openMenuFileKey, setOpenMenuFileKey] = useState<string | null>(null);
 
+  const emptyHandler = () => null;
+
   return (
-    <DataList aria-label={defaults.labels.detailsPanelTitleFiles} isCompact>
+    <DataList
+      aria-label={defaults.labels.detailsPanelTitleFiles}
+      isCompact
+      onSelectDataListItem={emptyHandler}
+      onSelectableRowChange={emptyHandler}
+    >
       {selectedFiles.map((file) => (
         <DataListItem
           key={file.path}
           aria-labelledby={`selected-file-${file.path}`}
-          onClick={() => onViewDetails?.(file)}
+          onClick={() => onViewDetails(file)}
         >
           <DataListItemRow>
             <DataListItemCells
@@ -588,28 +613,24 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
                 popperProps={{ position: 'right' }}
               >
                 <DropdownList>
-                  {onViewDetails && (
-                    <DropdownItem
-                      key="view-details"
-                      onClick={() => {
-                        onViewDetails(file);
-                        setOpenMenuFileKey(null);
-                      }}
-                    >
-                      {defaults.labels.tableActionViewDetails}
-                    </DropdownItem>
-                  )}
-                  {onRemoveSelection && (
-                    <DropdownItem
-                      key="remove-selection"
-                      onClick={() => {
-                        onRemoveSelection(file);
-                        setOpenMenuFileKey(null);
-                      }}
-                    >
-                      {defaults.labels.tableActionRemoveSelection}
-                    </DropdownItem>
-                  )}
+                  <DropdownItem
+                    key="view-details"
+                    onClick={() => {
+                      onViewDetails(file);
+                      setOpenMenuFileKey(null);
+                    }}
+                  >
+                    {defaults.labels.tableActionViewDetails}
+                  </DropdownItem>
+                  <DropdownItem
+                    key="remove-selection"
+                    onClick={() => {
+                      onRemoveSelection(file);
+                      setOpenMenuFileKey(null);
+                    }}
+                  >
+                    {defaults.labels.tableActionRemoveSelection}
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </DataListAction>
@@ -624,7 +645,6 @@ interface DetailsPanelProps {
   source?: Source;
   selectedFiles?: Files;
   filesToView?: Files;
-  loading?: boolean;
   onViewDetails: (file: File) => void;
   onRemoveSelection: (file: File) => void;
   onClearDetails: () => void;
@@ -633,40 +653,10 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   source,
   selectedFiles,
   filesToView,
-  loading,
   onViewDetails,
   onRemoveSelection,
   onClearDetails,
 }) => {
-  if (loading) {
-    return (
-      <Card isFullHeight>
-        <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
-        <CardBody>
-          <DescriptionList>
-            <DescriptionListGroup>
-              <DescriptionListTerm>
-                <Skeleton width="60px" height="1em" />
-              </DescriptionListTerm>
-              <DescriptionListDescription>
-                <Skeleton width="120px" height="1em" />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>
-                <Skeleton width="40px" height="1em" />
-              </DescriptionListTerm>
-              <DescriptionListDescription>
-                <Skeleton width="180px" height="1em" />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          </DescriptionList>
-        </CardBody>
-      </Card>
-    );
-  }
-
-  const renderDetailsSubCard = Boolean(Array.isArray(filesToView) && filesToView.length > 0);
   const detailsSubCard = (
     <Card isPlain isCompact>
       <CardHeader
@@ -684,7 +674,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       >
         <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
       </CardHeader>
-      <CardBody isFilled={false}>
+      <CardBody className="pf-v6-u-pt-sm" isFilled={false}>
         <DescriptionList>
           {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
           {RENDER_SOURCE_DETAILS_IN_PANEL && source && (
@@ -711,11 +701,10 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     </Card>
   );
 
-  const renderSelectedFilesSubCard = Array.isArray(selectedFiles) && selectedFiles.length > 0;
   const selectedFilesSubCard = (
     <Card isPlain isCompact>
       <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
-      <CardBody>
+      <CardBody className="pf-v6-u-pt-sm">
         {/*<DescriptionList>*/}
         {/*  {Array.isArray(selectedFiles) &&*/}
         {/*    selectedFiles.length > 0 &&*/}
@@ -734,15 +723,13 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     </Card>
   );
 
-  if (!renderDetailsSubCard && !renderSelectedFilesSubCard) {
-    return null;
-  }
+  const shouldRender = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
     <Card isFullHeight isCompact>
-      {renderDetailsSubCard && detailsSubCard}
-      {renderDetailsSubCard && renderSelectedFilesSubCard && <Divider />}
-      {renderSelectedFilesSubCard && selectedFilesSubCard}
+      {shouldRender.details && detailsSubCard}
+      {shouldRender.details && shouldRender.selected && <Divider />}
+      {shouldRender.selected && selectedFilesSubCard}
     </Card>
   );
 };
@@ -813,6 +800,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const numberOfRowsToShow = 10;
   const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight + paginationHeight;
 
+  const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
+
   return (
     <Modal
       id={id}
@@ -863,7 +852,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           </FlexItem>
           <FlexItem>
             <Grid hasGutter>
-              <GridItem span={8} style={{ height: `${stickyTableHeight}px` }}>
+              <GridItem
+                span={shouldRenderDetails.panel ? 8 : 12}
+                style={{ height: `${stickyTableHeight}px` }}
+              >
                 <FilesTable
                   files={files}
                   selectedFiles={selectedFiles}
@@ -879,19 +871,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   onPerPageSelect={onPerPageSelect}
                 />
               </GridItem>
-              <GridItem span={4}>
-                <DetailsPanel
-                  source={source}
-                  selectedFiles={selectedFiles}
-                  filesToView={filesToView}
-                  loading={loading}
-                  onViewDetails={(file) => setFilesToView([file])}
-                  onRemoveSelection={(file) =>
-                    setSelectedFiles(selectedFiles.filter((f) => f !== file))
-                  }
-                  onClearDetails={() => setFilesToView([])}
-                />
-              </GridItem>
+              {shouldRenderDetails.panel && (
+                <GridItem span={4}>
+                  <DetailsPanel
+                    source={source}
+                    selectedFiles={selectedFiles}
+                    filesToView={filesToView}
+                    onViewDetails={(file) => setFilesToView([file])}
+                    onRemoveSelection={(file) =>
+                      setSelectedFiles(selectedFiles.filter((f) => f !== file))
+                    }
+                    onClearDetails={() => setFilesToView([])}
+                  />
+                </GridItem>
+              )}
             </Grid>
           </FlexItem>
         </Flex>
@@ -927,5 +920,3 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 // Public --------------------------------------------------------------------->
 
 export default FileExplorer;
-
-// Private -------------------------------------------------------------------->
