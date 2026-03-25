@@ -219,6 +219,152 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeDisabled();
     });
+
+    describe('Subscriptions', () => {
+      it('should show subscription dropdown above Generate API key button when subscriptions are available', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+            {
+              name: 'premium-subscription',
+              displayName: 'Premium Subscription',
+              description: 'Premium tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        expect(screen.getByText('Subscription')).toBeInTheDocument();
+        expect(screen.getByTestId('endpoint-modal-subscription-select')).toBeInTheDocument();
+        expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
+      });
+
+      it('should select first subscription by default', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        const selectButton = screen.getByTestId('endpoint-modal-subscription-select');
+        expect(selectButton).toHaveTextContent('Basic Subscription');
+      });
+
+      it('should call generateToken without subscription when button is clicked', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'premium-subscription',
+              displayName: 'Premium Subscription',
+              description: 'Premium tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
+        expect(mockGenerateToken).toHaveBeenCalledWith();
+      });
+
+      it('should not show subscription dropdown for non-MaaS models', () => {
+        const model = createMockModel({
+          model_source_type: 'namespace',
+          internalEndpoint: 'http://internal',
+        });
+        renderModal(model);
+
+        expect(screen.queryByTestId('endpoint-modal-subscription-select')).not.toBeInTheDocument();
+      });
+
+      it('should change subscription selection when user selects different option', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+            {
+              name: 'premium-subscription',
+              displayName: 'Premium Subscription',
+              description: 'Premium tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        const selectButton = screen.getByTestId('endpoint-modal-subscription-select');
+
+        // Default is first subscription
+        expect(selectButton).toHaveTextContent('Basic Subscription');
+
+        // Open the dropdown and select premium
+        fireEvent.click(selectButton);
+        const premiumOption = screen.getByText('Premium Subscription');
+        fireEvent.click(premiumOption);
+
+        expect(selectButton).toHaveTextContent('Premium Subscription');
+      });
+
+      it('should hide subscription dropdown after token is generated', () => {
+        mockUseGenerateMaaSToken = jest.fn(() => ({
+          isGenerating: false,
+          tokenData: { key: 'generated-token-123' },
+          error: null,
+          generateToken: mockGenerateToken,
+          resetToken: mockResetToken,
+        }));
+
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        // Subscription dropdown should not be visible when token is present
+        expect(screen.queryByTestId('endpoint-modal-subscription-select')).not.toBeInTheDocument();
+      });
+
+      it('should show alert when no subscriptions are available', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [],
+        });
+        renderModal(model);
+
+        expect(
+          screen.getByText(/You don't have any subscriptions for this model/),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(/Contact your administrator to request access/),
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('Field matrix per model source', () => {
