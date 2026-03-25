@@ -1,7 +1,7 @@
 import { PatchUtils, V1ConfigMap } from '@kubernetes/client-node';
 import { KnownLabels, KubeFastifyInstance, RecursivePartial } from '../../../types';
 import { getNamespaces } from '../../../utils/notebookUtils';
-import { errorHandler } from '../../../utils';
+import { errorHandler, isHttpError } from '../../../utils';
 
 const isConnectionTypeConfigMap = (configMap: V1ConfigMap): boolean =>
   configMap.metadata.labels &&
@@ -82,6 +82,11 @@ export const createConnectionType = async (
     await coreV1Api.createNamespacedConfigMap(dashboardNamespace, connectionType);
     return { success: true, error: '' };
   } catch (e) {
+    if (isHttpError(e) && e.statusCode === 409) {
+      const error = `A connection type with this name already exists. Please choose a different name.`;
+      fastify.log.error(error);
+      return { success: false, error };
+    }
     const error = `Unable to add connection type: ${errorHandler(e)}.`;
     fastify.log.error(error);
     return { success: false, error };
