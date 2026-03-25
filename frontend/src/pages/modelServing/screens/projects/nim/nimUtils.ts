@@ -197,10 +197,11 @@ export const getNIMResourcesToDelete = async (
   // Handle PVC deletion with reference counting
   // IMPORTANT: With subPath support, multiple deployments may share the same PVC
   // We only delete the PVC when NO deployments are using it anymore
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const pvcName = servingRuntime.spec?.volumes?.find((vol) =>
     vol.persistentVolumeClaim?.claimName?.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
   if (pvcName) {
     try {
