@@ -1,13 +1,16 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
 
 type ModelRegistriesEnvelope Envelope[*models.ModelRegistriesData, None]
@@ -19,12 +22,16 @@ type ModelRegistriesEnvelope Envelope[*models.ModelRegistriesData, None]
 // includes the registry name, id, readiness, and server URL needed to route
 // subsequent model registration calls to the correct registry service.
 //
+// Note: all authenticated users can list ModelRegistries regardless of namespace
+// permissions, consistent with the RHOAI dashboard behaviour for this resource type.
+//
 // Error Responses:
 //   - 400: Missing RequestIdentity in context
 //   - 403: Insufficient permissions to list ModelRegistries
 //   - 500: Internal server error
 func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
+	logger := helper.GetContextLoggerFromReq(r)
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 	if !ok || identity == nil {
@@ -44,9 +51,9 @@ func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, k8sClient, app.config.MockK8Client)
+	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, k8sClient, app.config.MockK8Client, logger)
 	if err != nil {
-		if isForbiddenError(err) {
+		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")
 			return
 		}
@@ -61,13 +68,4 @@ func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-}
-
-// isForbiddenError checks whether an error message indicates a Kubernetes RBAC denial.
-func isForbiddenError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return len(msg) >= 9 && msg[:9] == "forbidden"
 }

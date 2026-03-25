@@ -9,19 +9,27 @@ type ModelRegistry struct {
 	Name string `json:"name"`
 
 	// DisplayName is taken from the openshift.io/display-name annotation, falling back to Name.
-	DisplayName string `json:"display_name,omitempty"`
+	// Always present — never empty.
+	DisplayName string `json:"display_name"`
 
 	// Description is taken from the openshift.io/description annotation.
+	// Optional — omitted when the annotation is absent.
 	Description string `json:"description,omitempty"`
 
-	// IsReady indicates whether the ModelRegistry has a Ready=True condition.
+	// IsReady indicates whether the ModelRegistry has Available=True in its status conditions.
 	IsReady bool `json:"is_ready"`
 
-	// ServerURL is the full REST API base URL for this registry, constructed from
-	// the service name and registries namespace reported in the CR status.
-	// Callers should append /registered_models, /model_versions, etc. to this URL.
+	// ServerURL is the full in-cluster REST API base URL for this registry.
+	// Derived from status.hosts (set by the operator) — the full cluster-local FQDN is
+	// preferred as it works regardless of the cluster's DNS search domain.
+	// Callers should append resource paths (e.g. /registered_models) to this URL.
 	// Example: https://my-registry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3
 	ServerURL string `json:"server_url"`
+
+	// ExternalURL is the public Route URL for the registry, if a serviceRoute is enabled.
+	// Empty when no Route is configured. Can be used for external access from outside the cluster.
+	// Example: https://my-registry-rest.apps.cluster.example.com/api/model_registry/v1alpha3
+	ExternalURL string `json:"external_url,omitempty"`
 }
 
 // ModelRegistriesData wraps the model registry list for the API response.

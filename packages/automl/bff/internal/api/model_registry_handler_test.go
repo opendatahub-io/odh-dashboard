@@ -30,9 +30,9 @@ func newModelRegistryTestApp() *App {
 	}
 }
 
-// withIdentityContext injects a fake RequestIdentity into the request context,
+// injectModelRegistryTestIdentity injects a fake RequestIdentity into the request context,
 // simulating what InjectRequestIdentity does in production.
-func withIdentityContext(req *http.Request) *http.Request {
+func injectModelRegistryTestIdentity(req *http.Request) *http.Request {
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{
 		UserID: "test-user",
 	})
@@ -44,7 +44,7 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 
 	t.Run("returns 200 with model registries list", func(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
-		req = withIdentityContext(req)
+		req = injectModelRegistryTestIdentity(req)
 		rr := httptest.NewRecorder()
 
 		app.GetModelRegistriesHandler(rr, req, nil)
@@ -62,7 +62,7 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 
 	t.Run("data contains model_registries array", func(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
-		req = withIdentityContext(req)
+		req = injectModelRegistryTestIdentity(req)
 		rr := httptest.NewRecorder()
 
 		app.GetModelRegistriesHandler(rr, req, nil)
@@ -81,7 +81,7 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 
 	t.Run("each registry has required fields", func(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
-		req = withIdentityContext(req)
+		req = injectModelRegistryTestIdentity(req)
 		rr := httptest.NewRecorder()
 
 		app.GetModelRegistriesHandler(rr, req, nil)
@@ -103,7 +103,28 @@ func TestGetModelRegistriesHandler_Success(t *testing.T) {
 
 		assert.Equal(t, "default-modelregistry", first["name"])
 		assert.Equal(t, true, first["is_ready"])
-		assert.Contains(t, first["server_url"].(string), "/api/model_registry/v1alpha3")
+		assert.Contains(t, first["server_url"].(string), "/api/model_registry/v1beta1")
+	})
+
+	t.Run("display_name is always present in response", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
+		req = injectModelRegistryTestIdentity(req)
+		rr := httptest.NewRecorder()
+
+		app.GetModelRegistriesHandler(rr, req, nil)
+
+		var response map[string]interface{}
+		body, _ := io.ReadAll(rr.Result().Body)
+		defer rr.Result().Body.Close()
+		assert.NoError(t, json.Unmarshal(body, &response))
+
+		data := response["data"].(map[string]interface{})
+		for _, reg := range data["model_registries"].([]interface{}) {
+			r := reg.(map[string]interface{})
+			displayName, ok := r["display_name"].(string)
+			assert.True(t, ok, "display_name should be a string")
+			assert.NotEmpty(t, displayName, "display_name should never be empty")
+		}
 	})
 }
 
@@ -125,36 +146,37 @@ func TestGetModelRegistriesHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("response is always an array even when empty", func(t *testing.T) {
-		// Verify that the envelope always serializes model_registries as []
-		// rather than null when the mock returns an empty slice.
-		// We test this via the repository directly since the handler uses mock fixtures.
+	t.Run("model_registries serializes as array not null", func(t *testing.T) {
+		// Verify that model_registries is always a JSON array [] not null.
+		// This matters when the list is empty — Go nil slices serialize as null
+		// without the explicit initialization in getMockModelRegistries / ListModelRegistries.
 		app := newModelRegistryTestApp()
 
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
-		req = withIdentityContext(req)
+		req = injectModelRegistryTestIdentity(req)
 		rr := httptest.NewRecorder()
 
 		app.GetModelRegistriesHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var raw map[string]interface{}
+		// Verify the raw JSON contains [] not null
 		body, _ := io.ReadAll(rr.Result().Body)
 		defer rr.Result().Body.Close()
+		// Verify the raw JSON contains an array (not null) for model_registries.
+		// The exact formatting (spaces, newlines) may vary so we parse rather than string-match.
+		var raw map[string]interface{}
 		assert.NoError(t, json.Unmarshal(body, &raw))
-
 		data := raw["data"].(map[string]interface{})
-		_, isArray := data["model_registries"].([]interface{})
-		assert.True(t, isArray, "model_registries should always serialize as a JSON array")
+		_, isSlice := data["model_registries"].([]interface{})
+		assert.True(t, isSlice, "model_registries must be a JSON array, not null")
 	})
 }
 
 func TestGetModelRegistriesHandler_RouteIntegration(t *testing.T) {
 	t.Run("GET /api/v1/model-registries returns 200 via router", func(t *testing.T) {
 		app := newModelRegistryTestApp()
-		// Wire identity via the global middleware chain by injecting via header
-		// (auth is disabled in test app so InjectRequestIdentity creates a synthetic identity)
+		// auth is disabled in test app so InjectRequestIdentity creates a synthetic identity
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/model-registries", nil)
 		rr := httptest.NewRecorder()
 		app.Routes().ServeHTTP(rr, req)
