@@ -131,7 +131,7 @@ describe('useS3GetFileSchemaQuery', () => {
       { name: 'id', type: 'integer' },
       { name: 'name', type: 'string' },
       { name: 'age', type: 'double' },
-      { name: 'active', type: 'bool', values: [true, false] },
+      { name: 'status', type: 'string', values: ['active', 'inactive'] },
     ];
 
     const mockResponse = {

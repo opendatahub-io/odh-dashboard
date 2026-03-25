@@ -84,7 +84,7 @@ function AutoragLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
-      Object.keys(pattern.scoring).forEach((key) => {
+      Object.keys(pattern.scores).forEach((key) => {
         keysSet.add(key);
       });
     });
@@ -95,9 +95,9 @@ function AutoragLeaderboard(): React.JSX.Element {
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        // Helper to get metric object from scoring
+        // Helper to get metric object from scores
         const getMetricObject = (metricName: string) => {
-          const metricData = pattern.scoring[metricName];
+          const metricData = pattern.scores[metricName];
           return {
             mean: metricData?.mean ?? 'N/A',
             // eslint-disable-next-line camelcase

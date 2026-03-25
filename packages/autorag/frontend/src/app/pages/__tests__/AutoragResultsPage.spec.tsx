@@ -133,7 +133,7 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scoring: Object.fromEntries(
+  scores: Object.fromEntries(
     Object.entries(metrics).map(([key, value]) => [
       key,
       {
@@ -142,7 +142,8 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
         ci_low: value - 0.05,
       },
     ]),
-  ) as AutoragPattern['scoring'],
+  ) as AutoragPattern['scores'],
+  final_score: Object.values(metrics)[0] ?? 0,
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {
@@ -177,6 +178,16 @@ describe('AutoragResultsPage', () => {
     jest.clearAllMocks();
     capturedContext = null;
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
+
+    // Reset useNamespaceSelector mock to default state
+    const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
+    useNamespaceSelector.mockReturnValue({
+      namespaces: [{ name: 'test-ns' }],
+      updatePreferredNamespace: jest.fn(),
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+    });
+
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
       isLoading: false,
@@ -381,12 +392,15 @@ describe('AutoragResultsPage', () => {
 
   describe('empty states', () => {
     it('should render InvalidPipelineRun when pipeline run query errors', () => {
+      // Create error with message that parseErrorStatus can recognize
+      const error = new Error('Request failed with status code 404');
+
       mockUsePipelineRunQuery.mockReturnValue({
         data: undefined,
         isPending: false,
         isFetching: false,
         isError: true,
-        error: new Error('not found'),
+        error,
       });
 
       render(<AutoragResultsPage />);

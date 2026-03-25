@@ -59,7 +59,7 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scoring: Object.fromEntries(
+  scores: Object.fromEntries(
     Object.entries(metrics).map(([key, value]) => [
       key,
       {
@@ -68,7 +68,8 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
         ci_low: value - 0.05,
       },
     ]),
-  ) as AutoragPattern['scoring'],
+  ) as AutoragPattern['scores'],
+  final_score: Object.values(metrics)[0] ?? 0,
 });
 
 // Standard RAG patterns with different metrics
@@ -227,13 +228,13 @@ describe('AutoragLeaderboard utility functions', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      // Check that RAG metrics are displayed correctly
-      expect(screen.getByText('Faithfulness')).toBeInTheDocument();
-      expect(screen.getByText('Answer Correctness')).toBeInTheDocument();
-      expect(screen.getByText('Context Correctness')).toBeInTheDocument();
-      expect(screen.getByText('Answer Relevancy')).toBeInTheDocument();
-      expect(screen.getByText('Context Precision')).toBeInTheDocument();
-      expect(screen.getByText('Context Recall')).toBeInTheDocument();
+      // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
+      expect(screen.getByTestId('metric-header-faithfulness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-mean')).toBeInTheDocument();
 
       // For faithfulness optimization, faithfulness should be marked as optimized
       const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
@@ -252,8 +253,8 @@ describe('AutoragLeaderboard utility functions', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      expect(screen.getByText('Custom Metric')).toBeInTheDocument();
-      expect(screen.getByText('Another Test Metric')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-custom_metric-mean')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-another_test_metric-mean')).toBeInTheDocument();
     });
   });
 
@@ -318,13 +319,13 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show loading skeleton when there are no patterns', () => {
+    it('should show empty state when there are no patterns', () => {
       renderWithContext({
         patterns: {},
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
       });
 
-      expect(screen.getByTestId('leaderboard-loading')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-empty')).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
@@ -519,7 +520,7 @@ describe('AutoragLeaderboard component', () => {
       const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-mean');
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toHaveTextContent(
-        ' (optimized)',
+        '(optimized)',
       );
     });
 
@@ -687,7 +688,7 @@ describe('AutoragLeaderboard component', () => {
 
       const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
       rows.forEach((row) => {
-        const actionsButton = within(row).getByRole('button', { name: /actions/i });
+        const actionsButton = within(row).getByRole('button', { name: /kebab toggle/i });
         expect(actionsButton).toBeInTheDocument();
       });
     });

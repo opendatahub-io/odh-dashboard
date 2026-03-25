@@ -338,14 +338,31 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show loading skeleton when there are no models', () => {
+    it('should show loading skeleton when modelsLoading is true', () => {
       renderWithContext({
         models: {},
+        modelsLoading: true,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
       });
 
       expect(screen.getByTestId('leaderboard-loading')).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show empty state when there are no models', () => {
+      renderWithContext({
+        models: {},
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      expect(screen.getByTestId('leaderboard-empty')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+      expect(screen.getByText('No models produced')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should render loading skeleton with correct structure', () => {

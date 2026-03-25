@@ -53,7 +53,7 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scoring: Object.fromEntries(
+  scores: Object.fromEntries(
     Object.entries(metrics).map(([key, value]) => [
       key,
       {
@@ -62,7 +62,8 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
         ci_low: value - 0.05,
       },
     ]),
-  ) as AutoragPattern['scoring'],
+  ) as AutoragPattern['scores'],
+  final_score: Object.values(metrics)[0] ?? 0,
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {

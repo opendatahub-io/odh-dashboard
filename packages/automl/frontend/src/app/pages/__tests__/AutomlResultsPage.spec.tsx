@@ -362,7 +362,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
         isFetching: false,
         isError: true,
-        error: new Error('not found'),
+        error: new Error('Pipeline run not found: status code 404'),
       });
 
       render(<AutomlResultsPage />);
