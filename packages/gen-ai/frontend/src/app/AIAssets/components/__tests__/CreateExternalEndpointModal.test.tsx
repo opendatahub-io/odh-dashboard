@@ -318,7 +318,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
       });
 
       const createButton = screen.getByTestId('create-external-model-submit-button');
-      expect(createButton).toBeDisabled();
+      expect(createButton).toBeEnabled();
     });
   });
 });
