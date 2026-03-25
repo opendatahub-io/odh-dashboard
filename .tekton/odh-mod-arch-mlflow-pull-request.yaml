@@ -36,10 +36,6 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-  - name: build-platforms
-    value:
-    - linux/ppc64le
-    - linux/s390x
   pipelineRef:
     resolver: git
     params:
