@@ -3,16 +3,8 @@ import type {
   ModelAvailabilityField,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
+import { MAAS_TIERS_ANNOTATION, type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
 import { LLMD_OPTION } from '../deployments/server';
-
-/**
- * Annotation key for MaaS tiers configuration.
- * Note: MaaS-specific functionality is now handled by the maas package via
- * WizardFieldTransformerExtension and WizardFieldExtractorExtension.
- * This constant is kept for type definitions and backwards compatibility.
- */
-export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
 
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
