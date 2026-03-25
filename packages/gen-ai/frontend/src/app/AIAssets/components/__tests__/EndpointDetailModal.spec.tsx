@@ -138,7 +138,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.getByText('API token')).toBeInTheDocument();
+      expect(screen.getByText('API key')).toBeInTheDocument();
       expect(screen.getByText(/existing API keys/)).toBeInTheDocument();
       expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
     });
@@ -149,7 +149,7 @@ describe('EndpointDetailModal', () => {
       });
       renderModal(model);
 
-      expect(screen.queryByText('API token')).not.toBeInTheDocument();
+      expect(screen.queryByText('API key')).not.toBeInTheDocument();
     });
 
     it('should call generateToken when Generate API Key button is clicked', () => {
@@ -381,7 +381,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('API token')).not.toBeInTheDocument();
+      expect(screen.queryByText('API key')).not.toBeInTheDocument();
     });
 
     it('should show both endpoints for Internal models with external route', () => {
@@ -394,7 +394,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('API token')).not.toBeInTheDocument();
+      expect(screen.queryByText('API key')).not.toBeInTheDocument();
     });
 
     it('should show only external endpoint for Custom endpoint models', () => {
@@ -406,7 +406,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.queryByText('Internal API endpoint')).not.toBeInTheDocument();
-      expect(screen.queryByText('API token')).not.toBeInTheDocument();
+      expect(screen.queryByText('API key')).not.toBeInTheDocument();
     });
   });
 });
