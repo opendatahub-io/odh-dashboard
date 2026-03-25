@@ -124,7 +124,7 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
   ],
 };
 
-const mockWorkloadEmptySucceedCondition: Record<WorkloadStatusType.Complete, WorkloadCondition[]> =
+const mockWorkloadEmptyCompleteCondition: Record<WorkloadStatusType.Complete, WorkloadCondition[]> =
   {
     [WorkloadStatusType.Complete]: [
       {
@@ -204,7 +204,7 @@ export const mockWorkloadK8sResource = ({
   status: {
     conditions: mockStatus
       ? mockStatusEmptyWorkload && mockStatus === WorkloadStatusType.Complete
-        ? mockWorkloadEmptySucceedCondition[WorkloadStatusType.Complete]
+        ? mockWorkloadEmptyCompleteCondition[WorkloadStatusType.Complete]
         : mockWorkloadStatusConditions[mockStatus]
       : [],
   },
