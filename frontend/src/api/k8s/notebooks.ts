@@ -77,13 +77,20 @@ export const assembleNotebook = (
     }
   }
   volumes = volumes || [];
-  if (!volumes.find((volume) => volume.name === 'shm')) {
-    volumes.push(getshmVolume());
+  // Remove any existing shm volumes to prevent duplicates
+  const shmVolumeIndex = volumes.findIndex((volume) => volume.name === 'shm');
+  if (shmVolumeIndex !== -1) {
+    volumes.splice(shmVolumeIndex, 1);
   }
+  volumes.push(getshmVolume());
+
   volumeMounts = volumeMounts || [];
-  if (!volumeMounts.find((volumeMount) => volumeMount.name === 'shm')) {
-    volumeMounts.push(getshmVolumeMount());
+  // Remove any existing shm volumeMounts to prevent duplicates
+  const shmMountIndex = volumeMounts.findIndex((vm) => vm.mountPath === '/dev/shm');
+  if (shmMountIndex !== -1) {
+    volumeMounts.splice(shmMountIndex, 1);
   }
+  volumeMounts.push(getshmVolumeMount());
 
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)

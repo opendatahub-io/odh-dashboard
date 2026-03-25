@@ -406,6 +406,40 @@ describe('assembleNotebook', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
+
+  it('should deduplicate shm volume when creating workbench with pre-existing shm volume', () => {
+    const notebookData = mockStartNotebookData({});
+    // Add a duplicate shm volume to the form data
+    notebookData.volumes = [
+      ...notebookData.volumes,
+      { name: 'shm', emptyDir: { medium: 'Memory' } },
+    ];
+
+    const result = assembleNotebook(notebookData, username, false);
+
+    // Verify only one shm volume exists
+    const shmVolumes = result.spec.template.spec.volumes?.filter((v) => v.name === 'shm');
+    expect(shmVolumes).toHaveLength(1);
+    expect(shmVolumes?.[0]).toEqual({ name: 'shm', emptyDir: { medium: 'Memory' } });
+  });
+
+  it('should deduplicate shm volumeMount when editing workbench with pre-existing shm mount', () => {
+    const notebookData = mockStartNotebookData({});
+    // Add a duplicate shm volumeMount to the form data (different name but same mountPath)
+    notebookData.volumeMounts = [
+      ...notebookData.volumeMounts,
+      { name: 'duplicate-shm', mountPath: '/dev/shm' },
+    ];
+
+    const result = assembleNotebook(notebookData, username, false);
+
+    // Verify only one /dev/shm mount exists
+    const shmMounts = result.spec.template.spec.containers[0].volumeMounts?.filter(
+      (vm) => vm.mountPath === '/dev/shm',
+    );
+    expect(shmMounts).toHaveLength(1);
+    expect(shmMounts?.[0]).toEqual({ name: 'shm', mountPath: '/dev/shm' });
+  });
 });
 
 describe('createNotebook', () => {
