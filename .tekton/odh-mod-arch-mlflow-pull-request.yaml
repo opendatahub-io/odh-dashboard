@@ -36,6 +36,12 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
+    - linux-m2xlarge/arm64
+    - linux/ppc64le
+    - linux/s390x
   pipelineRef:
     resolver: git
     params:
