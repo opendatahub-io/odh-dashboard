@@ -37,6 +37,7 @@ describe('useFeatureStoreCR', () => {
     overrides: Partial<React.ComponentProps<typeof FeatureStoreContext.Provider>['value']> = {},
   ) => ({
     featureStores: [],
+    enabledCRDCount: 0,
     activeFeatureStore: null,
     loaded: false,
     loadError: undefined,

@@ -12,12 +12,12 @@ import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
 import { FeatureStoreContext } from '../FeatureStoreContext';
 
 const FeatureStoreWarningAlert: React.FC = () => {
-  const { featureStores, loaded } = React.useContext(FeatureStoreContext);
+  const { enabledCRDCount, loaded } = React.useContext(FeatureStoreContext);
   const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const { serverURL } = useClusterInfo();
   const osConsoleAction = getOpenShiftConsoleAction(serverURL);
 
-  if (!loaded || featureStores.length <= 1 || !isAdminLoaded) {
+  if (!loaded || enabledCRDCount <= 1 || !isAdminLoaded) {
     return null;
   }
 
