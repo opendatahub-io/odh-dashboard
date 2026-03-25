@@ -9,6 +9,7 @@ type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
   isLoading: boolean;
   isError: boolean;
+  error: Error | undefined;
 };
 
 /**
@@ -174,9 +175,20 @@ export function useAutomlResults(
     return results;
   }, [metricsQueries.data, metricsQueries.isPending, modelDirectories, pipelineRun]);
 
+  // Determine overall error state
+  const hasError = isS3Error || modelArtifactQueries.isError || metricsQueries.isError;
+
+  // Determine the first error encountered
+  const error = hasError
+    ? (isS3Error ? new Error('Failed to list model directories') : undefined) ||
+      (modelArtifactQueries.isError ? new Error('Failed to list model artifacts') : undefined) ||
+      (metricsQueries.isError ? new Error('Failed to fetch model metrics') : undefined)
+    : undefined;
+
   return {
     models,
     isLoading: isS3Loading || modelArtifactQueries.isPending || metricsQueries.isPending,
-    isError: isS3Error || modelArtifactQueries.isError || metricsQueries.isError,
+    isError: hasError,
+    error,
   };
 }

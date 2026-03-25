@@ -10,6 +10,7 @@ import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragR
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -30,16 +31,16 @@ function AutoragResultsPage(): React.JSX.Element {
   } = usePipelineRunQuery(runId, namespace);
   const invalidPipelineRunId =
     pipelineRunError &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
-    (pipelineRunLoadError as any)?.response?.status === 404;
+    pipelineRunLoadError instanceof Error &&
+    parseErrorStatus(pipelineRunLoadError) === 404;
 
   // Fetch and process AutoRAG results using custom hook
   const {
     patterns,
     isLoading: patternsLoading,
     isError: patternsError,
+    error: patternsLoadError,
   } = useAutoragResults(runId, namespace, pipelineRun);
-  const patternsLoadError = patternsError ? new Error('Failed to load AutoRAG results') : undefined;
 
   return (
     <ApplicationsPage

@@ -8,6 +8,7 @@ type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
   isLoading: boolean;
   isError: boolean;
+  error: Error | undefined;
 };
 
 /**
@@ -249,9 +250,19 @@ export function useAutoragResults(
     }
   }, [structureError]);
 
+  // Determine the first error encountered
+  const error =
+    structureError ||
+    (isTemplatesOptimizationError
+      ? new Error('Failed to list templates optimization directory')
+      : undefined) ||
+    (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
+    (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
+
   return {
     patterns,
     isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
     isError: hasError,
+    error,
   };
 }

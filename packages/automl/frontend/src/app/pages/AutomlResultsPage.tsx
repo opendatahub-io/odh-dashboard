@@ -10,6 +10,7 @@ import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -30,16 +31,16 @@ function AutomlResultsPage(): React.JSX.Element {
   } = usePipelineRunQuery(runId, namespace);
   const invalidPipelineRunId =
     pipelineRunError &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
-    (pipelineRunLoadError as any)?.response?.status === 404;
+    pipelineRunLoadError instanceof Error &&
+    parseErrorStatus(pipelineRunLoadError) === 404;
 
   // Fetch and process AutoML results using custom hook
   const {
     models,
     isLoading: modelsLoading,
     isError: modelsError,
+    error: modelsLoadError,
   } = useAutomlResults(runId, namespace, pipelineRun);
-  const modelsLoadError = modelsError ? new Error('Failed to load AutoML results') : undefined;
 
   return (
     <ApplicationsPage
