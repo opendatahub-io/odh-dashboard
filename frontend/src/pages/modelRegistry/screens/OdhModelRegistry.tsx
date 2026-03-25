@@ -7,13 +7,13 @@ import {
   EmptyStateActions,
   EmptyStateVariant,
   PageSection,
-  Bullseye,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { WhosMyAdministrator } from 'mod-arch-shared';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { isAdminCheckExtension } from '~/odh/extension-points';
-import ModelRegistry from '~/app/pages/modelRegistry/screens/ModelRegistry';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
+import { ModelRegistryModel } from '#~/api/models';
+import { modelRegistrySettingsRoute } from '#~/routes/modelRegistry/registryBase';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import ModelRegistry from './ModelRegistry';
 
 type OdhModelRegistryProps = React.ComponentProps<typeof ModelRegistry>;
 
@@ -34,7 +34,7 @@ const UnavailableErrorPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => (
       <EmptyStateFooter>
         <EmptyStateActions>
           {isAdmin ? (
-            <Link to="/modelRegistrySettings">
+            <Link to={modelRegistrySettingsRoute()}>
               Go to <b>AI registry settings</b>
             </Link>
           ) : (
@@ -51,34 +51,10 @@ const UnavailableErrorPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => (
  * error messaging when a model registry is unavailable.
  */
 const OdhModelRegistry: React.FC<OdhModelRegistryProps> = (props) => {
-  const [adminCheckExtensions, adminCheckExtensionsLoaded] =
-    useResolvedExtensions(isAdminCheckExtension);
+  const [isAdmin] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
 
-  if (adminCheckExtensionsLoaded && adminCheckExtensions.length > 0) {
-    const AdminCheckComponent = adminCheckExtensions[0].properties.component.default;
-    return (
-      <AdminCheckComponent>
-        {(isAdmin: boolean, loaded: boolean) => {
-          if (!loaded) {
-            return <Bullseye>Loading...</Bullseye>;
-          }
-          return (
-            <ModelRegistry
-              {...props}
-              unavailableErrorPage={<UnavailableErrorPage isAdmin={isAdmin} />}
-            />
-          );
-        }}
-      </AdminCheckComponent>
-    );
-  }
-
-  // Fallback: no admin check extension, default to non-admin view
   return (
-    <ModelRegistry
-      {...props}
-      unavailableErrorPage={<UnavailableErrorPage isAdmin={false} />}
-    />
+    <ModelRegistry {...props} unavailableErrorPage={<UnavailableErrorPage isAdmin={isAdmin} />} />
   );
 };
 

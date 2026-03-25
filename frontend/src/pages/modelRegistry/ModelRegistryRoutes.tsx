@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
 import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
-import ModelRegistry from './screens/ModelRegistry';
+import OdhModelRegistry from './screens/OdhModelRegistry';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
 import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDetails';
@@ -25,7 +25,7 @@ const ModelRegistryRoutes: React.FC = () => (
         />
       }
     >
-      <Route index element={<ModelRegistry empty={false} />} />
+      <Route index element={<OdhModelRegistry empty={false} />} />
       <Route path="registeredModels/:registeredModelId">
         <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
         <Route
