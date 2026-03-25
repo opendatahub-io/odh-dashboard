@@ -109,15 +109,11 @@ describe('create', () => {
     categorySection.findMultiGroupSelectButton('Object-storage').click();
     createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
-    createConnectionTypePage
-      .findFooterError()
-      .should(
-        'contain.text',
-        'A connection type with this name already exists. Please choose a different name.',
-      );
-    createConnectionTypePage
-      .findFooterError()
-      .should('not.contain.text', 'configmaps');
+    createConnectionTypePage.findFooterError().should(
+      'contain.text',
+      'A connection type with this name already exists. Please choose a different name.',
+    );
+    createConnectionTypePage.findFooterError().should('not.contain.text', 'configmaps');
   });
 
   it('redirect from v2 to v3 route', () => {
