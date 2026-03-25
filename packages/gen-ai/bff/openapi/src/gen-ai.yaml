@@ -2122,6 +2122,13 @@ components:
           type: integer
           example: 1536
           description: Output vector size for embedding models (required for embedding models)
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, LlamaStack will disable TLS verification for this provider since
+            cluster services typically use self-signed certificates.
 
     # Verify External Model Request Schema
     # Uses oneOf to enforce conditional requirements based on model_type
