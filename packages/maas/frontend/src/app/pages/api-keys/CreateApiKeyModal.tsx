@@ -113,7 +113,8 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
 
   const getExpiresIn = (): string | undefined => {
     if (formData.expirationOption === 'custom') {
-      return `${parseInt(formData.customDays ?? '', 10)}d`;
+      const days = parseInt(formData.customDays ?? '', 10);
+      return Number.isNaN(days) ? undefined : `${days}d`;
     }
     return selectedOption?.expiresIn;
   };
