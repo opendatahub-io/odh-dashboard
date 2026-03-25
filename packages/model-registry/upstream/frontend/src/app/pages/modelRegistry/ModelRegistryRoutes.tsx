@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ModelRegistry from './screens/ModelRegistry';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
+import OdhModelRegistry from '~/odh/components/OdhModelRegistry';
 import { modelRegistryUrl } from './screens/routeUtils';
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
@@ -36,7 +36,7 @@ const ModelRegistryRoutes: React.FC = () => {
           />
         }
       >
-        <Route index element={<ModelRegistry empty={false} />} />
+        <Route index element={<OdhModelRegistry empty={false} />} />
         <Route path="model-transfer-jobs" element={<ModelTransferJobs empty={false} />} />
         <Route path="registered-models/:registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.OVERVIEW} replace />} />
