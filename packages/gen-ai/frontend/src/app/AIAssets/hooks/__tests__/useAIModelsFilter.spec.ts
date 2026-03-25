@@ -33,10 +33,8 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
         [AssetsFilterOptions.STATUS]: undefined,
-        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
     });
 
@@ -101,24 +99,6 @@ describe('useAIModelsFilter', () => {
     });
   });
 
-  describe('Filter by source', () => {
-    it('should filter models by source (select filter)', () => {
-      const models = [
-        createMockAIModel({ model_id: 'model-1', model_source_type: 'namespace' }),
-        createMockAIModel({ model_id: 'model-2', model_source_type: 'maas' }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.SOURCE, 'Internal');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-1');
-    });
-  });
-
   describe('Filter by use case', () => {
     it('should filter models by usecase', () => {
       const models = [
@@ -180,42 +160,6 @@ describe('useAIModelsFilter', () => {
 
       act(() => {
         result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Inactive');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-2');
-    });
-  });
-
-  describe('Filter by model type', () => {
-    it('should filter models by model type (select filter)', () => {
-      const models = [
-        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
-        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
-        createMockAIModel({ model_id: 'model-3', model_type: 'llm' }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Inferencing');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(2);
-      expect(result.current.filteredModels[0].model_id).toBe('model-1');
-      expect(result.current.filteredModels[1].model_id).toBe('model-3');
-    });
-
-    it('should filter for embedding models', () => {
-      const models = [
-        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
-        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Embedding');
       });
 
       expect(result.current.filteredModels).toHaveLength(1);
@@ -295,10 +239,8 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
         [AssetsFilterOptions.STATUS]: undefined,
-        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
       expect(result.current.filteredModels).toEqual(models);
     });

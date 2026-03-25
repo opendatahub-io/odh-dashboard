@@ -184,7 +184,7 @@ describe('AIModelTableRow', () => {
   });
 
   describe('Status', () => {
-    it('should show Active status when model is Running', () => {
+    it('should show Ready status when model is Running', () => {
       const model = createMockAIModel({ status: 'Running' });
       render(
         <TestWrapper>
@@ -192,7 +192,7 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getByText('Ready')).toBeInTheDocument();
     });
 
     it('should show Inactive status when model is not Running', () => {
@@ -204,6 +204,17 @@ describe('AIModelTableRow', () => {
       );
 
       expect(screen.getByText('Inactive')).toBeInTheDocument();
+    });
+
+    it('should show Unknown status when model status is not Running or Stop', () => {
+      const model = createMockAIModel({ status: 'Unknown' });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Unknown')).toBeInTheDocument();
     });
   });
 
@@ -466,7 +477,7 @@ describe('AIModelTableRow', () => {
       });
     });
 
-    it('should disable "Add to playground" button for external models that are not Running', () => {
+    it('should enable "Add to playground" button for custom_endpoint models regardless of status', () => {
       const model = createMockAIModel({
         model_source_type: 'custom_endpoint',
         status: 'Stop',
@@ -478,7 +489,7 @@ describe('AIModelTableRow', () => {
       );
 
       const button = screen.getByText('Add to playground');
-      expect(button.closest('button')).toBeDisabled();
+      expect(button.closest('button')).not.toBeDisabled();
     });
   });
 });

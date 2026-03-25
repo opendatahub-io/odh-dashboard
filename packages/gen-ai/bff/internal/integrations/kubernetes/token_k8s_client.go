@@ -1093,7 +1093,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Usecase:         useCases,
 			Description:     "",
 			Endpoints:       []string{provider.Config.BaseURL},
-			Status:          "Running",
+			Status:          models.ModelStatusUnknown,
 			SAToken:         models.SAToken{},
 			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			ModelType:       model.ModelType,

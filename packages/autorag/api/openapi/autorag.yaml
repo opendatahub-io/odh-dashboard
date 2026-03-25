@@ -385,6 +385,52 @@ paths:
       summary: Get LSD Models
       description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
 
+  /api/v1/lsd/vector-stores:
+    summary: List available LSD vector stores
+    description: >-
+      Lists all available vector stores from LlamaStack Distribution (LSD).
+      Returns a flat list of vector stores with their identifiers, names, statuses, and provider information.
+      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
+      containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
+    get:
+      tags:
+        - VectorStores
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace containing the LlamaStack credentials secret
+          required: true
+          schema:
+            type: string
+            example: 'default'
+        - name: secretName
+          in: query
+          description: Name of the Kubernetes secret containing LlamaStack credentials (llama_stack_client_base_url and llama_stack_client_api_key)
+          required: true
+          schema:
+            type: string
+            example: 'my-lls-secret'
+      responses:
+        "200":
+          $ref: "#/components/responses/LSDVectorStoresResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+      operationId: getLSDVectorStores
+      summary: Get LSD Vector Stores
+      description: Returns available vector stores from LlamaStack Distribution using credentials from a Kubernetes secret
+
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
@@ -567,6 +613,44 @@ components:
           description: Complete list of all available models
           items:
             $ref: '#/components/schemas/LSDModel'
+
+    LSDVectorStore:
+      type: object
+      description: Vector store from LlamaStack Distribution
+      required:
+        - id
+        - name
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          description: Unique vector store identifier
+          example: "vs_136a08ec-60da-4f68-b587-54f3def2a84c"
+        name:
+          type: string
+          description: Human-readable name
+          example: "Milvus Vector Store"
+        status:
+          type: string
+          enum: ["expired", "in_progress", "completed"]
+          description: Vector store status
+          example: "completed"
+        provider:
+          type: string
+          description: Database provider identifier
+          example: "milvus"
+    LSDVectorStoresData:
+      type: object
+      description: List of all available vector stores from LlamaStack Distribution
+      required:
+        - vector_stores
+      properties:
+        vector_stores:
+          type: array
+          description: Complete list of all available vector stores
+          items:
+            $ref: '#/components/schemas/LSDVectorStore'
 
     SecretTypeSchema:
       description: >-
@@ -1279,6 +1363,31 @@ components:
                   provider: "ollama"
                   resource_path: "ollama://models/nomic-embed-text"
 
+    LSDVectorStoresResponse:
+      description: List of available LSD vector stores
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: '#/components/schemas/LSDVectorStoresData'
+          example:
+            metadata: {}
+            data:
+              vector_stores:
+                - id: "vs_136a08ec-60da-4f68-b587-54f3def2a84c"
+                  name: "Milvus Vector Store"
+                  status: "completed"
+                  provider: "milvus"
+                - id: "vs_abc12345-def6-7890-abcd-ef1234567890"
+                  name: "FAISS In-Memory Store"
+                  status: "completed"
+                  provider: "faiss"
+
     SecretsResponse:
       content:
         application/json:
@@ -1613,3 +1722,5 @@ tags:
     description: AI model discovery and management from LlamaStack Distribution
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
+  - name: VectorStores
+    description: Vector store discovery and management from LlamaStack Distribution

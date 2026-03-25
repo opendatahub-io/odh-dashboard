@@ -9,14 +9,14 @@ export const columns: SortableData<StorageTableData>[] = [
   {
     field: 'name',
     label: 'Name',
-    width: 25,
+    width: 20,
     sortable: (a, b) =>
       getDisplayNameFromK8sResource(a.pvc).localeCompare(getDisplayNameFromK8sResource(b.pvc)),
   },
   {
     field: 'storage',
     label: 'Storage class',
-    width: 20,
+    width: 15,
     sortable: (a, b) =>
       (a.storageClass
         ? getStorageClassConfig(a.storageClass)?.displayName ?? a.storageClass.metadata.name
@@ -30,7 +30,7 @@ export const columns: SortableData<StorageTableData>[] = [
   {
     field: 'accessMode',
     label: 'Access mode',
-    width: 25,
+    width: 15,
     sortable: (a, b) => getPvcAccessMode(a.pvc).localeCompare(getPvcAccessMode(b.pvc)),
     info: {
       popover: getAccessModePopover({}),
@@ -43,7 +43,7 @@ export const columns: SortableData<StorageTableData>[] = [
   {
     field: 'storageContext',
     label: 'Storage context',
-    width: 25,
+    width: 15,
     sortable: false,
     info: {
       popover:
@@ -56,13 +56,13 @@ export const columns: SortableData<StorageTableData>[] = [
   {
     field: 'storage_size',
     label: 'Storage size',
-    width: 20,
+    width: 25,
     sortable: false,
   },
   {
     field: 'connected',
     label: 'Connected resources',
-    width: 20,
+    width: 15,
     sortable: false,
   },
   {
