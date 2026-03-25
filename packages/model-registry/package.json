@@ -24,7 +24,7 @@
     "branch": "namespace-input-fallback",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "426e616d6ecf47a9f7f40201b628df6b24f8e6e7"
+    "commit": "da2dfa97e71adf58285938691349667ce927b040"
   },
   "module-federation": {
     "name": "modelRegistry",
