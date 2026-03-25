@@ -127,8 +127,11 @@ function AutoragLeaderboard(): React.JSX.Element {
               ? pattern.scores
               : {};
           const metricData = scores[metricName];
+          const meanValue = metricData?.mean;
+          // Only return numeric mean if it's a finite number
+          const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
-            mean: metricData?.mean ?? 'N/A',
+            mean: isValidNumber ? meanValue : 'N/A',
           };
         };
 
@@ -147,16 +150,16 @@ function AutoragLeaderboard(): React.JSX.Element {
           optimizedMetricValue,
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           chunkingMethod: pattern.settings?.chunking?.method || 'N/A',
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          chunkingChunkSize: pattern.settings?.chunking?.chunk_size || 'N/A',
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          chunkingChunkOverlap: pattern.settings?.chunking?.chunk_overlap || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing -- 0 is a valid value, must use ?? not ||
+          chunkingChunkSize: pattern.settings?.chunking?.chunk_size ?? 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing -- 0 is a valid value, must use ?? not ||
+          chunkingChunkOverlap: pattern.settings?.chunking?.chunk_overlap ?? 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           embeddingsModelId: pattern.settings?.embedding?.model_id || 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           retrievalMethod: pattern.settings?.retrieval?.method || 'N/A',
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          retrievalNumberOfChunks: pattern.settings?.retrieval?.number_of_chunks || 'N/A',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing -- 0 is a valid value, must use ?? not ||
+          retrievalNumberOfChunks: pattern.settings?.retrieval?.number_of_chunks ?? 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           retrievalSearchMode: pattern.settings?.retrieval?.search_mode || 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

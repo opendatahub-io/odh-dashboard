@@ -93,8 +93,13 @@ function AutomlLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(models).forEach((model: AutomlModel) => {
-      // Defensive check: verify test_data is a non-null plain object (not array)
+      // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
       const testData =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics &&
+        typeof model.metrics === 'object' &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        !Array.isArray(model.metrics) &&
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         model.metrics.test_data &&
         typeof model.metrics.test_data === 'object' &&
@@ -113,8 +118,13 @@ function AutomlLeaderboard(): React.JSX.Element {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
       // Helper to get metric value from test_data
       const getMetricValue = (metricName: string): number | string => {
-        // Defensive check: verify test_data is a non-null plain object (not array)
+        // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
         const testData =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          model.metrics &&
+          typeof model.metrics === 'object' &&
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          !Array.isArray(model.metrics) &&
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           model.metrics.test_data &&
           typeof model.metrics.test_data === 'object' &&
@@ -122,12 +132,17 @@ function AutomlLeaderboard(): React.JSX.Element {
             ? model.metrics.test_data
             : {};
         const value = testData[metricName];
-        if (typeof value === 'number') {
+        if (typeof value === 'number' && Number.isFinite(value)) {
           return value;
         }
         if (typeof value === 'string') {
+          // Trim whitespace and treat empty strings as invalid
+          const trimmed = value.trim();
+          if (trimmed === '') {
+            return 'N/A';
+          }
           // Strict validation: ensure the entire string is a valid number
-          const parsed = Number(value);
+          const parsed = Number(trimmed);
           return Number.isFinite(parsed) ? parsed : 'N/A';
         }
         return 'N/A';
