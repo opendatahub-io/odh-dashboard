@@ -8,7 +8,7 @@ class ModelDetailsPage {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.testA11y();
+    // TODO: Reinstate cy.testA11y() after RHOAIENG-55182 is fixed upstream and synced
   }
 
   findRegisterModelButton() {
