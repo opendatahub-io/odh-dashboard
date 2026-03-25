@@ -200,7 +200,11 @@ func TestGetModelRegistriesHandler_ErrorCases(t *testing.T) {
 		// The exact formatting (spaces, newlines) may vary so we parse rather than string-match.
 		var raw map[string]interface{}
 		assert.NoError(t, json.Unmarshal(body, &raw))
-		data := raw["data"].(map[string]interface{})
+		data, ok := raw["data"].(map[string]interface{})
+		assert.True(t, ok, "data should be a map")
+		if !ok {
+			return
+		}
 		_, isSlice := data["model_registries"].([]interface{})
 		assert.True(t, isSlice, "model_registries must be a JSON array, not null")
 	})
