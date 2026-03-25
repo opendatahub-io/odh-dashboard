@@ -49,7 +49,15 @@ const ManageConnectionTypeFooter: React.FC<Props> = ({
                 setIsSaving(true);
                 onSave()
                   .catch((e) => {
-                    setError(e instanceof Error ? e.message : 'Error saving connection type');
+                    const message =
+                      e instanceof Error ? e.message : 'Error saving connection type';
+                    if (/configmaps\s+"[^"]*"\s+already exists/i.test(message)) {
+                      setError(
+                        'A connection type with this name already exists. Please use a different name.',
+                      );
+                    } else {
+                      setError(message.replace(/configmaps/gi, 'connection type'));
+                    }
                   })
                   .finally(() => {
                     setIsSaving(false);
