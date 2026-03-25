@@ -150,7 +150,7 @@ const AllApiKeysPage: React.FC = () => {
             onPerPageSelect={onPerPageSelect}
             onSort={onSort}
             onClearFilters={onClearFilters}
-            isFetching={isFetching || localUsername !== filterData.username}
+            isFetching={isFetching}
             toolbarContent={
               <ApiKeysToolbar
                 setIsModalOpen={setIsModalOpen}

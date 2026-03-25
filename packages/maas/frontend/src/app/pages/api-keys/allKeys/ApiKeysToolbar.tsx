@@ -30,8 +30,6 @@ type ApiKeysToolbarProps = {
   onClearFilters: () => void;
 };
 
-const DEBOUNCE_DELAY = 500;
-
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   setIsModalOpen,
   filterData,
@@ -45,20 +43,10 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onClearFilters,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const onDebouncedUsernameChange = React.useCallback(
-    (value: string) => {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => onUsernameChange(value), DEBOUNCE_DELAY);
-    },
-    [onUsernameChange],
-  );
 
   return (
     <Toolbar
       clearAllFilters={() => {
-        clearTimeout(debounceRef.current);
         setLocalUsername('');
         onUsernameChange('');
         onClearFilters();
@@ -123,7 +111,6 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
             <ToolbarFilter
               labels={filterData.username ? [filterData.username] : []}
               deleteLabel={() => {
-                clearTimeout(debounceRef.current);
                 setLocalUsername('');
                 onUsernameChange('');
               }}
@@ -136,10 +123,9 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 value={localUsername}
                 onChange={(_event, value) => {
                   setLocalUsername(value);
-                  onDebouncedUsernameChange(value);
                 }}
+                onSearch={(_event, value) => onUsernameChange(value)}
                 onClear={() => {
-                  clearTimeout(debounceRef.current);
                   setLocalUsername('');
                   onUsernameChange('');
                 }}
