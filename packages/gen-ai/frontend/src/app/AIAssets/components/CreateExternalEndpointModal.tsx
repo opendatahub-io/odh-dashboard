@@ -259,7 +259,6 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         base_url: endpointUrl.trim(),
         secret_value: token.trim(),
         model_type: modelType,
-        is_cluster_local: isClusterLocalURL(endpointUrl.trim()),
         ...(useCases.trim() && { use_cases: useCases.trim() }),
         ...(modelType === MODEL_TYPE_EMBEDDING &&
           embeddingDimension.trim() && {

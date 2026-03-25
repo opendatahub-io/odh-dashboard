@@ -9,7 +9,6 @@ type ExternalModelRequest struct {
 	UseCases           string        `json:"use_cases,omitempty"`
 	ModelType          ModelTypeEnum `json:"model_type"`
 	EmbeddingDimension *int          `json:"embedding_dimension,omitempty"`
-	IsClusterLocal     bool          `json:"is_cluster_local,omitempty"`
 }
 
 // VerifyExternalModelRequest represents a request to verify an external model
@@ -63,10 +62,9 @@ type InferenceProvider struct {
 
 // ProviderConfig represents the provider configuration
 type ProviderConfig struct {
-	BaseURL        string      `yaml:"base_url"`
-	AllowedModels  []string    `yaml:"allowed_models,omitempty"`
-	CustomGenAI    CustomGenAI `yaml:"custom_gen_ai"`
-	IsClusterLocal bool        `yaml:"is_cluster_local,omitempty"`
+	BaseURL       string      `yaml:"base_url"`
+	AllowedModels []string    `yaml:"allowed_models,omitempty"`
+	CustomGenAI   CustomGenAI `yaml:"custom_gen_ai"`
 }
 
 // CustomGenAI represents custom gen AI configuration

@@ -794,8 +794,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 
 		// Create a mock OpenAI-compatible server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Verify the request has the correct headers
-			assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+			// Authorization header is omitted over plain HTTP (mock server uses http://)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 			// Verify endpoint
@@ -878,7 +877,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 
 		// Create a mock OpenAI-compatible embeddings server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "Bearer test-embedding-key", r.Header.Get("Authorization"))
+			// Authorization header is omitted over plain HTTP (mock server uses http://)
 			assert.Equal(t, "/embeddings", r.URL.Path)
 
 			// Verify request body includes dimensions

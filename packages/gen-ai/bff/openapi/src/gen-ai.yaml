@@ -2122,13 +2122,6 @@ components:
           type: integer
           example: 1536
           description: Output vector size for embedding models (required for embedding models)
-        is_cluster_local:
-          type: boolean
-          example: true
-          description: >
-            Whether the endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
-            When true, LlamaStack will disable TLS verification for this provider since
-            cluster services typically use self-signed certificates.
 
     # Verify External Model Request Schema
     # Uses oneOf to enforce conditional requirements based on model_type
@@ -2898,6 +2891,21 @@ components:
 
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          example: 'custom_endpoint'
+          description: Source type of the model. Required when using custom_endpoint models.
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, the BFF injects vllm_api_token instead of openai_api_key as provider data.
+            Only relevant when model_source_type is custom_endpoint.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -3515,6 +3523,14 @@ components:
           minimum: 128
           maximum: 128000
           example: 8192
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, LlamaStack will disable TLS verification for this provider since cluster
+            services typically use self-signed certificates. Only relevant when model_source_type
+            is custom_endpoint.
 
     LlamaStackDistributionInstallModel:
       type: object

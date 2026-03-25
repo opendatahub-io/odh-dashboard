@@ -383,7 +383,6 @@ export type ExternalModelRequest = {
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
-  is_cluster_local?: boolean;
 };
 
 export type ExternalModelResponse = AAModelResponse;

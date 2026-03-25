@@ -1255,7 +1255,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with model_source_type = "custom_endpoint"
 		// Since we don't have a real K8s client, it should return nil but not crash
-		providerData := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint")
+		providerData := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", false)
 
 		// Without a K8s client factory, this should return nil
 		assert.Nil(t, providerData, "Should return nil when K8s client is not available")
@@ -1270,7 +1270,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with empty model_source_type
 		// Should fall back to auto-detection (tries MaaS prefix, then user JWT)
-		providerData := app.getProviderData(ctx, "test-model", "")
+		providerData := app.getProviderData(ctx, "test-model", "", false)
 
 		// Should return user JWT provider data
 		assert.NotNil(t, providerData)
@@ -1288,7 +1288,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with MaaS model prefix and empty model_source_type
 		// Should auto-detect as MaaS but fail to get token without K8s client
-		providerData := app.getProviderData(ctx, "maas-vllm-inference-1/llama-3", "")
+		providerData := app.getProviderData(ctx, "maas-vllm-inference-1/llama-3", "", false)
 
 		// Without proper K8s client, should fall back to user JWT
 		// (MaaS detection fails, falls back to getUserJWTProviderData)
@@ -1304,7 +1304,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 		})
 
 		// Call with namespace model (no special handling, falls through to auto-detection)
-		providerData := app.getProviderData(ctx, "my-namespace-model", "namespace")
+		providerData := app.getProviderData(ctx, "my-namespace-model", "namespace", false)
 
 		// Should fall back to auto-detection which returns user JWT
 		assert.NotNil(t, providerData)
@@ -1369,7 +1369,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 
 		// Call with provider-qualified model ID and custom_endpoint source type
-		providerData := appWithData.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint")
+		providerData := appWithData.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", false)
 
 		// Should return provider data with the API key from the secret
 		assert.NotNil(t, providerData, "Provider data should not be nil")
