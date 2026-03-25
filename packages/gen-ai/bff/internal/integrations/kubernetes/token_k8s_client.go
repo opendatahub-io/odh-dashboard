@@ -1630,7 +1630,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	return configYAML, nil
 }
 
-// GetExternalModelsConfig retrieves and parses the gen-ai-aa-external-models ConfigMap
+// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
 	// Get the ConfigMap
 	configMap := &corev1.ConfigMap{}
@@ -2320,7 +2320,7 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	return nil
 }
 
-// CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-external-models ConfigMap
+// CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
