@@ -46,7 +46,6 @@ const getProxyHeaders = () => {
         .trim();
       console.info('Logged in as user:', username);
       return {
-        Authorization: `Bearer ${token}`,
         'x-forwarded-access-token': token,
       };
     } catch (error) {

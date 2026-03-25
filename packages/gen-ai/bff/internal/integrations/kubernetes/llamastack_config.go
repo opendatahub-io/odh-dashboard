@@ -467,7 +467,7 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 // since cluster services typically use self-signed certificates.
 func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
-	// Full configuration (including secrets) is managed via the gen-ai-aa-external-models ConfigMap
+	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
 	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap

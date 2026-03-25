@@ -1119,11 +1119,6 @@ declare global {
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /maas/api/v1/api-keys/search',
-          options: { query?: { page?: string; limit?: string } },
-          response: { data: OdhResponse<APIKeyListResponse> },
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'POST /maas/api/v1/api-keys/bulk-revoke',
           response: { data: OdhResponse<BulkRevokeResponse> },
         ) => Cypress.Chainable<null>) &
