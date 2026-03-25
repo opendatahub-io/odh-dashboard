@@ -10,46 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- credentialEnvVarField ---
-
-func TestCredentialEnvVarField(t *testing.T) {
-	tests := []struct {
-		providerType string
-		wantField    string
-		wantErr      bool
-	}{
-		{"remote::pgvector", "password", false},
-		{"remote::milvus", "token", false},
-		{"remote::qdrant", "api_key", false},
-		{"remote::unknown", "", true},
-		{"", "", true},
-		{"inline::milvus", "", true},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.providerType, func(t *testing.T) {
-			got, err := credentialEnvVarField(tc.providerType)
-			if tc.wantErr {
-				assert.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tc.wantField, got)
-			}
-		})
-	}
-}
-
 // --- extractCredentialSecretRef ---
 
 func TestExtractCredentialSecretRef(t *testing.T) {
 	t.Run("nil CustomGenAIConfig returns nil", func(t *testing.T) {
-		got := extractCredentialSecretRef(nil, "remote::pgvector")
+		got := extractCredentialSecretRef(nil)
 		assert.Nil(t, got)
 	})
 
 	t.Run("nil Credentials returns nil", func(t *testing.T) {
 		cga := &models.CustomGenAIConfig{Credentials: nil}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
+		got := extractCredentialSecretRef(cga)
 		assert.Nil(t, got)
 	})
 
@@ -57,65 +28,44 @@ func TestExtractCredentialSecretRef(t *testing.T) {
 		cga := &models.CustomGenAIConfig{
 			Credentials: &models.CustomGenAICredentials{SecretRefs: nil},
 		}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
+		got := extractCredentialSecretRef(cga)
 		assert.Nil(t, got)
 	})
 
-	t.Run("unsupported provider type returns nil", func(t *testing.T) {
-		cga := &models.CustomGenAIConfig{
-			Credentials: &models.CustomGenAICredentials{
-				SecretRefs: []models.SecretKeyRef{{Name: "my-secret", Key: "password"}},
-			},
-		}
-		got := extractCredentialSecretRef(cga, "remote::unknown")
-		assert.Nil(t, got)
-	})
-
-	t.Run("pgvector with matching password key returns ref", func(t *testing.T) {
+	t.Run("pgvector password key returns ref", func(t *testing.T) {
 		cga := &models.CustomGenAIConfig{
 			Credentials: &models.CustomGenAICredentials{
 				SecretRefs: []models.SecretKeyRef{{Name: "pg-creds", Key: "password"}},
 			},
 		}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
+		got := extractCredentialSecretRef(cga)
 		require.NotNil(t, got)
 		assert.Equal(t, "pg-creds", got.Name)
 		assert.Equal(t, "password", got.Key)
 	})
 
-	t.Run("qdrant with matching api_key returns ref", func(t *testing.T) {
+	t.Run("qdrant api_key returns ref", func(t *testing.T) {
 		cga := &models.CustomGenAIConfig{
 			Credentials: &models.CustomGenAICredentials{
 				SecretRefs: []models.SecretKeyRef{{Name: "qdrant-creds", Key: "api_key"}},
 			},
 		}
-		got := extractCredentialSecretRef(cga, "remote::qdrant")
+		got := extractCredentialSecretRef(cga)
 		require.NotNil(t, got)
 		assert.Equal(t, "qdrant-creds", got.Name)
 		assert.Equal(t, "api_key", got.Key)
 	})
 
-	t.Run("milvus with matching token key returns ref", func(t *testing.T) {
+	t.Run("milvus token key returns ref", func(t *testing.T) {
 		cga := &models.CustomGenAIConfig{
 			Credentials: &models.CustomGenAICredentials{
 				SecretRefs: []models.SecretKeyRef{{Name: "milvus-creds", Key: "token"}},
 			},
 		}
-		got := extractCredentialSecretRef(cga, "remote::milvus")
+		got := extractCredentialSecretRef(cga)
 		require.NotNil(t, got)
 		assert.Equal(t, "milvus-creds", got.Name)
 		assert.Equal(t, "token", got.Key)
-	})
-
-	t.Run("key mismatch returns nil", func(t *testing.T) {
-		// secretRef has key "api_key" but pgvector expects "password"
-		cga := &models.CustomGenAIConfig{
-			Credentials: &models.CustomGenAICredentials{
-				SecretRefs: []models.SecretKeyRef{{Name: "pg-creds", Key: "api_key"}},
-			},
-		}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
-		assert.Nil(t, got)
 	})
 
 	t.Run("empty secret name is skipped", func(t *testing.T) {
@@ -124,22 +74,32 @@ func TestExtractCredentialSecretRef(t *testing.T) {
 				SecretRefs: []models.SecretKeyRef{{Name: "", Key: "password"}},
 			},
 		}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
+		got := extractCredentialSecretRef(cga)
 		assert.Nil(t, got)
 	})
 
-	t.Run("first matching ref wins when multiple refs present", func(t *testing.T) {
+	t.Run("empty key is skipped", func(t *testing.T) {
+		cga := &models.CustomGenAIConfig{
+			Credentials: &models.CustomGenAICredentials{
+				SecretRefs: []models.SecretKeyRef{{Name: "my-secret", Key: ""}},
+			},
+		}
+		got := extractCredentialSecretRef(cga)
+		assert.Nil(t, got)
+	})
+
+	t.Run("first valid ref wins when multiple refs present", func(t *testing.T) {
 		cga := &models.CustomGenAIConfig{
 			Credentials: &models.CustomGenAICredentials{
 				SecretRefs: []models.SecretKeyRef{
-					{Name: "wrong-key", Key: "api_key"},
-					{Name: "correct-secret", Key: "password"},
+					{Name: "first-secret", Key: "password"},
+					{Name: "second-secret", Key: "api_key"},
 				},
 			},
 		}
-		got := extractCredentialSecretRef(cga, "remote::pgvector")
+		got := extractCredentialSecretRef(cga)
 		require.NotNil(t, got)
-		assert.Equal(t, "correct-secret", got.Name)
+		assert.Equal(t, "first-secret", got.Name)
 		assert.Equal(t, "password", got.Key)
 	})
 }

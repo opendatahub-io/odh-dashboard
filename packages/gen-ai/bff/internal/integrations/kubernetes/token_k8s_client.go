@@ -622,7 +622,7 @@ func validateVectorStores(vectorStores []models.InstallVectorStore, doc *models.
 
 		cred, seen := credByProvider[provider.ProviderID]
 		if !seen {
-			secretRef := extractCredentialSecretRef(provider.Config.CustomGenAI, provider.ProviderType)
+			secretRef := extractCredentialSecretRef(provider.Config.CustomGenAI)
 			if secretRef != nil {
 				credCounter++
 				cred = providerCred{
@@ -664,20 +664,17 @@ func (kc *TokenKubernetesClient) LoadAndValidateVectorStores(
 	return validateVectorStores(vectorStores, doc)
 }
 
-// extractCredentialSecretRef searches the custom_gen_ai.credentials.secretRefs list for a ref
-// whose key matches the expected credential key for the given provider type
-// (e.g. "password" for pgvector, "api_key" for qdrant, "token" for milvus).
-// Returns nil if no matching ref is found or the provider type is unsupported.
-func extractCredentialSecretRef(cga *models.CustomGenAIConfig, providerType string) *models.SecretKeyRef {
-	expectedKey, err := credentialEnvVarField(providerType)
-	if err != nil {
-		return nil // unsupported provider type — no credential field to look for
-	}
+// extractCredentialSecretRef returns the first secretRef from custom_gen_ai.credentials.secretRefs
+// that has a non-empty name and key. The key is used directly as the LlamaStack provider config
+// field name (e.g. "password" for pgvector, "token" for milvus, "api_key" for qdrant), so the
+// platform engineer controls the mapping without any BFF-side provider type lookup.
+// Returns nil if no valid ref is found.
+func extractCredentialSecretRef(cga *models.CustomGenAIConfig) *models.SecretKeyRef {
 	if cga == nil || cga.Credentials == nil {
 		return nil
 	}
 	for _, ref := range cga.Credentials.SecretRefs {
-		if ref.Key == expectedKey && ref.Name != "" {
+		if ref.Name != "" && ref.Key != "" {
 			return &models.SecretKeyRef{Name: ref.Name, Key: ref.Key}
 		}
 	}
@@ -1803,11 +1800,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 					kc.Logger.Info("injected default persistence config for provider", "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType)
 				}
 				if vs.CredEnvVarName != "" {
-					credField, err := credentialEnvVarField(vs.Provider.ProviderType)
-					if err != nil {
-						return "", fmt.Errorf("failed to configure credentials for provider %q: %w", vs.Provider.ProviderID, err)
-					}
-					providerConfig[credField] = fmt.Sprintf("${env.%s:=}", vs.CredEnvVarName)
+					providerConfig[vs.CredSecretRef.Key] = fmt.Sprintf("${env.%s:=}", vs.CredEnvVarName)
 				}
 				config.AddVectorIOProvider(Provider{
 					ProviderID:   vs.Provider.ProviderID,
@@ -2832,21 +2825,6 @@ func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *int
 
 	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
 	return nil
-}
-
-// credentialEnvVarField returns the LlamaStack config field name that holds
-// the credential for the given provider type.
-func credentialEnvVarField(providerType string) (string, error) {
-	switch providerType {
-	case "remote::pgvector":
-		return "password", nil
-	case "remote::milvus":
-		return "token", nil
-	case "remote::qdrant":
-		return "api_key", nil
-	default:
-		return "", fmt.Errorf("unsupported provider_type %q: cannot determine credential field", providerType)
-	}
 }
 
 // GetSecretValue retrieves a specific value from a Kubernetes Secret
