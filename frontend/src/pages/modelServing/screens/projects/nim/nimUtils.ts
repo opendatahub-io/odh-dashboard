@@ -100,17 +100,17 @@ export const updateServingRuntimeTemplate = (
   const updatedServingRuntime = { ...servingRuntime };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const containers = updatedServingRuntime.spec?.containers ?? [];
-  updatedServingRuntime.spec.containers = containers.map((container) => {
+  if (!updatedServingRuntime.spec) {
+    return updatedServingRuntime;
+  }
+
+  updatedServingRuntime.spec.containers = updatedServingRuntime.spec.containers.map((container) => {
     if (container.volumeMounts) {
       const updatedVolumeMounts = container.volumeMounts.map((volumeMount) => {
         if (volumeMount.mountPath === '/mnt/models/cache') {
           return {
             ...volumeMount,
             name: pvcName,
-            // ← NEW: Add subPath if provided
-            // SubPath allows mounting a subdirectory of the PVC
-            // Example: subPath: "/llama-3.1-8b-instruct"
             ...(pvcSubPath ? { subPath: pvcSubPath } : {}),
           };
         }
@@ -125,8 +125,7 @@ export const updateServingRuntimeTemplate = (
     return container;
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (updatedServingRuntime.spec?.volumes) {
+  if (updatedServingRuntime.spec.volumes) {
     const updatedVolumes = updatedServingRuntime.spec.volumes.map((volume) => {
       if (volume.name.startsWith('nim-pvc')) {
         return {
