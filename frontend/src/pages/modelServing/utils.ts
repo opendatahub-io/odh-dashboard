@@ -319,9 +319,11 @@ const isPodSpecOptionsChanged = (
   const currentSize = getServingRuntimeOrReturnEmpty(existingServingRuntime);
 
   const initialTolerations = currentPodSpecOptionsState.podSpecOptions.tolerations;
-  const currentTolerations = existingServingRuntime?.spec.tolerations;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const currentTolerations = existingServingRuntime?.spec?.tolerations;
 
-  const currentNodeSelector = existingServingRuntime?.spec.nodeSelector;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const currentNodeSelector = existingServingRuntime?.spec?.nodeSelector;
   const initialNodeSelector = currentPodSpecOptionsState.podSpecOptions.nodeSelector;
 
   return (
@@ -342,7 +344,7 @@ export const isModelServerEditInfoChanged = (
       editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
+      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
         String(createData.tokenAuth) ||
       isPodSpecOptionsChanged(podSpecOptionsState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
