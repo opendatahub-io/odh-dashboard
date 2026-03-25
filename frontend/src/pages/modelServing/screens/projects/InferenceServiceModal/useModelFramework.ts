@@ -20,7 +20,7 @@ const useModelFramework = (
     setLoadedFrameworksForRuntimeName(null);
     getServingRuntime(name, namespace)
       .then((servingRuntime) => {
-        setModels(servingRuntime.spec.supportedModelFormats || []);
+        setModels(servingRuntime.spec?.supportedModelFormats || []);
         setLoadedFrameworksForRuntimeName(name);
       })
       .catch((e) => {

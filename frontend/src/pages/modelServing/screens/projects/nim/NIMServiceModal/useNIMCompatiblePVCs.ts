@@ -16,9 +16,9 @@ type UseNIMCompatiblePVCsState = {
 };
 
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
-  const { containers } = servingRuntime.spec;
+  const containers = servingRuntime.spec?.containers;
 
-  return containers.some(
+  return !!containers?.some(
     (container) =>
       container.image?.includes('nvcr.io/nim/') ||
       container.image?.includes('nvidia/nim/') ||
@@ -48,13 +48,13 @@ const parseNimModelFromImage = (image: string): string | null => {
 };
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
-  const supportedFormats = servingRuntime.spec.supportedModelFormats;
+  const supportedFormats = servingRuntime.spec?.supportedModelFormats;
   if (supportedFormats?.length && supportedFormats[0]?.name) {
     return supportedFormats[0].name;
   }
 
-  const { containers } = servingRuntime.spec;
-  for (const container of containers) {
+  const containers = servingRuntime.spec?.containers;
+  for (const container of containers ?? []) {
     const parsed = parseNimModelFromImage(container.image ?? '');
     if (parsed) {
       return parsed;

@@ -16,9 +16,9 @@ const useServingAcceleratorProfileFormState = (
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
   const resources =
     inferenceService?.spec.predictor.model?.resources ||
-    servingRuntime?.spec.containers[0].resources;
+    servingRuntime?.spec?.containers?.[0]?.resources;
   const tolerations =
-    inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
+    inferenceService?.spec.predictor.tolerations || servingRuntime?.spec?.tolerations;
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = servingRuntime?.metadata.namespace;
   const acceleratorProfileNamespace =
