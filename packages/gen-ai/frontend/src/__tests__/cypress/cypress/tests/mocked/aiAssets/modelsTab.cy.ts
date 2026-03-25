@@ -39,6 +39,17 @@ const AI_MODELS = [
     model_type: 'embedding',
     endpoints: ['http://embedding.cluster.local:8080'],
   },
+  {
+    model_name: 'Llama-7B-Inactive',
+    model_id: 'llama-7b-inactive',
+    display_name: 'Llama 7B Inactive',
+    description: 'Inactive namespace model',
+    usecase: 'text-generation',
+    status: 'Stop',
+    model_source_type: 'namespace',
+    model_type: 'llm',
+    endpoints: [],
+  },
 ];
 
 const MAAS_MODELS = [
@@ -75,8 +86,8 @@ describe('AI Assets - Models Tab', () => {
       cy.step('Verify the models table is visible');
       modelsTabPage.findTable().should('be.visible');
 
-      cy.step('Verify the table has 4 rows (3 AI + 1 MaaS)');
-      modelsTabPage.findTableRows().should('have.length', 4);
+      cy.step('Verify the table has 5 rows (4 AI + 1 MaaS)');
+      modelsTabPage.findTableRows().should('have.length', 5);
 
       cy.step('Verify Internal model row');
       const internalRow = modelsTabPage.getRow('Llama 3B Internal');
@@ -153,12 +164,19 @@ describe('AI Assets - Models Tab', () => {
         .should('exist')
         .and('not.be.disabled');
 
-      cy.step('Verify button is disabled for inactive models');
-      const inactiveRow = modelsTabPage.getRow('Embedding Model');
+      cy.step('Verify button is disabled for inactive namespace models');
+      const inactiveRow = modelsTabPage.getRow('Llama 7B Inactive');
       inactiveRow
         .findPlaygroundCell()
         .findByTestId('add-to-playground-button')
         .should('be.disabled');
+
+      cy.step('Verify button is enabled for inactive custom endpoint models');
+      const customEndpointRow = modelsTabPage.getRow('Embedding Model');
+      customEndpointRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('not.be.disabled');
     },
   );
 
