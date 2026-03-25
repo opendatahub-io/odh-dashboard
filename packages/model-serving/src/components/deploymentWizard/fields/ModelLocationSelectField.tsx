@@ -3,7 +3,6 @@ import {
   FormGroup,
   FormHelperText,
   Alert,
-  FormSection,
   HelperTextItem,
   Stack,
   StackItem,
@@ -296,8 +295,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return baseOptions;
   }, [baseOptions]);
   return (
-    <FormSection title="Model details">
-      <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
+    <>
       {modelLocationData?.prefillAlertText && (
         <Alert
           variant="info"
@@ -429,6 +427,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           )}
         </Stack>
       </FormGroup>
-    </FormSection>
+    </>
   );
 };
