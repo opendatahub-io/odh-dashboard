@@ -107,7 +107,16 @@ export const updateClusterSettings = async (
           currentCullerTimeout = Number(cullerRes.body.data?.CULL_IDLE_TIME || 0) * 60;
         }
       } catch (e) {
-        fastify.log.warn(`Could not read culler config for change detection: ${e}`);
+        if (isHttpError(e) && e.response.statusCode === 404) {
+          currentCullerTimeout = DEFAULT_CULLER_TIMEOUT;
+        } else {
+          fastify.log.warn(
+            `Could not read culler config for change detection; forcing notebook-controller rollout: ${errorHandler(
+              e,
+            )}`,
+          );
+          needsNotebookControllerRollout = true;
+        }
       }
 
       if (pvcSize !== currentPvcSize || cullerTimeout !== currentCullerTimeout) {
