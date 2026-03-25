@@ -729,6 +729,7 @@ interface FileExplorerProps {
   page?: number;
   perPage?: number;
   itemCount?: number;
+  hasNextPage?: boolean;
   selection?: 'radio' | 'checkbox';
   onSelectSource?: (source: Source) => void;
   onDirectoryClick?: (directory: Directory) => void;
@@ -752,6 +753,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   page,
   perPage,
   itemCount,
+  hasNextPage,
   selection = 'radio',
   onSelectSource,
   onDirectoryClick,
@@ -781,9 +783,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const currentPerPage = perPage ?? 100;
   const currentPage = page ?? 1;
   // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
-  // If the current page is full, assume there's at least one more page (+1 keeps "next" enabled).
+  // If hasNextPage is explicitly provided, use it to keep "next" enabled (+1).
+  // Otherwise, fall back to the known item count.
   const syntheticItemCount = isIndeterminate
-    ? (currentPage - 1) * currentPerPage + fileCount + (fileCount >= currentPerPage ? 1 : 0)
+    ? (currentPage - 1) * currentPerPage + fileCount + (hasNextPage ? 1 : 0)
     : itemCount;
 
   const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};

@@ -146,6 +146,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
 
   const [loadingToRender, setLoadingToRender] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
@@ -196,6 +197,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           lastResultRef.current = result;
           const items = mapResultToItems(result);
           setFilesToRender(items);
+          setHasNextPage(!!result.next_continuation_token);
           setLoadingToRender(false);
         })
         .catch(() => {
@@ -203,6 +205,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
             return;
           }
           setFilesToRender([]);
+          setHasNextPage(false);
           setLoadingToRender(false);
         });
     },
@@ -272,6 +275,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       loading={loadingToRender}
       page={pageToRender}
       perPage={perPageToRender}
+      hasNextPage={hasNextPage}
       selection="radio"
       isOpen={isOpen}
       onClose={onClose}
