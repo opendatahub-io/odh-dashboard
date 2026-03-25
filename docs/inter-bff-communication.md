@@ -8,9 +8,11 @@ The ODH Dashboard uses a modular architecture where multiple BFF services run as
 
 ### Use Cases
 
-- **Token Management**: Gen-AI BFF requests ephemeral tokens from MaaS BFF for Playground sessions
+- **Token Management**: Gen-AI BFF requests ephemeral tokens from MaaS BFF for Playground sessions (stub example included)
 - **Cross-Module Data**: Retrieving data from another module's domain
 - **Service Coordination**: Orchestrating workflows across multiple modules
+
+> **Note**: This PR provides the inter-BFF communication **infrastructure** (client library, service discovery, NetworkPolicy, deployment configuration). The Gen-AI BFF includes a stub endpoint (`/bff/maas/tokens`) that demonstrates the call pattern. The corresponding MaaS BFF endpoint is expected to be implemented by the MaaS team as part of their feature work.
 
 ### Architecture
 
