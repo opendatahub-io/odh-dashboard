@@ -95,12 +95,13 @@ The `local` field in `module-federation` config tells the backend where to proxy
 To see all current port assignments and detect conflicts:
 
 ```bash
-node scripts/validate-module-ports.js
+npm run validate:ports
 ```
 
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
-- **BFF port**: `PORT=` values in the package's `Makefile`
+- **BFF port (local dev/E2E)**: `bffConfig.port` in the package's `package.json` (used by CI E2E workflow and Cypress scripts; not currently conflict-checked by the validator)
+- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by CI via `npm run validate:ports`)
 
 **Known port conflict:**
 

@@ -86,12 +86,13 @@ Each package needs a unique port. See [docs/onboard-modular-architecture.md § C
 To see current port assignments and detect conflicts, run:
 
 ```bash
-node scripts/validate-module-ports.js
+npm run validate:ports
 ```
 
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
-- **BFF port**: `PORT=` values in the package's `Makefile`
+- **BFF port (local dev/E2E)**: `bffConfig.port` in the package's `package.json` (used by CI E2E workflow and Cypress scripts; not currently conflict-checked by the validator)
+- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by the conflict-check script)
 
 ### 4. Directory structure
 
