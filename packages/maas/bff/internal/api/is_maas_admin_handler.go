@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -14,6 +15,26 @@ const (
 	maasAdminVerb      = "create"
 	maasAdminNamespace = "models-as-a-service"
 )
+
+type AccessReviewRequest struct {
+	Group     string `json:"group"`
+	Resource  string `json:"resource"`
+	Verb      string `json:"verb"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+type AccessReviewResult struct {
+	Allowed bool `json:"allowed"`
+}
+
+// // extractBearerToken returns the token from an Authorization: Bearer <token> header value,
+// // or an empty string if the value is not a Bearer token.
+func extractBearerToken(authHeader string) string {
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+	return ""
+}
 
 // IsMaasAdminHandler handles GET /api/v1/is-maas-admin
 // It checks whether the requesting user can create maasauthpolicies in the
