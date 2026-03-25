@@ -8,6 +8,7 @@ import {
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
   isValueFromEnvVar,
+  translateDisplayMessageForK8sError,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
@@ -576,5 +577,39 @@ describe('isValueFrom', () => {
         name: '',
       }),
     ).toBe(false);
+  });
+});
+
+describe('translateDisplayMessageForK8sError', () => {
+  it('should translate servingruntimes.serving.kserve.io already exists error', () => {
+    const error = new Error(
+      'servingruntimes.serving.kserve.io "test-model" already exists',
+    );
+    const result = translateDisplayMessageForK8sError(error);
+    expect(result.message).toBe(
+      'A model deployment with the name "test-model" already exists. Please choose a different model deployment name.',
+    );
+  });
+
+  it('should translate inferenceservices.serving.kserve.io already exists error', () => {
+    const error = new Error(
+      'inferenceservices.serving.kserve.io "my-deployment" already exists',
+    );
+    const result = translateDisplayMessageForK8sError(error);
+    expect(result.message).toBe(
+      'A model deployment with the name "my-deployment" already exists. Please choose a different model deployment name.',
+    );
+  });
+
+  it('should return the original error for non-duplicate errors', () => {
+    const error = new Error('Some other K8s error');
+    const result = translateDisplayMessageForK8sError(error);
+    expect(result).toBe(error);
+  });
+
+  it('should return the original error for already exists without kserve resource types', () => {
+    const error = new Error('configmaps "my-config" already exists');
+    const result = translateDisplayMessageForK8sError(error);
+    expect(result).toBe(error);
   });
 });

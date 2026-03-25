@@ -13,6 +13,7 @@ import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
+  translateDisplayMessageForK8sError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
@@ -337,7 +338,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       .catch((e) => {
         props.success = false;
         props.errorMessage = e;
-        setErrorModal(e);
+        setErrorModal(translateDisplayMessageForK8sError(e));
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };

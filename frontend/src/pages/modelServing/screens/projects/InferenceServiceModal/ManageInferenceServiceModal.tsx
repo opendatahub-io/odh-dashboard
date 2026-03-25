@@ -13,6 +13,7 @@ import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
   submitInferenceServiceResourceWithDryRun,
+  translateDisplayMessageForK8sError,
   useCreateInferenceServiceObject,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
@@ -168,7 +169,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       })
       .catch((e) => {
         setActionInProgress(false);
-        setErrorModal(e);
+        setErrorModal(translateDisplayMessageForK8sError(e));
       });
   };
 

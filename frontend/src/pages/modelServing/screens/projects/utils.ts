@@ -752,3 +752,26 @@ export const validateEnvVarName = (name: string): string | undefined => {
 
 export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
   envVar.valueFrom !== undefined;
+
+export const translateDisplayMessageForK8sError = (error: Error): Error => {
+  const message = error.message || String(error);
+
+  if (message.includes('already exists')) {
+    const nameMatch = message.match(/"([^"]+)"/);
+    const name = nameMatch ? nameMatch[1] : '';
+    if (
+      message.includes('servingruntimes.serving.kserve.io') ||
+      message.includes('inferenceservices.serving.kserve.io') ||
+      message.includes('servingruntime') ||
+      message.includes('inferenceservice')
+    ) {
+      return new Error(
+        name
+          ? `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`
+          : 'A model deployment with this name already exists. Please choose a different model deployment name.',
+      );
+    }
+  }
+
+  return error;
+};

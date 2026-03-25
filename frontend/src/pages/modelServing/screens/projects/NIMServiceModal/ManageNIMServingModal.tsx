@@ -15,6 +15,7 @@ import {
   createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
+  translateDisplayMessageForK8sError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '#~/pages/modelServing/screens/projects/utils';
@@ -378,7 +379,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         watchDeployment();
       })
       .catch((e) => {
-        setErrorModal(e);
+        setErrorModal(translateDisplayMessageForK8sError(e));
       });
   };
   const getProjectName = () => {

@@ -11,6 +11,7 @@ import {
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   submitServingRuntimeResourcesWithDryRun,
+  translateDisplayMessageForK8sError,
   useCreateServingRuntimeObject,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '#~/k8sTypes';
@@ -170,7 +171,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         props.success = false;
         props.errorMessage = e;
         fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, props);
-        setErrorModal(e);
+        setErrorModal(translateDisplayMessageForK8sError(e));
       });
   };
 
