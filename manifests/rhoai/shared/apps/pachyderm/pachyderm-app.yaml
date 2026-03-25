@@ -47,7 +47,7 @@ spec:
 
     Before you start the operator installation process, you will need to:
 
-    - Familiarize yourself with Pachyderm's **[main concepts](https://github.com/pachyderm/docs-content/blob/main/latest/learn/basic-concepts.md)**, and Pachyderm's command-line tool `pachctl`. You will interact with Pachyderm using `pachctl` from the cells of your notebooks. Read through our written demo [Open CV](https://github.com/pachyderm/docs-content/blob/main/latest/get-started/beginner-tutorial.md) to get used to the main commands.
+    - Familiarize yourself with Pachyderm's **[main concepts](https://docs.pachyderm.com/products/mldm/latest/learn/concepts/)**, and Pachyderm's command-line tool `pachctl`. You will interact with Pachyderm using `pachctl` from the cells of your notebooks. Read through our written demo [Open CV](https://docs.pachyderm.com/products/mldm/latest/get-started/beginner-tutorial/) to get used to the main commands.
     - Prepare the installation of Pachyderm by creating an **external object store** (Pachyderm supports all s3-compatible storage solutions) for your data. Make sure to match your cluster's region.
 
         * Ceph Nano users: Retrieve the `Cluster IP` of your service (in Networking > Services),  your `AWS_ACCESS_KEY_ID` (base 64), and `AWS_SECRET_ACCESS_KEY` (base 64).
@@ -203,6 +203,6 @@ spec:
             pachd               2.0.5
             ```
 
-    You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` menu of your OpenShift AI Console. You can later extend this first notebook by following the steps in this written [tutorial](https://github.com/pachyderm/docs-content/blob/main/latest/get-started/beginner-tutorial.md) on our documentation website.
+    You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` menu of your OpenShift AI Console. You can later extend this first notebook by following the steps in this written [tutorial](https://docs.pachyderm.com/products/mldm/latest/get-started/beginner-tutorial/) on our documentation website.
 
     Note that you might need to install additional libraries depending on the notebook you chose. For example, our [Housing prices notebook](https://github.com/pachyderm/examples/blob/master/housing-prices-intermediate/housing-prices.ipynb) requires the additional installation of [Pachyderm's python client](https://python-pachyderm.readthedocs.io/en/stable/): `pip install python-pachyderm`.
