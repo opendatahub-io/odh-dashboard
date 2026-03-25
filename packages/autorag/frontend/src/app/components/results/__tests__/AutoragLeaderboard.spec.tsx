@@ -297,6 +297,10 @@ describe('AutoragLeaderboard component', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   // ========================================================================
   // Loading and Empty States
   // ========================================================================
@@ -694,8 +698,6 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(patternLink);
 
       expect(consoleLogSpy).toHaveBeenCalledWith('View details for pattern:', 'Advanced RAG');
-
-      consoleLogSpy.mockRestore();
     });
   });
 });

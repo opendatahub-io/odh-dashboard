@@ -97,7 +97,9 @@ function AutoragLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
-      Object.keys(pattern.scores).forEach((key) => {
+      // Defensive check: verify scores is a plain object at runtime
+      const scores = typeof pattern.scores === 'object' ? pattern.scores : {};
+      Object.keys(scores).forEach((key) => {
         keysSet.add(key);
       });
     });
@@ -110,7 +112,9 @@ function AutoragLeaderboard(): React.JSX.Element {
       ([patternName, pattern]: [string, AutoragPattern]) => {
         // Helper to get metric object from scores
         const getMetricObject = (metricName: string) => {
-          const metricData = pattern.scores[metricName];
+          // Defensive check: verify scores is a plain object at runtime
+          const scores = typeof pattern.scores === 'object' ? pattern.scores : {};
+          const metricData = scores[metricName];
           return {
             mean: metricData?.mean ?? 'N/A',
           };

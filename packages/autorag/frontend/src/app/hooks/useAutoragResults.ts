@@ -31,7 +31,7 @@ export function useAutoragResults(
   pipelineRun?: PipelineRun,
 ): UseAutoragResultsReturn {
   // Step 1: Fetch S3 files to discover the non-deterministic UUID directory
-  const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED';
+  const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
   const rootDir = 'documents-rag-optimization-pipeline';
   const patternGenerationDir = 'rag-templates-optimization';
   const templatesOptimizationPath = shouldFetchS3Files
@@ -51,7 +51,9 @@ export function useAutoragResults(
       return undefined;
     }
 
-    const prefixes = templatesOptimizationData.common_prefixes;
+    const prefixes = templatesOptimizationData.common_prefixes.filter(
+      (prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
+    );
     if (prefixes.length === 0) {
       return undefined;
     }
@@ -62,6 +64,9 @@ export function useAutoragResults(
 
     // Extract UUID from prefix like "documents-rag-optimization-pipeline/{runId}/rag-templates-optimization/{UUID}/"
     const parts = lastPrefix.prefix.split('/').filter(Boolean);
+    if (parts.length === 0) {
+      return undefined;
+    }
     return parts[parts.length - 1]; // Last segment is the UUID
   }, [templatesOptimizationData]);
 
@@ -81,16 +86,36 @@ export function useAutoragResults(
       return [];
     }
 
-    return ragPatternsData.common_prefixes.map((prefixObj: S3CommonPrefix) => {
-      // Extract pattern name from prefix like "...rag_patterns/Pattern1/"
-      const { prefix } = prefixObj;
-      const parts = prefix.split('/').filter(Boolean);
-      const name = parts[parts.length - 1]; // Last segment is the pattern name (Pattern1, Pattern2, etc.)
-      return {
-        name,
-        directory: prefix,
-      };
-    });
+    return ragPatternsData.common_prefixes
+      .filter(
+        (prefixObj: S3CommonPrefix) =>
+          typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
+      )
+      .map((prefixObj: S3CommonPrefix) => {
+        // Extract pattern name from prefix like "...rag_patterns/Pattern1/"
+        const { prefix } = prefixObj;
+        const parts = prefix.split('/').filter(Boolean);
+        if (parts.length === 0) {
+          // eslint-disable-next-line no-console
+          console.warn(`Skipping pattern with invalid prefix: ${prefix}`);
+          return null;
+        }
+        const name = parts[parts.length - 1]; // Last segment is the pattern name (Pattern1, Pattern2, etc.)
+
+        // Security: Validate name to prevent prototype pollution
+        const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+        if (dangerousKeys.includes(name)) {
+          // eslint-disable-next-line no-console
+          console.warn(`Skipping pattern with dangerous name: ${name} in directory ${prefix}`);
+          return null;
+        }
+
+        return {
+          name,
+          directory: prefix,
+        };
+      })
+      .filter((item): item is { name: string; directory: string } => item !== null);
   }, [ragPatternsData]);
 
   // Validate file structure and create error messages for missing/unexpected directories
@@ -183,9 +208,12 @@ export function useAutoragResults(
       };
     }),
     combine: (results) => ({
-      data: results.map((r) => r.data),
+      data: results.filter((r) => !r.isError).map((r) => r.data),
       isPending: results.some((r) => r.isPending),
-      isError: results.some((r) => r.isError),
+      isError: results.length > 0 && results.every((r) => r.isError),
+      failedPatterns: results
+        .map((r, i) => (r.isError ? patternDirectories[i]?.name : null))
+        .filter((name): name is string => Boolean(name)),
     }),
   });
 
@@ -195,7 +223,8 @@ export function useAutoragResults(
       return {};
     }
 
-    const results: Record<string, AutoragPattern> = {};
+    // Security: Create results with null prototype to prevent prototype pollution
+    const results: Record<string, AutoragPattern> = Object.create(null);
 
     patternQueries.data.forEach((entry) => {
       // Skip entries that failed to load or are missing
@@ -215,6 +244,14 @@ export function useAutoragResults(
       }
 
       const { patternName, data: patternData } = entry;
+
+      // Security: Additional validation to reject dangerous keys
+      const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+      if (dangerousKeys.includes(patternName)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Skipping pattern with dangerous name: ${patternName}`);
+        return;
+      }
 
       // Defensive validation: skip patterns with invalid data structure
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

@@ -31,8 +31,8 @@ export function useAutomlResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutomlResultsReturn {
-  // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state
-  const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED';
+  // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state AND runId exists
+  const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
   const isTabular = isTabularRun(pipelineRun);
   const rootDir = isTabular
     ? `autogluon-tabular-training-pipeline`
@@ -51,24 +51,29 @@ export function useAutomlResults(
 
   // Step 2: Fetch model artifact directories from each common prefix
   const modelArtifactQueries = useQueries({
-    queries: (s3Files?.common_prefixes ?? []).map((prefixObj) => {
-      const path = `${prefixObj.prefix}model_artifact`;
-      return {
-        queryKey: ['s3Files', namespace, path],
-        queryFn: async () => {
-          if (!namespace) {
-            throw new Error('namespace is required');
-          }
-          return fetchS3Files(namespace, path);
-        },
-        enabled: Boolean(namespace && s3Files?.common_prefixes),
-        retry: false,
-      };
-    }),
+    queries: (s3Files?.common_prefixes ?? [])
+      .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
+      .map((prefixObj) => {
+        const path = `${prefixObj.prefix}model_artifact`;
+        return {
+          queryKey: ['s3Files', namespace, path],
+          queryFn: async () => {
+            if (!namespace) {
+              throw new Error('namespace is required');
+            }
+            return fetchS3Files(namespace, path);
+          },
+          enabled: Boolean(namespace && s3Files?.common_prefixes),
+          retry: false,
+        };
+      }),
     combine: (results) => ({
-      data: results.map((r) => r.data).filter((d): d is S3ListObjectsResponse => d !== undefined),
+      data: results
+        .filter((r) => !r.isError)
+        .map((r) => r.data)
+        .filter((d): d is S3ListObjectsResponse => d !== undefined),
       isPending: results.some((r) => r.isPending),
-      isError: results.some((r) => r.isError),
+      isError: results.length > 0 && results.every((r) => r.isError),
     }),
   });
 
@@ -77,16 +82,35 @@ export function useAutomlResults(
     () =>
       modelArtifactQueries.data.flatMap((artifactResult) => {
         const prefixes = artifactResult.common_prefixes;
-        return prefixes.map((prefixObj) => {
-          // Extract model name from prefix like "...model_artifact/WeightedEnsemble_L5_FULL/"
-          const { prefix } = prefixObj;
-          const parts = prefix.split('/').filter(Boolean);
-          const name = parts[parts.length - 1]; // Last segment is the model name
-          return {
-            name,
-            directory: prefix,
-          };
-        });
+        return prefixes
+          .filter(
+            (prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
+          )
+          .map((prefixObj) => {
+            // Extract model name from prefix like "...model_artifact/WeightedEnsemble_L5_FULL/"
+            const { prefix } = prefixObj;
+            const parts = prefix.split('/').filter(Boolean);
+            if (parts.length === 0) {
+              // eslint-disable-next-line no-console
+              console.warn(`Skipping model with invalid prefix: ${prefix}`);
+              return null;
+            }
+            const name = parts[parts.length - 1]; // Last segment is the model name
+
+            // Security: Validate name to prevent prototype pollution
+            const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+            if (dangerousKeys.includes(name)) {
+              // eslint-disable-next-line no-console
+              console.warn(`Skipping model with dangerous name: ${name} in directory ${prefix}`);
+              return null;
+            }
+
+            return {
+              name,
+              directory: prefix,
+            };
+          })
+          .filter((item): item is { name: string; directory: string } => item !== null);
       }),
     [modelArtifactQueries.data],
   );
@@ -127,9 +151,12 @@ export function useAutomlResults(
       };
     }),
     combine: (results) => ({
-      data: results.map((r) => r.data),
+      data: results.filter((r) => !r.isError).map((r) => r.data),
       isPending: results.some((r) => r.isPending),
-      isError: results.some((r) => r.isError),
+      isError: results.length > 0 && results.every((r) => r.isError),
+      failedModels: results
+        .map((r, i) => (r.isError ? modelDirectories[i]?.name : null))
+        .filter((name): name is string => Boolean(name)),
     }),
   });
 
@@ -139,7 +166,8 @@ export function useAutomlResults(
       return {};
     }
 
-    const results: Record<string, AutomlModel> = {};
+    // Security: Create results with null prototype to prevent prototype pollution
+    const results: Record<string, AutomlModel> = Object.create(null);
     const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? 'timeseries';
 
     metricsQueries.data.forEach((entry) => {
@@ -153,6 +181,14 @@ export function useAutomlResults(
       }
 
       const { modelName, directory, data: metricsData } = entry;
+
+      // Security: Additional validation to reject dangerous keys
+      const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+      if (dangerousKeys.includes(modelName)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Skipping model with dangerous name: ${modelName}`);
+        return;
+      }
 
       // Defensive validation: skip models with invalid metrics data
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

@@ -93,7 +93,9 @@ function AutomlLeaderboard(): React.JSX.Element {
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(models).forEach((model: AutomlModel) => {
-      Object.keys(model.metrics.test_data).forEach((key) => {
+      // Defensive check: verify test_data is a plain object at runtime
+      const testData = typeof model.metrics.test_data === 'object' ? model.metrics.test_data : {};
+      Object.keys(testData).forEach((key) => {
         keysSet.add(key);
       });
     });
@@ -105,7 +107,9 @@ function AutomlLeaderboard(): React.JSX.Element {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
       // Helper to get metric value from test_data
       const getMetricValue = (metricName: string): number | string => {
-        const value = model.metrics.test_data[metricName];
+        // Defensive check: verify test_data is a plain object at runtime
+        const testData = typeof model.metrics.test_data === 'object' ? model.metrics.test_data : {};
+        const value = testData[metricName];
         if (typeof value === 'number') {
           return value;
         }

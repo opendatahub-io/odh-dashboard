@@ -466,7 +466,7 @@ describe('AutoragResultsPage', () => {
 
   describe('breadcrumbs', () => {
     it('should render breadcrumb with namespace and run name', () => {
-      const mockPipelineRun = createMockPipelineRun(undefined, {
+      const mockPipelineRun = createMockPipelineRun({
         display_name: 'My Test Run',
       });
 
@@ -483,7 +483,7 @@ describe('AutoragResultsPage', () => {
       // Breadcrumb should show namespace
       expect(screen.getByText(/test-ns/)).toBeInTheDocument();
       // Breadcrumb should show run display name
-      expect(screen.getByText('Test Run')).toBeInTheDocument();
+      expect(screen.getByText('My Test Run')).toBeInTheDocument();
     });
   });
 });

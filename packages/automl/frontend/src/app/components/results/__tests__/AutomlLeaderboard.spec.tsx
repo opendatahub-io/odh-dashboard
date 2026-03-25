@@ -315,6 +315,10 @@ describe('AutomlLeaderboard component', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   // ========================================================================
   // Loading and Empty States
   // ========================================================================
@@ -776,8 +780,6 @@ describe('AutomlLeaderboard component', () => {
       fireEvent.click(modelLink);
 
       expect(consoleLogSpy).toHaveBeenCalledWith('View details for model:', expect.any(String));
-
-      consoleLogSpy.mockRestore();
     });
   });
 });
