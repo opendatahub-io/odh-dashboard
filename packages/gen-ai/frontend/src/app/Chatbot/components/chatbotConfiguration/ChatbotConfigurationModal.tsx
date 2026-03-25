@@ -2,23 +2,44 @@
 import React from 'react';
 import {
   Alert,
+  Button,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core';
+import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { DashboardModalFooter } from 'mod-arch-shared';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
-import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
+import {
+  AIModel,
+  ExternalVectorStoreSummary,
+  LlamaModel,
+  LlamaStackDistributionModel,
+  MaaSModel,
+  VectorStore,
+} from '~/app/types';
+import { convertMaaSModelToAIModel, splitLlamaModelId } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
+import ChatbotConfigurationCollectionsTable from './ChatbotConfigurationCollectionsTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
+
+type ModalStepConfig = {
+  id: string;
+  /** Whether this step is included in the wizard. Steps with enabled=false are skipped. */
+  enabled: boolean;
+  component: React.ReactNode;
+  /** Label for the primary button when this is NOT the last active step */
+  nextCTA: string;
+  /** Label suffix for the back button on this step (← Back to {backCTA} is auto-composed) */
+  backCTA: string;
+};
 
 type ChatbotConfigurationModalProps = {
   onClose: () => void;
@@ -34,6 +55,16 @@ type ChatbotConfigurationModalProps = {
   extraSelectedModels?: AIModel[];
   /** Whether show the button in the modal to redirect to the playground after configuration */
   redirectToPlayground?: boolean;
+  /** All available external vector store collections */
+  allCollections: ExternalVectorStoreSummary[];
+  /** Whether the collections fetch has completed */
+  collectionsLoaded: boolean;
+  /** Collections already registered in the playground — used to pre-select rows */
+  existingCollections?: VectorStore[];
+  /** Collections to pre-select in addition to existingCollections */
+  extraSelectedCollections?: ExternalVectorStoreSummary[];
+  /** Step id to open the modal on. Defaults to the first active step. */
+  initialStepId?: string;
 };
 
 const SETUP_PLAYGROUND_EVENT_NAME = 'Playground Setup';
@@ -47,10 +78,16 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   existingModels = [],
   extraSelectedModels,
   redirectToPlayground,
+  allCollections,
+  collectionsLoaded,
+  existingCollections = [],
+  extraSelectedCollections,
+  initialStepId,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
+  const vectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
   const maasAsAIModels: AIModel[] = React.useMemo(
     () => maasModels.map(convertMaaSModelToAIModel),
@@ -100,6 +137,122 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     Map<string, number | undefined>
   >(new Map());
 
+  const availableCollections = React.useMemo(
+    () =>
+      allCollections.filter((c) => {
+        const { id: normalizedEmbedId } = splitLlamaModelId(c.embedding_model);
+        return allModels.some((m) => {
+          const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
+          return m.model_id === c.embedding_model || normalizedModelId === normalizedEmbedId;
+        });
+      }),
+    [allCollections, allModels],
+  );
+
+  const preSelectedCollections = React.useMemo(() => {
+    const existingIds = new Set(existingCollections.map((vs) => vs.id));
+    const fromExisting = availableCollections.filter((c) => existingIds.has(c.vector_store_id));
+
+    if (!extraSelectedCollections || extraSelectedCollections.length === 0) {
+      return fromExisting;
+    }
+
+    const extraIds = new Set(extraSelectedCollections.map((c) => c.vector_store_id));
+    const filteredExtras = extraSelectedCollections.filter((c) =>
+      availableCollections.some((ac) => ac.vector_store_id === c.vector_store_id),
+    );
+    return [...filteredExtras, ...fromExisting.filter((c) => !extraIds.has(c.vector_store_id))];
+  }, [existingCollections, availableCollections, extraSelectedCollections]);
+
+  const [selectedCollections, setSelectedCollections] =
+    React.useState<ExternalVectorStoreSummary[]>(preSelectedCollections);
+
+  const lockedModelNames = React.useMemo(() => {
+    const names = new Set<string>();
+    selectedCollections.forEach((c) => {
+      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
+      const found = allModels.find((m) => {
+        const { id: normModelId } = splitLlamaModelId(m.model_id);
+        return m.model_id === c.embedding_model || normModelId === normEmbedId;
+      });
+      if (found) {
+        names.add(found.model_name);
+      }
+    });
+    return names;
+  }, [selectedCollections, allModels]);
+
+  const handleSetSelectedCollections = React.useCallback<
+    React.Dispatch<React.SetStateAction<ExternalVectorStoreSummary[]>>
+  >(
+    (updater) => {
+      setSelectedCollections((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+
+        const findEmbeddingModel = (embedModelId: string) => {
+          const { id: normEmbedId } = splitLlamaModelId(embedModelId);
+          return allModels.find((m) => {
+            const { id: normModelId } = splitLlamaModelId(m.model_id);
+            return m.model_id === embedModelId || normModelId === normEmbedId;
+          });
+        };
+
+        const prevRequired = new Map<string, AIModel>();
+        prev.forEach((c) => {
+          const m = findEmbeddingModel(c.embedding_model);
+          if (m) {
+            prevRequired.set(m.model_name, m);
+          }
+        });
+
+        const nextRequired = new Map<string, AIModel>();
+        next.forEach((c) => {
+          const m = findEmbeddingModel(c.embedding_model);
+          if (m) {
+            nextRequired.set(m.model_name, m);
+          }
+        });
+
+        setSelectedModels((prevModels) => {
+          const byName = new Map(prevModels.map((m) => [m.model_name, m]));
+          nextRequired.forEach((model, name) => byName.set(name, model));
+          prevRequired.forEach((_, name) => {
+            if (!nextRequired.has(name)) {
+              byName.delete(name);
+            }
+          });
+          return Array.from(byName.values());
+        });
+
+        setModelTypeMap((prevMap) => {
+          const newMap = new Map(prevMap);
+          nextRequired.forEach((_, name) => newMap.set(name, 'Embedding'));
+          prevRequired.forEach((_, name) => {
+            if (!nextRequired.has(name)) {
+              newMap.delete(name);
+            }
+          });
+          return newMap;
+        });
+
+        return next;
+      });
+    },
+    [allModels],
+  );
+
+  const initialIndex = React.useMemo(() => {
+    if (!initialStepId) {
+      return 0;
+    }
+    // Resolved against activeSteps is not yet available here, so we use a
+    // stable reference to the full steps array definition order.
+    const stepOrder = ['models', 'collections'];
+    const idx = stepOrder.indexOf(initialStepId);
+    return idx >= 0 ? idx : 0;
+  }, [initialStepId]);
+
+  const [currentStepIndex, setCurrentStepIndex] = React.useState(initialIndex);
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
@@ -146,6 +299,70 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     },
     [],
   );
+
+  const steps: ModalStepConfig[] = React.useMemo(
+    () => [
+      {
+        id: 'models',
+        enabled: true,
+        component: (
+          <ChatbotConfigurationTable
+            allModels={allModels}
+            selectedModels={selectedModels}
+            setSelectedModels={setSelectedModels}
+            modelTypeMap={modelTypeMap}
+            onModelTypeChange={handleModelTypeChange}
+            maxTokensMap={maxTokensMap}
+            onMaxTokensChange={handleMaxTokensChange}
+            embeddingDimensionMap={embeddingDimensionMap}
+            onEmbeddingDimensionChange={handleEmbeddingDimensionChange}
+            lockedModelNames={lockedModelNames}
+          />
+        ),
+        nextCTA: 'Next: select collections',
+        backCTA: '',
+      },
+      {
+        id: 'collections',
+        enabled: vectorStoresEnabled && collectionsLoaded && availableCollections.length > 0,
+        component: (
+          <ChatbotConfigurationCollectionsTable
+            allCollections={availableCollections}
+            selectedCollections={selectedCollections}
+            setSelectedCollections={handleSetSelectedCollections}
+          />
+        ),
+        nextCTA: '',
+        backCTA: 'Inference models',
+      },
+    ],
+    [
+      allModels,
+      selectedModels,
+      modelTypeMap,
+      handleModelTypeChange,
+      maxTokensMap,
+      handleMaxTokensChange,
+      embeddingDimensionMap,
+      handleEmbeddingDimensionChange,
+      vectorStoresEnabled,
+      collectionsLoaded,
+      availableCollections,
+      selectedCollections,
+      lockedModelNames,
+      handleSetSelectedCollections,
+    ],
+  );
+
+  const activeSteps = React.useMemo(() => steps.filter((s) => s.enabled), [steps]);
+  const currentStep = activeSteps[currentStepIndex] ?? activeSteps[0];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === activeSteps.length - 1;
+  // True while we don't yet know if the collections step will be present
+  const isStepsLoading = vectorStoresEnabled && !collectionsLoaded;
+
+  const goNext = () => setCurrentStepIndex((i) => Math.min(i + 1, activeSteps.length - 1));
+  const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
 
   const fireErrorEvents = (e: Error) => {
     fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
@@ -232,6 +449,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const onBeforeClose = () => {
     setConfiguringPlayground(false);
+    setCurrentStepIndex(0);
     setError(undefined);
     setAlertTitle(undefined);
     setModelTypeMap(new Map());
@@ -288,26 +506,28 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             onClose={onSuccessClose}
           />
         ) : (
-          <ChatbotConfigurationTable
-            allModels={allModels}
-            selectedModels={selectedModels}
-            setSelectedModels={setSelectedModels}
-            modelTypeMap={modelTypeMap}
-            onModelTypeChange={handleModelTypeChange}
-            maxTokensMap={maxTokensMap}
-            onMaxTokensChange={handleMaxTokensChange}
-            embeddingDimensionMap={embeddingDimensionMap}
-            onEmbeddingDimensionChange={handleEmbeddingDimensionChange}
-          />
+          currentStep.component
         )}
       </ModalBody>
       {!configuringPlayground && (
         <ModalFooter>
-          <DashboardModalFooter
-            submitLabel={isUpdate ? 'Update' : 'Create'}
-            onSubmit={onSubmit}
-            onCancel={onBeforeClose}
-          />
+          {!isStepsLoading && isLastStep ? (
+            <Button variant="primary" onClick={onSubmit}>
+              {isUpdate ? 'Configure' : 'Create'}
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={goNext} isDisabled={isStepsLoading}>
+              {currentStep.nextCTA}
+            </Button>
+          )}
+          {!isFirstStep && (
+            <Button variant="secondary" onClick={goBack}>
+              <ArrowLeftIcon /> Back to {currentStep.backCTA}
+            </Button>
+          )}
+          <Button variant="link" onClick={onBeforeClose}>
+            Cancel
+          </Button>
         </ModalFooter>
       )}
     </Modal>

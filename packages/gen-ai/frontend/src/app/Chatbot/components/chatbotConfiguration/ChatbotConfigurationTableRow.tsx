@@ -49,6 +49,7 @@ type ChatbotConfigurationTableRowProps = {
   model: AIModel;
   isChecked: boolean;
   onToggleCheck: () => void;
+  isLocked?: boolean;
   modelType: string;
   onModelTypeChange: (value: string) => void;
   maxTokens?: number;
@@ -61,6 +62,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   model,
   isChecked,
   onToggleCheck,
+  isLocked = false,
   modelType,
   onModelTypeChange,
   maxTokens,
@@ -191,7 +193,9 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
       <CheckboxTd
         id={model.model_name}
         isChecked={isChecked}
-        isDisabled={model.status !== 'Running' && model.model_source_type !== 'custom_endpoint'}
+        isDisabled={
+          isLocked || (model.status !== 'Running' && model.model_source_type !== 'custom_endpoint')
+        }
         onToggle={onToggleCheck}
         data-testid={`${sanitizedModelName}-checkbox`}
       />
@@ -243,6 +247,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
                 ref={toggleRef}
                 onClick={() => setIsTypeSelectOpen((prev) => !prev)}
                 isExpanded={isTypeSelectOpen}
+                isDisabled={isLocked}
                 data-testid={`${sanitizedModelName}-type-select`}
               >
                 {modelType}
