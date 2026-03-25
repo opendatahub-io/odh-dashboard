@@ -54,8 +54,8 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(_ *RequestIdentity) (bool, error
 	return true, nil
 }
 
-// newTokenKubernetesClient creates a Kubernetes client using a user bearer token.
-func newTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+// NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
+func NewTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kubeconfig", "error", err)
@@ -169,6 +169,30 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	}
 
 	return nsList.Items, nil
+}
+
+func (kc *TokenKubernetesClient) CheckSelfAccess(ctx context.Context, group, resource, verb, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Group:     group,
+				Resource:  resource,
+				Verb:      verb,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform access review", "error", err)
+		return false, fmt.Errorf("failed to perform access review: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
 }
 
 func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
