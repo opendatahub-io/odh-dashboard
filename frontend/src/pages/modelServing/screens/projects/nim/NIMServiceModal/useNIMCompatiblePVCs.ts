@@ -16,6 +16,13 @@ type UseNIMCompatiblePVCsState = {
 };
 
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
+  if (
+    servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] ===
+    'nvidia-nim-runtime'
+  ) {
+    return true;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const containers = servingRuntime.spec?.containers;
 
@@ -23,9 +30,7 @@ const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
   return !!containers?.some(
     (container) =>
       container.image?.includes('nvcr.io/nim/') ||
-      container.image?.includes('nvidia/nim/') ||
-      servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] ===
-        'nvidia-nim-runtime',
+      container.image?.includes('nvidia/nim/'),
   );
 };
 
