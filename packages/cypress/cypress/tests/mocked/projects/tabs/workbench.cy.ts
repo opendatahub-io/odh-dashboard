@@ -785,7 +785,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project-scoped test image/, hidden: true })
       .click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
     hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
@@ -797,7 +797,7 @@ describe('Workbench page', () => {
     const globalScopedNotebookImage = createSpawnerPage.getGlobalScopedNotebookImages();
     globalScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Test Image', hidden: true })
+      .findByRole('menuitem', { name: /^Test Image/, hidden: true })
       .click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
@@ -1775,7 +1775,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project scoped test image/, hidden: true })
       .click();
 
     cy.findAllByTestId('project-scoped-label').should('have.length', 2);
