@@ -203,7 +203,7 @@ export const mockWorkloadK8sResource = ({
   },
   status: {
     conditions: mockStatus
-      ? mockStatusEmptyWorkload
+      ? mockStatusEmptyWorkload && mockStatus === WorkloadStatusType.Complete
         ? mockWorkloadEmptySucceedCondition[WorkloadStatusType.Complete]
         : mockWorkloadStatusConditions[mockStatus]
       : [],

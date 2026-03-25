@@ -103,7 +103,7 @@ export const getKueueWorkloadStatusWithMessage = (
     { condition: Inadmissible, status: KueueWorkloadStatus.Inadmissible },
     { condition: Evicted, status: KueueWorkloadStatus.Preempted },
     { condition: Preempted, status: KueueWorkloadStatus.Preempted },
-    { condition: Succeeded, status: KueueWorkloadStatus.Succeeded },
+    { condition: Succeeded, status: KueueWorkloadStatus.Complete },
     { condition: Running, status: KueueWorkloadStatus.Running },
     { condition: Admitted, status: KueueWorkloadStatus.Admitted },
     { condition: Pending, status: KueueWorkloadStatus.Queued },
@@ -151,7 +151,7 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         IconComponent: InProgressIcon,
         iconClassName: 'odh-u-spin',
       };
-    case KueueWorkloadStatus.Succeeded:
+    case KueueWorkloadStatus.Complete:
       return {
         label: 'Complete',
         status: 'success',
