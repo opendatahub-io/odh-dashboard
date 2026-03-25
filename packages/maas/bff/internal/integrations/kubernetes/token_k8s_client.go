@@ -55,7 +55,7 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(_ *RequestIdentity) (bool, error
 }
 
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
-func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+func NewTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kubeconfig", "error", err)

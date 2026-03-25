@@ -17,5 +17,4 @@ type KubernetesClientInterface interface {
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error)
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
-	CheckSelfAccess(ctx context.Context, group, resource, verb, namespace string) (bool, error)
 }
