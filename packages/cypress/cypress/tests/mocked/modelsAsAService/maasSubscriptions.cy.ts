@@ -29,28 +29,30 @@ describe('Subscriptions Page', () => {
       data: mockSubscriptions(),
     });
     // Mock MaaS models with subscriptions for AI Assets page
-    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', [
-      /* eslint-disable camelcase */
-      {
-        id: 'granite-3-8b-instruct',
-        object: 'model',
-        created: 1734000000,
-        owned_by: 'ibm',
-        ready: true,
-        url: 'https://granite-model.apps.cluster.com',
-        display_name: 'Granite 3.1 8B Instruct',
-        description: 'Granite family of LLMs',
-        usecase: 'Text Generation',
-        model_type: 'llm',
-        subscriptions: [
-          { name: 'premium-team-sub', displayName: 'Premium Tier' },
-          { name: 'basic-team-sub', displayName: 'Basic Tier' },
-        ],
-      },
-      /* eslint-enable camelcase */
-    ]);
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+      data: [
+        /* eslint-disable camelcase */
+        {
+          id: 'granite-3-8b-instruct',
+          object: 'model',
+          created: 1734000000,
+          owned_by: 'ibm',
+          ready: true,
+          url: 'https://granite-model.apps.cluster.com',
+          display_name: 'Granite 3.1 8B Instruct',
+          description: 'Granite family of LLMs',
+          usecase: 'Text Generation',
+          model_type: 'llm',
+          subscriptions: [
+            { name: 'premium-team-sub', displayName: 'Premium Tier' },
+            { name: 'basic-team-sub', displayName: 'Basic Tier' },
+          ],
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
     // Mock AI models (namespace models) - empty for these tests
-    cy.interceptOdh('GET /gen-ai/api/v1/aaa/models', []);
+    cy.interceptOdh('GET /gen-ai/api/v1/aaa/models', { data: [] });
     subscriptionsPage.visit();
   });
 
@@ -121,23 +123,25 @@ describe('Subscriptions Page', () => {
 
   it('should display no subscriptions message when model has no subscriptions', () => {
     // Mock MaaS model without subscriptions
-    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', [
-      /* eslint-disable camelcase */
-      {
-        id: 'llama-3-8b',
-        object: 'model',
-        created: 1734000000,
-        owned_by: 'meta',
-        ready: true,
-        url: 'https://llama-model.apps.cluster.com',
-        display_name: 'Llama 3 8B',
-        description: 'Llama family of LLMs',
-        usecase: 'Text Generation',
-        model_type: 'llm',
-        subscriptions: [],
-      },
-      /* eslint-enable camelcase */
-    ]);
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+      data: [
+        /* eslint-disable camelcase */
+        {
+          id: 'llama-3-8b',
+          object: 'model',
+          created: 1734000000,
+          owned_by: 'meta',
+          ready: true,
+          url: 'https://llama-model.apps.cluster.com',
+          display_name: 'Llama 3 8B',
+          description: 'Llama family of LLMs',
+          usecase: 'Text Generation',
+          model_type: 'llm',
+          subscriptions: [],
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
 
     // Reload the page to get the new model data
     cy.visit('/aiAssets');
