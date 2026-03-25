@@ -4,6 +4,7 @@ import type {
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
+import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -97,6 +98,51 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
     expiresIn: '168h', // 7 days in hours
   };
 };
+
+export const mockSubscriptions = (): MaaSSubscription[] => [
+  {
+    name: 'premium-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: 10,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+    tokenMetadata: {
+      organizationId: 'org-123',
+      costCenter: 'engineering',
+    },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  },
+  {
+    name: 'basic-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    owner: {
+      groups: [{ name: 'system:authenticated' }],
+    },
+    modelRefs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-02-15T08:00:00Z',
+  },
+];
 
 export const mockTier = ({
   name = 'free',

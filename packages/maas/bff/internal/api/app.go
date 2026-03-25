@@ -133,7 +133,19 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg)
+	// Decide mock vs real implementations for K8s-backed repositories
+	var subscriptionsRepo repositories.SubscriptionsRepositoryInterface
+	var modelRefsRepo repositories.MaaSModelRefsRepositoryInterface
+
+	if cfg.MockK8Client {
+		subscriptionsRepo = repositories.NewMockSubscriptionsRepository(logger)
+		modelRefsRepo = repositories.NewMockMaaSModelRefsRepository(logger)
+	} else {
+		subscriptionsRepo = repositories.NewSubscriptionsRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
+		modelRefsRepo = repositories.NewMaaSModelRefsRepository(logger, k8sFactory)
+	}
+
+	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, modelRefsRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repositories: %w", err)
 	}

@@ -13,6 +13,7 @@ import { HardwareProfileFormData } from '#~/pages/hardwareProfiles/manage/types'
 import { createHardwareProfile, updateHardwareProfile } from '#~/api';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { humanizeHardwareProfileError } from '#~/pages/hardwareProfiles/manage/utils';
 
 type ManageHardwareProfileFooterProps = {
   state: HardwareProfileFormData;
@@ -60,7 +61,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         navigate(redirectPath);
       })
       .catch((err) => {
-        setErrorMessage(err.message);
+        setErrorMessage(humanizeHardwareProfileError(err.message));
       })
       .finally(() => {
         setIsLoading(false);
@@ -84,7 +85,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         .then(() => Promise.all(getUpdatePromises(false)))
         .then(() => navigate(redirectPath))
         .catch((err) => {
-          setErrorMessage(err.message);
+          setErrorMessage(humanizeHardwareProfileError(err.message));
         })
         .finally(() => {
           setIsLoading(false);

@@ -86,6 +86,11 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 
 // GetAAModels returns mock AA models plus any external models from ConfigMaps
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
+	// Special case: empty-test-namespace should always return empty list for testing empty state (no namespace models, no MaaS models, no external models)
+	if namespace == "empty-test-namespace" {
+		return []models.AAModel{}, nil
+	}
+
 	var mockModels []models.AAModel
 
 	// Return different mock AA models based on namespace

@@ -1,16 +1,29 @@
+import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+import type { LLMdDeployment } from '../types';
+
 export const LLMD_OPTION = {
   name: 'llmd-serving',
   label: 'Distributed inference with llm-d',
 };
 
-export const extractModelServerTemplate = (): {
-  name: string;
-  label?: string;
-  namespace?: string;
-  scope?: string;
-} => {
+export const extractModelServerTemplate = (
+  LLMdDeployment: LLMdDeployment,
+): ModelServerSelectFieldData => {
+  if (LLMdDeployment.server) {
+    return {
+      selection: {
+        name: LLMdDeployment.server.metadata.name,
+        namespace: LLMdDeployment.server.metadata.namespace,
+        label: LLMdDeployment.server.metadata.annotations?.['openshift.io/display-name'],
+        template: LLMdDeployment.server,
+        version: LLMdDeployment.server.metadata.annotations?.['opendatahub.io/runtime-version'],
+      },
+    };
+  }
   return {
-    name: 'llmd-serving',
-    label: 'Distributed inference with llm-d',
+    selection: {
+      name: 'llmd-serving',
+      label: 'Distributed inference with llm-d',
+    },
   };
 };

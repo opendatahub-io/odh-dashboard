@@ -3,13 +3,17 @@ import { EvaluationJob } from '~/app/types';
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
+export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> =>
+  job.benchmarks ?? job.collection?.benchmarks ?? [];
+
 export const getBenchmarkName = (job: EvaluationJob): string => {
-  if (job.benchmarks && job.benchmarks.length > 0) {
-    const first = job.benchmarks[0].id;
-    if (job.benchmarks.length === 1) {
+  const benchmarks = getJobBenchmarks(job);
+  if (benchmarks.length > 0) {
+    const first = benchmarks[0].id;
+    if (benchmarks.length === 1) {
       return first;
     }
-    return `${first} +${job.benchmarks.length - 1} more`;
+    return `${first} +${benchmarks.length - 1} more`;
   }
   if (job.collection?.id) {
     return job.collection.id;
@@ -18,7 +22,7 @@ export const getBenchmarkName = (job: EvaluationJob): string => {
 };
 
 export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
-  job.benchmarks?.map((b) => b.id) ?? [];
+  getJobBenchmarks(job).map((b) => b.id);
 
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

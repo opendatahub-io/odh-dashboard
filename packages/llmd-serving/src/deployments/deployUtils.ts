@@ -19,8 +19,8 @@ import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers.js';
+import { LLMD_OPTION } from './server';
 import { LLMInferenceServiceKind } from '../types';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
 /**
  * For before 3.4 / vLLM on MaaS not enabled
@@ -36,7 +36,7 @@ export const isLLMdDeployActive = (
     return false;
   }
   return (
-    wizardData.modelServer.data?.name === LLMD_SERVING_ID ||
+    wizardData.modelServer.data?.selection?.name === LLMD_OPTION.name ||
     resources?.model?.kind === 'LLMInferenceService'
   );
 };

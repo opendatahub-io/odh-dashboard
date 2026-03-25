@@ -54,10 +54,6 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("base_url is required"))
 		return
 	}
-	if req.SecretValue == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
-		return
-	}
 	if req.ModelType == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
 		return
@@ -185,10 +181,6 @@ func (app *App) VerifyExternalModelHandler(
 		app.badRequestResponse(w, r, fmt.Errorf("base_url is required"))
 		return
 	}
-	if req.SecretValue == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("secret_value is required"))
-		return
-	}
 	if req.ModelType == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model_type is required"))
 		return
@@ -217,7 +209,7 @@ func (app *App) VerifyExternalModelHandler(
 	}
 
 	// 3. Call repository
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req)
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
