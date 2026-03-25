@@ -1,10 +1,9 @@
 import React from 'react';
-import type {
-  ModelServerSelectFieldData,
-  WizardField,
-} from '@odh-dashboard/model-serving/types/form-data';
+import { z } from 'zod';
+import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import ModelServerTemplateSelectField, {
   ModelServerOption,
+  ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
@@ -15,7 +14,7 @@ import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/con
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
 import { LLMD_OPTION } from '../deployments/server';
-import { isLLMInferenceServiceActive } from '../deployments/deployUtils';
+import { isGenerativeNonLegacy } from '../formUtils';
 
 // External data hook
 
@@ -97,9 +96,7 @@ const getOptions = (
 };
 
 export type LLMConfigOptionsFieldValue = {
-  selection?: ModelServerOption | null;
-  autoSelect?: boolean;
-  suggestion?: ModelServerOption | null;
+  data?: ModelServerSelectFieldData;
 };
 
 type LLMConfigOptionsFieldType = WizardField<
@@ -122,9 +119,10 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
+      label="Model deployment configuration"
       modelServerState={{
-        data: value,
-        setData: (data: ModelServerSelectFieldData) => onChange(data ?? {}),
+        data: value.data,
+        setData: (data: ModelServerSelectFieldData) => onChange({ data }),
         options,
       }}
       isEditing={isEditing}
@@ -136,7 +134,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   id: 'modelServer',
   step: 'modelDeployment',
   type: 'replacement',
-  isActive: isLLMInferenceServiceActive,
+  isActive: isGenerativeNonLegacy,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -155,9 +153,11 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
 
       if (externalData?.isLlmdSuggested) {
         return {
-          selection: LLMD_OPTION,
-          autoSelect: true,
-          suggestion: LLMD_OPTION,
+          data: {
+            selection: LLMD_OPTION,
+            autoSelect: true,
+            suggestion: LLMD_OPTION,
+          },
         };
       }
       // if there is only one matching hardware profile, select it
@@ -166,20 +166,26 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       );
       if (matchingHardwareProfileOption.length === 1) {
         return {
-          selection: matchingHardwareProfileOption[0],
-          autoSelect: true,
-          suggestion: matchingHardwareProfileOption[0],
+          data: {
+            selection: matchingHardwareProfileOption[0],
+            autoSelect: true,
+            suggestion: matchingHardwareProfileOption[0],
+          },
         };
       }
       // if there is only one option, select it
       if (options.length === 1) {
         return {
-          selection: options[0],
+          data: {
+            selection: options[0],
+          },
         };
       }
-      return { selection: null, autoSelect: false, suggestion: null };
+      return { data: { selection: null, autoSelect: false, suggestion: null } };
     },
-    validationSchema: modelServerSelectFieldSchema,
+    validationSchema: z.object({
+      data: modelServerSelectFieldSchema,
+    }),
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,
