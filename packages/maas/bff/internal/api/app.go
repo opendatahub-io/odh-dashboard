@@ -183,7 +183,6 @@ func (app *App) Routes() http.Handler {
 	attachMaaSModelRefHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
-	apiRouter.POST(constants.AccessReviewPath, handlerWithApp(app, AccessReviewHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)
