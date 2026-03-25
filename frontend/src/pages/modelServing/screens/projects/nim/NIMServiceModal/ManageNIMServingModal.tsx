@@ -15,6 +15,7 @@ import {
   createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
+  translateModelServingError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
@@ -375,7 +376,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         watchDeployment();
       })
       .catch((e) => {
-        setErrorModal(e);
+        const translatedError = e instanceof Error ? translateModelServingError(e) : e;
+        setErrorModal(translatedError);
       });
   };
   const getProjectName = () => {
