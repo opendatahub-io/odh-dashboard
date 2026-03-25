@@ -37,7 +37,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const resources = isvc?.spec.predictor.model?.resources || obj.spec?.containers?.[0]?.resources;
+  const resources = isvc?.spec?.predictor?.model?.resources || obj.spec?.containers?.[0]?.resources;
   const sizes = getModelServingSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
@@ -50,7 +50,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
         <DescriptionListDescription>
           {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-          {isvc?.spec.predictor.minReplicas ?? obj.spec?.replicas ?? 'Unknown'}
+          {isvc?.spec?.predictor?.minReplicas ?? obj.spec?.replicas ?? 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
       {resources && (
