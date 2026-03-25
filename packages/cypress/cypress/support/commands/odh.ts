@@ -1155,6 +1155,10 @@ declare global {
         ((
           type: 'POST /gen-ai/api/v1/maas/tokens',
           response: OdhResponse<unknown>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /gen-ai/api/v1/aaa/models',
+          response: OdhResponse<unknown>,
         ) => Cypress.Chainable<null>);
     }
   }
