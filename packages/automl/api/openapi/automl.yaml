@@ -695,7 +695,7 @@ components:
           example: Shared model registry for the organization
         is_ready:
           type: boolean
-          description: Whether the ModelRegistry has a Ready=True condition
+          description: Whether the ModelRegistry has an Available=True condition
           example: true
         server_url:
           type: string

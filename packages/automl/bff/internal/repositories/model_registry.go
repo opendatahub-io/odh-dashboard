@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
@@ -13,8 +13,10 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metameta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
 // ErrModelRegistryForbidden is returned when the caller lacks permission to list
@@ -50,11 +52,19 @@ const (
 	// front of every ModelRegistry service by the model-registry-operator.
 	modelRegistryServicePort = 8443
 
-	// modelRegistryClusterDomain is the cluster-internal DNS search domain used to
-	// construct in-cluster service URLs. Clusters with a non-default search domain
-	// will need this adjusted.
-	modelRegistryClusterDomain = "svc.cluster.local"
+	// defaultModelRegistryClusterDomain is the fallback cluster-internal DNS search domain.
+	// Override with MODEL_REGISTRY_CLUSTER_DOMAIN env var for non-standard clusters.
+	defaultModelRegistryClusterDomain = "svc.cluster.local"
 )
+
+// modelRegistryClusterDomain returns the cluster DNS domain, reading from
+// MODEL_REGISTRY_CLUSTER_DOMAIN env var with a default of "svc.cluster.local".
+func modelRegistryClusterDomain() string {
+	if v := os.Getenv("MODEL_REGISTRY_CLUSTER_DOMAIN"); v != "" {
+		return v
+	}
+	return defaultModelRegistryClusterDomain
+}
 
 var modelRegistryGVR = schema.GroupVersionResource{
 	Group:    modelRegistryGroup,
@@ -102,9 +112,15 @@ func NewModelRegistryRepository() *ModelRegistryRepository {
 // In mock mode, realistic test fixtures are returned without touching the cluster.
 // Returns ErrModelRegistryForbidden when the caller lacks RBAC permission.
 // Returns an empty list (not an error) when the ModelRegistry CRD is not installed.
+//
+// Authorization: the dynamic client is scoped to the requesting user's identity.
+// For user_token auth the user's Bearer token is used directly; for internal
+// (SA) auth the SA impersonates the requesting user so RBAC is evaluated against
+// that user rather than the service account.
 func (r *ModelRegistryRepository) ListModelRegistries(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
+	identity *k8s.RequestIdentity,
 	mockK8Client bool,
 	logger *slog.Logger,
 ) (*models.ModelRegistriesData, error) {
@@ -117,7 +133,26 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	// Scope the dynamic client to the requesting user so RBAC is evaluated against
+	// their permissions, not the service account's.
+	userConfig := rest.CopyConfig(restConfig)
+	if identity != nil {
+		if identity.Token != "" {
+			// user_token auth: the identity already carries the user's Bearer token;
+			// use it directly instead of the SA token in the base config.
+			userConfig.BearerToken = identity.Token
+			userConfig.BearerTokenFile = ""
+			userConfig.Impersonate = rest.ImpersonationConfig{}
+		} else if identity.UserID != "" {
+			// internal auth: impersonate the requesting user so K8s enforces their RBAC.
+			userConfig.Impersonate = rest.ImpersonationConfig{
+				UserName: identity.UserID,
+				Groups:   identity.Groups,
+			}
+		}
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(userConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
@@ -142,18 +177,9 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 
 	registries := make([]models.ModelRegistry, 0, len(unstructuredList.Items))
 	for _, item := range unstructuredList.Items {
-		rawJSON, err := item.MarshalJSON()
-		if err != nil {
-			logger.Warn("Failed to marshal ModelRegistry item, skipping",
-				"name", item.GetName(),
-				"uid", item.GetUID(),
-				"error", err)
-			continue
-		}
-
 		var cr modelRegistryCR
-		if err := json.Unmarshal(rawJSON, &cr); err != nil {
-			logger.Warn("Failed to unmarshal ModelRegistry item, skipping",
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &cr); err != nil {
+			logger.Warn("Failed to convert ModelRegistry item, skipping",
 				"name", item.GetName(),
 				"uid", item.GetUID(),
 				"error", err)
@@ -206,14 +232,16 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 // When status.hosts is absent or empty we fall back to constructing the in-cluster URL
 // from the service name and the standard registries namespace.
 func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (serverURL, externalURL string) {
-	// Identify the full in-cluster FQDN (contains "svc.cluster") and the external
-	// Route host (ends in ".apps." or is the first non-svc entry).
 	for _, host := range hosts {
-		if strings.Contains(host, ".svc.") && serverURL == "" {
+		// Classify the host. Internal addresses contain ".svc." or ".cluster.local".
+		// External OpenShift Route hostnames contain ".apps.".
+		// Short forms like "name.namespace" or bare "name" are skipped.
+		isInternal := strings.Contains(host, ".svc.") || strings.Contains(host, ".cluster.local")
+		isExternal := !isInternal && strings.Contains(host, ".apps.") && !strings.Contains(host, " ")
+
+		if isInternal && serverURL == "" {
 			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryAPIPath)
-		} else if !strings.Contains(host, ".svc.") && !strings.Contains(host, " ") &&
-			strings.Contains(host, ".") && externalURL == "" {
-			// The external route hostname contains dots and is not a cluster-local address.
+		} else if isExternal && externalURL == "" {
 			externalURL = fmt.Sprintf("https://%s%s", host, modelRegistryAPIPath)
 		}
 	}
@@ -227,7 +255,7 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 			"https://%s.%s.%s:%d%s",
 			name,
 			modelRegistriesNamespace,
-			modelRegistryClusterDomain,
+			modelRegistryClusterDomain(),
 			modelRegistryServicePort,
 			modelRegistryAPIPath,
 		)
