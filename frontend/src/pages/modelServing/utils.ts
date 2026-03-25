@@ -250,6 +250,7 @@ export const getInferenceServiceSizeOrReturnEmpty = (
 export const getServingRuntimeOrReturnEmpty = (
   servingRuntime?: ServingRuntimeKind,
 ): ContainerResources | undefined => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const resources = servingRuntime?.spec?.containers?.[0]?.resources;
   if (resources && Object.keys(resources).length === 0) {
     return undefined;
@@ -260,6 +261,7 @@ export const getServingRuntimeOrReturnEmpty = (
 export const getKServeContainer = (
   servingRuntime?: ServingRuntimeKind,
 ): ServingContainer | undefined =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   servingRuntime?.spec?.containers?.find((container) => container.name === 'kserve-container');
 
 // will return `undefined` if no kserve container, force empty array if there is kserve with no args
@@ -336,6 +338,7 @@ export const isModelServerEditInfoChanged = (
 ): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||

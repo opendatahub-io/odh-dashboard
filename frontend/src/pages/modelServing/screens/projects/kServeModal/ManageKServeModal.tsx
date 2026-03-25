@@ -400,6 +400,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   servingRuntimeName={servingRuntimeSelected?.metadata.name}
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                   modelContext={servingRuntimeSelected?.spec?.supportedModelFormats}
                   registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
                 />

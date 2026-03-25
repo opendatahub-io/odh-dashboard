@@ -96,6 +96,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     ? getDisplayNameFromServingRuntimeTemplate(existingData.servingRuntime)
     : '';
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const existingNumReplicas = existingData?.servingRuntime?.spec?.replicas ?? 1;
 
   const existingExternalRoute =
@@ -105,6 +106,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(existingData?.secrets));
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const existingImageName = existingData?.servingRuntime?.spec?.containers?.[0]?.image;
   const servingRuntimeScope =
     existingData?.servingRuntime?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'];
@@ -450,6 +452,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   }
   const servingRuntimeData = {
     ...createData,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     existingTolerations: servingRuntimeSelected?.spec?.tolerations || [],
     ...(name !== undefined && { name }),
   };

@@ -20,6 +20,7 @@ const useModelFramework = (
     setLoadedFrameworksForRuntimeName(null);
     getServingRuntime(name, namespace)
       .then((servingRuntime) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         setModels(servingRuntime.spec?.supportedModelFormats || []);
         setLoadedFrameworksForRuntimeName(name);
       })

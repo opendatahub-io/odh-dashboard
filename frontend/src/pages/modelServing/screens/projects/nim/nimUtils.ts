@@ -150,6 +150,7 @@ export const checkPVCUsage = async (
     const servingRuntimes = await listServingRuntimes(namespace);
 
     const usingPVC = servingRuntimes.filter((sr) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const volumes = sr.spec?.volumes || [];
       return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
     });
@@ -196,8 +197,9 @@ export const getNIMResourcesToDelete = async (
   // Handle PVC deletion with reference counting
   // IMPORTANT: With subPath support, multiple deployments may share the same PVC
   // We only delete the PVC when NO deployments are using it anymore
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const pvcName = servingRuntime.spec?.volumes?.find((vol) =>
-    vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
+    vol.persistentVolumeClaim?.claimName?.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
 
   if (pvcName) {
@@ -267,11 +269,13 @@ export const getNIMResourcesToDelete = async (
   let nimSecretName: string | undefined;
   let imagePullSecretName: string | undefined;
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const pullNGCSecret = servingRuntime.spec?.imagePullSecrets?.[0]?.name ?? '';
   if (pullNGCSecret === 'ngc-secret') {
     imagePullSecretName = pullNGCSecret;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   servingRuntime.spec?.containers?.forEach((container) => {
     container.env?.forEach((env) => {
       const secretName = env.valueFrom?.secretKeyRef?.name;
