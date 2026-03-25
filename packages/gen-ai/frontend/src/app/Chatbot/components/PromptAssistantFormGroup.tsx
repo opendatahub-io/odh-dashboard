@@ -18,9 +18,9 @@ export default function PromptAssistantFormGroup({
   const {
     activePrompt,
     dirtyPrompt,
-    setActivePrompt,
     setDirtyPrompt,
     resetDirtyPrompt,
+    clearPromptState,
     openModal,
   } = usePlaygroundStore();
   const [editMode, setEditMode] = React.useState(true);
@@ -49,8 +49,7 @@ export default function PromptAssistantFormGroup({
 
   function handleNewPrompt() {
     const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    setActivePrompt(null);
-    setDirtyPrompt(promptStub);
+    clearPromptState(promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
@@ -124,14 +123,13 @@ export default function PromptAssistantFormGroup({
           value={systemInstruction}
           readOnly={!editMode}
           onChange={(_event, value) => handleTextChange(value)}
-          onDoubleClick={!editMode ? handleSaveClicked : undefined}
           aria-label="Prompt instructions input"
           rows={12}
           data-testid="system-instructions-input"
         />
         {!editMode && (
           <Flex>
-            <Button variant="primary" onClick={handleSaveClicked}>
+            <Button variant="primary" onClick={() => setEditMode(true)}>
               Edit
             </Button>
             <Button variant="link" onClick={handleNewPrompt}>

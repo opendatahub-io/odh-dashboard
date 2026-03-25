@@ -17,12 +17,22 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
-import { useCreatePrompt } from './usePromptQueries';
+import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
 
 export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
-  const { dirtyPrompt, setActivePrompt, setDirtyPrompt, modalMode } = usePlaygroundStore();
+  const {
+    dirtyPrompt,
+    setActivePrompt,
+    setDirtyPrompt,
+    setIsPromptManagementModalOpen,
+    modalMode,
+  } = usePlaygroundStore();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
+  const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
+    isEditMode ? (dirtyPrompt?.name ?? null) : null,
+  );
+  const nextVersion = latestVersion != null ? latestVersion + 1 : null;
   const [nameError, setNameError] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
@@ -32,7 +42,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       const instruction =
         newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
       updateSystemInstruction('default', instruction);
-      onClose();
+      setIsPromptManagementModalOpen(false);
     },
     onError: (error) => {
       if (error.message.toLowerCase().includes('already exists')) {
@@ -102,7 +112,11 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
               <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
                 Version
               </Title>
-              <TextInput value="Next" isDisabled style={{ width: '80px' }} />
+              <TextInput
+                value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
+                isDisabled
+                style={{ width: '80px' }}
+              />
             </SplitItem>
           )}
         </Split>
