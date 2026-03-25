@@ -42,7 +42,7 @@ export type AutoragPattern = {
       system_message_text: string;
     };
   };
-  scoring: Partial<
+  scores: Partial<
     Record<
       string,
       {
@@ -52,6 +52,7 @@ export type AutoragPattern = {
       }
     >
   >;
+  final_score: number;
 };
 
 export type AutoragResultsContextProps = {
