@@ -200,4 +200,44 @@ describe('Subscriptions Page', () => {
     // Wait for token to be generated
     cy.get('[data-testid="endpoint-modal-api-key-input"]', { timeout: 2000 }).should('exist');
   });
+
+  it('should reset state when modal is closed', () => {
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Mock token generation
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      body: {
+        key: 'test-ephemeral-token-12345',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+    });
+
+    // Select subscription and generate token
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
+
+    // Verify token is displayed
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('exist');
+
+    // Show the key
+    cy.get('[data-testid="endpoint-modal-api-key-toggle"]').click();
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('have.attr', 'type', 'text');
+
+    // Close the modal
+    cy.get('[data-testid="endpoint-modal-close"]').click();
+
+    // Reopen the modal
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Verify modal is reset - no token shown, key is hidden
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('not.exist');
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('exist');
+
+    // Verify subscription dropdown is back to default (first subscription)
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('contain', 'Basic Tier');
+  });
 });
