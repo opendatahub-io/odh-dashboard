@@ -444,8 +444,18 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	// Add model
 	var model Model
 	if metadata == nil {
-		// For MaaS models or when no metadata is provided
-		model = NewLLMModel(modelID, providerID, modelID)
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			// Default to LLM model (handles MaaS models and general case)
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
 	} else {
 		// For regular models with metadata
 		model = NewModel(modelID, providerID, modelType, metadata)

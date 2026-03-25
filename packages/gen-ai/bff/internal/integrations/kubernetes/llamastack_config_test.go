@@ -1223,3 +1223,99 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
 }
+
+func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
+	findModel := func(config *LlamaStackConfig, modelID string) *Model {
+		for i := range config.RegisteredResources.Models {
+			if config.RegisteredResources.Models[i].ModelID == modelID {
+				return &config.RegisteredResources.Models[i]
+			}
+		}
+		return nil
+	}
+
+	t.Run("should set embedding_dimension in metadata when provided for embedding model", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		embDim := 1536
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, &embDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "embedding_dimension: 1536")
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m, "embedding model should be present")
+		assert.Equal(t, "embedding", m.ModelType)
+		require.Contains(t, m.Metadata, "embedding_dimension")
+		assert.EqualValues(t, 1536, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should default embedding_dimension to 128 when not provided for embedding model", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, nil)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "embedding_dimension: 128")
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		require.Contains(t, m.Metadata, "embedding_dimension")
+		assert.EqualValues(t, 128, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should preserve pre-existing metadata embedding_dimension when no user value provided", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, nil)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		assert.EqualValues(t, 768, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should override pre-existing metadata embedding_dimension with user-specified value", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
+		userDim := 3072
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, &userDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		assert.EqualValues(t, 3072, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should not set embedding_dimension for llm models", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		embDim := 1536
+		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, nil, &embDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "llm-model")
+		require.NotNil(t, m)
+		assert.NotContains(t, m.Metadata, "embedding_dimension", "embedding_dimension should not be set for llm models")
+	})
+}
