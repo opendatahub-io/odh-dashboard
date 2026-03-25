@@ -90,10 +90,11 @@ class PipelineImportModal extends Modal {
 
   submit(): void {
     // Wait for file upload/validation to complete (button no longer in progress state)
-    // Use longer timeout for file upload processing
-    this.findSubmitButton().should('not.have.class', 'pf-m-progress', { timeout: 20000 });
-    // Then wait for button to be enabled and click
-    this.findSubmitButton().should('be.enabled').click();
+    // Use longer timeout for file upload processing - query button once and chain assertions
+    this.findSubmitButton()
+      .should('not.have.class', 'pf-m-progress', { timeout: 30000 })
+      .should('be.enabled')
+      .click();
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {
