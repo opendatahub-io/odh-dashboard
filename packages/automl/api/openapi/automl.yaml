@@ -673,6 +673,7 @@ components:
       required:
         - id
         - name
+        - display_name
         - is_ready
         - server_url
       properties:
@@ -699,9 +700,16 @@ components:
         server_url:
           type: string
           description: >-
-            Full REST API base URL for this registry including the API path prefix.
-            Callers append resource paths (e.g. /registered_models) to this URL.
-          example: "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3"
+            Full in-cluster REST API base URL for this registry, derived from
+            status.hosts (set by the operator). Callers append resource paths
+            (e.g. /registered_models) to this URL.
+          example: "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1beta1"
+        external_url:
+          type: string
+          description: >-
+            Public Route URL for the registry, present only when serviceRoute is enabled.
+            Empty when no Route is configured.
+          example: "https://default-modelregistry-rest.apps.cluster.example.com/api/model_registry/v1beta1"
 
     ModelRegistriesData:
       description: Wrapper for the model registries list response
