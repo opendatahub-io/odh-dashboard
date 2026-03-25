@@ -400,7 +400,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   servingRuntimeName={servingRuntimeSelected?.metadata.name}
-                  modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
+                  modelContext={servingRuntimeSelected?.spec?.supportedModelFormats}
                   registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
                 />
                 <KServeAutoscalerReplicaSection

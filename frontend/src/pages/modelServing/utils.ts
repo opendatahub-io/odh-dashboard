@@ -250,20 +250,17 @@ export const getInferenceServiceSizeOrReturnEmpty = (
 export const getServingRuntimeOrReturnEmpty = (
   servingRuntime?: ServingRuntimeKind,
 ): ContainerResources | undefined => {
-  if (
-    servingRuntime?.spec.containers[0]?.resources &&
-    Object.keys(servingRuntime.spec.containers[0]?.resources).length === 0
-  ) {
+  const resources = servingRuntime?.spec?.containers?.[0]?.resources;
+  if (resources && Object.keys(resources).length === 0) {
     return undefined;
   }
-
-  return servingRuntime?.spec.containers[0]?.resources;
+  return resources;
 };
 
 export const getKServeContainer = (
   servingRuntime?: ServingRuntimeKind,
 ): ServingContainer | undefined =>
-  servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+  servingRuntime?.spec?.containers?.find((container) => container.name === 'kserve-container');
 
 // will return `undefined` if no kserve container, force empty array if there is kserve with no args
 export const getKServeContainerArgs = (
@@ -339,7 +336,7 @@ export const isModelServerEditInfoChanged = (
 ): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
-      editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
+      editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
       editInfo.servingRuntime.metadata.annotations['enable-auth'] !==

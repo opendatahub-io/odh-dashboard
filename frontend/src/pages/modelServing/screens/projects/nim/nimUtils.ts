@@ -150,7 +150,7 @@ export const checkPVCUsage = async (
     const servingRuntimes = await listServingRuntimes(namespace);
 
     const usingPVC = servingRuntimes.filter((sr) => {
-      const volumes = sr.spec.volumes || [];
+      const volumes = sr.spec?.volumes || [];
       return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
     });
 
@@ -196,7 +196,7 @@ export const getNIMResourcesToDelete = async (
   // Handle PVC deletion with reference counting
   // IMPORTANT: With subPath support, multiple deployments may share the same PVC
   // We only delete the PVC when NO deployments are using it anymore
-  const pvcName = servingRuntime.spec.volumes?.find((vol) =>
+  const pvcName = servingRuntime.spec?.volumes?.find((vol) =>
     vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
 
@@ -267,12 +267,12 @@ export const getNIMResourcesToDelete = async (
   let nimSecretName: string | undefined;
   let imagePullSecretName: string | undefined;
 
-  const pullNGCSecret = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? '';
+  const pullNGCSecret = servingRuntime.spec?.imagePullSecrets?.[0]?.name ?? '';
   if (pullNGCSecret === 'ngc-secret') {
     imagePullSecretName = pullNGCSecret;
   }
 
-  servingRuntime.spec.containers.forEach((container) => {
+  servingRuntime.spec?.containers?.forEach((container) => {
     container.env?.forEach((env) => {
       const secretName = env.valueFrom?.secretKeyRef?.name;
       if (secretName === 'nvidia-nim-secrets') {
