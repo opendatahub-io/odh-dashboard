@@ -33,7 +33,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Models');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
     cy.testA11y();
   }
 
