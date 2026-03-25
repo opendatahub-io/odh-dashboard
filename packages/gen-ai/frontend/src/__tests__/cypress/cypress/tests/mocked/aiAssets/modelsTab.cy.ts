@@ -126,7 +126,7 @@ describe('AI Assets - Models Tab', () => {
 
       cy.step('Clear filters');
       modelsTabPage.clearFilters();
-      modelsTabPage.findTableRows().should('have.length', 4);
+      modelsTabPage.findTableRows().should('have.length', 5);
 
       cy.step('Filter by use case');
       modelsTabPage.filterByUseCase('embedding');
