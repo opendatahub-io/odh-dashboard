@@ -21,6 +21,17 @@ type ManageHardwareProfileFooterProps = {
   redirectPath: string;
 };
 
+const translateHardwareProfileError = (message: string): string => {
+  if (message.includes('already exists')) {
+    const nameMatch = message.match(/"([^"]*)"/);
+    const profileName = nameMatch ? nameMatch[1] : 'this name';
+    return `A hardware profile with the name "${profileName}" already exists. Please choose a different name.`;
+  }
+  return message
+    .replace(/hardwareprofiles\.dashboard\.opendatahub\.io/gi, 'Hardware profile')
+    .replace(/hardwareprofiles/gi, 'Hardware profile');
+};
+
 const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = ({
   state,
   existingHardwareProfile,
@@ -60,7 +71,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         navigate(redirectPath);
       })
       .catch((err) => {
-        setErrorMessage(err.message);
+        setErrorMessage(translateHardwareProfileError(err.message));
       })
       .finally(() => {
         setIsLoading(false);
@@ -84,7 +95,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         .then(() => Promise.all(getUpdatePromises(false)))
         .then(() => navigate(redirectPath))
         .catch((err) => {
-          setErrorMessage(err.message);
+          setErrorMessage(translateHardwareProfileError(err.message));
         })
         .finally(() => {
           setIsLoading(false);
