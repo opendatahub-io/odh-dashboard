@@ -120,8 +120,8 @@ const createCollection = (
   ...overrides,
 });
 
-const createLSDVectorStore = (overrides: Partial<VectorStore> & { id: string }): VectorStore => ({
-  id: overrides.id,
+const createLSDVectorStore = (id: string, overrides?: Partial<VectorStore>): VectorStore => ({
+  id,
   name: 'Test Store',
   created_at: Date.now(),
   last_active_at: Date.now(),
@@ -510,7 +510,7 @@ describe('ChatbotConfigurationModal collections pre-selection', () => {
   });
 
   it('pre-selects collections already registered in the playground (existingCollections)', async () => {
-    const existing = createLSDVectorStore({ id: 'vs-1' });
+    const existing = createLSDVectorStore('vs-1');
     renderModal({
       allModels: [embedModel],
       allCollections: [vs1, vs2],
@@ -535,7 +535,7 @@ describe('ChatbotConfigurationModal collections pre-selection', () => {
   });
 
   it('merges extraSelectedCollections with existingCollections, deduplicating', async () => {
-    const existing = createLSDVectorStore({ id: 'vs-1' });
+    const existing = createLSDVectorStore('vs-1');
     renderModal({
       allModels: [embedModel],
       allCollections: [vs1, vs2],
