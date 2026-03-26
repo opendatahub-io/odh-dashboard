@@ -354,7 +354,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   const rowIndex = acc.visibleIndex;
                   acc.visibleIndex++;
                   acc.elements.push(
-                    <Tr key={file.name}>
+                    <Tr key={file.path}>
                       <Td
                         width={columns.select.width}
                         select={{

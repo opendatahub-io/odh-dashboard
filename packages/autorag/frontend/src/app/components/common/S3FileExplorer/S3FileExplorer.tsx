@@ -305,8 +305,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
             titleText: 'Connection not found',
             body: (
               <>
-                The connection <strong>{secretNameToRender}</strong> could not be found. Verify the
-                connection exists and try again.
+                The connection {secretNameToRender} could not be found. Verify the connection exists
+                and try again.
               </>
             ),
           },
@@ -318,12 +318,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         emptyStateProps: {
           status: 'danger',
           titleText: 'Something went wrong',
-          body: (
-            <>
-              An error occurred while retrieving files from connection:{' '}
-              <strong>{secretNameToRender}</strong>
-            </>
-          ),
+          body: <>An error occurred while retrieving files from connection: {secretNameToRender}</>,
         },
       };
     }, [fetchError, secretName]);
