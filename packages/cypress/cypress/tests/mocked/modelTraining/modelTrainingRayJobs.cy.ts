@@ -16,12 +16,15 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ClusterQueueModel,
+  GatewayModel,
+  HTTPRouteModel,
   LocalQueueModel,
   RayClusterModel,
   RayJobModel,
   TrainJobModel,
   WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
+import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
   modelTrainingGlobal,
@@ -1217,5 +1220,113 @@ describe('RayJob Pause/Resume - Drawer Kebab Menu', () => {
     rayJobDetailsDrawer.findKebabMenuItem('Pause job').click();
 
     pauseRayJobModal.shouldBeOpen();
+  });
+});
+
+describe('Ray cluster column URL behavior', () => {
+  const mockGateway = {
+    apiVersion: 'gateway.networking.k8s.io/v1',
+    kind: 'Gateway',
+    metadata: {
+      name: 'data-science-gateway',
+      namespace: 'openshift-ingress',
+    },
+    spec: {
+      listeners: [{ hostname: 'rh-ai.apps.example.com', port: 443, name: 'https' }],
+    },
+  };
+
+  const mockHTTPRoute = (clusterName: string) => ({
+    apiVersion: 'gateway.networking.k8s.io/v1',
+    kind: 'HTTPRoute',
+    metadata: {
+      name: `${projectName}-${clusterName}`,
+      namespace: 'opendatahub',
+    },
+    spec: {
+      rules: [
+        {
+          filters: [
+            {
+              requestRedirect: {
+                path: { replaceFullPath: `/ray/${projectName}/${clusterName}/#/` },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should show lifecycled cluster name from status.rayClusterName as a link', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockGateway,
+    );
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-ray-data-processing-raycluster` },
+      mockHTTPRoute('ray-data-processing-raycluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.attr', 'href')
+      .and('include', 'rh-ai.apps.example.com');
+  });
+
+  it('should show Ray cluster name as plain text when Gateway is unavailable', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      { statusCode: 404, body: mock404Error({}) },
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findRayCluster().should('contain', 'ray-data-processing-raycluster');
+    rayRow.findRayCluster().find('a').should('not.exist');
+  });
+
+  it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockGateway,
+    );
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-shared-ray-cluster` },
+      mockHTTPRoute('shared-ray-cluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.filterByName('ray-workspace-job');
+    const workspaceRow = trainingJobTable.getTableRow('ray-workspace-job');
+    workspaceRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'shared-ray-cluster')
+      .and('have.attr', 'target', '_blank');
+  });
+
+  it('should show dash for jobs without a Ray cluster name', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.filterByName('ray-queued-job');
+    const queuedRow = trainingJobTable.getTableRow('ray-queued-job');
+    queuedRow.findRayCluster().should('contain', '-');
   });
 });

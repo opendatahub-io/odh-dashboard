@@ -9,7 +9,7 @@ import {
   Skeleton,
   Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { CubesIcon, ExternalLinkAltIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
@@ -141,6 +141,8 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           href={dashboardURL}
           target="_blank"
           rel="noopener noreferrer"
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
         >
           {rayClusterName}
         </Button>
