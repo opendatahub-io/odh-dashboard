@@ -381,10 +381,19 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
+    // Generative has no model format select (they are all vLLM)
     modelServingWizard.findModelFormatSelect().should('not.exist');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    // verify next is disabled when no server selection has been made
+    modelServingWizard.findModelServerAutoSelectRadio().should('not.be.checked');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'Select one');
+    modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
+    modelServingWizard.findNextButton().should('be.enabled');
+
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
     modelServingWizard.findNumReplicasMinusButton().should('be.disabled');

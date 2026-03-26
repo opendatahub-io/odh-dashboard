@@ -37,7 +37,7 @@ dev-bff:
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone PORT=9105 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone PORT=9106 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -77,7 +77,7 @@ dev-start-federated-no-portforward: ## Start frontend and bff without port-forwa
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9105 PROXY_PORT=4002 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9106 PROXY_PORT=4002 npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:

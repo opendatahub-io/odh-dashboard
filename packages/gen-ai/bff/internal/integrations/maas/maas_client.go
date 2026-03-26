@@ -51,8 +51,9 @@ func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
 }
 
 // ListModels retrieves all available models from the MaaS API.
-// apiKey must be a valid MaaS API key obtained via IssueToken.
-func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
+// authToken is a bearer token used for authentication — either the user's OIDC token
+// (for direct user-token auth) or a MaaS API key obtained via IssueToken.
+func (c *HTTPMaaSClient) ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error) {
 	url := fmt.Sprintf("%s/v1/models", c.baseURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -60,7 +61,8 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+authToken)
+	req.Header.Set("X-MaaS-Return-All-Models", "true")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -89,16 +91,17 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, apiKey string) ([]model
 	return response.Data, nil
 }
 
-// IssueToken creates a new API key via the MaaS API
+// IssueToken creates an ephemeral API key via the MaaS API.
+// All gen-ai-minted keys are ephemeral (max 1h TTL, excluded from key list by default).
 func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
 	url := fmt.Sprintf("%s/v1/api-keys", c.baseURL)
 
-	if request.Name == "" {
-		request.Name = fmt.Sprintf("odh-dashboard-api-key-%d", time.Now().Unix())
-	}
+	request.Ephemeral = true
 	if request.ExpiresIn == "" {
-		request.ExpiresIn = "4h"
+		request.ExpiresIn = "1h"
 	}
+	// NOTE: the MaaS API enforces a max 1h TTL for ephemeral keys server-side;
+	// any caller-provided value exceeding that limit will be rejected by the API.
 
 	requestBody, err := json.Marshal(request)
 	if err != nil {

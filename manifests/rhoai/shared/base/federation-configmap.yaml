@@ -75,7 +75,7 @@ data:
           "tls": true,
           "proxy": [
             {
-              "path": "/mlflow/api",
+              "path": "/_bff/mlflow/api",
               "pathRewrite": "/api"
             }
           ],

@@ -1,6 +1,16 @@
 import * as React from 'react';
 import { get } from 'lodash';
-import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  Label,
+  Panel,
+  Popover,
+  TextArea,
+  Stack,
+  Title,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
@@ -139,15 +149,25 @@ export default function PromptAssistantFormGroup({
               <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
             )}
           </Flex>
+          <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <span>Instructions</span>
+            <Popover
+              headerContent="System instructions"
+              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+            >
+              <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
+            </Popover>
+          </Flex>
           <TextArea
             className={!editMode ? 'pf-m-readonly' : undefined}
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
             readOnly={!editMode}
+            resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
-            rows={12}
+            rows={18}
             data-testid="system-instructions-input"
           />
           {!editMode && (
