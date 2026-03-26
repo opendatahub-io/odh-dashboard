@@ -144,7 +144,7 @@ describe('Subscriptions Page', () => {
     });
 
     // Reload the page to get the new model data
-    cy.visit('/aiAssets');
+    cy.visit('/gen-ai-studio/assets');
 
     cy.contains('Llama 3 8B').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
@@ -171,6 +171,7 @@ describe('Subscriptions Page', () => {
   });
 
   it('should handle API key generation error', () => {
+    cy.visit('/gen-ai-studio/assets');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
@@ -199,6 +200,7 @@ describe('Subscriptions Page', () => {
   });
 
   it('should disable generate button while loading', () => {
+    cy.visit('/gen-ai-studio/assets');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
@@ -227,6 +229,7 @@ describe('Subscriptions Page', () => {
   });
 
   it('should reset state when modal is closed', () => {
+    cy.visit('/gen-ai-studio/assets');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
