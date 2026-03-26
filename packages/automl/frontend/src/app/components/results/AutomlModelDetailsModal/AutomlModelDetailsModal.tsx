@@ -10,19 +10,11 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-// TODO: Remove all mock imports when integrating with AutomlResultsContext
-import {
-  mockTabularContext,
-  mockTimeseriesContext,
-  mockTabularFeatureImportances,
-  mockTabularConfusionMatrices,
-  mockTimeseriesFeatureImportances,
-} from '~/app/mocks/mockAutomlResultsContext';
-import type { TaskType } from '~/app/types';
+import { useParams } from 'react-router';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { computeRankMap } from '~/app/utilities/utils';
-// TODO: import { downloadBlob } from '~/app/utilities/utils'; when integrating with AutomlResultsContext
-// TODO: uncomment when integrating with AutomlResultsContext
-// import { useS3GetFileQuery, useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
+import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -32,8 +24,7 @@ type AutomlModelDetailsModalProps = {
   onClose: () => void;
   modelName: string;
   rank: number;
-  // TODO: Remove taskType prop when integrating with AutomlResultsContext
-  taskType: TaskType;
+  onClickSaveNotebook?: (modelName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -52,13 +43,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClose,
   modelName,
   rank: initialRank,
-  taskType,
+  onClickSaveNotebook,
 }) => {
-  // TODO: Replace with useAutomlResultsContext() when available
-  const context = taskType === 'timeseries' ? mockTimeseriesContext : mockTabularContext;
-  const models = Object.values(context.models);
-  const { parameters } = context;
-  const createdAt = context.pipelineRun.created_at;
+  const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
+  const models = Object.values(modelsRecord);
+  const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const createdAt = pipelineRun?.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);
 
@@ -67,37 +57,20 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [modelName]);
 
   const rankMap = React.useMemo(
-    () => computeRankMap(context.models, taskType),
-    [context.models, taskType],
+    () => computeRankMap(modelsRecord, taskType),
+    [modelsRecord, taskType],
   );
-  const model = context.models[selectedModelName];
+  const model = modelsRecord[selectedModelName];
   const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
 
-  // TODO: uncomment when integrating with AutomlResultsContext
-  // const { namespace } = useParams<{ namespace: string }>();
-  // const isClassification = taskType === 'binary' || taskType === 'multiclass';
-  // const modelDirectory = model.location.model_directory;
-  // const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
-  //   namespace,
-  //   modelDirectory,
-  //   isClassification,
-  // );
-  const featureImportanceMap =
-    taskType === 'timeseries' ? mockTimeseriesFeatureImportances : mockTabularFeatureImportances;
-  const featureImportance = featureImportanceMap[selectedModelName];
-  const confusionMatrix =
-    taskType === 'timeseries' ? undefined : mockTabularConfusionMatrices[selectedModelName];
-
-  // TODO: uncomment when integrating with AutomlResultsContext
-  // const notebookKey = model.location.notebook;
-  // const notebookFilename = notebookKey.split('/').pop() ?? 'notebook.ipynb';
-  // const { data: notebook } = useS3GetFileQuery(namespace, undefined, undefined, notebookKey);
-  // const handleSaveNotebook = React.useCallback(() => {
-  //   if (notebook) {
-  //     downloadBlob(notebook, notebookFilename);
-  //   }
-  // }, [notebook, notebookFilename]);
-  const handleSaveNotebook = React.useCallback(() => undefined, []);
+  const { namespace } = useParams<{ namespace: string }>();
+  const isClassification = taskType === 'binary' || taskType === 'multiclass';
+  const modelDirectory = model.location.model_directory;
+  const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
+    namespace,
+    modelDirectory,
+    isClassification,
+  );
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
@@ -151,7 +124,13 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           rankMap={rankMap}
           onSelectModel={(name) => setSelectedModelName(name)}
           onDownload={() => setIsPrinting(true)}
-          onSaveNotebook={handleSaveNotebook}
+          onSaveNotebook={
+            onClickSaveNotebook
+              ? () => {
+                  onClickSaveNotebook(selectedModelName);
+                }
+              : undefined
+          }
           isDownloadDisabled={!featureImportance}
         />
         <Grid hasGutter className="automl-model-details-screen-only">

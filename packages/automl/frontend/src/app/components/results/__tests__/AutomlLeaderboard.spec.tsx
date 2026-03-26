@@ -180,6 +180,8 @@ interface RenderWithContextOptions {
   modelsLoading?: boolean;
   taskType?: string;
   namespace?: string;
+  onViewDetails?: (modelName: string, rank: number) => void;
+  onClickSaveNotebook?: (modelName: string) => void;
 }
 
 const renderWithContext = ({
@@ -189,6 +191,8 @@ const renderWithContext = ({
   modelsLoading = false,
   taskType,
   namespace = 'test-namespace',
+  onViewDetails,
+  onClickSaveNotebook,
 }: RenderWithContextOptions = {}) => {
   const finalTaskType =
     taskType || pipelineRun?.runtime_config?.parameters?.task_type || 'timeseries';
@@ -208,7 +212,10 @@ const renderWithContext = ({
           path="/automl/:namespace/results"
           element={
             <AutomlResultsContext.Provider value={contextValue}>
-              <AutomlLeaderboard />
+              <AutomlLeaderboard
+                onViewDetails={onViewDetails}
+                onClickSaveNotebook={onClickSaveNotebook}
+              />
             </AutomlResultsContext.Provider>
           }
         />
@@ -769,17 +776,83 @@ describe('AutomlLeaderboard component', () => {
 
   describe('user interactions', () => {
     it('should call handler when model name is clicked', () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const mockOnViewDetails = jest.fn();
 
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        onViewDetails: mockOnViewDetails,
       });
 
       const modelLink = screen.getByTestId('model-link-1');
       fireEvent.click(modelLink);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('View details for model:', expect.any(String));
+      // XGBoost is rank 1 (highest accuracy)
+      expect(mockOnViewDetails).toHaveBeenCalledWith('XGBoost', 1);
+      expect(mockOnViewDetails).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call handler when "View details" action is clicked from kebab menu', () => {
+      const mockOnViewDetails = jest.fn();
+
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        onViewDetails: mockOnViewDetails,
+      });
+
+      // Get the first row's kebab menu
+      const firstRow = screen.getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+      fireEvent.click(kebabButton);
+
+      // Click "View details" action
+      const viewDetailsAction = screen.getByText('View details');
+      fireEvent.click(viewDetailsAction);
+
+      // XGBoost is rank 1 (highest accuracy)
+      expect(mockOnViewDetails).toHaveBeenCalledWith('XGBoost', 1);
+      expect(mockOnViewDetails).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call handler when "Save notebook" action is clicked from kebab menu', () => {
+      const mockOnClickSaveNotebook = jest.fn();
+
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        onClickSaveNotebook: mockOnClickSaveNotebook,
+      });
+
+      // Get the first row's kebab menu
+      const firstRow = screen.getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+      fireEvent.click(kebabButton);
+
+      // Click "Save notebook" action
+      const saveNotebookAction = screen.getByText('Save notebook');
+      fireEvent.click(saveNotebookAction);
+
+      // XGBoost is rank 1 (highest accuracy)
+      expect(mockOnClickSaveNotebook).toHaveBeenCalledWith('XGBoost');
+      expect(mockOnClickSaveNotebook).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call save notebook handler if callback is not provided', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        // No onClickSaveNotebook callback
+      });
+
+      // Get the first row's kebab menu
+      const firstRow = screen.getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+      fireEvent.click(kebabButton);
+
+      // Click "Save notebook" action - should not throw error
+      const saveNotebookAction = screen.getByText('Save notebook');
+      expect(() => fireEvent.click(saveNotebookAction)).not.toThrow();
     });
   });
 });

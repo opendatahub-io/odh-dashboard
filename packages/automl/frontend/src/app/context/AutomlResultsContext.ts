@@ -17,7 +17,7 @@ export type AutomlModel = {
     notebook: string;
   };
   metrics: {
-    test_data: Record<string, unknown>;
+    test_data?: Record<string, unknown>;
   };
 };
 

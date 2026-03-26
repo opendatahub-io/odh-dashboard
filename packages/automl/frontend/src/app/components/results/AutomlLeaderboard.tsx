@@ -65,7 +65,15 @@ const formatMetricValue = (value: number | string): string => {
   return fixed;
 };
 
-function AutomlLeaderboard(): React.JSX.Element {
+type AutomlLeaderboardProps = {
+  onViewDetails?: (modelName: string, rank: number) => void;
+  onClickSaveNotebook?: (modelName: string) => void;
+};
+
+function AutomlLeaderboard({
+  onViewDetails,
+  onClickSaveNotebook,
+}: AutomlLeaderboardProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
     useAutomlResultsContext();
@@ -256,10 +264,10 @@ function AutomlLeaderboard(): React.JSX.Element {
   });
 
   // Handler for viewing model details
-  const handleViewDetails = (modelName: string) => {
-    // TODO: Implement view details
-    // eslint-disable-next-line no-console
-    console.log('View details for model:', modelName);
+  const handleViewDetails = (modelName: string, rank: number) => {
+    if (onViewDetails) {
+      onViewDetails(modelName, rank);
+    }
   };
 
   // Show empty state when pipeline is still running
@@ -367,7 +375,7 @@ function AutomlLeaderboard(): React.JSX.Element {
               <Button
                 variant="link"
                 isInline
-                onClick={() => handleViewDetails(entry.model)}
+                onClick={() => handleViewDetails(entry.model, entry.rank)}
                 data-testid={`model-link-${entry.rank}`}
               >
                 {entry.model}
@@ -389,7 +397,7 @@ function AutomlLeaderboard(): React.JSX.Element {
                 items={[
                   {
                     title: 'View details',
-                    onClick: () => handleViewDetails(entry.model),
+                    onClick: () => handleViewDetails(entry.model, entry.rank),
                   },
                   {
                     title: 'Register model',
@@ -400,7 +408,9 @@ function AutomlLeaderboard(): React.JSX.Element {
                   {
                     title: 'Save notebook',
                     onClick: () => {
-                      // TODO: Implement save notebook
+                      if (onClickSaveNotebook) {
+                        onClickSaveNotebook(entry.model);
+                      }
                     },
                   },
                 ]}

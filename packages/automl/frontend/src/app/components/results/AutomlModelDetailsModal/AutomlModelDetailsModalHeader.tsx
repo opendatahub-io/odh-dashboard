@@ -20,7 +20,7 @@ type AutomlModelDetailsModalHeaderProps = {
   rankMap: Record<string, number>;
   onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
-  onSaveNotebook: () => void;
+  onSaveNotebook?: () => void;
   isDownloadDisabled?: boolean;
 };
 
@@ -126,13 +126,15 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
         >
           Download
         </Button>
-        <Button
-          variant="primary"
-          onClick={onSaveNotebook}
-          data-testid="model-details-save-notebook"
-        >
-          Save as notebook
-        </Button>
+        {onSaveNotebook && (
+          <Button
+            variant="primary"
+            onClick={onSaveNotebook}
+            data-testid="model-details-save-notebook"
+          >
+            Save as notebook
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ const HIDDEN_KEYS = new Set([
 ]);
 
 const ModelInformationTab: React.FC<TabContentProps> = ({ model, parameters, createdAt }) => {
-  const paramEntries = Object.entries(parameters).filter(([key]) => !HIDDEN_KEYS.has(key));
+  const paramEntries = Object.entries(parameters ?? {}).filter(([key]) => !HIDDEN_KEYS.has(key));
 
   return (
     <>
