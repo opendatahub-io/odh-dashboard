@@ -158,6 +158,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
       if (value === '') {
         setEmbeddingDimensionValidated('default');
         setEmbeddingDimensionHelperText('');
+        onEmbeddingDimensionChange(undefined);
         return;
       }
 
