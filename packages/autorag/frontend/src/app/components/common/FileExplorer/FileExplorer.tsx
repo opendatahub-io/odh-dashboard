@@ -740,29 +740,76 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 };
 
 interface FileExplorerProps {
+  /** Optional unique identifier for the FileExplorer instance. */
   id?: string;
+
+  /** Flag indicating whether the FileExplorer modal is open. */
   isOpen: boolean;
+
+  /** Callback fired when the modal is closed via dismiss or cancel. */
   onClose: (_event: KeyboardEvent | React.MouseEvent) => void;
+
+  /** List of available sources to choose from when no single source is pre-selected. */
   sources?: Sources;
+
+  /** The currently active source. When provided, the source selector is hidden. */
   source?: Source;
+
+  /** The list of files and directories to display in the table. */
   files?: Files;
+
+  /** Ordered breadcrumb trail representing the current directory path. */
   directories?: Directory[];
+
+  /** Whether a data fetch is in progress. Disables interactions and shows skeleton rows. */
   loading?: boolean;
+
+  /** The number of results matching the current search query, displayed in the search input. */
   searchResultsCount?: number;
+
+  /** The current page number (1-based) for server-side pagination. */
   page?: number;
+
+  /** The number of items displayed per page. */
   perPage?: number;
+
+  /** The total number of items across all pages. When omitted, indeterminate pagination is used. */
   itemCount?: number;
+
+  /** Whether additional pages exist beyond the current page. Used for indeterminate pagination. */
   hasNextPage?: boolean;
+
+  /** Forces the empty state to render, overriding the default empty-check on `files`. */
   isEmpty?: boolean;
+
+  /** Configuration for the empty state appearance (title, body, icon, status, actions). */
   emptyStateProps?: FileExplorerEmptyStateConfig;
+
+  /** The selection mode for file rows: `radio` for single selection, `checkbox` for multi-select. */
   selection?: 'radio' | 'checkbox';
+
+  /** Callback fired when a source is selected from the source selector. */
   onSelectSource?: (source: Source) => void;
+
+  /** Callback fired when a directory row is clicked in the table. */
   onDirectoryClick?: (directory: Directory) => void;
+
+  /** Callback fired when a breadcrumb directory segment is clicked. */
   onNavigate?: (directory: Directory) => void;
+
+  /** Callback fired when the root breadcrumb is clicked. */
   onNavigateRoot?: () => void;
+
+  /** Callback fired when the search input value changes. */
   onSearch?: (query: string) => void;
+
+  /** Callback fired when the user navigates to a different page. */
   onSetPage?: (page: number) => void;
+
+  /** Callback fired when the user changes the number of items per page. */
   onPerPageSelect?: (perPage: number) => void;
+
+  /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: Files) => void;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({

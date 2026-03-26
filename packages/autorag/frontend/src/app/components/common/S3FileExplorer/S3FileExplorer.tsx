@@ -120,12 +120,22 @@ const getBreadcrumbTrail = (targetPath: string): Directory[] => {
 // Components ----------------------------------------------------------------->
 
 interface S3FileExplorerProps {
+  /** Optional unique identifier for the S3FileExplorer. */
   id?: string;
+
+  /** Flag indicating whether the S3FileExplorer is open. */
   isOpen: boolean;
+
+  /** Callback fired when the modal is closed via dismiss or cancel. */
   onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
+
+  /** Callback fired when the user confirms a file selection via the primary action. */
   onSelectFiles?: (files: Files) => void;
 
+  /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
+
+  /** The connection secret that provides S3 credentials and endpoint configuration. */
   s3Secret?: ConnectionSecret;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
