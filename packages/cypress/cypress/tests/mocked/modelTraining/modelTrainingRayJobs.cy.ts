@@ -38,6 +38,7 @@ import {
   pauseRayJobModal,
   rayJobPodsTab,
   rayJobLogsTab,
+  rayJobStatusModal,
 } from '../../../pages/modelTraining';
 import { tablePagination } from '../../../pages/components/Pagination';
 import { deleteModal } from '../../../pages/components/DeleteModal';
@@ -401,61 +402,6 @@ const initIntercepts = () => {
   cy.intercept('GET', '**/ray-job-logs/*/*/*/*', {
     body: 'Sample RayJob driver log output\nLine 2 of logs',
   });
-};
-
-const createWorkloadForRayJob = (
-  job: (typeof mockRayJobs)[number],
-  overrides: { active?: boolean } = {},
-) => {
-  const workload = mockWorkloadK8sResource({
-    k8sName: `workload-${job.metadata.name}`,
-    namespace: projectName,
-    mockStatus: WorkloadStatusType.Running,
-  });
-  workload.spec = {
-    ...workload.spec,
-    ...('active' in overrides ? { active: overrides.active } : {}),
-  };
-  if (workload.metadata) {
-    workload.metadata.labels = {
-      ...(workload.metadata.labels || {}),
-      'kueue.x-k8s.io/job-uid': job.metadata.uid || `uid-${job.metadata.name}`,
-      'kueue.x-k8s.io/job-name': job.metadata.name,
-    };
-  }
-  return workload;
-};
-
-const runningWorkload = createWorkloadForRayJob(mockRayJobs[0]);
-const suspendedWorkload = createWorkloadForRayJob(mockRayJobs[3], { active: false });
-const runningJobUid = mockRayJobs[0].metadata.uid ?? '';
-const suspendedJobUid = mockRayJobs[3].metadata.uid ?? '';
-
-const initPauseResumeIntercepts = () => {
-  initIntercepts();
-
-  cy.interceptK8sList(
-    { model: WorkloadModel, ns: projectName },
-    mockK8sResourceList([runningWorkload, suspendedWorkload]),
-  );
-
-  cy.interceptK8sList(
-    {
-      model: WorkloadModel,
-      ns: projectName,
-      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${runningJobUid}` },
-    },
-    mockK8sResourceList([runningWorkload]),
-  );
-
-  cy.interceptK8sList(
-    {
-      model: WorkloadModel,
-      ns: projectName,
-      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${suspendedJobUid}` },
-    },
-    mockK8sResourceList([suspendedWorkload]),
-  );
 };
 
 const createWorkloadForRayJob = (
@@ -1547,5 +1493,162 @@ describe('RayJob Logs Tab', () => {
 
     rayJobLogsTab.findWaitingState().should('exist');
     rayJobLogsTab.findWaitingState().should('contain', 'The Ray cluster is initializing');
+  });
+});
+
+describe('RayJob Status Modal', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should open status modal when clicking the status label on a running RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findTitle().should('be.visible');
+    rayJobStatusModal.findStatusLabel().should('be.visible');
+  });
+
+  it('should display "Running" status label in the modal header for a running RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Running');
+  });
+
+  it('should display "Complete" status label for a succeeded RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-completed-job');
+    trainingJobTable.getTableRow('ray-completed-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Complete');
+  });
+
+  it('should display "Failed" status and danger alert for a failed RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-failed-job');
+    trainingJobTable.getTableRow('ray-failed-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Failed');
+    rayJobStatusModal.findAlert('danger').should('exist');
+    rayJobStatusModal
+      .findAlertDescription()
+      .should('contain', 'Ray job failed due to application error.');
+  });
+
+  it('should show Pause job button for a running RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findPauseJobButton().should('be.visible').should('contain', 'Pause job');
+    rayJobStatusModal.findDeleteButton().should('be.visible');
+    rayJobStatusModal.findCloseButton().should('be.visible');
+  });
+
+  it('should show Resume job button for a paused RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-suspended-job');
+    trainingJobTable.getTableRow('ray-suspended-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findResumeJobButton().should('be.visible').should('contain', 'Resume job');
+    rayJobStatusModal.findDeleteButton().should('be.visible');
+  });
+
+  it('should show only Close button for a completed RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-completed-job');
+    trainingJobTable.getTableRow('ray-completed-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findCloseButton().should('be.visible');
+    rayJobStatusModal.findDeleteButton().should('not.exist');
+    rayJobStatusModal.findPauseJobButton().should('not.exist');
+  });
+
+  it('should show only Close button for a deleting RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-deleting-job');
+    trainingJobTable.getTableRow('ray-deleting-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findCloseButton().should('be.visible');
+    rayJobStatusModal.findDeleteButton().should('not.exist');
+    rayJobStatusModal.findPauseJobButton().should('not.exist');
+  });
+
+  it('should show Delete but no Pause for a failed RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-failed-job');
+    trainingJobTable.getTableRow('ray-failed-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findDeleteButton().should('be.visible');
+    rayJobStatusModal.findPauseJobButton().should('not.exist');
+  });
+
+  it('should close modal when Close button is clicked', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.close();
+    rayJobStatusModal.shouldBeOpen(false);
+  });
+
+  it('should open delete modal when Delete job button is clicked', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-failed-job');
+    trainingJobTable.getTableRow('ray-failed-job').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findDeleteButton().click();
+
+    deleteModal.shouldBeOpen();
+  });
+
+  it('should open pause modal when Pause job button is clicked from status modal', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable.getTableRow('ray-data-processing').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.findPauseJobButton().click();
+
+    rayJobStatusModal.shouldBeOpen(false);
+    pauseRayJobModal.shouldBeOpen();
+  });
+
+  it('should display warning alert for an inadmissible Kueue RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-inadmissible-kueue');
+    trainingJobTable.getTableRow('ray-inadmissible-kueue').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Inadmissible');
+    rayJobStatusModal.findAlert('warning').should('exist');
   });
 });
