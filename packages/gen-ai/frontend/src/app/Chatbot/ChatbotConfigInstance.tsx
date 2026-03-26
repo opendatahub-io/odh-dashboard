@@ -59,12 +59,11 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     (state) => state.updateSelectedVectorStoreId,
   );
 
-  // Sync the inline store ID into selectedVectorStoreId when in inline mode,
-  // so selectedVectorStoreId is always the active vector store regardless of mode.
+  // Keep selectedVectorStoreId in sync with the active knowledge mode:
+  // - inline: always the auto-provisioned store ID
+  // - external: cleared to null so the user must pick via the selector
   React.useEffect(() => {
-    if (knowledgeMode === 'inline') {
-      updateSelectedVectorStoreId(configId, currentVectorStoreId);
-    }
+    updateSelectedVectorStoreId(configId, knowledgeMode === 'inline' ? currentVectorStoreId : null);
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
 
   // Guardrails configuration from store
