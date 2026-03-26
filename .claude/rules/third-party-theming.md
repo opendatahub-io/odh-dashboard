@@ -59,7 +59,7 @@ return React.useMemo(() => {
   const muiTheme = getTheme(theme, { ...mapPatternFlyThemeToMUI(theme) });
   // ... build chartsTheme ...
   return { muiTheme, chartsTheme };
-}, [theme, isDark]);
+}, [theme]);
 ```
 
 ---
