@@ -20,6 +20,7 @@ interface ChatbotPaneHeaderProps {
   /** Whether to show a divider below the header */
   hasDivider?: boolean;
   isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
   /** Test ID prefix for the header elements */
   testIdPrefix?: string;
   isDarkMode?: boolean;
@@ -38,6 +39,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isLoading,
   hasDivider,
   isSettingsOpen,
+  isActiveConfig,
   testIdPrefix = 'chatbot',
   isDarkMode,
 }) => (
@@ -59,7 +61,18 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             {label && (
               <>
-                <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</FlexItem>
+                <FlexItem
+                  style={{
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    color:
+                      isSettingsOpen && isActiveConfig
+                        ? 'var(--pf-t--global--color--brand--default)'
+                        : undefined,
+                  }}
+                >
+                  {label}
+                </FlexItem>
                 {!isSettingsOpen && (
                   <Divider
                     orientation={{ default: 'vertical' }}

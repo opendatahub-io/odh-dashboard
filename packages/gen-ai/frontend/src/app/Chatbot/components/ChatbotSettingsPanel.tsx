@@ -62,6 +62,7 @@ interface ChatbotSettingsPanelProps {
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
+  onActiveConfigChange?: (configId: string) => void;
   guardrailModelsError?: Error;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
@@ -87,6 +88,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModels = [],
   guardrailModelsLoaded = false,
   onCloseClick,
+  onActiveConfigChange,
   guardrailModelsError,
   isOverlay = false,
   defaultActiveTabKey,
@@ -95,17 +97,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
 
-  // Track which config is being viewed; defaults to the prop but can be switched via tabs
-  const [activeConfigId, setActiveConfigId] = React.useState(configId);
   const configIds = useChatbotConfigStore(selectConfigIds);
 
-  // Consume store directly using activeConfigId
-  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(activeConfigId));
-  const temperature = useChatbotConfigStore(selectTemperature(activeConfigId));
-  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(activeConfigId));
-  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(activeConfigId));
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(activeConfigId));
-  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(activeConfigId));
+  // Consume store directly using configId (controlled by parent)
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
@@ -116,30 +116,30 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
     (value: string) => {
-      updateSystemInstruction(activeConfigId, value);
+      updateSystemInstruction(configId, value);
     },
-    [activeConfigId, updateSystemInstruction],
+    [configId, updateSystemInstruction],
   );
 
   const handleTemperatureChange = React.useCallback(
     (value: number) => {
-      updateTemperature(activeConfigId, value);
+      updateTemperature(configId, value);
     },
-    [activeConfigId, updateTemperature],
+    [configId, updateTemperature],
   );
 
   const handleStreamingToggle = React.useCallback(
     (enabled: boolean) => {
-      updateStreamingEnabled(activeConfigId, enabled);
+      updateStreamingEnabled(configId, enabled);
     },
-    [activeConfigId, updateStreamingEnabled],
+    [configId, updateStreamingEnabled],
   );
 
   const handleModelChange = React.useCallback(
     (model: string) => {
-      updateSelectedModel(activeConfigId, model);
+      updateSelectedModel(configId, model);
     },
-    [activeConfigId, updateSelectedModel],
+    [configId, updateSelectedModel],
   );
 
   // Panel width state with session storage persistence
@@ -235,8 +235,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               <ToggleGroupItem
                 key={id}
                 text={`Chat ${index + 1}`}
-                isSelected={id === activeConfigId}
-                onChange={() => setActiveConfigId(id)}
+                isSelected={id === configId}
+                onChange={() => onActiveConfigChange?.(id)}
                 data-testid={`chatbot-config-tab-${index + 1}`}
               />
             ))}
@@ -298,7 +298,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-knowledge"
           >
             <KnowledgeTabContent
-              configId={activeConfigId}
+              configId={configId}
               sourceManagement={sourceManagement}
               fileManagement={fileManagement}
               alerts={alerts}
@@ -331,7 +331,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-mcp"
           >
             <MCPTabContent
-              configId={activeConfigId}
+              configId={configId}
               mcpServers={mcpServers}
               mcpServersLoaded={mcpServersLoaded}
               mcpServersLoadError={mcpServersLoadError}
@@ -352,7 +352,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               data-testid="chatbot-settings-page-tab-guardrails"
             >
               <GuardrailsTabContent
-                configId={activeConfigId}
+                configId={configId}
                 guardrailModels={guardrailModels}
                 guardrailModelsLoaded={guardrailModelsLoaded}
                 guardrailModelsError={guardrailModelsError}

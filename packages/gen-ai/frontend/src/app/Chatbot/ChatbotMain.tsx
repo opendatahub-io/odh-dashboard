@@ -225,6 +225,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               isNewChatModalOpen={isNewChatModalOpen}
               setIsNewChatModalOpen={setIsNewChatModalOpen}
               activePaneConfigId={activePaneConfigId}
+              setActivePaneConfigId={setActivePaneConfigId}
               onClosePane={handleClosePane}
               clearAllMessagesRef={clearAllMessagesRef}
               isDrawerExpanded={isDrawerExpanded}

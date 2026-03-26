@@ -18,6 +18,7 @@ interface ChatbotPaneProps {
   /** Whether a response is currently being generated */
   isLoading?: boolean;
   isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   metrics,
   isLoading,
   isSettingsOpen,
+  isActiveConfig,
 }) => {
   const isDarkMode = useDarkMode();
   return (
@@ -53,6 +55,7 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
         metrics={metrics}
         isLoading={isLoading}
         isSettingsOpen={isSettingsOpen}
+        isActiveConfig={isActiveConfig}
         hasDivider
         testIdPrefix={`chatbot-pane-${configId}`}
         isDarkMode={isDarkMode}

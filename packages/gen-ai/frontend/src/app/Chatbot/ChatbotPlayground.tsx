@@ -56,6 +56,7 @@ interface ComparePaneWrapperProps {
   /** Whether a response is currently being generated */
   isLoading?: boolean;
   isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
 }
 
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
@@ -67,6 +68,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   metrics,
   isLoading,
   isSettingsOpen,
+  isActiveConfig,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
@@ -80,6 +82,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       metrics={metrics}
       isLoading={isLoading}
       isSettingsOpen={isSettingsOpen}
+      isActiveConfig={isActiveConfig}
     >
       {children}
     </ChatbotPane>
@@ -92,6 +95,7 @@ type ChatbotPlaygroundProps = {
   isNewChatModalOpen: boolean;
   setIsNewChatModalOpen: (isOpen: boolean) => void;
   activePaneConfigId?: string;
+  setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
   isDrawerExpanded?: boolean;
@@ -104,6 +108,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   isNewChatModalOpen,
   setIsNewChatModalOpen,
   activePaneConfigId = DEFAULT_CONFIG_ID,
+  setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
@@ -461,7 +466,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         <DrawerContent
           panelContent={
             <ChatbotSettingsPanel
-              key={`settings-panel-${activePaneConfigId}`}
               configId={activePaneConfigId}
               alerts={alerts}
               sourceManagement={sourceManagement}
@@ -476,6 +480,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModels={guardrailModelNames}
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
+              onActiveConfigChange={setActivePaneConfigId}
               guardrailModelsError={guardrailModelsError}
               defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
@@ -519,6 +524,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
                           isSettingsOpen={isDrawerExpanded}
+                          isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                         >
                           {renderChatbotContent(configId)}
                         </ComparePaneWrapper>
