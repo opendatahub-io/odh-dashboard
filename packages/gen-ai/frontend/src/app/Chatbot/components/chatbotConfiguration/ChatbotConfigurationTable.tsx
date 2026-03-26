@@ -17,16 +17,26 @@ type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
   selectedModels: AIModel[];
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
+  modelTypeMap: Map<string, string>;
+  onModelTypeChange: (modelName: string, value: string) => void;
   maxTokensMap: Map<string, number | undefined>;
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
+  embeddingDimensionMap: Map<string, number | undefined>;
+  onEmbeddingDimensionChange: (modelName: string, value: number | undefined) => void;
+  lockedModelNames: Set<string>;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   allModels,
   selectedModels,
   setSelectedModels,
+  modelTypeMap,
+  onModelTypeChange,
   maxTokensMap,
   onMaxTokensChange,
+  embeddingDimensionMap,
+  onEmbeddingDimensionChange,
+  lockedModelNames,
 }) => {
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
@@ -68,8 +78,10 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
         return Array.from(byId.values());
       }
 
-      // If the select all checkbox is unchecked, we want to remove the filtered models from the selected models
-      return prev.filter((m) => !availableIds.has(m.model_name));
+      // If the select all checkbox is unchecked, remove filtered models but keep locked ones
+      return prev.filter(
+        (m) => !availableIds.has(m.model_name) || lockedModelNames.has(m.model_name),
+      );
     });
   };
 
@@ -109,9 +121,23 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               key={model.model_name}
               isChecked={isSelected(model)}
               onToggleCheck={() => toggleSelection(model)}
+              isLocked={lockedModelNames.has(model.model_name)}
               model={model}
+              modelType={
+                modelTypeMap.get(model.model_name) ??
+                (model.model_type === 'embedding' ? 'Embedding' : 'Inference')
+              }
+              onModelTypeChange={(value) => onModelTypeChange(model.model_name, value)}
               maxTokens={maxTokensMap.get(model.model_name)}
               onMaxTokensChange={(value) => onMaxTokensChange(model.model_name, value)}
+              embeddingDimension={
+                embeddingDimensionMap.has(model.model_name)
+                  ? embeddingDimensionMap.get(model.model_name)
+                  : model.embedding_dimension
+              }
+              onEmbeddingDimensionChange={(value) =>
+                onEmbeddingDimensionChange(model.model_name, value)
+              }
             />
           )}
           selectAll={{

@@ -2,12 +2,16 @@ import * as React from 'react';
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import useMergedModels from '~/app/hooks/useMergedModels';
 import NoData from '~/app/EmptyStates/NoData';
 import VectorStoresTable from '~/app/AIAssets/components/vectorstores/VectorStoresTable';
 
 const AIAssetsVectorStoresTab: React.FC = () => {
   const { data: vectorStores = [], loaded, error } = useFetchAAEVectorStores();
+  const { data: lsdStatus } = useFetchLSDStatus();
+  const [existingCollections] = useFetchVectorStores();
   // load embedding models from llamastack to check which are "registered"
   const {
     data: playgroundModels,
@@ -60,8 +64,11 @@ const AIAssetsVectorStoresTab: React.FC = () => {
       )}
       <VectorStoresTable
         vectorStores={vectorStores}
+        collectionsLoaded={loaded}
         allModels={allModels}
         playgroundModels={playgroundModels}
+        lsdStatus={lsdStatus}
+        existingCollections={existingCollections}
       />
     </>
   );
