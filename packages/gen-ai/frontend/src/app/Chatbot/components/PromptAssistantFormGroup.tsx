@@ -145,9 +145,10 @@ export default function PromptAssistantFormGroup({
             type="text"
             value={systemInstruction}
             readOnly={!editMode}
+            resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
-            rows={12}
+            rows={18}
             data-testid="system-instructions-input"
           />
           {!editMode && (
