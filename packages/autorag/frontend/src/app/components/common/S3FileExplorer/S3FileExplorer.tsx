@@ -8,7 +8,7 @@ import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx'
 import type {
   Files,
   Source,
-  Directory,
+  Folder,
   FileExplorerEmptyStateConfig,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
@@ -33,36 +33,36 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
 
   if (Array.isArray(result.common_prefixes)) {
     for (const cp of result.common_prefixes) {
-      // Mark root directory markers as hidden — "/" and "" are the bucket root
+      // Mark root folders markers as hidden — "/" and "" are the bucket root
       const isRoot = cp.prefix === '/' || cp.prefix === '';
       const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
       const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-      const directory: Directory = {
+      const folder: Folder = {
         name,
         path: prefixPath,
-        type: 'directory',
+        type: 'folder',
         items: 0,
         ...(isRoot && { hidden: true }),
         details: {
-          ...{ Type: 'Directory' },
+          ...{ Type: 'Folder' },
         },
       };
-      items.push(directory);
+      items.push(folder);
     }
   }
 
   if (Array.isArray(result.contents)) {
     for (const obj of result.contents) {
-      // Mark root directory markers as hidden
+      // Mark root folder markers as hidden
       if (obj.key === '/' || obj.key === '') {
-        items.push({ name: '/', path: '/', type: 'directory', items: 0, hidden: true });
+        items.push({ name: '/', path: '/', type: 'folder', items: 0, hidden: true });
         continue;
       }
-      // Skip keys that end with / (directory markers)
+      // Skip keys that end with / (folder markers)
       if (obj.key.endsWith('/')) {
         const dirPath = `/${obj.key.replace(/\/$/, '')}`;
         const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
-        items.push({ name, path: dirPath, type: 'directory', items: 0 });
+        items.push({ name, path: dirPath, type: 'folder', items: 0 });
         continue;
       }
 
@@ -103,16 +103,16 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
 };
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
-const getBreadcrumbTrail = (targetPath: string): Directory[] => {
+const getBreadcrumbTrail = (targetPath: string): Folder[] => {
   if (targetPath === '/') {
     return [];
   }
   const segments = targetPath.split('/').filter(Boolean);
-  const trail: Directory[] = [];
+  const trail: Folder[] = [];
   let accumulated = '';
   for (const seg of segments) {
     accumulated += `/${seg}`;
-    trail.push({ name: seg, path: accumulated, type: 'directory', items: 0 });
+    trail.push({ name: seg, path: accumulated, type: 'folder', items: 0 });
   }
   return trail;
 };
@@ -152,7 +152,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const bucket = '';
 
   const [filesToRender, setFilesToRender] = useState<Files>([]);
-  const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>([]);
+  const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
 
   const [fetchError, setFetchError] = useState<Error | null>(null);
@@ -241,7 +241,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
     // Reset state for the new connection
     setCurrentPath('/');
-    setDirectoriesToRender([]);
+    setFoldersToRender([]);
     setSearchQuery('');
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
@@ -255,7 +255,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const navigateTo = (path: string, perPage: number) => {
     setCurrentPath(path);
-    setDirectoriesToRender(getBreadcrumbTrail(path));
+    setFoldersToRender(getBreadcrumbTrail(path));
     setSearchQuery('');
     setPageToRender(1);
     continuationTokensRef.current = new Map();
@@ -338,7 +338,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       id={id}
       files={filesToRender}
       source={sourceToRender}
-      directories={directoriesToRender}
+      folders={foldersToRender}
       isEmpty={errorEmptyState.isEmpty}
       emptyStateProps={errorEmptyState.emptyStateProps}
       loading={loadingToRender}
@@ -348,11 +348,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       selection="radio"
       isOpen={isOpen}
       onClose={onClose}
-      onDirectoryClick={(directory) => {
-        navigateTo(directory.path, perPageToRender ?? DEFAULT_PER_PAGE);
+      onFolderClick={(folder) => {
+        navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
-      onNavigate={(dir) => {
-        navigateTo(dir.path, perPageToRender ?? DEFAULT_PER_PAGE);
+      onNavigate={(folder) => {
+        navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}
       onNavigateRoot={() => {
         navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);

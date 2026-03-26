@@ -80,11 +80,11 @@ export interface File {
 }
 export type Files<T extends File = File> = T[];
 
-export interface Directory extends File {
-  type: 'directory';
+export interface Folder extends File {
+  type: 'folder';
   items: number;
 }
-const isDirectory = (file: File): file is Directory => file.type === 'directory';
+const isFolder = (file: File): file is Folder => file.type === 'folder';
 
 export type FileExplorerEmptyStateConfig = Pick<
   EmptyStateProps,
@@ -125,7 +125,7 @@ const defaults = {
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
 
-    fileTypeDirectory: 'Folder',
+    folderType: 'Folder',
 
     sourceSelector: 'Source Selector',
     sourceCaption: 'Files',
@@ -155,7 +155,7 @@ const defaults = {
     detailsPanelBucket: 'Bucket',
 
     emptyStateTitle: 'No files found',
-    emptyStateBody: 'No files are available in the current directory.',
+    emptyStateBody: 'No files are available in the current folder.',
 
     paginationIndeterminateToggleTemplate: (first: number, last: number) => (
       <>
@@ -239,7 +239,7 @@ interface FilesTableProps {
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
-  onDirectoryClick?: (directory: Directory) => void;
+  onFolderClick?: (folder: Folder) => void;
   onViewDetails?: (file: File) => void;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
@@ -251,7 +251,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   selectedFiles,
   setSelectedFiles,
   selection = 'radio',
-  onDirectoryClick,
+  onFolderClick,
   onViewDetails,
   isEmpty: isEmptyProp,
   emptyStateProps,
@@ -382,20 +382,20 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       />
                       <Td width={columns.name.width} dataLabel={columns.name.label}>
                         {/* Should this be a Content/a/href or should it be Button variant link */}
-                        {isDirectory(file) && (
+                        {isFolder(file) && (
                           <Truncate
                             href="#"
                             onClick={(e: React.MouseEvent) => {
                               e.preventDefault();
-                              onDirectoryClick?.(file);
+                              onFolderClick?.(file);
                             }}
                             content={file.name}
                           />
                         )}
-                        {!isDirectory(file) && <Truncate content={file.name} />}
+                        {!isFolder(file) && <Truncate content={file.name} />}
                       </Td>
                       <Td width={columns.type.width} dataLabel={columns.type.label}>
-                        {isDirectory(file) ? defaults.labels.fileTypeDirectory : file.type}
+                        {isFolder(file) ? defaults.labels.folderType : file.type}
                       </Td>
                       <Td width={columns.actions.width} isActionCell>
                         {(() => {
@@ -433,14 +433,14 @@ const FilesTable: React.FC<FilesTableProps> = ({
 };
 
 interface PathBreadcrumbsProps {
-  directories?: Directory[];
+  folders?: Folder[];
   source?: Source;
-  onNavigate?: (directory: Directory) => void;
+  onNavigate?: (folder: Folder) => void;
   onNavigateRoot?: () => void;
   loading?: boolean;
 }
 const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
-  directories,
+  folders,
   source,
   onNavigate,
   onNavigateRoot,
@@ -449,7 +449,7 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   const rootLabel = source ? `${source.name} (root)` : 'Root';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const dirs = Array.isArray(directories) ? directories : [];
+  const dirs = Array.isArray(folders) ? folders : [];
   const isAtRoot = dirs.length === 0;
   const shouldCollapse = dirs.length > BREADCRUMB_COLLAPSE_THRESHOLD;
   const leadingDirs = shouldCollapse ? dirs.slice(0, BREADCRUMB_LEADING_VISIBLE) : [];
@@ -755,11 +755,11 @@ interface FileExplorerProps {
   /** The currently active source. When provided, the source selector is hidden. */
   source?: Source;
 
-  /** The list of files and directories to display in the table. */
+  /** The list of files and folders to display in the table. */
   files?: Files;
 
-  /** Ordered breadcrumb trail representing the current directory path. */
-  directories?: Directory[];
+  /** Ordered breadcrumb trail representing the current folder path. */
+  folders?: Folder[];
 
   /** Whether a data fetch is in progress. Disables interactions and shows skeleton rows. */
   loading?: boolean;
@@ -791,11 +791,11 @@ interface FileExplorerProps {
   /** Callback fired when a source is selected from the source selector. */
   onSelectSource?: (source: Source) => void;
 
-  /** Callback fired when a directory row is clicked in the table. */
-  onDirectoryClick?: (directory: Directory) => void;
+  /** Callback fired when a folder row is clicked in the table. */
+  onFolderClick?: (folder: Folder) => void;
 
-  /** Callback fired when a breadcrumb directory segment is clicked. */
-  onNavigate?: (directory: Directory) => void;
+  /** Callback fired when a breadcrumb folder segment is clicked. */
+  onNavigate?: (folder: Folder) => void;
 
   /** Callback fired when the root breadcrumb is clicked. */
   onNavigateRoot?: () => void;
@@ -819,7 +819,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   sources,
   source,
   files,
-  directories,
+  folders,
   loading,
   searchResultsCount,
   page,
@@ -830,7 +830,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   emptyStateProps,
   selection = 'radio',
   onSelectSource,
-  onDirectoryClick,
+  onFolderClick,
   onNavigate,
   onNavigateRoot,
   onSearch,
@@ -902,7 +902,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           )}
           <FlexItem className="pf-v6-u-mb-md">
             <PathBreadcrumbs
-              directories={directories}
+              folders={folders}
               source={source}
               onNavigate={onNavigate}
               onNavigateRoot={onNavigateRoot}
@@ -917,9 +917,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   className="pf-v6-u-w-50"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
-                    directories && directories.length > 0
-                      ? directories[directories.length - 1].name
-                      : source?.name,
+                    folders && folders.length > 0 ? folders[folders.length - 1].name : source?.name,
                   )}
                   value={searchQuery}
                   onChange={(_event, value) => {
@@ -960,7 +958,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
-                  onDirectoryClick={onDirectoryClick}
+                  onFolderClick={onFolderClick}
                   onViewDetails={(file) => setFilesToView([file])}
                   isEmpty={isEmpty}
                   emptyStateProps={emptyStateProps}

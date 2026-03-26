@@ -14,12 +14,12 @@ Typically, this will be in wizard-like experiences that require a file to be pro
 ## UX
 
 The FileExplorer will open as a reusable modal.
-It will primarily render a table of files and directories. 
+It will primarily render a table of files and folders. 
 A details panel will show info to the user including any files selected and their metadata.
 Breadcrumbs, search and pagination will help the user navigate the source of files.
 Two CTAs render at the bottom: **Select files** and **Cancel**, allowing the user to continue in the wizard with their chosen file(s).
 
-Since both Files and Directories are rendered in the table, selection (multi/singular) can apply to both.
+Since both Files and Folders are rendered in the table, selection (multi/singular) can apply to both.
 
 ## UI
 
@@ -30,7 +30,7 @@ The intention is for the widget to be available as a federated module that can b
 
 The FileExplorer is implemented as a highly controlled UI component (some internal state is tracked) that will manage/help-manage the interactions with all underlying PF components.
 It will provide a straightforward contract of state and behaviour based props that consumers can integrate with simply.
-TypeScript definitions of the nouns used throughout (Source/File/Directory) will be provided.
+TypeScript definitions of the nouns used throughout (Source/File/Folder) will be provided.
 
 FileExplorer in the future will/should live in PatternFly as a component-group.
 
@@ -48,7 +48,7 @@ In the initial phase, the S3FileExplorer widget uses the common S3 BFF API prima
 - [ ] Implement X button on the details panel for selected files
 - [ ] Handle scroll in details panel when multiple files are selected
 - [ ] Full JEST test suite
-- [ ] Gracefully handle long file/directory names
+- [ ] Gracefully handle long file/folder names
 - [ ] Playground: Wire the selected source back into FileExplorer: This callback only updates the debug card. The modal keeps receiving source={undefined}, so the chosen source never shows up in breadcrumbs/details and the source selector never exits the "unselected" state (add setSourceToRender(source) alongside setSelectedSource(source) in the onSelectSource handler so the chosen source is actually fed back into the FileExplorer props)
 - [ ] Fall back to the rendered row count when itemCount is omitted: With the current default, the pager shows 0 items even when the table has rows. Using files?.length ?? 0 as the fallback keeps the footer consistent for non-paginated callers.
 
