@@ -11,7 +11,7 @@ import VectorStoresTable from '~/app/AIAssets/components/vectorstores/VectorStor
 const AIAssetsVectorStoresTab: React.FC = () => {
   const { data: vectorStores = [], loaded, error } = useFetchAAEVectorStores();
   const { data: lsdStatus } = useFetchLSDStatus();
-  const [existingCollections, existingCollectionsLoaded] = useFetchVectorStores();
+  const [existingCollections] = useFetchVectorStores();
   // load embedding models from llamastack to check which are "registered"
   const {
     data: playgroundModels,
