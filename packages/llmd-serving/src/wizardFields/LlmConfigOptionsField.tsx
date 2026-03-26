@@ -181,7 +181,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
           },
         };
       }
-      return { data: { selection: null, autoSelect: false, suggestion: null } };
+      return { data: { autoSelect: false } };
     },
     validationSchema: z.object({
       data: modelServerSelectFieldSchema,
