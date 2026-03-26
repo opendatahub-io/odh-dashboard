@@ -24,10 +24,7 @@ export const extractModelServerTemplate = (
   }
   return {
     data: {
-      selection: {
-        name: 'llmd-serving',
-        label: 'Distributed inference with llm-d',
-      },
+      selection: LLMD_OPTION,
     },
   };
 };
