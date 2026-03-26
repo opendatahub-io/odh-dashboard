@@ -6,30 +6,49 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import './AutomlResults.scss';
+import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
+import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+
+type ModalState = {
+  modelName: string;
+  rank: number;
+};
 
 function AutomlResults(): React.JSX.Element {
-  const { pipelineRun } = useAutomlResultsContext();
+  const { pipelineRun, parameters } = useAutomlResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
   const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const [modalState, setModalState] = React.useState<ModalState | null>(null);
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <PipelineTopology
-          nodes={nodes}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          className="automl-topology-container"
+    <>
+      <Stack hasGutter>
+        <StackItem>
+          <PipelineTopology
+            nodes={nodes}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            className="automl-topology-container"
+          />
+        </StackItem>
+        <StackItem>
+          <AutomlLeaderboard />
+        </StackItem>
+      </Stack>
+      {modalState && (
+        <AutomlModelDetailsModal
+          isOpen
+          onClose={() => setModalState(null)}
+          modelName={modalState.modelName}
+          rank={modalState.rank}
+          taskType={parameters?.task_type || TASK_TYPE_TIMESERIES}
         />
-      </StackItem>
-      <StackItem>
-        <AutomlLeaderboard />
-      </StackItem>
-    </Stack>
+      )}
+    </>
   );
 }
 

@@ -1,8 +1,19 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  UseQueryResult,
+  UseMutationResult,
+} from '@tanstack/react-query';
 import * as z from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
+import type {
+  PipelineRun,
+  S3ListObjectsResponse,
+  FeatureImportanceData,
+  ConfusionMatrixData,
+} from '~/app/types';
 import { createPipelineRun, getPipelineRunFromBFF } from '~/app/api/pipelines';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
@@ -46,6 +57,12 @@ const ColumnSchemaArraySchema = z.array(
   }),
 );
 
+type FetchS3FileOptions = {
+  secretName?: string;
+  bucket?: string;
+  signal?: AbortSignal;
+};
+
 /**
  * Fetches a file from S3 storage and returns it as a Blob.
  * This is a utility function that can be used in both hooks and query functions.
@@ -53,9 +70,9 @@ const ColumnSchemaArraySchema = z.array(
 export async function fetchS3File(
   namespace: string,
   key: string,
-  secretName?: string,
-  bucket?: string,
+  options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
     key,
@@ -63,7 +80,7 @@ export async function fetchS3File(
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`);
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -89,11 +106,11 @@ export function useS3GetFileQuery(
 ): UseQueryResult<Blob, Error> {
   return useQuery({
     queryKey: ['file', namespace, secretName, bucket, key],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !key) {
         throw new Error('namespace and key are required');
       }
-      return fetchS3File(namespace, key, secretName, bucket);
+      return fetchS3File(namespace, key, { secretName, bucket, signal });
     },
     enabled: Boolean(namespace && key),
     retry: false,
@@ -270,6 +287,63 @@ export function usePipelineRunQuery(
       }
       return POLL_INTERVAL_MS;
     },
+  });
+}
+
+async function fetchS3Json<T>(namespace: string, key: string, signal?: AbortSignal): Promise<T> {
+  const blob = await fetchS3File(namespace, key, { signal });
+  const text = await blob.text();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- trusted pipeline-produced JSON
+    return JSON.parse(text) as T;
+  } catch (error) {
+    throw new Error(
+      `Failed to parse JSON from S3 file "${key}": ${error instanceof Error ? error.message : 'Invalid JSON'}`,
+    );
+  }
+}
+
+export function useModelEvaluationArtifactsQuery(
+  namespace?: string,
+  modelDirectory?: string,
+  isClassification?: boolean,
+): {
+  featureImportance?: FeatureImportanceData;
+  confusionMatrix?: ConfusionMatrixData;
+  isLoading: boolean;
+} {
+  const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
+  return useQueries({
+    queries: [
+      {
+        queryKey: ['featureImportance', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<FeatureImportanceData>(
+            namespace!,
+            `${baseDir}metrics/feature_importance.json`,
+            signal,
+          ),
+        enabled: Boolean(namespace && modelDirectory),
+        retry: false,
+      },
+      {
+        queryKey: ['confusionMatrix', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<ConfusionMatrixData>(
+            namespace!,
+            `${baseDir}metrics/confusion_matrix.json`,
+            signal,
+          ),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
+    ],
+    combine: (results) => ({
+      featureImportance: results[0].data,
+      confusionMatrix: results[1].data,
+      isLoading: results.some((r) => r.isPending),
+    }),
   });
 }
 

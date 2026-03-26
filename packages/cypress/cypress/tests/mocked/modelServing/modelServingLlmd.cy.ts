@@ -9,12 +9,15 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
-import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
+} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import {
   mockServingRuntimeTemplateK8sResource,
   mockStandardModelServingTemplateK8sResources,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType, ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
@@ -29,6 +32,7 @@ import {
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+import { initMockModelAuthIntercepts } from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -660,6 +664,69 @@ describe('Model Serving LLMD', () => {
         }),
       );
 
+      // Override hardware profiles to include a GPU profile that matches vllm-gpu-config.
+      // The small-profile is also given wider memory bounds to accommodate the test
+      // deployment's actual resource values (8Gi memory limit > default max of 4Gi).
+      const gpuProfile = mockHardwareProfile({
+        name: 'gpu-profile',
+        displayName: 'GPU Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '4',
+            maxCount: '8',
+            defaultCount: '4',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '8Gi',
+            maxCount: '16Gi',
+            defaultCount: '8Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: 'NVIDIA GPU',
+            identifier: 'nvidia.com/gpu',
+            minCount: 1,
+            maxCount: 4,
+            defaultCount: 1,
+            resourceType: IdentifierResourceType.ACCELERATOR,
+          },
+        ],
+      });
+      const wideSmallProfile = mockHardwareProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '4',
+            defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '16Gi',
+            defaultCount: '4Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+        ],
+      });
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([wideSmallProfile, mockGlobalScopedHardwareProfiles[1], gpuProfile]),
+      );
+
+      // Override secrets to empty — simplifies token auth handling in edit scenarios
+      cy.interceptK8sList({ model: SecretModel, ns: 'test-project' }, mockK8sResourceList([]));
+
       cy.interceptK8sList(
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
         mockK8sResourceList([
@@ -667,11 +734,13 @@ describe('Model Serving LLMD', () => {
             name: 'vllm-gaudi-config',
             displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
             runtimeVersion: 'v0.9.1',
+            recommendedAccelerators: '["intel.com/gaudi"]',
           }),
           mockLLMInferenceServiceConfigK8sResource({
             name: 'vllm-gpu-config',
             displayName: 'vLLM on GPU LLMInferenceServiceConfig',
             runtimeVersion: 'v0.8.2',
+            recommendedAccelerators: '["nvidia.com/gpu"]',
           }),
         ]),
       );
@@ -690,9 +759,19 @@ describe('Model Serving LLMD', () => {
         ]),
       );
 
+      // GET by name for the hardware profile referenced in the existing deployment.
+      cy.interceptK8s(
+        { model: HardwareProfileModel, ns: 'opendatahub', name: 'small-profile' },
+        wideSmallProfile,
+      );
+
       cy.intercept('PUT', '**/llminferenceservices/test-vllm-gpu*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceService');
+
+      cy.intercept('PUT', '**/llminferenceserviceconfigs/test-vllm-gpu*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceServiceConfig');
     };
 
     it('should display serving runtime name and version, then pre-fill when editing', () => {
@@ -722,24 +801,48 @@ describe('Model Serving LLMD', () => {
     });
 
     it('Deploy vLLM using LLMInferenceServiceConfig', () => {
+      const deploymentName = 'test-vllm-config-deploy';
+
       initVLLMOnMaaSIntercepts();
+
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        {
+          statusCode: 200,
+          body: mockLLMInferenceServiceConfigK8sResource({
+            name: deploymentName,
+            namespace: 'test-project',
+          }),
+        },
+      ).as('createLLMInferenceServiceConfig');
+
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        {
+          statusCode: 200,
+          body: mockLLMInferenceServiceK8sResource({ name: deploymentName }),
+        },
+      ).as('createLLMInferenceService');
+
+      initMockModelAuthIntercepts({ modelName: deploymentName, getResponse: 404 });
 
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      // Step 1: Model source - select URI and generative model type
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      // Step 1: Model source - select URI, enter URI, uncheck save connection, select Generative
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().type('hf://test/model');
       modelServingWizard.findSaveConnectionCheckbox().click();
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Step 2: Model deployment - verify LLM config options are shown
-      modelServingWizard.findModelDeploymentNameInput().type('test-vllm-maas');
-      modelServingWizard.findServingRuntimeSelectRadio().click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      // Step 2: Model deployment
+      modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
 
-      // Verify LLMD default option and the mocked configs are available
+      // Open template dropdown and verify all deployment configuration options are available
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
         .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('exist');
@@ -749,16 +852,104 @@ describe('Model Serving LLMD', () => {
       modelServingWizard
         .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
         .should('exist');
+      // Close the dropdown without selecting
+      modelServingWizard.findModelDeploymentNameInput().click();
 
-      // Select a vLLM config option
-      modelServingWizard
-        .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
-        .click();
+      // Select the GPU hardware profile — this triggers auto-suggestion for vLLM on GPU
+      modelServingWizard.selectProfileContaining('GPU Profile');
 
-      // Verify the selected option is displayed
+      // Verify the auto-select suggestion shows the GPU config (matched via recommendedAccelerators)
+      // and displays the version label confirming the correct config was matched
       modelServingWizard
+        .findModelServerAutoSelectSuggestion()
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      modelServingWizard.findServingRuntimeVersionLabel().should('contain.text', 'v0.8.2');
+
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced options
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 4: Review - Deploy
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      // Dry run: config created first, then inference service
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal(deploymentName);
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.have.length(1);
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+      });
+
+      // Actual: config created with same resource name as deployment, cloned from the selected template
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal(deploymentName);
+        // Verify the config records its source template via annotation
+        expect(interception.request.body.metadata.annotations).to.include({
+          'opendatahub.io/template-name': 'vllm-gpu-config',
+        });
+      });
+      // Actual: inference service has exactly one baseRef pointing to the config
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.have.length(1);
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+      });
+    });
+
+    it('Edit existing LLMInferenceService preserves LLMInferenceServiceConfig and baseRef', () => {
+      initVLLMOnMaaSIntercepts();
+
+      modelServingGlobal.visit('test-project');
+
+      // Open edit wizard for the existing deployment that already has a linked config
+      modelServingGlobal.getModelRow('GPU vLLM Deployment').findKebabAction('Edit').click();
+
+      // Step 1: Model source
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().type('hf://updated/model');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Verify the config selector is pre-filled with the existing config and disabled
+      modelServingWizardEdit
         .findServingRuntimeTemplateSearchSelector()
-        .should('contain.text', 'vLLM on Gaudi LLMInferenceServiceConfig');
+        .should('be.disabled')
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced options
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 4: Review - Update deployment
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      // Dry run: config updated first (unchanged), then IS updated
+      cy.wait('@updateLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal('test-vllm-gpu');
+      });
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.have.length(1);
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+      });
+
+      // Actual: config updated (preserved), IS updated with exactly one baseRef preserved
+      cy.wait('@updateLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal('test-vllm-gpu');
+      });
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.have.length(1);
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+      });
     });
   });
 });

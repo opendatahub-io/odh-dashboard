@@ -121,12 +121,12 @@ export function useAutomlResults(
       const metricsPath = `${directory}metrics/metrics.json`;
       return {
         queryKey: ['s3File', namespace, name, metricsPath],
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
           if (!namespace || !metricsPath) {
             throw new Error('namespace and key are required');
           }
 
-          const blob = await fetchS3File(namespace, metricsPath);
+          const blob = await fetchS3File(namespace, metricsPath, { signal });
           const text = await blob.text();
           const data = JSON.parse(text);
           const metricsData = data?.data?.columns || data;

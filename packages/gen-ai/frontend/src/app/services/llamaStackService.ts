@@ -250,6 +250,7 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   mcp_servers: r.mcp_servers,
   input_shield_id: r.input_shield_id,
   output_shield_id: r.output_shield_id,
+  model_source_type: r.model_source_type,
 });
 
 const postCreateResponse = (
