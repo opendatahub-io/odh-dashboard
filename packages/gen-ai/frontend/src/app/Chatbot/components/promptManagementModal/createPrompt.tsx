@@ -1,5 +1,9 @@
 import React, { useContext } from 'react';
 import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Alert,
   Flex,
   FlexItem,
@@ -21,7 +25,13 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
 
-export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
+export default function CreatePrompt({
+  displayText,
+  onClose,
+}: {
+  displayText: { title: string; description: string };
+  onClose: () => void;
+}): React.ReactNode {
   const {
     dirtyPrompt,
     setActivePrompt,
@@ -109,90 +119,102 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
   }
 
   return (
-    <Flex direction={{ default: 'column' }}>
-      <FlexItem spacer={{ default: 'spacerMd' }}>
-        <Split hasGutter>
-          <SplitItem isFilled>
+    <Modal isOpen variant="large" onClose={onClose}>
+      <ModalHeader title={displayText.title} description={displayText.description} />
+      <ModalBody>
+        <Flex direction={{ default: 'column' }}>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
+            <Split hasGutter>
+              <SplitItem isFilled>
+                <Title
+                  headingLevel="h6"
+                  style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}
+                >
+                  Name
+                  <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                    {' *'}
+                  </span>
+                </Title>
+                <TextInput
+                  aria-label="Prompt name"
+                  value={dirtyPrompt?.name}
+                  readOnlyVariant={isEditMode ? 'default' : undefined}
+                  onChange={(_event, value) => handleChange('name', value)}
+                  validated={nameError ? 'error' : 'default'}
+                />
+                {nameError && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                        {nameError}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </SplitItem>
+              {isEditMode && (
+                <SplitItem>
+                  <Title
+                    headingLevel="h6"
+                    style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    Version
+                  </Title>
+                  <TextInput
+                    readOnlyVariant="default"
+                    value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
+                    style={{ width: '80px' }}
+                  />
+                </SplitItem>
+              )}
+            </Split>
+          </FlexItem>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
             <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-              Name
+              Prompt
+              <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                {' *'}
+              </span>
+            </Title>
+            <MenuToggle isDisabled style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              System
+            </MenuToggle>
+            <TextArea
+              aria-label="Prompt instructions"
+              value={dirtyPrompt?.template}
+              resizeOrientation="none"
+              rows={12}
+              onChange={(_event, value) => handleChange('template', value)}
+            />
+          </FlexItem>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
+            <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              Commit message
             </Title>
             <TextInput
-              aria-label="Prompt name"
-              value={dirtyPrompt?.name}
-              isDisabled={isEditMode}
-              onChange={(_event, value) => handleChange('name', value)}
-              validated={nameError ? 'error' : 'default'}
+              aria-label="Commit message"
+              value={dirtyPrompt?.commit_message}
+              onChange={(_event, value) => handleChange('commit_message', value)}
+              placeholder="Describe your changes"
             />
-            {nameError && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                    {nameError}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </SplitItem>
-          {isEditMode && (
-            <SplitItem>
-              <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                Version
-              </Title>
-              <TextInput
-                value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
-                isDisabled
-                style={{ width: '80px' }}
-              />
-            </SplitItem>
+          </FlexItem>
+          {saveError && (
+            <FlexItem>
+              <Alert variant="danger" isInline title="Failed to save prompt">
+                {saveError}
+              </Alert>
+            </FlexItem>
           )}
-        </Split>
-      </FlexItem>
-      <FlexItem spacer={{ default: 'spacerMd' }}>
-        <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-          Prompt
-        </Title>
-        <MenuToggle isDisabled style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-          System
-        </MenuToggle>
-        <TextArea
-          aria-label="Prompt instructions"
-          value={dirtyPrompt?.template}
-          resizeOrientation="vertical"
-          rows={12}
-          onChange={(_event, value) => handleChange('template', value)}
-        />
-      </FlexItem>
-      <FlexItem spacer={{ default: 'spacerMd' }}>
-        <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
-          Commit message
-        </Title>
-        <TextInput
-          aria-label="Commit message"
-          value={dirtyPrompt?.commit_message}
-          onChange={(_event, value) => handleChange('commit_message', value)}
-          placeholder="Describe your changes"
-        />
-      </FlexItem>
-      {saveError && (
-        <FlexItem>
-          <Alert variant="danger" isInline title="Failed to save prompt">
-            {saveError}
-          </Alert>
-        </FlexItem>
-      )}
-      <Flex
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        style={{ width: '100%', paddingTop: 'var(--pf-t--global--spacer--md)' }}
-      >
-        <Flex rowGap={{ default: 'rowGapXs' }}>
-          <Button variant="primary" onClick={handleSave} isLoading={isCreating}>
-            {isEditMode ? 'Save' : 'Create'}
-          </Button>
-          <Button variant="link" onClick={onClose} isDisabled={isCreating}>
-            Cancel
-          </Button>
         </Flex>
-      </Flex>
-    </Flex>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" onClick={handleSave} isLoading={isCreating}>
+          {isEditMode ? 'Save' : 'Create'}
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={isCreating}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
