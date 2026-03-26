@@ -255,6 +255,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-prompt"
           >
             <PromptTabContent
+              configId={configId}
               systemInstruction={systemInstruction}
               onSystemInstructionChange={handleSystemInstructionChange}
             />
