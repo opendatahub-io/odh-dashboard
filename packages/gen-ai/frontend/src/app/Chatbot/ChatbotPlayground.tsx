@@ -164,13 +164,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
-  // Collapse the settings panel when compare mode is activated
-  React.useEffect(() => {
-    if (isCompareMode) {
-      setIsDrawerExpanded(false);
-    }
-  }, [isCompareMode, setIsDrawerExpanded]);
-
   // Custom hooks
   const alertManagement = useAlertManagement();
   const fileManagement = useFileManagement({
