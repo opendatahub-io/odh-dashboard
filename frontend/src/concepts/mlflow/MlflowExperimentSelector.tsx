@@ -10,6 +10,7 @@ type MlflowExperimentSelectorProps = {
   workspace: string;
   filter?: string;
   selection?: string;
+  isDisabled?: boolean;
   onSelect: (experiment: MlflowExperiment) => void;
   onStatusChange?: (status: MlflowSelectorStatus) => void;
 };
@@ -18,6 +19,7 @@ const MlflowExperimentSelector: React.FC<MlflowExperimentSelectorProps> = ({
   workspace,
   filter,
   selection,
+  isDisabled = false,
   onSelect,
   onStatusChange,
 }) => {
@@ -65,12 +67,13 @@ const MlflowExperimentSelector: React.FC<MlflowExperimentSelectorProps> = ({
       isFullWidth
       toggleContent={toggleLabel}
       searchHelpText={`Type a name to search your ${experimentCount} ${experimentLabel}.`}
-      isDisabled={!loaded || !!error || experimentCount === 0}
+      isDisabled={isDisabled || !loaded || !!error || experimentCount === 0}
     >
       {({ menuClose }) => (
         <MlflowExperimentTable
           data={sorted}
           loaded={loaded}
+          selection={selection}
           onSelect={onSelect}
           menuClose={menuClose}
           onClearSearch={() => setSearch('')}
