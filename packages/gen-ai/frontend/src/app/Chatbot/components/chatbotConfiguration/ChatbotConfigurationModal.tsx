@@ -128,37 +128,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     [preSelectedModels],
   );
 
-  const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(() => {
-    // Start from available models and add embedding models required by any pre-selected collections
-    const byName = new Map(availableModels.map((m) => [m.model_name, m]));
-    preSelectedCollections.forEach((c) => {
-      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
-      const found = allModels.find((m) => {
-        const { id: normModelId } = splitLlamaModelId(m.model_id);
-        return m.model_id === c.embedding_model || normModelId === normEmbedId;
-      });
-      if (found) {
-        byName.set(found.model_name, found);
-      }
-    });
-    return Array.from(byName.values());
-  });
-
-  const [modelTypeMap, setModelTypeMap] = React.useState<Map<string, string>>(() => {
-    // Pre-mark embedding models required by pre-selected collections as "Embedding"
-    const map = new Map<string, string>();
-    preSelectedCollections.forEach((c) => {
-      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
-      const found = allModels.find((m) => {
-        const { id: normModelId } = splitLlamaModelId(m.model_id);
-        return m.model_id === c.embedding_model || normModelId === normEmbedId;
-      });
-      if (found) {
-        map.set(found.model_name, 'Embedding');
-      }
-    });
-    return map;
-  });
   const [maxTokensMap, setMaxTokensMap] = React.useState<Map<string, number | undefined>>(
     new Map(),
   );
@@ -192,6 +161,41 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     );
     return [...filteredExtras, ...fromExisting.filter((c) => !extraIds.has(c.vector_store_id))];
   }, [existingCollections, availableCollections, extraSelectedCollections]);
+
+  const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(() => {
+    // Start from available models (preserve duplicates) and add any embedding models
+    // required by pre-selected collections that are not already present.
+    const result = [...availableModels];
+    const existingNames = new Set(availableModels.map((m) => m.model_name));
+    preSelectedCollections.forEach((c) => {
+      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
+      const found = allModels.find((m) => {
+        const { id: normModelId } = splitLlamaModelId(m.model_id);
+        return m.model_id === c.embedding_model || normModelId === normEmbedId;
+      });
+      if (found && !existingNames.has(found.model_name)) {
+        result.push(found);
+        existingNames.add(found.model_name);
+      }
+    });
+    return result;
+  });
+
+  const [modelTypeMap, setModelTypeMap] = React.useState<Map<string, string>>(() => {
+    // Pre-mark embedding models required by pre-selected collections as "Embedding"
+    const map = new Map<string, string>();
+    preSelectedCollections.forEach((c) => {
+      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
+      const found = allModels.find((m) => {
+        const { id: normModelId } = splitLlamaModelId(m.model_id);
+        return m.model_id === c.embedding_model || normModelId === normEmbedId;
+      });
+      if (found) {
+        map.set(found.model_name, 'Embedding');
+      }
+    });
+    return map;
+  });
 
   const [selectedCollections, setSelectedCollections] =
     React.useState<ExternalVectorStoreSummary[]>(preSelectedCollections);
