@@ -26,18 +26,19 @@ import (
 )
 
 const (
-	Version               = "1.0.0"
-	PathPrefix            = "/eval-hub"
-	ApiPathPrefix         = "/api/v1"
-	HealthCheckPath       = "/healthcheck"
-	HealthPath            = ApiPathPrefix + "/health"
-	UserPath              = ApiPathPrefix + "/user"
-	NamespacePath         = ApiPathPrefix + "/namespaces"
-	EvaluationJobsPath    = ApiPathPrefix + "/evaluations/jobs"
-	EvaluationJobByIDPath = ApiPathPrefix + "/evaluations/jobs/:id"
-	CollectionsPath       = ApiPathPrefix + "/evaluations/collections"
-	ProvidersPath         = ApiPathPrefix + "/evaluations/providers"
-	EvalHubCRStatusPath   = ApiPathPrefix + "/evalhub/status"
+	Version                  = "1.0.0"
+	PathPrefix               = "/eval-hub"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	HealthPath               = ApiPathPrefix + "/health"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath       = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath    = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath          = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
+	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
+	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
 )
 
 type App struct {
@@ -49,6 +50,7 @@ type App struct {
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
 	openAPI                 *OpenAPIHandler
+	dashboardNamespace      string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -131,6 +133,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Warn("Failed to load OpenAPI spec, Swagger UI will be unavailable", slog.Any("error", err))
 	}
 
+	dashboardNamespace, err := helper.GetCurrentNamespace()
+	if err != nil {
+		logger.Warn("Failed to detect dashboard namespace, using default",
+			slog.Any("error", err), slog.String("default", "opendatahub"))
+		dashboardNamespace = "opendatahub"
+	}
+	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -140,6 +150,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		openAPI:                 openAPIHandler,
+		dashboardNamespace:      dashboardNamespace,
 	}
 	return app, nil
 }
@@ -179,6 +190,10 @@ func (app *App) Routes() http.Handler {
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
+
+	// EvalHub service health endpoint (proxies to the real EvalHub service's /health endpoint)
+	// No AttachNamespace needed: AttachEvalHubClient resolves the URL via EVAL_HUB_URL or CR auto-discovery in the dashboard namespace.
+	apiRouter.GET(EvalHubServiceHealthPath, app.RequireAccessToService(app.AttachEvalHubClient(app.EvalHubServiceHealthHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

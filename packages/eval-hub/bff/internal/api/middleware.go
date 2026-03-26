@@ -118,21 +118,16 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 				logger.Debug("Using EVAL_HUB_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else {
-				// Priority 3: auto-discover from EvalHub CR in the namespace
-				namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-				if !ok || namespace == "" {
-					app.badRequestResponse(w, r, fmt.Errorf(
-						"namespace query parameter is required for EvalHub CR auto-discovery when EVAL_HUB_URL is not set"))
-					return
-				}
-
+				// Priority 3: auto-discover from EvalHub CR in the dashboard namespace.
+				// The EvalHub service lives in the operator namespace (opendatahub /
+				// redhat-ods-applications), not in the user's tenant namespace.
 				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 				if err != nil {
 					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
 					return
 				}
 
-				discoveredURL, err := k8sClient.GetEvalHubServiceURL(ctx, identity, namespace)
+				discoveredURL, err := k8sClient.GetEvalHubServiceURL(ctx, identity, app.dashboardNamespace)
 				if err != nil {
 					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover EvalHub service URL from CR: %w", err))
 					return
@@ -140,7 +135,7 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 
 				serviceURL = discoveredURL
 				logger.Debug("Using auto-discovered EvalHub service URL from CR",
-					"namespace", namespace,
+					"dashboardNamespace", app.dashboardNamespace,
 					"serviceURL", serviceURL)
 			}
 
