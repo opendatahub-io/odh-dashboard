@@ -98,7 +98,7 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 			app.badRequestResponse(w, r, err)
 			return nil, false
 		}
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return nil, false
 	}
 
@@ -177,7 +177,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving file from S3: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -247,7 +247,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 			return
 		}
 
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving CSV schema from S3: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

@@ -20,6 +20,21 @@ type UseAutoragResultsReturn = {
  * 3. Fetches pattern.json from each pattern directory
  * 4. Transforms all data into the final AutoragPattern format
  *
+ * ## Testing Strategy
+ *
+ * **DO NOT unit test this hook directly.**
+ *
+ * This hook has cascading async query stages with conditional dependencies that make it
+ * extremely difficult to unit test with mocks. The pattern queries only start after the
+ * UUID discovery completes, requiring multiple render cycles with complex timing.
+ *
+ * **Instead, test this hook through:**
+ * - `AutoragResultsContext.spec.tsx` - Tests the context that orchestrates this hook
+ * - `AutoragResultsPage.spec.tsx` - Tests the page-level integration
+ * - Cypress tests - End-to-end testing with real async flows
+ *
+ * See `__tests__/TESTING.md` for details.
+ *
  * @param runId - The pipeline run ID
  * @param namespace - The Kubernetes namespace
  * @param pipelineRun - The pipeline run object (optional, for metadata)
@@ -163,12 +178,12 @@ export function useAutoragResults(
       const patternJsonPath = `${directory}pattern.json`;
       return {
         queryKey: ['s3File', namespace, name, patternJsonPath],
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
           }
 
-          const blob = await fetchS3File(namespace, patternJsonPath);
+          const blob = await fetchS3File(namespace, patternJsonPath, { signal });
           const text = await blob.text();
           const patternData = JSON.parse(text);
 

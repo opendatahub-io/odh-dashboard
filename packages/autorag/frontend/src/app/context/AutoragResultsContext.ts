@@ -12,11 +12,17 @@ export type AutoragResultsContextProps = {
   parameters?: Partial<ConfigureSchema>;
 };
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-export const AutoragResultsContext = React.createContext({} as AutoragResultsContextProps);
+export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
+  undefined,
+);
 
-export const useAutoragResultsContext = (): AutoragResultsContextProps =>
-  React.useContext(AutoragResultsContext);
+export const useAutoragResultsContext = (): AutoragResultsContextProps => {
+  const context = React.useContext(AutoragResultsContext);
+  if (!context) {
+    throw new Error('useAutoragResultsContext must be used within AutoragResultsContext.Provider');
+  }
+  return context;
+};
 
 export function getAutoragContext({
   pipelineRun,

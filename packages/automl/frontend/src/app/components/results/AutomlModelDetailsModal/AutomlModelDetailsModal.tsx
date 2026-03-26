@@ -65,7 +65,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const { namespace } = useParams<{ namespace: string }>();
   const isClassification = taskType === 'binary' || taskType === 'multiclass';
-  const modelDirectory = model.location.model_directory;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
+  const modelDirectory = model?.location?.model_directory;
   const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
     namespace,
     modelDirectory,

@@ -82,7 +82,7 @@ const getModelIdShortName = (modelId: string): string => {
   return segments[segments.length - 1] || modelId;
 };
 
-function AutoragLeaderboard(): React.JSX.Element {
+function AutoragLeaderboard(): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -298,18 +298,27 @@ function AutoragLeaderboard(): React.JSX.Element {
     return rankedEntries;
   }, [patterns, metricKeys, optimizedMetric, activeSortIndex, activeSortDirection]);
 
-  // Helper function to get sort params for a column
-  const getSortParams = (columnIndex: number): ThProps['sort'] => ({
-    sortBy: {
-      index: activeSortIndex,
-      direction: activeSortDirection,
-    },
-    onSort: (_event, index, direction) => {
+  // Memoized sort callback - stable reference shared by all columns
+  const handleSort = React.useCallback(
+    (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
       setActiveSortIndex(index);
       setActiveSortDirection(direction);
     },
-    columnIndex,
-  });
+    [],
+  );
+
+  // Helper function to get sort params for a column
+  const getSortParams = React.useCallback(
+    (columnIndex: number): ThProps['sort'] => ({
+      sortBy: {
+        index: activeSortIndex,
+        direction: activeSortDirection,
+      },
+      onSort: handleSort,
+      columnIndex,
+    }),
+    [activeSortIndex, activeSortDirection, handleSort],
+  );
 
   // Handler for viewing pattern details
   const handleViewDetails = (patternName: string) => {
@@ -320,7 +329,10 @@ function AutoragLeaderboard(): React.JSX.Element {
 
   // Show empty state when pipeline is still running
   if (pipelineRunning) {
-    return <AutoragRunInProgress namespace={namespace!} />;
+    if (!namespace) {
+      return null;
+    }
+    return <AutoragRunInProgress namespace={namespace} />;
   }
 
   // Show loading state with 5 rows and 14 columns
@@ -381,7 +393,7 @@ function AutoragLeaderboard(): React.JSX.Element {
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="pf-v6-u-overflow-x-auto">
       <Table
         aria-label="AutoRAG Pattern Leaderboard"
         variant="compact"

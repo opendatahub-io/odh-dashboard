@@ -47,6 +47,12 @@ export function useLlamaStackModelsQuery(
   });
 }
 
+type FetchS3FileOptions = {
+  secretName?: string;
+  bucket?: string;
+  signal?: AbortSignal;
+};
+
 /**
  * Fetches a file from S3 storage and returns it as a Blob.
  * This is a utility function that can be used in both hooks and query functions.
@@ -54,9 +60,9 @@ export function useLlamaStackModelsQuery(
 export async function fetchS3File(
   namespace: string,
   key: string,
-  secretName?: string,
-  bucket?: string,
+  options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
     key,
@@ -64,7 +70,7 @@ export async function fetchS3File(
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`);
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
 
   if (!response.ok) {
     let errorMessage = response.statusText;

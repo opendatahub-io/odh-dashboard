@@ -29,11 +29,17 @@ export type AutomlResultsContextProps = {
   parameters?: Partial<ConfigureSchema>;
 };
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-export const AutomlResultsContext = React.createContext({} as AutomlResultsContextProps);
+export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
+  undefined,
+);
 
-export const useAutomlResultsContext = (): AutomlResultsContextProps =>
-  React.useContext(AutomlResultsContext);
+export const useAutomlResultsContext = (): AutomlResultsContextProps => {
+  const context = React.useContext(AutomlResultsContext);
+  if (!context) {
+    throw new Error('useAutomlResultsContext must be used within AutomlResultsContext.Provider');
+  }
+  return context;
+};
 
 export function getAutomlContext({
   pipelineRun,

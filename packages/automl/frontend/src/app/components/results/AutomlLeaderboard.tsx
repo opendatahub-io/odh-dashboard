@@ -73,7 +73,7 @@ type AutomlLeaderboardProps = {
 function AutomlLeaderboard({
   onViewDetails,
   onClickSaveNotebook,
-}: AutomlLeaderboardProps): React.JSX.Element {
+}: AutomlLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
     useAutomlResultsContext();
@@ -92,10 +92,7 @@ function AutomlLeaderboard({
     pipelineRun?.state === RuntimeStateKF.CANCELING;
 
   // Determine the optimized metric
-  const optimizedMetric = React.useMemo(
-    () => getOptimizedMetricForTask(taskType) ?? 'accuracy',
-    [taskType],
-  );
+  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {
@@ -250,18 +247,27 @@ function AutomlLeaderboard({
     return rankedEntries;
   }, [models, metricKeys, optimizedMetric, activeSortIndex, activeSortDirection]);
 
-  // Helper function to get sort params for a column
-  const getSortParams = (columnIndex: number): ThProps['sort'] => ({
-    sortBy: {
-      index: activeSortIndex,
-      direction: activeSortDirection,
-    },
-    onSort: (_event, index, direction) => {
+  // Memoized sort callback - stable reference shared by all columns
+  const handleSort = React.useCallback(
+    (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
       setActiveSortIndex(index);
       setActiveSortDirection(direction);
     },
-    columnIndex,
-  });
+    [],
+  );
+
+  // Helper function to get sort params for a column
+  const getSortParams = React.useCallback(
+    (columnIndex: number): ThProps['sort'] => ({
+      sortBy: {
+        index: activeSortIndex,
+        direction: activeSortDirection,
+      },
+      onSort: handleSort,
+      columnIndex,
+    }),
+    [activeSortIndex, activeSortDirection, handleSort],
+  );
 
   // Handler for viewing model details
   const handleViewDetails = (modelName: string, rank: number) => {
@@ -272,7 +278,10 @@ function AutomlLeaderboard({
 
   // Show empty state when pipeline is still running
   if (pipelineRunning) {
-    return <AutomlRunInProgress namespace={namespace!} />;
+    if (!namespace) {
+      return null;
+    }
+    return <AutomlRunInProgress namespace={namespace} />;
   }
 
   // Show loading state with 5 rows and 8 columns

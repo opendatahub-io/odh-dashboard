@@ -15,6 +15,25 @@ type UseAutomlResultsReturn = {
 /**
  * Custom hook to fetch and process AutoML model results from S3.
  *
+ * ## Testing Strategy
+ *
+ * **DO NOT unit test this hook directly.**
+ *
+ * This hook has 3 cascading async query stages that make it extremely difficult to unit test:
+ * 1. S3 list query → model directories
+ * 2. Artifact queries (one per directory) → model artifact paths
+ * 3. Metrics queries (one per model, enabled AFTER artifacts complete) → model data
+ *
+ * The cascading `useQueries` with conditional `enabled` flags creates complex timing dependencies
+ * that are difficult to mock and lead to flaky tests.
+ *
+ * **Instead, test this hook through:**
+ * - `AutomlResultsContext.spec.tsx` - Tests the context that orchestrates this hook
+ * - `AutomlResultsPage.spec.tsx` - Tests the page-level integration
+ * - Cypress tests - End-to-end testing with real async flows
+ *
+ * This provides better coverage of real-world usage and is more maintainable.
+ *
  * This hook handles the complex cascade of queries needed to fetch AutoML results:
  * 1. Fetches S3 files to get model directories
  * 2. Fetches model artifacts for each directory

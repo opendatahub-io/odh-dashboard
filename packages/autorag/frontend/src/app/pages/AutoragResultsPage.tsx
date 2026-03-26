@@ -42,6 +42,17 @@ function AutoragResultsPage(): React.JSX.Element {
     error: patternsLoadError,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
+  const contextValue = React.useMemo(
+    () =>
+      getAutoragContext({
+        pipelineRun,
+        patterns,
+        pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+        patternsLoading,
+      }),
+    [pipelineRun, patterns, pipelineRunPending, pipelineRunFetching, patternsLoading],
+  );
+
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
@@ -70,14 +81,7 @@ function AutoragResultsPage(): React.JSX.Element {
       loaded={namespacesLoaded && !pipelineRunPending}
     >
       {!patternsError && (
-        <AutoragResultsContext.Provider
-          value={getAutoragContext({
-            pipelineRun,
-            patterns,
-            pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
-            patternsLoading,
-          })}
-        >
+        <AutoragResultsContext.Provider value={contextValue}>
           <AutoragResults />
         </AutoragResultsContext.Provider>
       )}

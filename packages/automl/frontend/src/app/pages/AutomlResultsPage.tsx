@@ -42,6 +42,17 @@ function AutomlResultsPage(): React.JSX.Element {
     error: modelsLoadError,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
+  const contextValue = React.useMemo(
+    () =>
+      getAutomlContext({
+        pipelineRun,
+        models,
+        pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
+        modelsLoading,
+      }),
+    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading],
+  );
+
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="AutoML" objectType={ProjectObjectType.pipelineExperiment} />}
@@ -70,14 +81,7 @@ function AutomlResultsPage(): React.JSX.Element {
       loaded={namespacesLoaded && !pipelineRunPending}
     >
       {!modelsError && (
-        <AutomlResultsContext.Provider
-          value={getAutomlContext({
-            pipelineRun,
-            models,
-            pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
-            modelsLoading,
-          })}
-        >
+        <AutomlResultsContext.Provider value={contextValue}>
           <AutomlResults />
         </AutomlResultsContext.Provider>
       )}
