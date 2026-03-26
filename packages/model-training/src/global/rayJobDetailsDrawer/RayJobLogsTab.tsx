@@ -42,12 +42,14 @@ const RayJobLogsTab: React.FC<RayJobLogsTabProps> = ({ job }) => {
     headPods.length > 0 ? getDefaultPodContainerName(headPods[0]) || undefined : undefined;
 
   const canFetchLogs = !!headPodName && !!containerName && !!jobId && isJobSubmitted;
+  const isJobComplete = deploymentStatus === 'Complete' || deploymentStatus === 'Failed';
+  const shouldRefreshLogs = canFetchLogs && !isJobComplete;
 
   const {
     data: logs,
     loaded: logsLoaded,
     error: logsError,
-  } = useFetchRayJobLogs(namespace, headPodName, containerName, jobId, canFetchLogs);
+  } = useFetchRayJobLogs(namespace, headPodName, containerName, jobId, shouldRefreshLogs);
 
   const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
 
