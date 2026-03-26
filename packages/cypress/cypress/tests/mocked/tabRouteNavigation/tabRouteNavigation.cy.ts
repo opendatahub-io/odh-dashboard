@@ -24,6 +24,25 @@ const initIntercepts = () => {
   );
 };
 
+const initMcpIntercepts = () => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+      },
+    }),
+  );
+
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelRegistry: false,
+      mcpCatalog: true,
+    }),
+  );
+};
+
 describe('Tab Route Page Navigation', () => {
   describe('Models tab-route page', () => {
     it('should show tabs and navigate between them on click', () => {
@@ -72,6 +91,33 @@ describe('Tab Route Page Navigation', () => {
       cy.visitWithLogin('/ai-hub/models/nonexistent-tab');
       // Should redirect to first tab (catalog)
       cy.location('pathname').should('include', '/ai-hub/models/catalog');
+    });
+  });
+
+  describe('MCP servers tab-route page (single tab)', () => {
+    it('should render page title without a tab bar', () => {
+      initMcpIntercepts();
+      tabRoutePage.visit('/ai-hub/mcp-servers/catalog');
+
+      tabRoutePage.findPageTitle().should('contain.text', 'MCP servers');
+
+      // Single-tab mode should not render a tab bar
+      tabRoutePage.findTabBar().should('not.exist');
+    });
+
+    it('should redirect to default tab when visiting base URL', () => {
+      initMcpIntercepts();
+      cy.visitWithLogin('/ai-hub/mcp-servers');
+      // Should redirect to the only tab (catalog)
+      cy.location('pathname').should('include', '/ai-hub/mcp-servers/catalog');
+      tabRoutePage.findPageTitle().should('contain.text', 'MCP servers');
+    });
+
+    it('should redirect invalid tab to default tab', () => {
+      initMcpIntercepts();
+      cy.visitWithLogin('/ai-hub/mcp-servers/nonexistent-tab');
+      // Should redirect to the only tab (catalog)
+      cy.location('pathname').should('include', '/ai-hub/mcp-servers/catalog');
     });
   });
 });
