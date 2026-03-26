@@ -11,13 +11,9 @@ import {
   Stack,
   Spinner,
   TextInput,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal from '#~/components/modals/ContentModal';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
@@ -54,6 +50,7 @@ import {
   DEFAULT_DATABASE_NAME,
   DEFAULT_MYSQL_PORT,
   DEFAULT_POSTGRES_PORT,
+  MAX_MODEL_REGISTRY_NAME_LENGTH,
   ResourceType,
   SecureDBRType,
 } from './const';
@@ -390,9 +387,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const hasContent = (value: string): boolean => !!value.trim().length;
 
   const canSubmit = () => {
-    const isValidName = isValidK8sName(
-      nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-    );
+    const k8sName = nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name);
+    const isValidName = isValidK8sName(k8sName) && k8sName.length <= MAX_MODEL_REGISTRY_NAME_LENGTH;
 
     if (databaseSource === DatabaseSource.DEFAULT) {
       // For default database, only name is required
@@ -419,11 +415,36 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   ];
 
   return (
-    <Modal isOpen onClose={onCancelClose} variant="medium">
-      <ModalHeader title={`${mr ? 'Edit' : 'Create'} model registry`} />
-      <ModalBody>
+    <ContentModal
+      onClose={onCancelClose}
+      variant="medium"
+      title={`${mr ? 'Edit' : 'Create'} model registry`}
+      error={error}
+      alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
+      buttonActions={[
+        {
+          label: mr ? 'Update' : 'Create',
+          onClick: onSubmit,
+          variant: 'primary',
+          isLoading: isSubmitting,
+          isDisabled: !canSubmit(),
+          dataTestId: 'modal-submit-button',
+        },
+        {
+          label: 'Cancel',
+          onClick: onCancelClose,
+          variant: 'link',
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
+      contents={
         <Form>
-          <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
+          <K8sNameDescriptionField
+            dataTestId="mr"
+            data={nameDesc}
+            onDataChange={setNameDesc}
+            maxLength={MAX_MODEL_REGISTRY_NAME_LENGTH}
+          />
           <FormSection title="Database" description="Choose where to store model data.">
             <FormGroup role="radiogroup" fieldId="mr-database-source">
               <Stack hasGutter>
@@ -632,19 +653,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             )}
           </FormSection>
         </Form>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={onCancelClose}
-          onSubmit={onSubmit}
-          submitLabel={mr ? 'Update' : 'Create'}
-          isSubmitLoading={isSubmitting}
-          isSubmitDisabled={!canSubmit()}
-          error={error}
-          alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
-        />
-      </ModalFooter>
-    </Modal>
+      }
+    />
   );
 };
 
