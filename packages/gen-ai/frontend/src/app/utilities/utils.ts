@@ -75,7 +75,9 @@ export const isLlamaModelEnabled = (
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
-    return enabledModel.status === 'Running';
+    return (
+      enabledModel.status === 'Running' || enabledModel.model_source_type === 'custom_endpoint'
+    );
   }
 
   const maasModel = maasModels.find((m) => m.id === id);
@@ -132,13 +134,20 @@ export const parseEndpointByPrefix = (
  * If the URL cannot be parsed, it returns false (treats it as external for safety).
  *
  * @param rawURL - The URL to check
+ * @param clusterDomains - Additional cluster domain suffixes to treat as internal
  * @returns true if the URL is cluster-local, false otherwise
  */
-export const isClusterLocalURL = (rawURL: string): boolean => {
+export const isClusterLocalURL = (rawURL: string, clusterDomains: string[] = []): boolean => {
   try {
-    // TODO: Accept extra cluster domains from the OdhDashboardConfig
     const url = new URL(rawURL);
-    return url.hostname.endsWith('.svc.cluster.local');
+
+    // Always check .svc.cluster.local as a fallback
+    if (url.hostname.endsWith('.svc.cluster.local')) {
+      return true;
+    }
+
+    // Check configured cluster domains
+    return clusterDomains.some((domain) => domain && url.hostname.endsWith(domain));
   } catch {
     // If we can't parse it, treat it as external for safety
     return false;

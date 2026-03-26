@@ -28,6 +28,15 @@ type MaasApiError struct {
 	Error string `json:"error"`
 }
 
+type MaasUpstreamError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *MaasUpstreamError) Error() string {
+	return e.Message
+}
+
 func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 	return &MaasClient{
 		httpClient: &http.Client{
@@ -165,7 +174,7 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 		}
 
 		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", maasApiError.Error, "endpoint", endpoint.String(), "method", method)
-		return fmt.Errorf("request to maas-api failed: %s", maasApiError.Error)
+		return &MaasUpstreamError{StatusCode: response.StatusCode, Message: maasApiError.Error}
 	}
 
 	body, readBodyErr := io.ReadAll(io.LimitReader(response.Body, c.maxResponseSize))

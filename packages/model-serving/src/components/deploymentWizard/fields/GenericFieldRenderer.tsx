@@ -1,5 +1,5 @@
 import React from 'react';
-import type { GenericFieldProps, WizardField } from '../types';
+import { resolveFieldValue, type GenericFieldProps, WizardField } from '../types';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { getFieldDependencies } from '../dynamicFormUtils';
@@ -7,6 +7,7 @@ import { getFieldDependencies } from '../dynamicFormUtils';
 type CommonProps = {
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
+  isDisabled?: boolean;
 } & GenericFieldProps;
 
 type GenericFieldRendererProps = CommonProps &
@@ -18,6 +19,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   wizardState,
   externalData,
   isEditing,
+  isDisabled,
 }) => {
   const fields: WizardField<unknown>[] = React.useMemo(() => {
     if (fieldId) {
@@ -36,7 +38,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
         <React.Fragment key={field.id}>
           {field.component({
             id: field.id,
-            value: wizardState.state[field.id],
+            value: resolveFieldValue(field, wizardState.state),
             onChange: (value) => {
               wizardState.dispatch({
                 type: 'setFieldData',
@@ -46,6 +48,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
             externalData: externalData?.[field.id] ?? undefined,
             dependencies: getFieldDependencies(field, wizardState.state),
             isEditing,
+            isDisabled,
           })}
         </React.Fragment>
       ))}

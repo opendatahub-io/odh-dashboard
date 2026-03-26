@@ -6,6 +6,7 @@ import { BellIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import TruncatedText from '#~/components/TruncatedText';
 import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
@@ -85,7 +86,10 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           )}
         </Flex>
         {mr.metadata.annotations?.['openshift.io/description'] && (
-          <p>{mr.metadata.annotations['openshift.io/description']}</p>
+          <TruncatedText
+            maxLines={2}
+            content={mr.metadata.annotations['openshift.io/description']}
+          />
         )}
       </Td>
       <Td dataLabel="Status">

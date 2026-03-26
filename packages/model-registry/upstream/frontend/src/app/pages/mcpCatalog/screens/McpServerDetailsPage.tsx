@@ -22,6 +22,7 @@ import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import McpServerDetailsView from './McpServerDetailsView';
+import McpDeployButton from '~/odh/components/McpDeployButton';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
@@ -95,6 +96,7 @@ const McpServerDetailsPage: React.FC = () => {
             </EmptyState>
           ) : undefined
         }
+         headerAction={server ? <McpDeployButton /> : undefined}
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"

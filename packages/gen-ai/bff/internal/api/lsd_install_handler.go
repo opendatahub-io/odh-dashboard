@@ -68,7 +68,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Validate max_tokens for each model
+	// Validate max_tokens and embedding_dimension for each model
 	for i, model := range installRequest.Models {
 		if model.MaxTokens != nil {
 			if *model.MaxTokens < 128 {
@@ -80,11 +80,21 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 				return
 			}
 		}
+		if model.EmbeddingDimension != nil {
+			if *model.EmbeddingDimension < 128 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): embedding_dimension must be at least 128, got %d", i, model.ModelName, *model.EmbeddingDimension))
+				return
+			}
+			if *model.EmbeddingDimension > 3072000 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): embedding_dimension must not exceed 3072000, got %d", i, model.ModelName, *model.EmbeddingDimension))
+				return
+			}
+		}
 	}
 
 	// Pass the InstallModel structs directly to the repository
 	// enableGuardrails - if true, safety providers with shields will be configured for all models
-	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.EnableGuardrails, maasClient)
+	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.EnableGuardrails, installRequest.VectorStores, maasClient)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
