@@ -228,12 +228,14 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     if (!initialStepId) {
       return 0;
     }
-    // Resolved against activeSteps is not yet available here, so we use a
-    // stable reference to the full steps array definition order.
-    const stepOrder = ['models', 'collections'];
-    const idx = stepOrder.indexOf(initialStepId);
-    return idx >= 0 ? idx : 0;
-  }, [initialStepId]);
+    // Mirror the same enabled logic used in the steps array so the index is
+    // clamped to the actual active steps rather than a hardcoded order.
+    const collectionsEnabled =
+      vectorStoresEnabled && collectionsLoaded && availableCollections.length > 0;
+    const activeStepIds = collectionsEnabled ? ['models', 'collections'] : ['models'];
+    const idx = activeStepIds.indexOf(initialStepId);
+    return Math.max(0, Math.min(idx >= 0 ? idx : 0, activeStepIds.length - 1));
+  }, [initialStepId, vectorStoresEnabled, collectionsLoaded, availableCollections]);
 
   const [currentStepIndex, setCurrentStepIndex] = React.useState(initialIndex);
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
