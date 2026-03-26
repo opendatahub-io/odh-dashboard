@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { GenericFieldRenderer } from './GenericFieldRenderer';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
@@ -82,8 +82,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   wizardState,
   externalData,
 }) => {
-  // Fix for RHOAIENG-37896: Only show AAA checkbox when Gen AI Studio is available
-  const isGenAiEnabled = useIsAreaAvailable('plugin-gen-ai').status;
+  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
 
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
@@ -120,7 +119,9 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                 </>
               }
               isChecked={data.saveAsAiAsset}
-              onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
+              onChange={(_, checked) =>
+                setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })
+              }
             />
           </StackItem>
         )}
