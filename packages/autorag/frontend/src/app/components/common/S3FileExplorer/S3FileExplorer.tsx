@@ -71,12 +71,14 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
       const fileName = segments.pop() ?? obj.key;
       const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
 
-      const serializedSize = obj.size !== undefined ? formatBytes(obj.size) : undefined;
+      const sizeToRender = obj.size !== undefined ? formatBytes(obj.size) : undefined;
+      const fileTypeToRender = ext.toLocaleUpperCase() || 'File';
+
       items.push({
         name: fileName,
         path: fullPath,
-        type: ext || 'File',
-        size: serializedSize,
+        type: fileTypeToRender,
+        size: sizeToRender,
         details: {
           ...(obj.last_modified && {
             'Last Modified': (
@@ -92,8 +94,8 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
           }),
           // ...(obj.etag && { ETag: obj.etag }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
           // ...(obj.storage_class && { 'Storage Class': obj.storage_class }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
-          ...(obj.size !== undefined && { Size: serializedSize }),
-          ...{ Type: 'File' },
+          ...(obj.size !== undefined && { Size: sizeToRender }),
+          ...{ Type: fileTypeToRender },
         },
       });
     }
