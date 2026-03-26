@@ -409,6 +409,30 @@ class APIKeysPage {
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-api-key-button');
   }
+
+  findStatusFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-status-filter-toggle');
+  }
+
+  findStatusFilterOption(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
+  }
+
+  findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-input');
+  }
+
+  findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFilterInput().find('button[type="submit"]');
+  }
+
+  findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-tooltip');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
