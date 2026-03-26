@@ -131,7 +131,9 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               maxTokens={maxTokensMap.get(model.model_name)}
               onMaxTokensChange={(value) => onMaxTokensChange(model.model_name, value)}
               embeddingDimension={
-                embeddingDimensionMap.get(model.model_name) ?? model.embedding_dimension
+                embeddingDimensionMap.has(model.model_name)
+                  ? embeddingDimensionMap.get(model.model_name)
+                  : model.embedding_dimension
               }
               onEmbeddingDimensionChange={(value) =>
                 onEmbeddingDimensionChange(model.model_name, value)
