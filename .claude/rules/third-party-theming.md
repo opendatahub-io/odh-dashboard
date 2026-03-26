@@ -22,16 +22,19 @@ import { t_color_white, t_color_gray_95 } from '@patternfly/react-tokens';
 // Correct — resolved hex value
 const textColor = isDark ? t_color_white.value : t_color_gray_95.value;
 
-echartsTheme: {
-  color: palette,               // hex array, never CSS var strings
-  tooltip: {
-    // CSS vars ARE fine for non-canvas properties (e.g. tooltip is DOM-rendered)
-    backgroundColor: 'var(--pf-t--global--background--color--inverse--default)',
+// These overrides are passed to generateChartsTheme(), not as top-level MUI theme properties
+const chartsTheme = generateChartsTheme(muiTheme, {
+  echartsTheme: {
+    color: palette,               // hex array, never CSS var strings
+    tooltip: {
+      // CSS vars ARE fine for non-canvas properties (e.g. tooltip is DOM-rendered)
+      backgroundColor: 'var(--pf-t--global--background--color--inverse--default)',
+    },
   },
-},
-thresholds: {
-  defaultColor: textColor,      // .value, not .var
-},
+  thresholds: {
+    defaultColor: textColor,      // .value, not .var
+  },
+});
 ```
 
 Use `@patternfly/react-tokens` `.value` anywhere the value is consumed by a canvas renderer. Use `var(--pf-t--*)` strings everywhere else.
@@ -49,7 +52,15 @@ const { theme: contextTheme } = useThemeContext();
 const isDark = contextTheme === 'dark';
 ```
 
-The full theme object must recompute when context changes — wrap it in `useMemo`.
+The full theme object must recompute when context changes:
+
+```ts
+return React.useMemo(() => {
+  const muiTheme = getTheme(theme, { ...mapPatternFlyThemeToMUI(theme) });
+  // ... build chartsTheme ...
+  return { muiTheme, chartsTheme };
+}, [theme, isDark]);
+```
 
 ---
 
