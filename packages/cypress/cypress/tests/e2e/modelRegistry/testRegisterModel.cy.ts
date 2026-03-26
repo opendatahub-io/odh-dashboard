@@ -49,12 +49,13 @@ const getRequiredEnv = (name: string): string => {
 };
 
 describe('Verify models can be registered in a model registry', () => {
-  let testData: ModelRegistryTestData | undefined;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let objectStorageModelName: string;
   let ociModelName: string;
   let ociUriModelName: string;
   let deploymentName: string;
+  let setupComplete = false;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
@@ -85,6 +86,7 @@ describe('Verify models can be registered in a model registry', () => {
 
       cy.step('Wait for model registry to be in Available state');
       checkModelRegistryAvailable(registryName).should('be.true');
+      setupComplete = true;
     });
   });
 
@@ -92,7 +94,7 @@ describe('Verify models can be registered in a model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
-    if (!testData || !registryName) {
+    if (!setupComplete) {
       cy.step('Skip cleanup because suite setup did not complete');
       return;
     }
