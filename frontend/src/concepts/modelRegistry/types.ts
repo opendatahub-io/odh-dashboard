@@ -1,5 +1,9 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
-import { ModelLocationType } from '#~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
+
+export enum ModelLocationType {
+  ObjectStorage = 'Object storage',
+  URI = 'URI',
+}
 
 export enum ModelState {
   LIVE = 'LIVE',
@@ -261,6 +265,23 @@ export type PatchModelArtifact = (
   data: Partial<ModelArtifact>,
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
+
+export type RegistrationCommonFormData = {
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelLocationType: ModelLocationType;
+  modelLocationEndpoint: string;
+  modelLocationBucket: string;
+  modelLocationRegion: string;
+  modelLocationPath: string;
+  modelLocationURI: string;
+  versionCustomProperties?: ModelRegistryCustomProperties;
+  modelCustomProperties?: ModelRegistryCustomProperties;
+  additionalArtifactProperties?: Partial<ModelArtifact>;
+  storageKey?: string;
+};
 
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
