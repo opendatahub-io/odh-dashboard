@@ -231,6 +231,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     setDatabaseType(newType);
   };
 
+  const effectiveK8sName = nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name);
+
   const onSubmit = async () => {
     setIsSubmitting(true);
     setError(undefined);
@@ -320,7 +322,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
         metadata: {
-          name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
+          name: effectiveK8sName,
           namespace: modelRegistryNamespace,
           annotations: {
             'openshift.io/description': nameDesc.description,
@@ -387,8 +389,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const hasContent = (value: string): boolean => !!value.trim().length;
 
   const canSubmit = () => {
-    const k8sName = nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name);
-    const isValidName = isValidK8sName(k8sName) && k8sName.length <= MAX_MODEL_REGISTRY_NAME_LENGTH;
+    const isValidName =
+      isValidK8sName(effectiveK8sName) && effectiveK8sName.length <= MAX_MODEL_REGISTRY_NAME_LENGTH;
 
     if (databaseSource === DatabaseSource.DEFAULT) {
       // For default database, only name is required
