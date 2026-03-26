@@ -51,6 +51,8 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 	response := &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:          request.Name,
+			DisplayName:   request.DisplayName,
+			Description:   request.Description,
 			Namespace:     "mock-namespace",
 			Phase:         "Pending",
 			Priority:      request.Priority,
@@ -93,6 +95,8 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 	return &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:              existing.Name,
+			DisplayName:       request.DisplayName,
+			Description:       request.Description,
 			Namespace:         existing.Namespace,
 			Phase:             existing.Phase,
 			Priority:          request.Priority,
@@ -117,8 +121,9 @@ func (r *MockSubscriptionsRepository) DeleteSubscription(_ context.Context, name
 func (r *MockSubscriptionsRepository) GetFormData(_ context.Context) (*models.SubscriptionFormDataResponse, error) {
 	r.logger.Debug("Getting subscription form data (mock)")
 	return &models.SubscriptionFormDataResponse{
-		Groups:    mocks.GetMockGroups(),
-		ModelRefs: mocks.GetMockMaaSModelRefSummaries(),
+		Groups:        mocks.GetMockGroups(),
+		ModelRefs:     mocks.GetMockMaaSModelRefSummaries(),
+		Subscriptions: mocks.GetMockMaaSSubscriptions(),
 	}, nil
 }
 

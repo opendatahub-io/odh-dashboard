@@ -97,7 +97,7 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 	kubeClient := client.GetDynamicClient()
 
 	// Build and create the MaaSSubscription CR in the configured namespace
-	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
 	createdSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Create(ctx, subObj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
@@ -168,8 +168,8 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
 
-	// Update the subscription spec
-	updateSubscriptionSpec(existingObj, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	// Update the subscription spec and annotations
+	updateSubscriptionSpec(existingObj, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
 	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update MaaSSubscription: %w", err)
@@ -206,7 +206,7 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 	return nil
 }
 
-// GetFormData returns groups and model refs for the subscription creation form.
+// GetFormData returns groups, model refs, and all subscriptions for the subscription creation form.
 func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.SubscriptionFormDataResponse, error) {
 	r.logger.Debug("Getting subscription form data")
 
@@ -231,8 +231,8 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 	}
 
 	return &models.SubscriptionFormDataResponse{
-		Groups:    groups,
-		ModelRefs: modelRefs,
+		Groups:        groups,
+		ModelRefs:     modelRefs,
 	}, nil
 }
 
@@ -523,12 +523,23 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 
 // --- Builder helpers: Go models -> Unstructured ---
 
-func buildSubscriptionUnstructured(name, namespace string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
+func buildSubscriptionUnstructured(name, namespace, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSSubscription")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+
+	annotations := map[string]string{}
+	if displayName != "" {
+		annotations["openshift.io/display-name"] = displayName
+	}
+	if description != "" {
+		annotations["openshift.io/description"] = description
+	}
+	if len(annotations) > 0 {
+		obj.SetAnnotations(annotations)
+	}
 
 	spec := map[string]interface{}{
 		"priority":  int64(priority),
@@ -652,7 +663,15 @@ func buildTokenMetadata(tm *models.TokenMetadata) map[string]interface{} {
 	return meta
 }
 
-func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
+func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations["openshift.io/display-name"] = displayName
+	annotations["openshift.io/description"] = description
+	obj.SetAnnotations(annotations)
+
 	existingSpec, _, _ := unstructured.NestedMap(obj.Object, "spec")
 	if existingSpec == nil {
 		existingSpec = map[string]interface{}{}

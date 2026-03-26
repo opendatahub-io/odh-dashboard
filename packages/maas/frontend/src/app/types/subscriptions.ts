@@ -1,5 +1,7 @@
 export type MaaSSubscription = {
   name: string;
+  displayName?: string;
+  description?: string;
   namespace: string;
   phase?: string;
   displayName?: string;
@@ -71,6 +73,27 @@ export type SubjectSpec = {
   groups: GroupReference[];
 };
 
+export type SubscriptionFormDataResponse = {
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+};
+
+export type CreateSubscriptionRequest = {
+  name: string;
+  displayName?: string;
+  description?: string;
+  owner: OwnerSpec;
+  modelRefs: ModelSubscriptionRef[];
+  priority: number;
+  createAuthPolicy: boolean;
+};
+
+export type CreateSubscriptionResponse = {
+  subscription: MaaSSubscription;
+  authPolicy?: MaaSAuthPolicy;
+};
+
 export type MaaSAuthPolicy = {
   name: string;
   namespace: string;
@@ -84,6 +107,13 @@ export type SubscriptionInfoResponse = {
   subscription: MaaSSubscription;
   modelRefs: MaaSModelRefSummary[];
   authPolicies: MaaSAuthPolicy[];
+  subjects: { groups: GroupReference[] };
+  meteringMetadata?: TokenMetadata;
+};
+
+export type SubscriptionModelEntry = {
+  modelRefSummary: MaaSModelRefSummary;
+  tokenRateLimits: TokenRateLimit[];
 };
 
 export type TokenRateLimitInfo = {

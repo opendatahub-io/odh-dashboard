@@ -36,17 +36,18 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         <TableRowTitleDescription
           title={
             <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
-              {subscription.name}
+              {subscription.displayName ?? subscription.name}
             </Link>
           }
+          description={subscription.description ?? ''}
           truncateDescriptionLines={2}
         />
       </Td>
       <Td dataLabel={subscriptionsColumns[1].label}>
-        <Label color="grey">{`${subscription.owner.groups.length.toString()} Groups`}</Label>
+        <Label color="grey">{`${subscription.owner.groups.length} Group${subscription.owner.groups.length === 1 ? '' : 's'}`}</Label>
       </Td>
       <Td dataLabel={subscriptionsColumns[2].label}>
-        <Label color="grey">{`${subscription.modelRefs.length.toString()} Models`}</Label>
+        <Label color="grey">{`${subscription.modelRefs.length} Model${subscription.modelRefs.length === 1 ? '' : 's'}`}</Label>
       </Td>
       <Td isActionCell>
         <ActionsColumn

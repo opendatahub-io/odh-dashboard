@@ -38,12 +38,14 @@ const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
 const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   isRecord(v) &&
   typeof v.name === 'string' &&
+  (v.displayName === undefined || typeof v.displayName === 'string') &&
+  (v.description === undefined || typeof v.description === 'string') &&
   typeof v.namespace === 'string' &&
   (v.displayName === undefined || typeof v.displayName === 'string') &&
   (v.description === undefined || typeof v.description === 'string') &&
   typeof v.phase === 'string' &&
   (v.priority === undefined || typeof v.priority === 'number') &&
-  typeof v.owner === 'object' &&
+  isRecord(v.owner) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
