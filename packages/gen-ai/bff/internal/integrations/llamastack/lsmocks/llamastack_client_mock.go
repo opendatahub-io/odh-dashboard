@@ -129,6 +129,13 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 	}
 
 	mockID := "vs_mock_new123"
+	metadata := map[string]string{
+		"provider_id":           "milvus",
+		"provider_vector_db_id": mockID,
+	}
+	for k, v := range params.Metadata {
+		metadata[k] = v
+	}
 	return &openai.VectorStore{
 		ID:         mockID,
 		Object:     "vector_store",
@@ -144,10 +151,7 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 		},
 		Status:       "completed",
 		LastActiveAt: 1755721097,
-		Metadata: map[string]string{
-			"provider_id":           "milvus",
-			"provider_vector_db_id": mockID,
-		},
+		Metadata:     metadata,
 		ExpiresAfter: openai.VectorStoreExpiresAfter{
 			Anchor: "last_active_at",
 			Days:   0,
