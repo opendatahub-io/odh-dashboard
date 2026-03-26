@@ -167,6 +167,31 @@ func TestIssueToken_HandlesClientError(t *testing.T) {
 	assert.Equal(t, ErrCodeInvalidResponse, maasErr.Code)
 }
 
+func TestIssueToken_ForwardsSubscription(t *testing.T) {
+	server, captured := newFakeServer(t, http.StatusCreated, successResponse)
+	defer server.Close()
+
+	client := NewHTTPMaaSClient(server.URL, "tok", false, nil)
+	_, err := client.IssueToken(context.Background(), models.MaaSTokenRequest{
+		Subscription: "premium-subscription",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "premium-subscription", captured.Body["subscription"])
+}
+
+func TestIssueToken_OmitsSubscriptionWhenEmpty(t *testing.T) {
+	server, captured := newFakeServer(t, http.StatusCreated, successResponse)
+	defer server.Close()
+
+	client := NewHTTPMaaSClient(server.URL, "tok", false, nil)
+	_, err := client.IssueToken(context.Background(), models.MaaSTokenRequest{})
+	require.NoError(t, err)
+
+	_, subscriptionPresent := captured.Body["subscription"]
+	assert.False(t, subscriptionPresent, "subscription field should be absent (omitempty) when not set")
+}
+
 func TestIssueToken_HandlesSuccessResponse(t *testing.T) {
 	server, _ := newFakeServer(t, http.StatusCreated, successResponse)
 	defer server.Close()

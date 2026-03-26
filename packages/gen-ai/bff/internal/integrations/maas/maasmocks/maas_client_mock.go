@@ -2,11 +2,20 @@ package maasmocks
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
+
+// ValidMockSubscriptions defines the set of subscription names that the mock
+// considers valid. These match the subscriptions returned by ListModels.
+var ValidMockSubscriptions = map[string]bool{
+	"basic-subscription":   true,
+	"premium-subscription": true,
+}
 
 // MockMaaSClient provides a mock implementation of the MaaSClient for testing
 type MockMaaSClient struct {
@@ -106,15 +115,31 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 
 // IssueToken returns a mock ephemeral API key response.
 // Respects request.ExpiresIn when provided; defaults to 1h.
+// When Subscription is non-empty, the key name reflects the subscription and
+// invalid subscriptions are rejected with a MaaSError (mirroring real MaaS 400).
 func (m *MockMaaSClient) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
+	if request.Subscription != "" && !ValidMockSubscriptions[request.Subscription] {
+		return nil, maas.NewMaaSError(
+			maas.ErrCodeInvalidResponse,
+			`API request failed with status 400: {"code":"invalid_subscription","error":"Unable to resolve a subscription for this API key"}`,
+			400,
+		)
+	}
+
 	ttl := 1 * time.Hour
 	if request.ExpiresIn != "" {
 		if parsed, err := time.ParseDuration(request.ExpiresIn); err == nil {
 			ttl = parsed
 		}
 	}
+
+	keyName := "sk-mock-api-key"
+	if request.Subscription != "" {
+		keyName = fmt.Sprintf("sk-mock-%s-key", request.Subscription)
+	}
+
 	return &models.MaaSTokenResponse{
-		Key:       "sk-oai-mock-api-key-for-testing-purposes-only",
+		Key:       keyName,
 		ExpiresAt: time.Now().Add(ttl).UTC().Format(time.RFC3339),
 	}, nil
 }

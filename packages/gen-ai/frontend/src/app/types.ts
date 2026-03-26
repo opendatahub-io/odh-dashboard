@@ -102,6 +102,7 @@ export type CreateResponseRequest = {
   input_shield_id?: string;
   output_shield_id?: string;
   model_source_type?: string;
+  subscription?: string;
 };
 
 export type SimplifiedUsage = {

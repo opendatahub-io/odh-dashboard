@@ -51,7 +51,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, responseEnvelope.Data.Key)
-		assert.Contains(t, responseEnvelope.Data.Key, "sk-oai-")
+		assert.Contains(t, responseEnvelope.Data.Key, "sk-mock-")
 	})
 
 	t.Run("should issue ephemeral API key with custom expiration when provided", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, responseEnvelope.Data.Key)
-		assert.Contains(t, responseEnvelope.Data.Key, "sk-oai-")
+		assert.Contains(t, responseEnvelope.Data.Key, "sk-mock-")
 	})
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {

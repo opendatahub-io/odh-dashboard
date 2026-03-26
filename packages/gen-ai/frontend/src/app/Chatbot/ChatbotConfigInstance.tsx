@@ -14,6 +14,7 @@ import {
   selectTemperature,
   selectStreamingEnabled,
   selectSelectedModel,
+  selectSelectedSubscription,
   selectSelectedMcpServerIds,
   selectGuardrail,
   selectGuardrailUserInputEnabled,
@@ -56,6 +57,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
@@ -102,6 +104,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     guardrailModelConfigs,
+    subscription: selectedSubscription,
   });
 
   // Expose the messages hook to parent and update when it changes

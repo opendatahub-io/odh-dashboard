@@ -2953,6 +2953,14 @@ components:
             - maas
           example: 'custom_endpoint'
           description: Source type of the model. Required when using custom_endpoint models.
+        subscription:
+          type: string
+          example: 'premium-subscription'
+          description: >-
+            Optional MaaS subscription name to bind when generating an ephemeral API key for MaaS model inference.
+            When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
+            When omitted, the user's highest-priority accessible subscription is used by MaaS.
+            Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
