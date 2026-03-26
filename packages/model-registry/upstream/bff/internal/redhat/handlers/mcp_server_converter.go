@@ -14,15 +14,15 @@ import (
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 )
 
-type MCPServerConversionResultEnvelope api.Envelope[*models.MCPServerConversionResult, api.None]
+type MCPServerEnvelope api.Envelope[*models.MCPServer, api.None]
 
-const mcpServerConvertGetHandlerID = api.HandlerID("mcpServer:mcpserver:get")
+const mcpServerConverterGetHandlerID = api.HandlerID("mcpServer:converter:get")
 
 func init() {
-	api.RegisterHandlerOverride(mcpServerConvertGetHandlerID, overrideMcpServerConvert)
+	api.RegisterHandlerOverride(mcpServerConverterGetHandlerID, overrideMcpServerConverter)
 }
 
-func overrideMcpServerConvert(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+func overrideMcpServerConverter(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
 	return app.AttachNamespace(app.AttachModelCatalogRESTClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
 		if !ok {
@@ -49,8 +49,8 @@ func overrideMcpServerConvert(app *api.App, _ func() httprouter.Handle) httprout
 			ContainerImage: containerImage,
 		})
 
-		envelope := MCPServerConversionResultEnvelope{
-			Data: result,
+		envelope := MCPServerEnvelope{
+			Data: result.MCPServer,
 		}
 
 		if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {

@@ -189,6 +189,18 @@ describe('MCP Server Details Page', () => {
       mcpServerDetails.findMcpNotFound().should('be.visible');
       mcpServerDetails.findDeployButton().should('not.exist');
     });
+
+    it('should not show deploy button when server has no artifacts', () => {
+      const serverWithoutArtifacts = mockMcpServer({
+        id: 'no-artifacts',
+        name: 'No Artifacts Server',
+        artifacts: [],
+      });
+      initServerDetailIntercept(serverWithoutArtifacts);
+      initMcpServerAvailabilityIntercept(true);
+      mcpServerDetails.visit(serverWithoutArtifacts.id);
+      mcpServerDetails.findDeployButton().should('not.exist');
+    });
   });
 
   describe('Tools section', () => {
