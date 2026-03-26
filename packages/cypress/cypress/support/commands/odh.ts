@@ -1149,6 +1149,10 @@ declare global {
           response: OdhResponse<{ message: string }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/namespaces',
+          response: OdhResponse<unknown>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /gen-ai/api/v1/maas/models',
           response: OdhResponse<unknown>,
         ) => Cypress.Chainable<null>) &
