@@ -165,6 +165,18 @@ class ModelRegistry {
     );
   }
 
+  findModelByName(name: string) {
+    return this.getRow(name).findName();
+  }
+
+  selectModelByName(name: string) {
+    return this.findModelByName(name).click();
+  }
+
+  shouldModelBeVisible(name: string) {
+    return this.findModelByName(name).should('be.visible');
+  }
+
   getModelVersionRow(name: string) {
     return new ModelRegistryTableRow(() =>
       this.findModelVersionsTable()

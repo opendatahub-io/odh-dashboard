@@ -82,3 +82,8 @@ ociTransferJobStartedNotification: "Model transfer job started"
 ociTransferJobFailedNotification: "Model transfer job failed"
 ociDestinationRegistry: "quay.io"
 ociDestinationUri: "quay.io/test-org/test-oci-model:v1"
+
+# OCI Register and Store — URI origin variant
+ociUriModelName: "test-oci-uri-model"
+ociUriJobName: "oci-uri-transfer-job"
+ociUriOriginUri: "s3://test-models/models/oci-test-model/v1.0?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
