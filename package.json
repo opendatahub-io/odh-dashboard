@@ -55,6 +55,7 @@
     "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit",
     "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
     "prepare": "husky",
+    "validate:ports": "node scripts/validate-module-ports.js",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
