@@ -115,7 +115,7 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
               </ToolbarItem>
             </Flex>
           }
-          defaultSortColumn={0}
+          defaultSortColumn={1}
           enablePagination
           data={filteredCollections}
           columns={collectionsColumns}
