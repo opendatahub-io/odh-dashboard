@@ -458,7 +458,7 @@ registered_resources:
       provider_id: vllm-inference-1
       model_type: llm
   shields: []
-  vector_dbs: []
+  vector_stores: []
   datasets: []
   scoring_fns: []
   benchmarks: []

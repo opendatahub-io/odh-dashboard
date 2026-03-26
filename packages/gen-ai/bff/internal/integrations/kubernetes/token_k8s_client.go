@@ -545,6 +545,163 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
+// ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
+// after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
+type ValidatedVectorStore struct {
+	Provider        models.VectorIOProvider
+	RegisteredStore models.RegisteredVectorStore
+	// CredEnvVarName is the env var name (e.g. "VS_CREDENTIAL_1") that will hold the
+	// credential value at runtime. Empty when the provider has no credentials.
+	CredEnvVarName string
+	// CredSecretRef is the K8s secret reference from custom_gen_ai.credentials.secretRefs.
+	// Nil when the provider has no credentials.
+	CredSecretRef *models.SecretKeyRef
+}
+
+// getVectorStoresConfig retrieves and parses the gen-ai-aa-vector-stores ConfigMap.
+// The GetConfigMap error is returned unwrapped so callers can inspect it (e.g. apierrors.IsNotFound).
+func (kc *TokenKubernetesClient) getVectorStoresConfig(
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+) (*models.ExternalVectorStoresDocument, error) {
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.VectorStoresConfigMapName)
+	if err != nil {
+		return nil, err
+	}
+
+	storesYAML, ok := configMap.Data[constants.VectorStoresYAMLKey]
+	if !ok || storesYAML == "" {
+		return nil, fmt.Errorf("%s key not found in ConfigMap %s", constants.VectorStoresYAMLKey, constants.VectorStoresConfigMapName)
+	}
+
+	var doc models.ExternalVectorStoresDocument
+	if err := yaml.Unmarshal([]byte(storesYAML), &doc); err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %w", constants.VectorStoresYAMLKey, err)
+	}
+
+	return &doc, nil
+}
+
+// validateVectorStores looks up each requested vector store in the parsed config document,
+// correlates it with its provider entry by provider_id, assigns credential env vars for
+// providers that need them, and returns the ordered slice.
+func validateVectorStores(vectorStores []models.InstallVectorStore, doc *models.ExternalVectorStoresDocument) ([]ValidatedVectorStore, error) {
+	providersByID := make(map[string]models.VectorIOProvider, len(doc.Providers.VectorIO))
+	for _, p := range doc.Providers.VectorIO {
+		providersByID[p.ProviderID] = p
+	}
+	registeredByID := make(map[string]models.RegisteredVectorStore, len(doc.RegisteredResources.VectorStores))
+	for _, s := range doc.RegisteredResources.VectorStores {
+		registeredByID[s.VectorStoreID] = s
+	}
+
+	// credByProvider tracks the VS_CREDENTIAL_N env var name and secret ref assigned to each
+	// provider on first encounter. Providers without credentials map to the zero value (empty name, nil ref).
+	type providerCred struct {
+		envVarName string
+		secretRef  *models.SecretKeyRef
+	}
+	credByProvider := make(map[string]providerCred)
+	credCounter := 0
+
+	result := make([]ValidatedVectorStore, 0, len(vectorStores))
+	for _, vs := range vectorStores {
+		registered, found := registeredByID[vs.VectorStoreID]
+		if !found {
+			return nil, fmt.Errorf("vector store %q not found in ConfigMap %s", vs.VectorStoreID, constants.VectorStoresConfigMapName)
+		}
+		if registered.EmbeddingModel == "" {
+			return nil, fmt.Errorf("vector store %q has empty embedding_model", vs.VectorStoreID)
+		}
+
+		provider, found := providersByID[registered.ProviderID]
+		if !found {
+			return nil, fmt.Errorf("vector store %q references provider_id %q which was not found in providers.vector_io", vs.VectorStoreID, registered.ProviderID)
+		}
+
+		cred, seen := credByProvider[provider.ProviderID]
+		if !seen {
+			secretRef := extractCredentialSecretRef(provider.Config.CustomGenAI)
+			if secretRef != nil {
+				credCounter++
+				cred = providerCred{
+					envVarName: fmt.Sprintf("VS_CREDENTIAL_%s_%d", sanitizeEnvVarSegment(provider.ProviderID), credCounter),
+					secretRef:  secretRef,
+				}
+			}
+			credByProvider[provider.ProviderID] = cred
+		}
+
+		result = append(result, ValidatedVectorStore{
+			Provider:        provider,
+			RegisteredStore: registered,
+			CredEnvVarName:  cred.envVarName,
+			CredSecretRef:   cred.secretRef,
+		})
+	}
+
+	return result, nil
+}
+
+// LoadAndValidateVectorStores reads the gen-ai-aa-vector-stores ConfigMap, looks up each
+// requested vector store by vector_store_id, correlates it with its provider entry by
+// provider_id, and returns the ordered slice. Exported so the mock can reuse this logic.
+func (kc *TokenKubernetesClient) LoadAndValidateVectorStores(
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	vectorStores []models.InstallVectorStore,
+) ([]ValidatedVectorStore, error) {
+	doc, err := kc.getVectorStoresConfig(ctx, identity, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("vector stores were supplied but the %s ConfigMap was not found in namespace %s", constants.VectorStoresConfigMapName, namespace)
+		}
+		return nil, fmt.Errorf("failed to get vector stores ConfigMap: %w", err)
+	}
+
+	return validateVectorStores(vectorStores, doc)
+}
+
+// sanitizeEnvVarSegment converts s into a safe env var name segment by uppercasing it,
+// replacing any character that is not A-Z, 0-9, or _ with an underscore, and truncating
+// to 50 characters to keep env var names manageable.
+const maxEnvVarSegmentLen = 50
+
+func sanitizeEnvVarSegment(s string) string {
+	result := strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
+			return r
+		}
+		if r >= 'a' && r <= 'z' {
+			return r - 32 // to uppercase
+		}
+		return '_'
+	}, s)
+	if len(result) > maxEnvVarSegmentLen {
+		result = result[:maxEnvVarSegmentLen]
+	}
+	return result
+}
+
+// extractCredentialSecretRef returns the first secretRef from custom_gen_ai.credentials.secretRefs
+// that has a non-empty name and key. The key is used directly as the LlamaStack provider config
+// field name (e.g. "password" for pgvector, "token" for milvus, "api_key" for qdrant), so the
+// platform engineer controls the mapping without any BFF-side provider type lookup.
+// Returns nil if no valid ref is found.
+func extractCredentialSecretRef(cga *models.CustomGenAIConfig) *models.SecretKeyRef {
+	if cga == nil || cga.Credentials == nil {
+		return nil
+	}
+	for _, ref := range cga.Credentials.SecretRefs {
+		if ref.Name != "" && ref.Key != "" {
+			return &models.SecretKeyRef{Name: ref.Name, Key: ref.Key}
+		}
+	}
+	return nil
+}
+
 // GetGuardrailsOrchestratorStatus lists GuardrailsOrchestrators in the namespace and returns the first one found.
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -1144,7 +1301,7 @@ func (kc *TokenKubernetesClient) findGuardrailsServiceAccountTokenSecret(ctx con
 	return secretName, nil
 }
 
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailsFeatureEnabled bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, guardrailsFeatureEnabled bool, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1167,7 +1324,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	modelSecrets := make(map[string]modelSecretInfo)
 
-	for _, model := range models {
+	for _, model := range installModels {
 		var (
 			secretName string
 			foundType  string
@@ -1220,7 +1377,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	}
 
 	// Add token environment variables from existing secrets
-	for i, model := range models {
+	for i, model := range installModels {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
 
 		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
@@ -1260,7 +1417,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 1b: If the guardrails feature is enabled, find the guardrails service account token secret
+	// Step 3: If the guardrails feature is enabled, find the guardrails service account token secret
 	// This follows the same pattern as VLLM token discovery
 	// Fail fast if the guardrails feature is enabled but the token is missing - this is a security feature
 	// and users should not have a false sense of protection from a non-functional guardrail setup
@@ -1293,15 +1450,61 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 2: Generate ConfigMap content first (before creating LSD)
+	// Step 4: Validate vector stores and inject credential env vars for providers that need them.
+	var validatedVectorStores []ValidatedVectorStore
+	if len(vectorStores) > 0 {
+		validatedVectorStores, err = kc.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores)
+		if err != nil {
+			return nil, err
+		}
+
+		// Inject one env var per unique provider credential (deduped by env var name).
+		injectedEnvVars := make(map[string]bool)
+		for _, vs := range validatedVectorStores {
+			if vs.CredEnvVarName == "" || injectedEnvVars[vs.CredEnvVarName] {
+				continue
+			}
+
+			// Verify the credential secret exists and contains the expected key before
+			// referencing it in the LSD pod spec. This gives a clear error at install time
+			// rather than a cryptic pod failure after the LSD is created.
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      vs.CredSecretRef.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q not found in namespace %s: %w",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, namespace, err)
+			}
+			if _, ok := secret.Data[vs.CredSecretRef.Key]; !ok {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q is missing key %q",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, vs.CredSecretRef.Key)
+			}
+
+			envVars = append(envVars, corev1.EnvVar{
+				Name: vs.CredEnvVarName,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: vs.CredSecretRef.Name},
+						Key:                  vs.CredSecretRef.Key,
+					},
+				},
+			})
+			injectedEnvVars[vs.CredEnvVarName] = true
+			kc.Logger.Debug("Injected vector store credential env var",
+				"envVar", vs.CredEnvVarName, "secret", vs.CredSecretRef.Name, "key", vs.CredSecretRef.Key)
+		}
+	}
+
+	// Step 5: Generate ConfigMap content first (before creating LSD)
 	configMapName := "llama-stack-config"
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models, guardrailsReady, maasClient)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
 	}
 
-	// Step 3: Create ConfigMap BEFORE creating LSD (without owner reference yet)
+	// Step 6: Create ConfigMap BEFORE creating LSD (without owner reference yet)
 	// This prevents the LSD from failing with "ConfigMap not found" during initial reconciliation
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1324,7 +1527,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	kc.Logger.Info("ConfigMap created successfully (before LSD creation)", "namespace", namespace, "configMapName", configMapName)
 
-	// Step 4: Create LlamaStackDistribution
+	// Step 7: Create LlamaStackDistribution
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
@@ -1396,9 +1599,9 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		return nil, fmt.Errorf("failed to create LlamaStackDistribution: %w", err)
 	}
 
-	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
+	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
 
-	// Step 5: Update ConfigMap to add owner reference to the LSD
+	// Step 8: Update ConfigMap to add owner reference to the LSD
 	// This ensures the ConfigMap is garbage collected when the LSD is deleted
 	configMap.OwnerReferences = []metav1.OwnerReference{
 		{
@@ -1435,8 +1638,37 @@ func ensureVLLMCompatibleURL(url string) string {
 	return url + "/v1"
 }
 
+// buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
+// as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
+// to the full LlamaStack model identifier (provider_id/effective_provider_model_id),
+// mirroring the logic in llama-stack models.py: identifier = f"{provider_id}/{provider_model_id or model_id}"
+// Both model_id and provider_model_id are added as keys so the lookup succeeds regardless
+// of which value the admin used in the ConfigMap.
+// Example of lookup entries this would produce:
+//
+//	embedding_model: ibm-granite/granite-embedding-125m-english -> sentence-transformers/ibm-granite/granite-embedding-125m-english
+//	embedding_model: RedHatAI/granite-embedding-english-r2      -> granite-embed-provider/RedHatAI/granite-embedding-english-r2
+func buildEmbeddingModelLookup(ms []Model) map[string]string {
+	lookup := make(map[string]string, len(ms))
+	for _, m := range ms {
+		if m.ModelType != string(models.ModelTypeEmbedding) {
+			continue
+		}
+		effectiveProviderModelID := m.ProviderModelID
+		if effectiveProviderModelID == "" {
+			effectiveProviderModelID = m.ModelID
+		}
+		identifier := fmt.Sprintf("%s/%s", m.ProviderID, effectiveProviderModelID)
+		lookup[m.ModelID] = identifier
+		if m.ProviderModelID != "" {
+			lookup[m.ProviderModelID] = identifier
+		}
+	}
+	return lookup
+}
+
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
@@ -1564,6 +1796,79 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Track provider info for guardrails
 			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
+		}
+	}
+
+	// Vector stores processing happens here after all the model providers above have been processed.
+	// This allows us to know the full list of models, including default embedding model, to be included,
+	// and thus to validate that each vector store collection has an associated embedding model that will be available.
+	if len(vectorStores) > 0 {
+		// Build a map from user-supplied embedding_model in gen-ai-aa-vector-stores ConfigMap → full LlamaStack identifier.
+		embeddingModelLookup := buildEmbeddingModelLookup(config.RegisteredResources.Models)
+
+		// Collect built-in/default VectorIO provider IDs so we can detect collisions with external providers.
+		builtinProviderIDs := make(map[string]bool, len(config.Providers.VectorIO))
+		for _, p := range config.Providers.VectorIO {
+			builtinProviderIDs[p.ProviderID] = true
+		}
+
+		// Track which external providers have already been added (dedup when multiple vector stores share one provider).
+		addedProviders := make(map[string]bool)
+
+		for _, vs := range vectorStores {
+			rs := vs.RegisteredStore
+
+			// Resolve the gen-ai-aa-vector-stores ConfigMap supplied embedding_model (bare provider_model_id) to the full
+			// LlamaStack identifier (provider_id/effective_provider_model_id).
+			resolvedEmbeddingModel, ok := embeddingModelLookup[rs.EmbeddingModel]
+			if !ok {
+				return "", fmt.Errorf("vector store %q requires embedding model %q but it's not included in the registered models", rs.VectorStoreID, rs.EmbeddingModel)
+			}
+
+			// Add the provider once, copying the pass-through config fields and injecting the credential env var ref.
+			if !addedProviders[vs.Provider.ProviderID] {
+				if builtinProviderIDs[vs.Provider.ProviderID] {
+					return "", fmt.Errorf("external vector store provider %q conflicts with a built-in provider ID; choose a unique provider_id", vs.Provider.ProviderID)
+				}
+				providerConfig := make(map[string]interface{}, len(vs.Provider.Config.Extra))
+				for k, v := range vs.Provider.Config.Extra {
+					providerConfig[k] = v
+				}
+				// Ensure persistence is present (in some providers LSD pod will crash if not included).
+				// Use the user-supplied value if present; otherwise inject a safe default.
+				if _, hasPersistence := providerConfig["persistence"]; !hasPersistence {
+					providerConfig["persistence"] = map[string]interface{}{
+						"backend":   "kv_default",
+						"namespace": fmt.Sprintf("vector_io::%s", vs.Provider.ProviderID),
+					}
+					kc.Logger.Info("injected default persistence config for provider", "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType)
+				}
+				if vs.CredEnvVarName != "" {
+					providerConfig[vs.CredSecretRef.Key] = fmt.Sprintf("${env.%s:=}", vs.CredEnvVarName)
+				}
+				config.AddVectorIOProvider(Provider{
+					ProviderID:   vs.Provider.ProviderID,
+					ProviderType: vs.Provider.ProviderType,
+					Config:       providerConfig,
+				})
+				addedProviders[vs.Provider.ProviderID] = true
+			}
+
+			vsEntry := VectorStore{
+				ProviderID:            rs.ProviderID,
+				VectorStoreID:         rs.VectorStoreID,
+				EmbeddingModel:        resolvedEmbeddingModel,
+				EmbeddingDimension:    rs.EmbeddingDimension,
+				VectorStoreName:       rs.VectorStoreName,
+				ProviderVectorStoreID: rs.ProviderVectorStoreID,
+			}
+			if rs.Metadata.Description != "" {
+				vsEntry.Metadata = map[string]interface{}{"description": rs.Metadata.Description}
+			}
+			config.RegisterVectorStore(vsEntry)
+
+			kc.Logger.Info("Added external vector store to configuration",
+				"vectorStoreID", rs.VectorStoreID, "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType, "embeddingModel", rs.EmbeddingModel, "vectorStoreName", rs.VectorStoreName)
 		}
 	}
 

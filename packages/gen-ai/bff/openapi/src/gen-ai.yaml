@@ -3482,6 +3482,29 @@ components:
             Output shields include content-moderation and pii.
           example: true
           default: false
+        vector_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstallVectorStore'
+          description: |
+            Optional list of external vector stores to register with the LSD installation.
+            Each entry references a vector store defined in the gen-ai-aa-vector-stores ConfigMap
+            by its ID. The BFF resolves provider configuration and credentials from the ConfigMap
+            and injects them into the LSD spec.
+          example:
+            - vector_store_id: 'vs_bff00001-0000-0000-0000-000000000001'
+
+    InstallVectorStore:
+      type: object
+      required:
+        - vector_store_id
+      properties:
+        vector_store_id:
+          type: string
+          description: |
+            ID of the vector store to register, as defined in the registered_resources.vector_stores
+            section of the gen-ai-aa-vector-stores ConfigMap.
+          example: 'vs_bff00001-0000-0000-0000-000000000001'
 
     InstallModel:
       type: object
