@@ -1059,6 +1059,11 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 		return nil, fmt.Errorf("failed to unmarshal external models config: %w", err)
 	}
 
+	if err := kc.validateExternalModelsConfig(&config); err != nil {
+		kc.Logger.Error("external models config failed validation", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("invalid external models ConfigMap: %w", err)
+	}
+
 	// Build a map of provider ID to provider for quick lookup
 	providerMap := make(map[string]models.InferenceProvider)
 	for _, provider := range config.Providers.Inference {
