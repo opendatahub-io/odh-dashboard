@@ -1,33 +1,32 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { deleteSubscriptionModal, subscriptionsPage } from '../../../pages/modelsAsAService';
-import { mockSubscriptions } from '../../../utils/maasUtils';
+import {
+  deleteSubscriptionModal,
+  subscriptionsPage,
+  viewSubscriptionPage,
+} from '../../../pages/modelsAsAService';
+import { mockSubscriptions, mockSubscriptionInfo } from '../../../utils/maasUtils';
+
+const setupCommonIntercepts = () => {
+  asProductAdminUser();
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+  cy.interceptOdh('GET /maas/api/v1/user', { data: { userId: 'test-user', clusterAdmin: false } });
+  cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+      },
+    }),
+  );
+};
 
 describe('Subscriptions Page', () => {
   beforeEach(() => {
-    asProductAdminUser();
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        modelAsService: true,
-      }),
-    );
-    cy.interceptOdh('GET /maas/api/v1/user', {
-      data: { userId: 'test-user', clusterAdmin: false },
-    });
-    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
-    cy.interceptOdh(
-      'GET /api/dsc/status',
-      mockDscStatus({
-        components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
-        },
-      }),
-    );
-    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
-      data: mockSubscriptions(),
-    });
+    setupCommonIntercepts();
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     subscriptionsPage.visit();
   });
 
@@ -94,5 +93,88 @@ describe('Subscriptions Page', () => {
     });
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
+  });
+});
+
+describe('View Subscription Page', () => {
+  const subscriptionName = 'premium-team-sub';
+
+  beforeEach(() => {
+    setupCommonIntercepts();
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      mockSubscriptionInfo(subscriptionName),
+    );
+  });
+
+  it('should navigate to view page from the subscription list', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    subscriptionsPage.visit();
+    subscriptionsPage.getRow(subscriptionName).findKebabAction('View details').click();
+    cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
+  });
+
+  it('should display the page title and navigate back via breadcrumb', () => {
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
+    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
+    cy.url().should('include', '/maas/subscriptions');
+  });
+
+  it('should display the Details section with name and created date', () => {
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage
+      .findDetailsSection()
+      .should('contain.text', subscriptionName)
+      .and('contain.text', 'Name')
+      .and('contain.text', 'Date created');
+  });
+
+  it('should display the Groups section with all group names', () => {
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findGroupsSection().should('exist');
+    viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
+  });
+
+  it('should display the Models section with display name, raw name, project, and token limits', () => {
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findModelsSection().should('exist');
+    viewSubscriptionPage
+      .findModelsTable()
+      .should('contain.text', 'granite-3-8b-instruct Display')
+      .and('contain.text', 'granite-3-8b-instruct')
+      .and('contain.text', 'maas-models')
+      .and('contain.text', '100,000');
+  });
+
+  it('should display the Auth Policies section with policy name and groups', () => {
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findPoliciesSection().scrollIntoView().should('exist');
+    viewSubscriptionPage
+      .findPoliciesTable()
+      .should('contain.text', `${subscriptionName}-policy`)
+      .and('contain.text', 'MaaSAuthPolicy');
+  });
+
+  it('should show empty message when there are no policies', () => {
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      { ...mockSubscriptionInfo(subscriptionName), authPolicies: [] },
+    );
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findPoliciesEmptyMessage().should('exist');
+    viewSubscriptionPage.findPoliciesTable().should('not.exist');
+  });
+
+  it('should show error state when the subscription-info API fails', () => {
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      { forceNetworkError: true } as never,
+    );
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findPageError().should('exist');
   });
 });
