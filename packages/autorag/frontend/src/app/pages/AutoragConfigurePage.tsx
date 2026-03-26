@@ -115,7 +115,8 @@ function AutoragConfigurePage(): React.JSX.Element {
       description={
         step === 'create' && (
           <Content>
-            Automatically configure and optimize your Retrieval-Augmented Generation workflows.
+            Automatically test and tune retrieval, indexing, and model settings to improve
+            Retrieval-Augmented Generation (RAG) response quality.
           </Content>
         )
       }

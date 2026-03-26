@@ -34,7 +34,10 @@ function AutoragExperimentsPage(): React.JSX.Element {
         />
       }
       description={
-        <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
+        <p>
+          Automatically test and tune retrieval, indexing, and model settings to improve
+          Retrieval-Augmented Generation (RAG) response quality.
+        </p>
       }
       empty={showEmpty}
       emptyStatePage={
