@@ -51,6 +51,7 @@ describe('ChatbotHeaderActions', () => {
     onDeletePlayground: jest.fn(),
     onNewChat: jest.fn(),
     onCompareChat: jest.fn(),
+    onSettingsClick: jest.fn(),
     isCompareMode: false,
   };
 
@@ -122,6 +123,67 @@ describe('ChatbotHeaderActions', () => {
 
       const button = screen.getByTestId('compare-chat-button');
       expect(button).toHaveAttribute('aria-label', 'Compare chat');
+    });
+  });
+
+  describe('Settings button', () => {
+    it('renders settings button', () => {
+      const contextValue = createContextValue();
+      render(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toBeInTheDocument();
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    it('calls onSettingsClick when clicked', async () => {
+      const user = userEvent.setup();
+      const mockOnSettingsClick = jest.fn();
+      const contextValue = createContextValue();
+
+      render(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} onSettingsClick={mockOnSettingsClick} />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('settings-button'));
+
+      expect(mockOnSettingsClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('settings button is visible in both single and compare modes', () => {
+      const contextValue = createContextValue();
+
+      const { rerender } = render(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} isCompareMode={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toBeInTheDocument();
+
+      rerender(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} isCompareMode />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toBeInTheDocument();
+    });
+
+    it('settings button has correct aria-label', () => {
+      const contextValue = createContextValue();
+      render(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toHaveAttribute('aria-label', 'Settings');
     });
   });
 
@@ -225,6 +287,7 @@ describe('ChatbotHeaderActions', () => {
       );
 
       expect(screen.getByTestId('compare-chat-button')).toBeInTheDocument();
+      expect(screen.getByTestId('settings-button')).toBeInTheDocument();
       expect(screen.getByTestId('new-chat-button')).toBeInTheDocument();
       expect(screen.getByTestId('view-code-button')).toBeInTheDocument();
     });
