@@ -104,6 +104,9 @@ describe('AIModelTableRow', () => {
     lsdStatus: null,
     allModels: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
+    allCollections: [],
+    collectionsLoaded: true,
+    existingCollections: [],
   };
 
   beforeEach(() => {

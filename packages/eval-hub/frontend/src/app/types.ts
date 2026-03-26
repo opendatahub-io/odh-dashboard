@@ -29,6 +29,15 @@ export type NamespaceKind = {
 };
 
 // ---------------------------------------------------------------------------
+// EvalHub health response type matching the BFF response shape
+// ---------------------------------------------------------------------------
+
+export type EvalHubHealthResponse = {
+  status: string;
+  available: boolean;
+};
+
+// ---------------------------------------------------------------------------
 // EvalHub CR status types matching the BFF response shape
 // ---------------------------------------------------------------------------
 

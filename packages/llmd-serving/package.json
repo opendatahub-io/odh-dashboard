@@ -13,6 +13,7 @@
   "exports": {
     "./extensions": "./extensions/extensions.ts",
     "./types": "./src/types.ts",
+    "./formUtils": "./src/formUtils.ts",
     "./__tests__/utils": "./src/__tests__/utils.ts"
   },
   "dependencies": {
