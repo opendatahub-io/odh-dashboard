@@ -230,7 +230,11 @@ export const assembleInferenceService = (
 
   if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (!podSpecOptions.selectedHardwareProfile) {
+    const isLegacyHardwareProfile =
+      podSpecOptions.selectedHardwareProfile &&
+      (!!podSpecOptions.selectedAcceleratorProfile ||
+        !podSpecOptions.selectedHardwareProfile.metadata.uid);
+    if (!podSpecOptions.selectedHardwareProfile || isLegacyHardwareProfile) {
       if (tolerations) {
         updatedInferenceService.spec.predictor.tolerations = tolerations;
       }

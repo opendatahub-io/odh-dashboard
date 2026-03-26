@@ -590,6 +590,107 @@ describe('assembleInferenceService', () => {
     expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
   });
 
+  it('should inject tolerations and nodeSelector for legacy hardware profiles (no uid)', () => {
+    const legacyHardwareProfile = mockHardwareProfile({
+      name: 'legacy-hwp',
+      uid: undefined,
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+      nodeSelector: { 'nvidia.com/gpu.present': 'true' },
+    });
+    delete (legacyHardwareProfile.metadata as Record<string, unknown>).uid;
+
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: legacyHardwareProfile,
+      tolerations: legacyHardwareProfile.spec.scheduling?.node?.tolerations,
+      nodeSelector: legacyHardwareProfile.spec.scheduling?.node?.nodeSelector,
+      resources: {
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: '2', memory: '4Gi' },
+      },
+    });
+
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(result.spec.predictor.tolerations).toEqual([
+      {
+        key: 'nvidia.com/gpu',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
+      },
+    ]);
+    expect(result.spec.predictor.nodeSelector).toEqual({ 'nvidia.com/gpu.present': 'true' });
+    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
+      'legacy-hwp',
+    );
+  });
+
+  it('should inject tolerations for legacy hardware profiles (with accelerator profile)', () => {
+    const legacyHardwareProfile = mockHardwareProfile({
+      name: 'legacy-hwp-from-ap',
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
+
+    const acceleratorProfile = mockAcceleratorProfile({
+      name: 'test-ap',
+      identifier: 'nvidia.com/gpu',
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
+
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: legacyHardwareProfile,
+      selectedAcceleratorProfile: acceleratorProfile,
+      tolerations: legacyHardwareProfile.spec.scheduling?.node?.tolerations,
+      resources: {
+        requests: { 'nvidia.com/gpu': 1 },
+        limits: { 'nvidia.com/gpu': 1 },
+      },
+    });
+
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(result.spec.predictor.tolerations).toEqual([
+      {
+        key: 'nvidia.com/gpu',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
+      },
+    ]);
+  });
+
   it('should set pod specs for accelerator profiles', () => {
     const gpuTolerations = [
       {
