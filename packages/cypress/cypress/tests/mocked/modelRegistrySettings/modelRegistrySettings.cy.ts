@@ -336,6 +336,52 @@ describe('CreateModal', () => {
     modelRegistrySettings.shouldHaveAllErrors();
   });
 
+  it('should enforce maxLength of 40 on the name input field', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .should('have.attr', 'maxLength', '40');
+  });
+
+  it('should disable submit when resource name exceeds 40 characters', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('a'.repeat(40));
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.k8sNameDescription.findResourceEditLink().click();
+    modelRegistrySettings.k8sNameDescription.findResourceNameInput().clear().type('a'.repeat(41));
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('should show character count warning when name approaches 40 limit', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+
+    const nearLimitName = 'a'.repeat(31);
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(nearLimitName);
+    cy.contains('Cannot exceed 40 characters').should('be.visible');
+    cy.contains('remaining').should('be.visible');
+  });
+
+  it('should allow creation with name at exactly 40 characters using default database', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+
+    const exactName = 'a'.repeat(40);
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(exactName);
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body.modelRegistry.metadata.name).to.have.length.at.most(40);
+    });
+  });
+
   it('should enable submit button if fields are valid', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();

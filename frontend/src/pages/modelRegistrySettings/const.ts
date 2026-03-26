@@ -1,3 +1,5 @@
+export const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
+
 export const ODH_TRUSTED_BUNDLE = 'odh-trusted-ca-bundle';
 export const CA_BUNDLE_CRT = 'ca-bundle.crt';
 export const ODH_CA_BUNDLE_CRT = 'odh-ca-bundle.crt';
