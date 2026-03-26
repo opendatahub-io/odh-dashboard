@@ -1263,8 +1263,6 @@ describe('Pipelines', () => {
     pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
-    pipelineRow.findExpandButton().click();
-
     cy.wait('@refreshVersions').then((interception) => {
       expect(interception.request.query).to.eql({
         sort_by: 'created_at desc',
@@ -1272,6 +1270,9 @@ describe('Pipelines', () => {
         pipeline_id: 'test-pipeline',
       });
     });
+
+    // Collapse the row after versions refresh to avoid DOM timing issues
+    pipelineRow.findExpandButton().click();
     pipelineRow.shouldNotHavePipelineVersion();
   });
 
