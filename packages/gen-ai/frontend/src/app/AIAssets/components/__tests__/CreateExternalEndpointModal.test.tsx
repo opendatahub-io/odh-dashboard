@@ -4,6 +4,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
+import useGenAiDashboardConfig from '~/app/hooks/useGenAiDashboardConfig';
+
+jest.mock('~/app/hooks/useGenAiDashboardConfig');
+const mockUseGenAiDashboardConfig = jest.mocked(useGenAiDashboardConfig);
 
 describe('CreateExternalEndpointModal - Verification', () => {
   const mockOnClose = jest.fn();
@@ -13,6 +17,9 @@ describe('CreateExternalEndpointModal - Verification', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiDashboardConfig.mockReturnValue({
+      aiAssetCustomEndpoints: { externalProviders: true, clusterDomains: [] },
+    });
   });
 
   describe('Verify button state', () => {

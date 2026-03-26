@@ -42,7 +42,7 @@ const (
 	ModelTypeLLM       ModelTypeEnum = "llm"
 )
 
-// ExternalModelsConfig represents the structure of the gen-ai-aa-external-models ConfigMap
+// ExternalModelsConfig represents the structure of the gen-ai-aa-custom-model-endpoints ConfigMap
 type ExternalModelsConfig struct {
 	Providers           ProvidersConfig           `yaml:"providers"`
 	RegisteredResources RegisteredResourcesConfig `yaml:"registered_resources"`
