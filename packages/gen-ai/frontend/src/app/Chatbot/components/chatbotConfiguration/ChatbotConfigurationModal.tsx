@@ -267,6 +267,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   }, [initialStepId, vectorStoresEnabled, collectionsLoaded, availableCollections]);
 
   const [currentStepIndex, setCurrentStepIndex] = React.useState(initialIndex);
+  const [submitting, setSubmitting] = React.useState(false);
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
@@ -388,6 +389,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   const onSubmit = () => {
+    if (submitting) {
+      return;
+    }
     if (selectedModels.length === 0) {
       setAlertTitle('Select at least one model');
       const e = new Error(
@@ -401,6 +405,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       setError(new Error('API is not available'));
       return;
     }
+
+    setSubmitting(true);
 
     const install = () => {
       api
@@ -443,6 +449,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         .catch((e) => {
           setError(e);
           fireErrorEvents(e);
+          setSubmitting(false);
           setConfiguringPlayground(false);
         });
     };
@@ -457,6 +464,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         .catch((e) => {
           setError(e);
           fireErrorEvents(e);
+          setSubmitting(false);
           setConfiguringPlayground(false);
         });
     } else {
@@ -465,6 +473,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   const onBeforeClose = () => {
+    setSubmitting(false);
     setConfiguringPlayground(false);
     setCurrentStepIndex(0);
     setError(undefined);
@@ -529,20 +538,20 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           {!isStepsLoading && isLastStep ? (
-            <Button variant="primary" onClick={onSubmit}>
+            <Button variant="primary" onClick={onSubmit} isDisabled={submitting}>
               {isUpdate ? 'Configure' : 'Create'}
             </Button>
           ) : (
-            <Button variant="primary" onClick={goNext} isDisabled={isStepsLoading}>
+            <Button variant="primary" onClick={goNext} isDisabled={isStepsLoading || submitting}>
               {currentStep.nextCTA}
             </Button>
           )}
           {!isFirstStep && (
-            <Button variant="secondary" onClick={goBack}>
+            <Button variant="secondary" onClick={goBack} isDisabled={submitting}>
               <ArrowLeftIcon /> Back to {currentStep.backCTA}
             </Button>
           )}
-          <Button variant="link" onClick={onBeforeClose}>
+          <Button variant="link" onClick={onBeforeClose} isDisabled={submitting}>
             Cancel
           </Button>
         </ModalFooter>
