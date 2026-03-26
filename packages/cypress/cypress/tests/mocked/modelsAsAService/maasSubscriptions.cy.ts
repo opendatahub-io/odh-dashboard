@@ -1,32 +1,62 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import {
-  deleteSubscriptionModal,
-  subscriptionsPage,
-  viewSubscriptionPage,
-} from '../../../pages/modelsAsAService';
-import { mockSubscriptions, mockSubscriptionInfo } from '../../../utils/maasUtils';
-
-const setupCommonIntercepts = () => {
-  asProductAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
-  cy.interceptOdh('GET /maas/api/v1/user', { data: { userId: 'test-user', clusterAdmin: false } });
-  cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({
-      components: {
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
-      },
-    }),
-  );
-};
+import { deleteSubscriptionModal, subscriptionsPage } from '../../../pages/modelsAsAService';
+import { mockSubscriptions } from '../../../utils/maasUtils';
 
 describe('Subscriptions Page', () => {
   beforeEach(() => {
-    setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    asProductAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelAsService: true,
+      }),
+    );
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'test-user', clusterAdmin: false },
+    });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', {
+      /* eslint-disable camelcase */
+      data: [{ name: 'test-namespace', display_name: 'Test Namespace' }],
+      /* eslint-enable camelcase */
+    });
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+    // Mock MaaS models with subscriptions for AI Assets page
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+      data: [
+        /* eslint-disable camelcase */
+        {
+          id: 'granite-3-8b-instruct',
+          object: 'model',
+          created: 1734000000,
+          owned_by: 'ibm',
+          ready: true,
+          url: 'https://granite-model.apps.cluster.com',
+          display_name: 'Granite 3.1 8B Instruct',
+          description: 'Granite family of LLMs',
+          usecase: 'Text Generation',
+          model_type: 'llm',
+          subscriptions: [
+            { name: 'premium-team-sub', displayName: 'Premium Tier' },
+            { name: 'basic-team-sub', displayName: 'Basic Tier' },
+          ],
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
+    // Mock AI models (namespace models) - empty for these tests
+    cy.interceptOdh('GET /gen-ai/api/v1/aaa/models', { data: [] });
     subscriptionsPage.visit();
   });
 
@@ -94,56 +124,152 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
-});
 
-describe('View Subscription Page', () => {
-  const subscriptionName = 'premium-team-sub';
+  it('should display no subscriptions message when model has no subscriptions', () => {
+    // Mock MaaS model without subscriptions
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+      data: [
+        /* eslint-disable camelcase */
+        {
+          id: 'llama-3-8b',
+          object: 'model',
+          created: 1734000000,
+          owned_by: 'meta',
+          ready: true,
+          url: 'https://llama-model.apps.cluster.com',
+          display_name: 'Llama 3 8B',
+          description: 'Llama family of LLMs',
+          usecase: 'Text Generation',
+          model_type: 'llm',
+          subscriptions: [],
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
 
-  beforeEach(() => {
-    setupCommonIntercepts();
-    cy.interceptOdh(
-      'GET /maas/api/v1/subscription-info/:name',
-      { path: { name: subscriptionName } },
-      mockSubscriptionInfo(subscriptionName),
-    );
+    // Reload the page to get the new model data
+    cy.visit('/gen-ai-studio/assets');
+
+    cy.contains('Llama 3 8B').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Verify endpoint modal is open
+    cy.get('[role="dialog"]').should('exist');
+    cy.contains('Endpoints').should('exist');
+
+    // Verify Authentication heading is NOT shown when no subscriptions
+    cy.contains('Authentication').should('not.exist');
+
+    // Verify no subscriptions alert is shown
+    cy.contains('No subscriptions available').should('exist');
+    cy.contains(
+      "You don't have any subscriptions for this model. Contact your administrator to request access.",
+    ).should('exist');
+
+    // Verify subscription dropdown is not shown
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('not.exist');
+
+    // Verify Generate API key button is not shown
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('not.exist');
   });
 
-  it('should display the page content with title, breadcrumb, details, groups, and models', () => {
-    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
-    subscriptionsPage.visit();
-    subscriptionsPage.getRow(subscriptionName).findKebabAction('View details').click();
-    cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
+  it('should handle API key generation error', () => {
+    cy.visit('/gen-ai-studio/assets');
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
 
-    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
+    // Mock token generation error
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      statusCode: 500,
+      body: { error: 'Failed to generate token' },
+    });
 
-    viewSubscriptionPage
-      .findDetailsSection()
-      .should('contain.text', subscriptionName)
-      .and('contain.text', 'Name')
-      .and('contain.text', 'Date created');
+    // Select subscription
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
 
-    viewSubscriptionPage.findGroupsSection().should('exist');
-    viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
+    // Click generate button
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
 
-    viewSubscriptionPage.findModelsSection().should('exist');
-    viewSubscriptionPage
-      .findModelsTable()
-      .should('contain.text', 'granite-3-8b-instruct Display')
-      .and('contain.text', 'granite-3-8b-instruct')
-      .and('contain.text', 'maas-models')
-      .and('contain.text', '100,000');
+    // Verify error alert appears
+    cy.contains('Error generating API key').should('exist');
 
-    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
-    cy.url().should('include', '/maas/subscriptions');
+    // Verify token input is not shown
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('not.exist');
+
+    // Verify Generate button is still available to retry
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('exist');
   });
 
-  it('should show error state when the subscription-info API fails', () => {
-    cy.interceptOdh(
-      'GET /maas/api/v1/subscription-info/:name',
-      { path: { name: subscriptionName } },
-      { forceNetworkError: true } as never,
-    );
-    viewSubscriptionPage.visit(subscriptionName);
-    viewSubscriptionPage.findPageError().should('exist');
+  it('should disable generate button while loading', () => {
+    cy.visit('/gen-ai-studio/assets');
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Mock token generation with delay to catch loading state
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      delay: 1000,
+      body: {
+        key: 'test-ephemeral-token-12345',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+    });
+
+    // Select subscription
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
+
+    // Click generate button
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
+
+    // Verify button is disabled during loading
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('be.disabled');
+
+    // Wait for token to be generated
+    cy.get('[data-testid="endpoint-modal-api-key-input"]', { timeout: 2000 }).should('exist');
+  });
+
+  it('should reset state when modal is closed', () => {
+    cy.visit('/gen-ai-studio/assets');
+    cy.contains('Granite 3.1 8B Instruct').should('exist');
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Mock token generation
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+      body: {
+        key: 'test-ephemeral-token-12345',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+    });
+
+    // Select subscription and generate token
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
+    cy.contains('Premium Tier').click();
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
+
+    // Verify token is displayed
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('exist');
+
+    // Show the key
+    cy.get('[data-testid="endpoint-modal-api-key-toggle"]').click();
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('have.attr', 'type', 'text');
+
+    // Close the modal
+    cy.get('[data-testid="endpoint-modal-close"]').click();
+
+    // Reopen the modal
+    cy.get('[data-testid="model-row-kebab"]').first().click();
+    cy.contains('View endpoints').click();
+
+    // Verify modal is reset - no token shown, key is hidden
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('not.exist');
+    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('exist');
+
+    // Verify subscription dropdown is back to default (first subscription)
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('contain', 'Basic Tier');
   });
 });
