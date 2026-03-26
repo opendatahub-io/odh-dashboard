@@ -378,6 +378,8 @@ describe('CreateModal', () => {
     modelRegistrySettings.findSubmitButton().click();
 
     cy.wait('@createModelRegistry').then((interception) => {
+      const expectedName = 'a'.repeat(40);
+      expect(interception.request.body.modelRegistry.metadata.name).to.equal(expectedName);
       expect(interception.request.body.modelRegistry.metadata.name).to.have.length.at.most(40);
     });
   });
