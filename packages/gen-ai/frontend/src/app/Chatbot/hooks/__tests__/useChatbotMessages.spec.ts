@@ -2,10 +2,9 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
-  mockSourceSettings,
   mockSuccessResponse,
   mockMetrics,
   mockNamespace,
@@ -66,7 +65,6 @@ const setupMocks = (): void => {
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
@@ -77,12 +75,11 @@ const createDefaultHookProps = (overrides?: {
 }) => ({
   ...defaultMcpProps,
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });
@@ -208,13 +205,12 @@ describe('useChatbotMessages', () => {
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
 
-    it('should handle missing selectedSourceSettings by calling createResponse without vector_store_ids', async () => {
+    it('should call createResponse without vector_store_ids when RAG is disabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             isRawUploaded: false,
           }),
         ),
@@ -360,13 +356,12 @@ describe('useChatbotMessages', () => {
       expect(result.current.isStreamingWithoutContent).toBe(false);
     });
 
-    it('should use currentVectorStoreId when RAG is enabled and selectedSourceSettings is null', async () => {
+    it('should use currentVectorStoreId when RAG is enabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             currentVectorStoreId: 'vs_current_store_123',
           }),
         ),
