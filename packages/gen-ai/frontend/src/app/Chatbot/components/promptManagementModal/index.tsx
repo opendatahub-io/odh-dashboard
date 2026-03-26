@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Modal, ModalHeader, ModalBody } from '@patternfly/react-core';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
@@ -47,16 +46,17 @@ export default function PromptManagementModal(): React.ReactNode {
   }
 
   return (
-    <Modal isOpen variant="large" onClose={handleClose}>
-      <ModalHeader title={displayText.title} description={displayText.description} />
-      <ModalBody>
-        {modalMode === 'allPrompts' && (
-          <PromptTable onClose={handleClose} onClickLoad={handleClickLoad} />
-        )}
-        {(modalMode === 'create' || modalMode === 'edit') && (
-          <CreatePrompt configId={configId} onClose={handleClose} />
-        )}
-      </ModalBody>
-    </Modal>
+    <>
+      {modalMode === 'allPrompts' && (
+        <PromptTable
+          onClose={handleClose}
+          onClickLoad={handleClickLoad}
+          displayText={displayText}
+        />
+      )}
+      {(modalMode === 'create' || modalMode === 'edit') && (
+        <CreatePrompt configId={configId} displayText={displayText} onClose={handleClose} />
+      )}
+    </>
   );
 }
