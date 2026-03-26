@@ -74,6 +74,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     observedGeneration?: number;
   };
 };
+export const isLLMInferenceService = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceKind => resource?.kind === 'LLMInferenceService';
 
 export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
   kind: 'LLMInferenceServiceConfig';
@@ -91,6 +94,9 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
   };
   spec?: LLMInferenceServiceSpec;
 };
+export const isLLMInferenceServiceConfig = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceConfigKind => resource?.kind === 'LLMInferenceServiceConfig';
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 

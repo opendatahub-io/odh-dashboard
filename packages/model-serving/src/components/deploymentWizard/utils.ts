@@ -1,8 +1,4 @@
-import {
-  MetadataAnnotation,
-  ServingRuntimeKind,
-  type SecretKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,
@@ -77,7 +73,7 @@ export const deployModel = async (
   deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
   modelResource?: Deployment['model'],
-  serverResource?: ServingRuntimeKind,
+  serverResource?: Deployment['server'],
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,

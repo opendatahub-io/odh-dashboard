@@ -1110,6 +1110,23 @@ jobs:
               grep -v "Using project:" || true
           fi
 
+      - name: Install make for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        run: |
+          if ! command -v make &> /dev/null; then
+            echo "📦 Installing make..."
+            sudo dnf install -y make 2>/dev/null || sudo yum install -y make 2>/dev/null || sudo apt-get install -y make 2>/dev/null
+          else
+            echo "✅ make already available: $(make --version | head -1)"
+          fi
+
+      - name: Setup Go for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+
       - name: Start BFF Services
         if: needs.get-test-tags.outputs.bff_packages != '[]'
         env:

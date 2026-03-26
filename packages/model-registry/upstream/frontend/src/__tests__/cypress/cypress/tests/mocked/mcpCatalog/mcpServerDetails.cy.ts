@@ -6,6 +6,7 @@ import {
   initServerDetailIntercept,
   initServerToolsIntercept,
   initServerToolsErrorIntercept,
+  initMcpServerAvailabilityIntercept,
   mockMcpToolWithServer,
   mockMcpToolList,
 } from './mcpCatalogTestUtils';
@@ -153,6 +154,40 @@ describe('MCP Server Details Page', () => {
       cy.url().should('include', '/mcp-catalog/');
       cy.go('back');
       cy.url().should('eq', `${Cypress.config().baseUrl}/mcp-catalog`);
+    });
+  });
+
+  describe('Deploy button', () => {
+    it('should show enabled deploy button when MCP server CRD is available', () => {
+      initServerDetailIntercept(kubernetesServer);
+      initMcpServerAvailabilityIntercept(true);
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails.findDeployButton().should('be.visible');
+      mcpServerDetails.findDeployButton().should('not.be.disabled');
+      mcpServerDetails.findDeployButton().should('contain.text', 'Deploy MCP server');
+    });
+
+    it('should show disabled deploy button when MCP server CRD is not available', () => {
+      initServerDetailIntercept(kubernetesServer);
+      initMcpServerAvailabilityIntercept(false);
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails.findDeployButton().should('be.visible');
+      mcpServerDetails.findDeployButton().should('have.attr', 'aria-disabled', 'true');
+    });
+
+    it('should not show deploy button when server is not found', () => {
+      cy.intercept(
+        { method: 'GET', url: '**/mcp_servers/invalid-server*' },
+        {
+          statusCode: 404,
+          body: {
+            error: { code: '404', message: 'the requested resource could not be found' },
+          },
+        },
+      );
+      cy.visit('/mcp-catalog/invalid-server');
+      mcpServerDetails.findMcpNotFound().should('be.visible');
+      mcpServerDetails.findDeployButton().should('not.exist');
     });
   });
 

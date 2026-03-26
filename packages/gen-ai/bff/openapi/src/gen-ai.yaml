@@ -3531,14 +3531,36 @@ components:
             - custom_endpoint: External model endpoint (user-provided URL)
             - maas: Model from Model as a Service (MaaS) platform
           example: 'namespace'
+        model_type:
+          type: string
+          enum:
+            - llm
+            - embedding
+          default: 'llm'
+          description: |
+            Optional type of the model. Defaults to llm if not specified.
+            - llm: Inference / language model
+            - embedding: Embedding model
+          example: 'llm'
         max_tokens:
           type: integer
           description: |
             Optional maximum token limit for this model's context window.
             Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
+            Only applicable when model_type is llm.
           minimum: 128
           maximum: 128000
           example: 8192
+        embedding_dimension:
+          type: integer
+          default: 128
+          description: |
+            Optional embedding vector size for this model.
+            Must be between 128 and 3,072,000. If not specified, the server applies a default of 128.
+            Only applicable when model_type is embedding.
+          minimum: 128
+          maximum: 3072000
+          example: 1536
         is_cluster_local:
           type: boolean
           example: true

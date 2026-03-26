@@ -224,6 +224,10 @@ class TrainingJobTableRow extends TableRow {
   findEditNodeCountButton() {
     return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
   }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
 }
 
 class ScaleRayJobNodesModal {
@@ -707,6 +711,47 @@ class PauseTrainingJobModal extends Modal {
   }
 }
 
+class PauseRayJobModal extends Modal {
+  constructor() {
+    super('Pause RayJob?');
+  }
+
+  find() {
+    return cy.findByTestId('pause-ray-job-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findDontShowAgainCheckbox() {
+    return cy.findByTestId('dont-show-again-checkbox');
+  }
+
+  findPauseButton() {
+    return cy.findByTestId('pause-ray-job-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('cancel-pause-ray-job-button');
+  }
+
+  pause() {
+    this.findPauseButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 class TrainingJobDetailsTab {
   findProgressSection() {
     return cy.findByTestId('progress-section');
@@ -886,6 +931,50 @@ class RayJobResourcesTab {
   }
 }
 
+class RayJobPodsTab {
+  findSubmitterPodSection() {
+    return cy.findByTestId('submitter-pod-section');
+  }
+
+  findRayClusterPodsSection() {
+    return cy.findByTestId('ray-cluster-pods-section');
+  }
+
+  findWorkerGroup(groupName: string) {
+    return cy.findByTestId(`worker-group-${groupName}`);
+  }
+
+  findWorkerGroupName(groupName: string) {
+    return cy.findByTestId(`worker-group-name-${groupName}`);
+  }
+
+  findWorkerPod(podName: string) {
+    return cy.findByTestId(`worker-pod-${podName}`);
+  }
+}
+
+class RayJobLogsTab {
+  findJobId() {
+    return cy.findByTestId('logs-job-id');
+  }
+
+  findDownloadButton() {
+    return cy.findByTestId('logs-download-button');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('logs-empty-state');
+  }
+
+  findWaitingState() {
+    return cy.findByTestId('logs-waiting-state');
+  }
+
+  findLogViewer() {
+    return cy.findByTestId('logs-log-viewer');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -896,7 +985,10 @@ export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
+export const pauseRayJobModal = new PauseRayJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
 export const rayJobDetailsTab = new RayJobDetailsTab();
 export const rayJobResourcesTab = new RayJobResourcesTab();
 export const editRayJobNodeCountModal = new ScaleRayJobNodesModal();
+export const rayJobPodsTab = new RayJobPodsTab();
+export const rayJobLogsTab = new RayJobLogsTab();
