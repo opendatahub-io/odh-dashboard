@@ -52,6 +52,7 @@ const usePrefillModelDeployModal = (
 ): PrefilledConnection => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useServingConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
+    true,
   );
   const { connections, modelLocation } = useLabeledConnections(
     modelDeployPrefillInfo?.modelArtifactUri,
