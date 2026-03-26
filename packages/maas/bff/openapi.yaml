@@ -256,10 +256,10 @@ paths:
                 summary: Default search (active keys, newest first)
                 value:
                   filters:
-                    status: ["active"]
+                    status: ['active']
                   sort:
-                    by: "created_at"
-                    order: "desc"
+                    by: 'created_at'
+                    order: 'desc'
                   pagination:
                     limit: 50
                     offset: 0
@@ -267,11 +267,11 @@ paths:
                 summary: Admin searching user's keys
                 value:
                   filters:
-                    username: "alice"
-                    status: ["active", "revoked"]
+                    username: 'alice'
+                    status: ['active', 'revoked']
                   sort:
-                    by: "name"
-                    order: "asc"
+                    by: 'name'
+                    order: 'asc'
                   pagination:
                     limit: 20
                     offset: 0
@@ -287,12 +287,12 @@ paths:
                 data:
                   - id: key_abc123
                     name: my-production-key
-                    creationDate: "2024-01-15T10:30:00Z"
+                    creationDate: '2024-01-15T10:30:00Z'
                     status: active
                   - id: key_def456
                     name: my-test-key
-                    creationDate: "2024-01-14T09:15:00Z"
-                    expirationDate: "2024-04-14T09:15:00Z"
+                    creationDate: '2024-01-14T09:15:00Z'
+                    expirationDate: '2024-04-14T09:15:00Z'
                     status: active
                 has_more: true
         '400':
@@ -329,11 +329,11 @@ paths:
               revoke_own:
                 summary: User revoking own keys
                 value:
-                  username: "alice"
+                  username: 'alice'
               admin_revoke:
                 summary: Admin revoking user's keys
                 value:
-                  username: "bob"
+                  username: 'bob'
       responses:
         '200':
           description: OK response.
@@ -350,7 +350,7 @@ paths:
                     description: Success message
               example:
                 revokedCount: 5
-                message: "Successfully revoked 5 active API key(s) for user alice"
+                message: 'Successfully revoked 5 active API key(s) for user alice'
         '400':
           description: Bad Request. Invalid request.
           content:
@@ -366,7 +366,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Access denied: you can only bulk revoke your own API keys"
+                error: 'Access denied: you can only bulk revoke your own API keys'
         '500':
           description: Internal Server Error
 
@@ -420,7 +420,7 @@ paths:
               example:
                 id: key_abc123
                 name: my-production-key
-                creationDate: "2024-01-15T10:30:00Z"
+                creationDate: '2024-01-15T10:30:00Z'
                 status: revoked
         '401':
           description: Unauthorized response.
@@ -470,7 +470,7 @@ paths:
                         tokenRateLimits:
                           - limit: 100000
                             window: 24h
-                    creationTimestamp: "2025-03-01T10:00:00Z"
+                    creationTimestamp: '2025-03-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -526,7 +526,7 @@ paths:
                   tokenMetadata:
                     organizationId: org-123
                     costCenter: engineering
-                  creationTimestamp: "2025-03-01T10:00:00Z"
+                  creationTimestamp: '2025-03-01T10:00:00Z'
                 modelRefs:
                   - name: llama-2-7b-chat
                     namespace: maas-models
@@ -572,9 +572,10 @@ paths:
       operationId: getNewSubscriptionFormData
       description: >
         Returns the data needed to populate a subscription creation form,
-        including available Kubernetes groups and MaaSModelRef resources.
+        including available Kubernetes groups, MaaSModelRef resources, and
+        all existing subscriptions on the cluster.
 
-        K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
+        K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maassubscription
       responses:
         '200':
           description: Form data for creating a new subscription
@@ -603,6 +604,21 @@ paths:
                       name: mistral-7b-instruct
                     phase: Ready
                     endpoint: https://mistral-7b-instruct.example.com
+                subscriptions:
+                  - name: premium-team-sub
+                    displayName: Premium Team Subscription
+                    namespace: maas-system
+                    phase: Active
+                    priority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
         '401':
           description: Unauthorized
         '403':
@@ -689,7 +705,7 @@ paths:
                       tokenRateLimits:
                         - limit: 100000
                           window: 24h
-                  creationTimestamp: "2025-03-16T10:00:00Z"
+                  creationTimestamp: '2025-03-16T10:00:00Z'
                 authPolicy:
                   name: premium-team-sub-policy
                   namespace: maas-system
@@ -710,11 +726,11 @@ paths:
                 missing_name:
                   summary: Missing subscription name
                   value:
-                    error: "name is required"
+                    error: 'name is required'
                 empty_model_refs:
                   summary: No model refs provided
                   value:
-                    error: "at least one modelRef is required"
+                    error: 'at least one modelRef is required'
         '401':
           description: Unauthorized
         '403':
@@ -805,7 +821,7 @@ paths:
                       tokenRateLimits:
                         - limit: 300000
                           window: 24h
-                  creationTimestamp: "2025-03-01T10:00:00Z"
+                  creationTimestamp: '2025-03-01T10:00:00Z'
                 authPolicy:
                   name: premium-team-sub-policy
                   namespace: maas-system
@@ -921,7 +937,7 @@ paths:
               modelRef:
                 kind: LLMInferenceService
                 name: granite-3-8b-instruct
-              endpointOverride: ""
+              endpointOverride: ''
       responses:
         '201':
           description: MaaSModelRef created successfully
@@ -936,7 +952,7 @@ paths:
                   kind: LLMInferenceService
                   name: granite-3-8b-instruct
                 phase: Pending
-                endpoint: ""
+                endpoint: ''
         '400':
           description: Bad Request. Missing or invalid fields.
           content:
@@ -993,7 +1009,7 @@ paths:
               modelRef:
                 kind: LLMInferenceService
                 name: granite-3-8b-instruct
-              endpointOverride: "https://custom-endpoint.example.com"
+              endpointOverride: 'https://custom-endpoint.example.com'
       responses:
         '200':
           description: MaaSModelRef updated successfully
@@ -1008,7 +1024,7 @@ paths:
                   kind: LLMInferenceService
                   name: granite-3-8b-instruct
                 phase: Ready
-                endpoint: "https://custom-endpoint.example.com"
+                endpoint: 'https://custom-endpoint.example.com'
         '400':
           description: Bad Request. Invalid update specification.
           content:
@@ -1298,7 +1314,7 @@ components:
         perToken:
           type: string
           description: Cost per token
-          example: "0.0001"
+          example: '0.0001'
       required:
         - perToken
 
@@ -1354,6 +1370,14 @@ components:
           type: string
           description: Name of the MaaSSubscription resource (metadata.name)
           example: premium-team-sub
+        displayName:
+          type: string
+          description: Display name for the subscription (from openshift.io/display-name annotation)
+          example: Premium Team Subscription
+        description:
+          type: string
+          description: Description of the subscription (from openshift.io/description annotation)
+          example: This subscription is for the premium team
         namespace:
           type: string
           description: Namespace of the MaaSSubscription resource
@@ -1502,6 +1526,14 @@ components:
           type: string
           description: Name for the MaaSSubscription resource
           example: premium-team-sub
+        description:
+          type: string
+          description: Optional description providing context about the subscription
+          example: This subscription is for the premium team
+        displayName:
+          type: string
+          description: Optional display name for the subscription
+          example: Premium Team Subscription
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -1530,6 +1562,14 @@ components:
       type: object
       description: Request body for updating an existing subscription (MaaSSubscription only; auth policy is not managed during update)
       properties:
+        displayName:
+          type: string
+          description: Updated display name for the subscription
+          example: Premium Team Subscription
+        description:
+          type: string
+          description: Updated description for the subscription
+          example: This subscription is for the premium team
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -1598,9 +1638,15 @@ components:
           items:
             $ref: '#/components/schemas/MaaSModelRefSummary'
           description: Available MaaSModelRef resources that can be added to a subscription
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSSubscription'
+          description: All existing subscriptions on the cluster
       required:
         - groups
         - modelRefs
+        - subscriptions
 
     # ── MaaSModelRef Request Schemas ──────────────────────────────────
 
@@ -1621,7 +1667,7 @@ components:
         endpointOverride:
           type: string
           description: Optional endpoint URL override
-          example: ""
+          example: ''
       required:
         - name
         - namespace
@@ -1636,6 +1682,6 @@ components:
         endpointOverride:
           type: string
           description: Optional endpoint URL override
-          example: ""
+          example: ''
       required:
         - modelRef

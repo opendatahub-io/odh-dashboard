@@ -42,6 +42,8 @@ type TokenMetadata struct {
 // MaaSSubscription is the BFF representation of a MaaSSubscription CR.
 type MaaSSubscription struct {
 	Name              string                 `json:"name"`
+	DisplayName       string                 `json:"displayName,omitempty"`
+	Description       string                 `json:"description,omitempty"`
 	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
 	Priority          int32                  `json:"priority,omitempty"`
@@ -90,6 +92,8 @@ type MaaSModelRefSummary struct {
 // CreateSubscriptionRequest is the request body for creating a new subscription.
 type CreateSubscriptionRequest struct {
 	Name             string                 `json:"name"`
+	DisplayName      string                 `json:"displayName,omitempty"`
+	Description      string                 `json:"description,omitempty"`
 	Owner            OwnerSpec              `json:"owner"`
 	ModelRefs        []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata    *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -99,6 +103,8 @@ type CreateSubscriptionRequest struct {
 
 // UpdateSubscriptionRequest is the request body for updating a subscription.
 type UpdateSubscriptionRequest struct {
+	DisplayName   string                 `json:"displayName,omitempty"`
+	Description   string                 `json:"description,omitempty"`
 	Owner         OwnerSpec              `json:"owner"`
 	ModelRefs     []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -120,6 +126,7 @@ type SubscriptionInfoResponse struct {
 
 // SubscriptionFormDataResponse contains data for the subscription creation form.
 type SubscriptionFormDataResponse struct {
-	Groups    []string              `json:"groups"`
-	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
+	Groups        []string              `json:"groups"`
+	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
+	Subscriptions []MaaSSubscription    `json:"subscriptions"`
 }

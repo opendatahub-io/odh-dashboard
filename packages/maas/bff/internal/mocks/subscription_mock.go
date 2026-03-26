@@ -14,10 +14,12 @@ func timePtr(t time.Time) *time.Time {
 func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 	return []models.MaaSSubscription{
 		{
-			Name:      "premium-team-sub",
-			Namespace: "maas-system",
-			Phase:     "Active",
-			Priority:  10,
+			Name:        "premium-team-sub",
+			DisplayName: "Premium Team Subscription",
+			Description: "High-priority subscription for the premium engineering team with expanded model access.",
+			Namespace:   "maas-system",
+			Phase:       "Active",
+			Priority:    10,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
@@ -46,10 +48,12 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:      "basic-team-sub",
-			Namespace: "maas-system",
-			Phase:     "Active",
-			Priority:  0,
+			Name:        "basic-team-sub",
+			DisplayName: "Basic Team Subscription",
+			Description: "Default subscription for all authenticated users with basic model access.",
+			Namespace:   "maas-system",
+			Phase:       "Active",
+			Priority:    0,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -108,28 +112,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 
 // GetMockMaaSModelRefSummaries returns mock MaaSModelRef summaries.
 func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
-	return []models.MaaSModelRefSummary{
-		{
-			Name:      "granite-3-8b-instruct",
-			Namespace: "maas-models",
-			ModelRef: models.ModelReference{
-				Kind: "LLMInferenceService",
-				Name: "granite-3-8b-instruct",
-			},
-			Phase:    "Ready",
-			Endpoint: "https://granite-3-8b-instruct.example.com",
-		},
-		{
-			Name:      "flan-t5-small",
-			Namespace: "maas-models",
-			ModelRef: models.ModelReference{
-				Kind: "LLMInferenceService",
-				Name: "flan-t5-small",
-			},
-			Phase:    "Ready",
-			Endpoint: "https://flan-t5-small.example.com",
-		},
-	}
+	return []models.MaaSModelRefSummary{}
 }
 
 // GetMockGroups returns mock Kubernetes group names.
