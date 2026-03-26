@@ -57,6 +57,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { isPromptManagementModalOpen } = usePlaygroundStore();
   // Track which pane's settings are active in compare mode
   const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
@@ -172,6 +173,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                 setIsCompareChatModalOpen(true);
                 fireSimpleTrackingEvent('Playground Compare Chat Selected');
               }}
+              onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
               isCompareMode={isCompareMode}
             />
           )
@@ -223,9 +225,10 @@ const ChatbotMain: React.FunctionComponent = () => {
               isNewChatModalOpen={isNewChatModalOpen}
               setIsNewChatModalOpen={setIsNewChatModalOpen}
               activePaneConfigId={activePaneConfigId}
-              setActivePaneConfigId={setActivePaneConfigId}
               onClosePane={handleClosePane}
               clearAllMessagesRef={clearAllMessagesRef}
+              isDrawerExpanded={isDrawerExpanded}
+              setIsDrawerExpanded={setIsDrawerExpanded}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (

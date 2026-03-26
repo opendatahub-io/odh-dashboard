@@ -49,24 +49,24 @@ interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
   onModelChange: (model: string) => void;
-  onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
   metrics?: ResponseMetrics | null;
   /** Whether a response is currently being generated */
   isLoading?: boolean;
+  isSettingsOpen?: boolean;
 }
 
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
   onModelChange,
-  onSettingsClick,
   onClose,
   children,
   metrics,
   isLoading,
+  isSettingsOpen,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
@@ -76,10 +76,10 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       displayLabel={displayLabel}
       selectedModel={selectedModel}
       onModelChange={onModelChange}
-      onSettingsClick={onSettingsClick}
       onClose={onClose}
       metrics={metrics}
       isLoading={isLoading}
+      isSettingsOpen={isSettingsOpen}
     >
       {children}
     </ChatbotPane>
@@ -92,9 +92,10 @@ type ChatbotPlaygroundProps = {
   isNewChatModalOpen: boolean;
   setIsNewChatModalOpen: (isOpen: boolean) => void;
   activePaneConfigId?: string;
-  setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
+  isDrawerExpanded?: boolean;
+  setIsDrawerExpanded?: (expanded: boolean) => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -103,9 +104,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   isNewChatModalOpen,
   setIsNewChatModalOpen,
   activePaneConfigId = DEFAULT_CONFIG_ID,
-  setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
+  isDrawerExpanded: isDrawerExpandedProp,
+  setIsDrawerExpanded: setIsDrawerExpandedProp,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -152,8 +154,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     useMCPServerStatuses(mcpServers, mcpServersLoaded);
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
-  // UI state
-  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
+  // UI state — can be controlled externally (e.g. from header Settings button)
+  const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
+  const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
+  const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
+
+  // Collapse the settings panel when compare mode is activated
+  React.useEffect(() => {
+    if (isCompareMode) {
+      setIsDrawerExpanded(false);
+    }
+  }, [isCompareMode, setIsDrawerExpanded]);
 
   // Custom hooks
   const alertManagement = useAlertManagement();
@@ -228,14 +239,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       useChatbotConfigStore.getState().updateSelectedModel(configId, model);
     },
     [],
-  );
-
-  const handlePaneSettingsClick = React.useCallback(
-    (configId: string) => {
-      setActivePaneConfigId?.(configId);
-      setIsDrawerExpanded(true);
-    },
-    [setActivePaneConfigId],
   );
 
   const handleSendMessage = React.useCallback(
@@ -391,11 +394,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     ),
   };
 
-  // Settings panel header label
-  const settingsHeaderLabel = isCompareMode
-    ? `Configure - ${configIds.indexOf(activePaneConfigId) + 1}`
-    : 'Configure';
-
   // Render chatbot content for a config
   const renderChatbotContent = (configId: string) => (
     <Chatbot
@@ -458,14 +456,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       />
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded} isInline={!isCompareMode} position="left">
+      <Drawer isExpanded={isDrawerExpanded} isInline position="left">
         <Divider />
         <DrawerContent
           panelContent={
             <ChatbotSettingsPanel
               key={`settings-panel-${activePaneConfigId}`}
               configId={activePaneConfigId}
-              headerLabel={settingsHeaderLabel}
               alerts={alerts}
               sourceManagement={sourceManagement}
               fileManagement={fileManagement}
@@ -480,7 +477,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
-              isOverlay={isCompareMode}
               defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
           }
@@ -492,7 +488,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 <ChatbotPaneHeader
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
-                  onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
@@ -520,10 +515,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           configId={configId}
                           displayLabel={getConfigDisplayLabel(index)}
                           onModelChange={handleModelChange(configId)}
-                          onSettingsClick={() => handlePaneSettingsClick(configId)}
                           onClose={() => onClosePane?.(configId)}
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
+                          isSettingsOpen={isDrawerExpanded}
                         >
                           {renderChatbotContent(configId)}
                         </ComparePaneWrapper>
