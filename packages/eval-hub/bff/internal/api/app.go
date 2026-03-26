@@ -51,6 +51,9 @@ type App struct {
 	rootCAs                 *x509.CertPool
 	openAPI                 *OpenAPIHandler
 	dashboardNamespace      string
+	// evalHubURL is resolved once at startup (from EVAL_HUB_URL or CR auto-discovery)
+	// and reused for every request, avoiding per-request K8s API calls.
+	evalHubURL string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -119,6 +122,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dashboardNamespace, err := helper.GetCurrentNamespace()
+	if err != nil {
+		logger.Warn("Failed to detect dashboard namespace, using default",
+			slog.Any("error", err), slog.String("default", "opendatahub"))
+		dashboardNamespace = "opendatahub"
+	}
+	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
@@ -127,19 +138,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ehFactory = evalhub.NewRealClientFactory()
 	}
 
+	evalHubURL := resolveEvalHubURL(cfg, dashboardNamespace, logger)
+
 	var openAPIHandler *OpenAPIHandler
 	openAPIHandler, err = NewOpenAPIHandler(logger)
 	if err != nil {
 		logger.Warn("Failed to load OpenAPI spec, Swagger UI will be unavailable", slog.Any("error", err))
 	}
-
-	dashboardNamespace, err := helper.GetCurrentNamespace()
-	if err != nil {
-		logger.Warn("Failed to detect dashboard namespace, using default",
-			slog.Any("error", err), slog.String("default", "opendatahub"))
-		dashboardNamespace = "opendatahub"
-	}
-	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
 
 	app := &App{
 		config:                  cfg,
@@ -151,8 +156,42 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		rootCAs:                 rootCAs,
 		openAPI:                 openAPIHandler,
 		dashboardNamespace:      dashboardNamespace,
+		evalHubURL:              evalHubURL,
 	}
 	return app, nil
+}
+
+// resolveEvalHubURL returns the EvalHub service URL to use for all requests.
+// Priority order mirrors the MLflow BFF pattern:
+//  1. EVAL_HUB_URL env var / flag — explicit developer override, no K8s call.
+//  2. CR auto-discovery — lists evalhubs.trustyai.opendatahub.io in the dashboard
+//     namespace using the pod's service account (InClusterConfig) and reads status.url.
+//
+// Discovery runs once at startup so the result is shared across requests.
+// If discovery fails (e.g. no CR found, running outside the cluster), the URL is
+// left empty and every request that needs it will return 503.
+func resolveEvalHubURL(cfg config.EnvConfig, dashboardNamespace string, logger *slog.Logger) string {
+	if cfg.EvalHubURL != "" {
+		logger.Info("Using EVAL_HUB_URL override", slog.String("url", cfg.EvalHubURL))
+		return cfg.EvalHubURL
+	}
+
+	if cfg.MockEvalHubClient {
+		return ""
+	}
+
+	discoveredURL, err := evalhub.DiscoverEvalHubURL(dashboardNamespace)
+	if err != nil {
+		logger.Debug("EvalHub CR auto-discovery failed, endpoints will return 503",
+			slog.String("namespace", dashboardNamespace),
+			slog.Any("error", err))
+		return ""
+	}
+
+	logger.Info("Discovered EvalHub URL from CR",
+		slog.String("namespace", dashboardNamespace),
+		slog.String("url", discoveredURL))
+	return discoveredURL
 }
 
 func (app *App) Shutdown() error {
