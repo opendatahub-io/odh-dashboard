@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { isEqual } from 'lodash-es';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
@@ -126,6 +127,7 @@ export const useHardwareProfileConfig = (
   } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace);
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
+  const initialized = useRef(false);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
@@ -142,52 +144,58 @@ export const useHardwareProfileConfig = (
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   React.useEffect(() => {
-    if (!profilesLoaded || formData.selectedProfile) {
+    if (!profilesLoaded || initialized.current) {
       return;
     }
-    // only set form state if not already set
-    if (!formData.resources) {
-      let selectedProfile: HardwareProfileKind | undefined;
+    initialized.current = true;
 
-      // if editing, try to select existing profile
-      if (resources) {
-        // try to match to existing profile
-        if (existingHardwareProfileName && hardwareProfileNamespace) {
-          if (hardwareProfileNamespace === dashboardNamespace) {
-            selectedProfile = dashboardProfiles.find(
-              (profile) => profile.metadata.name === existingHardwareProfileName,
-            );
-          } else {
-            selectedProfile = projectScopedProfiles.find(
-              (profile) =>
-                profile.metadata.name === existingHardwareProfileName &&
-                profile.metadata.namespace === hardwareProfileNamespace,
-            );
-          }
+    let selectedProfile: HardwareProfileKind | undefined;
+
+    // if editing, try to select existing profile
+    if (resources) {
+      if (existingHardwareProfileName && hardwareProfileNamespace) {
+        if (hardwareProfileNamespace === dashboardNamespace) {
+          selectedProfile = dashboardProfiles.find(
+            (profile) => profile.metadata.name === existingHardwareProfileName,
+          );
         } else {
-          selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+          selectedProfile = projectScopedProfiles.find(
+            (profile) =>
+              profile.metadata.name === existingHardwareProfileName &&
+              profile.metadata.namespace === hardwareProfileNamespace,
+          );
         }
+      } else {
+        selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+      }
 
-        initialHardwareProfile.current = selectedProfile;
-        const mergedResources = selectedProfile
-          ? mergeProfileIdentifiersIntoResources(resources, selectedProfile)
-          : resources;
-        setFormData('resources', mergedResources);
+      initialHardwareProfile.current = selectedProfile;
+      const mergedResources = selectedProfile
+        ? mergeProfileIdentifiersIntoResources(resources, selectedProfile)
+        : resources;
+      const profileDefaults = selectedProfile
+        ? getContainerResourcesFromHardwareProfile(selectedProfile)
+        : undefined;
+      const isCustomized = profileDefaults ? !isEqual(mergedResources, profileDefaults) : true;
+
+      setFormData('resources', mergedResources);
+      if (isCustomized) {
+        setFormData('useExistingSettings', true);
+        setFormData('selectedProfile', undefined);
+      } else {
         setFormData('useExistingSettings', !selectedProfile);
         setFormData('selectedProfile', selectedProfile);
       }
-
+    } else {
       // if not editing existing profile, select the first enabled profile
-      else {
-        const filteredProfiles = filterProfilesByKueue(
-          profiles.filter(isHardwareProfileEnabled),
-          kueueFilteringState,
-        );
-        selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
-        if (selectedProfile) {
-          setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
-          setFormData('selectedProfile', selectedProfile);
-        }
+      const filteredProfiles = filterProfilesByKueue(
+        profiles.filter(isHardwareProfileEnabled),
+        kueueFilteringState,
+      );
+      selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
+      if (selectedProfile) {
+        setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+        setFormData('selectedProfile', selectedProfile);
       }
     }
   }, [
@@ -198,8 +206,6 @@ export const useHardwareProfileConfig = (
     resources,
     tolerations,
     nodeSelector,
-    formData.resources,
-    formData.selectedProfile,
     hardwareProfileNamespace,
     projectScopedProfiles,
     dashboardProfiles,

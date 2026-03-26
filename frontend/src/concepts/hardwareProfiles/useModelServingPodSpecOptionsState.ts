@@ -1,4 +1,5 @@
 import React from 'react';
+import { isEqual } from 'lodash-es';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
@@ -7,6 +8,7 @@ import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
 import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
+import { getContainerResourcesFromHardwareProfile } from './utils';
 
 /**
  * most of this file (everything that uses and descends from PodSpecOptions) is deprecated
@@ -76,8 +78,15 @@ export const useModelServingHardwareProfileState = (
       ...annotationData,
     };
   } else {
+    const profileDefaults = hardwareProfile.formData.selectedProfile
+      ? getContainerResourcesFromHardwareProfile(hardwareProfile.formData.selectedProfile)
+      : undefined;
+    const formResources = hardwareProfile.formData.resources;
     podSpecOptions = {
-      resources: hardwareProfile.formData.resources,
+      resources:
+        formResources && profileDefaults && !isEqual(formResources, profileDefaults)
+          ? formResources
+          : undefined,
       tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
       nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
       ...annotationData,

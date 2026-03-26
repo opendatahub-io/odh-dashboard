@@ -298,6 +298,13 @@ describe('ManageNIMServingModal', () => {
       hardwareProfile: {
         isFormDataValid: true,
         resetFormData: jest.fn(),
+        formData: {
+          useExistingSettings: false,
+          resources: {
+            limits: { cpu: '16', memory: '64Gi' },
+            requests: { cpu: '8', memory: '32Gi' },
+          },
+        },
       },
     },
     validateHardwareProfileForm: jest.fn(() => true),
@@ -687,6 +694,13 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       hardwareProfile: {
         isFormDataValid: true,
         resetFormData: jest.fn(),
+        formData: {
+          useExistingSettings: false,
+          resources: {
+            limits: { cpu: '16', memory: '64Gi' },
+            requests: { cpu: '8', memory: '32Gi' },
+          },
+        },
       },
     },
     validateHardwareProfileForm: jest.fn(() => true),

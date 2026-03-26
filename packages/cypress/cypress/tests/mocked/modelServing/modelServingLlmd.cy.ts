@@ -429,6 +429,11 @@ describe('Model Serving LLMD', () => {
             ],
           },
         ]);
+
+        // Resources should not be set (user did not customize — platform webhook applies defaults)
+        expect(interception.request.body.spec.template.containers[0]).to.not.have.property(
+          'resources',
+        );
       });
 
       // Actual request
@@ -438,6 +443,9 @@ describe('Model Serving LLMD', () => {
           'opendatahub.io/connections': 'test-s3-secret', // Connection name is only added in the actual request to avoid dry run failures
           'opendatahub.io/connection-path': 'test-model/',
         });
+        expect(interception.request.body.spec.template.containers[0]).to.not.have.property(
+          'resources',
+        );
       });
 
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
@@ -525,7 +533,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findModelDeploymentDescriptionInput().type('test-llmd-description-2');
 
       hardwareProfileSection.findSelect().should('exist');
-      hardwareProfileSection.findSelect().should('contain.text', 'Small');
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
       hardwareProfileSection.selectProfile(
         'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
       );

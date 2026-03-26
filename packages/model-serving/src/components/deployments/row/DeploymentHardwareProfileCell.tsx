@@ -3,6 +3,7 @@ import { Td } from '@patternfly/react-table';
 import HardwareProfileTableColumn from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { getExistingResources } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { type Deployment } from '../../../../extension-points';
@@ -19,8 +20,16 @@ export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCe
       paths: hardwareProfilePaths,
     });
 
-    const containerResources =
-      hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData.resources;
+    const containerResources = React.useMemo(() => {
+      const { existingContainerResources } = getExistingResources(
+        deployment.model,
+        hardwareProfilePaths,
+      );
+      return (
+        existingContainerResources ??
+        hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData.resources
+      );
+    }, [deployment.model, hardwareProfilePaths, hardwareProfileOptions]);
     const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
       useHardwareProfileBindingState(deployment.model, MODEL_SERVING_VISIBILITY);
 

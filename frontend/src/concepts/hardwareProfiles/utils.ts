@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { get, set } from 'lodash-es';
+import { get, set, isEqual } from 'lodash-es';
 import { ImageStreamKind, HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
@@ -123,7 +123,7 @@ export const getContainerResourcesFromHardwareProfile = (
   const newLimits =
     hardwareProfile.spec.identifiers?.reduce(
       (acc: Record<string, string | number>, identifier) => {
-        acc[identifier.identifier] = identifier.defaultCount;
+        acc[identifier.identifier] = identifier.maxCount ?? identifier.defaultCount;
         return acc;
       },
       { ...emptyRecord },
@@ -279,8 +279,14 @@ export const assemblePodSpecOptions = (
       ...podSpecOptions,
     };
   } else {
+    const profileDefaults = selectedProfile
+      ? getContainerResourcesFromHardwareProfile(selectedProfile)
+      : undefined;
     podSpecOptions = {
-      resources,
+      resources:
+        resources && profileDefaults && !isEqual(resources, profileDefaults)
+          ? resources
+          : undefined,
       tolerations: selectedProfile?.spec.scheduling?.node?.tolerations,
       nodeSelector: selectedProfile?.spec.scheduling?.node?.nodeSelector,
       ...podSpecOptions,
@@ -300,6 +306,11 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   if (!result.metadata) {
     result.metadata = {};
   }
+
+  if (useExistingSettings) {
+    return result;
+  }
+
   if (selectedProfile) {
     const annotations = result.metadata.annotations || {};
     annotations['opendatahub.io/hardware-profile-name'] = selectedProfile.metadata.name;
@@ -313,9 +324,12 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
   }
 
-  if (!useExistingSettings && selectedProfile && paths) {
+  if (selectedProfile && paths) {
     if (resources && paths.containerResourcesPath) {
-      set(result, paths.containerResourcesPath, resources);
+      const profileDefaults = getContainerResourcesFromHardwareProfile(selectedProfile);
+      if (!isEqual(resources, profileDefaults)) {
+        set(result, paths.containerResourcesPath, resources);
+      }
     }
   }
   return result;
