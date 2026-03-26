@@ -20,6 +20,8 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import { ExternalVectorStoreSummary } from '~/app/types';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { splitLlamaModelId } from '~/app/utilities/utils';
 
 const collectionsColumns: SortableData<ExternalVectorStoreSummary>[] = [
   checkboxTableColumn(),
@@ -61,6 +63,16 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
       setSelectedCollections,
       React.useCallback((collection) => collection.vector_store_id, []),
     );
+
+  const { data: lsdModels } = useFetchLlamaModels(undefined, true); // include embedding models
+
+  const isEmbeddingModelInLSD = React.useCallback(
+    (embeddingModel: string): boolean => {
+      const { id: normalizedId } = splitLlamaModelId(embeddingModel);
+      return lsdModels.some((m) => m.modelId === embeddingModel || m.modelId === normalizedId);
+    },
+    [lsdModels],
+  );
 
   const [search, setSearch] = React.useState('');
   const filteredCollections = React.useMemo(
@@ -147,9 +159,11 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
                 <Td dataLabel="Embedding model">
                   <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                     {collection.embedding_model}
-                    <Icon status="success" size="sm">
-                      <CheckCircleIcon />
-                    </Icon>
+                    {isEmbeddingModelInLSD(collection.embedding_model) && (
+                      <Icon status="success" size="sm">
+                        <CheckCircleIcon />
+                      </Icon>
+                    )}
                   </Flex>
                 </Td>
                 <Td dataLabel="Dimensions">{collection.embedding_dimension}</Td>
