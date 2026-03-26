@@ -104,15 +104,19 @@ export const filterHardwareProfileByFeatureVisibility = (
         return true;
       }
 
-      const visibleIn = JSON.parse(
+      const visibleIn: string[] = JSON.parse(
         profile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
       );
 
-      if (visibleIn.length === 0) {
+      const recognized = visibleIn.filter((v) =>
+        Object.values(HardwareProfileFeatureVisibility).some((ev) => ev === v),
+      );
+
+      if (recognized.length === 0) {
         return true;
       }
 
-      return visibility ? visibility.some((a) => visibleIn.includes(a)) : true;
+      return visibility ? visibility.some((a) => recognized.includes(a)) : true;
     } catch (error) {
       return true;
     }

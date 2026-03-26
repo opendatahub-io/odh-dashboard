@@ -78,7 +78,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
     const validUseCases = useCases.filter((v) => HardwareProfileFeatureVisibilityTitles[v]);
 
     if (validUseCases.length === 0) {
-      return '-';
+      return <i>All features</i>;
     }
 
     return (
