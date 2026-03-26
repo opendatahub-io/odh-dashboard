@@ -1,0 +1,70 @@
+import React from 'react';
+import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isMcpServerDeployModalExtension } from '~/odh/extension-points';
+
+type McpDeployModalExtensionProps = {
+  render: (
+    buttonState: { enabled: boolean; tooltip?: string },
+    onOpenModal: () => void,
+    isModalAvailable: boolean,
+  ) => React.ReactNode;
+};
+
+const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ render }) => {
+  const [extensions, extensionsLoaded] = useResolvedExtensions(isMcpServerDeployModalExtension);
+
+  const [deployAvailable, setDeployAvailable] = React.useState<{
+    available: boolean;
+    loaded: boolean;
+  }>({ available: false, loaded: false });
+
+  const [openModal, setOpenModal] = React.useState(false);
+
+  const onOpenModal = React.useCallback(() => {
+    setOpenModal(true);
+  }, []);
+
+  const isModalAvailable = React.useMemo(
+    () => extensionsLoaded && extensions.length > 0,
+    [extensionsLoaded, extensions],
+  );
+
+  const buttonState = React.useMemo(() => {
+    if (!deployAvailable.loaded) {
+      return { enabled: false, tooltip: 'Checking MCP server availability...' };
+    }
+    if (!deployAvailable.available) {
+      return {
+        enabled: false,
+        tooltip: 'MCP server CRD is not available on this cluster',
+      };
+    }
+    return { enabled: true };
+  }, [deployAvailable]);
+
+  return (
+    <>
+      {extensions.map((extension) =>
+        extension.properties.useIsDeployAvailable ? (
+          <HookNotify
+            key={extension.uid}
+            useHook={extension.properties.useIsDeployAvailable}
+            onNotify={(value) => {
+              if (value) {
+                setDeployAvailable(value);
+              }
+            }}
+          />
+        ) : null,
+      )}
+      {render(buttonState, onOpenModal, isModalAvailable)}
+      {openModal && (
+        // Modal will be rendered here in a follow-up PR
+        // For now, close immediately (no-op placeholder)
+        <></>
+      )}
+    </>
+  );
+};
+
+export default McpDeployModalExtension;
