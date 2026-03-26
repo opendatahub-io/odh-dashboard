@@ -9,8 +9,14 @@ import {
 } from '../ModelAvailabilityFields';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
+import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 
 jest.mock('@odh-dashboard/plugin-core');
+jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
+  useIsAreaAvailable: jest.fn(),
+}));
+
+const mockUseIsAreaAvailable = useIsAreaAvailable as jest.Mock;
 
 const mockWizardState: UseModelDeploymentWizardState = {
   fields: [],
@@ -73,40 +79,88 @@ describe('AvailableAiAssetsFields', () => {
     });
   });
   describe('AvailableAiAssetsFieldsComponent', () => {
-    it('should render with default props', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: false, useCase: '' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).not.toBeChecked();
+    describe('when Gen AI Studio area is available', () => {
+      beforeEach(() => {
+        mockUseIsAreaAvailable.mockReturnValue({ status: true });
+      });
+
+      it('should render with default props', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: false, useCase: '' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).not.toBeChecked();
+      });
+
+      it('should render with saveAsAiAsset true', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: true, useCase: '' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
+      });
+
+      it('should render with useCase input', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: true, useCase: 'test' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+        expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
+        expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
+        expect(screen.getByTestId('use-case-input')).toHaveValue('test');
+      });
     });
-    it('should render with saveAsAiAsset true', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, useCase: '' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
-    });
-    it('should render with useCase input', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, useCase: 'test' }}
-          setData={jest.fn()}
-          wizardState={mockWizardState}
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
-      expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
-      expect(screen.getByTestId('use-case-input')).toHaveValue('test');
+
+    describe('when Gen AI Studio area is NOT available', () => {
+      beforeEach(() => {
+        mockUseIsAreaAvailable.mockReturnValue({ status: false });
+      });
+
+      it('should not render checkbox when area is disabled', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: false, useCase: '' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.queryByTestId('save-as-ai-asset-checkbox')).not.toBeInTheDocument();
+      });
+
+      it('should not render checkbox even if saveAsAiAsset is true', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: true, useCase: 'test' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.queryByTestId('save-as-ai-asset-checkbox')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+      });
+
+      it('should not render use case input when area is disabled', () => {
+        render(
+          <AvailableAiAssetsFieldsComponent
+            data={{ saveAsAiAsset: true, useCase: 'existing data' }}
+            setData={jest.fn()}
+            wizardState={mockWizardState}
+          />,
+        );
+        expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+      });
     });
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {
