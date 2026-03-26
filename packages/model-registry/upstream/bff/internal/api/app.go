@@ -94,10 +94,10 @@ const (
 	KubernetesServicesListPath = SettingsPath + "/services"
 
 	// MCPServer deployment endpoints (downstream-only implementations)
-	McpDeploymentName     = "mcp_deployment_name"
-	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
-	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
-	McpServerAvailabilityPath  = McpServerCatalogPathPrefix + "/mcp_server_available"
+	McpDeploymentName         = "mcp_deployment_name"
+	McpDeploymentListPath     = ApiPathPrefix + "/mcp_deployments"
+	McpDeploymentPath         = McpDeploymentListPath + "/:" + McpDeploymentName
+	McpServerAvailabilityPath = McpServerCatalogPathPrefix + "/mcp_server_available"
 )
 
 const (
@@ -112,9 +112,9 @@ const (
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
 
 	// MCPServer deployment handlers - downstream-only
-	handlerMcpDeploymentListID   HandlerID = "mcpDeployment:list"
-	handlerMcpDeploymentDeleteID HandlerID = "mcpDeployment:delete"
-	handlerMcpServerAvailabilityID  HandlerID = "mcpServer:availability"
+	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
+	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
+	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
 )
 
 type App struct {

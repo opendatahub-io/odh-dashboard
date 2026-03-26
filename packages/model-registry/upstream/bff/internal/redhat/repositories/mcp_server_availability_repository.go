@@ -23,7 +23,7 @@ func NewMcpServerAvailabilityRepository(logger *slog.Logger) *McpServerAvailabil
 	return &McpServerAvailabilityRepository{logger: logger}
 }
 
-// IsMcpServerCRDAvailable checks whether the MCPServer CRD (mcp.x-k8s.io/v1alpha1/mcpservers)
+// IsMcpServerCRDAvailable checks whether the MCPServer CRD (mcp.x-k8s.io/v1alpha1/mcpservers) is installed on the cluster.
 func (r *McpServerAvailabilityRepository) IsMcpServerCRDAvailable(ctx context.Context, client k8s.KubernetesClientInterface) (bool, error) {
 	cfg, err := restConfigForClient(client)
 	if err != nil {

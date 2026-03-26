@@ -13,7 +13,7 @@ const useMcpServerDeployAvailable = (): { available: boolean; loaded: boolean } 
     available: false,
   });
 
-   return React.useMemo(
+  return React.useMemo(
     () => ({
       available: !error && data.available,
       loaded,

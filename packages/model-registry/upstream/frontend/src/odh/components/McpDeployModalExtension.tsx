@@ -24,10 +24,10 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
     setOpenModal(true);
   }, []);
 
- const isModalAvailable = React.useMemo(
-  () => extensionsLoaded && extensions.length > 0,
-  [extensionsLoaded, extensions],
-);
+  const isModalAvailable = React.useMemo(
+    () => extensionsLoaded && extensions.length > 0,
+    [extensionsLoaded, extensions],
+  );
 
   const buttonState = React.useMemo(() => {
     if (!deployAvailable.loaded) {
