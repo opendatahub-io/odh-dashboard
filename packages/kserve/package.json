@@ -5,6 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "test-unit": "jest --silent --passWithNoTests",
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests",
     "type-check": "tsc --noEmit",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }
