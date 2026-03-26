@@ -436,6 +436,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           label: 'Cancel',
           onClick: onCancelClose,
           variant: 'link',
+          isDisabled: isSubmitting,
           dataTestId: 'modal-cancel-button',
         },
       ]}
