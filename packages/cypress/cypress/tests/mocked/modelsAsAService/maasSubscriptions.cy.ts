@@ -16,7 +16,11 @@ describe('Subscriptions Page', () => {
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
-    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', {
+      /* eslint-disable camelcase */
+      data: [{ name: 'test-namespace', display_name: 'Test Namespace' }],
+      /* eslint-enable camelcase */
+    });
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
