@@ -241,7 +241,9 @@ describe('AI Assets Models - User Journeys', () => {
 
       cy.step('Wait for redirect after model deployment submission');
       cy.url().should('include', `/projects/${projectName}`);
-      modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
+      modelServingSection
+        .findModelServerDeployedName(testData.modelDeploymentName)
+        .should('be.visible');
 
       cy.step('Wait for model to reach Active state');
       waitForResource('inferenceService', testData.inferenceServiceName, projectName);
