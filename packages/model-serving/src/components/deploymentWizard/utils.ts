@@ -35,7 +35,7 @@ import type {
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
-  return '/ai-hub/deployments/deploy';
+  return '/ai-hub/models/deployments/deploy';
 };
 
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
