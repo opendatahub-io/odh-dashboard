@@ -1,22 +1,34 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
+import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { mockExtensions } from '../../../../__tests__/mockUtils';
+import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 import {
   modelAvailabilityFieldsSchema,
   AvailableAiAssetsFieldsComponent,
   isValidModelAvailabilityFieldsData,
   useModelAvailabilityFields,
 } from '../ModelAvailabilityFields';
-import { mockExtensions } from '../../../../__tests__/mockUtils';
-import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
-import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 
 jest.mock('@odh-dashboard/plugin-core');
 jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
-const mockUseIsAreaAvailable = useIsAreaAvailable as jest.Mock;
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+
+const mockAreaAvailabilityStatus = (status: boolean): IsAreaAvailableStatus => ({
+  status,
+  devFlags: null,
+  featureFlags: null,
+  reliantAreas: null,
+  requiredCapabilities: null,
+  requiredComponents: null,
+  customCondition: () => false,
+});
 
 const mockWizardState: UseModelDeploymentWizardState = {
   fields: [],
@@ -24,6 +36,7 @@ const mockWizardState: UseModelDeploymentWizardState = {
 
 describe('AvailableAiAssetsFields', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockExtensions([]);
   });
 
@@ -81,7 +94,7 @@ describe('AvailableAiAssetsFields', () => {
   describe('AvailableAiAssetsFieldsComponent', () => {
     describe('when Gen AI Studio area is available', () => {
       beforeEach(() => {
-        mockUseIsAreaAvailable.mockReturnValue({ status: true });
+        mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(true));
       });
 
       it('should render with default props', () => {
@@ -125,7 +138,7 @@ describe('AvailableAiAssetsFields', () => {
 
     describe('when Gen AI Studio area is NOT available', () => {
       beforeEach(() => {
-        mockUseIsAreaAvailable.mockReturnValue({ status: false });
+        mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(false));
       });
 
       it('should not render checkbox when area is disabled', () => {
