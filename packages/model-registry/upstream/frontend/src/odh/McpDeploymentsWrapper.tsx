@@ -12,6 +12,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import McpDeploymentsRoutes from '~/app/pages/mcpDeployments/McpDeploymentsRoutes';
 import { Bullseye } from '@patternfly/react-core';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
@@ -46,10 +47,12 @@ const McpDeploymentsWrapperContent: React.FC = () => {
 };
 
 const McpDeploymentsWrapper: React.FC = () => {
+  const [dscStatus] = useFetchDscStatus();
   const modularArchConfig: ModularArchConfig = {
     deploymentMode: DeploymentMode.Federated,
     URL_PREFIX,
     BFF_API_VERSION,
+    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
   };
   return (
     <ModularArchContextProvider config={modularArchConfig}>
