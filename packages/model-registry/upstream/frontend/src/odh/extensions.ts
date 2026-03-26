@@ -8,11 +8,12 @@ import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDeployModalExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -155,6 +156,16 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: `${catalogSettingsUrl()}/*`,
       component: () => import('./ModelCatalogSettingsRoutesWrapper'),
+    },
+  },
+  {
+    type: 'mcp-catalog.mcp-server/deploy-modal',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      useIsDeployAvailable: () =>
+        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
     },
   },
 ];

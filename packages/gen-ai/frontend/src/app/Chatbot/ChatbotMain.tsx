@@ -12,6 +12,8 @@ import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
@@ -42,6 +44,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
+  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
+  const [existingCollections] = useFetchVectorStores();
 
   const navigate = useNavigate();
 
@@ -245,6 +249,9 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatus={lsdStatus}
           existingModels={models}
           maasModels={maasModels}
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
       )}
       {deleteModalOpen && (

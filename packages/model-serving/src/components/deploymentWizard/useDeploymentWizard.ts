@@ -21,7 +21,12 @@ import { type InitialWizardFormData, type WizardField, type WizardFormData } fro
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import { useDeploymentWizardReducer, type WizardFormAction } from './useDeploymentWizardReducer';
+import {
+  useDeploymentWizardReducer,
+  wizardFormReducer,
+  WizardFormState,
+  type WizardFormAction,
+} from './useDeploymentWizardReducer';
 import type { ExternalDataMap } from './ExternalDataLoader';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -45,6 +50,20 @@ export const useModelDeploymentWizard = (
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
+  // Declare reducer state first so field hooks can access it
+  // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
+  const [formReducerState, formReducerDispatch] = React.useReducer(wizardFormReducer, {
+    fieldValues: {},
+    initialValues: {},
+  });
+  const formState: Partial<WizardFormState> = React.useMemo(
+    () => ({
+      ...formReducerState.initialValues,
+      ...formReducerState.fieldValues,
+    }),
+    [formReducerState.initialValues, formReducerState.fieldValues],
+  );
+
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
@@ -89,6 +108,9 @@ export const useModelDeploymentWizard = (
     modelType.data,
     hardwareProfileConfig.formData.selectedProfile,
   );
+  const actualModelServer = React.useMemo(() => {
+    return formState.modelServer?.data ? formState.modelServer : modelServer;
+  }, [formState.modelServer, modelServer]);
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
@@ -106,13 +128,13 @@ export const useModelDeploymentWizard = (
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     modelType,
-    modelServer,
+    actualModelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
-    modelServer,
+    actualModelServer,
     canCreateRoleBindings,
   );
 
@@ -123,12 +145,12 @@ export const useModelDeploymentWizard = (
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
     modelType,
-    modelServer,
+    actualModelServer,
   );
 
   // Step 4: Summary
 
-  const baseFormState: WizardFormData['state'] = React.useMemo(
+  const mergedFormState: WizardFormData['state'] = React.useMemo(
     () => ({
       project,
       modelType,
@@ -149,6 +171,7 @@ export const useModelDeploymentWizard = (
       modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
+      ...formState,
     }),
     [
       project,
@@ -167,12 +190,13 @@ export const useModelDeploymentWizard = (
       modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
+      formState,
     ],
   );
 
   // The reducer manages dynamic field state and computes active fields from merged state
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
-    useDeploymentWizardReducer(baseFormState, initialData, externalDataMap);
+    useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
 
   const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(

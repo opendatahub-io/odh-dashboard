@@ -1,16 +1,11 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { ModelServerTemplateField } from '@odh-dashboard/model-serving/types/form-data';
 import { LLMD_OPTION } from '../deployments/server';
+import { isGenerativeNonLegacy } from '../formUtils';
 
 export const modelServerField: ModelServerTemplateField = {
   id: 'modelServerTemplate',
   type: 'modifier',
-  isActive: (wizardFormData) => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      !wizardFormData.modelType.data.legacyVLLM
-    );
-  },
+  isActive: isGenerativeNonLegacy,
   extraOptions: [LLMD_OPTION],
   suggestion: (modelServingClusterSettings) => {
     return modelServingClusterSettings?.isLLMdDefault ? LLMD_OPTION : undefined;

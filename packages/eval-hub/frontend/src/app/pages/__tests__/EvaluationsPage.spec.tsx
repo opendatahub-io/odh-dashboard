@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { EvalHubCRStatus, EvaluationJob } from '~/app/types';
+import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
@@ -11,8 +11,8 @@ const mockUseEvaluationJobs = jest.fn<
   []
 >();
 
-const mockUseFetchEvalHubStatus = jest.fn<
-  { data: EvalHubCRStatus | null; loaded: boolean; error: Error | undefined; refresh: jest.Mock },
+const mockUseEvalHubHealth = jest.fn<
+  { isHealthy: boolean; loaded: boolean; error: Error | undefined },
   []
 >();
 
@@ -20,9 +20,9 @@ jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
 }));
 
-jest.mock('~/app/hooks/useFetchEvalHubStatus', () => ({
+jest.mock('~/app/hooks/useEvalHubHealth', () => ({
   __esModule: true,
-  default: () => mockUseFetchEvalHubStatus(),
+  default: () => mockUseEvalHubHealth(),
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -31,6 +31,7 @@ jest.mock('mod-arch-core', () => ({
     updatePreferredNamespace: jest.fn(),
     namespacesLoaded: true,
   }),
+  useFetchState: jest.fn().mockReturnValue([null, false, undefined]),
   asEnumMember: jest.fn((val: unknown) => val),
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
@@ -55,15 +56,6 @@ jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectSelectorModule(),
 );
 
-const mockCRStatus = (phase: string): EvalHubCRStatus => ({
-  name: 'evalhub-instance',
-  namespace: 'test-project',
-  phase: phase as EvalHubCRStatus['phase'],
-  ready: phase === 'Ready' ? 'True' : 'False',
-  readyReplicas: phase === 'Ready' ? 1 : 0,
-  replicas: 1,
-});
-
 describe('EvaluationsPage', () => {
   const renderPage = (namespace: string) =>
     render(
@@ -76,12 +68,7 @@ describe('EvaluationsPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseFetchEvalHubStatus.mockReturnValue({
-      data: mockCRStatus('Ready'),
-      loaded: true,
-      error: undefined,
-      refresh: jest.fn(),
-    });
+    mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
   });
 
@@ -89,9 +76,6 @@ describe('EvaluationsPage', () => {
     renderPage('test-project');
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
     expect(screen.getByText('Evaluations')).toBeInTheDocument();
-    expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Run evaluations on models, agents, and datasets to optimize performance.',
-    );
   });
 
   it('should render the project selector with the current namespace', () => {
@@ -99,71 +83,27 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('project-selector')).toHaveTextContent('test-project');
   });
 
-  describe('when CR is not found (null)', () => {
+  describe('when EvalHub service is unavailable', () => {
     beforeEach(() => {
-      mockUseFetchEvalHubStatus.mockReturnValue({
-        data: null,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
+      mockUseEvalHubHealth.mockReturnValue({ isHealthy: false, loaded: true, error: undefined });
     });
 
-    it('should show the not-found empty state', () => {
+    it('should show the unavailable empty state', () => {
       renderPage('test-project');
-      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-      expect(screen.getByTestId('evalhub-not-found-empty-state')).toBeInTheDocument();
+      expect(screen.getByTestId('evalhub-unavailable-empty-state')).toBeInTheDocument();
     });
 
-    it('should display the correct empty state message', () => {
+    it('should display the correct unavailable message', () => {
       renderPage('test-project');
-      expect(screen.getByText(/The evaluation service is not enabled/)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /To use evaluations, enable the evaluation service using the TrustyAI Operator/,
+        ),
+      ).toBeInTheDocument();
     });
   });
 
-  describe('when CR phase is Initializing', () => {
-    beforeEach(() => {
-      mockUseFetchEvalHubStatus.mockReturnValue({
-        data: mockCRStatus('Initializing'),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
-    });
-
-    it('should show the initializing state', () => {
-      renderPage('test-project');
-      expect(screen.getByTestId('evalhub-initializing-state')).toBeInTheDocument();
-    });
-
-    it('should display the initializing message', () => {
-      renderPage('test-project');
-      expect(screen.getByText(/EvalHub is being initialized/)).toBeInTheDocument();
-    });
-  });
-
-  describe('when CR phase is Failed', () => {
-    beforeEach(() => {
-      mockUseFetchEvalHubStatus.mockReturnValue({
-        data: mockCRStatus('Failed'),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
-    });
-
-    it('should show the failed state', () => {
-      renderPage('test-project');
-      expect(screen.getByTestId('evalhub-failed-state')).toBeInTheDocument();
-    });
-
-    it('should display the failed message', () => {
-      renderPage('test-project');
-      expect(screen.getByText(/failed to initialize/)).toBeInTheDocument();
-    });
-  });
-
-  describe('when CR phase is Ready', () => {
+  describe('when EvalHub service is healthy', () => {
     it('should show empty state when there are no evaluation runs', () => {
       renderPage('test-project');
       expect(screen.getByTestId('eval-hub-empty-state')).toBeInTheDocument();

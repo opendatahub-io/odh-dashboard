@@ -11,6 +11,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   EvalHubCRStatus,
+  EvalHubHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
   EvaluationJob,
@@ -55,6 +56,18 @@ export const getEvalHubCRStatus =
         return response.data;
       }
       throw new Error('Invalid response format');
+    });
+
+export const getEvalHubHealth =
+  (hostPath: string) =>
+  (opts: APIOptions): Promise<EvalHubHealthResponse> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<EvalHubHealthResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid health response format');
     });
 
 export const getEvaluationJobs =
