@@ -408,11 +408,15 @@ describe('ChatbotConfigurationModal step navigation', () => {
   });
 
   it('shows Configure instead of Create when lsdStatus is provided (update mode)', () => {
-    const lsdStatus = {
+    const lsdStatus: LlamaStackDistributionModel = {
       name: 'lsd-playground',
       phase: 'Ready',
       version: '0.1.0',
-      distributionConfig: {},
+      distributionConfig: {
+        activeDistribution: 'rh',
+        providers: [],
+        availableDistributions: {},
+      },
     };
     renderModal({ allModels: [embedModel], lsdStatus });
     expect(screen.getByRole('button', { name: /configure/i })).toBeInTheDocument();
