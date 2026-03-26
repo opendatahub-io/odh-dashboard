@@ -33,6 +33,7 @@ import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAle
 import ViewCodeModal from './components/ViewCodeModal';
 import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
+import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
@@ -161,6 +162,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
+  const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
@@ -513,7 +515,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           configId={configId}
                           displayLabel={getConfigDisplayLabel(index)}
                           onModelChange={handleModelChange(configId)}
-                          onClose={() => onClosePane?.(configId)}
+                          onClose={() => setPendingCloseConfigId(configId)}
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
                           isSettingsOpen={isDrawerExpanded}
@@ -548,6 +550,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
+
+      {pendingCloseConfigId && (
+        <CloseChatCompareModal
+          chatLabel={getConfigDisplayLabel(configIds.indexOf(pendingCloseConfigId))}
+          onConfirm={() => {
+            onClosePane?.(pendingCloseConfigId);
+            setPendingCloseConfigId(null);
+          }}
+          onCancel={() => setPendingCloseConfigId(null)}
+        />
+      )}
     </>
   );
 };
