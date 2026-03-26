@@ -44,16 +44,16 @@ describe('AI Assets Models - User Journeys', () => {
   // Hardware profile variables
   let hardwareProfileName: string;
 
-  retryableBefore(() => {
-    // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
-    Cypress.on('uncaught:exception', (err) => {
-      // Ignore SyntaxError from missing federated modules
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
-        return false;
-      }
-      return true;
-    });
+  // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
+  Cypress.on('uncaught:exception', (err) => {
+    // Ignore SyntaxError from missing federated modules
+    if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+      return false;
+    }
+    return true;
+  });
 
+  retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
