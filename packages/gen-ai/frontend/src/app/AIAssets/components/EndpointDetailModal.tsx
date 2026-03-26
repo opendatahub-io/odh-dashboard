@@ -35,7 +35,7 @@ import {
   TimesIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { AIModel } from '~/app/types';
+import { AIModel, SubscriptionInfo } from '~/app/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 import { maasTokensPath } from '~/app/utilities/routes';
@@ -70,7 +70,9 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
     }
   }, [subscriptions, selectedSubscription]);
 
-  const selectedSubscriptionObj = subscriptions.find((sub) => sub.name === selectedSubscription);
+  const selectedSubscriptionObj = subscriptions.find(
+    (sub: SubscriptionInfo) => sub.name === selectedSubscription,
+  );
 
   const handleEndpointCopy = (endpoint: string, endpointType: 'external' | 'internal') =>
     copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {
@@ -242,7 +244,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                           )}
                         >
                           <SelectList>
-                            {subscriptions.map((sub) => (
+                            {subscriptions.map((sub: SubscriptionInfo) => (
                               <SelectOption
                                 key={sub.name}
                                 value={sub.name}

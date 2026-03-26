@@ -377,6 +377,7 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
