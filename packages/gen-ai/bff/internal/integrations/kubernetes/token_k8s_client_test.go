@@ -169,7 +169,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient)
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient)
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -235,7 +235,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient)
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -259,7 +259,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, nil, mockMaaSClient)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -288,7 +288,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, nil, mockMaaSClient)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -705,7 +705,7 @@ registered_resources:
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, false, nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, false, nil, nil)
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)

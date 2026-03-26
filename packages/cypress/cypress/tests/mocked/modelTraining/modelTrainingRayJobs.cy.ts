@@ -16,12 +16,15 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ClusterQueueModel,
+  GatewayModel,
+  HTTPRouteModel,
   LocalQueueModel,
   RayClusterModel,
   RayJobModel,
   TrainJobModel,
   WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
+import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
   modelTrainingGlobal,
@@ -31,8 +34,10 @@ import {
   rayJobDetailsTab,
   rayJobResourcesTab,
   editRayJobNodeCountModal,
+  pauseRayJobModal,
 } from '../../../pages/modelTraining';
 import { tablePagination } from '../../../pages/components/Pagination';
+import { deleteModal } from '../../../pages/components/DeleteModal';
 import { ProjectModel } from '../../../utils/models';
 
 const projectName = 'test-rayjobs-project';
@@ -360,6 +365,61 @@ const initIntercepts = () => {
     });
 };
 
+const createWorkloadForRayJob = (
+  job: (typeof mockRayJobs)[number],
+  overrides: { active?: boolean } = {},
+) => {
+  const workload = mockWorkloadK8sResource({
+    k8sName: `workload-${job.metadata.name}`,
+    namespace: projectName,
+    mockStatus: WorkloadStatusType.Running,
+  });
+  workload.spec = {
+    ...workload.spec,
+    ...('active' in overrides ? { active: overrides.active } : {}),
+  };
+  if (workload.metadata) {
+    workload.metadata.labels = {
+      ...(workload.metadata.labels || {}),
+      'kueue.x-k8s.io/job-uid': job.metadata.uid || `uid-${job.metadata.name}`,
+      'kueue.x-k8s.io/job-name': job.metadata.name,
+    };
+  }
+  return workload;
+};
+
+const runningWorkload = createWorkloadForRayJob(mockRayJobs[0]);
+const suspendedWorkload = createWorkloadForRayJob(mockRayJobs[3], { active: false });
+const runningJobUid = mockRayJobs[0].metadata.uid ?? '';
+const suspendedJobUid = mockRayJobs[3].metadata.uid ?? '';
+
+const initPauseResumeIntercepts = () => {
+  initIntercepts();
+
+  cy.interceptK8sList(
+    { model: WorkloadModel, ns: projectName },
+    mockK8sResourceList([runningWorkload, suspendedWorkload]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: WorkloadModel,
+      ns: projectName,
+      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${runningJobUid}` },
+    },
+    mockK8sResourceList([runningWorkload]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: WorkloadModel,
+      ns: projectName,
+      queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${suspendedJobUid}` },
+    },
+    mockK8sResourceList([suspendedWorkload]),
+  );
+};
+
 describe('RayJobs in Jobs Table', () => {
   beforeEach(() => {
     asClusterAdminUser();
@@ -385,7 +445,23 @@ describe('RayJobs in Jobs Table', () => {
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow.findKebabButton().click();
 
-    cy.findByRole('menuitem', { name: 'Delete job' }).should('exist');
+    rayRow.findKebabMenuItem('Delete job').should('exist');
+  });
+
+  it('should open delete modal with job name in title and correct body text', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findKebabButton().click();
+    rayRow.findKebabMenuItem('Delete job').click();
+
+    deleteModal.shouldBeOpen();
+    deleteModal.find().should('contain', 'Delete ray-data-processing job?');
+    deleteModal
+      .find()
+      .should('contain', 'ray-data-processing')
+      .and('contain', 'all of its resources will be deleted');
   });
 
   it('should filter RayJobs by name', () => {
@@ -833,6 +909,24 @@ describe('Edit node count modal for RayJobs', () => {
     trainingJobTable.getTableRow('ray-workspace-job').findEditNodeCountButton().should('not.exist');
   });
 
+  it('should show Edit node count in the kebab menu and open the modal', () => {
+    trainingJobTable.getTableRow('ray-multi-group-job').findKebabButton().click();
+    trainingJobTable
+      .getTableRow('ray-multi-group-job')
+      .findKebabMenuItem('Edit node count')
+      .should('exist')
+      .click();
+    editRayJobNodeCountModal.shouldBeOpen();
+  });
+
+  it('should not show Edit node count in the kebab menu for workspace-cluster jobs', () => {
+    trainingJobTable.getTableRow('ray-workspace-job').findKebabButton().click();
+    trainingJobTable
+      .getTableRow('ray-workspace-job')
+      .findKebabMenuItem('Edit node count')
+      .should('not.exist');
+  });
+
   it('should open the modal with correct initial state: head node disabled, Save disabled', () => {
     trainingJobTable.getTableRow('ray-multi-group-job').findEditNodeCountButton().click();
 
@@ -924,5 +1018,315 @@ describe('Edit node count modal for RayJobs', () => {
       ]);
     });
     editRayJobNodeCountModal.shouldBeClosed();
+  });
+});
+
+describe('RayJob Pause/Resume - Table Toggle', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initPauseResumeIntercepts();
+  });
+
+  it('should show Pause toggle for running and Resume toggle for suspended RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-data-processing');
+    trainingJobTable
+      .getTableRow('ray-data-processing')
+      .findPauseResumeToggle()
+      .should('contain', 'Pause');
+
+    trainingJobTable.filterByName('ray-suspended-job');
+    trainingJobTable
+      .getTableRow('ray-suspended-job')
+      .findPauseResumeToggle()
+      .should('contain', 'Resume');
+  });
+
+  it('should not show pause/resume toggle for terminal state RayJobs', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.getTableRow('ray-completed-job').findPauseResumeToggle().should('not.exist');
+    trainingJobTable.getTableRow('ray-failed-job').findPauseResumeToggle().should('not.exist');
+  });
+});
+
+describe('RayJob Pause/Resume - Pause Modal', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initPauseResumeIntercepts();
+  });
+
+  it('should open pause modal with job name when clicking Pause toggle', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    trainingJobTable.getTableRow('ray-data-processing').findPauseResumeToggle().click();
+
+    pauseRayJobModal.shouldBeOpen();
+    pauseRayJobModal.find().should('contain', 'ray-data-processing');
+  });
+
+  it('should close modal when Cancel is clicked', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    trainingJobTable.getTableRow('ray-data-processing').findPauseResumeToggle().click();
+
+    pauseRayJobModal.shouldBeOpen();
+    pauseRayJobModal.cancel();
+    pauseRayJobModal.shouldBeOpen(false);
+  });
+
+  it('should pause Kueue-enabled RayJob by patching workload when confirmed', () => {
+    const pausedWorkload = { ...runningWorkload, spec: { ...runningWorkload.spec, active: false } };
+    cy.interceptK8s('PATCH', WorkloadModel, pausedWorkload).as('pauseWorkload');
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    trainingJobTable.getTableRow('ray-data-processing').findPauseResumeToggle().click();
+
+    pauseRayJobModal.shouldBeOpen();
+    pauseRayJobModal.pause();
+
+    cy.wait('@pauseWorkload');
+    pauseRayJobModal.shouldBeOpen(false);
+    trainingJobTable
+      .getTableRow('ray-data-processing')
+      .findPauseResumeToggle()
+      .should('contain', 'Resume');
+  });
+
+  it('should open pause modal from table row kebab menu', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findKebabButton().click();
+    row.findKebabMenuItem('Pause job').click();
+
+    pauseRayJobModal.shouldBeOpen();
+  });
+
+  it('should show dont-show-again checkbox and confirm pause', () => {
+    const pausedWorkload = { ...runningWorkload, spec: { ...runningWorkload.spec, active: false } };
+    cy.interceptK8s('PATCH', WorkloadModel, pausedWorkload).as('pauseWorkload');
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    trainingJobTable.getTableRow('ray-data-processing').findPauseResumeToggle().click();
+
+    pauseRayJobModal.shouldBeOpen();
+    pauseRayJobModal.findDontShowAgainCheckbox().should('exist').click();
+    pauseRayJobModal.pause();
+
+    cy.wait('@pauseWorkload');
+    pauseRayJobModal.shouldBeOpen(false);
+  });
+});
+
+describe('RayJob Pause/Resume - Resume Action', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initPauseResumeIntercepts();
+  });
+
+  it('should resume Kueue-enabled RayJob immediately without modal', () => {
+    const resumedWorkload = {
+      ...suspendedWorkload,
+      spec: { ...suspendedWorkload.spec, active: true },
+    };
+    cy.interceptK8s('PATCH', WorkloadModel, resumedWorkload).as('resumeWorkload');
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-suspended-job');
+
+    const row = trainingJobTable.getTableRow('ray-suspended-job');
+    row.findPauseResumeToggle().click();
+
+    pauseRayJobModal.shouldBeOpen(false);
+    cy.wait('@resumeWorkload');
+    trainingJobTable
+      .getTableRow('ray-suspended-job')
+      .findPauseResumeToggle()
+      .should('contain', 'Pause');
+  });
+
+  it('should show Resume job in table row kebab menu for suspended RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-suspended-job');
+
+    const row = trainingJobTable.getTableRow('ray-suspended-job');
+    row.findKebabButton().click();
+
+    row.findKebabMenuItem('Resume job').should('exist');
+  });
+});
+
+describe('RayJob Pause/Resume - Drawer Kebab Menu', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initPauseResumeIntercepts();
+  });
+
+  it('should show Pause job option in drawer kebab for running RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Pause job').should('exist');
+  });
+
+  it('should show Resume job option in drawer kebab for suspended RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-suspended-job');
+
+    const row = trainingJobTable.getTableRow('ray-suspended-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Resume job').should('exist');
+  });
+
+  it('should not show pause/resume in drawer kebab for completed RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-completed-job');
+
+    const row = trainingJobTable.getTableRow('ray-completed-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Pause job').should('not.exist');
+    rayJobDetailsDrawer.findKebabMenuItem('Resume job').should('not.exist');
+  });
+
+  it('should open pause modal from drawer kebab menu', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-data-processing');
+
+    const row = trainingJobTable.getTableRow('ray-data-processing');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Pause job').click();
+
+    pauseRayJobModal.shouldBeOpen();
+  });
+});
+
+describe('Ray cluster column URL behavior', () => {
+  const mockGateway = {
+    apiVersion: 'gateway.networking.k8s.io/v1',
+    kind: 'Gateway',
+    metadata: {
+      name: 'data-science-gateway',
+      namespace: 'openshift-ingress',
+    },
+    spec: {
+      listeners: [{ hostname: 'rh-ai.apps.example.com', port: 443, name: 'https' }],
+    },
+  };
+
+  const mockHTTPRoute = (clusterName: string) => ({
+    apiVersion: 'gateway.networking.k8s.io/v1',
+    kind: 'HTTPRoute',
+    metadata: {
+      name: `${projectName}-${clusterName}`,
+      namespace: 'opendatahub',
+    },
+    spec: {
+      rules: [
+        {
+          filters: [
+            {
+              requestRedirect: {
+                path: { replaceFullPath: `/ray/${projectName}/${clusterName}/#/` },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should show lifecycled cluster name from status.rayClusterName as a link', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockGateway,
+    );
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-ray-data-processing-raycluster` },
+      mockHTTPRoute('ray-data-processing-raycluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.attr', 'href')
+      .and('include', 'rh-ai.apps.example.com');
+  });
+
+  it('should show Ray cluster name as plain text when Gateway is unavailable', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      { statusCode: 404, body: mock404Error({}) },
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow.findRayCluster().should('contain', 'ray-data-processing-raycluster');
+    rayRow.findRayCluster().find('a').should('not.exist');
+  });
+
+  it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockGateway,
+    );
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-shared-ray-cluster` },
+      mockHTTPRoute('shared-ray-cluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.filterByName('ray-workspace-job');
+    const workspaceRow = trainingJobTable.getTableRow('ray-workspace-job');
+    workspaceRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'shared-ray-cluster')
+      .and('have.attr', 'target', '_blank');
+  });
+
+  it('should show dash for jobs without a Ray cluster name', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    trainingJobTable.filterByName('ray-queued-job');
+    const queuedRow = trainingJobTable.getTableRow('ray-queued-job');
+    queuedRow.findRayCluster().should('contain', '-');
   });
 });

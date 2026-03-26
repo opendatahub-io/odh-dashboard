@@ -24,7 +24,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import {
+  AIModel,
+  ExternalVectorStoreSummary,
+  LlamaModel,
+  LlamaStackDistributionModel,
+  VectorStore,
+} from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -38,6 +44,9 @@ type AIModelTableRowProps = {
   playgroundModels: LlamaModel[];
   onDelete?: (modelId: string) => Promise<void>;
   showActionColumn?: boolean;
+  allCollections: ExternalVectorStoreSummary[];
+  collectionsLoaded: boolean;
+  existingCollections: VectorStore[];
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
@@ -47,6 +56,9 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   playgroundModels,
   onDelete,
   showActionColumn = false,
+  allCollections,
+  collectionsLoaded,
+  existingCollections,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
@@ -218,6 +230,9 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           existingModels={playgroundModels}
           extraSelectedModels={[model]}
           redirectToPlayground
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
       )}
       {isDeleteModalOpen && (

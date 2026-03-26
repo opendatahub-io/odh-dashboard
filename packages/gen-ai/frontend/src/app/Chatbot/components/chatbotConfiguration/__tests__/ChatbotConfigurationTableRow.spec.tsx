@@ -74,7 +74,10 @@ describe('ChatbotConfigurationTableRow', () => {
     model: createMockAIModel({ model_source_type: 'namespace' }),
     isChecked: false,
     onToggleCheck: jest.fn(),
+    modelType: 'Inference',
+    onModelTypeChange: jest.fn(),
     onMaxTokensChange: jest.fn(),
+    onEmbeddingDimensionChange: jest.fn(),
   };
 
   beforeEach(() => {
@@ -93,7 +96,7 @@ describe('ChatbotConfigurationTableRow', () => {
     expect(screen.getByText('llm')).toBeInTheDocument();
   });
 
-  it('renders MaaS badge for MaaS models', () => {
+  it('renders display name for MaaS models without a source badge', () => {
     const maasModel = createMockAIModel({
       model_source_type: 'maas',
       display_name: 'MaaS Test Model',
@@ -106,10 +109,10 @@ describe('ChatbotConfigurationTableRow', () => {
     );
 
     expect(screen.getByText('MaaS Test Model')).toBeInTheDocument();
-    expect(screen.getByText('MaaS')).toBeInTheDocument();
+    expect(screen.queryByTestId('model-source-badge')).not.toBeInTheDocument();
   });
 
-  it('renders Custom endpoint badge for custom endpoint models', () => {
+  it('renders display name for custom endpoint models without a source badge', () => {
     const customEndpointModel = createMockAIModel({
       model_source_type: 'custom_endpoint',
       display_name: 'Custom Endpoint Model',
@@ -122,16 +125,6 @@ describe('ChatbotConfigurationTableRow', () => {
     );
 
     expect(screen.getByText('Custom Endpoint Model')).toBeInTheDocument();
-    expect(screen.getByText('Custom endpoint')).toBeInTheDocument();
-  });
-
-  it('does not render source badge for internal models', () => {
-    render(
-      <TestWrapper>
-        <ChatbotConfigurationTableRow {...defaultProps} />
-      </TestWrapper>,
-    );
-
     expect(screen.queryByTestId('model-source-badge')).not.toBeInTheDocument();
   });
 

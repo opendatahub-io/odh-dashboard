@@ -118,7 +118,7 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       priority: 100,
       supportsOverwrite: true,
-      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
+      isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
     flags: {
@@ -130,7 +130,7 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       priority: 100,
-      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
+      isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       assemble: () => import('../src/deployments/deploy').then((m) => m.assembleLLMdDeployment),
     },
     flags: {
