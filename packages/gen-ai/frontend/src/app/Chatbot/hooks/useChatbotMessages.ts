@@ -65,6 +65,8 @@ interface UseChatbotMessagesProps {
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
   guardrailModelConfigs?: GuardrailModelConfig[];
+  // MaaS subscription name for API key generation
+  subscription?: string;
 }
 
 const useChatbotMessages = ({
@@ -84,6 +86,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   guardrailModelConfigs = [],
+  subscription,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -310,6 +313,7 @@ const useChatbotMessages = ({
         ...(selectedModel?.model_source_type && {
           model_source_type: selectedModel.model_source_type,
         }),
+        ...(subscription && { subscription }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {

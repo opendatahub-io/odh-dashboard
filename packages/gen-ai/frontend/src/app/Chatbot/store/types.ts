@@ -26,6 +26,7 @@ export interface ChatbotConfiguration {
   guardrailModelOutputEnabled: boolean;
   /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
   isRagEnabled: boolean;
+  selectedSubscription: string;
 }
 
 /**
@@ -44,6 +45,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrailModelOutputEnabled: false,
   // RAG default - OFF
   isRagEnabled: false,
+  selectedSubscription: '',
 };
 
 /**
@@ -85,6 +87,8 @@ export interface ChatbotConfigStoreActions {
   updateGuardrail: (id: string, value: string) => void;
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
+
+  updateSelectedSubscription: (id: string, value: string) => void;
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;

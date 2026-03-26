@@ -73,6 +73,7 @@ const createDefaultHookProps = (overrides?: {
   temperature?: number;
   currentVectorStoreId?: string | null;
   selectedServerIds?: string[];
+  subscription?: string;
 }) => ({
   ...defaultMcpProps,
   modelId: mockModelId,
@@ -673,6 +674,57 @@ describe('useChatbotMessages', () => {
       expect(botMessage.metrics).toBeDefined();
       expect(botMessage.metrics?.latency_ms).toBe(1500);
       expect(botMessage.metrics?.time_to_first_token_ms).toBe(200);
+    });
+  });
+
+  describe('subscription', () => {
+    it('should include subscription in payload when provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: 'premium-subscription' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with subscription');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: 'Hello with subscription',
+          subscription: 'premium-subscription',
+        }),
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
+    });
+
+    it('should omit subscription from payload when not provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello without subscription');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(payload).not.toHaveProperty('subscription');
+    });
+
+    it('should omit subscription from payload when subscription is empty string', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with empty subscription');
+      });
+
+      expect(mockCreateResponse.mock.calls[0][0]).not.toHaveProperty('subscription');
     });
   });
 });
