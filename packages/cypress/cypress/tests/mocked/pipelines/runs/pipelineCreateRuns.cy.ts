@@ -637,6 +637,8 @@ describe('Pipeline create runs', () => {
       pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
       pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
       pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
+      // Mock the duplicate name check for the version import modal
+      createRunPage.mockGetPipelineVersions([], mockPipeline.pipeline_id, projectName);
       pipelineVersionImportModal.submit();
 
       cy.wait('@createPipelineVersion').then((interception) => {
