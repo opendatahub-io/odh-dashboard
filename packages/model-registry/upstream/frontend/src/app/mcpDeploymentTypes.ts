@@ -15,6 +15,7 @@ export type McpDeploymentCondition = {
 export type McpDeployment = {
   name: string;
   namespace: string;
+  uid: string;
   creationTimestamp: string;
   image: string;
   port: number;
@@ -27,4 +28,15 @@ export type McpDeploymentList = {
   nextPageToken?: string;
   pageSize: number;
   size: number;
+};
+
+export type McpDeploymentCreateRequest = {
+  name?: string;
+  image: string;
+  port?: number;
+};
+
+export type McpDeploymentUpdateRequest = {
+  image?: string;
+  port?: number;
 };

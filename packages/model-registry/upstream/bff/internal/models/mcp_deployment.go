@@ -21,6 +21,7 @@ type McpDeploymentCondition struct {
 type McpDeployment struct {
 	Name              string                   `json:"name"`
 	Namespace         string                   `json:"namespace"`
+	UID               string                   `json:"uid"`
 	CreationTimestamp string                   `json:"creationTimestamp"`
 	Image             string                   `json:"image"`
 	Port              int32                    `json:"port"`
@@ -33,4 +34,15 @@ type McpDeploymentList struct {
 	NextPageToken string          `json:"nextPageToken,omitempty"`
 	PageSize      int32           `json:"pageSize"`
 	Size          int32           `json:"size"`
+}
+
+type McpDeploymentCreateRequest struct {
+	Name  string `json:"name,omitempty"`
+	Image string `json:"image"`
+	Port  int32  `json:"port,omitempty"`
+}
+
+type McpDeploymentUpdateRequest struct {
+	Image *string `json:"image,omitempty"`
+	Port  *int32  `json:"port,omitempty"`
 }
