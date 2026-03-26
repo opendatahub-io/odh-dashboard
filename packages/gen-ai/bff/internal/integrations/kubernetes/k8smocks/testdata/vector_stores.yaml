@@ -39,6 +39,16 @@ providers:
       config:
         uri: http://milvus.vector.svc.cluster.local:19530
 
+    - provider_id: milvus-secure-provider
+      provider_type: remote::milvus
+      config:
+        uri: http://milvus-secure.vector.svc.cluster.local:19530
+        custom_gen_ai:
+          credentials:
+            secretRefs:
+              - name: milvus-credentials
+                key: token
+
 registered_resources:
   vector_stores:
     - provider_id: pgvector-provider
@@ -64,3 +74,11 @@ registered_resources:
       vector_store_name: "Code Vector Store (Milvus)"
       metadata:
         description: "Code embeddings for repository search"
+
+    - provider_id: milvus-secure-provider
+      vector_store_id: vs_c9e12f45-3b67-4d89-a012-3b4567890cde
+      embedding_model: ibm-granite/granite-embedding-125m-english
+      embedding_dimension: 768
+      vector_store_name: "Secure Knowledge Base (Milvus)"
+      metadata:
+        description: "Secure internal knowledge base with token auth"
