@@ -153,10 +153,15 @@ module.exports = async (fastify: KubeFastifyInstance) => {
 
       try {
         const userKc = buildUserKubeConfig(fastify, request);
-        const { stdout } = await execInPod(userKc, namespace, podName, containerName, [
+        const { stdout, stderr } = await execInPod(userKc, namespace, podName, containerName, [
           'cat',
           filePath,
         ]);
+
+        if (!stdout && stderr) {
+          reply.code(500).send({ error: 'Failed to read logs', details: stderr.trim() });
+          return;
+        }
 
         reply.type('text/plain').send(stdout);
       } catch (error: unknown) {

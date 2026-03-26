@@ -83,7 +83,7 @@ const RayJobLogsTab: React.FC<RayJobLogsTabProps> = ({ job }) => {
 
     setDownloading(true);
     try {
-      const timestamp = new Date().toISOString();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       downloadString(`rayjob-${jobId}-${timestamp}.log`, logs);
     } finally {
       setDownloading(false);
@@ -175,6 +175,7 @@ const RayJobLogsTab: React.FC<RayJobLogsTabProps> = ({ job }) => {
         </Bullseye>
       ) : (
         <LogViewer
+          data-testid="logs-log-viewer"
           data={data}
           innerRef={logViewerRef}
           height="60vh"

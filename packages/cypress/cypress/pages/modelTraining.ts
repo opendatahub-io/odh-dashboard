@@ -971,7 +971,7 @@ class RayJobLogsTab {
   }
 
   findLogViewer() {
-    return cy.get('.pf-v6-c-log-viewer');
+    return cy.findByTestId('logs-log-viewer');
   }
 }
 
