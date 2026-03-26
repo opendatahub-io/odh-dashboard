@@ -1312,6 +1312,7 @@ export type DashboardCommonConfig = {
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  promptManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

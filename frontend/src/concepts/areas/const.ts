@@ -14,6 +14,7 @@ export const techPreviewFlags = {
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   vLLMDeploymentOnMaaS: false,
+  promptManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
