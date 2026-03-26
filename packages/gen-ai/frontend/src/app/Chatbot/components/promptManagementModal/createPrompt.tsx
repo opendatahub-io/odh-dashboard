@@ -115,6 +115,9 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           <SplitItem isFilled>
             <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
               Name
+              <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                {' *'}
+              </span>
             </Title>
             <TextInput
               aria-label="Prompt name"
@@ -150,6 +153,9 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       <FlexItem spacer={{ default: 'spacerMd' }}>
         <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
           Prompt
+          <span className="pf-v6-u-text-color-required" aria-hidden="true">
+            {' *'}
+          </span>
         </Title>
         <MenuToggle isDisabled style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
           System
