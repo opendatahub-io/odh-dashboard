@@ -149,15 +149,13 @@ func TestNewTypes(t *testing.T) {
 	assert.Equal(t, float64(0.8), shield.Config["threshold"])
 	assert.NotNil(t, shield.Metadata)
 
-	// Test VectorDB creation
-	dbConfig := EmptyConfig()
-	dbConfig["dimension"] = 768
-	vectorDB := NewVectorDB("test-db", "Test Database", "milvus", dbConfig)
-	assert.Equal(t, "test-db", vectorDB.DBID)
-	assert.Equal(t, "Test Database", vectorDB.Name)
-	assert.Equal(t, "milvus", vectorDB.ProviderID)
-	assert.Equal(t, 768, vectorDB.Config["dimension"])
-	assert.NotNil(t, vectorDB.Metadata)
+	// Test VectorStore creation
+	vectorStore := NewVectorStore("test-db", "ibm-granite/granite-embedding-125m-english", 768)
+	assert.Equal(t, "test-db", vectorStore.VectorStoreID)
+	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", vectorStore.EmbeddingModel)
+	assert.Equal(t, 768, vectorStore.EmbeddingDimension)
+	assert.Empty(t, vectorStore.VectorStoreName)
+	assert.Nil(t, vectorStore.Metadata)
 
 	// Test Dataset creation
 	datasetConfig := EmptyConfig()

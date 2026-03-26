@@ -62,13 +62,13 @@ type MetadataStore struct {
 }
 
 type RegisteredResources struct {
-	Models     []Model     `json:"models" yaml:"models"`
-	Shields    []Shield    `json:"shields" yaml:"shields"`
-	VectorDBs  []VectorDB  `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets   []Dataset   `json:"datasets" yaml:"datasets"`
-	ScoringFns []ScoringFn `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks []Benchmark `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups []ToolGroup `json:"tool_groups" yaml:"tool_groups"`
+	Models       []Model       `json:"models" yaml:"models"`
+	Shields      []Shield      `json:"shields" yaml:"shields"`
+	VectorStores []VectorStore `json:"vector_stores" yaml:"vector_stores"`
+	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
+	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
+	ToolGroups   []ToolGroup   `json:"tool_groups" yaml:"tool_groups"`
 }
 
 type Storage struct {
@@ -229,12 +229,12 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		RegisteredResources: RegisteredResources{
 			// Ensure these serialize as `[]` (not `null`) when no values exist.
-			Models:     []Model{},
-			Shields:    []Shield{},
-			VectorDBs:  []VectorDB{},
-			Datasets:   []Dataset{},
-			ScoringFns: []ScoringFn{},
-			Benchmarks: []Benchmark{},
+			Models:       []Model{},
+			Shields:      []Shield{},
+			VectorStores: []VectorStore{},
+			Datasets:     []Dataset{},
+			ScoringFns:   []ScoringFn{},
+			Benchmarks:   []Benchmark{},
 			ToolGroups: []ToolGroup{
 				{
 					ToolGroupID: "builtin::rag",
@@ -351,7 +351,7 @@ func NewEmbeddingModel(modelID, providerID, providerModelID string, embeddingDim
 		ModelID:         modelID,
 		ProviderID:      providerID,
 		ProviderModelID: providerModelID,
-		ModelType:       "embedding",
+		ModelType:       string(models.ModelTypeEmbedding),
 		Metadata: map[string]interface{}{
 			"embedding_dimension": embeddingDimension,
 		},
@@ -363,7 +363,7 @@ func NewLLMModel(modelID, providerID string, displayName string) Model {
 	return Model{
 		ModelID:    modelID,
 		ProviderID: providerID,
-		ModelType:  "llm",
+		ModelType:  string(models.ModelTypeLLM),
 		Metadata: map[string]interface{}{
 			"display_name": displayName,
 		},
@@ -545,6 +545,11 @@ func (c *LlamaStackConfig) RegisterShield(shield Shield) {
 	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
 }
 
+// RegisterVectorStore adds a vector store to the registered resources.
+func (c *LlamaStackConfig) RegisterVectorStore(store VectorStore) {
+	c.RegisteredResources.VectorStores = append(c.RegisteredResources.VectorStores, store)
+}
+
 // GetModelProviderInfo extracts model provider information for a given model ID
 // This is a two-step process:
 // 1. Find the model in the Models section and get its provider_id
@@ -631,13 +636,15 @@ type Shield struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
-// VectorDB represents a vector database configuration
-type VectorDB struct {
-	DBID       string                 `json:"db_id" yaml:"db_id"`
-	Name       string                 `json:"name" yaml:"name"`
-	ProviderID string                 `json:"provider_id" yaml:"provider_id"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+// VectorStore represents a vector store configuration in registered_resources
+type VectorStore struct {
+	VectorStoreID         string                 `json:"vector_store_id" yaml:"vector_store_id"`
+	EmbeddingModel        string                 `json:"embedding_model" yaml:"embedding_model"`
+	EmbeddingDimension    int                    `json:"embedding_dimension" yaml:"embedding_dimension"`
+	ProviderID            string                 `json:"provider_id,omitempty" yaml:"provider_id,omitempty"`
+	ProviderVectorStoreID string                 `json:"provider_vector_store_id,omitempty" yaml:"provider_vector_store_id,omitempty"`
+	VectorStoreName       string                 `json:"vector_store_name,omitempty" yaml:"vector_store_name,omitempty"`
+	Metadata              map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // Dataset represents a dataset configuration
@@ -680,14 +687,12 @@ func NewShield(shieldID, shieldType, providerID string, config map[string]interf
 	}
 }
 
-// NewVectorDB creates a new VectorDB instance
-func NewVectorDB(dbID, name, providerID string, config map[string]interface{}) VectorDB {
-	return VectorDB{
-		DBID:       dbID,
-		Name:       name,
-		ProviderID: providerID,
-		Config:     config,
-		Metadata:   EmptyConfig(),
+// NewVectorStore creates a new VectorStore instance
+func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int) VectorStore {
+	return VectorStore{
+		VectorStoreID:      vectorStoreID,
+		EmbeddingModel:     embeddingModel,
+		EmbeddingDimension: embeddingDimension,
 	}
 }
 
