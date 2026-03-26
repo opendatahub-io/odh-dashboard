@@ -49,7 +49,7 @@ const { theme: contextTheme } = useThemeContext();
 const isDark = contextTheme === 'dark';
 ```
 
-The full theme object must recompute when context changes — wrap in `useMemo` with `[contextTheme]` as the dependency.
+The full theme object must recompute when context changes — wrap it in `useMemo`.
 
 ---
 
