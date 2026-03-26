@@ -2,6 +2,7 @@ import {
   FileUpload,
   FileUploadHelperText,
   FileUploadProps,
+  HelperText,
   Progress,
   ProgressMeasureLocation,
 } from '@patternfly/react-core';
@@ -19,6 +20,7 @@ interface FileSelectorProps<Files extends Array<string>> {
     setProgress: (progress: number) => void,
     setStatus: (status: 'success' | 'danger') => void,
   ) => void;
+  fileUploadHelperText?: string;
   typeaheadProps?: Omit<TypeaheadSelectProps, 'selectOptions'>;
   fileUploadProps?: FileUploadProps;
 }
@@ -62,10 +64,11 @@ function FileSelector<Files extends Array<string>>(
       </div>
       <FileUpload
         id={props.id}
+        className="pf-v6-u-mt-sm"
         style={{
           maxHeight: hideUpload ? '0' : '6rem',
           padding: hideUpload ? '0' : undefined,
-          marginTop: hideUpload ? '0' : 'var(--pf-t--global--spacer--sm)',
+          marginTop: hideUpload ? '0' : undefined,
           border: hideUpload ? '0' : undefined,
 
           translate: hideUpload ? '0 -2rem' : '0 0',
@@ -95,7 +98,7 @@ function FileSelector<Files extends Array<string>>(
         onClearClick={() => setUploadedFile(undefined)}
         {...props.fileUploadProps}
       >
-        {!!uploadedFile && (
+        {uploadedFile ? (
           <FileUploadHelperText>
             <Progress
               value={uploadProgress}
@@ -103,6 +106,10 @@ function FileSelector<Files extends Array<string>>(
               measureLocation={ProgressMeasureLocation.outside}
               aria-label="File upload progress"
             />
+          </FileUploadHelperText>
+        ) : (
+          <FileUploadHelperText>
+            <HelperText>{props.fileUploadHelperText}</HelperText>
           </FileUploadHelperText>
         )}
       </FileUpload>
