@@ -203,6 +203,9 @@ describe('getNotebookControllerUserState', () => {
   it('should fall back to opendatahub.io/user annotation when username annotation is missing', () => {
     const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
     delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/username'];
+    // Set the translated username as it would appear in a real cluster
+    (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/user'] =
+      usernameTranslate('test-user');
     const result = getNotebookControllerUserState(notebook, 'test-user');
     expect(result).not.toBeNull();
     expect(result?.user).toBe('test-user');
