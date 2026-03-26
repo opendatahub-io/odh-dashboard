@@ -49,7 +49,7 @@ Never infer dark mode from `prefers-color-scheme`, a local prop, or any source o
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 
 const { theme: contextTheme } = useThemeContext();
-const isDark = contextTheme === 'dark';
+const theme: PatternFlyTheme = contextTheme === 'dark' ? 'dark' : 'light';
 ```
 
 The full theme object must recompute when context changes:
