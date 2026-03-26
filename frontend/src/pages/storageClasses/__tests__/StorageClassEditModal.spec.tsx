@@ -58,17 +58,22 @@ describe('StorageClassEditModal', () => {
       expect(rwoCheckbox).toBeChecked();
       expect(rwoCheckbox).toBeDisabled();
 
+      const isKnownProvisioner = provisioner in provisionerAccessModes;
+
       supportedModes.forEach((mode) => {
         if (mode === AccessMode.RWO) {
           return; // already tested
         }
         const checkbox = screen.getByTestId(`edit-sc-access-mode-checkbox-${mode.toLowerCase()}`);
-        // Supported modes should be unchecked by default but enabled
-        expect(checkbox).not.toBeChecked();
+        // For known provisioners, supported modes are checked by default
+        // For unknown provisioners, only RWO is checked
+        if (isKnownProvisioner) {
+          expect(checkbox).toBeChecked();
+        } else {
+          expect(checkbox).not.toBeChecked();
+        }
         expect(checkbox).toBeEnabled();
       });
-
-      const isKnownProvisioner = provisioner in provisionerAccessModes;
 
       unsupportedModes.forEach((mode) => {
         const checkbox = screen.getByTestId(`edit-sc-access-mode-checkbox-${mode.toLowerCase()}`);

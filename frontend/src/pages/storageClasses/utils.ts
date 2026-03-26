@@ -7,6 +7,17 @@ import {
 } from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
+export const getDefaultAccessModeSettingsForProvisioner = (
+  provisioner?: string,
+): AccessModeSettings => {
+  const supportedModes = getSupportedAccessModesForProvisioner(provisioner);
+  if (supportedModes && supportedModes.length > 0) {
+    return Object.fromEntries(supportedModes.map((mode) => [mode, true]));
+  }
+  // Unknown or missing provisioner — default to RWO only
+  return { [AccessMode.RWO]: true };
+};
+
 export const getDefaultStorageClassConfig = (
   storageClass: StorageClassKind,
 ): StorageClassConfig => {
@@ -15,9 +26,7 @@ export const getDefaultStorageClassConfig = (
     isEnabled: true,
     isDefault: false,
     lastModified: storageClass.metadata.creationTimestamp || '-',
-    accessModeSettings: {
-      [AccessMode.RWO]: true,
-    },
+    accessModeSettings: getDefaultAccessModeSettingsForProvisioner(storageClass.provisioner),
   };
 };
 
@@ -205,8 +214,8 @@ export const getSupportedAccessModesForProvisioner = (
   return null;
 };
 
-export const getStorageClassDefaultAccessModeSettings = (): AccessModeSettings => {
-  return {
-    [AccessMode.RWO]: true,
-  };
+export const getStorageClassDefaultAccessModeSettings = (
+  provisioner?: string,
+): AccessModeSettings => {
+  return getDefaultAccessModeSettingsForProvisioner(provisioner);
 };

@@ -6,6 +6,7 @@ import {
   provisionerAccessModes,
 } from '#~/pages/storageClasses/storageEnums';
 import {
+  getDefaultAccessModeSettingsForProvisioner,
   getStorageClassConfig,
   getSupportedAccessModesForProvisioner,
   isValidAccessModeSettings,
@@ -17,6 +18,50 @@ describe('getSupportedAccessModesForProvisioner', () => {
     const provisioner = StorageProvisioner.AWS_EBS;
     const expectedModes = provisionerAccessModes[provisioner];
     expect(getSupportedAccessModesForProvisioner(provisioner)).toEqual(expectedModes);
+  });
+
+  it('should return correct access modes for ODF CephFS provisioner', () => {
+    expect(getSupportedAccessModesForProvisioner(StorageProvisioner.CEPHFS_CSI_ODF)).toEqual([
+      AccessMode.RWO,
+      AccessMode.RWX,
+      AccessMode.ROX,
+      AccessMode.RWOP,
+    ]);
+  });
+
+  it('should return correct access modes for ODF RBD provisioner', () => {
+    expect(getSupportedAccessModesForProvisioner(StorageProvisioner.RBD_CSI_ODF)).toEqual([
+      AccessMode.RWO,
+      AccessMode.ROX,
+      AccessMode.RWOP,
+    ]);
+  });
+
+  it('should return null for an unknown provisioner', () => {
+    expect(getSupportedAccessModesForProvisioner('unknown-provisioner')).toBeNull();
+  });
+});
+
+describe('getDefaultAccessModeSettingsForProvisioner', () => {
+  it('should enable all supported modes for a known provisioner', () => {
+    expect(getDefaultAccessModeSettingsForProvisioner(StorageProvisioner.CEPHFS_CSI_ODF)).toEqual({
+      [AccessMode.RWO]: true,
+      [AccessMode.RWX]: true,
+      [AccessMode.ROX]: true,
+      [AccessMode.RWOP]: true,
+    });
+  });
+
+  it('should default to RWO only for an unknown provisioner', () => {
+    expect(getDefaultAccessModeSettingsForProvisioner('unknown-provisioner')).toEqual({
+      [AccessMode.RWO]: true,
+    });
+  });
+
+  it('should default to RWO only when no provisioner is provided', () => {
+    expect(getDefaultAccessModeSettingsForProvisioner()).toEqual({
+      [AccessMode.RWO]: true,
+    });
   });
 });
 
