@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Modal, ModalHeader, ModalBody } from '@patternfly/react-core';
-import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import PromptTable from './promptTable';
@@ -8,8 +8,11 @@ import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
-  const { setActivePrompt, setIsPromptManagementModalOpen, restoreDirtyPromptSnapshot, modalMode } =
-    usePlaygroundStore();
+  const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const { modalMode, modalConfigId, dirtyPromptSnapshot, closeModal } = usePlaygroundStore();
+
+  const configId = modalConfigId ?? DEFAULT_CONFIG_ID;
 
   const displayTextLookup = {
     allPrompts: {
@@ -26,19 +29,21 @@ export default function PromptManagementModal(): React.ReactNode {
     },
   };
   const displayText = displayTextLookup[modalMode];
+
   function handleClose() {
     if (modalMode === 'create' || modalMode === 'edit') {
-      restoreDirtyPromptSnapshot();
+      // Restore the dirty prompt snapshot on cancel
+      updateDirtyPrompt(configId, dirtyPromptSnapshot);
     }
-    setIsPromptManagementModalOpen(false);
+    closeModal();
   }
 
   function handleClickLoad(prompt: MLflowPromptVersion) {
-    setActivePrompt(prompt);
+    updateActivePrompt(configId, prompt);
     const instruction =
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
-    updateSystemInstruction('default', instruction);
-    handleClose();
+    updateSystemInstruction(configId, instruction);
+    closeModal();
   }
 
   return (
@@ -48,7 +53,9 @@ export default function PromptManagementModal(): React.ReactNode {
         {modalMode === 'allPrompts' && (
           <PromptTable onClose={handleClose} onClickLoad={handleClickLoad} />
         )}
-        {(modalMode === 'create' || modalMode === 'edit') && <CreatePrompt onClose={handleClose} />}
+        {(modalMode === 'create' || modalMode === 'edit') && (
+          <CreatePrompt configId={configId} onClose={handleClose} />
+        )}
       </ModalBody>
     </Modal>
   );

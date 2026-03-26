@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
+import { MLflowPromptVersion } from '~/app/types';
 import {
   ChatbotConfigStore,
   ChatbotConfiguration,
@@ -9,6 +10,17 @@ import {
 } from './types';
 
 const MCP_TOOL_SELECTIONS_KEY = 'mcp-tool-selections';
+
+const deepCopyPrompt = (prompt: MLflowPromptVersion | null): MLflowPromptVersion | null => {
+  if (!prompt) {
+    return null;
+  }
+  return {
+    ...prompt,
+    messages: prompt.messages?.map((m) => ({ ...m })),
+    tags: prompt.tags ? { ...prompt.tags } : undefined,
+  };
+};
 
 /**
  * Storage structure in sessionStorage (namespace → configId → serverUrl):
@@ -202,6 +214,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
           isRagEnabled: sourceConfig.isRagEnabled,
+          activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
+          dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
         };
 
         set(
@@ -375,6 +389,60 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
             config.guardrailModelOutputEnabled = value;
           }
         });
+      },
+
+      updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = deepCopyPrompt(prompt);
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateActivePrompt',
+        );
+      },
+
+      updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateDirtyPrompt',
+        );
+      },
+
+      resetDirtyPrompt: (id: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(config.activePrompt);
+            }
+          },
+          false,
+          'resetDirtyPrompt',
+        );
+      },
+
+      clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = null;
+              config.dirtyPrompt = deepCopyPrompt(newDirtyPrompt);
+            }
+          },
+          false,
+          'clearPromptState',
+        );
       },
 
       // Configuration management

@@ -17,21 +17,23 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
 
-export default function CreatePrompt({ onClose }: { onClose: () => void }): React.ReactNode {
-  const {
-    dirtyPrompt,
-    setActivePrompt,
-    setDirtyPrompt,
-    setIsPromptManagementModalOpen,
-    modalMode,
-  } = usePlaygroundStore();
+interface CreatePromptProps {
+  configId: string;
+  onClose: () => void;
+}
+
+export default function CreatePrompt({ configId, onClose }: CreatePromptProps): React.ReactNode {
+  const { modalMode, closeModal } = usePlaygroundStore();
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const { namespace } = useContext(GenAiContext);
   const notification = useNotification();
-  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
   const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
     isEditMode ? (dirtyPrompt?.name ?? null) : null,
@@ -46,11 +48,11 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
         'Prompt saved',
         `${newPrompt.name} was saved to ${namespace?.name ?? 'the project'}.`,
       );
-      setActivePrompt(newPrompt);
+      updateActivePrompt(configId, newPrompt);
       const instruction =
         newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
-      updateSystemInstruction('default', instruction);
-      setIsPromptManagementModalOpen(false);
+      updateSystemInstruction(configId, instruction);
+      closeModal();
     },
     onError: (error) => {
       const errorMessage = error.message || 'An error occurred while saving the prompt.';
@@ -102,7 +104,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     if (field === 'name' && nameError) {
       setNameError(null);
     }
-    setDirtyPrompt({
+    updateDirtyPrompt(configId, {
       ...dirtyPrompt,
       [field]: value,
     });

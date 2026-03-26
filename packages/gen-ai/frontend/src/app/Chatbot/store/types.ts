@@ -1,4 +1,5 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { MLflowPromptVersion } from '~/app/types';
 
 /**
  * MCP tool selections map structure:
@@ -26,6 +27,8 @@ export interface ChatbotConfiguration {
   guardrailModelOutputEnabled: boolean;
   /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
   isRagEnabled: boolean;
+  activePrompt: MLflowPromptVersion | null;
+  dirtyPrompt: MLflowPromptVersion | null;
 }
 
 /**
@@ -44,6 +47,8 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrailModelOutputEnabled: false,
   // RAG default - OFF
   isRagEnabled: false,
+  activePrompt: null,
+  dirtyPrompt: null,
 };
 
 /**
@@ -88,6 +93,11 @@ export interface ChatbotConfigStoreActions {
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
+
+  updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  resetDirtyPrompt: (id: string) => void;
+  clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
