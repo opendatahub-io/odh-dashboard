@@ -16,6 +16,10 @@ class TabRoutePage {
   findPageTitle() {
     return cy.findByTestId('app-tab-page-title');
   }
+
+  findTabBar() {
+    return cy.findByRole('tablist');
+  }
 }
 
 export const tabRoutePage = new TabRoutePage();
