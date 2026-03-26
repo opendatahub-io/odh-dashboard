@@ -6,6 +6,6 @@ resources:
   - llama-stack-demos-tools-tutorial.yaml
   - llama-stack-demos-multiagent-tutorial.yaml
   - llama-stack-demos-knowledge-assistant.yaml
-  - llama-stack-demos-code-assistant.yaml
+  - llama-stack-demos-rag-eval-tutorial.yaml
   - llama-stack-demos-observability-tutorial.yaml
   - llama-stack-demos-openai-compat-tutorial.yaml
