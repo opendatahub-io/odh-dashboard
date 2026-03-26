@@ -1,4 +1,7 @@
-import { getVisibleTabs, TAB_DEFINITIONS } from '../tabConfig';
+import {
+  getVisibleTabs,
+  TAB_DEFINITIONS,
+} from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
 describe('getVisibleTabs', () => {
   it('should return all tabs for binary classification', () => {
