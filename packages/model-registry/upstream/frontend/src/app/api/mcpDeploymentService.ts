@@ -1,4 +1,4 @@
-import { APIOptions, isModArchResponse, restGET, restDELETE, handleRestFailures } from 'mod-arch-core';
+import { APIOptions, isModArchResponse, restGET, handleRestFailures } from 'mod-arch-core';
 import { McpDeploymentList } from '~/app/mcpDeploymentTypes';
 
 export const getListMcpDeployments =
@@ -11,11 +11,4 @@ export const getListMcpDeployments =
         }
         throw new Error('Invalid response format');
       },
-    );
-
-export const deleteMcpDeployment =
-  (hostPath: string) =>
-  (opts: APIOptions, name: string): Promise<void> =>
-    handleRestFailures(restDELETE(hostPath, `/mcp_deployments/${name}`, {}, opts)).then(
-      () => undefined,
     );

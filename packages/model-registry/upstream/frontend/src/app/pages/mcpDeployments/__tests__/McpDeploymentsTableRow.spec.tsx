@@ -1,19 +1,11 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 import McpDeploymentsTableRow from '../McpDeploymentsTableRow';
-
-const createMockDeployment = (overrides: Partial<McpDeployment> = {}): McpDeployment => ({
-  name: 'kubernetes-mcp',
-  namespace: 'mcp-servers',
-  creationTimestamp: '2026-03-10T14:30:00Z',
-  image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-  port: 8080,
-  phase: McpDeploymentPhase.RUNNING,
-  ...overrides,
-});
+import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn()) =>
   render(
@@ -35,53 +27,39 @@ describe('McpDeploymentsTableRow', () => {
     expect(screen.getByTestId('mcp-deployment-name')).toHaveTextContent('kubernetes-mcp');
   });
 
-  it('should render formatted creation date', () => {
+  it('should render a non-empty formatted creation date', () => {
     renderRow(createMockDeployment());
-    expect(screen.getByTestId('mcp-deployment-created')).toBeInTheDocument();
+    const dateCell = screen.getByTestId('mcp-deployment-created');
+    expect(dateCell.textContent).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/);
   });
 
-  it('should render available status for Running phase', () => {
+  it('should render status label that maps phase to display label', () => {
     renderRow(createMockDeployment({ phase: McpDeploymentPhase.RUNNING }));
     expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Available');
   });
 
-  it('should render unavailable status for Failed phase', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.FAILED }));
-    expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Unavailable');
-  });
-
-  it('should render pending status for Pending phase', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.PENDING }));
-    expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Pending');
-  });
-
-  it('should have a row with the correct test id', () => {
-    renderRow(createMockDeployment());
-    expect(screen.getByTestId('mcp-deployment-row-kubernetes-mcp')).toBeInTheDocument();
-  });
-
-  it('should render View link for Running deployment', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.RUNNING }));
-    expect(screen.getByTestId('mcp-deployment-service-view')).toBeInTheDocument();
-  });
-
-  it('should render View link with address URL when provided', () => {
+  it('should render View link for Running deployment and show connection URL in popover', async () => {
+    const user = userEvent.setup();
     renderRow(
       createMockDeployment({
         phase: McpDeploymentPhase.RUNNING,
         address: { url: 'kubernetes-test:8080' },
       }),
     );
-    expect(screen.getByTestId('mcp-deployment-service-view')).toBeInTheDocument();
+    const viewLink = screen.getByTestId('mcp-deployment-service-view');
+    expect(viewLink).toBeInTheDocument();
+
+    await user.click(viewLink);
+    const popover = await screen.findByTestId('mcp-deployment-connection-url');
+    expect(popover).toBeInTheDocument();
+    expect(popover.querySelector('input')).toHaveValue('kubernetes-test:8080');
   });
 
-  it('should render dash for Failed deployment without address', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.FAILED }));
-    expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
-  });
-
-  it('should render dash for Pending deployment without address', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.PENDING }));
-    expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
-  });
+  it.each([McpDeploymentPhase.FAILED, McpDeploymentPhase.PENDING])(
+    'should render dash for %s deployment without address',
+    (phase) => {
+      renderRow(createMockDeployment({ phase }));
+      expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
+    },
+  );
 });

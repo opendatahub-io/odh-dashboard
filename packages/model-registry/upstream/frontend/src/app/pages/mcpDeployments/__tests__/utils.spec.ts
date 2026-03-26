@@ -1,15 +1,6 @@
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 import { getConnectionUrl, getServerDisplayName, getStatusInfo } from '../utils';
-
-const createMockDeployment = (overrides: Partial<McpDeployment> = {}): McpDeployment => ({
-  name: 'test-mcp',
-  namespace: 'mcp-servers',
-  creationTimestamp: '2026-03-10T14:30:00Z',
-  image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-  port: 8080,
-  phase: McpDeploymentPhase.RUNNING,
-  ...overrides,
-});
+import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 describe('getServerDisplayName', () => {
   it('should extract and format server name from full image path', () => {
@@ -57,34 +48,20 @@ describe('getConnectionUrl', () => {
     expect(getConnectionUrl(deployment)).toBe('https://kubernetes-mcp.example.com:8080');
   });
 
-  it('should prefer address URL over name:port fallback', () => {
-    const deployment = createMockDeployment({
-      phase: McpDeploymentPhase.RUNNING,
-      address: { url: 'custom-url:9090' },
-    });
-    expect(getConnectionUrl(deployment)).toBe('custom-url:9090');
-  });
-
   it('should return name:port for Running deployment without address', () => {
     const deployment = createMockDeployment({
       phase: McpDeploymentPhase.RUNNING,
     });
-    expect(getConnectionUrl(deployment)).toBe('test-mcp:8080');
+    expect(getConnectionUrl(deployment)).toBe('kubernetes-mcp:8080');
   });
 
-  it('should return undefined for Pending deployment without address', () => {
-    const deployment = createMockDeployment({
-      phase: McpDeploymentPhase.PENDING,
-    });
-    expect(getConnectionUrl(deployment)).toBeUndefined();
-  });
-
-  it('should return undefined for Failed deployment without address', () => {
-    const deployment = createMockDeployment({
-      phase: McpDeploymentPhase.FAILED,
-    });
-    expect(getConnectionUrl(deployment)).toBeUndefined();
-  });
+  it.each([McpDeploymentPhase.PENDING, McpDeploymentPhase.FAILED])(
+    'should return undefined for %s deployment without address',
+    (phase) => {
+      const deployment = createMockDeployment({ phase });
+      expect(getConnectionUrl(deployment)).toBeUndefined();
+    },
+  );
 
   it('should return address URL even for non-Running deployment', () => {
     const deployment = createMockDeployment({
@@ -100,20 +77,20 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(McpDeploymentPhase.RUNNING);
     expect(result.label).toBe('Available');
     expect(result.status).toBe('success');
-    expect(result.tooltip).toBeTruthy();
+    expect(result.tooltip).toBe('This MCP server is running and available for connections.');
   });
 
   it('should return unavailable status for Failed phase', () => {
     const result = getStatusInfo(McpDeploymentPhase.FAILED);
     expect(result.label).toBe('Unavailable');
     expect(result.status).toBe('danger');
-    expect(result.tooltip).toBeTruthy();
+    expect(result.tooltip).toBe('This MCP server has failed and is not available.');
   });
 
   it('should return pending status for Pending phase', () => {
     const result = getStatusInfo(McpDeploymentPhase.PENDING);
     expect(result.label).toBe('Pending');
     expect(result.status).toBe('info');
-    expect(result.tooltip).toBeTruthy();
+    expect(result.tooltip).toBe('This MCP server is starting up and will be available shortly.');
   });
 });
