@@ -27,6 +27,7 @@ import {
   EmptyStateBody,
   EmptyStateActions,
   EmptyStateFooter,
+  type EmptyStateProps,
   Flex,
   FlexItem,
   Grid,
@@ -85,6 +86,14 @@ export interface Directory extends File {
 }
 const isDirectory = (file: File): file is Directory => file.type === 'directory';
 
+export type FileExplorerEmptyStateConfig = Pick<
+  EmptyStateProps,
+  'titleText' | 'headingLevel' | 'icon' | 'variant' | 'status'
+> & {
+  body?: ReactNode;
+  actions?: ReactNode;
+};
+
 interface Column {
   id: string;
   label: string;
@@ -108,7 +117,7 @@ const defaults = {
     modalDescription: (sourceName?: string) =>
       sourceName ? (
         <span>
-          Viewing files from: <b>{sourceName}</b>
+          Viewing files from: <strong>{sourceName}</strong>
         </span>
       ) : (
         'Select which files to use for your data collection and evaluation sources'
@@ -150,10 +159,10 @@ const defaults = {
 
     paginationIndeterminateToggleTemplate: (first: number, last: number) => (
       <>
-        <b>
+        <strong>
           {first} - {last}
-        </b>{' '}
-        of <b>many</b>
+        </strong>{' '}
+        of <strong>many</strong>
       </>
     ),
   },
@@ -232,6 +241,8 @@ interface FilesTableProps {
   selection?: 'radio' | 'checkbox';
   onDirectoryClick?: (directory: Directory) => void;
   onViewDetails?: (file: File) => void;
+  isEmpty?: boolean;
+  emptyStateProps?: FileExplorerEmptyStateConfig;
   loading?: boolean;
   perPage?: number;
 }
@@ -242,6 +253,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
   selection = 'radio',
   onDirectoryClick,
   onViewDetails,
+  isEmpty: isEmptyProp,
+  emptyStateProps,
   loading,
   perPage = 100,
 }) => {
@@ -277,7 +290,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   };
 
   const skeletonRowCount = perPage;
-  const isEmpty = !loading && (!Array.isArray(files) || files.length === 0);
+  const isEmpty = isEmptyProp ?? (!loading && (!Array.isArray(files) || files.length === 0));
 
   return (
     <OuterScrollContainer>
@@ -313,10 +326,18 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {isEmpty && (
               <Tr>
                 <Td colSpan={4}>
-                  <EmptyState headingLevel="h3" titleText={defaults.labels.emptyStateTitle}>
-                    <EmptyStateBody>{defaults.labels.emptyStateBody}</EmptyStateBody>
+                  <EmptyState
+                    headingLevel={emptyStateProps?.headingLevel ?? 'h3'}
+                    titleText={emptyStateProps?.titleText ?? defaults.labels.emptyStateTitle}
+                    icon={emptyStateProps?.icon}
+                    variant={emptyStateProps?.variant}
+                    status={emptyStateProps?.status}
+                  >
+                    <EmptyStateBody>
+                      {emptyStateProps?.body ?? defaults.labels.emptyStateBody}
+                    </EmptyStateBody>
                     <EmptyStateFooter>
-                      <EmptyStateActions />
+                      <EmptyStateActions>{emptyStateProps?.actions}</EmptyStateActions>
                     </EmptyStateFooter>
                   </EmptyState>
                 </Td>
@@ -732,6 +753,8 @@ interface FileExplorerProps {
   perPage?: number;
   itemCount?: number;
   hasNextPage?: boolean;
+  isEmpty?: boolean;
+  emptyStateProps?: FileExplorerEmptyStateConfig;
   selection?: 'radio' | 'checkbox';
   onSelectSource?: (source: Source) => void;
   onDirectoryClick?: (directory: Directory) => void;
@@ -756,6 +779,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   perPage,
   itemCount,
   hasNextPage,
+  isEmpty,
+  emptyStateProps,
   selection = 'radio',
   onSelectSource,
   onDirectoryClick,
@@ -859,6 +884,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     onSearch?.('');
                   }}
                   resultsCount={searchResultsCount}
+                  isDisabled={isEmpty}
                 />
               </FlexItem>
               <FlexItem>
@@ -869,7 +895,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   page={currentPage}
                   onSetPage={(_event, newPage) => onSetPage?.(newPage)}
                   onPerPageSelect={(_event, newPerPage) => onPerPageSelect?.(newPerPage)}
-                  isDisabled={loading}
+                  isDisabled={loading || isEmpty}
                   isCompact
                   {...extraPaginationProps}
                 />
@@ -889,6 +915,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selection={selection}
                   onDirectoryClick={onDirectoryClick}
                   onViewDetails={(file) => setFilesToView([file])}
+                  isEmpty={isEmpty}
+                  emptyStateProps={emptyStateProps}
                   loading={loading}
                   perPage={currentPerPage}
                 />
@@ -915,7 +943,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         <Button
           key="select-files"
           variant="primary"
-          isDisabled={loading}
+          isDisabled={loading || isEmpty}
           onClick={(_event) => {
             onPrimary(selectedFiles);
             onClose(_event);

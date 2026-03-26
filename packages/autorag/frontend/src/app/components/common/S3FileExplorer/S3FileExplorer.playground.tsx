@@ -23,15 +23,10 @@ import S3FileExplorer from './S3FileExplorer.tsx';
 
 const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
 const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
+const AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
+  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
 
 // Mocks ---------------------------------------------------------------------->
-
-const envS3Secret: SecretListItem = {
-  uuid: 'env-secret-uuid',
-  name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
-  type: 'storage',
-  data: {},
-};
 
 // Scenarios ------------------------------------------------------------------>
 
@@ -43,12 +38,47 @@ interface Scenario {
 
 const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
-    // TODO [ Gustavo ] Add a scenario for empty state
-    // TODO [ Gustavo ] Add a scenario for no bucket passed in
     {
       label: 'From env configuration',
       namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: envS3Secret,
+      s3Secret: {
+        uuid: 'env-secret-uuid',
+        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
+        type: 'storage',
+        data: {},
+      },
+    },
+  ],
+  Errors: [
+    {
+      label: 'Invalid secret (not found)',
+      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      s3Secret: {
+        uuid: 'fake-secret-uuid',
+        name: 'non-existent-secret',
+        type: 'storage',
+        data: {},
+      },
+    },
+    {
+      label: 'No bucket configured',
+      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      s3Secret: {
+        uuid: 'no-bucket-secret-uuid',
+        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
+        type: 'storage',
+        data: {},
+      },
+    },
+    {
+      label: 'Generic error',
+      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      s3Secret: {
+        uuid: 'env-secret-uuid',
+        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
+        type: 'storage',
+        data: {},
+      },
     },
   ],
 };
@@ -116,6 +146,16 @@ const App: React.FC = () => {
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
                 {AUTORAG_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
+              </span>
+            </p>
+            <p className="pf-v6-u-font-family-monospace">
+              <span className="pf-v6-u-text-color-status-danger">
+                AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET
+              </span>
+              :
+              <span className="pf-v6-u-text-color-status-success">
+                &nbsp;
+                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
               </span>
             </p>
           </CardBody>

@@ -9,6 +9,7 @@ import type {
   Files,
   Source,
   Directory,
+  FileExplorerEmptyStateConfig,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
 import { getFiles } from '~/app/api/s3.ts';
@@ -144,6 +145,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>([]);
   const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
 
+  const [fetchError, setFetchError] = useState<Error | null>(null);
   const [loadingToRender, setLoadingToRender] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
 
@@ -197,15 +199,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           const items = mapResultToItems(result);
           setFilesToRender(items);
           setHasNextPage(!!result.next_continuation_token);
+          setFetchError(null);
           setLoadingToRender(false);
         })
-        .catch(() => {
+        .catch((error: unknown) => {
           // TODO [ Gustavo ] Handle errors gracefully
           if (fetchIdRef.current !== requestId) {
             return;
           }
           setFilesToRender([]);
           setHasNextPage(false);
+          setFetchError(error instanceof Error ? error : new Error('Unknown error'));
           setLoadingToRender(false);
         });
     },
@@ -266,12 +270,72 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // TODO [ Gustavo ] Add an empty state if s3Connection is not passed in
 
+  const errorEmptyState: { isEmpty: boolean; emptyStateProps?: FileExplorerEmptyStateConfig } =
+    useMemo(() => {
+      if (!fetchError) {
+        return { isEmpty: false };
+      }
+
+      const { message } = fetchError;
+      const secretNameToRender = <strong>{secretName ?? 'unknown'}</strong>;
+
+      // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
+
+      if (message.includes('bucket is required')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'Bucket not configured',
+            body: (
+              <>
+                A bucket is required for retrieving files from the connection. Configure{' '}
+                {secretNameToRender} with a bucket.
+              </>
+            ),
+          },
+        };
+      }
+
+      if (message.includes('not found')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'Connection not found',
+            body: (
+              <>
+                The connection <strong>{secretNameToRender}</strong> could not be found. Verify the
+                connection exists and try again.
+              </>
+            ),
+          },
+        };
+      }
+
+      return {
+        isEmpty: true,
+        emptyStateProps: {
+          status: 'danger',
+          titleText: 'Something went wrong',
+          body: (
+            <>
+              An error occurred while retrieving files from connection:{' '}
+              <strong>{secretNameToRender}</strong>
+            </>
+          ),
+        },
+      };
+    }, [fetchError, secretName]);
+
   return (
     <FileExplorer
       id={id}
       files={filesToRender}
       source={sourceToRender}
       directories={directoriesToRender}
+      isEmpty={errorEmptyState.isEmpty}
+      emptyStateProps={errorEmptyState.emptyStateProps}
       loading={loadingToRender}
       page={pageToRender}
       perPage={perPageToRender}
