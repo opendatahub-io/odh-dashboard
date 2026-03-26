@@ -511,7 +511,17 @@ func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpoin
 	// Add model
 	var model Model
 	if metadata == nil {
-		model = NewLLMModel(modelID, providerID, modelID)
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
 	} else {
 		model = NewModel(modelID, providerID, modelType, metadata)
 	}
