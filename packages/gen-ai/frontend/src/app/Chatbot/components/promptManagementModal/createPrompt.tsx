@@ -163,7 +163,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
         <TextArea
           aria-label="Prompt instructions"
           value={dirtyPrompt?.template}
-          resizeOrientation="vertical"
+          resizeOrientation="none"
           rows={12}
           onChange={(_event, value) => handleChange('template', value)}
         />
