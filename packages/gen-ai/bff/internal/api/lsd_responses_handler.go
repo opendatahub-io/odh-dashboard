@@ -261,6 +261,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {

@@ -731,8 +731,16 @@ paths:
                   description: Always set to true by the BFF. Callers cannot override this value. Ephemeral keys have a 1h max TTL and are hidden from the API key list.
                   readOnly: true
                   default: true
+                subscription:
+                  type: string
+                  description: >-
+                    Optional MaaS subscription name to bind the ephemeral API key to.
+                    When provided, the key is scoped to this subscription.
+                    When omitted, the user's highest-priority accessible subscription is used by MaaS.
+                  example: 'premium-subscription'
             example:
               expiresIn: '1h'
+              subscription: 'premium-subscription'
       responses:
         '201':
           description: Ephemeral API key created successfully

@@ -3,6 +3,7 @@ package maasmocks
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -70,6 +71,7 @@ func TestMockIssueToken_DifferentSubscriptionsDifferentKeys(t *testing.T) {
 func TestMockIssueToken_RespectsExpiresIn(t *testing.T) {
 	client := NewMockMaaSClient()
 
+	before := time.Now()
 	resp, err := client.IssueToken(context.Background(), models.MaaSTokenRequest{
 		ExpiresIn:    "30m",
 		Subscription: "basic-subscription",
@@ -77,5 +79,8 @@ func TestMockIssueToken_RespectsExpiresIn(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "sk-mock-basic-subscription-key", resp.Key)
-	assert.NotEmpty(t, resp.ExpiresAt)
+
+	expiresAt, parseErr := time.Parse(time.RFC3339, resp.ExpiresAt)
+	require.NoError(t, parseErr, "ExpiresAt should be valid RFC3339")
+	assert.WithinDuration(t, before.Add(30*time.Minute), expiresAt, 5*time.Second)
 }

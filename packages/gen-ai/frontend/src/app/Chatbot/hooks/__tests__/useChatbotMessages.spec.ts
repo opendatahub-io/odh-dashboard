@@ -712,5 +712,19 @@ describe('useChatbotMessages', () => {
       const payload = mockCreateResponse.mock.calls[0][0];
       expect(payload).not.toHaveProperty('subscription');
     });
+
+    it('should omit subscription from payload when subscription is empty string', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with empty subscription');
+      });
+
+      expect(mockCreateResponse.mock.calls[0][0]).not.toHaveProperty('subscription');
+    });
   });
 });
