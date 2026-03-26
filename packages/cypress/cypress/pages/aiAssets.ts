@@ -4,13 +4,13 @@ class AIAssetsPage {
     this.waitForPageLoad();
   }
 
-  private waitForPageLoad(timeout?: number) {
-    cy.findByTestId('page-title', { timeout }).should('be.visible');
-    cy.findByRole('tab', { timeout }).should('exist');
+  private waitForPageLoad() {
+    cy.findByTestId('page-title').should('be.visible');
+    cy.findByRole('tab').should('exist');
   }
 
-  waitForTabLoad(timeout?: number) {
-    cy.findByRole('tabpanel', { timeout }).should('be.visible');
+  waitForTabLoad() {
+    cy.findByRole('tabpanel').should('be.visible');
   }
 
   // Tab Navigation
