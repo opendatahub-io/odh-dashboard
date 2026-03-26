@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {
-  Content,
-  ContentVariants,
   DrawerPanelContent,
   DrawerHead,
   DrawerActions,
@@ -21,6 +19,8 @@ import {
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import RayJobDetailsTab from './RayJobDetailsTab';
 import RayJobResourcesTab from './RayJobResourcesTab';
+import RayJobLogsTab from './RayJobLogsTab';
+import RayJobPodsTab from './RayJobPodsTab';
 import PauseRayJobModal from '../trainingJobList/PauseRayJobModal';
 import { useRayJobPauseResume } from '../trainingJobList/hooks/useRayJobPauseResume';
 import { getStatusFlags, getRayJobStatusSync } from '../trainingJobList/utils';
@@ -162,14 +162,10 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
               <RayJobResourcesTab job={job} nodeCount={nodeCount} />
             </Tab>
             <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
-              <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-                Pods content will be available in a future update.
-              </Content>
+              <RayJobPodsTab job={job} />
             </Tab>
             <Tab eventKey={3} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
-              <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-                Logs content will be available in a future update.
-              </Content>
+              <RayJobLogsTab job={job} />
             </Tab>
           </Tabs>
         </DrawerPanelBody>

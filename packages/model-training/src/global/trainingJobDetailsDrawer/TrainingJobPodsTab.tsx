@@ -10,78 +10,22 @@ import {
   StackItem,
   Timestamp,
   TimestampTooltipVariant,
-  Icon,
   Title,
   ExpandableSection,
 } from '@patternfly/react-core';
-import {
-  CheckCircleIcon,
-  InProgressIcon,
-  ExclamationCircleIcon,
-  PendingIcon,
-} from '@patternfly/react-icons';
 import { PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
-  t_global_color_brand_default as BrandDefaultColor,
   t_global_text_color_regular as RegularColor,
   t_global_text_color_200 as TextColor200,
 } from '@patternfly/react-tokens';
+import { getPodStatusIcon } from '../podUtils';
 import { TrainJobKind } from '../../k8sTypes';
 import useTrainJobPods from '../../hooks/useTrainJobPods';
 
 type TrainingJobPodsTabProps = {
   job: TrainJobKind;
   onPodClick?: (podName: string) => void;
-};
-
-const getPodStatusIcon = (pod: PodKind) => {
-  const phase = pod.status?.phase ? pod.status.phase.toLowerCase() : '';
-  const containerStatuses = pod.status?.containerStatuses || [];
-
-  // Check if any container is waiting
-  const hasWaiting = containerStatuses.some((cs) => cs.state?.waiting);
-
-  switch (phase) {
-    case 'succeeded':
-      return (
-        <Icon status="success">
-          <CheckCircleIcon />
-        </Icon>
-      );
-    case 'failed':
-      return (
-        <Icon status="danger">
-          <ExclamationCircleIcon />
-        </Icon>
-      );
-    case 'running':
-      return (
-        <Icon>
-          <InProgressIcon color={BrandDefaultColor.var} />
-        </Icon>
-      );
-    case 'pending':
-      return (
-        <Icon status="info">
-          <PendingIcon />
-        </Icon>
-      );
-    default:
-      // Handle waiting containers or unknown phases
-      if (hasWaiting) {
-        return (
-          <Icon status="info">
-            <PendingIcon />
-          </Icon>
-        );
-      }
-      return (
-        <Icon status="info">
-          <InProgressIcon />
-        </Icon>
-      );
-  }
 };
 
 const PodListItem: React.FC<{ pod: PodKind; onPodClick?: (podName: string) => void }> = ({
