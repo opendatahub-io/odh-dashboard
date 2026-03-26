@@ -102,9 +102,11 @@ export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata.annotations) {
+  if (!notebook) {
     return null;
   }
+
+  const annotations = notebook.metadata.annotations ?? {};
 
   const {
     'notebooks.kubeflow.org/last-activity': lastActivity,
@@ -112,7 +114,7 @@ export const getNotebookControllerUserState = (
     'notebooks.opendatahub.io/last-size-selection': lastSelectedSize = '',
     'opendatahub.io/username': annotationUser = '',
     'opendatahub.io/user': annotationTranslatedUser = '',
-  } = notebook.metadata.annotations;
+  } = annotations;
 
   let user = annotationUser;
   if (!annotationUser) {
