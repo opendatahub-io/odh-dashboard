@@ -69,9 +69,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		assert.Len(t, vectorStores, 3)
 
 		// Find the auto-provisioned user store by contract metadata marker
- 		var userStore map[string]interface{}
- 		for _, vs := range vectorStores {
- 			store := vs.(map[string]interface{})
+		var userStore map[string]interface{}
+		for _, vs := range vectorStores {
+			store := vs.(map[string]interface{})
 			metadata, ok := store["metadata"].(map[string]interface{})
 			if !ok {
 				continue
@@ -80,7 +80,7 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 				userStore = store
 				break
 			}
- 		}
+		}
 		require.NotNil(t, userStore, "expected auto-provisioned user store")
 		assert.NotEmpty(t, userStore["id"])
 		assert.Contains(t, []string{"completed", "in_progress"}, userStore["status"])
