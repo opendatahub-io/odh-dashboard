@@ -174,6 +174,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                 fireSimpleTrackingEvent('Playground Compare Chat Selected');
               }}
               onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
+              isSettingsOpen={isDrawerExpanded}
               isCompareMode={isCompareMode}
             />
           )

@@ -52,6 +52,7 @@ describe('ChatbotHeaderActions', () => {
     onNewChat: jest.fn(),
     onCompareChat: jest.fn(),
     onSettingsClick: jest.fn(),
+    isSettingsOpen: false,
     isCompareMode: false,
   };
 
@@ -184,6 +185,25 @@ describe('ChatbotHeaderActions', () => {
       );
 
       expect(screen.getByTestId('settings-button')).toHaveAttribute('aria-label', 'Settings');
+    });
+
+    it('settings button reflects aria-expanded based on isSettingsOpen', () => {
+      const contextValue = createContextValue();
+      const { rerender } = render(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} isSettingsOpen={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toHaveAttribute('aria-expanded', 'false');
+
+      rerender(
+        <TestWrapper contextValue={contextValue}>
+          <ChatbotHeaderActions {...defaultProps} isSettingsOpen />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('settings-button')).toHaveAttribute('aria-expanded', 'true');
     });
   });
 

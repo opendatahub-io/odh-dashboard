@@ -22,6 +22,7 @@ type ChatbotHeaderActionsProps = {
   onNewChat: () => void;
   onCompareChat: () => void;
   onSettingsClick: () => void;
+  isSettingsOpen: boolean;
   isCompareMode: boolean;
 };
 
@@ -32,6 +33,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onNewChat,
   onCompareChat,
   onSettingsClick,
+  isSettingsOpen,
   isCompareMode,
 }) => {
   const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
@@ -78,6 +80,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
               <Button
                 variant="link"
                 aria-label="Settings"
+                aria-expanded={isSettingsOpen}
                 icon={<CogIcon />}
                 onClick={onSettingsClick}
                 data-testid="settings-button"
