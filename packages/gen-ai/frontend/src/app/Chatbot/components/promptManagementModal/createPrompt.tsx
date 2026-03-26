@@ -70,9 +70,24 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     }
     setNameError(null);
     setSaveError(null);
+    const systemContent = dirtyPrompt.template;
+    const existingMessages = dirtyPrompt.messages ?? [];
+
+    let messages = existingMessages;
+    if (systemContent != null) {
+      const systemIdx = existingMessages.findIndex((m) => m.role === 'system');
+      if (systemIdx >= 0) {
+        messages = existingMessages.map((m, i) =>
+          i === systemIdx ? { ...m, content: systemContent } : m,
+        );
+      } else {
+        messages = [{ role: 'system', content: systemContent }, ...existingMessages];
+      }
+    }
+
     createPrompt({
       name: dirtyPrompt.name,
-      messages: [{ role: 'system', content: dirtyPrompt.template || '' }],
+      messages,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
