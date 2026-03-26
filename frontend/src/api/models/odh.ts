@@ -63,13 +63,6 @@ export const TrustyAIApplicationsModel: K8sModelCommon = {
   plural: 'trustyaiservices',
 };
 
-export const LMEvalModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
-  apiGroup: 'trustyai.opendatahub.io',
-  kind: 'LMEvalJob',
-  plural: 'lmevaljobs',
-};
-
 export const FeatureStoreModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'feast.dev',
