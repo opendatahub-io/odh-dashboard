@@ -213,7 +213,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to the Cluster Settings');
-      clusterSettings.visit(false);
+      cy.visitWithLogin('/settings/cluster/general', LDAP_CONTRIBUTOR_USER);
 
       pageNotfound.findPage().should('exist');
 
