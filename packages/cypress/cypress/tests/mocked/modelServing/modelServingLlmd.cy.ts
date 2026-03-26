@@ -1003,11 +1003,9 @@ describe('Model Serving LLMD', () => {
         }),
       );
 
-      cy.interceptK8s(
-        'DELETE',
-        { model: LLMInferenceServiceConfigModel, ns: 'test-project', name: 'test-deployment' },
-        mock200Status({}),
-      ).as('deleteLLMInferenceServiceConfig');
+      cy.intercept('DELETE', '**/llminferenceserviceconfigs/**', mock200Status({})).as(
+        'deleteLLMInferenceServiceConfig',
+      );
 
       cy.interceptK8s(
         'DELETE',
