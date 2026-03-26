@@ -587,6 +587,7 @@ paths:
                 authPolicies:
                   - name: premium-team-sub-policy
                     namespace: maas-system
+                    kind: MaaSAuthPolicy
                     phase: Active
                     modelRefs:
                       - name: llama-2-7b-chat
@@ -1407,6 +1408,14 @@ components:
           type: string
           description: Namespace of the MaaSSubscription resource
           example: maas-system
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+          example: Premium Team Subscription
+        description:
+          type: string
+          description: Optional description (from openshift.io/description annotation)
+          example: High-priority subscription for the premium team with extended token limits.
         phase:
           type: string
           enum: [Pending, Active, Failed]
@@ -1476,6 +1485,10 @@ components:
           type: string
           description: Namespace of the MaaSAuthPolicy resource
           example: maas-system
+        kind:
+          type: string
+          description: Kubernetes resource kind (from object metadata)
+          example: MaaSAuthPolicy
         phase:
           type: string
           enum: [Pending, Active, Failed]
@@ -1525,6 +1538,14 @@ components:
           type: string
           description: Namespace of the MaaSModelRef resource
           example: maas-models
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+          example: Granite 3 8B Instruct
+        description:
+          type: string
+          description: Optional description of the model (from openshift.io/description annotation)
+          example: IBM Granite 3 8B instruction-tuned language model.
         modelRef:
           $ref: '#/components/schemas/ModelReference'
         phase:
