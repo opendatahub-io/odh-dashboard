@@ -590,6 +590,45 @@ describe('assembleInferenceService', () => {
     expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
   });
 
+  it('should inject tolerations for legacy hardware profiles', () => {
+    const legacyHardwareProfile = mockHardwareProfile({
+      name: 'legacy-hwp',
+      uid: undefined,
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
+    delete (legacyHardwareProfile.metadata as Record<string, unknown>).uid;
+
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: legacyHardwareProfile,
+      tolerations: legacyHardwareProfile.spec.scheduling?.node?.tolerations,
+      nodeSelector: undefined,
+      resources: {
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: '2', memory: '4Gi' },
+      },
+    });
+
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(result.spec.predictor.tolerations).toEqual(
+      legacyHardwareProfile.spec.scheduling?.node?.tolerations,
+    );
+  });
+
   it('should set pod specs for accelerator profiles', () => {
     const gpuTolerations = [
       {
