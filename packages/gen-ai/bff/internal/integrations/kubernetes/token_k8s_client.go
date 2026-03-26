@@ -1532,7 +1532,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
 			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil, model.MaxTokens, model.EmbeddingDimension)
+			resolvedMaaSType := model.ModelType
+			if resolvedMaaSType == "" {
+				resolvedMaaSType = "llm"
+			}
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
@@ -1547,7 +1551,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+			resolvedExtType := model.ModelType
+			if resolvedExtType == "" {
+				resolvedExtType = extDetails.modelType
+			}
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
@@ -1565,7 +1573,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
 			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 
-			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, details.modelType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
+			resolvedClusterType := model.ModelType
+			if resolvedClusterType == "" {
+				resolvedClusterType = details.modelType
+			}
+			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
