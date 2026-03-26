@@ -74,7 +74,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
       {!contextExperiment && (
-        <Td modifier="truncate" dataLabel="Experiment">
+        <Td modifier="truncate" dataLabel="Run group">
           <PipelineRunTableRowExperiment
             experiment={experiment}
             error={experimentError}

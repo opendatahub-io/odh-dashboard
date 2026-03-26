@@ -1,0 +1,16 @@
+.mlflow-experiment-row {
+  &__last-updated {
+    position: relative;
+
+    &--selected {
+      padding-right: 1.5rem;
+    }
+  }
+
+  &__check-icon {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}

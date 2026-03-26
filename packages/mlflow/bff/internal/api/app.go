@@ -186,19 +186,19 @@ func validateLoopbackURL(rawURL string, devMode bool) error {
 
 func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	if cfg.MLflowURL != "" {
+		logger.Info("Using MLflow URL from configuration", slog.String("url", cfg.MLflowURL))
 		return cfg.MLflowURL
 	}
 	if cfg.AuthMethod == config.AuthMethodDisabled {
+		logger.Info("Auth disabled, skipping MLflow URL discovery")
 		return ""
 	}
 	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
 	if err != nil {
-		logger.Debug("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
+		logger.Warn("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
 		return ""
 	}
-	if discoveredURL != "" {
-		logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
-	}
+	logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
 	return discoveredURL
 }
 

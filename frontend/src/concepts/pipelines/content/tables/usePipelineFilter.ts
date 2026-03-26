@@ -1,7 +1,11 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PipelinesFilterOp, PipelinesFilterPredicate } from '#~/concepts/pipelines/kfTypes';
+import {
+  ExperimentKF,
+  PipelinesFilterOp,
+  PipelinesFilterPredicate,
+} from '#~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
@@ -13,9 +17,12 @@ export enum FilterOptions {
   NAME = 'name',
   CREATED_AT = 'create_at',
   STATUS = 'status',
-  EXPERIMENT = 'experiment',
+  RUN_GROUP = 'run_group',
   PIPELINE_VERSION = 'pipeline_version',
+  MLFLOW_EXPERIMENT = 'mlflow_experiment',
 }
+
+const LEGACY_EXPERIMENT_FILTER_PARAM = 'experiment';
 
 export const getDataValue = (data: string | { value: string } | undefined): string | undefined => {
   if (typeof data === 'string' || typeof data === 'undefined') {
@@ -33,13 +40,50 @@ const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.NAME]: '',
   [FilterOptions.CREATED_AT]: '',
   [FilterOptions.STATUS]: '',
-  [FilterOptions.EXPERIMENT]: undefined,
+  [FilterOptions.RUN_GROUP]: '',
   [FilterOptions.PIPELINE_VERSION]: undefined,
+  [FilterOptions.MLFLOW_EXPERIMENT]: '',
 };
+
+const resolveExperimentPredicate = (
+  runGroupName: string | undefined,
+  experiments: ExperimentKF[],
+): PipelinesFilterPredicate | undefined => {
+  if (!runGroupName) {
+    return undefined;
+  }
+  const lowerName = runGroupName.toLowerCase();
+  const matchingIds = experiments
+    .filter((e) => e.display_name.toLowerCase().includes(lowerName))
+    .map((e) => e.experiment_id);
+
+  if (matchingIds.length === 1) {
+    return {
+      key: 'experiment_id',
+      operation: PipelinesFilterOp.EQUALS,
+      string_value: matchingIds[0],
+    };
+  }
+  if (matchingIds.length > 1) {
+    return {
+      key: 'experiment_id',
+      operation: PipelinesFilterOp.IN,
+      string_values: { values: matchingIds },
+    };
+  }
+  return {
+    key: 'experiment_id',
+    operation: PipelinesFilterOp.EQUALS,
+    string_value: runGroupName,
+  };
+};
+
+const EMPTY_EXPERIMENTS: ExperimentKF[] = [];
 
 const useSetFilter = (
   setFilter: (filter?: PipelinesFilter) => void,
   filterData: FilterProps['filterData'],
+  experiments: ExperimentKF[] = EMPTY_EXPERIMENTS,
 ) => {
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
@@ -47,7 +91,7 @@ const useSetFilter = (
       const runName = getDataValue(data[FilterOptions.NAME]);
       const startedDateTime = getDataValue(data[FilterOptions.CREATED_AT]);
       const state = getDataValue(data[FilterOptions.STATUS]);
-      const experimentId = getDataValue(data[FilterOptions.EXPERIMENT]);
+      const runGroupName = getDataValue(data[FilterOptions.RUN_GROUP]);
       const pipelineVersionId = getDataValue(data[FilterOptions.PIPELINE_VERSION]);
 
       if (runName) {
@@ -74,12 +118,9 @@ const useSetFilter = (
         });
       }
 
-      if (experimentId) {
-        predicates.push({
-          key: 'experiment_id',
-          operation: PipelinesFilterOp.EQUALS,
-          string_value: experimentId,
-        });
+      const experimentPredicate = resolveExperimentPredicate(runGroupName, experiments);
+      if (experimentPredicate) {
+        predicates.push(experimentPredicate);
       }
 
       if (pipelineVersionId) {
@@ -98,7 +139,7 @@ const useSetFilter = (
           : undefined,
       );
     },
-    [setFilter],
+    [setFilter, experiments],
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
@@ -108,23 +149,22 @@ const useSetFilter = (
     [FilterOptions.CREATED_AT]: createdAt,
     [FilterOptions.STATUS]: state,
     [FilterOptions.PIPELINE_VERSION]: pipelineVersion,
-    [FilterOptions.EXPERIMENT]: experiment,
+    [FilterOptions.RUN_GROUP]: runGroup,
   } = filterData;
 
   const pipelineVersionId = getDataValue(pipelineVersion);
-  const experimentId = getDataValue(experiment);
 
   React.useEffect(() => {
     doSetFilterDebounced(filterData);
-    // debounce filter change for name changes
+    // debounce filter change for text input changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doSetFilterDebounced, name]);
+  }, [doSetFilterDebounced, name, runGroup]);
 
   React.useEffect(() => {
     doSetFilterDebounced.cancel();
     doSetFilter(filterData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createdAt, state, pipelineVersionId, experimentId, doSetFilter]);
+  }, [createdAt, state, pipelineVersionId, doSetFilter]);
 };
 
 const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): FilterProps => {
@@ -155,12 +195,13 @@ export const usePipelineFilterSearchParams = (
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
 
   const filterDataFromSearchParams = React.useMemo(() => {
+    const runGroupFromParams =
+      searchParams.get(FilterOptions.RUN_GROUP) || searchParams.get(LEGACY_EXPERIMENT_FILTER_PARAM);
     const versionFound = versions.find(
       (v) => v.pipeline_version_id === searchParams.get(FilterOptions.PIPELINE_VERSION),
     );
-    const experimentFound = experiments.find(
-      (e) => e.experiment_id === searchParams.get(FilterOptions.EXPERIMENT),
-    );
+    // Backward compat: if the param is an experiment_id, show its name in the text field
+    const experimentFoundById = experiments.find((e) => e.experiment_id === runGroupFromParams);
     return {
       [FilterOptions.NAME]: searchParams.get(FilterOptions.NAME) || '',
       [FilterOptions.CREATED_AT]: searchParams.get(FilterOptions.CREATED_AT) || '',
@@ -171,16 +212,14 @@ export const usePipelineFilterSearchParams = (
             label: versionFound.display_name,
           }
         : searchParams.get(FilterOptions.PIPELINE_VERSION) || undefined,
-      [FilterOptions.EXPERIMENT]: experimentFound
-        ? {
-            value: experimentFound.experiment_id,
-            label: experimentFound.display_name,
-          }
-        : searchParams.get(FilterOptions.EXPERIMENT) || undefined,
+      [FilterOptions.RUN_GROUP]: experimentFoundById
+        ? experimentFoundById.display_name
+        : runGroupFromParams || '',
+      [FilterOptions.MLFLOW_EXPERIMENT]: searchParams.get(FilterOptions.MLFLOW_EXPERIMENT) || '',
     };
   }, [experiments, searchParams, versions]);
 
-  useSetFilter(setFilter, filterDataFromSearchParams);
+  useSetFilter(setFilter, filterDataFromSearchParams, experiments);
 
   const toolbarProps: FilterProps = {
     filterData: filterDataFromSearchParams,
@@ -192,6 +231,9 @@ export const usePipelineFilterSearchParams = (
         } else {
           searchParams.set(key, data);
         }
+        if (key === FilterOptions.RUN_GROUP) {
+          searchParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+        }
         setSearchParams(searchParams, { replace: true });
       },
       [setSearchParams, searchParams],
@@ -199,6 +241,7 @@ export const usePipelineFilterSearchParams = (
     onClearFilters: React.useCallback(() => {
       // In case of deleting manage run search params
       Object.values(FilterOptions).forEach((value) => searchParams.delete(value));
+      searchParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
       setSearchParams(searchParams, { replace: true });
     }, [setSearchParams, searchParams]),
   };

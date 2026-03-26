@@ -8,11 +8,8 @@ import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted as useIsExperimentArchived,
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import {
-  ExperimentFilterSelector,
-  PipelineVersionFilterSelector,
-} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
-import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -27,19 +24,22 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   dropdownActions,
   ...toolbarProps
 }) => {
-  const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
   const options = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Schedule',
       ...(!experiment && {
-        [FilterOptions.EXPERIMENT]: 'Experiment',
+        [FilterOptions.RUN_GROUP]: 'Run group',
       }),
       [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      ...(isMlflowAvailable && {
+        [FilterOptions.MLFLOW_EXPERIMENT]: 'MLflow experiment',
+      }),
     }),
-    [experiment],
+    [experiment, isMlflowAvailable],
   );
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -54,11 +54,22 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.EXPERIMENT]: ({ onChange, label }) => (
-          <ExperimentFilterSelector
-            resources={experiments}
-            selection={label}
-            onSelect={(e) => onChange(e.experiment_id, e.display_name)}
+        [FilterOptions.RUN_GROUP]: ({ onChange, ...props }) => (
+          <TextInput
+            {...props}
+            data-testid="search-for-run-group-name"
+            aria-label="Search for a run group name"
+            placeholder="Search..."
+            onChange={(_event, value) => onChange(value)}
+          />
+        ),
+        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, ...props }) => (
+          <TextInput
+            {...props}
+            data-testid="search-for-mlflow-experiment-name"
+            aria-label="Search for an MLflow experiment name"
+            placeholder="Search..."
+            onChange={(_event, value) => onChange(value)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
