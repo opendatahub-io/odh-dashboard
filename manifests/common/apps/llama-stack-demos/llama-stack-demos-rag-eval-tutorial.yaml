@@ -1,7 +1,7 @@
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: llama-stack-demos-code-assistant
+  name: llama-stack-demos-rag-eval-tutorial
   annotations:
     opendatahub.io/categories: 'AI agents,Getting started'
 spec:
