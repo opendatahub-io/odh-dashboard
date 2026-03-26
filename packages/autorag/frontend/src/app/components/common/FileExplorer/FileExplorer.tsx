@@ -240,7 +240,7 @@ interface FilesTableProps {
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
   onFolderClick?: (folder: Folder) => void;
-  onViewDetails?: (file: File) => void;
+  onViewDetails: (file: File) => void;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
   loading?: boolean;
@@ -372,6 +372,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                                 setSelectedFiles(current.filter((f) => f.path !== file.path));
                               }
                             }
+                            if (isSelecting) {
+                              onViewDetails(file);
+                            }
                           },
                           isSelected:
                             Array.isArray(selectedFiles) &&
@@ -400,12 +403,10 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       <Td width={columns.actions.width} isActionCell>
                         {(() => {
                           const actions: IAction[] = [];
-                          if (onViewDetails) {
-                            actions.push({
-                              title: defaults.labels.tableActionViewDetails,
-                              onClick: () => onViewDetails(file),
-                            });
-                          }
+                          actions.push({
+                            title: defaults.labels.tableActionViewDetails,
+                            onClick: () => onViewDetails(file),
+                          });
                           if (
                             Array.isArray(selectedFiles) &&
                             selectedFiles.some((f) => f.path === file.path)
@@ -973,9 +974,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
                     onViewDetails={(file) => setFilesToView([file])}
-                    onRemoveSelection={(file) =>
-                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path))
-                    }
+                    onRemoveSelection={(file) => {
+                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
+                      setFilesToView([]);
+                    }}
                     onClearDetails={() => setFilesToView([])}
                   />
                 </GridItem>
