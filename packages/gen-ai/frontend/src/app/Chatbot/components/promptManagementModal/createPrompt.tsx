@@ -138,7 +138,7 @@ export default function CreatePrompt({
                 <TextInput
                   aria-label="Prompt name"
                   value={dirtyPrompt?.name}
-                  isDisabled={isEditMode}
+                  readOnlyVariant={isEditMode ? 'default' : undefined}
                   onChange={(_event, value) => handleChange('name', value)}
                   validated={nameError ? 'error' : 'default'}
                 />
@@ -161,8 +161,8 @@ export default function CreatePrompt({
                     Version
                   </Title>
                   <TextInput
+                    readOnlyVariant="default"
                     value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
-                    isDisabled
                     style={{ width: '80px' }}
                   />
                 </SplitItem>
