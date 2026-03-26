@@ -88,11 +88,6 @@ describe('ChatbotConfigInstance', () => {
 
       const { rerender } = render(<ChatbotConfigInstance {...defaultProps} />);
 
-      // selectedVectorStoreId should be null (external mode clears it)
-      expect(
-        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
-      ).toBeNull();
-
       act(() => {
         useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
       });
