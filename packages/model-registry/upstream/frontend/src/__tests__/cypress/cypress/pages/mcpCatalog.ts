@@ -99,7 +99,7 @@ class McpServerDetails {
   }
 
   findDeployButton() {
-    return cy.findByTestId('deploy-mcp-server-button');
+    return cy.findByTestId('mcp-deploy-button');
   }
 
   findDescription() {
