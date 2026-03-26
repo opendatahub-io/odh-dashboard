@@ -4,7 +4,7 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
-import type { WizardField, WizardFormData } from './types';
+import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { externalRouteFieldSchema } from './fields/ExternalRouteField';
 import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationField';
@@ -82,7 +82,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = state[field.id];
+        acc[field.id] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },

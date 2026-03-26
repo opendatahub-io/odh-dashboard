@@ -898,19 +898,22 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 	// Get secret reference from provider config
 	secretName := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Name
 	secretKey := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Key
-	if secretName == "" || secretKey == "" {
-		app.logger.Warn("Missing secret reference in provider config", "model", actualModelID, "providerID", foundProvider.ProviderID, "secretName", secretName, "secretKey", secretKey)
-		return nil
+
+	// Default to fake for models that don't require an API key
+	apiKey := "fake"
+	if secretName != "" && secretKey != "" {
+		// Fetch the actual API key from Kubernetes
+		var err error
+		apiKey, err = k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+		if err != nil {
+			app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
+		}
+		if apiKey == "" {
+			apiKey = "fake"
+		}
 	}
 
-	// Get the secret value from Kubernetes
-	apiKey, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
-	if err != nil {
-		app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
-		return nil
-	}
-
-	// Inject API key as provider data
+	// All custom endpoints use remote::openai which requires openai_api_key in provider data
 	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
 	return map[string]interface{}{
 		"openai_api_key": apiKey,

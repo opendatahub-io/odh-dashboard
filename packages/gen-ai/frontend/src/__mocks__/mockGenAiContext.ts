@@ -55,6 +55,7 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
         message: 'External model verified successfully',
         response_time_ms: 500,
       }),
+      deleteExternalModel: jest.fn().mockResolvedValue('Model deleted successfully'),
     },
   },
   refreshAPIState: jest.fn(),

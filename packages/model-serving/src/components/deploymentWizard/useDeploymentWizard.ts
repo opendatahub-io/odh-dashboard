@@ -171,15 +171,25 @@ export const useModelDeploymentWizard = (
   );
 
   // The reducer manages dynamic field state and computes active fields from merged state
-  const { state, dispatch, fields, externalDataLoaded } = useDeploymentWizardReducer(
-    baseFormState,
-    initialData,
-    externalDataMap,
+  const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
+    useDeploymentWizardReducer(baseFormState, initialData, externalDataMap);
+
+  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const stateWithOverrides: WizardFormData['state'] = React.useMemo(
+    () => ({
+      ...state,
+      tokenAuthentication: {
+        ...state.tokenAuthentication,
+        isDisabled: tokenAuthDisabled,
+        ...(tokenAuthDisabled ? { data: [] } : {}),
+      },
+    }),
+    [state, tokenAuthDisabled],
   );
 
   return {
     initialData,
-    state,
+    state: stateWithOverrides,
     dispatch,
     fields,
     loaded: {

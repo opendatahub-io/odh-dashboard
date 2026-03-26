@@ -359,9 +359,7 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
             }
             return;
           }
-          if (appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
-            docs.push(doc);
-          }
+          docs.push(doc);
         });
       }
     } catch (e) {

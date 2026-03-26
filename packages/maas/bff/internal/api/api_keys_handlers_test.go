@@ -127,6 +127,21 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
+		It("returns 400 with the upstream message when expiration exceeds the maximum", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[HTTPError](
+				http.MethodPost,
+				"/api/v1/api-keys",
+				Envelope[models.APIKeyCreateRequest, None]{
+					Data: models.APIKeyCreateRequest{Name: "my-key", ExpiresIn: "trigger_expiration_exceeded"},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(actual.Error.Message).To(ContainSubstring("requested expiration (8760h0m0s) exceeds maximum allowed (90 days)"))
+		})
 	})
 	var _ = Describe("RevokeAPIKeyHandler", Ordered, func() {
 		It("returns 200 and the revoked API key", func() {

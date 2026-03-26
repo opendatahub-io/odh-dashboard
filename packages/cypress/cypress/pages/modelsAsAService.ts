@@ -409,6 +409,30 @@ class APIKeysPage {
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-api-key-button');
   }
+
+  findStatusFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-status-filter-toggle');
+  }
+
+  findStatusFilterOption(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
+  }
+
+  findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-input');
+  }
+
+  findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFilterInput().find('button[type="submit"]');
+  }
+
+  findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-tooltip');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -491,12 +515,24 @@ class CreateApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-description-input');
   }
 
-  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-date-input');
+  findExpirationToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-toggle');
   }
 
-  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('create-api-key-button');
+  findExpirationOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-expiration-option-${value}`);
+  }
+
+  findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-custom-days-input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('submit-create-api-key-button');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('create-api-key-error-alert');
   }
 }
 
@@ -608,6 +644,20 @@ class SubscriptionTableRow extends TableRow {
   }
 }
 
+class DeleteSubscriptionModal extends DeleteModal {
+  constructor() {
+    super('Delete Subscription?');
+  }
+
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Delete modal input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -619,3 +669,4 @@ export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();
 export const subscriptionsPage = new SubscriptionsPage();
+export const deleteSubscriptionModal = new DeleteSubscriptionModal();

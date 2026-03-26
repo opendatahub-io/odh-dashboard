@@ -71,7 +71,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		err = json.Unmarshal(body, &response)
 		require.NoError(t, err)
 
-		assert.Len(t, response.Data, 3, "Should return 3 vector stores from the ConfigMap")
+		assert.Len(t, response.Data, 4, "Should return 4 vector stores from the ConfigMap")
 
 		for _, store := range response.Data {
 			assert.NotEmpty(t, store.VectorStoreID, "Store should have a vector_store_id")
@@ -108,7 +108,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		err = json.Unmarshal(body, &response)
 		require.NoError(t, err)
 
-		assert.Len(t, response.Data, 3, "mock-test-namespace-1 should have the same 3 vector stores from its ConfigMap")
+		assert.Len(t, response.Data, 4, "mock-test-namespace-1 should have the same 4 vector stores from its ConfigMap")
 	})
 
 	It("should not include ConfigMap metadata in the response", func() {
