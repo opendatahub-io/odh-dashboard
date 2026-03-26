@@ -392,6 +392,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             };
           }),
           enable_guardrails: guardrailsEnabled,
+          ...(selectedCollections.length > 0 && {
+            vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
+          }),
         })
         .then(() => {
           fireFormTrackingEvent(
