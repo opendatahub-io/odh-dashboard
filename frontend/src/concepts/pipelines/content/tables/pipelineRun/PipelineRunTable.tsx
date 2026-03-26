@@ -20,6 +20,9 @@ import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, createRunRoute } from '#~/routes/pipelines/runs';
+import { getMlflowExperimentId, mlflowCompareRunsRoute } from '#~/routes/pipelines/mlflow';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '#~/concepts/areas';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
@@ -61,6 +64,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   ...tableProps
 }) => {
   const navigate = useNavigate();
+  const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
@@ -168,9 +172,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           data-testid="compare-runs-button"
           variant="secondary"
           isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
-          onClick={() =>
-            navigate(compareRunsRoute(namespace, selectedIds, experiment?.experiment_id))
-          }
+          onClick={() => {
+            const mlflowExpIds = selectedRuns.map((run) => getMlflowExperimentId(run));
+            if (isMLflowEnabled && mlflowExpIds.every((id): id is string => !!id)) {
+              const uniqueExpIds = [...new Set(mlflowExpIds)];
+              navigate(mlflowCompareRunsRoute(namespace, selectedIds, uniqueExpIds));
+            } else {
+              navigate(compareRunsRoute(namespace, selectedIds, experiment?.experiment_id));
+            }
+          }}
         >
           Compare runs
         </Button>

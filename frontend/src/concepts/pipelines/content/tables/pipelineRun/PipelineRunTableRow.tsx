@@ -27,6 +27,7 @@ import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/u
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getMlflowExperimentId } from '#~/routes/pipelines/mlflow';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
@@ -167,6 +168,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           <PipelineRunTableRowExperiment
             experiment={experiment}
             isExperimentArchived={isExperimentArchived}
+            mlflowExperimentId={getMlflowExperimentId(run)}
             error={experimentError}
             loaded={isExperimentLoaded}
           />
