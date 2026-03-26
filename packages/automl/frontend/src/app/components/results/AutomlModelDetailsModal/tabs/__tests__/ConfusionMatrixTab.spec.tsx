@@ -3,10 +3,10 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ConfusionMatrixData } from '~/app/types';
-import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ConfusionMatrixTab from '../ConfusionMatrixTab';
 
-const baseModel: MockAutomlModel = {
+const baseModel: AutomlModel = {
   display_name: 'TestModel',
   model_config: { eval_metric: 'accuracy' },
   location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },

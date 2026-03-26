@@ -45,6 +45,7 @@ describe('AutomlModelDetailsModal', () => {
     useModelEvaluationArtifactsQuery.mockReturnValue({
       featureImportance: mockTabularFeatureImportances.CatBoost_BAG_L2_FULL,
       confusionMatrix: mockTabularConfusionMatrices.CatBoost_BAG_L2_FULL,
+      isLoading: false,
     });
   });
 

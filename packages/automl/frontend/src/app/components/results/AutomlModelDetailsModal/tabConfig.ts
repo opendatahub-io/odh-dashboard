@@ -1,7 +1,6 @@
 import type React from 'react';
 import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
-// TODO: Replace MockAutomlModel with AutomlModel from AutomlResultsContext when integrating
-import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   TASK_TYPE_BINARY,
@@ -15,7 +14,7 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 
 export type TabContentProps = {
-  model: MockAutomlModel;
+  model: AutomlModel;
   taskType: TaskType;
   parameters?: Partial<ConfigureSchema>;
   createdAt?: string;

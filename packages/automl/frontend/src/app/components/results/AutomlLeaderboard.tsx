@@ -9,13 +9,23 @@ import {
   type ThProps,
 } from '@patternfly/react-table';
 import { StarIcon } from '@patternfly/react-icons';
-import { Button, Label, Skeleton, Tooltip } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import { getOptimizedMetricForTask } from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
+import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
   rank: number;
@@ -319,116 +329,117 @@ function AutomlLeaderboard({
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
     return (
-      <Table
-        aria-label="AutoML Model Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-empty"
-      >
-        <Thead>
-          <Tr>
-            <Th>No models produced</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          <Tr>
-            <Td>
-              The pipeline run completed but did not generate any models. Please check the pipeline
-              configuration and logs.
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          titleText="No models produced"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-empty"
+        >
+          <EmptyStateBody>
+            The pipeline run completed but did not generate any models. Please check the pipeline
+            configuration and logs.
+          </EmptyStateBody>
+        </EmptyState>
+      </Bullseye>
     );
   }
 
   return (
-    <Table aria-label="AutoML Model Leaderboard" variant="compact" data-testid="leaderboard-table">
-      <Thead>
-        <Tr>
-          <Th sort={getSortParams(0)} data-testid="rank-header">
-            Rank
-          </Th>
-          <Th sort={getSortParams(1)} data-testid="model-name-header">
-            Model name
-          </Th>
-          {metricKeys.map((metricKey, index) => (
-            <Th
-              key={metricKey}
-              sort={getSortParams(index + 2)}
-              data-testid={`metric-header-${metricKey}`}
-            >
-              {formatMetricName(metricKey)}
-              {metricKey === optimizedMetric ? (
-                <span data-testid="optimized-indicator"> (optimized)</span>
-              ) : (
-                ''
-              )}
+    <div className="automl-leaderboard-wrapper">
+      <Table
+        aria-label="AutoML Model Leaderboard"
+        variant="compact"
+        data-testid="leaderboard-table"
+        className="automl-leaderboard"
+      >
+        <Thead>
+          <Tr>
+            <Th sort={getSortParams(0)} data-testid="rank-header">
+              Rank
             </Th>
-          ))}
-          <Th screenReaderText="Actions" />
-        </Tr>
-      </Thead>
-      <Tbody>
-        {data.map((entry) => (
-          <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-            <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
-              {entry.rank === 1 ? (
-                <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
-                  {entry.rank}
-                </Label>
-              ) : (
-                entry.rank
-              )}
-            </Td>
-            <Td dataLabel="Model" data-testid={`model-name-${entry.rank}`}>
-              <Button
-                variant="link"
-                isInline
-                onClick={() => handleViewDetails(entry.model, entry.rank)}
-                data-testid={`model-link-${entry.rank}`}
-              >
-                {entry.model}
-              </Button>
-            </Td>
-            {metricKeys.map((metricKey) => (
-              <Td
+            <Th sort={getSortParams(1)} data-testid="model-name-header">
+              Model name
+            </Th>
+            {metricKeys.map((metricKey, index) => (
+              <Th
                 key={metricKey}
-                dataLabel={formatMetricName(metricKey)}
-                data-testid={`metric-${metricKey}-${entry.rank}`}
+                sort={getSortParams(index + 2)}
+                data-testid={`metric-header-${metricKey}`}
               >
-                <Tooltip content={String(entry.metrics[metricKey])}>
-                  <span>{formatMetricValue(entry.metrics[metricKey])}</span>
-                </Tooltip>
-              </Td>
+                {formatMetricName(metricKey)}
+                {metricKey === optimizedMetric ? (
+                  <span data-testid="optimized-indicator"> (optimized)</span>
+                ) : (
+                  ''
+                )}
+              </Th>
             ))}
-            <Td isActionCell>
-              <ActionsColumn
-                items={[
-                  {
-                    title: 'View details',
-                    onClick: () => handleViewDetails(entry.model, entry.rank),
-                  },
-                  {
-                    title: 'Register model',
-                    onClick: () => {
-                      // TODO: Implement register model
-                    },
-                  },
-                  {
-                    title: 'Save notebook',
-                    onClick: () => {
-                      if (onClickSaveNotebook) {
-                        onClickSaveNotebook(entry.model);
-                      }
-                    },
-                  },
-                ]}
-              />
-            </Td>
+            <Th screenReaderText="Actions" />
           </Tr>
-        ))}
-      </Tbody>
-    </Table>
+        </Thead>
+        <Tbody>
+          {data.map((entry) => (
+            <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+                {entry.rank === 1 ? (
+                  <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
+                    {entry.rank}
+                  </Label>
+                ) : (
+                  entry.rank
+                )}
+              </Td>
+              <Td dataLabel="Model" data-testid={`model-name-${entry.rank}`}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => handleViewDetails(entry.model, entry.rank)}
+                  data-testid={`model-link-${entry.rank}`}
+                >
+                  {entry.model}
+                </Button>
+              </Td>
+              {metricKeys.map((metricKey) => (
+                <Td
+                  key={metricKey}
+                  dataLabel={formatMetricName(metricKey)}
+                  data-testid={`metric-${metricKey}-${entry.rank}`}
+                >
+                  <Tooltip content={String(entry.metrics[metricKey])}>
+                    <span>{formatMetricValue(entry.metrics[metricKey])}</span>
+                  </Tooltip>
+                </Td>
+              ))}
+              <Td isActionCell>
+                <ActionsColumn
+                  items={[
+                    {
+                      title: 'View details',
+                      onClick: () => handleViewDetails(entry.model, entry.rank),
+                    },
+                    {
+                      title: 'Register model',
+                      onClick: () => {
+                        // TODO: Implement register model
+                      },
+                    },
+                    {
+                      title: 'Save notebook',
+                      onClick: () => {
+                        if (onClickSaveNotebook) {
+                          onClickSaveNotebook(entry.model);
+                        }
+                      },
+                    },
+                  ]}
+                />
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </div>
   );
 }
 

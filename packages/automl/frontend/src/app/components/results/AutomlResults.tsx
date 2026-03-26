@@ -1,4 +1,4 @@
-import { Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem, Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
@@ -16,6 +16,11 @@ type ModalState = {
   rank: number;
 };
 
+type NotebookDownloadError = {
+  modelName: string;
+  message: string;
+};
+
 function AutomlResults(): React.JSX.Element {
   const { pipelineRun, models } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
@@ -27,10 +32,11 @@ function AutomlResults(): React.JSX.Element {
 
   const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
+  const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
 
-  const handleViewDetails = (modelName: string, rank: number) => {
+  const handleViewDetails = React.useCallback((modelName: string, rank: number) => {
     setModalState({ modelName, rank });
-  };
+  }, []);
 
   const sanitizeFilename = (str: string): string =>
     str
@@ -44,22 +50,33 @@ function AutomlResults(): React.JSX.Element {
 
   const handleSaveNotebook = React.useCallback(
     async (modelName: string) => {
+      // Clear any previous errors
+      setDownloadError(null);
+
       if (!namespace) {
+        setDownloadError({
+          modelName,
+          message: 'Namespace is not available. Please try again.',
+        });
         return;
       }
 
       const model = models[modelName];
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- models is Record<string,T> which can have undefined values at runtime
       if (!model) {
-        // eslint-disable-next-line no-console
-        console.error(`Model not found: ${modelName}`);
+        setDownloadError({
+          modelName,
+          message: 'Model not found. The model may have been removed or is not available.',
+        });
         return;
       }
 
       const notebookKey = model.location.notebook;
       if (!notebookKey) {
-        // eslint-disable-next-line no-console
-        console.error(`Notebook key not found for model: ${modelName}`);
+        setDownloadError({
+          modelName,
+          message: 'Notebook location is not available for this model.',
+        });
         return;
       }
 
@@ -70,8 +87,11 @@ function AutomlResults(): React.JSX.Element {
         const notebookFilename = `${displayName}_${safeModelName}_notebook.ipynb`;
         downloadBlob(notebook, notebookFilename);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to download notebook:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        setDownloadError({
+          modelName,
+          message: `Failed to download notebook: ${errorMessage}`,
+        });
       }
     },
     [namespace, models, pipelineRun?.display_name],
@@ -80,6 +100,19 @@ function AutomlResults(): React.JSX.Element {
   return (
     <>
       <Stack hasGutter>
+        {downloadError && (
+          <StackItem>
+            <Alert
+              variant="danger"
+              title="Notebook download failed"
+              actionClose={<AlertActionCloseButton onClose={() => setDownloadError(null)} />}
+            >
+              <strong>Model: {downloadError.modelName}</strong>
+              <br />
+              {downloadError.message}
+            </Alert>
+          </StackItem>
+        )}
         <StackItem>
           <PipelineTopology
             nodes={nodes}

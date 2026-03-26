@@ -2,10 +2,11 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import type { MockAutomlModel, MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
+import type { MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext';
 import ModelInformationTab from '~/app/components/results/AutomlModelDetailsModal/tabs/ModelInformationTab';
 
-const baseModel: MockAutomlModel = {
+const baseModel: AutomlModel = {
   display_name: 'TestModel',
   model_config: { eval_metric: 'accuracy' },
   location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },

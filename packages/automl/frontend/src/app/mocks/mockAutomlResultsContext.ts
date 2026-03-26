@@ -1,20 +1,6 @@
 /* eslint-disable camelcase */
 import type { FeatureImportanceData, ConfusionMatrixData, PipelineRun } from '~/app/types';
-
-export type MockAutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-  };
-  location: {
-    model_directory: string;
-    predictor: string;
-    notebook: string;
-  };
-  metrics: {
-    test_data?: Record<string, unknown>;
-  };
-};
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 
 type TabularParameters = {
   task_type: 'binary' | 'multiclass' | 'regression';
@@ -36,7 +22,7 @@ export type MockAutomlParameters = TabularParameters | TimeseriesParameters;
 export type MockAutomlResultsContext = {
   pipelineRun: PipelineRun;
   pipelineRunLoading: boolean;
-  models: Record<string, MockAutomlModel>;
+  models: Record<string, AutomlModel>;
   modelsLoading: boolean;
   parameters: MockAutomlParameters;
 };
@@ -50,7 +36,7 @@ const buildLocation = (
   runId: string,
   taskId: string,
   modelName: string,
-): MockAutomlModel['location'] => {
+): AutomlModel['location'] => {
   const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
@@ -90,7 +76,7 @@ const mockPipelineRun: PipelineRun = {
 const RUN_ID = mockPipelineRun.run_id;
 const TASK_ID = '22ab3456-7890-cdef-1234-567890abcdef';
 
-const mockModels: Record<string, MockAutomlModel> = {
+const mockModels: Record<string, AutomlModel> = {
   CatBoost_BAG_L2_FULL: {
     display_name: 'CatBoost_BAG_L2_FULL',
     model_config: { eval_metric: 'accuracy' },
@@ -210,7 +196,7 @@ const buildTimeseriesLocation = (
   runId: string,
   taskId: string,
   modelName: string,
-): MockAutomlModel['location'] => {
+): AutomlModel['location'] => {
   const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
@@ -219,7 +205,7 @@ const buildTimeseriesLocation = (
   };
 };
 
-const mockTimeseriesModels: Record<string, MockAutomlModel> = {
+const mockTimeseriesModels: Record<string, AutomlModel> = {
   TemporalFusionTransformer: {
     display_name: 'TemporalFusionTransformer',
     model_config: { eval_metric: 'smape' },

@@ -8,13 +8,12 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
-// TODO: Replace MockAutomlModel with AutomlModel from AutomlResultsContext when integrating
-import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
-  models: MockAutomlModel[];
+  models: AutomlModel[];
   currentModelName: string;
   rank: number;
   rankMap: Record<string, number>;
@@ -24,7 +23,7 @@ type AutomlModelDetailsModalHeaderProps = {
   isDownloadDisabled?: boolean;
 };
 
-function getOptimizedMetric(model: MockAutomlModel): { name: string; value: number } | undefined {
+function getOptimizedMetric(model: AutomlModel): { name: string; value: number } | undefined {
   const evalMetric = model.model_config.eval_metric;
   const metrics = model.metrics.test_data ?? {};
   if (!(evalMetric in metrics)) {

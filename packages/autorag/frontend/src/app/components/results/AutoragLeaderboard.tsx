@@ -9,7 +9,16 @@ import {
   type ThProps,
 } from '@patternfly/react-table';
 import { StarIcon } from '@patternfly/react-icons';
-import { Button, Label, Skeleton, Tooltip } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -17,6 +26,7 @@ import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { getOptimizedMetricForRAG } from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
+import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
   rank: number;
@@ -370,34 +380,29 @@ function AutoragLeaderboard(): React.JSX.Element | null {
   // Show empty state when no patterns were produced
   if (Object.keys(patterns).length === 0) {
     return (
-      <Table
-        aria-label="AutoRAG Pattern Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-empty"
-      >
-        <Thead>
-          <Tr>
-            <Th>No patterns produced</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          <Tr>
-            <Td>
-              The pipeline run completed but did not generate any patterns. Please check the
-              pipeline configuration and logs.
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          titleText="No patterns produced"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-empty"
+        >
+          <EmptyStateBody>
+            The pipeline run completed but did not generate any patterns. Please check the pipeline
+            configuration and logs.
+          </EmptyStateBody>
+        </EmptyState>
+      </Bullseye>
     );
   }
 
   return (
-    <div className="pf-v6-u-overflow-x-auto">
+    <div className="autorag-leaderboard-wrapper">
       <Table
         aria-label="AutoRAG Pattern Leaderboard"
         variant="compact"
         data-testid="leaderboard-table"
+        className="autorag-leaderboard"
       >
         <Thead>
           <Tr>

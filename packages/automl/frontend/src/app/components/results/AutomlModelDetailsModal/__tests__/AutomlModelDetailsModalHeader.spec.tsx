@@ -3,14 +3,14 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { MockAutomlModel } from '~/app/mocks/mockAutomlResultsContext';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import AutomlModelDetailsModalHeader from '../AutomlModelDetailsModalHeader';
 
 const buildModel = (
   name: string,
   evalMetric: string,
   metrics: Record<string, unknown>,
-): MockAutomlModel => ({
+): AutomlModel => ({
   display_name: name,
   model_config: { eval_metric: evalMetric },
   location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
