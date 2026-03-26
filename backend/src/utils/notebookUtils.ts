@@ -137,6 +137,18 @@ const getImageTag = (image: ImageInfo, imageTagName: string): ImageTag => {
   };
 };
 
+const getMlflowAnnotation = (fastify: KubeFastifyInstance): Record<string, string> => {
+  const isMlflowFlagEnabled = getDashboardConfig().spec.dashboardConfig.mlflow;
+  if (!isMlflowFlagEnabled) {
+    return {};
+  }
+  const dscStatus = getClusterStatus(fastify);
+  if (dscStatus?.components?.mlflowoperator?.managementState === 'Managed') {
+    return { 'opendatahub.io/mlflow-instance': 'mlflow' };
+  }
+  return {};
+};
+
 export const assembleNotebook = async (
   fastify: KubeFastifyInstance,
   data: NotebookData,
@@ -226,6 +238,7 @@ export const assembleNotebook = async (
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-namespace':
           selectedHardwareProfile?.metadata.namespace || '',
+        ...getMlflowAnnotation(fastify),
       },
       name: name,
       namespace: namespace,
@@ -399,6 +412,7 @@ export const createNotebook = async (
   }
 
   notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-auth'] = 'true';
+
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 
   if (!notebookContainers[0]) {

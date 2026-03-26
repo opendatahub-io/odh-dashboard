@@ -14,7 +14,8 @@ import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconBu
 import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
-import { startNotebook, stopNotebook } from '#~/api';
+import { startNotebook, stopNotebook, getMlflowInstancePatch } from '#~/api';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
@@ -68,17 +69,27 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
 
+  const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+
   const onStart = React.useCallback(() => {
     setInProgress(true);
+    const extraPatches = [
+      ...getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
+      ...getMlflowInstancePatch(obj.notebook, isMlflowAvailable),
+    ];
     startNotebook(
       obj.notebook,
       canEnablePipelines && !currentlyHasPipelines(obj.notebook),
-      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
-    ).then(() => {
-      fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
-      obj.refresh().then(() => setInProgress(false));
-    });
-  }, [obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo]);
+      extraPatches,
+    )
+      .then(() => {
+        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
+        obj.refresh().then(() => setInProgress(false));
+      })
+      .catch(() => {
+        setInProgress(false);
+      });
+  }, [obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo, isMlflowAvailable]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
