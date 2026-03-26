@@ -3,12 +3,18 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
-import { ExternalModelRequest, ExternalModelResponse } from '~/app/types';
+import {
+  ExternalModelRequest,
+  ExternalModelResponse,
+  VerifyExternalModelRequest,
+  VerifyExternalModelResponse,
+} from '~/app/types';
 
 describe('CreateExternalEndpointModal', () => {
   let mockOnClose: jest.Mock;
   let mockOnSuccess: jest.Mock;
   let mockOnSubmit: jest.Mock<Promise<ExternalModelResponse>, [ExternalModelRequest]>;
+  let mockOnVerify: jest.Mock<Promise<VerifyExternalModelResponse>, [VerifyExternalModelRequest]>;
   let defaultProps: ReturnType<typeof getDefaultProps>;
 
   const getDefaultProps = () => ({
@@ -16,12 +22,15 @@ describe('CreateExternalEndpointModal', () => {
     onClose: mockOnClose,
     onSuccess: mockOnSuccess,
     onSubmit: mockOnSubmit,
+    onVerify: mockOnVerify,
+    existingModels: [],
   });
 
   beforeEach(() => {
     mockOnClose = jest.fn();
     mockOnSuccess = jest.fn();
     mockOnSubmit = jest.fn<Promise<ExternalModelResponse>, [ExternalModelRequest]>();
+    mockOnVerify = jest.fn<Promise<VerifyExternalModelResponse>, [VerifyExternalModelRequest]>();
     defaultProps = getDefaultProps();
 
     mockOnSubmit.mockResolvedValue({
@@ -40,7 +49,13 @@ describe('CreateExternalEndpointModal', () => {
         token_name: '',
         token: '',
       },
-      model_source_type: 'external_provider',
+      model_source_type: 'custom_endpoint',
+    });
+
+    mockOnVerify.mockResolvedValue({
+      success: true,
+      message: 'External model verified successfully',
+      response_time_ms: 500,
     });
   });
 
@@ -48,9 +63,8 @@ describe('CreateExternalEndpointModal', () => {
     it('should render modal with title and form fields', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      expect(screen.getByText('Create external endpoint')).toBeInTheDocument();
+      expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
-      expect(screen.getByText('Provider')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i)).toBeInTheDocument();
       expect(
@@ -76,15 +90,12 @@ describe('CreateExternalEndpointModal', () => {
 
       // Model type dropdown should show "Inferencing model" (llm is default)
       expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
-
-      // Provider dropdown should show "Internal" (remote::vllm is default)
-      expect(screen.getByRole('button', { name: /Internal/i })).toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
       render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByText('Create external endpoint')).not.toBeInTheDocument();
+      expect(screen.queryByText('Create endpoint')).not.toBeInTheDocument();
     });
   });
 
@@ -104,7 +115,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
@@ -123,7 +134,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
       await user.type(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
@@ -134,9 +145,8 @@ describe('CreateExternalEndpointModal', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           model_id: 'gpt-4o',
           model_display_name: 'My Custom GPT-4o',
-          base_url: 'https://api.openai.com/v1',
+          base_url: 'https://model.svc.cluster.local/v1',
           secret_value: 'sk-test-token-123',
-          provider_type: 'remote::vllm',
           model_type: 'llm',
           use_cases: 'Chat and completion',
         });
@@ -150,7 +160,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
@@ -173,7 +183,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-        'https://api.openai.com/v1',
+        'https://model.svc.cluster.local/v1',
       );
       await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
 
@@ -185,6 +195,49 @@ describe('CreateExternalEndpointModal', () => {
         expect(mockOnSuccess).not.toHaveBeenCalled();
         expect(mockOnClose).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('Conflict Validation', () => {
+    it('should show conflict error and disable Verify and Create when model_id already exists', async () => {
+      const user = userEvent.setup();
+      const existingModel = {
+        model_id: 'existing-model',
+        display_name: 'Existing Model',
+      };
+      render(
+        <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+      );
+
+      const modelIdInput = screen.getByTestId('create-external-model-id-input');
+      await user.type(modelIdInput, existingModel.model_id);
+      await user.tab(); // trigger blur/touched
+
+      expect(
+        screen.getByText(`Model ID "${existingModel.model_id}" is already in use.`),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-verify-button')).toBeDisabled();
+      expect(screen.getByTestId('create-external-model-submit-button')).toBeDisabled();
+    });
+
+    it('should show conflict error and disable Create when display_name already exists', async () => {
+      const user = userEvent.setup();
+      const existingModel = {
+        model_id: 'other-model',
+        display_name: 'Taken Display Name',
+      };
+      render(
+        <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+      );
+
+      const displayNameInput = screen.getByTestId('create-external-model-display-name-input');
+      await user.type(displayNameInput, existingModel.display_name);
+      await user.tab(); // trigger blur/touched
+
+      expect(
+        screen.getByText(`Display name "${existingModel.display_name}" is already in use.`),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-submit-button')).toBeDisabled();
     });
   });
 

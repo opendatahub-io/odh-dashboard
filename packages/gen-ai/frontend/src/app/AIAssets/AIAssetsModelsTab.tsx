@@ -9,8 +9,8 @@ import useMergedModels from '~/app/hooks/useMergedModels';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { ExternalModelRequest } from '~/app/types';
-import useAiAssetExternalModelsEnabled from '~/app/hooks/useAiAssetExternalModelsEnabled';
+import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
+import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpointsEnabled';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { models, loaded, aiError, maasError, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
-  const isExternalModelsEnabled = useAiAssetExternalModelsEnabled();
+  const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
@@ -40,6 +40,35 @@ const AIAssetsModelsTab: React.FC = () => {
   const handleCreationSuccess = React.useCallback(() => {
     refresh();
   }, [refresh]);
+
+  // Delete handler for external models
+  const handleDeleteExternalModel = React.useCallback(
+    async (modelId: string) => {
+      if (!apiAvailable) {
+        throw new Error('API not available');
+      }
+      try {
+        /* eslint-disable-next-line camelcase */
+        await api.deleteExternalModel({}, { model_id: modelId });
+      } finally {
+        // Always refresh the list, even if there was an error
+        // This ensures UI stays in sync with backend state
+        refresh();
+      }
+    },
+    [api, apiAvailable, refresh],
+  );
+
+  // Verify handler for validating external endpoint
+  const handleVerifyExternalEndpoint = React.useCallback(
+    async (request: VerifyExternalModelRequest) => {
+      if (!apiAvailable) {
+        throw new Error('API not available');
+      }
+      return api.verifyExternalModel(request);
+    },
+    [api, apiAvailable],
+  );
 
   if (!loaded) {
     return (
@@ -66,7 +95,40 @@ const AIAssetsModelsTab: React.FC = () => {
     warnings.push('Models as a Service could not be loaded.');
   }
 
-  const emptyState = (
+  const emptyState = isExternalModelsEnabled ? (
+    <ModelsEmptyState
+      title="No endpoints available"
+      description={
+        <Content
+          style={{
+            textAlign: 'left',
+          }}
+        >
+          <Content component="p">
+            Looks like your project is missing at least one model to use the playground. Create an
+            endpoint or follow the steps below to deploy a model and get started.
+          </Content>
+          <Content component={ContentVariants.ol}>
+            <Content component={ContentVariants.li}>
+              Go to your <b>Model Deployments</b> page
+            </Content>
+            <Content component={ContentVariants.li}>
+              Select <b>&apos;Edit&apos;</b> to update your deployment
+            </Content>
+            <Content component={ContentVariants.li}>
+              Check the box: <b>&apos;Make this deployment available as an AI asset&apos;</b>
+            </Content>
+          </Content>
+        </Content>
+      }
+      actionButtonText="Deploy a model"
+      handleActionButtonClick={() => {
+        navigate(`/ai-hub/deployments/${namespace?.name}`);
+      }}
+      secondaryActionButtonText="Create endpoint"
+      handleSecondaryActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
+    />
+  ) : (
     <ModelsEmptyState
       title="To begin you must deploy a model"
       description={
@@ -121,32 +183,33 @@ const AIAssetsModelsTab: React.FC = () => {
           emptyState
         )
       ) : (
-        <>
-          <AIModelsTable
-            models={models}
-            playgroundModels={playgroundModels}
-            lsdStatus={lsdStatus}
-            toolbarActions={
-              isExternalModelsEnabled ? (
-                <Button
-                  variant="primary"
-                  onClick={() => setIsCreateEndpointModalOpen(true)}
-                  data-testid="register-external-endpoint-button"
-                >
-                  Register external endpoint
-                </Button>
-              ) : undefined
-            }
-          />
-          {isExternalModelsEnabled && (
-            <CreateExternalEndpointModal
-              isOpen={isCreateEndpointModalOpen}
-              onClose={() => setIsCreateEndpointModalOpen(false)}
-              onSuccess={handleCreationSuccess}
-              onSubmit={handleCreateExternalEndpoint}
-            />
-          )}
-        </>
+        <AIModelsTable
+          models={models}
+          playgroundModels={playgroundModels}
+          lsdStatus={lsdStatus}
+          toolbarActions={
+            isExternalModelsEnabled ? (
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateEndpointModalOpen(true)}
+                data-testid="create-endpoint-button"
+              >
+                Create endpoint
+              </Button>
+            ) : undefined
+          }
+          onDelete={isExternalModelsEnabled ? handleDeleteExternalModel : undefined}
+        />
+      )}
+      {isExternalModelsEnabled && (
+        <CreateExternalEndpointModal
+          isOpen={isCreateEndpointModalOpen}
+          onClose={() => setIsCreateEndpointModalOpen(false)}
+          onSuccess={handleCreationSuccess}
+          onSubmit={handleCreateExternalEndpoint}
+          onVerify={handleVerifyExternalEndpoint}
+          existingModels={models}
+        />
       )}
     </>
   );

@@ -1,10 +1,7 @@
 package helper
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -32,6 +29,7 @@ var sensitiveHeaders = []string{
 	"Cookie",
 	"Set-Cookie",
 	"Proxy-Authorization",
+	"X-Forwarded-Access-Token",
 }
 
 func isSensitiveHeader(h string) bool {
@@ -62,35 +60,15 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
-func CloneBody(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, fmt.Errorf("no body provided")
-	}
-	buf, _ := io.ReadAll(r.Body)
-	readerCopy := io.NopCloser(bytes.NewBuffer(buf))
-	readerOriginal := io.NopCloser(bytes.NewBuffer(buf))
-	r.Body = readerOriginal
-
-	defer readerCopy.Close()
-	cloneBody, err := io.ReadAll(readerCopy)
-
-	return cloneBody, err
-}
-
 type RequestLogValuer struct {
 	Request *http.Request
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
 	body := ""
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
-		}
+	if r.Request.Body != nil &&
+		(r.Request.ContentLength != 0 || len(r.Request.TransferEncoding) > 0) {
+		body = "[REDACTED]"
 	}
 
 	return slog.GroupValue(

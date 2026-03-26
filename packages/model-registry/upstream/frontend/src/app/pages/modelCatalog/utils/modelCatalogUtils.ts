@@ -34,7 +34,7 @@ import {
   CatalogModelCustomPropertyKey,
   ModelType,
 } from '~/concepts/modelCatalog/const';
-import { CatalogSourceStatus } from '~/concepts/modelCatalogSettings/const';
+import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
 import { ModelRegistryMetadataType } from '~/app/types';
 
 /**
@@ -80,9 +80,9 @@ export const filterEnabledCatalogSources = (
     return null;
   }
 
-  // Filter sources that are enabled AND have available models
+  // Filter sources that are enabled AND have available models (including partially-available)
   const filteredItems = catalogSources.items?.filter(
-    (source) => source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE,
+    (source) => source.enabled !== false && isSourceStatusWithModels(source.status),
   );
 
   return {
@@ -340,7 +340,7 @@ export const getSortParams = (
   };
 };
 
-const wrapInQuotes = (v: string): string => `'${v}'`;
+const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
 
 const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
 const inFilter = (k: string, values: string[]) =>
@@ -509,12 +509,8 @@ export const getUniqueSourceLabels = (catalogSources: CatalogSourceList | null):
   const allLabels = new Set<string>();
 
   catalogSources.items.forEach((source) => {
-    // Only include labels from sources that are enabled AND have available models
-    if (
-      source.enabled &&
-      source.status === CatalogSourceStatus.AVAILABLE &&
-      source.labels.length > 0
-    ) {
+    // Only include labels from sources that are enabled AND have models (available or partially-available)
+    if (source.enabled && isSourceStatusWithModels(source.status) && source.labels.length > 0) {
       source.labels.forEach((label) => {
         if (label.trim()) {
           allLabels.add(label.trim());
@@ -532,8 +528,8 @@ export const hasSourcesWithoutLabels = (catalogSources: CatalogSourceList | null
   }
 
   return catalogSources.items.some((source) => {
-    // Only consider sources that are enabled AND have available models
-    if (source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE) {
+    // Only consider sources that are enabled AND have models (available or partially-available)
+    if (source.enabled !== false && isSourceStatusWithModels(source.status)) {
       // Check if source has no labels or only empty/whitespace labels
       return source.labels.length === 0 || source.labels.every((label) => !label.trim());
     }
@@ -611,8 +607,8 @@ export const isValueDifferentFromDefault = (
 };
 
 /**
- * Filters catalog sources to only include those with available models.
- * A source has models if its status is AVAILABLE.
+ * Filters catalog sources to only include those with discoverable models.
+ * A source has models if its status is AVAILABLE or PARTIALLY_AVAILABLE.
  * This is used to filter out disabled sources or sources with errors from the switcher.
  */
 export const filterSourcesWithModels = (
@@ -622,8 +618,8 @@ export const filterSourcesWithModels = (
     return null;
   }
 
-  const filteredItems = catalogSources.items?.filter(
-    (source) => source.status === CatalogSourceStatus.AVAILABLE,
+  const filteredItems = catalogSources.items?.filter((source) =>
+    isSourceStatusWithModels(source.status),
   );
 
   return {
@@ -635,14 +631,14 @@ export const filterSourcesWithModels = (
 
 /**
  * Checks if there are any catalog sources that have models available.
- * Returns true if at least one source has status === AVAILABLE.
+ * Returns true if at least one source has status AVAILABLE or PARTIALLY_AVAILABLE.
  */
 export const hasSourcesWithModels = (catalogSources: CatalogSourceList | null): boolean => {
   if (!catalogSources?.items) {
     return false;
   }
 
-  return catalogSources.items.some((source) => source.status === CatalogSourceStatus.AVAILABLE);
+  return catalogSources.items.some((source) => isSourceStatusWithModels(source.status));
 };
 
 export const generateCategoryName = (name: string): string =>
@@ -674,14 +670,18 @@ export const findLabelData = (
 
 /**
  * Gets the display name for a source label, using the catalog labels data if available.
- * Falls back to the raw label name with " models" appended if no display name is found.
+ * Falls back to the raw label name with the given suffix appended if no display name is found.
  * @param sourceLabel The label string from a source (or SourceLabel.other for unlabeled sources)
  * @param catalogLabels The list of catalog labels from the API
+ * @param otherFallback Display name for sources without labels (default: 'Other models')
+ * @param categorySuffix Suffix appended to the label name when no display name exists (default: 'models')
  * @returns The display name to show in the UI
  */
 export const getLabelDisplayName = (
   sourceLabel: string | undefined,
   catalogLabels: CatalogLabelList | null,
+  otherFallback = 'Other models',
+  categorySuffix = 'models',
 ): string => {
   if (!sourceLabel) {
     return '';
@@ -689,19 +689,17 @@ export const getLabelDisplayName = (
 
   const labelData = findLabelData(sourceLabel, catalogLabels);
 
-  // If we have a displayName from the API, use it
   if (labelData?.displayName) {
     return labelData.displayName;
   }
 
-  // Otherwise fall back to generating a name from the label
-  // For SourceLabel.other, this should not happen if the API is working correctly
-  // but we handle it gracefully
   if (sourceLabel === SourceLabel.other) {
-    return 'Other models'; // fallback for the special null case
+    return otherFallback;
   }
 
-  return generateCategoryName(sourceLabel);
+  return sourceLabel.toLowerCase().endsWith(categorySuffix)
+    ? sourceLabel
+    : `${sourceLabel} ${categorySuffix}`;
 };
 
 /**

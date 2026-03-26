@@ -409,6 +409,30 @@ class APIKeysPage {
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-api-key-button');
   }
+
+  findStatusFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-status-filter-toggle');
+  }
+
+  findStatusFilterOption(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
+  }
+
+  findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-input');
+  }
+
+  findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFilterInput().find('button[type="submit"]');
+  }
+
+  findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-tooltip');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -433,9 +457,9 @@ class APIKeyTableRow extends TableRow {
   }
 }
 
-class RevokeAPIKeyModal extends Modal {
+class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
-    super('Revoke API key?');
+    super('Revoke all your active keys?');
   }
 
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -444,6 +468,24 @@ class RevokeAPIKeyModal extends Modal {
 
   findRevokeConfirmationInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('revoke-confirmation-input');
+  }
+}
+
+class RevokeAPIKeyModal extends Modal {
+  constructor() {
+    super('Revoke API key?');
+  }
+
+  findRevokeAllButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Permanently revoke all keys' });
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Revoke' });
+  }
+
+  findRevokeConfirmationInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-modal-input');
   }
 }
 
@@ -473,12 +515,24 @@ class CreateApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-description-input');
   }
 
-  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-date-input');
+  findExpirationToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-toggle');
   }
 
-  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('create-api-key-button');
+  findExpirationOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-expiration-option-${value}`);
+  }
+
+  findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-custom-days-input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('submit-create-api-key-button');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('create-api-key-error-alert');
   }
 }
 
@@ -522,12 +576,97 @@ class CopyApiKeyModal extends Modal {
   }
 }
 
+class SubscriptionsPage {
+  visit(): void {
+    cy.visitWithLogin('/maas/subscriptions');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-actions');
+  }
+
+  getRow(name: string): SubscriptionTableRow {
+    return new SubscriptionTableRow(() =>
+      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-filter-input');
+  }
+
+  findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  findCreateSubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-subscription-button');
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
+}
+
+class SubscriptionTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Groups"]');
+  }
+
+  findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Models"]');
+  }
+}
+
+class DeleteSubscriptionModal extends DeleteModal {
+  constructor() {
+    super('Delete Subscription?');
+  }
+
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Delete modal input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
 export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
+export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();
+export const subscriptionsPage = new SubscriptionsPage();
+export const deleteSubscriptionModal = new DeleteSubscriptionModal();

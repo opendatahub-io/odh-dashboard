@@ -1,6 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
@@ -68,14 +69,17 @@ describe('AutoragRunsTable', () => {
 
   it('should render table with runs', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
@@ -83,14 +87,17 @@ describe('AutoragRunsTable', () => {
 
   it('should render run names', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
@@ -101,6 +108,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={[]}
+        namespace="test-ns"
         totalSize={0}
         page={1}
         pageSize={20}
@@ -116,14 +124,17 @@ describe('AutoragRunsTable', () => {
 
   it('should render Started column with relative time', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     // The mock relativeTime function returns '1 day ago'

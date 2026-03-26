@@ -68,7 +68,7 @@ export const useModelDeploymentSubmit = (
           );
         }
 
-        const serverResourceTemplateName = formState.modelServer.data?.name;
+        const serverResourceTemplateName = formState.modelServer.data?.selection?.name;
         const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
         const serverResource = serverResourceTemplateName
           ? getServingRuntimeFromTemplate(
@@ -84,7 +84,7 @@ export const useModelDeploymentSubmit = (
           deployMethod.properties,
           existingDeployment,
           resources.model,
-          serverResource,
+          resources.server ?? serverResource,
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
@@ -104,7 +104,7 @@ export const useModelDeploymentSubmit = (
       deployMethod,
       applyExtensionsLoaded,
       formState,
-      resources.model,
+      resources,
       connectionSecretName,
       existingDeployment,
       initialWizardData,

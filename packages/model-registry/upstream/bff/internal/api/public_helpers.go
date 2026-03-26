@@ -28,6 +28,14 @@ func (app *App) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 	app.serverErrorResponse(w, r, err)
 }
 
+// NotFound exposes the internal not-found helper for extensions.
+func (app *App) NotFound(w http.ResponseWriter, r *http.Request) {
+	if app == nil {
+		return
+	}
+	app.notFoundResponse(w, r)
+}
+
 // NotImplemented writes a standard placeholder response for unimplemented endpoints.
 func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature string) {
 	app.serverErrorResponse(w, r, fmt.Errorf("%s is not implemented", feature))

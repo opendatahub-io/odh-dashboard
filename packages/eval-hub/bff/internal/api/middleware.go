@@ -87,12 +87,14 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 
 // AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.
 //
-// Priority for resolving the EvalHub service URL:
-//  1. MOCK_EVAL_HUB_CLIENT=true  → mock client (test/dev mode, no URL needed)
-//  2. EVAL_HUB_URL env var set   → developer override, use the explicit URL
-//  3. Namespace in context       → auto-discover URL from EvalHub CR (status.serviceURL)
+// The EvalHub service URL is resolved once at startup (see resolveEvalHubURL in app.go)
+// and stored in app.evalHubURL. This mirrors the MLflow BFF pattern: discovery runs
+// with the pod's service account at boot time rather than per-request with the user token.
 //
-// Auto-discovery requires AttachNamespace middleware to have run first (namespace in context).
+// Priority for resolving the URL (evaluated at startup, not per-request):
+//  1. MOCK_EVAL_HUB_CLIENT=true  → mock client (test/dev mode, no URL needed)
+//  2. EVAL_HUB_URL env var set   → developer override
+//  3. CR auto-discovery          → evalhubs.trustyai.opendatahub.io status.url in dashboard namespace
 func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -110,39 +112,13 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 				return
 			}
 
-			var serviceURL string
-
-			if app.config.EvalHubURL != "" {
-				// Priority 2: explicit developer override
-				serviceURL = app.config.EvalHubURL
-				logger.Debug("Using EVAL_HUB_URL environment variable (developer override)",
-					"serviceURL", serviceURL)
-			} else {
-				// Priority 3: auto-discover from EvalHub CR in the namespace
-				namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-				if !ok || namespace == "" {
-					app.badRequestResponse(w, r, fmt.Errorf(
-						"namespace query parameter is required for EvalHub CR auto-discovery when EVAL_HUB_URL is not set"))
-					return
-				}
-
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-					return
-				}
-
-				discoveredURL, err := k8sClient.GetEvalHubServiceURL(ctx, identity, namespace)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover EvalHub service URL from CR: %w", err))
-					return
-				}
-
-				serviceURL = discoveredURL
-				logger.Debug("Using auto-discovered EvalHub service URL from CR",
-					"namespace", namespace,
-					"serviceURL", serviceURL)
+			serviceURL := app.evalHubURL
+			if serviceURL == "" {
+				app.serviceUnavailableResponse(w, r, fmt.Errorf("EvalHub service URL is not available: CR auto-discovery failed at startup"))
+				return
 			}
+
+			logger.Debug("Using startup-resolved EvalHub service URL", "serviceURL", serviceURL)
 
 			client = app.evalHubClientFactory.CreateClient(
 				serviceURL,

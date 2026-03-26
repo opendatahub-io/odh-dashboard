@@ -452,6 +452,28 @@ Returns `200 OK` with the created pipeline run:
 | `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
+#### Example Validation Errors
+
+**Missing required fields:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "missing required fields: display_name, test_data_secret_name, llama_stack_secret_name"
+  }
+}
+```
+
+**Invalid optimization_metric value:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "invalid optimization_metric \"custom\": must be one of faithfulness, answer_correctness, context_correctness"
+  }
+}
+```
+
 ## Pipeline Discovery
 
 The API always filters runs to the auto-discovered AutoRAG managed pipeline:

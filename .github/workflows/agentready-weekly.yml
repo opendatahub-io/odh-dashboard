@@ -1,0 +1,64 @@
+name: AgentReady Weekly Assessment
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Install AgentReady
+        run: |
+          pip install agentready
+
+      - name: Run AgentReady Assessment
+        id: assessment
+        run: |
+          # Exclude assessors that don't apply to this monorepo structure:
+          # - type_annotations: Uses project references, no root tsconfig.json
+          # - precommit_hooks: Uses Husky, not Python pre-commit framework
+          agentready assess . -e type_annotations -e precommit_hooks > assessment-output.txt
+          cat assessment-output.txt
+          SCORE=$(grep "Overall Score:" assessment-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "## AgentReady Assessment Results" >> $GITHUB_STEP_SUMMARY
+          echo "**Score:** $SCORE/100" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Assessment Results
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: agentready-assessment
+          path: |
+            agentready-results.json
+            .agentready/
+          retention-days: 90
+
+      - name: Create Issue if Score Drops Below Gold
+        if: steps.assessment.outputs.score < 75
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const score = '${{ steps.assessment.outputs.score }}';
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `AgentReady score dropped below Gold (75%) to ${score}%`,
+              body: `The weekly AgentReady assessment shows the score has dropped below the Gold threshold (75%) to ${score}%.\n\nPlease review the assessment results in the workflow artifacts.`,
+              labels: ['agentready', 'quality']
+            });

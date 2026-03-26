@@ -45,3 +45,50 @@ CLAUDE.md
 
 # Temporary files
 tmp/
+
+# Python (for BFF services)
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+pip-log.txt
+
+# Build outputs (comprehensive)
+build/
+out/
+*.js.map
+*.css.map
+public-cypress/
+
+# Caches
+.cache/
+*.cache
+.nyc_output/
+
+# Test artifacts
+**/cypress/videos/
+**/cypress/screenshots/
+**/results/
+
+# IDE (comprehensive)
+*.swp
+*.swo
+*~
+.project
+
+# Binaries
+*.exe
+*.out
+*.test
+
+# Package manager caches
+.npm/
+vendor/
+
+# AgentReady reports
+.agentready/
+assessment-output.txt

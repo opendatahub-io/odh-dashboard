@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
@@ -18,16 +19,18 @@ const mockOnActionComplete = jest.fn();
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
   return render(
-    <Table aria-label="test">
-      <Tbody>
-        <EvaluationsTableRow
-          job={job}
-          rowIndex={rowIndex}
-          namespace="test-ns"
-          onActionComplete={mockOnActionComplete}
-        />
-      </Tbody>
-    </Table>,
+    <MemoryRouter>
+      <Table aria-label="test">
+        <Tbody>
+          <EvaluationsTableRow
+            job={job}
+            rowIndex={rowIndex}
+            namespace="test-ns"
+            onActionComplete={mockOnActionComplete}
+          />
+        </Tbody>
+      </Table>
+    </MemoryRouter>,
   );
 };
 
@@ -63,6 +66,32 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('MMLU Finance');
   });
 
+  it('should render multiple benchmarks with +N more suffix', () => {
+    const job = mockEvaluationJob({ benchmarkId: 'arc_easy' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      { id: 'arc_easy', provider_id: 'lm_evaluation_harness' },
+      { id: 'hellaswag_ar', provider_id: 'lm_evaluation_harness' },
+    ];
+    /* eslint-enable camelcase */
+    render(
+      <MemoryRouter>
+        <Table aria-label="test">
+          <Tbody>
+            <EvaluationsTableRow
+              job={job}
+              rowIndex={0}
+              namespace="test-ns"
+              onActionComplete={mockOnActionComplete}
+            />
+          </Tbody>
+        </Table>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+    expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');
+  });
+
   it('should render model name in the Type column', () => {
     renderRow({ modelName: 'gpt-4-turbo' });
     expect(screen.getByTestId('evaluation-type')).toHaveTextContent('gpt-4-turbo');
@@ -75,8 +104,14 @@ describe('EvaluationsTableRow', () => {
   });
 
   it('should render result percentage when score exists', () => {
-    renderRow({ score: 0.85 });
+    renderRow({ score: 0.85, scorePass: true });
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('85%');
+  });
+
+  it('should render result percentage when metrics exist without pass/fail test', () => {
+    // eslint-disable-next-line camelcase
+    renderRow({ metrics: { acc: 0.7, acc_norm: 0.6 } });
+    expect(screen.getByTestId('evaluation-result')).toHaveTextContent('60%');
   });
 
   it('should render dash for result when no metrics', () => {

@@ -3,7 +3,9 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { PipelineRun } from '~/app/types';
-import AutomlRunsTableRow, { getStatusLabelProps } from '../AutomlRunsTableRow';
+import AutomlRunsTableRow, {
+  getStatusLabelProps,
+} from '~/app/components/AutomlRunsTable/AutomlRunsTableRow';
 
 jest.mock('mod-arch-shared', () => ({
   relativeTime: () => '1 day ago',

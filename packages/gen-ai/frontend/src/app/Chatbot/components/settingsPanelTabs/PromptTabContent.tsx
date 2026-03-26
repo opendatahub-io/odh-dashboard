@@ -4,7 +4,10 @@ import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
+import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
+import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 interface PromptTabContentProps {
   systemInstruction: string;
@@ -15,8 +18,18 @@ function PromptTabContent({
   systemInstruction,
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
-  const { setIsPromptManagementModalOpen } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
   const [promptManagementEnabled] = useFeatureFlag('promptManagement');
+  const isEdited = usePromptEdited();
+  const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
+
+  function handleLoadPromptClick() {
+    confirm(() => openModal('allPrompts'), {
+      title: 'Load a different prompt?',
+      message: 'Your current prompt has unsaved changes that will be lost.',
+      confirmLabel: 'Load',
+    });
+  }
 
   function buildHeaderActions() {
     if (!promptManagementEnabled) {
@@ -26,9 +39,7 @@ function PromptTabContent({
       <Button
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
-        onClick={() => {
-          setIsPromptManagementModalOpen(true);
-        }}
+        onClick={handleLoadPromptClick}
       >
         Load Prompt
       </Button>
@@ -36,16 +47,29 @@ function PromptTabContent({
   }
 
   return (
-    <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
-      <Form style={{ paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
-        <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">
-          <SystemPromptFormGroup
-            systemInstruction={systemInstruction}
-            onSystemInstructionChange={onSystemInstructionChange}
-          />
-        </FormGroup>
-      </Form>
-    </TabContentWrapper>
+    <>
+      {confirmationModal}
+      <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
+        <Form>
+          {!promptManagementEnabled && (
+            <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">
+              <SystemPromptFormGroup
+                systemInstruction={systemInstruction}
+                onSystemInstructionChange={onSystemInstructionChange}
+              />
+            </FormGroup>
+          )}
+          {promptManagementEnabled && (
+            <FormGroup fieldId="prompt-instructions" data-testid="prompt-instructions-section">
+              <PromptAssistantFormGroup
+                systemInstruction={systemInstruction}
+                onSystemInstructionChange={onSystemInstructionChange}
+              />
+            </FormGroup>
+          )}
+        </Form>
+      </TabContentWrapper>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { HookNotify } from '@odh-dashboard/plugin-core';
 import type { InitialWizardFormData, WizardField } from './types';
+import { WizardFormAction } from './useDeploymentWizardReducer';
 
 export type ExternalDataMap = Record<string, { loaded: boolean; loadError?: Error; data: unknown }>;
 
@@ -8,6 +9,7 @@ type ExternalDataLoaderProps = {
   fields: WizardField<unknown, unknown>[];
   initialData?: InitialWizardFormData;
   setExternalData: React.Dispatch<React.SetStateAction<ExternalDataMap>>;
+  dispatch: React.Dispatch<WizardFormAction>;
 };
 
 /**
@@ -19,6 +21,7 @@ export const ExternalDataLoader: React.FC<ExternalDataLoaderProps> = ({
   fields,
   initialData,
   setExternalData,
+  dispatch,
 }) => {
   return (
     <>
@@ -30,6 +33,7 @@ export const ExternalDataLoader: React.FC<ExternalDataLoaderProps> = ({
               field={f}
               initialData={initialData}
               setExternalData={setExternalData}
+              dispatch={dispatch}
             />
           );
         }
@@ -43,7 +47,8 @@ const ExternalDataHookNotify: React.FC<{
   field: WizardField<unknown, unknown>;
   initialData?: InitialWizardFormData;
   setExternalData: React.Dispatch<React.SetStateAction<ExternalDataMap>>;
-}> = ({ field, initialData, setExternalData }) => {
+  dispatch: React.Dispatch<WizardFormAction>;
+}> = ({ field, initialData, setExternalData, dispatch }) => {
   const hook = React.useMemo(() => field.externalDataHook, [field.externalDataHook]);
 
   const hookArgs: [InitialWizardFormData | undefined] = React.useMemo(
@@ -51,12 +56,16 @@ const ExternalDataHookNotify: React.FC<{
     [initialData],
   );
 
+  const prevLoadedRef = React.useRef<boolean | undefined>(undefined);
+
   const onDataChange = React.useCallback(
     (data: { loaded: boolean; loadError?: Error; data: unknown } | undefined) => {
       if (data) {
+        const wasLoaded = prevLoadedRef.current;
+        prevLoadedRef.current = data.loaded;
+
         setExternalData((prev) => {
           const existing = field.id in prev ? prev[field.id] : undefined;
-          // Skip update if loaded state and data reference are the same to avoid infinite re-renders
           if (
             existing !== undefined &&
             existing.loaded === data.loaded &&
@@ -66,9 +75,16 @@ const ExternalDataHookNotify: React.FC<{
           }
           return { ...prev, [field.id]: data };
         });
+
+        if (wasLoaded === false && data.loaded === true) {
+          dispatch({
+            type: 'initFieldData',
+            payload: { field, externalData: data },
+          });
+        }
       }
     },
-    [field.id, setExternalData],
+    [setExternalData, dispatch, field],
   );
 
   const onUnmount = React.useCallback(() => {

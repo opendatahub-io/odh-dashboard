@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { capitalize, Label } from '@patternfly/react-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { APIKey } from '~/app/types/api-key';
@@ -7,7 +7,7 @@ import { apiKeyColumns } from './columns';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -16,9 +16,10 @@ const formatDate = (dateString: string): string => {
 
 type ApiKeysTableRowProps = {
   apiKey: APIKey;
+  onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
-const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey }) => (
+const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onRevokeApiKey }) => (
   <Tr>
     <Td dataLabel={apiKeyColumns[0].label}>
       <TableRowTitleDescription
@@ -28,13 +29,33 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey }) => (
       />
     </Td>
     <Td dataLabel={apiKeyColumns[1].label}>
-      <Label color={apiKey.status === 'active' ? 'green' : 'red'}>
+      <Label
+        color={
+          apiKey.status === 'active' ? 'green' : apiKey.status === 'expired' ? 'red' : 'purple'
+        }
+      >
         {capitalize(apiKey.status)}
       </Label>
     </Td>
-    <Td dataLabel={apiKeyColumns[2].label}>{formatDate(apiKey.creationDate)}</Td>
-    <Td dataLabel={apiKeyColumns[3].label}>
+    <Td dataLabel={apiKeyColumns[2].label}>{apiKey.username ?? '—'}</Td>
+    <Td dataLabel={apiKeyColumns[3].label}>{formatDate(apiKey.creationDate)}</Td>
+    <Td dataLabel={apiKeyColumns[4].label}>
+      {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : 'Never'}
+    </Td>
+    <Td dataLabel={apiKeyColumns[5].label}>
       {apiKey.expirationDate ? formatDate(apiKey.expirationDate) : 'Never'}
+    </Td>
+    <Td isActionCell>
+      <ActionsColumn
+        data-testid="api-key-actions"
+        items={[
+          {
+            title: 'Revoke API key',
+            onClick: () => onRevokeApiKey(apiKey),
+            isDisabled: apiKey.status !== 'active',
+          },
+        ]}
+      />
     </Td>
   </Tr>
 );

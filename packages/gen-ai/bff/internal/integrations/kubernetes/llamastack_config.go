@@ -62,13 +62,13 @@ type MetadataStore struct {
 }
 
 type RegisteredResources struct {
-	Models     []Model     `json:"models" yaml:"models"`
-	Shields    []Shield    `json:"shields" yaml:"shields"`
-	VectorDBs  []VectorDB  `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets   []Dataset   `json:"datasets" yaml:"datasets"`
-	ScoringFns []ScoringFn `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks []Benchmark `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups []ToolGroup `json:"tool_groups" yaml:"tool_groups"`
+	Models       []Model       `json:"models" yaml:"models"`
+	Shields      []Shield      `json:"shields" yaml:"shields"`
+	VectorStores []VectorStore `json:"vector_stores" yaml:"vector_stores"`
+	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
+	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
+	ToolGroups   []ToolGroup   `json:"tool_groups" yaml:"tool_groups"`
 }
 
 type Storage struct {
@@ -229,12 +229,12 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		RegisteredResources: RegisteredResources{
 			// Ensure these serialize as `[]` (not `null`) when no values exist.
-			Models:     []Model{},
-			Shields:    []Shield{},
-			VectorDBs:  []VectorDB{},
-			Datasets:   []Dataset{},
-			ScoringFns: []ScoringFn{},
-			Benchmarks: []Benchmark{},
+			Models:       []Model{},
+			Shields:      []Shield{},
+			VectorStores: []VectorStore{},
+			Datasets:     []Dataset{},
+			ScoringFns:   []ScoringFn{},
+			Benchmarks:   []Benchmark{},
 			ToolGroups: []ToolGroup{
 				{
 					ToolGroupID: "builtin::rag",
@@ -351,7 +351,7 @@ func NewEmbeddingModel(modelID, providerID, providerModelID string, embeddingDim
 		ModelID:         modelID,
 		ProviderID:      providerID,
 		ProviderModelID: providerModelID,
-		ModelType:       "embedding",
+		ModelType:       string(models.ModelTypeEmbedding),
 		Metadata: map[string]interface{}{
 			"embedding_dimension": embeddingDimension,
 		},
@@ -363,7 +363,7 @@ func NewLLMModel(modelID, providerID string, displayName string) Model {
 	return Model{
 		ModelID:    modelID,
 		ProviderID: providerID,
-		ModelType:  "llm",
+		ModelType:  string(models.ModelTypeLLM),
 		Metadata: map[string]interface{}{
 			"display_name": displayName,
 		},
@@ -429,7 +429,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 
 // AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
 // This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
@@ -444,8 +444,18 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	// Add model
 	var model Model
 	if metadata == nil {
-		// For MaaS models or when no metadata is provided
-		model = NewLLMModel(modelID, providerID, modelID)
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			// Default to LLM model (handles MaaS models and general case)
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
 	} else {
 		// For regular models with metadata
 		model = NewModel(modelID, providerID, modelType, metadata)
@@ -456,27 +466,62 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 		model.MaxTokens = maxTokens
 	}
 
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
+	}
+
 	c.AddModel(model)
 }
 
-// AddExternalProviderAndModel adds an external model provider and its corresponding model to the config
-// This is a helper for building LlamaStack configurations with external model providers (OpenAI, Anthropic, Gemini, etc.)
+// AddCustomEndpointProviderAndModel adds a custom endpoint model provider and its corresponding model to the config
+// This is a helper for building LlamaStack configurations with OpenAI-compatible custom endpoint model providers
 // The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference
-func (c *LlamaStackConfig) AddExternalProviderAndModel(providerID, providerType, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+// Provider type is hardcoded to "remote::openai" - all custom endpoints must be OpenAI-compatible.
+// isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
+// since cluster services typically use self-signed certificates.
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
-	// Full configuration (including secrets) is managed via the gen-ai-aa-external-models ConfigMap
+	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
 	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap
 
-	// Add provider with the specific provider type (e.g., remote::openai, remote::anthropic, etc.)
-	provider := NewProvider(providerID, providerType, providerConfig)
+	if isClusterLocal {
+		providerConfig["network"] = map[string]interface{}{
+			"tls": map[string]interface{}{
+				"verify": false,
+			},
+		}
+	}
+
+	// Add provider - hardcoded to remote::openai (only supported type for custom endpoints)
+	provider := NewProvider(providerID, "remote::openai", providerConfig)
 	c.AddInferenceProvider(provider)
 
 	// Add model
 	var model Model
 	if metadata == nil {
-		model = NewLLMModel(modelID, providerID, modelID)
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
 	} else {
 		model = NewModel(modelID, providerID, modelType, metadata)
 	}
@@ -484,6 +529,20 @@ func (c *LlamaStackConfig) AddExternalProviderAndModel(providerID, providerType,
 	// Set per-model max_tokens if provided
 	if maxTokens != nil {
 		model.MaxTokens = maxTokens
+	}
+
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
 	}
 
 	c.AddModel(model)
@@ -532,6 +591,11 @@ func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
 // RegisterShield adds a shield to the registered resources
 func (c *LlamaStackConfig) RegisterShield(shield Shield) {
 	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
+}
+
+// RegisterVectorStore adds a vector store to the registered resources.
+func (c *LlamaStackConfig) RegisterVectorStore(store VectorStore) {
+	c.RegisteredResources.VectorStores = append(c.RegisteredResources.VectorStores, store)
 }
 
 // GetModelProviderInfo extracts model provider information for a given model ID
@@ -620,13 +684,15 @@ type Shield struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
-// VectorDB represents a vector database configuration
-type VectorDB struct {
-	DBID       string                 `json:"db_id" yaml:"db_id"`
-	Name       string                 `json:"name" yaml:"name"`
-	ProviderID string                 `json:"provider_id" yaml:"provider_id"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+// VectorStore represents a vector store configuration in registered_resources
+type VectorStore struct {
+	VectorStoreID         string                 `json:"vector_store_id" yaml:"vector_store_id"`
+	EmbeddingModel        string                 `json:"embedding_model" yaml:"embedding_model"`
+	EmbeddingDimension    int                    `json:"embedding_dimension" yaml:"embedding_dimension"`
+	ProviderID            string                 `json:"provider_id,omitempty" yaml:"provider_id,omitempty"`
+	ProviderVectorStoreID string                 `json:"provider_vector_store_id,omitempty" yaml:"provider_vector_store_id,omitempty"`
+	VectorStoreName       string                 `json:"vector_store_name,omitempty" yaml:"vector_store_name,omitempty"`
+	Metadata              map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // Dataset represents a dataset configuration
@@ -669,14 +735,12 @@ func NewShield(shieldID, shieldType, providerID string, config map[string]interf
 	}
 }
 
-// NewVectorDB creates a new VectorDB instance
-func NewVectorDB(dbID, name, providerID string, config map[string]interface{}) VectorDB {
-	return VectorDB{
-		DBID:       dbID,
-		Name:       name,
-		ProviderID: providerID,
-		Config:     config,
-		Metadata:   EmptyConfig(),
+// NewVectorStore creates a new VectorStore instance
+func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int) VectorStore {
+	return VectorStore{
+		VectorStoreID:      vectorStoreID,
+		EmbeddingModel:     embeddingModel,
+		EmbeddingDimension: embeddingDimension,
 	}
 }
 

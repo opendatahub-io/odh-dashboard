@@ -75,7 +75,9 @@ export const isLlamaModelEnabled = (
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
-    return enabledModel.status === 'Running';
+    return (
+      enabledModel.status === 'Running' || enabledModel.model_source_type === 'custom_endpoint'
+    );
   }
 
   const maasModel = maasModels.find((m) => m.id === id);
@@ -118,10 +120,43 @@ export const parseEndpointByPrefix = (
     ?.replace(`${prefix}:`, '')
     .trim();
 
+/**
+ * Checks if a URL points to a Kubernetes cluster-local service.
+ * It properly parses the URL and checks only the hostname to prevent manipulation
+ * via query parameters or path components.
+ *
+ * Examples:
+ *   - "http://service.namespace.svc.cluster.local" -> true
+ *   - "https://service.namespace.svc.cluster.local:8080/path" -> true
+ *   - "https://evil.com/redirect?to=http://internal.svc.cluster.local" -> false
+ *   - "https://api.openai.com" -> false
+ *
+ * If the URL cannot be parsed, it returns false (treats it as external for safety).
+ *
+ * @param rawURL - The URL to check
+ * @param clusterDomains - Additional cluster domain suffixes to treat as internal
+ * @returns true if the URL is cluster-local, false otherwise
+ */
+export const isClusterLocalURL = (rawURL: string, clusterDomains: string[] = []): boolean => {
+  try {
+    const url = new URL(rawURL);
+
+    // Always check .svc.cluster.local as a fallback
+    if (url.hostname.endsWith('.svc.cluster.local')) {
+      return true;
+    }
+
+    // Check configured cluster domains
+    return clusterDomains.some((domain) => domain && url.hostname.endsWith(domain));
+  } catch {
+    // If we can't parse it, treat it as external for safety
+    return false;
+  }
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   namespace: 'Internal',
-  external_cluster: 'Public route',
-  external_provider: 'External',
+  custom_endpoint: 'Custom endpoint',
   maas: 'MaaS',
 };
 
@@ -145,8 +180,7 @@ export const getSourceLabel = (model: AIModel): string => {
 
 const SOURCE_LABEL_COLORS: Record<string, 'blue' | 'green' | 'orange' | 'grey'> = {
   MaaS: 'blue',
-  External: 'green',
-  'Public route': 'orange',
+  'Custom endpoint': 'green',
   Internal: 'grey',
 };
 

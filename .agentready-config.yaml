@@ -1,0 +1,235 @@
+# AgentReady Configuration for ODH Dashboard
+# This file configures how AgentReady assesses the ODH Dashboard monorepo
+
+# Repository metadata
+repository:
+  type: monorepo
+  package_manager: npm
+  workspace_pattern: "packages/*"
+
+# Source code locations (monorepo uses workspace-based structure)
+structure:
+  source_directories:
+    - "frontend/src"
+    - "backend/src"
+    - "packages/*/src"
+    - "packages/*/frontend/src"
+    - "packages/*/bff/src"
+
+  test_directories:
+    - "frontend/__tests__"
+    - "frontend/src/__tests__"
+    - "backend/__tests__"
+    - "backend/src/__tests__"
+    - "packages/*/__tests__"
+    - "packages/*/src/__tests__"
+    - "packages/cypress"
+    - "packages/contract-tests"
+
+  documentation_directories:
+    - "docs"
+    - "packages/*/docs"
+
+# TypeScript configuration (uses project references pattern)
+typescript:
+  # Root tsconfig.json uses project references
+  # Actual strict mode is in workspace-level configs
+  config_locations:
+    - "tsconfig.json"
+    - "frontend/tsconfig.json"
+    - "backend/tsconfig.json"
+    - "packages/*/tsconfig.json"
+
+  # Shared config package
+  shared_config: "packages/tsconfig"
+
+  # Check strict mode in workspace configs, not root
+  strict_mode_location: "workspace"
+
+# Pre-commit hooks configuration
+hooks:
+  # This repository uses Husky for hooks
+  framework: "husky"
+  locations:
+    - ".husky/pre-commit"
+
+  # lint-staged configuration in package.json
+  lint_staged: true
+
+# Testing configuration
+testing:
+  frameworks:
+    - name: "jest"
+      config: "packages/jest-config"
+      coverage: true
+    - name: "cypress"
+      config: "packages/cypress"
+      types: ["e2e", "component"]
+
+  coverage_locations:
+    - "jest-coverage/"
+    - "packages/*/coverage/"
+
+# Build configuration
+build:
+  tool: "turbo"
+  config: "turbo.jsonc"
+
+  # One command setup/build
+  setup_command: "npm install"
+  build_command: "npm run build"
+  test_command: "npm run test"
+
+# Linting configuration
+linting:
+  tools:
+    - name: "eslint"
+      config: ".eslintrc.js"
+      shared_config: "packages/eslint-config"
+    - name: "prettier"
+      config: ".prettierrc"
+
+  # Lint runs on pre-commit via lint-staged
+  pre_commit: true
+
+# Module Federation specific
+module_federation:
+  enabled: true
+  host: "frontend"
+  remotes:
+    - "packages/gen-ai"
+    - "packages/model-registry"
+    - "packages/model-serving"
+    # ... other federated packages
+
+  # Remote configuration in package.json "module-federation" field
+  config_location: "package.json"
+
+# Documentation assessment
+documentation:
+  primary_docs:
+    - "AGENTS.md"  # AI agent guidance (10% weight)
+    - "BOOKMARKS.md"  # Quick reference
+    - "README.md"  # Project overview
+    - "CONTRIBUTING.md"  # Contribution guide
+
+  agent_specific:
+    - "AGENTS.md"
+    - "docs/agent-rules/*.md"
+    - "packages/*/AGENTS.md"
+
+  technical_docs:
+    - "docs/architecture.md"
+    - "docs/module-federation.md"
+    - "docs/testing.md"
+    - "docs/best-practices.md"
+
+# Exclusions from analysis
+exclude:
+  # Build outputs
+  - "dist/"
+  - "build/"
+  - "out/"
+  - "public/"
+  - "public-cypress/"
+
+  # Dependencies
+  - "node_modules/"
+  - "vendor/"
+
+  # Generated files
+  - "*.js.map"
+  - "*.css.map"
+  - "@mf-types/"
+
+  # Test artifacts
+  - "jest-coverage/"
+  - "cypress/videos/"
+  - "cypress/screenshots/"
+  - ".nyc_output/"
+  - "contract-test-results/"
+
+  # Caches
+  - ".cache/"
+  - ".turbo/"
+  - ".agentready/"
+
+  # Temporary
+  - "tmp/"
+  - "logs/"
+
+# Custom assessment rules for monorepo
+custom_rules:
+  # Standard layout: Check for workspace-based src/tests, not root
+  standard_layout:
+    check_workspaces: true
+    require_root_src: false
+
+  # Type annotations: Follow project references
+  type_annotations:
+    follow_references: true
+    check_workspace_configs: true
+
+  # One-command setup: npm install handles all workspaces
+  one_command_setup:
+    command: "npm install"
+    recognizes_workspaces: true
+
+# Scoring weights (if customizable)
+weights:
+  documentation: 0.15  # High weight on good docs
+  testing: 0.15  # High weight on comprehensive tests
+  code_quality: 0.10
+  structure: 0.10
+
+# Integration
+integrations:
+  github_actions: true
+  badge: true
+
+# Reporting
+reporting:
+  formats:
+    - "json"
+    - "markdown"
+    - "html"
+
+  output_directory: ".agentready"
+
+  # Include package-level scores
+  per_package_scores: true
+
+---
+
+# Notes for AgentReady Assessment Tool:
+
+# This is an npm workspaces monorepo with ~25 packages. Key patterns:
+
+# 1. Source Code Organization:
+#    - NOT at root /src or /tests
+#    - Distributed across workspaces: frontend/src/, backend/src/, packages/*/src/
+
+# 2. TypeScript Configuration:
+#    - Root tsconfig.json has "references" array (TypeScript project references)
+#    - Strict mode configured in workspace-level configs
+#    - Shared config in packages/tsconfig
+
+# 3. Pre-commit Hooks:
+#    - Uses Husky (.husky/pre-commit), not .pre-commit-config.yaml
+#    - lint-staged configured in root package.json
+
+# 4. One-Command Setup:
+#    - `npm install` handles all workspace dependencies
+#    - No separate setup script needed (npm workspaces feature)
+
+# 5. Testing:
+#    - Jest for unit tests (shared config in packages/jest-config)
+#    - Cypress for E2E and component tests (packages/cypress)
+#    - Tests co-located with source in __tests__ directories
+
+# 6. Build Orchestration:
+#    - Turbo manages builds across workspaces
+#    - Single `npm run build` builds all packages in dependency order
+
+# These patterns are STANDARD for modern monorepos but may appear as false
+# negatives if assessment tool expects traditional single-package structure.

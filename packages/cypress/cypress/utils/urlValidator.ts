@@ -23,7 +23,40 @@ interface UrlValidationResult {
 const commonUserAgent =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const maxRedirects = 5;
-const requestTimeout = 3000;
+
+// Tiered timeout strategy for different URL types
+const TIMEOUT_TIERS = {
+  INTERNAL: 5000, // Internal Red Hat domains (*.redhat.com, *.openshift.com)
+  NORMAL: 15000, // Most external URLs
+  SLOW: 30000, // Known slow services (catalogs, CDNs, etc.)
+};
+
+// Domains known to have slower response times
+const SLOW_DOMAINS = [
+  'catalog.redhat.com', // Red Hat container catalog - often slow from CI
+  'quay.io', // Container registry - can be slow
+  'registry.redhat.io', // Red Hat registry - can be slow
+];
+
+// Internal/fast domains
+const INTERNAL_DOMAINS = ['.redhat.com', '.openshift.com', 'redhat.com', 'openshift.com'];
+
+// Determine appropriate timeout based on URL
+const getTimeoutForUrl = (url: string): number => {
+  // Check if it's a known slow domain
+  if (SLOW_DOMAINS.some((domain) => url.includes(domain))) {
+    return TIMEOUT_TIERS.SLOW;
+  }
+
+  // Check if it's an internal domain
+  if (INTERNAL_DOMAINS.some((domain) => url.includes(domain))) {
+    return TIMEOUT_TIERS.INTERNAL;
+  }
+
+  // Default to normal timeout
+  return TIMEOUT_TIERS.NORMAL;
+};
+
 const maxRetries = 3;
 const initialRetryDelay = 1000;
 
@@ -80,6 +113,7 @@ const makeRequest = async (
 
   const effectiveOriginalUrl = originalUrl || urlToTest;
   const effectiveProxyUrl = proxyUrlFromTask || process.env.https_proxy || process.env.HTTPS_PROXY;
+  const requestTimeout = getTimeoutForUrl(urlToTest);
   let agent: http.Agent | undefined;
 
   // Setup proxy agent for HTTPS requests if proxy is configured

@@ -158,6 +158,21 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 		return err
 	}
 
+	err = createNamespace(mockK8sClient, ctx, "maas-system")
+	if err != nil {
+		return err
+	}
+
+	err = createNamespace(mockK8sClient, ctx, "maas-models")
+	if err != nil {
+		return err
+	}
+
+	err = createMaaSModelRefs(mockDynamicClient, ctx)
+	if err != nil {
+		return err
+	}
+
 	err = createService(mockK8sClient, ctx, "maas", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "maas")
 	if err != nil {
 		return err
@@ -516,6 +531,49 @@ func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, n
 		_, err = k8sClient.Resource(constants.TokenPolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: tokenLimit}, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create token limit policy: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) error {
+	refs := []map[string]interface{}{
+		{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "granite-3-8b-instruct",
+				"namespace": "maas-models",
+			},
+			"spec": map[string]interface{}{
+				"modelRef": map[string]interface{}{
+					"kind": "LLMInferenceService",
+					"name": "granite-3-8b-instruct",
+				},
+			},
+		},
+		{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "flan-t5-small",
+				"namespace": "maas-models",
+			},
+			"spec": map[string]interface{}{
+				"modelRef": map[string]interface{}{
+					"kind": "LLMInferenceService",
+					"name": "flan-t5-small",
+				},
+			},
+		},
+	}
+
+	for _, ref := range refs {
+		_, err := dynamicClient.Resource(constants.MaaSModelRefGvr).Namespace(ref["metadata"].(map[string]interface{})["namespace"].(string)).Create(
+			ctx, &unstructured.Unstructured{Object: ref}, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create MaaSModelRef: %w", err)
 		}
 	}
 

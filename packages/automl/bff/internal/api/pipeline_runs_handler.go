@@ -129,9 +129,6 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 
 	pagedRuns := allRuns[int(start64):int(end64)]
-	if pagedRuns == nil {
-		pagedRuns = []models.PipelineRun{}
-	}
 
 	runsData := &models.PipelineRunsData{
 		Runs:      pagedRuns,

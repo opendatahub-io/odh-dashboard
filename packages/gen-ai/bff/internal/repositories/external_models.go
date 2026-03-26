@@ -2,10 +2,15 @@ package repositories
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/url"
+	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -30,44 +35,41 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to generate provider ID: %w", err)
 	}
 
-	// Create Secret for API key
-	secretName := fmt.Sprintf("external-model-provider-api-key-%s", providerID)
-	if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
-		return nil, fmt.Errorf("failed to create secret: %w", err)
+	// Create Secret for API key only when a token was provided
+	var secretName string
+	if req.SecretValue != "" {
+		secretName = fmt.Sprintf("endpoint-api-key-%s", providerID)
+		if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
+			return nil, fmt.Errorf("failed to create secret: %w", err)
+		}
 	}
 
 	// Create or update ConfigMap with the new provider and model
 	if err := client.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req); err != nil {
-		// Clean up secret if ConfigMap creation fails
-		if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
-			// Return both the original error and the cleanup error to surface leaked state
-			return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+		// Clean up secret if ConfigMap creation fails (only if one was created)
+		if secretName != "" {
+			if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
+				// Return both the original error and the cleanup error to surface leaked state
+				return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
-	}
-
-	// Determine model source type based on URL
-	sourceType := models.ModelSourceTypeExternalProvider
-	endpoint := fmt.Sprintf("external: %s", req.BaseURL)
-	if helper.IsClusterLocalURL(req.BaseURL) {
-		sourceType = models.ModelSourceTypeExternalCluster
-		endpoint = fmt.Sprintf("internal: %s", req.BaseURL)
 	}
 
 	// Return AAModel structure for consistent API response
 	return &models.AAModel{
 		ModelName:       req.ModelID,
 		ModelID:         req.ModelID,
-		ServingRuntime:  string(req.ProviderType),
+		ServingRuntime:  string(models.ProviderTypeOpenAI),
 		APIProtocol:     "REST",
 		Version:         "",
 		Usecase:         req.UseCases,
 		Description:     "",
-		Endpoints:       []string{endpoint},
-		Status:          "Running",
+		Endpoints:       []string{req.BaseURL},
+		Status:          models.ModelStatusUnknown,
 		DisplayName:     req.ModelDisplayName,
 		SAToken:         models.SAToken{},
-		ModelSourceType: sourceType,
+		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
 	}, nil
 }
@@ -81,4 +83,66 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	modelID string,
 ) error {
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
+}
+
+// isInternalHost reports whether a URL targets a host that is known to be internal
+// (localhost or a Kubernetes in-cluster service). These legitimately resolve to private
+// IPs, so SSRF validation is skipped for them. All other URLs are subject to SSRF checks.
+func isInternalHost(baseURL string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
+	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
+	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
+	ip := net.ParseIP(h)
+	return h == "localhost" ||
+		(ip != nil && ip.IsLoopback()) ||
+		isK8sService
+}
+
+// internalHostRootCAs returns the provided CA pool only when the URL targets an internal
+// host. For external hosts it returns nil so the client falls back to the system CA pool,
+// which contains the public root CAs needed to verify certificates from services like
+// api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
+func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool {
+	if isInternalHost(baseURL) {
+		return rootCAs
+	}
+	return nil
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client.
+// rootCAs is the application CA pool (nil falls back to system pool for external hosts).
+// insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
+func (r *ExternalModelsRepository) VerifyExternalModel(
+	logger *slog.Logger,
+	ctx context.Context,
+	req models.VerifyExternalModelRequest,
+	rootCAs *x509.CertPool,
+	insecureSkipVerify bool,
+) (*models.VerifyExternalModelResponse, error) {
+	client, err := externalmodels.NewExternalModelsClient(
+		logger,
+		req.BaseURL,
+		req.SecretValue,
+		req.ModelType,
+		&externalmodels.ClientOptions{
+			AllowHTTP:          isInternalHost(req.BaseURL),
+			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			// Only supply the cluster CA pool for internal hosts; external hosts
+			// must use the system CA pool to verify public certificates.
+			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL),
+			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the model using the client (pass embedding dimension for embedding models)
+	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }

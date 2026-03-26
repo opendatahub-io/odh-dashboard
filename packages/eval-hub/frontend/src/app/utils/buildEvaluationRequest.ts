@@ -8,11 +8,13 @@ type BuildEvaluationRequestParams = {
   collection: Collection | undefined;
   modelName: string;
   endpointUrl: string;
-  apiKey: string;
+  apiKeySecretRef: string;
   sourceName: string;
   datasetUrl: string;
   accessToken: string;
   additionalArgs: Record<string, unknown>;
+  experimentName?: string;
+  experimentTags?: { key: string; value: string }[];
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
@@ -25,11 +27,13 @@ const buildEvaluationRequest = ({
   collection,
   modelName,
   endpointUrl,
-  apiKey,
+  apiKeySecretRef,
   sourceName,
   datasetUrl,
   accessToken,
   additionalArgs,
+  experimentName,
+  experimentTags,
 }: BuildEvaluationRequestParams): CreateEvaluationJobRequest => {
   const topLevelOverrides: Record<string, unknown> = {};
   const benchmarkParams: Record<string, unknown> = {};
@@ -58,10 +62,10 @@ const buildEvaluationRequest = ({
         }
       : {};
 
-  const benchmarks: CreateEvaluationJobRequest['benchmarks'] = [];
+  const benchmarkEntries: NonNullable<CreateEvaluationJobRequest['benchmarks']> = [];
 
   if (benchmark) {
-    benchmarks.push({
+    benchmarkEntries.push({
       id: benchmark.id,
       // eslint-disable-next-line camelcase
       provider_id: benchmark.providerId,
@@ -72,27 +76,31 @@ const buildEvaluationRequest = ({
       ...(hasParams ? { parameters: benchmarkParams } : {}),
       ...prerecordedDataRef,
     });
-  } else if (collection?.benchmarks) {
-    collection.benchmarks.forEach((b) => {
-      const merged = hasParams ? { ...b.parameters, ...benchmarkParams } : b.parameters;
-      benchmarks.push({
-        id: b.id,
-        // eslint-disable-next-line camelcase
-        provider_id: b.provider_id,
-        weight: b.weight,
-        // eslint-disable-next-line camelcase
-        primary_score: b.primary_score,
-        // eslint-disable-next-line camelcase
-        pass_criteria: b.pass_criteria,
-        ...(merged && Object.keys(merged).length > 0 ? { parameters: merged } : {}),
-        ...prerecordedDataRef,
-      });
-    });
   }
 
   const resolvedModelName = inputMode === 'inference' ? modelName.trim() : sourceName.trim();
   const resolvedUrl = inputMode === 'inference' ? endpointUrl.trim() : '';
-  const resolvedAuth = inputMode === 'inference' ? apiKey.trim() : '';
+  const resolvedAuth = inputMode === 'inference' ? apiKeySecretRef.trim() : '';
+
+  const rawExperiment = topLevelOverrides.experiment;
+  const experimentOverride: Record<string, unknown> | undefined =
+    typeof rawExperiment === 'object' && rawExperiment !== null
+      ? Object.fromEntries(Object.entries(rawExperiment))
+      : undefined;
+
+  const experiment = experimentName
+    ? {
+        ...experimentOverride,
+        name: experimentName,
+        ...(experimentTags ? { tags: experimentTags } : {}),
+      }
+    : experimentOverride;
+
+  const restOverrides = Object.fromEntries(
+    Object.entries(topLevelOverrides).filter(([key]) => key !== 'experiment'),
+  );
+
+  const isCollectionFlow = !!collection;
 
   return {
     name: evaluationName.trim(),
@@ -103,9 +111,11 @@ const buildEvaluationRequest = ({
       // eslint-disable-next-line camelcase
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
     },
-    benchmarks,
-    ...(collection ? { collection: { id: collection.resource.id } } : {}),
-    ...topLevelOverrides,
+    ...(isCollectionFlow
+      ? { collection: { id: collection.resource.id } }
+      : { benchmarks: benchmarkEntries }),
+    ...restOverrides,
+    ...(experiment ? { experiment } : {}),
   };
 };
 

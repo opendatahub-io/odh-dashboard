@@ -383,9 +383,9 @@ paths:
   /gen-ai/api/v1/models/external:
     summary: Manage external model endpoints
     description: >-
-      Register and manage external model endpoints (e.g., Gemini, OpenAI, Anthropic, or in-cluster models) for use in Gen AI Studio.
+      Register and manage OpenAI-compatible external model endpoints for use in Gen AI Studio.
       Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
-      Supports both external providers (data sent outside cluster) and in-cluster cross-namespace models.
+      Supports custom endpoints, including public external APIs and cluster-local URLs.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
@@ -408,12 +408,11 @@ paths:
             schema:
               $ref: '#/components/schemas/ExternalModelRequest'
             example:
-              model_id: 'gemini-2.5-flash-lite'
-              model_display_name: 'Gemini 2.5 Flash Lite'
-              base_url: 'https://generativelanguage.googleapis.com/v1beta/openai/'
-              secret_value: 'your-api-key-here'
-              provider_type: 'remote::gemini'
-              use_cases: 'Classification, Image Generation'
+              model_id: 'gpt-4o'
+              model_display_name: 'GPT-4 Optimized'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-your-api-key-here'
+              use_cases: 'Classification, Text Generation'
               model_type: 'llm'
       responses:
         '201':
@@ -448,7 +447,7 @@ paths:
           required: true
           schema:
             type: string
-            example: 'gemini-2.5-flash-lite'
+            example: 'gpt-4o'
         - name: namespace
           in: query
           description: Kubernetes namespace where the external model is registered
@@ -478,6 +477,100 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: deleteExternalModel
+
+  /gen-ai/api/v1/models/external/verify:
+    summary: Verify external model endpoint
+    description: >-
+      Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
+      Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      This is a stateless operation that does not create any resources.
+    post:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      requestBody:
+        required: true
+        description: External model verification request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyExternalModelRequest'
+            example:
+              model_id: 'gpt-4o'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-test-key'
+              model_type: 'llm'
+      responses:
+        '200':
+          description: External model verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyExternalModelResponse'
+              example:
+                data:
+                  success: true
+                  message: 'External model verified successfully'
+                  response_time_ms: 523
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials - API key is incorrect or unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'UNAUTHORIZED'
+                      message:
+                        type: string
+                        example: 'API key is invalid or unauthorized'
+        '408':
+          description: Request timeout - endpoint did not respond in time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'TIMEOUT'
+                      message:
+                        type: string
+                        example: 'Request timed out connecting to external model'
+        '503':
+          description: Connection failed - could not reach the endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'CONNECTION_FAILED'
+                      message:
+                        type: string
+                        example: 'Request to https://api.example.com/v1/chat/completions returned HTTP 404. The endpoint may not exist or the base URL may be incorrect.'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: verifyExternalModel
+      summary: Verify External Model
+      description: Tests external model endpoint connectivity, authentication, and OpenAI compatibility.
 
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS
@@ -1996,38 +2089,27 @@ components:
         - model_id
         - model_display_name
         - base_url
-        - secret_value
-        - provider_type
         - model_type
       properties:
         model_id:
           type: string
-          example: 'gemini-2.5-flash-lite'
-          description: Unique identifier for the model
+          example: 'gpt-4o'
+          description: Unique identifier for the model from the OpenAI-compatible provider
         model_display_name:
           type: string
-          example: 'Gemini 2.5 Flash Lite'
+          example: 'GPT-4 Optimized'
           description: Human-readable display name for the model
         base_url:
           type: string
-          example: 'https://generativelanguage.googleapis.com/v1beta/openai/'
-          description: Base URL of the model endpoint
+          example: 'https://api.openai.com/v1'
+          description: Base URL of the OpenAI-compatible model endpoint
         secret_value:
           type: string
-          example: 'your-api-key-here'
+          example: 'sk-your-api-key-here'
           description: API key or authentication token for the model endpoint
-        provider_type:
-          type: string
-          enum:
-            - 'remote::gemini'
-            - 'remote::openai'
-            - 'remote::anthropic'
-            - 'remote::vllm'
-          example: 'remote::gemini'
-          description: Provider type for the external model
         use_cases:
           type: string
-          example: 'Classification, Image Generation'
+          example: 'Classification, Text Generation'
           description: Optional use cases or capabilities of the model
         model_type:
           type: string
@@ -2036,6 +2118,89 @@ components:
             - 'embedding'
           example: 'llm'
           description: Type of model (LLM or embedding)
+        embedding_dimension:
+          type: integer
+          example: 1536
+          description: Output vector size for embedding models (required for embedding models)
+
+    # Verify External Model Request Schema
+    # Uses oneOf to enforce conditional requirements based on model_type
+    VerifyExternalModelRequest:
+      oneOf:
+        # LLM model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - model_type
+          properties:
+            model_id:
+              type: string
+              example: 'gpt-4o'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'llm'
+              description: Type of model to verify (LLM models use /chat/completions endpoint)
+        # Embedding model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - model_type
+            - embedding_dimension
+          properties:
+            model_id:
+              type: string
+              example: 'text-embedding-3-small'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'embedding'
+              description: Type of model to verify (embedding models use /embeddings endpoint)
+            embedding_dimension:
+              type: integer
+              minimum: 1
+              example: 1536
+              description: Output vector size for embedding models (must be positive integer)
+
+    # Verify External Model Response Schema
+    VerifyExternalModelResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+          description: Whether verification succeeded
+        message:
+          type: string
+          example: 'External model verified successfully'
+          description: Human-readable verification result message
+        response_time_ms:
+          type: integer
+          example: 523
+          description: Time taken for verification request in milliseconds
 
     # AI Assets Model Schema
     AAModel:
@@ -2074,14 +2239,14 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
+            - maas
           example: 'namespace'
           description: >-
             Source type of the model:
             'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
-            'external_cluster' for external models pointing inside cluster (cross-namespace with .svc.cluster.local URLs),
-            'external_provider' for external models pointing to providers (outside cluster)
+            'custom_endpoint' for external model endpoints (user-provided URL),
+            'maas' for Models as a Service
         model_type:
           type: string
           enum:
@@ -2726,6 +2891,14 @@ components:
 
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          example: 'custom_endpoint'
+          description: Source type of the model. Required when using custom_endpoint models.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -3309,6 +3482,29 @@ components:
             Output shields include content-moderation and pii.
           example: true
           default: false
+        vector_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstallVectorStore'
+          description: |
+            Optional list of external vector stores to register with the LSD installation.
+            Each entry references a vector store defined in the gen-ai-aa-vector-stores ConfigMap
+            by its ID. The BFF resolves provider configuration and credentials from the ConfigMap
+            and injects them into the LSD spec.
+          example:
+            - vector_store_id: 'vs_bff00001-0000-0000-0000-000000000001'
+
+    InstallVectorStore:
+      type: object
+      required:
+        - vector_store_id
+      properties:
+        vector_store_id:
+          type: string
+          description: |
+            ID of the vector store to register, as defined in the registered_resources.vector_stores
+            section of the gen-ai-aa-vector-stores ConfigMap.
+          example: 'vs_bff00001-0000-0000-0000-000000000001'
 
     InstallModel:
       type: object
@@ -3327,24 +3523,52 @@ components:
           type: string
           enum:
             - namespace
-            - external_cluster
-            - external_provider
+            - custom_endpoint
             - maas
           description: |
             Source type of the model (required):
             - namespace: Model deployed in the same Kubernetes namespace
-            - external_cluster: Model deployed in a different namespace or cluster
-            - external_provider: Model from external AI provider (OpenAI, Anthropic, etc.)
+            - custom_endpoint: External model endpoint (user-provided URL)
             - maas: Model from Model as a Service (MaaS) platform
           example: 'namespace'
+        model_type:
+          type: string
+          enum:
+            - llm
+            - embedding
+          default: 'llm'
+          description: |
+            Optional type of the model. Defaults to llm if not specified.
+            - llm: Inference / language model
+            - embedding: Embedding model
+          example: 'llm'
         max_tokens:
           type: integer
           description: |
             Optional maximum token limit for this model's context window.
             Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
+            Only applicable when model_type is llm.
           minimum: 128
           maximum: 128000
           example: 8192
+        embedding_dimension:
+          type: integer
+          default: 128
+          description: |
+            Optional embedding vector size for this model.
+            Must be between 128 and 3,072,000. If not specified, the server applies a default of 128.
+            Only applicable when model_type is embedding.
+          minimum: 128
+          maximum: 3072000
+          example: 1536
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, LlamaStack will disable TLS verification for this provider since cluster
+            services typically use self-signed certificates. Only relevant when model_source_type
+            is custom_endpoint.
 
     LlamaStackDistributionInstallModel:
       type: object
@@ -3781,61 +4005,42 @@ components:
     ExternalVectorStoreSummary:
       type: object
       required:
-        - name
+        - vector_store_id
+        - vector_store_name
+        - provider_id
         - provider_type
-        - collection
-        - embedding
-        - embedding_model_available
+        - embedding_model
+        - embedding_dimension
       properties:
-        name:
+        vector_store_id:
           type: string
-          example: 'pgvector-store'
-          description: Vector store name from ConfigMap
-        displayName:
+          example: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+          description: Unique identifier of the vector store collection
+        vector_store_name:
           type: string
-          example: 'Product Embeddings (PGVector)'
-          description: Human-readable display name
+          example: 'Product Docs RAG Store'
+          description: Human-readable name of the vector store
+        provider_id:
+          type: string
+          example: 'pgvector-provider-1'
+          description: Provider ID from the providers section of the ConfigMap
         provider_type:
           type: string
           example: 'remote::pgvector'
-          description: Vector store provider type (e.g., remote::pgvector, remote::qdrant, remote::milvus)
-        collection:
-          type: string
-          example: 'product_embeddings'
-          description: Name of the collection/table in the vector database
-        description:
-          type: string
-          example: 'Product catalog embeddings for semantic search'
-          description: Description of the vector store purpose
-        owner:
-          type: string
-          example: 'platform-team'
-          description: Team or user that owns this vector store
-        domain:
-          type: string
-          example: 'e-commerce'
-          description: Business domain this vector store serves
-        embedding:
-          $ref: '#/components/schemas/EmbeddingConfig'
-        embedding_model_available:
-          type: boolean
-          example: true
-          description: Whether the embedding model is registered in the LlamaStack config
-
-    EmbeddingConfig:
-      type: object
-      required:
-        - model_id
-        - dimension
-      properties:
-        model_id:
+          description: Vector store provider type resolved from the providers section (e.g., remote::pgvector, remote::qdrant, remote::milvus)
+        embedding_model:
           type: string
           example: 'ibm-granite/granite-embedding-125m-english'
           description: Embedding model identifier used for ingestion
-        dimension:
+        embedding_dimension:
           type: integer
           example: 768
           description: Embedding vector dimension
+        description:
+          type: string
+          example: 'Vector store for product documentation'
+          description: Description of the vector store purpose
+
 
     ExternalVectorStoresListData:
       type: object
@@ -3983,19 +4188,19 @@ components:
                 $ref: '#/components/schemas/AAModel'
           example:
             data:
-              model_name: 'gemini-2.5-flash-lite'
-              model_id: 'gemini-2.5-flash-lite'
-              serving_runtime: 'remote::gemini'
+              model_name: 'gpt-4o'
+              model_id: 'gpt-4o'
+              serving_runtime: 'remote::openai'
               api_protocol: 'REST'
               version: ''
-              model_source_type: 'external_provider'
+              model_source_type: 'custom_endpoint'
               model_type: 'llm'
-              usecase: 'Classification, Image Generation'
+              usecase: 'Classification, Text Generation'
               description: ''
               endpoints:
-                - 'https://generativelanguage.googleapis.com/v1beta/openai/'
+                - 'https://api.openai.com/v1'
               status: 'Running'
-              display_name: 'Gemini 2.5 Flash Lite'
+              display_name: 'GPT-4 Optimized'
               sa_token:
                 name: ''
                 token_name: ''
@@ -4016,17 +4221,13 @@ components:
                   $ref: '#/components/schemas/ExternalVectorStoreSummary'
           example:
             data:
-              - name: 'pgvector-store'
-                displayName: 'Product Embeddings (PGVector)'
+              - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                vector_store_name: 'Product Docs RAG Store'
+                provider_id: 'pgvector-provider-1'
                 provider_type: 'remote::pgvector'
-                collection: 'product_embeddings'
-                description: 'Product catalog embeddings for semantic search'
-                owner: 'platform-team'
-                domain: 'e-commerce'
-                embedding:
-                  model_id: 'ibm-granite/granite-embedding-125m-english'
-                  dimension: 768
-                embedding_model_available: true
+                embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                embedding_dimension: 768
+                description: 'Vector store for product documentation'
 
     ExternalVectorStoresListResponse:
       description: List of external vector stores with ConfigMap metadata
@@ -4045,17 +4246,13 @@ components:
               value:
                 data:
                   vector_stores:
-                    - name: 'pgvector-store'
-                      displayName: 'Product Embeddings (PGVector)'
+                    - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                      vector_store_name: 'Product Docs RAG Store'
+                      provider_id: 'pgvector-provider-1'
                       provider_type: 'remote::pgvector'
-                      collection: 'product_embeddings'
-                      description: 'Product catalog embeddings for semantic search'
-                      owner: 'platform-team'
-                      domain: 'e-commerce'
-                      embedding:
-                        model_id: 'ibm-granite/granite-embedding-125m-english'
-                        dimension: 768
-                      embedding_model_available: true
+                      embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                      embedding_dimension: 768
+                      description: 'Vector store for product documentation'
                   total_count: 1
                   config_map_info:
                     name: 'gen-ai-aa-vector-stores'

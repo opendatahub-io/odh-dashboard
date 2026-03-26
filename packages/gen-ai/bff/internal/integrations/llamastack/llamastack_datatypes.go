@@ -32,18 +32,6 @@ type ModelList struct {
 	Data []Model `json:"data"`
 }
 
-type VectorDB struct {
-	EmbeddingDimension int64  `json:"embedding_dimension"`
-	EmbeddingModel     string `json:"embedding_model"`
-	Identifier         string `json:"identifier"`
-	ProviderID         string `json:"provider_id"`
-	ProviderResourceID string `json:"provider_resource_id"`
-}
-
-type VectorDBList struct {
-	Data []VectorDB `json:"data"`
-}
-
 // TODO: This is designed to only hold text content for now.
 // We can add support for other document types based on go client APIs.
 type Document struct {
@@ -53,23 +41,6 @@ type Document struct {
 
 	// suggest to use only "string" for now.
 	MimeType *string `json:"mime_type,omitempty"`
-}
-
-// DocumentInsertRequest represents the request body for inserting documents
-// Based on Llama Stack API specification for /v1/tool-runtime/rag-tool/insert
-type DocumentInsertRequest struct {
-	Documents         []Document `json:"documents"`
-	VectorDBID        string     `json:"vector_db_id"`
-	ChunkSizeInTokens *int       `json:"chunk_size_in_tokens,omitempty"`
-}
-
-// QueryEmbeddingModelRequest represents the request body for querying an embedding model
-type QueryEmbeddingModelRequest struct {
-	// A image content item
-	Content     string   `json:"content"`
-	VectorDBIDs []string `json:"vector_db_ids"`
-	// Configuration for the RAG query generation.
-	QueryConfig QueryConfigParam `json:"query_config"`
 }
 
 type QueryConfigParam struct {

@@ -28,9 +28,11 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock LlamaStack client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
+
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "autorag"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: autorag)")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -59,10 +61,29 @@ func main() {
 
 	flag.Parse()
 
-	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
-	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockPipelineServerClient || cfg.MockLSClient) && cfg.AuthMethod == "user_token" {
-		cfg.AuthMethod = config.AuthMethodDisabled
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
+
+	// Warn operators when DevMode + ALLOW_UNRESOLVED_S3_ENDPOINTS weakens SSRF protections
+	if cfg.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
+			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
+			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
+
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
+	if cfg.MockS3Client && !cfg.MockK8Client {
+		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+		os.Exit(1)
 	}
 
 	// Handle backward compatibility: if old flags are used, override deployment mode
@@ -75,10 +96,6 @@ func main() {
 	// Ensure the deprecated boolean fields are consistent with the new deployment mode
 	cfg.StandaloneMode = cfg.DeploymentMode.IsStandaloneMode()
 	cfg.FederatedPlatform = cfg.DeploymentMode.IsFederatedMode()
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.LogLevel,
-	}))
 
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {

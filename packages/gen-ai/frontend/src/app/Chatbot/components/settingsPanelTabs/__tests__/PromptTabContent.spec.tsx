@@ -4,15 +4,20 @@ import userEvent from '@testing-library/user-event';
 import PromptTabContent from '~/app/Chatbot/components/settingsPanelTabs/PromptTabContent';
 
 let mockPromptManagementEnabled = false;
-const mockSetIsPromptManagementModalOpen = jest.fn();
+const mockOpenModal = jest.fn();
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [mockPromptManagementEnabled]),
 }));
 
+jest.mock('~/app/components/SafeNavigationBlocker', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
-    setIsPromptManagementModalOpen: mockSetIsPromptManagementModalOpen,
+    openModal: mockOpenModal,
   })),
 }));
 
@@ -106,7 +111,7 @@ describe('PromptTabContent', () => {
       expect(screen.getByRole('button', { name: /load prompt/i })).toBeInTheDocument();
     });
 
-    it('calls setIsPromptManagementModalOpen when Load Prompt button is clicked', async () => {
+    it('calls openModal when Load Prompt button is clicked', async () => {
       mockPromptManagementEnabled = true;
       const user = userEvent.setup();
       render(<PromptTabContent {...defaultProps} />);
@@ -114,7 +119,7 @@ describe('PromptTabContent', () => {
       const loadPromptButton = screen.getByRole('button', { name: /load prompt/i });
       await user.click(loadPromptButton);
 
-      expect(mockSetIsPromptManagementModalOpen).toHaveBeenCalledWith(true);
+      expect(mockOpenModal).toHaveBeenCalledWith('allPrompts');
     });
   });
 });

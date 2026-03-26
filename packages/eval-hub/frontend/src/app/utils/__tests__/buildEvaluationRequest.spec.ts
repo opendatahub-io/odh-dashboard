@@ -10,7 +10,7 @@ const baseParams = {
   collection: undefined as Collection | undefined,
   modelName: 'llama-7b',
   endpointUrl: 'http://localhost:8080/v1',
-  apiKey: '',
+  apiKeySecretRef: '',
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
@@ -88,16 +88,16 @@ describe('buildEvaluationRequest', () => {
       });
     });
 
-    it('should include auth when apiKey is provided', () => {
+    it('should include auth when apiKeySecretRef is provided', () => {
       const result = buildEvaluationRequest({
         ...baseParams,
-        apiKey: 'my-secret',
+        apiKeySecretRef: 'my-model-credentials',
         benchmark: makeBenchmark(),
       });
-      expect(result.model.auth).toEqual({ secret_ref: 'my-secret' });
+      expect(result.model.auth).toEqual({ secret_ref: 'my-model-credentials' });
     });
 
-    it('should omit auth when apiKey is empty', () => {
+    it('should omit auth when apiKeySecretRef is empty', () => {
       const result = buildEvaluationRequest({
         ...baseParams,
         benchmark: makeBenchmark(),
@@ -110,7 +110,7 @@ describe('buildEvaluationRequest', () => {
         ...baseParams,
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks[0]).not.toHaveProperty('test_data_ref');
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
     });
   });
 
@@ -132,10 +132,10 @@ describe('buildEvaluationRequest', () => {
       expect(result.model.url).toBe('');
     });
 
-    it('should not include model.auth even if apiKey is set', () => {
+    it('should not include model.auth even if apiKeySecretRef is set', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
-        apiKey: 'should-be-ignored',
+        apiKeySecretRef: 'should-be-ignored',
         benchmark: makeBenchmark(),
       });
       expect(result.model).not.toHaveProperty('auth');
@@ -146,7 +146,7 @@ describe('buildEvaluationRequest', () => {
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks[0].test_data_ref).toEqual({
+      expect(result.benchmarks![0].test_data_ref).toEqual({
         s3: {
           key: 's3://bucket/data.jsonl',
           secret_ref: 'tok-123',
@@ -160,7 +160,7 @@ describe('buildEvaluationRequest', () => {
         accessToken: '',
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks[0].test_data_ref).toEqual({
+      expect(result.benchmarks![0].test_data_ref).toEqual({
         s3: { key: 's3://bucket/data.jsonl' },
       });
     });
@@ -171,7 +171,7 @@ describe('buildEvaluationRequest', () => {
         datasetUrl: '   ',
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks[0]).not.toHaveProperty('test_data_ref');
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
     });
   });
 
@@ -181,7 +181,7 @@ describe('buildEvaluationRequest', () => {
       const result = buildEvaluationRequest({ ...baseParams, benchmark: bm });
 
       expect(result.benchmarks).toHaveLength(1);
-      expect(result.benchmarks[0]).toEqual({
+      expect(result.benchmarks![0]).toEqual({
         id: 'arc_easy',
         provider_id: 'lm_harness',
         primary_score: { metric: 'accuracy', lower_is_better: false },
@@ -199,24 +199,12 @@ describe('buildEvaluationRequest', () => {
   });
 
   describe('collection flow', () => {
-    it('should build benchmark entries from collection.benchmarks', () => {
+    it('should include collection.id and omit top-level benchmarks when collection is provided', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.benchmarks).toHaveLength(2);
-      expect(result.benchmarks[0]).toEqual(
-        expect.objectContaining({ id: 'mmlu', provider_id: 'lm_harness', weight: 0.6 }),
-      );
-      expect(result.benchmarks[1]).toEqual(
-        expect.objectContaining({ id: 'hellaswag', provider_id: 'lm_harness', weight: 0.4 }),
-      );
-    });
-
-    it('should preserve existing parameters on collection benchmarks', () => {
-      const col = makeCollection();
-      const result = buildEvaluationRequest({ ...baseParams, collection: col });
-
-      expect(result.benchmarks[0].parameters).toEqual({ num_few_shot: 5 });
+      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result).not.toHaveProperty('benchmarks');
     });
 
     it('should include collection.id in the request', () => {
@@ -226,27 +214,11 @@ describe('buildEvaluationRequest', () => {
       expect(result.collection).toEqual({ id: 'col-1' });
     });
 
-    it('should not include parameters when collection benchmark has none', () => {
+    it('should not include top-level benchmarks when using a collection', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.benchmarks[1]).not.toHaveProperty('parameters');
-    });
-
-    it('should add test_data_ref to all collection benchmarks in prerecorded mode', () => {
-      const col = makeCollection();
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        inputMode: 'prerecorded',
-        sourceName: 'src',
-        datasetUrl: 's3://bucket/data',
-        accessToken: '',
-        collection: col,
-      });
-
-      result.benchmarks.forEach((b) => {
-        expect(b.test_data_ref).toEqual({ s3: { key: 's3://bucket/data' } });
-      });
+      expect(result).not.toHaveProperty('benchmarks');
     });
   });
 
@@ -258,7 +230,7 @@ describe('buildEvaluationRequest', () => {
         additionalArgs: { num_examples: 10, limit: 5, tokenizer: 'google/flan-t5-small' },
       });
 
-      expect(result.benchmarks[0].parameters).toEqual({
+      expect(result.benchmarks![0].parameters).toEqual({
         num_examples: 10,
         limit: 5,
         tokenizer: 'google/flan-t5-small',
@@ -289,7 +261,7 @@ describe('buildEvaluationRequest', () => {
         },
       });
 
-      expect(result.benchmarks[0].parameters).toEqual({
+      expect(result.benchmarks![0].parameters).toEqual({
         num_examples: 10,
         tokenizer: 'gpt2',
       });
@@ -297,16 +269,18 @@ describe('buildEvaluationRequest', () => {
       expect(result).toHaveProperty('pass_criteria', { threshold: 0.8 });
     });
 
-    it('should merge additional params with existing collection benchmark parameters', () => {
+    it('should still apply top-level keys from additionalArgs when using a collection', () => {
       const col = makeCollection();
+      const experiment = { name: 'col-exp' };
       const result = buildEvaluationRequest({
         ...baseParams,
         collection: col,
-        additionalArgs: { limit: 5 },
+        additionalArgs: { limit: 5, experiment },
       });
 
-      expect(result.benchmarks[0].parameters).toEqual({ num_few_shot: 5, limit: 5 });
-      expect(result.benchmarks[1].parameters).toEqual({ limit: 5 });
+      expect(result).not.toHaveProperty('benchmarks');
+      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result).toHaveProperty('experiment', experiment);
     });
 
     it('should not add parameters when additionalArgs is empty', () => {
@@ -316,7 +290,143 @@ describe('buildEvaluationRequest', () => {
         additionalArgs: {},
       });
 
-      expect(result.benchmarks[0]).not.toHaveProperty('parameters');
+      expect(result.benchmarks![0]).not.toHaveProperty('parameters');
+    });
+  });
+
+  describe('experimentName parameter', () => {
+    it('should set experiment.name when experimentName is provided', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-experiment',
+      });
+
+      expect(result.experiment).toEqual({ name: 'my-experiment' });
+    });
+
+    it('should omit experiment when experimentName is undefined', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should use experimentName for name but preserve tags from additionalArgs', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'from-selector',
+        additionalArgs: { experiment: { name: 'from-args', tags: [{ key: 'k', value: 'v' }] } },
+      });
+
+      expect(result.experiment).toEqual({
+        name: 'from-selector',
+        tags: [{ key: 'k', value: 'v' }],
+      });
+    });
+
+    it('should merge artifact_location from additionalArgs when experimentName is provided', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-exp',
+        additionalArgs: {
+          experiment: { name: 'ignored', artifact_location: 's3://bucket/artifacts' },
+        },
+      });
+
+      expect(result.experiment).toEqual({
+        name: 'my-exp',
+        artifact_location: 's3://bucket/artifacts',
+      });
+    });
+
+    it('should fall back to experiment from additionalArgs when experimentName is not provided', () => {
+      const experiment = { name: 'from-args', tags: [{ key: 'env', value: 'test' }] };
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        additionalArgs: { experiment },
+      });
+
+      expect(result.experiment).toEqual(experiment);
+    });
+
+    it('should work with collection flow', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        experimentName: 'col-experiment',
+      });
+
+      expect(result.experiment).toEqual({ name: 'col-experiment' });
+      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result).not.toHaveProperty('benchmarks');
+    });
+
+    it('should treat empty string experimentName as no experiment', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: '',
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should ignore non-object experiment in additionalArgs', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        additionalArgs: { experiment: 'not-an-object' },
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should include experimentTags when provided with experimentName', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'EvalHub',
+        experimentTags: [{ key: 'context', value: 'eval-hub' }],
+      });
+
+      expect(result.experiment).toEqual({
+        name: 'EvalHub',
+        tags: [{ key: 'context', value: 'eval-hub' }],
+      });
+    });
+
+    it('should omit experimentTags when experimentName is not provided', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentTags: [{ key: 'context', value: 'eval-hub' }],
+      });
+
+      expect(result).not.toHaveProperty('experiment');
+    });
+
+    it('should not interfere with other top-level overrides when experimentName is set', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        experimentName: 'my-exp',
+        additionalArgs: {
+          custom: { foo: 'bar' },
+          tags: ['perf-test'],
+          experiment: { name: 'ignored' },
+        },
+      });
+
+      expect(result.experiment).toEqual({ name: 'my-exp' });
+      expect(result).toHaveProperty('custom', { foo: 'bar' });
+      expect(result).toHaveProperty('tags', ['perf-test']);
     });
   });
 
@@ -333,15 +443,15 @@ describe('buildEvaluationRequest', () => {
         collection: makeCollection(),
       });
 
-      expect(result.benchmarks).toHaveLength(1);
-      expect(result.benchmarks[0].id).toBe('arc_easy');
+      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result).not.toHaveProperty('benchmarks');
     });
 
     it('should handle collection with no benchmarks array', () => {
       const col = makeCollection({ benchmarks: undefined });
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.benchmarks).toEqual([]);
+      expect(result).not.toHaveProperty('benchmarks');
       expect(result.collection).toEqual({ id: 'col-1' });
     });
   });

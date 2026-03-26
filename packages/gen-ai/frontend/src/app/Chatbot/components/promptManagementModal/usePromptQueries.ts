@@ -1,6 +1,11 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { MLflowPrompt, MLflowPromptsResponse, MLflowPromptVersion } from '~/app/types';
+import {
+  MLflowPrompt,
+  MLflowPromptsResponse,
+  MLflowPromptVersion,
+  MLflowRegisterPromptRequest,
+} from '~/app/types';
 
 type UsePromptsListOptions = {
   maxResults?: number;
@@ -92,6 +97,71 @@ export function usePromptVersions(promptName: string | null): UsePromptVersionsR
   return {
     versions: data ?? [],
     isLoading,
+    error: error ?? null,
+  };
+}
+
+type UseLatestPromptVersionResult = {
+  latestVersion: number | null;
+  isLoading: boolean;
+  error: Error | null;
+};
+
+export function useLatestPromptVersion(promptName: string | null): UseLatestPromptVersionResult {
+  const { api, apiAvailable } = useGenAiAPI();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['prompts', promptName, 'latest'],
+    queryFn: () => api.getMLflowPrompt({ name: promptName! }),
+    enabled: !!promptName && apiAvailable,
+    staleTime: 0,
+  });
+
+  return {
+    latestVersion: data?.version ?? null,
+    isLoading,
+    error: error ?? null,
+  };
+}
+
+type UseCreatePromptOptions = {
+  onSuccess?: (data: MLflowPromptVersion) => void;
+  onError?: (error: Error) => void;
+};
+
+type UseCreatePromptResult = {
+  createPrompt: (request: MLflowRegisterPromptRequest) => void;
+  isCreating: boolean;
+  error: Error | null;
+};
+
+export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreatePromptResult {
+  const { api, apiAvailable } = useGenAiAPI();
+  const queryClient = useQueryClient();
+  const { onSuccess, onError } = options;
+
+  const { mutate, isPending, error } = useMutation<
+    MLflowPromptVersion,
+    Error,
+    MLflowRegisterPromptRequest
+  >({
+    mutationFn: async (request) => {
+      if (!apiAvailable) {
+        throw new Error('API is not available');
+      }
+      return api.registerMLflowPrompt(request);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['prompts', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['prompts', data.name, 'versions'] });
+      onSuccess?.(data);
+    },
+    onError,
+  });
+
+  return {
+    createPrompt: mutate,
+    isCreating: isPending,
     error: error ?? null,
   };
 }

@@ -83,6 +83,20 @@ dev-frontend-federated:
 dev-bff-federated:
 	cd bff && EVAL_HUB_URL=${EVAL_HUB_URL} make run PORT=4002 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
+############ E2E Test Targets ############
+# These targets are used by the GitHub Actions e2e workflow to start BFFs
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+
+E2E_BFF_PORT ?= 4002
+
+.PHONY: dev-bff-e2e-mock
+dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+
+.PHONY: dev-bff-e2e-cluster
+dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
 ############ Build ############
 
 .PHONY: docker-build

@@ -9,12 +9,15 @@ import {
   ModalHeader,
   Tooltip,
 } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import {
   formatDate,
+  getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
-  getResultDisplay,
+  getResultPass,
+  getResultScore,
 } from '~/app/utilities/evaluationUtils';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
@@ -36,12 +39,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
+  const navigate = useNavigate();
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
   const benchmarkName = getBenchmarkName(job);
+  const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
@@ -104,15 +109,36 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     <>
       <Tr data-testid={`evaluation-row-${rowIndex}`}>
         <Td dataLabel="Evaluation name" data-testid="evaluation-name">
-          <Button variant="link" isInline data-testid={`evaluation-link-${rowIndex}`}>
-            {evaluationName}
-          </Button>
+          {job.status.state === 'completed' ? (
+            <Button
+              variant="link"
+              isInline
+              data-testid={`evaluation-link-${rowIndex}`}
+              onClick={() => navigate(`results/${job.resource.id}`)}
+            >
+              {evaluationName}
+            </Button>
+          ) : (
+            evaluationName
+          )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel state={displayState} />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
-          <Tooltip content={benchmarkName}>
+          <Tooltip
+            content={
+              allBenchmarkNames.length > 1 ? (
+                <div>
+                  {allBenchmarkNames.map((name) => (
+                    <div key={name}>{name}</div>
+                  ))}
+                </div>
+              ) : (
+                benchmarkName
+              )
+            }
+          >
             <span>{benchmarkName}</span>
           </Tooltip>
         </Td>
@@ -123,7 +149,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {formatDate(job.resource.created_at)}
         </Td>
         <Td dataLabel="Result" data-testid="evaluation-result">
-          {getResultDisplay(job)}
+          {allBenchmarkNames.length > 1 || getResultPass(job) === false ? '-' : getResultScore(job)}
         </Td>
         <Td isActionCell data-testid="evaluation-kebab">
           {actions.length > 0 && <ActionsColumn items={actions} />}

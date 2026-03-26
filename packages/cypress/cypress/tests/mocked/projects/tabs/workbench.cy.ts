@@ -24,12 +24,12 @@ import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/m
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
-import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import { AccessMode } from '../../../../types';
 import {
   ConfigMapModel,
   ClusterQueueModel,
@@ -64,10 +64,12 @@ import { hardwareProfileSection } from '../../../../pages/components/HardwarePro
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
 
+type MockNotebookConfig = Parameters<typeof mockNotebookK8sResource>[0];
+
 type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
-  envFrom?: EnvironmentFromVariable[];
+  envFrom?: MockNotebookConfig['envFrom'];
   disableProjectScoped?: boolean;
   notebooks?: NotebookKind[];
   hardwareProfiles?: {
@@ -876,11 +878,11 @@ describe('Workbench page', () => {
             app: 'wb-1234',
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/odh-managed': 'true',
-            'opendatahub.io/user': 'test-2duser',
           },
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/user': 'test-2duser',
             'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
@@ -1012,6 +1014,75 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Latest Notebook').findNotebookImageLabel().click();
     cy.contains('Latest image version');
+  });
+
+  it('Shows migration required label and popover for unmigrated workbenches', () => {
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Unmigrated Notebook',
+          injectAuth: null,
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+        mockNotebookK8sResource({
+          name: 'migrated-notebook',
+          displayName: 'Migrated Notebook',
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'test-notebook' }),
+        mockPVCK8sResource({ name: 'migrated-notebook' }),
+      ]),
+    );
+    workbenchPage.visit('test-project');
+
+    const unmigratedRow = workbenchPage.getNotebookRow('Unmigrated Notebook');
+    unmigratedRow.findMigrationRequiredLabel().should('have.text', 'Migration required').click();
+    unmigratedRow.findMigrationRequiredPopoverTitle().should('have.text', 'Migration required');
+    unmigratedRow
+      .findMigrationRequiredPopover()
+      .should(
+        'contain.text',
+        'To prevent access issues, migrate this workbench by editing the workbench description and saving.',
+      )
+      .and(
+        'contain.text',
+        'Alternatively, delete this workbench and create a new one using the same cluster storage to preserve user data.',
+      )
+      .and(
+        'contain.text',
+        'Note: Once migrated, the old URL will no longer work. Access the new URL by clicking on the name link.',
+      );
+
+    workbenchPage
+      .getNotebookRow('Migrated Notebook')
+      .findMigrationRequiredLabel()
+      .should('not.exist');
   });
 
   it('Shows popover with version details', () => {
@@ -2538,6 +2609,12 @@ describe('Workbench page', () => {
         .should('have.text', 'Queued');
     });
 
+    it('displays human-readable subtitle for Queued status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'Waiting for');
+    });
+
     it('displays Failed when workload has Finished with failed reason', () => {
       initKueueWorkloadStatus(WorkloadStatusType.Failed);
       workbenchPage.visit('test-project');
@@ -2554,6 +2631,15 @@ describe('Workbench page', () => {
         .getNotebookRow('Test Notebook')
         .findHaveNotebookStatusText()
         .should('have.text', 'Preempted');
+    });
+
+    it('displays human-readable subtitle for Preempted status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Paused by a higher-priority job');
     });
 
     it('displays Inadmissible when workload is inadmissible', () => {

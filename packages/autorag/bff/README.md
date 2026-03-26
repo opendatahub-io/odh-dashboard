@@ -13,6 +13,10 @@ This service exposes the following endpoints:
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/secrets` – list and filter Kubernetes secrets by type
+- GET `/api/v1/s3/file` – retrieve a file from S3 storage
+- GET `/api/v1/lsd/models` – list available models from LlamaStack Distribution
+- GET `/api/v1/lsd/vector-stores` – list available vector stores from LlamaStack Distribution
 - GET `/api/v1/pipeline-runs` – query pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -46,24 +50,25 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls |
-| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`) |
+| Flag | Env Var | Description                                                                            |
+|------|---------|----------------------------------------------------------------------------------------|
+| `-port` | `PORT` | Listen port (default 4000)                                                             |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`)                                    |
+| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.)                                   |
+| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
+| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
+| `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
+| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`)      |
 | `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
+| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
+| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
+| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
 | `-auth-method` | `AUTH_METHOD` | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`) |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
+| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization)                               |
+| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer)                                                 |
+| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key)                                |
+| `-key-file` | `KEY_FILE` | TLS key path                                                                           |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                                                    |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -102,6 +107,10 @@ The following JSON endpoints are available plus static asset serving (index.html
 GET /healthcheck
 GET /api/v1/user
 GET /api/v1/namespaces             (dev / mock mode only)
+GET  /api/v1/secrets                 (requires namespace parameter)
+GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
+GET  /api/v1/lsd/models              (requires namespace and secretName parameters)
+GET  /api/v1/lsd/vector-stores       (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -134,7 +143,10 @@ curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: applica
 ```
 
 For detailed API documentation, see:
+- [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
+- [LSD Models API](docs/lsd-models-endpoint.md)
+- [LSD Vector Stores API](docs/lsd-vector-stores-endpoint.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 
@@ -195,6 +207,23 @@ curl -H "kubeflow-userid: user@example.com" \
 ```
 
 **Note:** The `INSECURE_SKIP_VERIFY=true` flag is required when using port-forward because Kubeflow Pipelines uses a self-signed certificate. This should only be used for local development and testing, never in production.
+
+#### S3 endpoints in port-forward mode
+
+When `PIPELINE_SERVER_URL` is set, the pipeline client is created from the override URL directly rather than by discovering the DSPipelineApplication (DSPA) in the cluster. However, the BFF will still **attempt best-effort DSPA discovery** via the Kubernetes API so that the S3 file endpoint (`GET /api/v1/s3/file`) can resolve credentials from the DSPA spec without requiring an explicit `secretName` query parameter.
+
+If you see the error `"query parameter 'secretName' is required when no DSPA object storage config is available"` while using port-forward mode, one of the following is likely true:
+
+- Your auth token does not have permission to list `datasciencepipelinesapplications` resources in the namespace — verify with `kubectl auth can-i list datasciencepipelinesapplications -n <namespace>`
+- No DSPA exists in the namespace yet
+- The DSPA exists but its API Server component is not ready
+
+As a workaround you can pass `secretName` explicitly:
+```shell
+curl -H "kubeflow-userid: user@example.com" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  "http://localhost:4000/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
+```
 
 This will configure the BFF to extract the raw token from the following header:
 

@@ -216,7 +216,7 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 | `internal/repositories/lsd_models.go` | Repository — calls LlamaStack client, translates response format |
 | `internal/integrations/llamastack/llamastack_client.go` | LlamaStack client — wraps OpenAI SDK for model listing |
 | `internal/helpers/llamastack.go` | Context helper — retrieves LlamaStack client from request context |
-| `internal/constants/api_constants.go` | API path constant |
+| `internal/api/app.go` | Route registration and API path constants |
 | `api/openapi/autorag.yaml` | OpenAPI specification |
 
 ### Testing

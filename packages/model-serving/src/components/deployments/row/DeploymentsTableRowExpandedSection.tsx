@@ -18,11 +18,13 @@ import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelSer
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   isModelServingDeploymentFormDataExtension,
+  isWizardFieldExtractorExtension,
   type Deployment,
 } from '../../../../extension-points';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
@@ -178,6 +180,16 @@ export const DeploymentRowExpandedSection: React.FC<{
     [formDataExtension, deployment],
   );
 
+  const [extractorExtensions] = useResolvedExtensions(isWizardFieldExtractorExtension);
+  const maasExtractorValue = React.useMemo(() => {
+    const maasExtractor = extractorExtensions.find(
+      (ext) =>
+        ext.properties.fieldId === 'maas/save-as-maas-checkbox' &&
+        ext.properties.platform === deployment.modelServingPlatformId,
+    );
+    return maasExtractor?.properties.extract(deployment);
+  }, [extractorExtensions, deployment]);
+
   if (!isVisible) {
     return null;
   }
@@ -199,7 +211,7 @@ export const DeploymentRowExpandedSection: React.FC<{
               hardwareProfile={hardwareProfileOptions}
             />
             {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
-            <TokenAuthenticationItem deployment={deployment} />
+            {!maasExtractorValue && <TokenAuthenticationItem deployment={deployment} />}
           </Stack>
         </ExpandableRowContent>
       </Td>

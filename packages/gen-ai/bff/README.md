@@ -844,18 +844,31 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 {
   "data": [
     {
-      "name": "pgvector-store",
-      "displayName": "Product Embeddings (PGVector)",
+      "vector_store_id": "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
+      "vector_store_name": "Product Embeddings (PGVector)",
+      "provider_id": "pgvector-provider",
       "provider_type": "remote::pgvector",
-      "collection": "product_embeddings",
-      "description": "Product catalog embeddings for semantic search",
-      "owner": "platform-team",
-      "domain": "e-commerce",
-      "embedding": {
-        "model_id": "ibm-granite/granite-embedding-125m-english",
-        "dimension": 768
-      },
-      "embedding_model_available": true
+      "embedding_model": "ibm-granite/granite-embedding-125m-english",
+      "embedding_dimension": 768,
+      "description": "Product catalog embeddings for semantic search"
+    },
+    {
+      "vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba",
+      "vector_store_name": "Document Search (Qdrant)",
+      "provider_id": "qdrant-provider",
+      "provider_type": "remote::qdrant",
+      "embedding_model": "ibm-granite/granite-embedding-125m-english",
+      "embedding_dimension": 768,
+      "description": "Document search index for internal knowledge base"
+    },
+    {
+      "vector_store_id": "vs_a2607363-cea0-4d2a-8a93-7fb76863403b",
+      "vector_store_name": "Code Vector Store (Milvus)",
+      "provider_id": "milvus-provider",
+      "provider_type": "remote::milvus",
+      "embedding_model": "unknown-embedding-model",
+      "embedding_dimension": 384,
+      "description": "Code embeddings for repository search"
     }
   ]
 }
@@ -876,21 +889,34 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
   "data": {
     "vector_stores": [
       {
-        "name": "pgvector-store",
-        "displayName": "Product Embeddings (PGVector)",
+        "vector_store_id": "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
+        "vector_store_name": "Product Embeddings (PGVector)",
+        "provider_id": "pgvector-provider",
         "provider_type": "remote::pgvector",
-        "collection": "product_embeddings",
-        "description": "Product catalog embeddings for semantic search",
-        "owner": "platform-team",
-        "domain": "e-commerce",
-        "embedding": {
-          "model_id": "ibm-granite/granite-embedding-125m-english",
-          "dimension": 768
-        },
-        "embedding_model_available": true
+        "embedding_model": "ibm-granite/granite-embedding-125m-english",
+        "embedding_dimension": 768,
+        "description": "Product catalog embeddings for semantic search"
+      },
+      {
+        "vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba",
+        "vector_store_name": "Document Search (Qdrant)",
+        "provider_id": "qdrant-provider",
+        "provider_type": "remote::qdrant",
+        "embedding_model": "ibm-granite/granite-embedding-125m-english",
+        "embedding_dimension": 768,
+        "description": "Document search index for internal knowledge base"
+      },
+      {
+        "vector_store_id": "vs_a2607363-cea0-4d2a-8a93-7fb76863403b",
+        "vector_store_name": "Code Vector Store (Milvus)",
+        "provider_id": "milvus-provider",
+        "provider_type": "remote::milvus",
+        "embedding_model": "unknown-embedding-model",
+        "embedding_dimension": 384,
+        "description": "Code embeddings for repository search"
       }
     ],
-    "total_count": 1,
+    "total_count": 3,
     "config_map_info": {
       "name": "gen-ai-aa-vector-stores",
       "namespace": "llama-stack",

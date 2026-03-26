@@ -288,6 +288,18 @@ Secrets can include metadata from OpenShift annotations:
 }
 ```
 
+## S3 Endpoint Security
+
+Secrets containing S3 credentials (`type=s3`) are subject to additional security validation when used with S3 endpoints. The `AWS_S3_ENDPOINT` field must comply with SSRF protection requirements:
+
+- ✅ HTTPS-only (no HTTP)
+- ✅ No private IP addresses (RFC-1918)
+- ✅ No loopback addresses (127.0.0.0/8)
+- ✅ No link-local addresses (169.254.0.0/16)
+- ✅ Valid URL format
+
+For complete details on S3 endpoint security validation, see [s3-endpoint-security.md](./s3-endpoint-security.md).
+
 ## Testing
 
 The implementation includes comprehensive tests covering:

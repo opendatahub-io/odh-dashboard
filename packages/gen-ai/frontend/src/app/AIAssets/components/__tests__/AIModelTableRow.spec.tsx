@@ -104,6 +104,9 @@ describe('AIModelTableRow', () => {
     lsdStatus: null,
     allModels: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
+    allCollections: [],
+    collectionsLoaded: true,
+    existingCollections: [],
   };
 
   beforeEach(() => {
@@ -184,7 +187,7 @@ describe('AIModelTableRow', () => {
   });
 
   describe('Status', () => {
-    it('should show Active status when model is Running', () => {
+    it('should show Ready status when model is Running', () => {
       const model = createMockAIModel({ status: 'Running' });
       render(
         <TestWrapper>
@@ -192,7 +195,7 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getByText('Ready')).toBeInTheDocument();
     });
 
     it('should show Inactive status when model is not Running', () => {
@@ -204,6 +207,17 @@ describe('AIModelTableRow', () => {
       );
 
       expect(screen.getByText('Inactive')).toBeInTheDocument();
+    });
+
+    it('should show Unknown status when model status is not Running or Stop', () => {
+      const model = createMockAIModel({ status: 'Unknown' });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Unknown')).toBeInTheDocument();
     });
   });
 
@@ -393,24 +407,9 @@ describe('AIModelTableRow', () => {
   });
 
   describe('External models', () => {
-    it('should show "Add to playground" button for external_provider models', () => {
+    it('should show "Add to playground" button for custom_endpoint models', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
-        status: 'Running',
-      });
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
-      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
-    });
-
-    it('should show "Add to playground" button for external_cluster models', () => {
-      const model = createMockAIModel({
-        model_source_type: 'external_cluster',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       render(
@@ -425,7 +424,7 @@ describe('AIModelTableRow', () => {
 
     it('should open configuration modal when clicking "Add to playground" for external models', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       render(
@@ -443,7 +442,7 @@ describe('AIModelTableRow', () => {
     it('should handle external models already in playground', () => {
       const model = createMockAIModel({
         model_id: 'external-model-id',
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       const playgroundModel = createMockPlaygroundModel('external-model-id');
@@ -460,7 +459,7 @@ describe('AIModelTableRow', () => {
     it('should navigate to playground when clicking "Try in playground" for external models', () => {
       const model = createMockAIModel({
         model_id: 'external-model-id',
-        model_source_type: 'external_cluster',
+        model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       const playgroundModel = createMockPlaygroundModel('external-model-id');
@@ -481,9 +480,9 @@ describe('AIModelTableRow', () => {
       });
     });
 
-    it('should disable "Add to playground" button for external models that are not Running', () => {
+    it('should enable "Add to playground" button for custom_endpoint models regardless of status', () => {
       const model = createMockAIModel({
-        model_source_type: 'external_provider',
+        model_source_type: 'custom_endpoint',
         status: 'Stop',
       });
       render(
@@ -493,7 +492,7 @@ describe('AIModelTableRow', () => {
       );
 
       const button = screen.getByText('Add to playground');
-      expect(button.closest('button')).toBeDisabled();
+      expect(button.closest('button')).not.toBeDisabled();
     });
   });
 });

@@ -22,7 +22,7 @@ func TestEvaluationJobsHandler(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Len(t, result.Data, 5)
+	assert.Len(t, result.Data, 6)
 	assert.Equal(t, "eval-job-001", result.Data[0].Resource.ID)
 	assert.Equal(t, "running", result.Data[0].Status.State)
 	assert.Equal(t, "gpt-4-turbo", result.Data[0].Model.Name)
@@ -40,7 +40,37 @@ func TestEvaluationJobsHandlerWithQueryParams(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Len(t, result.Data, 5)
+	assert.Len(t, result.Data, 6)
+}
+
+func TestGetEvaluationJobHandler(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[EvaluationJobEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "eval-job-001", result.Data.Resource.ID)
+	assert.Equal(t, "running", result.Data.Status.State)
+}
+
+func TestGetEvaluationJobHandlerNotInList(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/jobs/nonexistent-job?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, response.StatusCode)
 }
 
 func TestCancelEvaluationJobHandler(t *testing.T) {

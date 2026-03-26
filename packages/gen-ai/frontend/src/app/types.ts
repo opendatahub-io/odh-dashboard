@@ -17,8 +17,10 @@ export type LlamaModel = LlamaModelResponse & {
 
 export type LSDInstallModel = {
   model_name: string;
-  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas'; // Source type of the model (required)
-  max_tokens?: number; // Optional per-model token limit (128-128000)
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
+  model_type?: 'llm' | 'embedding'; // Optional model type
+  max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
+  embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
 
 export type FileCounts = {
@@ -99,6 +101,7 @@ export type CreateResponseRequest = {
   mcp_servers?: MCPServerConfig[];
   input_shield_id?: string;
   output_shield_id?: string;
+  model_source_type?: string;
 };
 
 export type SimplifiedUsage = {
@@ -357,15 +360,16 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
-  status: 'Running' | 'Stop';
+  status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
   sa_token: {
     name: string;
     token_name: string;
     token: string;
   };
-  model_source_type: 'namespace' | 'external_cluster' | 'external_provider' | 'maas';
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
+  embedding_dimension?: number;
 }
 
 export interface AIModel extends AAModelResponse {
@@ -379,18 +383,59 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  provider_type:
-    | 'remote::vllm'
-    | 'remote::openai'
-    | 'remote::anthropic'
-    | 'remote::gemini'
-    | 'remote::passthrough';
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
 };
 
 export type ExternalModelResponse = AAModelResponse;
+
+/** Single external vector store summary returned by the BFF (secrets and connection config not included). */
+export type ExternalVectorStoreSummary = {
+  vector_store_id: string;
+  vector_store_name: string;
+  provider_id: string;
+  provider_type: string;
+  embedding_model: string;
+  embedding_dimension: number;
+  description?: string;
+};
+
+/** ConfigMap metadata included in the detailed vector stores list response. */
+export type VectorStoreConfigMapInfo = {
+  name: string;
+  namespace: string;
+  last_updated: string;
+};
+
+/** Response body from GET /gen-ai/api/v1/vectorstores/external (includes ConfigMap metadata). */
+export type ExternalVectorStoresListData = {
+  vector_stores: ExternalVectorStoreSummary[];
+  total_count: number;
+  config_map_info: VectorStoreConfigMapInfo;
+};
+
+export type VerifyExternalModelRequest = {
+  model_id: string;
+  base_url: string;
+  secret_value: string;
+  model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
+};
+
+export type VerifyExternalModelResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+// Error response structure (matches BFF)
+export type ExternalModelVerificationError = {
+  code: 'CONNECTION_FAILED' | 'TIMEOUT' | 'UNAUTHORIZED' | 'NOT_OPENAI_COMPATIBLE';
+  message: string;
+  base_url?: string;
+  model_id?: string;
+};
 
 export type {
   MCPServerFromAPI,
@@ -438,6 +483,7 @@ export type MLflowRegisterPromptRequest = {
   template?: string;
   commit_message?: string;
   tags?: Record<string, string>;
+  create_only?: boolean;
 };
 
 export type MLflowPromptVersion = {
@@ -469,6 +515,7 @@ export type MLflowPromptVersionsResponse = {
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
 };
 
 export type DeleteLSDRequest = {
@@ -493,6 +540,7 @@ export type GenAiAPIs = {
   installLSD: InstallLSD;
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
+  getAAVectorStores: GetAAVectorStores;
   getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
@@ -506,6 +554,8 @@ export type GenAiAPIs = {
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
+  verifyExternalModel: VerifyExternalModel;
+  deleteExternalModel: DeleteExternalModel;
 };
 
 export interface MaaSModel {
@@ -526,11 +576,11 @@ export interface MaaSModel {
 export type MaaSTokenRequest = {
   name?: string;
   description?: string;
-  expiration?: string; // Optional - only present when expiration is provided
+  expiresIn?: string;
 };
 export interface MaaSTokenResponse {
-  token: string;
-  expiresAt: number;
+  key: string;
+  expiresAt?: string;
 }
 
 export type ModArchRestGET<T> = (
@@ -565,6 +615,7 @@ type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
 type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDRequest>;
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
+type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
 type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
@@ -578,3 +629,8 @@ type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegiste
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
 type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;
+type VerifyExternalModel = ModArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>;
+type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;

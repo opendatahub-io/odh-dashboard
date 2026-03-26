@@ -13,4 +13,20 @@ const (
 	APIKeySearchPath     = ApiPathPrefix + "/api-keys/search"
 	APIKeyBulkRevokePath = ApiPathPrefix + "/api-keys/bulk-revoke"
 	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
+
+	// Access review
+	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
+
+	// Subscription routes
+	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"
+	SubscriptionInfoPath     = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionFormDataPath = ApiPathPrefix + "/new-subscription"
+	SubscriptionCreatePath   = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath   = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath   = ApiPathPrefix + "/subscription/:name"
+
+	// MaaSModelRef routes
+	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
+	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 )
