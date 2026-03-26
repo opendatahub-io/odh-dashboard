@@ -6,7 +6,6 @@ import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -46,8 +45,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
-
-  const navigate = useNavigate();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
@@ -210,9 +207,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotPlayground
