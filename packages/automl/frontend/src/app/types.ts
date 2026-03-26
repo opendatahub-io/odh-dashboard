@@ -103,3 +103,16 @@ export type SecretListItem = {
   displayName?: string;
   description?: string;
 };
+
+export type TaskType = 'binary' | 'multiclass' | 'regression' | 'timeseries';
+
+export type FeatureImportanceData = {
+  importance: Record<string, number>;
+  stddev?: Record<string, number>;
+  p_value?: Record<string, number>;
+  n?: Record<string, number>;
+  p99_high?: Record<string, number>;
+  p99_low?: Record<string, number>;
+};
+
+export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;

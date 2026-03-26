@@ -966,18 +966,23 @@ class ModelServingWizard extends Wizard {
     return this.findModelFormatSelect().findSelectOption(name);
   }
 
-  findServingRuntimeAutoSelectRadio() {
-    return cy.findByLabelText(
-      'Auto-select the best runtime for my model based on model type, model format, and hardware profile',
-    );
+  /** Selects the auto-select radio (works for both serving runtimes and model deployment configs). */
+  findModelServerAutoSelectRadio() {
+    return cy.findByTestId('model-server-auto-select-radio');
+  }
+
+  /** Returns the suggested option shown in the auto-select radio body after a matching hardware profile is selected. */
+  findModelServerAutoSelectSuggestion() {
+    return cy.findByTestId('model-server-auto-select-suggestion');
   }
 
   findServingRuntimeTemplateSearchSelector() {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
 
-  findServingRuntimeSelectRadio() {
-    return cy.findByLabelText('Select from a list of serving runtimes, including custom ones');
+  /** Selects the manual-select radio (works for both serving runtimes and model deployment configs). */
+  findModelServerManualSelectRadio() {
+    return cy.findByTestId('model-server-manual-select-radio');
   }
 
   findFirstServingRuntimeTemplateOption() {
@@ -991,10 +996,10 @@ class ModelServingWizard extends Wizard {
   }
 
   selectServingRuntimeOption(name: string) {
-    this.findServingRuntimeAutoSelectRadio().then(($radio) => {
+    this.findModelServerAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
         // Auto-select the best runtime for my model based on model type, model format, and hardware profile
-        cy.findByText(name).should('exist');
+        this.findModelServerAutoSelectSuggestion().should('contain.text', name);
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
@@ -1339,6 +1344,13 @@ class ModelServingWizard extends Wizard {
 
   findDeployButton() {
     return this.findFooter().findByTestId('wizard-submit-button');
+  }
+
+  selectProfileContaining(name: string): void {
+    this.findHardwareProfileSelect().click();
+    cy.findByRole('option', {
+      name: (content) => content.includes(name),
+    }).click();
   }
 
   findReviewStepModelDetailsSection() {

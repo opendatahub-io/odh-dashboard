@@ -102,22 +102,27 @@ export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata.annotations || !notebook.metadata.labels) {
+  if (!notebook) {
     return null;
   }
+
+  const annotations = notebook.metadata.annotations ?? {};
 
   const {
     'notebooks.kubeflow.org/last-activity': lastActivity,
     'notebooks.opendatahub.io/last-image-selection': lastSelectedImage = '',
     'notebooks.opendatahub.io/last-size-selection': lastSelectedSize = '',
     'opendatahub.io/username': annotationUser = '',
-  } = notebook.metadata.annotations;
+    'opendatahub.io/user': annotationTranslatedUser = '',
+  } = annotations;
 
   let user = annotationUser;
   if (!annotationUser) {
     // Need to always have user -- if we don't, check if the current user is viable to translate to it
-    const notebookLabelUser = notebook.metadata.labels['opendatahub.io/user'];
-    if (usernameTranslate(loggedInUser) === notebookLabelUser) {
+    // Check annotation first, then fall back to label for backward compatibility with older workbenches
+    const translatedUser =
+      annotationTranslatedUser || notebook.metadata.labels?.['opendatahub.io/user'];
+    if (usernameTranslate(loggedInUser) === translatedUser) {
       user = loggedInUser;
     } else {
       /* eslint-disable-next-line no-console */

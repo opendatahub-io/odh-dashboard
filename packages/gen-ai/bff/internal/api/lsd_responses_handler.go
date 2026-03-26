@@ -145,6 +145,7 @@ type CreateResponseRequest struct {
 	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
 	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
 	ModelSourceType    string               `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
+	Subscription       string               `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -260,6 +261,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {
@@ -363,7 +366,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType)
+	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -697,7 +700,7 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 }
 
 // getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string) map[string]interface{} {
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string) map[string]interface{} {
 	// If model_source_type is custom_endpoint, fetch API key from ConfigMap secret
 	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
 		return app.getCustomEndpointProviderSecret(ctx, modelID)
@@ -705,7 +708,7 @@ func (app *App) getProviderData(ctx context.Context, modelID string, modelSource
 
 	// For all other cases, use existing auto-detection logic
 	// Try MaaS first (by prefix)
-	if maasData := app.getMaaSProviderData(ctx, modelID); maasData != nil {
+	if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
 		return maasData
 	}
 	// Then try user JWT for InferenceService and LLMInferenceService
@@ -726,7 +729,7 @@ func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[
 }
 
 // getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
-func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
+func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscription string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -751,10 +754,10 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 		return nil
 	}
 
-	app.logger.Debug("Detected MaaS model", "model", modelID)
+	app.logger.Debug("Detected MaaS model", "model", modelID, "subscription", subscription)
 
 	// Get or generate MaaS token
-	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
+	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, subscription)
 	if token == "" {
 		return nil
 	}
@@ -766,8 +769,9 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 	}
 }
 
-// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one
-func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) string {
+// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.
+// subscription is the optional MaaSSubscription name to bind the ephemeral key to.
+func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID, subscription string) string {
 	// Get username for cache key
 	username, err := k8sClient.GetUser(ctx, identity)
 	if err != nil || username == "" {
@@ -775,11 +779,17 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
+	// Build cache key that incorporates subscription so different subscriptions get separate tokens
+	cacheKey := modelID
+	if subscription != "" {
+		cacheKey = modelID + "|" + subscription
+	}
+
 	// Check cache first
-	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, modelID); found {
+	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, cacheKey); found {
 		// Safe type assertion to prevent panic
 		if token, ok := cachedValue.(string); ok {
-			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace)
+			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace, "subscription", subscription)
 			return token
 		}
 		// Unexpected type in cache - log warning and continue to generate new token
@@ -787,10 +797,11 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
+	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		ExpiresIn: constants.MaaSTokenTTLString,
+		ExpiresIn:    constants.MaaSTokenTTLString,
+		Subscription: subscription,
 	})
 	if err != nil {
 		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
@@ -812,8 +823,8 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	// Cache the new API key
-	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Key, cacheTTL); err != nil {
+	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
 		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
 	}
 

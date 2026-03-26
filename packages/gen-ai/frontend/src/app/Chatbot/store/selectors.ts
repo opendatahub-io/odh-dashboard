@@ -22,6 +22,12 @@ export const selectSelectedModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedModel ?? DEFAULT_CONFIGURATION.selectedModel;
 
+export const selectSelectedSubscription =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedSubscription ??
+    DEFAULT_CONFIGURATION.selectedSubscription;
+
 export const selectSelectedMcpServerIds =
   (configId: string) =>
   (state: ChatbotConfigStore): string[] =>

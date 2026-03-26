@@ -391,14 +391,12 @@ export type Notebook = K8sResourceCommon & {
     annotations?: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/user': string; // translated username -- see translateUsername
       'opendatahub.io/username': string; // the untranslated username behind the notebook
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'opendatahub.io/accelerator-name': string | undefined;
       'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
-    }>;
-    labels?: Partial<{
-      'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
   spec: {

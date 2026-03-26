@@ -30,6 +30,7 @@ export interface ChatbotConfiguration {
   knowledgeMode: 'inline' | 'external';
   /** The vector store ID selected for RAG in this pane */
   selectedVectorStoreId: string | null;
+  selectedSubscription: string;
 }
 
 /**
@@ -50,6 +51,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   isRagEnabled: false,
   knowledgeMode: 'inline',
   selectedVectorStoreId: null,
+  selectedSubscription: '',
 };
 
 /**
@@ -91,6 +93,8 @@ export interface ChatbotConfigStoreActions {
   updateGuardrail: (id: string, value: string) => void;
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
+
+  updateSelectedSubscription: (id: string, value: string) => void;
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;

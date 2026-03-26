@@ -82,6 +82,18 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 			Created: 1755721063,
 			OwnedBy: "llama_stack",
 		},
+		{
+			ID:      "maas-mock-provider-1/llama-2-7b-chat",
+			Object:  "model",
+			Created: 1755721063,
+			OwnedBy: "llama_stack",
+		},
+		{
+			ID:      "maas-mock-provider-1/llama-2-13b-chat",
+			Object:  "model",
+			Created: 1755721063,
+			OwnedBy: "llama_stack",
+		},
 	}, nil
 }
 
