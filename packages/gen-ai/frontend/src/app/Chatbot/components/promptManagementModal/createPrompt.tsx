@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   Alert,
   Flex,
@@ -15,6 +15,8 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useNotification } from '~/app/hooks/useNotification';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
@@ -27,6 +29,8 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
     setIsPromptManagementModalOpen,
     modalMode,
   } = usePlaygroundStore();
+  const { namespace } = useContext(GenAiContext);
+  const notification = useNotification();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
   const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
@@ -38,6 +42,10 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
+      notification.success(
+        'Prompt saved',
+        `${newPrompt.name} was saved to ${namespace?.name ?? 'the project'}.`,
+      );
       setActivePrompt(newPrompt);
       const instruction =
         newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
@@ -45,11 +53,13 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
       setIsPromptManagementModalOpen(false);
     },
     onError: (error) => {
+      const errorMessage = error.message || 'An error occurred while saving the prompt.';
       if (error.message.toLowerCase().includes('already exists')) {
-        setNameError('A prompt with this name already exists. Choose a different name.');
+        setNameError(errorMessage);
       } else {
-        setSaveError(error.message || 'An error occurred while saving the prompt.');
+        setSaveError(errorMessage);
       }
+      notification.error(errorMessage);
     },
   });
 
@@ -92,6 +102,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
               Name
             </Title>
             <TextInput
+              aria-label="Prompt name"
               value={dirtyPrompt?.name}
               isDisabled={isEditMode}
               onChange={(_event, value) => handleChange('name', value)}
@@ -129,6 +140,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           System
         </MenuToggle>
         <TextArea
+          aria-label="Prompt instructions"
           value={dirtyPrompt?.template}
           resizeOrientation="vertical"
           rows={12}
@@ -140,6 +152,7 @@ export default function CreatePrompt({ onClose }: { onClose: () => void }): Reac
           Commit message
         </Title>
         <TextInput
+          aria-label="Commit message"
           value={dirtyPrompt?.commit_message}
           onChange={(_event, value) => handleChange('commit_message', value)}
           placeholder="Describe your changes"

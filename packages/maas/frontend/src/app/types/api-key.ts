@@ -52,3 +52,15 @@ export type CreateAPIKeyRequest = {
   description?: string;
   expiresIn?: string;
 };
+
+export const STATUS_OPTIONS: APIKeyStatus[] = ['active', 'expired', 'revoked'];
+
+export type ApiKeyFilterDataType = {
+  username: string;
+  statuses: APIKeyStatus[];
+};
+
+export const initialApiKeyFilterData: ApiKeyFilterDataType = {
+  username: '',
+  statuses: [],
+};

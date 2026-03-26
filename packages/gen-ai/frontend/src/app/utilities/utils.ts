@@ -120,12 +120,6 @@ export const parseEndpointByPrefix = (
     ?.replace(`${prefix}:`, '')
     .trim();
 
-// TODO: Move to OdhDashboardConfig when merged
-// eslint-disable-next-line prefer-const
-export let CLUSTER_DOMAINS: string[] = [];
-// eslint-disable-next-line prefer-const
-export let ALLOW_EXTERNAL_ENDPOINTS = true;
-
 /**
  * Checks if a URL points to a Kubernetes cluster-local service.
  * It properly parses the URL and checks only the hostname to prevent manipulation
@@ -140,9 +134,10 @@ export let ALLOW_EXTERNAL_ENDPOINTS = true;
  * If the URL cannot be parsed, it returns false (treats it as external for safety).
  *
  * @param rawURL - The URL to check
+ * @param clusterDomains - Additional cluster domain suffixes to treat as internal
  * @returns true if the URL is cluster-local, false otherwise
  */
-export const isClusterLocalURL = (rawURL: string): boolean => {
+export const isClusterLocalURL = (rawURL: string, clusterDomains: string[] = []): boolean => {
   try {
     const url = new URL(rawURL);
 
@@ -152,7 +147,7 @@ export const isClusterLocalURL = (rawURL: string): boolean => {
     }
 
     // Check configured cluster domains
-    return CLUSTER_DOMAINS.some((domain) => url.hostname.endsWith(domain));
+    return clusterDomains.some((domain) => domain && url.hostname.endsWith(domain));
   } catch {
     // If we can't parse it, treat it as external for safety
     return false;

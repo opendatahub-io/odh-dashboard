@@ -35,6 +35,7 @@
     "test:type-check": "tsc --noEmit",
     "test:jest": "jest",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
+    "test-unit": "jest config/__tests__ --silent",
     "test:unit": "npm run test:jest -- --silent",
     "test:unit-coverage": "npm run test:jest:coverage",
     "test:cypress-ci": "npx concurrently -P -k -s first \"turbo run cypress:server:build --cwd=.. && turbo run cypress:server --cwd=..\" \"turbo run cypress:server:wait --cwd=.. && npm run cypress:run:mock -- {@}\" -- ",
