@@ -1,0 +1,7 @@
+:root {
+  --autorag-header-icon-bg: var(--pf-t--color--teal--10);
+}
+
+.pf-v6-theme-dark {
+  --autorag-header-icon-bg: var(--pf-t--color--teal--50);
+}
