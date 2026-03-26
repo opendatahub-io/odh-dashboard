@@ -6,6 +6,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
@@ -31,6 +32,7 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { deleteModal } from '../../../pages/components/DeleteModal';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { initMockModelAuthIntercepts } from '../../../utils/modelServingUtils';
 import {
@@ -950,6 +952,80 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
       });
+    });
+
+    it('should delete the matching LLMInferenceServiceConfig when deleting an LLMInferenceService', () => {
+      initVLLMOnMaaSIntercepts();
+
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project', name: 'test-vllm-gpu' },
+        mock200Status({}),
+      ).as('deleteLLMInferenceServiceConfig');
+
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'test-vllm-gpu' },
+        mock200Status({}),
+      ).as('deleteLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal
+        .getModelRow('GPU vLLM Deployment')
+        .findKebabAction(/^Delete/)
+        .click();
+
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('GPU vLLM Deployment');
+      deleteModal.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@deleteLLMInferenceServiceConfig');
+      cy.wait('@deleteLLMInferenceService');
+    });
+
+    it('should NOT delete the LLMInferenceServiceConfig when names do not match', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-deployment',
+            displayName: 'Test Deployment',
+            baseRefs: [{ name: 'shared-config' }],
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          vLLMDeploymentOnMaaS: true,
+        }),
+      );
+
+      cy.intercept('DELETE', '**/llminferenceserviceconfigs/**', mock200Status({})).as(
+        'deleteLLMInferenceServiceConfig',
+      );
+
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'test-deployment' },
+        mock200Status({}),
+      ).as('deleteLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal
+        .getModelRow('Test Deployment')
+        .findKebabAction(/^Delete/)
+        .click();
+
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test Deployment');
+      deleteModal.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@deleteLLMInferenceService');
+      cy.get('@deleteLLMInferenceServiceConfig.all').should('have.length', 0);
     });
   });
 });
