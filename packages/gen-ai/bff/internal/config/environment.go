@@ -10,12 +10,15 @@ const (
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
 
-	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
-	DefaultAuthTokenHeader = "Authorization"
+	// DefaultAuthTokenHeader is the default header for token extraction.
+	// For ODH/RHOAI deployments, this is 'x-forwarded-access-token'.
+	// Override via CLI flag or AUTH_TOKEN_HEADER env var for other setups.
+	DefaultAuthTokenHeader = "x-forwarded-access-token"
 
-	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
-	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
-	DefaultAuthTokenPrefix = "Bearer "
+	// DefaultAuthTokenPrefix is the prefix to strip from the token header value.
+	// For ODH/RHOAI ('x-forwarded-access-token'), this is empty.
+	// Override via CLI flag or AUTH_TOKEN_PREFIX env var (e.g., "Bearer ") for other setups.
+	DefaultAuthTokenPrefix = ""
 )
 
 type EnvConfig struct {
