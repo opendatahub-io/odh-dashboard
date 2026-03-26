@@ -316,7 +316,7 @@ describe('AI Assets Models - User Journeys', () => {
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Verify redirect to playground');
-      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+      cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
 
       cy.step('Verify playground resources are created');
       waitForResource('configmap', testData.configMapName, projectName);
@@ -346,7 +346,7 @@ describe('AI Assets Models - User Journeys', () => {
       aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
 
       cy.step('Verify redirect to playground with correct model selected');
-      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+      cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
 
       cy.step('Verify model is ready for interaction');
       genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
