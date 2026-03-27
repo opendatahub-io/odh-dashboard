@@ -82,7 +82,9 @@ const mapResultToItems = (
         path: fullPath,
         type: fileTypeToRender,
         size: sizeToRender,
-        selectable: !selectableExtensions || selectableExtensions.includes(ext),
+        selectable:
+          !selectableExtensions ||
+          selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
         forceShowAsSelected: false,
         details: {
           ...(obj.last_modified && {
@@ -191,10 +193,15 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Track connection identity to detect when connection changes
   const connectionKeyRef = useRef<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const debouncedSearchRef = useRef<{ cancel: () => void } | null>(null);
 
   // Helpers ------------------------------------------------------------------>
 
   const resetState = useCallback(() => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    debouncedSearchRef.current?.cancel();
     setFilesToRender([]);
     setFoldersToRender([]);
     setFetchError(null);
@@ -256,9 +263,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         getFilesOptions.next = continuationToken;
       }
 
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
       const requestId = ++fetchIdRef.current;
 
-      getFiles('', { signal: new AbortController().signal }, getFilesOptions)
+      getFiles('', { signal: controller.signal }, getFilesOptions)
         .then((result) => {
           if (fetchIdRef.current !== requestId) {
             return;
@@ -318,8 +328,15 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }, 300),
     [currentPath, perPageToRender, fetchPath],
   );
-  // Cancel debounce on unmount
-  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+  debouncedSearchRef.current = debouncedSearch;
+  // Cancel debounce and in-flight requests on unmount
+  useEffect(
+    () => () => {
+      debouncedSearch.cancel();
+      controllerRef.current?.abort();
+    },
+    [debouncedSearch],
+  );
 
   // Derived state -------------------------------------------------------------->
 

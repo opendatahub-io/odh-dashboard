@@ -95,13 +95,13 @@ export function useS3ListFilesQuery(
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
     queryKey: ['s3Files', namespace, path],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
       }
       return getS3Files(
         '',
-        {},
+        { signal },
         {
           namespace,
           path,

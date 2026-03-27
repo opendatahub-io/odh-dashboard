@@ -77,13 +77,13 @@ export function useAutomlResults(
         const path = `${prefixObj.prefix}model_artifact`;
         return {
           queryKey: ['s3Files', namespace, path],
-          queryFn: async () => {
+          queryFn: async ({ signal }) => {
             if (!namespace) {
               throw new Error('namespace is required');
             }
             return getS3Files(
               '',
-              {},
+              { signal },
               {
                 namespace,
                 path,

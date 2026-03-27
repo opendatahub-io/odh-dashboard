@@ -427,13 +427,15 @@ function AutoragConfigure(): React.JSX.Element {
         onClose={() => setFileExplorerMode(false)}
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onSelectFiles={(files) => {
-          // TODO: replace with actual logic once implemented
-          const file = files[0];
-          if (fileExplorerMode === 'input_data') {
-            setValue('input_data_key', file.path, { shouldValidate: true });
-          }
-          if (fileExplorerMode === 'test_data') {
-            setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+          if (files.length > 0) {
+            const file = files[0];
+            if (fileExplorerMode === 'input_data') {
+              setValue('input_data_key', file.path, { shouldValidate: true });
+            }
+            if (fileExplorerMode === 'test_data') {
+              // TODO [ Gustavo ] Once the upload of test data in the right hand configure page is present, hook it up correctly
+              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+            }
           }
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}

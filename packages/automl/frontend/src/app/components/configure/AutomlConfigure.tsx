@@ -544,8 +544,10 @@ function AutomlConfigure(): React.JSX.Element {
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
-          const file = files[0];
-          setValue('train_data_file_key', file.path, { shouldValidate: true });
+          if (files.length > 0) {
+            const file = files[0];
+            setValue('train_data_file_key', file.path, { shouldValidate: true });
+          }
         }}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"

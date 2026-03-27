@@ -454,8 +454,10 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           ) {
                             actions.push({
                               title: defaults.labels.tableActionRemoveSelection,
-                              onClick: () =>
-                                setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path)),
+                              onClick: () => {
+                                setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
+                                onSelectFile?.(file, false);
+                              },
                             });
                           }
                           return <ActionsColumn items={actions} />;
