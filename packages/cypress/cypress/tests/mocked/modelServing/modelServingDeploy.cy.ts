@@ -79,6 +79,7 @@ const initIntercepts = ({
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
+      genAiStudio: true,
     }),
   );
   // used by addSupportServingPlatformProject

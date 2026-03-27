@@ -226,6 +226,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
   },
+  [SupportedArea.PLUGIN_GEN_AI]: {
+    featureFlags: ['genAiStudio'],
+  },
 };
 
 /** Maps each DataScienceStackComponent to its human-readable name **/
