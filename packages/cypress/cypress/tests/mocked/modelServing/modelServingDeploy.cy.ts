@@ -69,6 +69,9 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        // Gen AI plugin registers PLUGIN_GEN_AI with this required component; without it the
+        // save-as-ai-asset UI stays hidden while genAiStudio is still true in dashboard config.
+        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );
@@ -79,6 +82,7 @@ const initIntercepts = ({
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
+      genAiStudio: true,
     }),
   );
   // used by addSupportServingPlatformProject
