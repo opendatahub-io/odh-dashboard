@@ -4,6 +4,10 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
+  findPageTitle() {
+    return cy.findByRole('heading', { name: /Playground/i });
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
