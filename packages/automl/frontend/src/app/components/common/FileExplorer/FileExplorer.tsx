@@ -58,7 +58,7 @@ import {
   type IAction,
 } from '@patternfly/react-table';
 import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { type ReactNode, useState } from 'react';
+import React, { type ReactNode, useId, useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
 
@@ -899,6 +899,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onPerPageSelect,
   onPrimary,
 }) => {
+  const generatedId = useId();
+  const rootId = id ?? generatedId;
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [filesToView, setFilesToView] = useState<Files>([]);
 
@@ -942,7 +944,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   return (
     <Modal
-      elementToFocus="#FileExplorer-search-input"
+      elementToFocus={`#${rootId}-FileExplorer-search-input`}
       id={id}
       isOpen={isOpen}
       onClose={(e) => {
@@ -989,7 +991,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem grow={{ default: 'grow' }}>
                 <SearchInput
-                  searchInputId="FileExplorer-search-input"
+                  searchInputId={`${rootId}-FileExplorer-search-input`}
                   className="pf-v6-u-w-50"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(

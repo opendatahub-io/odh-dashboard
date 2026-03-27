@@ -19,11 +19,11 @@ import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
 const DEFAULT_PER_PAGE = 10;
 
 const formatBytes = (bytes: number): string => {
-  if (bytes === 0) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
   }
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 };
 
@@ -185,7 +185,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   // Refs --------------------------------------------------------------------->
@@ -196,6 +196,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const fetchIdRef = useRef(0);
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;
+
+  // Track the last search query that was actually sent to the API (after debounce)
+  const appliedSearchRef = useRef('');
 
   // Track connection identity to detect when connection changes
   const connectionKeyRef = useRef<string | null>(null);
@@ -220,6 +223,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
+    appliedSearchRef.current = '';
     connectionKeyRef.current = null;
   }, []);
 
@@ -283,6 +287,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       setCurrentPath(path);
       setFoldersToRender(getBreadcrumbTrail(path));
       setSearchQuery('');
+      appliedSearchRef.current = '';
       setPageToRender(1);
       continuationTokensRef.current = new Map();
       fetchPath(path, perPage, 1);
@@ -307,7 +312,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${namespace}/${secretName}`;
+    const connectionKey = `${namespace}/${secretName}/${bucket}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
@@ -326,13 +331,15 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setPerPageToRender(DEFAULT_PER_PAGE);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
+    appliedSearchRef.current = '';
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [isOpen, secretName, namespace, fetchPath]);
+  }, [isOpen, secretName, namespace, bucket, fetchPath]);
 
   const debouncedSearch = useMemo(
     () =>
       debounce((query: string) => {
+        appliedSearchRef.current = query;
         const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
         setPageToRender(1);
         continuationTokensRef.current = new Map();
@@ -485,15 +492,16 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
       setPageToRender(newPage);
 
+      const search = appliedSearchRef.current || undefined;
       if (newPage === 1) {
         // First page: no continuation token needed
-        fetchPath(currentPath, perPage, newPage, searchQuery || undefined);
+        fetchPath(currentPath, perPage, newPage, search);
       } else {
         const token = continuationTokensRef.current.get(newPage);
-        fetchPath(currentPath, perPage, newPage, searchQuery || undefined, token);
+        fetchPath(currentPath, perPage, newPage, search, token);
       }
     },
-    [perPageToRender, pageToRender, fetchPath, currentPath, searchQuery],
+    [perPageToRender, pageToRender, fetchPath, currentPath],
   );
 
   const handlePerPageSelect = useCallback(
@@ -501,9 +509,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       setPerPageToRender(newPerPage);
       setPageToRender(1);
       continuationTokensRef.current = new Map();
-      fetchPath(currentPath, newPerPage, 1, searchQuery || undefined);
+      fetchPath(currentPath, newPerPage, 1, appliedSearchRef.current || undefined);
     },
-    [fetchPath, currentPath, searchQuery],
+    [fetchPath, currentPath],
   );
 
   const handlePrimary = useCallback(
