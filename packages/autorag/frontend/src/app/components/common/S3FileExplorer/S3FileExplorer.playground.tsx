@@ -210,6 +210,8 @@ const App: React.FC = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectFiles={(files) => setSelectedFiles(files)}
+        selectableExtensions={['json', 'txt']}
+        unselectableReason="You can only select JSON or TXT files"
       />
     </div>
   );

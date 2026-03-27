@@ -1,6 +1,6 @@
 // Modules -------------------------------------------------------------------->
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { type ReactNode, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { debounce } from 'es-toolkit';
@@ -28,7 +28,7 @@ const formatBytes = (bytes: number): string => {
 };
 
 /** Maps an S3ListObjectsResult to FileExplorer-compatible items. */
-const mapResultToItems = (result: S3ListObjectsResult): Files => {
+const mapResultToItems = (result: S3ListObjectsResult, selectableExtensions?: string[]): Files => {
   const items: Files = [];
 
   if (Array.isArray(result.common_prefixes)) {
@@ -79,6 +79,7 @@ const mapResultToItems = (result: S3ListObjectsResult): Files => {
         path: fullPath,
         type: fileTypeToRender,
         size: sizeToRender,
+        selectable: !selectableExtensions || selectableExtensions.includes(ext),
         details: {
           ...(obj.last_modified && {
             'Last Modified': (
@@ -139,6 +140,12 @@ interface S3FileExplorerProps {
 
   /** The connection secret that provides S3 credentials and endpoint configuration. */
   s3Secret?: ConnectionSecret;
+
+  /** When provided, only files with these extensions are selectable. Case-insensitive. Example: ["json", "html"] */
+  selectableExtensions?: string[];
+
+  /** The reason displayed beside a file that cannot be selected. Example: "Only JSON and HTML files can be selected" */
+  unselectableReason?: ReactNode;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -147,6 +154,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   onSelectFiles,
   namespace,
   s3Secret,
+  selectableExtensions,
+  unselectableReason,
 }) => {
   // State -------------------------------------------------------------------->
 
@@ -170,6 +179,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
   const lastResultRef = useRef<S3ListObjectsResult | null>(null);
   const fetchIdRef = useRef(0);
+  const selectableExtensionsRef = useRef(selectableExtensions);
+  selectableExtensionsRef.current = selectableExtensions;
 
   // Effects ------------------------------------------------------------------>
 
@@ -208,7 +219,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
             return;
           }
           lastResultRef.current = result;
-          const items = mapResultToItems(result);
+          const items = mapResultToItems(result, selectableExtensionsRef.current);
           setFilesToRender(items);
           setHasNextPage(!!result.next_continuation_token);
           setFetchError(null);
@@ -347,6 +358,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       page={pageToRender}
       perPage={perPageToRender}
       hasNextPage={hasNextPage}
+      unselectableReason={unselectableReason}
       selection="radio"
       isOpen={isOpen}
       onClose={onClose}

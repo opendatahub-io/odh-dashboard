@@ -77,6 +77,7 @@ export interface File {
   items?: number;
   details?: object;
   hidden?: boolean;
+  selectable?: boolean;
 }
 export type Files<T extends File = File> = T[];
 
@@ -240,6 +241,7 @@ interface FilesTableProps {
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
+  unselectableReason?: string;
   onFolderClick?: (folder: Folder) => void;
   onViewDetails: (file: File) => void;
   filesToView?: Files;
@@ -253,6 +255,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   selectedFiles,
   setSelectedFiles,
   selection = 'radio',
+  unselectableReason,
   onFolderClick,
   onViewDetails,
   filesToView,
@@ -360,10 +363,18 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
                   const isFileBeingViewed =
                     Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
+                  const isSelectable = file.selectable === false;
                   acc.elements.push(
                     <Tr key={file.path} isRowSelected={isSelected}>
                       <Td
                         width={columns.select.width}
+                        title={
+                          isSelectable &&
+                          typeof unselectableReason === 'string' &&
+                          unselectableReason
+                            ? unselectableReason
+                            : ''
+                        }
                         select={{
                           rowIndex,
                           onSelect: (_event, isSelecting) => {
@@ -384,7 +395,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             }
                           },
                           isSelected,
-                          isDisabled: false,
+                          isDisabled: isSelectable,
                           variant: selection,
                         }}
                       />
@@ -809,6 +820,9 @@ interface FileExplorerProps {
   /** The selection mode for file rows: `radio` for single selection, `checkbox` for multi-select. */
   selection?: 'radio' | 'checkbox';
 
+  /** The reason that should be rendered beside a file that cannot be selected. */
+  unselectableReason?: string;
+
   /** Callback fired when a source is selected from the source selector. */
   onSelectSource?: (source: Source) => void;
 
@@ -850,6 +864,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   isEmpty,
   emptyStateProps,
   selection = 'radio',
+  unselectableReason,
   onSelectSource,
   onFolderClick,
   onNavigate,
@@ -979,6 +994,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
+                  unselectableReason={unselectableReason}
                   onFolderClick={onFolderClick}
                   onViewDetails={(file) => setFilesToView([file])}
                   filesToView={filesToView}
