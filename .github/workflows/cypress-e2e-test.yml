@@ -870,7 +870,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Restore npm dependencies cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: npm-cache
         with:
           path: |
@@ -891,7 +891,7 @@ jobs:
         run: npm ci
 
       - name: Restore turbo build artifacts cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
@@ -899,7 +899,7 @@ jobs:
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
       - name: Restore OpenShift CLI tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: oc-cache
         with:
           path: ${{ runner.temp }}/oc.tar.gz
