@@ -201,6 +201,31 @@ describe('MCP Server Details Page', () => {
       mcpServerDetails.visit(serverWithoutArtifacts.id);
       mcpServerDetails.findDeployButton().should('not.exist');
     });
+
+    it('should not show deploy button when artifacts contain only empty URIs', () => {
+      const serverWithEmptyUri = mockMcpServer({
+        id: 'empty-uri',
+        name: 'Empty URI Server',
+        artifacts: [{ uri: '' }],
+      });
+      initServerDetailIntercept(serverWithEmptyUri);
+      initMcpServerAvailabilityIntercept(true);
+      mcpServerDetails.visit(serverWithEmptyUri.id);
+      mcpServerDetails.findDeployButton().should('not.exist');
+    });
+
+    it('should show loading spinner on deploy button while availability is being checked', () => {
+      initServerDetailIntercept(kubernetesServer);
+      cy.intercept(
+        { method: 'GET', pathname: '**/mcp_server_available' },
+        (req) => {
+          req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
+        },
+      );
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails.findDeployButton().should('be.visible');
+      mcpServerDetails.findDeployButton().find('.pf-v6-c-spinner').should('exist');
+    });
   });
 
   describe('Tools section', () => {

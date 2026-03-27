@@ -43,6 +43,10 @@ func overrideMcpServerConverter(app *api.App, _ func() httprouter.Handle) httpro
 		}
 
 		containerImage := helper.ExtractContainerImage(server.Artifacts)
+		if containerImage == "" {
+			app.BadRequest(w, r, fmt.Errorf("server %q has no usable container image artifact", serverId))
+			return
+		}
 
 		result := helper.ConvertToMCPServer(server.RuntimeMetadata, helper.ConversionOptions{
 			Name:           server.Name,
