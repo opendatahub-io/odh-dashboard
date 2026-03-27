@@ -47,7 +47,12 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       }
 
       cy.log(`Creating project ${projectName} using oc commands`);
-      return createCleanProject(projectName).then(() => enableGenAiFeatures());
+      createCleanProject(projectName);
+    }).then(() => {
+      if (skipTest) {
+        return;
+      }
+      return enableGenAiFeatures();
     });
   });
 
