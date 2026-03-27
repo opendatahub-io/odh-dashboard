@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 
 interface CloseChatCompareModalProps {
   chatLabel: string;
@@ -18,12 +19,12 @@ const CloseChatCompareModal: React.FC<CloseChatCompareModalProps> = ({
       {`The chat configuration for ${chatLabel} will be lost. Are you sure you would like to close?`}
     </ModalBody>
     <ModalFooter>
-      <Button variant="danger" onClick={onConfirm} data-testid="close-compare-confirm-button">
-        Close
-      </Button>
-      <Button variant="link" onClick={onCancel} data-testid="close-compare-cancel-button">
-        Cancel
-      </Button>
+      <DashboardModalFooter
+        submitLabel="Close"
+        submitButtonVariant="danger"
+        onSubmit={onConfirm}
+        onCancel={onCancel}
+      />
     </ModalFooter>
   </Modal>
 );
