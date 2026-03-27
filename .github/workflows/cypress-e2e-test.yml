@@ -857,7 +857,11 @@ jobs:
           find ${{ github.workspace }}/packages/cypress/results -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/videos -type d -empty -delete 2>/dev/null || true
-          
+
+          # Fix read-only envtest binaries from previous BFF runs (setup-envtest downloads
+          # k8s binaries with read-only permissions, which blocks actions/checkout cleanup)
+          find ${{ github.workspace }}/packages/*/bff/bin -type f ! -perm -u+w -exec chmod u+w {} + 2>/dev/null || true
+
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
       - name: Checkout code
@@ -1413,6 +1417,9 @@ jobs:
           else
             echo "✅ Cleaned up $BFF_KILLED_COUNT BFF process(es) for run_id: ${{ github.run_id }}"
           fi
+
+          # Fix read-only envtest binaries so next checkout can clean the workspace
+          find ${{ github.workspace }}/packages/*/bff/bin -type f ! -perm -u+w -exec chmod u+w {} + 2>/dev/null || true
 
       - name: Stop Cypress Servers
         run: |
