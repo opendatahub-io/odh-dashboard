@@ -530,12 +530,27 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   return (
     <Breadcrumb>
       <BreadcrumbItem
-        {...(!isAtRoot && onNavigateRoot ? { to: '#', onClick: onNavigateRoot } : {})}
+        {...(!isAtRoot && onNavigateRoot
+          ? {
+              to: '#',
+              onClick: (e: React.MouseEvent) => {
+                e.preventDefault();
+                onNavigateRoot();
+              },
+            }
+          : {})}
       >
         {rootLabel}
       </BreadcrumbItem>
       {leadingDirs.map((dir) => (
-        <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
+        <BreadcrumbItem
+          key={dir.path}
+          to="#"
+          onClick={(e: React.MouseEvent) => {
+            e.preventDefault();
+            onNavigate?.(dir);
+          }}
+        >
           {dir.name}
         </BreadcrumbItem>
       ))}
@@ -572,7 +587,14 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
         </BreadcrumbItem>
       )}
       {navigableDirs.map((dir) => (
-        <BreadcrumbItem key={dir.path} to="#" onClick={() => onNavigate?.(dir)}>
+        <BreadcrumbItem
+          key={dir.path}
+          to="#"
+          onClick={(e: React.MouseEvent) => {
+            e.preventDefault();
+            onNavigate?.(dir);
+          }}
+        >
           {dir.name}
         </BreadcrumbItem>
       ))}
@@ -952,15 +974,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         resetState();
       }}
       variant="large"
-      aria-labelledby="FileExplorer-modal-title"
-      aria-describedby="FileExplorer-modal-body"
+      aria-labelledby={`${rootId}-FileExplorer-modal-title`}
+      aria-describedby={`${rootId}-FileExplorer-modal-body`}
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
         description={defaults.labels.modalDescription(selection)}
-        labelId="FileExplorer-modal-title"
+        labelId={`${rootId}-FileExplorer-modal-title`}
       />
-      <ModalBody id="FileExplorer-modal-body">
+      <ModalBody id={`${rootId}-FileExplorer-modal-body`}>
         <Flex direction={{ default: 'column' }}>
           {typeof onSelectSource === 'function' && (
             <FlexItem>
@@ -1016,7 +1038,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </FlexItem>
               <FlexItem>
                 <Pagination
-                  widgetId="FileExplorer-table-pagination"
+                  widgetId={`${rootId}-FileExplorer-table-pagination`}
                   itemCount={syntheticItemCount}
                   perPage={currentPerPage}
                   page={currentPage}
