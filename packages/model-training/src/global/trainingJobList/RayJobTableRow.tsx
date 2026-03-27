@@ -265,7 +265,10 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
             setStatusModalOpen(false);
             onPauseClick();
           }}
-          onResumeClick={handleResume}
+          onResumeClick={() => {
+            setStatusModalOpen(false);
+            handleResume();
+          }}
           isToggling={isSubmitting}
         />
       )}
