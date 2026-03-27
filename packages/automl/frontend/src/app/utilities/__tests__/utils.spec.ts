@@ -6,7 +6,7 @@ import {
   getOptimizedMetricForTask,
   computeRankMap,
   isErrorMetric,
-} from '../utils';
+} from '~/app/utilities/utils';
 
 describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
