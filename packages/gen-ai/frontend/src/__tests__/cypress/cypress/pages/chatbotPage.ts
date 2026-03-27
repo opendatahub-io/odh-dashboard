@@ -405,14 +405,9 @@ class ChatbotPage {
     return cy.get('[data-testid^="chatbot-pane-"][role="region"]');
   }
 
-  // Find a specific chatbot pane by index (0 = Model 1, 1 = Model 2)
+  // Find a specific chatbot pane by index (0 = Chat 1, 1 = Chat 2)
   findChatbotPaneByIndex(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findAllChatbotPanes().eq(index);
-  }
-
-  // Find pane settings button by pane index
-  findPaneSettingsButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findChatbotPaneByIndex(index).find('[data-testid$="-settings-button"]');
   }
 
   // Find pane close button by pane index
@@ -425,10 +420,25 @@ class ChatbotPage {
     return this.findChatbotPaneByIndex(index).findByTestId('chatbot-model-selector-toggle');
   }
 
-  // Find pane label text (e.g., "Model 1", "Model 2")
+  // Find pane label text (e.g., "Chat 1", "Chat 2")
   findPaneLabel(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    const labelText = `Model ${index + 1}`;
+    const labelText = `Chat ${index + 1}`;
     return this.findChatbotPaneByIndex(index).contains(labelText);
+  }
+
+  // Find the global Settings button in the page header
+  findSettingsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('settings-button');
+  }
+
+  // Find the config switcher toggle group inside the settings panel
+  findConfigSwitcher(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-config-switcher');
+  }
+
+  // Find a specific config tab in the settings panel switcher (1-based)
+  findConfigTab(chatNumber: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`chatbot-config-tab-${chatNumber}`);
   }
 
   // Verify we are in compare mode (two panes visible)
@@ -451,22 +461,21 @@ class ChatbotPage {
     this.findCompareChatButton().click();
   }
 
-  // Exit compare mode by closing a pane
+  // Exit compare mode by closing a pane (confirms the modal)
   closePaneByIndex(index: number): void {
     this.findPaneCloseButton(index).click();
+    cy.findByTestId('modal-submit-button').click();
   }
 
-  // Open settings panel for a specific pane
-  openPaneSettings(index: number): void {
-    // First ensure any existing settings panel is closed
-    this.closeSettingsPanel();
-    // Then click the settings button for the specified pane
-    this.findPaneSettingsButton(index).click({ force: true });
+  // Open the settings panel via the header Settings button and switch to the given pane (1-based)
+  openPaneSettings(chatNumber: number): void {
+    this.findSettingsButton().click();
+    this.findConfigSwitcher().should('be.visible');
+    this.findConfigTab(chatNumber).click();
   }
 
-  // Find settings panel header (shows "Configure - 1" or "Configure - 2")
+  // Find settings panel header (single mode only — shows "Configure")
   findSettingsPanelHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Wait for the drawer to be visible before finding the header
     return cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 });
   }
 
@@ -489,8 +498,6 @@ class ChatbotPage {
       const closeButton = $body.find('[aria-label="Close settings panel"]');
       if (closeButton.length > 0 && closeButton.is(':visible')) {
         cy.get('[aria-label="Close settings panel"]').click({ force: true });
-        // Wait for panel to close
-        cy.get('[data-testid="chatbot-settings-panel-header"]').should('not.exist');
       }
     });
   }
