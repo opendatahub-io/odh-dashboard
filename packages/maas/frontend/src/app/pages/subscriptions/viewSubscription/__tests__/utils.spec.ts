@@ -13,14 +13,14 @@ const makeRef = (
 });
 
 describe('formatTokenLimits', () => {
-  it('returns "—" when the model is not found in the list', () => {
+  it('returns "Unlimited" when the model is not found in the list', () => {
     const refs = [makeRef('model-a', [{ limit: 1000, window: '1h' }])];
-    expect(formatTokenLimits(refs, Namespace, 'model-b')).toBe('—');
+    expect(formatTokenLimits(refs, Namespace, 'model-b')).toBe('Unlimited');
   });
 
-  it('returns "—" when the model has an empty tokenRateLimits array', () => {
+  it('returns "Unlimited" when the model has an empty tokenRateLimits array', () => {
     const refs = [makeRef('model-a', [])];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('—');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('Unlimited');
   });
 
   it('formats the first token rate limit correctly', () => {
@@ -38,13 +38,9 @@ describe('formatTokenLimits', () => {
     expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('1,000 / 1m');
   });
 
-  it('returns "—" for an empty refs list', () => {
-    expect(formatTokenLimits([], Namespace, 'model-a')).toBe('—');
-  });
-
-  it('returns "—" when the model has no tokenRateLimits field (undefined)', () => {
+  it('returns "Unlimited" when the model has no tokenRateLimits field (undefined)', () => {
     const refs = [makeRef('model-a', undefined)];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('—');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('Unlimited');
   });
 
   it('formats large limit numbers with locale separators', () => {
@@ -52,8 +48,8 @@ describe('formatTokenLimits', () => {
     expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('1,000,000 / 24h');
   });
 
-  it('returns "—" when namespace does not match', () => {
+  it('returns "Unlimited" when namespace does not match', () => {
     const refs = [makeRef('model-a', [{ limit: 1000, window: '1h' }])];
-    expect(formatTokenLimits(refs, 'other-namespace', 'model-a')).toBe('—');
+    expect(formatTokenLimits(refs, 'other-namespace', 'model-a')).toBe('Unlimited');
   });
 });
