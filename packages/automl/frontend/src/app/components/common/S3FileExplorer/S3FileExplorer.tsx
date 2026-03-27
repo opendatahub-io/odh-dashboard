@@ -270,7 +270,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           setLoadingToRender(false);
         })
         .catch((error: unknown) => {
-          // TODO [ Gustavo ] Handle errors gracefully
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            return;
+          }
           if (fetchIdRef.current !== requestId) {
             return;
           }
