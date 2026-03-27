@@ -12,21 +12,33 @@ import TabRoutePage from '#~/app/navigation/TabRoutePage';
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn(),
-  LazyCodeRefComponent: ({ fallback }: { component: unknown; fallback: React.ReactNode }) => (
-    <div data-testid="lazy-content">Tab Content</div>
-  ),
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  LazyCodeRefComponent: function MockLazyCodeRefComponent(_props: {
+    component: unknown;
+    fallback: React.ReactNode;
+  }) {
+    return <div data-testid="lazy-content">Tab Content</div>;
+  },
 }));
 
-jest.mock('#~/pages/NotFound', () => () => <div data-testid="not-found">Not Found</div>);
+jest.mock(
+  '#~/pages/NotFound',
+  () =>
+    function MockNotFound() {
+      return <div data-testid="not-found">Not Found</div>;
+    },
+);
 
 jest.mock(
   '#~/concepts/design/TitleWithIcon',
   () =>
-    ({ title, objectType }: { title: string; objectType: string }) => (
-      <span data-testid="title-with-icon" data-object-type={objectType}>
-        {title}
-      </span>
-    ),
+    function MockTitleWithIcon({ title, objectType }: { title: string; objectType: string }) {
+      return (
+        <span data-testid="title-with-icon" data-object-type={objectType}>
+          {title}
+        </span>
+      );
+    },
 );
 
 const mockUseExtensions = jest.mocked(useExtensions);
