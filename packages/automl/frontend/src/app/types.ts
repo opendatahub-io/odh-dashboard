@@ -77,6 +77,11 @@ export type PipelineRunState =
   | 'COMPLETE'
   | 'CANCELLED';
 
+export type PipelineRunStateHistoryEntry = {
+  update_time: string;
+  state?: string;
+};
+
 export type PipelineRun = {
   run_id: string;
   display_name: string;
@@ -93,6 +98,7 @@ export type PipelineRun = {
   scheduled_at?: string;
   finished_at?: string;
   error?: PipelineRunError;
+  state_history?: PipelineRunStateHistoryEntry[];
 };
 
 export type SecretListItem = {

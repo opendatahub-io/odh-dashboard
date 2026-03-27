@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { relativeTime } from 'mod-arch-shared';
+import { getRunStartTime } from '@odh-dashboard/internal/concepts/pipelines/content/tables/utils';
 import type { PipelineRun, PipelineRunState } from '~/app/types';
 import { automlRunsColumns } from './columns';
 
@@ -49,14 +50,6 @@ export const getStatusLabelProps = (
   return { color: 'grey' };
 };
 
-const isValidDate = (value: string | undefined): value is string => {
-  if (!value) {
-    return false;
-  }
-  const date = new Date(value);
-  return !Number.isNaN(date.getTime());
-};
-
 const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run }) => (
   <Tr>
     <Td dataLabel={automlRunsColumns[0].label}>
@@ -66,18 +59,14 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run }) => (
       {run.description?.trim() ? run.description : '—'}
     </Td>
     <Td dataLabel={automlRunsColumns[2].label}>
-      {isValidDate(run.created_at) ? (
-        <Timestamp
-          date={new Date(run.created_at)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(run.created_at).getTime())}
-        </Timestamp>
-      ) : (
-        '—'
-      )}
+      <Timestamp
+        date={getRunStartTime(run)}
+        tooltip={{
+          variant: TimestampTooltipVariant.default,
+        }}
+      >
+        {relativeTime(Date.now(), getRunStartTime(run).getTime())}
+      </Timestamp>
     </Td>
     <Td dataLabel={automlRunsColumns[3].label}>
       {run.state ? (

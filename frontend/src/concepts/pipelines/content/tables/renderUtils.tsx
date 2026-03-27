@@ -23,6 +23,7 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
+  getRunStartTime,
   getPipelineRecurringRunScheduledState,
   ScheduledState,
 } from '#~/concepts/pipelines/content/tables/utils';
@@ -82,10 +83,9 @@ export const RunDuration: RunUtil = ({ run }) => {
   return <>{relativeDuration(duration)}</>;
 };
 
-export const RunCreated: RunUtil = ({ run }) => {
-  const createdDate = new Date(run.created_at);
-  return <PipelinesTableRowTime date={createdDate} />;
-};
+export const RunCreated: RunUtil = ({ run }) => (
+  <PipelinesTableRowTime date={getRunStartTime(run)} />
+);
 
 export const RecurringRunCreated: RecurringRunUtil = ({ recurringRun }) => {
   const createdDate = new Date(recurringRun.created_at);
