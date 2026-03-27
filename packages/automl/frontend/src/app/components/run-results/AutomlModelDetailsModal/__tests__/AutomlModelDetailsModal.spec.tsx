@@ -115,7 +115,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(modelInfoTab.className).not.toContain('automl-model-details-nav-item--active');
   });
 
-  it('should exclude confusion matrix tab for timeseries task type', () => {
+  it('should exclude confusion matrix and feature summary tabs for timeseries task type', () => {
     render(
       <AutomlResultsContext.Provider value={mockTimeseriesContext}>
         <AutomlModelDetailsModal {...defaultProps} modelName="TemporalFusionTransformer" />
@@ -123,8 +123,8 @@ describe('AutomlModelDetailsModal', () => {
     );
 
     expect(screen.getByTestId('tab-model-information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-feature-summary')).toBeInTheDocument();
     expect(screen.getByTestId('tab-model-evaluation')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-feature-summary')).not.toBeInTheDocument();
     expect(screen.queryByTestId('tab-confusion-matrix')).not.toBeInTheDocument();
   });
 

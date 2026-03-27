@@ -102,16 +102,15 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('hair_length')).toBeInTheDocument();
   });
 
-  it('should show no data rows when search matches nothing', async () => {
+  it('should show empty state when search matches nothing', async () => {
     const user = userEvent.setup();
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
     const searchInput = screen.getByPlaceholderText('Search feature names');
     await user.type(searchInput, 'nonexistent');
 
-    const rows = screen.getAllByRole('row');
-    // Only header row should remain
-    expect(rows).toHaveLength(1);
+    expect(screen.getByTestId('feature-search-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No matching features')).toBeInTheDocument();
   });
 
   it('should render table headers', () => {

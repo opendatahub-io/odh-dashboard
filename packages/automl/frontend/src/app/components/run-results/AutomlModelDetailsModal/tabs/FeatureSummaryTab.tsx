@@ -1,11 +1,16 @@
 import React from 'react';
 import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   SearchInput,
   Skeleton,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
@@ -72,23 +77,42 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
           </Tr>
         </Thead>
         <Tbody>
-          {entries.map(([name, importance]) => (
-            <Tr key={name}>
-              <Td dataLabel="Feature name">{name}</Td>
-              <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
-              <Td>
-                <div
-                  style={{
-                    width: `${maxImportance > 0 ? (importance / maxImportance) * 100 : 0}%`,
-                    height: 12,
-                    backgroundColor: 'var(--pf-t--global--color--brand--default)',
-                    borderRadius: 2,
-                    minWidth: 4,
-                  }}
-                />
+          {entries.length === 0 ? (
+            <Tr>
+              <Td colSpan={3}>
+                <Bullseye>
+                  <EmptyState
+                    variant={EmptyStateVariant.sm}
+                    icon={SearchIcon}
+                    titleText="No matching features"
+                    data-testid="feature-search-empty-state"
+                  >
+                    <EmptyStateBody>
+                      No features match your search. Try adjusting your search criteria.
+                    </EmptyStateBody>
+                  </EmptyState>
+                </Bullseye>
               </Td>
             </Tr>
-          ))}
+          ) : (
+            entries.map(([name, importance]) => (
+              <Tr key={name}>
+                <Td dataLabel="Feature name">{name}</Td>
+                <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
+                <Td>
+                  <div
+                    style={{
+                      width: `${maxImportance > 0 ? (importance / maxImportance) * 100 : 0}%`,
+                      height: 12,
+                      backgroundColor: 'var(--pf-t--global--color--brand--default)',
+                      borderRadius: 2,
+                      minWidth: 4,
+                    }}
+                  />
+                </Td>
+              </Tr>
+            ))
+          )}
         </Tbody>
       </Table>
     </>
