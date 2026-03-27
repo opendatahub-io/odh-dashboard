@@ -546,7 +546,8 @@ function AutomlConfigure(): React.JSX.Element {
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
-            setValue('train_data_file_key', file.path, { shouldValidate: true });
+            const filePath = file.path.replace(/^\//, '');
+            setValue('train_data_file_key', filePath, { shouldValidate: true });
           }
         }}
         selectableExtensions={['csv']}

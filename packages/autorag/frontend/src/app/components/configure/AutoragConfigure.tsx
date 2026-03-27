@@ -429,8 +429,9 @@ function AutoragConfigure(): React.JSX.Element {
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
+            const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
-              setValue('input_data_key', file.path, { shouldValidate: true });
+              setValue('input_data_key', filePath, { shouldValidate: true });
             }
             if (fileExplorerMode === 'test_data') {
               // TODO [ Gustavo ] Once the upload of test data in the right hand configure page is present, hook it up correctly
