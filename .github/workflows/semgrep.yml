@@ -1,0 +1,87 @@
+# Semgrep static analysis using the repository root semgrep.yaml (report-only).
+#
+# Report-only: the scan step uses continue-on-error so findings do not fail the check.
+# To enforce: remove continue-on-error from the "Run Semgrep" step.
+#
+# Follow-ups when tightening:
+# - Add # nosemgrep: k8s-rbac-cluster-admin-binding to intentional fixtures (e.g.
+#   packages/cypress/cypress/fixtures/resources/yaml/cluster_role_binding.yaml), or
+#   agree on path excludes.
+# - Optionally set k8s-rbac-cluster-admin-binding severity to ERROR in semgrep.yaml.
+#
+# SARIF upload to the Security tab is skipped on forked repositories (permission limits).
+
+name: Semgrep
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep (report-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SEMGREP_SEND_METRICS: off
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: |
+          python -m pip install --upgrade pip
+          pip install "semgrep==1.156.0"
+
+      - name: Run Semgrep
+        id: semgrep
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config semgrep.yaml \
+            --sarif \
+            --output semgrep.sarif \
+            .
+
+      - name: Semgrep findings summary
+        if: always()
+        run: |
+          if [ -f semgrep.sarif ] && command -v jq >/dev/null; then
+            count=$(jq '[.runs[]?.results[]?] | length' semgrep.sarif)
+            echo "### Semgrep findings: ${count}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Scan step outcome: ${{ steps.semgrep.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Semgrep" >> "$GITHUB_STEP_SUMMARY"
+            echo "No semgrep.sarif produced or jq unavailable; scan step outcome: ${{ steps.semgrep.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Semgrep SARIF to GitHub Security
+        if: always() && hashFiles('semgrep.sarif') != '' && github.event.repository.fork == false
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Upload Semgrep artifacts
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
