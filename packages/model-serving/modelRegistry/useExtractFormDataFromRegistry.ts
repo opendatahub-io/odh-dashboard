@@ -101,6 +101,9 @@ export const useExtractFormDataFromRegistry = (
     // This ensures the k8s name is properly generated from the display name
     const baseK8sNameDesc = setupDefaults({
       limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: /^[a-z]([-a-z0-9]*[a-z0-9])?$/,
+      invalidCharsMessage:
+        'Must start with a lowercase letter and end with a lowercase letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).',
     });
     const k8sNameDesc = handleUpdateLogic(baseK8sNameDesc)('name', prefillInfo.modelName);
 

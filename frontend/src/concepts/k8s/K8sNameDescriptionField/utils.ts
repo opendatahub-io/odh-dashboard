@@ -111,7 +111,7 @@ export const handleUpdateLogic =
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix, staticPrefix } =
+        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp } =
           existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
@@ -123,6 +123,10 @@ export const handleUpdateLogic =
           });
           changedData.k8sName = {
             value: k8sValue,
+            state: {
+              invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
+              invalidLength: k8sValue.length > maxLength,
+            },
           };
         }
         break;

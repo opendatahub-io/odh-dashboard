@@ -128,6 +128,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    regexp: /^[a-z]([-a-z0-9]*[a-z0-9])?$/,
+    invalidCharsMessage:
+      'Must start with a lowercase letter and end with a lowercase letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).',
   });
 
   const [connection, setConnection] = React.useState<Connection>();
