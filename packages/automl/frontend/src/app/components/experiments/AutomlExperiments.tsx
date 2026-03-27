@@ -1,13 +1,6 @@
-import {
-  Alert,
-  Bullseye,
-  Button,
-  Spinner,
-  ToolbarGroup,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
@@ -17,6 +10,21 @@ import PipelineServerNotReady from '~/app/components/empty-states/PipelineServer
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import { automlCreatePathname } from '~/app/utilities/routes';
+
+export type AutomlExperimentsListStatus = {
+  /** True once pipeline definitions and runs have finished loading without a blocking list error. */
+  loaded: boolean;
+  /** True when at least one experiment (run) exists; false for empty state and error states. */
+  hasExperiments: boolean;
+};
+
+type AutomlExperimentsProps = {
+  /**
+   * Fired when list loading / emptiness changes so the host page can tune chrome (e.g. hide the
+   * header "Create AutoML experiment" action while the centered empty state is shown).
+   */
+  onExperimentsListStatus?: (status: AutomlExperimentsListStatus) => void;
+};
 
 /**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
@@ -38,8 +46,7 @@ function parseErrorStatus(error: Error): number | undefined {
  * Main experiments list page for AutoML. Renders pipeline runs in a paginated table,
  * handles loading/error states (403, 404, 503), and shows empty state when no experiments exist.
  */
-function AutomlExperiments(): React.JSX.Element {
-  const navigate = useNavigate();
+function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps): React.JSX.Element {
   const { namespace } = useParams();
 
   const effectiveNamespace = namespace ?? '';
@@ -59,17 +66,26 @@ function AutomlExperiments(): React.JSX.Element {
   const loaded = defsLoaded && runsLoaded;
   const loadError = defsError || runsError;
 
-  const handleCreateClick = React.useCallback(() => {
-    navigate(`${automlCreatePathname}/${effectiveNamespace}`);
-  }, [navigate, effectiveNamespace]);
-
-  const createButton = (
-    <Button variant="primary" onClick={handleCreateClick}>
-      Create AutoML experiment
-    </Button>
-  );
-
   const hasExperiments = totalSize > 0;
+
+  const onListStatusRef = React.useRef(onExperimentsListStatus);
+  onListStatusRef.current = onExperimentsListStatus;
+
+  React.useEffect(() => {
+    const notify = onListStatusRef.current;
+    if (!notify) {
+      return;
+    }
+    if (loadError) {
+      notify({ loaded: true, hasExperiments: false });
+      return;
+    }
+    if (!loaded) {
+      notify({ loaded: false, hasExperiments: false });
+      return;
+    }
+    notify({ loaded: true, hasExperiments });
+  }, [effectiveNamespace, loadError, loaded, hasExperiments]);
 
   const errorCode = loadError
     ? (getGenericErrorCode(loadError) ??
@@ -118,11 +134,6 @@ function AutomlExperiments(): React.JSX.Element {
       pageSize={pageSize}
       onPageChange={setPage}
       onPerPageChange={setPageSize}
-      toolbarContent={
-        <ToolbarGroup align={{ default: 'alignEnd' }} style={{ flex: 1 }}>
-          <ToolbarItem>{createButton}</ToolbarItem>
-        </ToolbarGroup>
-      }
     />
   );
 }
