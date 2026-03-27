@@ -119,7 +119,7 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
-      label="Model deployment configuration"
+      label="Deployment resource"
       modelServerState={{
         data: value.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),

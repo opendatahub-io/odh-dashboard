@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, FormGroup } from '@patternfly/react-core';
+import { Checkbox, Flex, FlexItem, FormGroup } from '@patternfly/react-core';
 import { z, type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
@@ -96,7 +96,17 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
         <Checkbox
           id="legacy-mode-checkbox"
           data-testid="legacy-mode-checkbox"
-          label="Deploy this model in legacy mode using a serving runtime and inference server"
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Use legacy deployment method</div>
+              <Flex>
+                <FlexItem>
+                  Deploy this model using a serving runtime and inference server. This deployment
+                  method does not support MaaS.
+                </FlexItem>
+              </Flex>
+            </>
+          }
           isChecked={modelType.legacyVLLM}
           onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
           isDisabled={isEditing || isDisabled}
