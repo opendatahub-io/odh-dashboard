@@ -5,7 +5,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { FeatureImportanceData } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import FeatureSummaryTab from '../FeatureSummaryTab';
+import FeatureSummaryTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/FeatureSummaryTab';
 
 const baseModel: AutomlModel = {
   display_name: 'TestModel',

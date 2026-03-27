@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ConfusionMatrixData } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import ConfusionMatrixTab from '../ConfusionMatrixTab';
+import ConfusionMatrixTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
 
 const baseModel: AutomlModel = {
   display_name: 'TestModel',

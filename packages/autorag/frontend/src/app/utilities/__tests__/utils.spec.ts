@@ -1,7 +1,11 @@
 /* eslint-disable camelcase */
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { parseErrorStatus, getOptimizedMetricForRAG, formatMetricValue } from '../utils';
+import {
+  parseErrorStatus,
+  getOptimizedMetricForRAG,
+  formatMetricValue,
+} from '~/app/utilities/utils';
 
 describe('parseErrorStatus', () => {
   it('should extract status code from "status code XXX" format', () => {
