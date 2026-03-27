@@ -377,6 +377,7 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -586,6 +587,7 @@ export type MaaSTokenRequest = {
   description?: string;
   expiresIn?: string;
   ephemeral?: boolean;
+  subscription?: string;
 };
 export interface MaaSTokenResponse {
   key: string;

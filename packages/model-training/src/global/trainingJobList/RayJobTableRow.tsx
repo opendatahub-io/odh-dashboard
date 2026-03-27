@@ -14,6 +14,7 @@ import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import RayJobStatus from './components/RayJobStatus';
+import RayJobStatusModal from './RayJobStatusModal';
 import StateActionToggle from './StateActionToggle';
 import { getStatusFlags, getRayJobStatusSync } from './utils';
 import PauseRayJobModal from './PauseRayJobModal';
@@ -49,6 +50,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   const displayName = job.metadata.name;
   const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
   const { isPaused, canPauseResume } = getStatusFlags(jobStatus ?? getRayJobStatusSync(job));
+  const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const {
     workerGroupReplicas,
@@ -217,8 +219,12 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          {/* TODO RHOAIENG-52542: add onClick={() => setStatusModalOpen(true)} when modal is built */}
-          <RayJobStatus job={job} jobStatus={jobStatus} isLoading={isLoadingStatus} />
+          <RayJobStatus
+            job={job}
+            jobStatus={jobStatus}
+            isLoading={isLoadingStatus}
+            onClick={() => setStatusModalOpen(true)}
+          />
         </Td>
         <Td>
           {canPauseResume && (
@@ -243,6 +249,27 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           onConfirm={handlePause}
           dontShowModalValue={dontShowModalValue}
           setDontShowModalValue={setDontShowModalValue}
+        />
+      )}
+
+      {statusModalOpen && (
+        <RayJobStatusModal
+          job={job}
+          jobStatus={jobStatus}
+          onClose={() => setStatusModalOpen(false)}
+          onDelete={() => {
+            setStatusModalOpen(false);
+            onDelete(job);
+          }}
+          onPauseClick={() => {
+            setStatusModalOpen(false);
+            onPauseClick();
+          }}
+          onResumeClick={() => {
+            setStatusModalOpen(false);
+            handleResume();
+          }}
+          isToggling={isSubmitting}
         />
       )}
 
