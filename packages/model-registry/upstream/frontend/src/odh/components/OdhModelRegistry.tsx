@@ -8,6 +8,7 @@ import {
   EmptyStateVariant,
   PageSection,
   Bullseye,
+  Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { WhosMyAdministrator } from 'mod-arch-shared';
@@ -60,7 +61,11 @@ const OdhModelRegistry: React.FC<OdhModelRegistryProps> = (props) => {
       <AdminCheckComponent>
         {(isAdmin: boolean, loaded: boolean) => {
           if (!loaded) {
-            return <Bullseye>Loading...</Bullseye>;
+            return (
+              <Bullseye>
+                <Spinner />
+              </Bullseye>
+            );
           }
           return (
             <ModelRegistry

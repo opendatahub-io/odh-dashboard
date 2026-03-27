@@ -51,7 +51,11 @@ const UnavailableErrorPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => (
  * error messaging when a model registry is unavailable.
  */
 const OdhModelRegistry: React.FC<OdhModelRegistryProps> = (props) => {
-  const [isAdmin] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
+  const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
+
+  if (!isAdminLoaded) {
+    return null;
+  }
 
   return (
     <ModelRegistry {...props} unavailableErrorPage={<UnavailableErrorPage isAdmin={isAdmin} />} />
