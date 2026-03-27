@@ -96,12 +96,6 @@ class AIAssetsPage {
     this.findSearchInput().type('{enter}');
   }
 
-  filterByKeyword(keyword: string) {
-    this.selectFilterType('Keyword');
-    this.findSearchInput().clear().type(keyword);
-    this.findSearchInput().type('{enter}');
-  }
-
   filterByUseCase(useCase: string) {
     this.selectFilterType('Use case');
     this.findSearchInput().clear().type(useCase);
@@ -116,8 +110,8 @@ class AIAssetsPage {
     // Map display names to filter keys used in testIDs
     const filterKeyMap: Record<string, string> = {
       Name: 'name',
-      Keyword: 'keyword',
       'Use case': 'useCase',
+      Status: 'status',
     };
     const filterKey = filterKeyMap[filterType] || filterType.toLowerCase();
     return cy.findByTestId(`filter-chip-${filterKey}`);
