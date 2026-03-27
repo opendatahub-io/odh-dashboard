@@ -67,6 +67,16 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
   const [isKeyCopied, setIsKeyCopied] = React.useState(false);
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Update selected subscription when subscriptions change
+  React.useEffect(() => {
+    if (subscriptions.length > 0) {
+      setSelectedSubscription(subscriptions[0].name);
+    } else {
+      setSelectedSubscription('');
+    }
+  }, [subscriptions]);
+
+  // Cleanup timeout on unmount
   React.useEffect(
     () => () => {
       if (copyTimeoutRef.current) {
@@ -235,67 +245,63 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                   </Content>
                 </FlexItem>
 
-                {subscriptions.length > 0 && (
-                  <>
-                    <FlexItem>
-                      <Content
-                        component={ContentVariants.p}
-                        style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                      >
-                        Subscription
-                      </Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <FormGroup fieldId="subscription-select">
-                        <Select
-                          isOpen={isSubscriptionSelectOpen}
-                          selected={selectedSubscription}
-                          onSelect={(_event, value) => {
-                            if (typeof value === 'string') {
-                              setSelectedSubscription(value);
-                            }
-                            setIsSubscriptionSelectOpen(false);
-                          }}
-                          onOpenChange={(isOpen) => setIsSubscriptionSelectOpen(isOpen)}
-                          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                            <MenuToggle
-                              ref={toggleRef}
-                              onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
-                              isExpanded={isSubscriptionSelectOpen}
-                              isFullWidth
-                              data-testid="endpoint-modal-subscription-select"
-                            >
-                              {selectedSubscriptionObj?.displayName ||
-                                selectedSubscriptionObj?.name ||
-                                'Select a subscription'}
-                            </MenuToggle>
-                          )}
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.p}
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Subscription
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <FormGroup fieldId="subscription-select">
+                    <Select
+                      isOpen={isSubscriptionSelectOpen}
+                      selected={selectedSubscription}
+                      onSelect={(_event, value) => {
+                        if (typeof value === 'string') {
+                          setSelectedSubscription(value);
+                        }
+                        setIsSubscriptionSelectOpen(false);
+                      }}
+                      onOpenChange={(isOpen) => setIsSubscriptionSelectOpen(isOpen)}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
+                          isExpanded={isSubscriptionSelectOpen}
+                          isFullWidth
+                          data-testid="endpoint-modal-subscription-select"
                         >
-                          <SelectList>
-                            {subscriptions.map((sub: SubscriptionInfo) => (
-                              <SelectOption
-                                key={sub.name}
-                                value={sub.name}
-                                description={
-                                  <span
-                                    style={{
-                                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                      color: 'var(--pf-t--global--text--color--subtle)',
-                                    }}
-                                  >
-                                    {sub.name}
-                                  </span>
-                                }
+                          {selectedSubscriptionObj?.displayName ||
+                            selectedSubscriptionObj?.name ||
+                            'Select a subscription'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        {subscriptions.map((sub: SubscriptionInfo) => (
+                          <SelectOption
+                            key={sub.name}
+                            value={sub.name}
+                            description={
+                              <span
+                                style={{
+                                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                                  color: 'var(--pf-t--global--text--color--subtle)',
+                                }}
                               >
-                                {sub.displayName || sub.name}
-                              </SelectOption>
-                            ))}
-                          </SelectList>
-                        </Select>
-                      </FormGroup>
-                    </FlexItem>
-                  </>
-                )}
+                                {sub.name}
+                              </span>
+                            }
+                          >
+                            {sub.displayName || sub.name}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                  </FormGroup>
+                </FlexItem>
 
                 <FlexItem>
                   <Content
