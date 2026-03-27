@@ -963,8 +963,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <PathBreadcrumbs
               folders={folders}
               source={source}
-              onNavigate={onNavigate}
-              onNavigateRoot={onNavigateRoot}
+              onNavigate={(folder) => {
+                onNavigate?.(folder);
+                setSearchQuery('');
+              }}
+              onNavigateRoot={() => {
+                onNavigateRoot?.();
+                setSearchQuery('');
+              }}
               loading={loading}
             />
           </FlexItem>
@@ -1023,7 +1029,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
                   unselectableReason={unselectableReason}
-                  onFolderClick={onFolderClick}
+                  onFolderClick={(folder) => {
+                    onFolderClick?.(folder);
+                    setSearchQuery('');
+                  }}
                   onViewDetails={(file) => setFilesToView([file])}
                   filesToView={filesToView}
                   isEmpty={isEmpty}

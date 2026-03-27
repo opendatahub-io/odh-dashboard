@@ -214,7 +214,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
-    fetchIdRef.current = 0;
     connectionKeyRef.current = null;
   }, []);
 
@@ -307,8 +306,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     connectionKeyRef.current = connectionKey;
 
     // Reset state for the new connection
-    setCurrentPath('/');
+    setFilesToRender([]);
     setFoldersToRender([]);
+    setFetchError(null);
+    setHasNextPage(false);
+    setLoadingToRender(false);
+    setSelectedFolder(null);
+    setCurrentPath('/');
     setSearchQuery('');
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
@@ -329,14 +333,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [currentPath, perPageToRender, fetchPath],
   );
   debouncedSearchRef.current = debouncedSearch;
-  // Cancel debounce and in-flight requests on unmount
-  useEffect(
-    () => () => {
-      debouncedSearch.cancel();
-      controllerRef.current?.abort();
-    },
-    [debouncedSearch],
-  );
+  // Cancel stale debounce when debouncedSearch is recreated
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+
+  // Abort in-flight requests only on unmount
+  useEffect(() => () => controllerRef.current?.abort(), []);
 
   // Derived state -------------------------------------------------------------->
 
