@@ -96,7 +96,6 @@ export const assembleNotebook = (
       labels: {
         app: notebookId,
         'opendatahub.io/odh-managed': 'true',
-        'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
         ...(feastData?.labels || {}),
       },
@@ -105,6 +104,7 @@ export const assembleNotebook = (
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-auth': 'true',
+        'opendatahub.io/user': translatedUsername,
         'opendatahub.io/username': username,
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',

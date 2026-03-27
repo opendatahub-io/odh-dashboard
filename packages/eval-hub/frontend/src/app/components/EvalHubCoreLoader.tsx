@@ -5,6 +5,7 @@ import { useNamespaceSelector } from 'mod-arch-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
+import { CollectionsContextProvider } from '~/app/context/CollectionsContext';
 import EvalHubNoProjects from './EvalHubNoProjects';
 import EvalHubInvalidProject from './EvalHubInvalidProject';
 import EvalHubHeader from './EvalHubHeader';
@@ -32,7 +33,11 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
   } else if (namespace) {
     const foundProject = namespaces.find((n) => n.name === namespace);
     if (foundProject) {
-      return <Outlet />;
+      return (
+        <CollectionsContextProvider namespace={namespace}>
+          <Outlet />
+        </CollectionsContextProvider>
+      );
     }
 
     renderStateProps = {

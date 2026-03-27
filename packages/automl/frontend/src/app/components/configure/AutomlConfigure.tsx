@@ -38,19 +38,22 @@ import {
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import createConfigureSchema, {
+import {
+  createConfigureSchema,
   ConfigureSchema,
   MIN_TOP_N,
   MAX_TOP_N,
+  getDefaultValues,
+} from '~/app/schemas/configure.schema';
+import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
-  getDefaultValues,
-} from '~/app/schemas/configure.schema';
-import { automlExperimentsPathname } from '~/app/utilities/routes';
+} from '~/app/utilities/const';
+import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { useFilesQuery, useCreatePipelineRun } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery, useCreatePipelineRun } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -159,7 +162,12 @@ function AutomlConfigure(): React.JSX.Element {
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
-  } = useFilesQuery(namespace ?? '', trainDataSecretName, trainDataBucketName, trainDataFileKey);
+  } = useS3GetFileSchemaQuery(
+    namespace ?? '',
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+  );
 
   // reset selected file values if bucket changes
   useEffect(() => {
@@ -183,6 +191,9 @@ function AutomlConfigure(): React.JSX.Element {
 
   // reset columns query cache and label column when connection data is cleared
   useEffect(() => {
+    if (!namespace) {
+      return;
+    }
     if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
       queryClient.setQueryData(
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
@@ -220,14 +231,12 @@ function AutomlConfigure(): React.JSX.Element {
     setSubmitError(undefined);
 
     try {
-      await createPipelineRun.mutateAsync({
+      const pipelineRun = await createPipelineRun.mutateAsync({
         namespace,
         data,
       });
 
-      // TODO Redirect to the experiments page on success for now until we hook
-      // up the results screen.
-      navigate(`${automlExperimentsPathname}/${namespace}`);
+      navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create pipeline run';
       setSubmitError(errorMessage);

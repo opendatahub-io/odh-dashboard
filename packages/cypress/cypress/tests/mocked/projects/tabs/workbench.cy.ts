@@ -878,11 +878,11 @@ describe('Workbench page', () => {
             app: 'wb-1234',
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/odh-managed': 'true',
-            'opendatahub.io/user': 'test-2duser',
           },
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/user': 'test-2duser',
             'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },

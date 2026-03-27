@@ -2,6 +2,10 @@
 /**
  * @jest-environment node
  */
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
+import type { IncomingMessage } from 'http';
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
@@ -1184,6 +1188,205 @@ describe('AutoRAG API Contract Tests', () => {
           expect(result.error.status).toBe(400);
         }
       });
+    });
+  });
+
+  describe('S3 File Upload (POST)', () => {
+    const buildFormDataWithFile = (): FormData => {
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob(['test content'], { type: 'application/octet-stream' }),
+        'file.pdf',
+      );
+      return form;
+    };
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - No File Part', () => {
+      it('should return 400 when request body has no file part', async () => {
+        const form = new FormData();
+        form.append('other', 'value');
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Declared Content-Length', () => {
+      /** Matches bff s3_upload_limit.go: 1 GiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (1 << 30) + (64 << 20);
+
+      const postS3WithDeclaredContentLength = async (
+        pathWithQuery: string,
+        declaredLength: number,
+        bodySent: Buffer,
+      ): Promise<{ status: number; headers: Record<string, string>; data: unknown }> => {
+        const target = new URL(pathWithQuery, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+        const isHttps = target.protocol === 'https:';
+        const lib = isHttps ? https : http;
+        const port = target.port !== '' ? Number(target.port) : isHttps ? 443 : 80;
+
+        return new Promise((resolve, reject) => {
+          const req = lib.request(
+            {
+              hostname: target.hostname,
+              port,
+              path: `${target.pathname}${target.search}`,
+              method: 'POST',
+              headers: {
+                'kubeflow-userid': 'dev-user@example.com',
+                'kubeflow-groups': 'system:masters',
+                'Content-Length': String(declaredLength),
+                'Content-Type': 'application/octet-stream',
+              },
+            },
+            (res: IncomingMessage) => {
+              const parts: string[] = [];
+              res.setEncoding('utf8');
+              res.on('data', (chunk: string) => {
+                parts.push(chunk);
+              });
+              res.on('end', () => {
+                const raw = parts.join('');
+                let data: unknown = raw;
+                try {
+                  data = raw.length > 0 ? JSON.parse(raw) : undefined;
+                } catch {
+                  data = raw;
+                }
+                const headers: Record<string, string> = {};
+                for (const [k, v] of Object.entries(res.headers)) {
+                  headers[k] = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+                }
+                resolve({
+                  status: res.statusCode ?? 0,
+                  headers,
+                  data,
+                });
+              });
+            },
+          );
+          req.on('error', reject);
+          req.write(bodySent);
+          req.end();
+        });
+      };
+
+      it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
+        const path =
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf';
+        const response = await postS3WithDeclaredContentLength(
+          path,
+          s3PostMaxDeclaredBodyBytes + 1,
+          Buffer.from('x'),
+        );
+        expect(response.status).toBe(413);
+        const body = response.data as { error?: { code: string; message: string } };
+        expect(body.error).toBeDefined();
+        // Shared toMatchContract cannot compile ErrorEnvelope (nested $ref); validate inner Error.
+        expect({
+          status: response.status,
+          data: body.error,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/Error',
+          status: 413,
+        });
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Valid Request (all params and file present)', () => {
+      it('should return 201 with S3UploadSuccess when all parameters and file part are valid', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/S3UploadSuccess',
+          status: 201,
+        });
+      }, 8000);
     });
   });
 });

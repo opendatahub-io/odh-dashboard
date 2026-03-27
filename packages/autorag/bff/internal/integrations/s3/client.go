@@ -2,6 +2,7 @@ package s3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -27,6 +28,10 @@ type S3Credentials struct {
 	Bucket          string // Optional bucket name from secret (AWS_S3_BUCKET)
 }
 
+// ErrEndpointValidation is returned when the configured S3 endpoint fails URL or SSRF validation.
+// Use errors.Is to classify CreateClient / NewRealS3Client failures.
+var ErrEndpointValidation = errors.New("endpoint validation failed")
+
 // ListObjectsOptions contains parameters for listing S3 objects.
 type ListObjectsOptions struct {
 	Path   string // Denotes the current "folder" we should be searching in
@@ -38,6 +43,7 @@ type ListObjectsOptions struct {
 // S3ClientInterface defines the interface for S3 operations.
 type S3ClientInterface interface {
 	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
+	UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error
 	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
 }
 
@@ -57,7 +63,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 
 	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
-		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
 	cfg := aws.Config{
@@ -109,6 +115,26 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	}
 
 	return body, contentType, nil
+}
+
+// UploadObject uploads an object to S3 using the transfer manager (same client/endpoint config as GetObject).
+// Body is read until EOF and uploaded to the given bucket and key. contentType is optional (defaults to application/octet-stream).
+func (c *RealS3Client) UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error {
+	transferClient := transfermanager.New(c.s3Client)
+
+	_, err := transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String(contentType),
+	}, func(o *transfermanager.Options) {
+		o.Concurrency = c.options.Concurrency
+		o.PartSizeBytes = c.options.PartSizeBytes
+	})
+	if err != nil {
+		return fmt.Errorf("error uploading object to S3: %w", err)
+	}
+	return nil
 }
 
 // ListObjects retrieves a listing of objects from S3.

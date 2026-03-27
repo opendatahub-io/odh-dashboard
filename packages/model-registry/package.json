@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "426e616d6ecf47a9f7f40201b628df6b24f8e6e7"
+    "commit": "ffe6fb87dfae3998f17a5790e32bd9b5c4757694"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -45,7 +45,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@ModelRegistryCI"],
+  "e2eCiTags": [
+    "@ModelRegistryCI"
+  ],
   "bffConfig": {
     "enabled": true,
     "port": 4000,
