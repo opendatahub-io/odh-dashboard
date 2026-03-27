@@ -120,8 +120,8 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           existingHardwareProfile
             ? `Edit ${getHardwareProfileDisplayName(existingHardwareProfile)}`
             : duplicatedHardwareProfile
-              ? `Duplicate ${getHardwareProfileDisplayName(duplicatedHardwareProfile)}`
-              : 'Create hardware profile'
+            ? `Duplicate ${getHardwareProfileDisplayName(duplicatedHardwareProfile)}`
+            : 'Create hardware profile'
         }
         description={
           duplicatedHardwareProfile
@@ -135,8 +135,8 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               {existingHardwareProfile
                 ? 'Edit'
                 : duplicatedHardwareProfile
-                  ? 'Duplicate'
-                  : 'Create'}{' '}
+                ? 'Duplicate'
+                : 'Create'}{' '}
               hardware profile
             </BreadcrumbItem>
           </Breadcrumb>
