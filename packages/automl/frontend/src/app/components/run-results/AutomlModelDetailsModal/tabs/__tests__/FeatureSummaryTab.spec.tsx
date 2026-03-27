@@ -125,19 +125,16 @@ describe('FeatureSummaryTab', () => {
       importance: { feature_a: 0, feature_b: 0 },
     };
 
-    const { container } = render(
-      <FeatureSummaryTab {...defaultProps} featureImportance={zeroImportance} />,
-    );
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={zeroImportance} />);
 
     expect(screen.getByText('feature_a')).toBeInTheDocument();
     expect(screen.getByText('feature_b')).toBeInTheDocument();
 
     // All bars should have 0% width, not NaN%
-    const bars = container.querySelectorAll('.automl-feature-importance-bar');
-    bars.forEach((bar) => {
-      const style = bar.getAttribute('style') ?? '';
-      expect(style).not.toContain('NaN');
-    });
+    const barA = screen.getByTestId('feature-importance-bar-feature_a');
+    const barB = screen.getByTestId('feature-importance-bar-feature_b');
+    expect(barA.getAttribute('style')).not.toContain('NaN');
+    expect(barB.getAttribute('style')).not.toContain('NaN');
   });
 
   it('should show no-data empty state when importance object is empty', () => {
@@ -150,6 +147,8 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No feature data available')).toBeInTheDocument();
     expect(screen.queryByTestId('feature-search-empty-state')).not.toBeInTheDocument();
+    // Search toolbar should be hidden when there's no data to search
+    expect(screen.queryByPlaceholderText('Search feature names')).not.toBeInTheDocument();
   });
 
   it('should handle negative importance values', () => {
@@ -157,19 +156,51 @@ describe('FeatureSummaryTab', () => {
       importance: { feature_positive: 0.5, feature_negative: -0.3 },
     };
 
-    const { container } = render(
-      <FeatureSummaryTab {...defaultProps} featureImportance={negativeImportance} />,
-    );
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={negativeImportance} />);
 
     expect(screen.getByText('-30.00%')).toBeInTheDocument();
     expect(screen.getByText('50.00%')).toBeInTheDocument();
 
-    // Bars should have valid positive widths (using absolute values)
-    const bars = container.querySelectorAll('.automl-feature-importance-bar');
-    bars.forEach((bar) => {
-      const style = bar.getAttribute('style') ?? '';
-      expect(style).toMatch(/width: \d+/);
-      expect(style).not.toContain('-');
-    });
+    // Bars should have valid non-negative widths (using absolute values)
+    const positiveBar = screen.getByTestId('feature-importance-bar-feature_positive');
+    const negativeBar = screen.getByTestId('feature-importance-bar-feature_negative');
+
+    const positiveWidth = positiveBar.getAttribute('style') ?? '';
+    const negativeWidth = negativeBar.getAttribute('style') ?? '';
+    expect(positiveWidth).toMatch(/width:\s*[\d.]+%/);
+    expect(negativeWidth).toMatch(/width:\s*[\d.]+%/);
+
+    // Negative bar should have danger modifier, positive should not
+    expect(negativeBar).toHaveClass('m-negative');
+    expect(positiveBar).not.toHaveClass('m-negative');
+  });
+
+  it('should sort mixed positive and negative values by descending value', () => {
+    const mixedImportance: FeatureImportanceData = {
+      importance: { feat_a: 0.5, feat_b: -0.3, feat_c: 0.1, feat_d: -0.8 },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={mixedImportance} />);
+
+    const rows = screen.getAllByRole('row');
+    const dataRows = rows.slice(1);
+    const featureNames = dataRows.map((row) => within(row).getByText(/feat_/).textContent);
+    // Descending by value: 0.5 > 0.1 > -0.3 > -0.8
+    expect(featureNames).toEqual(['feat_a', 'feat_c', 'feat_b', 'feat_d']);
+  });
+
+  it('should handle a single feature with only negative importance', () => {
+    const singleNegative: FeatureImportanceData = {
+      importance: { only_feature: -1.0 },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={singleNegative} />);
+
+    expect(screen.getByText('-100.00%')).toBeInTheDocument();
+
+    const bar = screen.getByTestId('feature-importance-bar-only_feature');
+    expect(bar).toHaveClass('m-negative');
+    // Should be 100% width (abs(1.0) / abs(1.0) * 100)
+    expect(bar.getAttribute('style')).toContain('width: 100%');
   });
 });

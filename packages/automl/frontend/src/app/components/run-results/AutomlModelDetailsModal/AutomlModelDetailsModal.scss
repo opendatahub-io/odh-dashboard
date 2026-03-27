@@ -148,6 +148,10 @@
   min-width: 4px;
   border-radius: 2px;
   background-color: var(--pf-t--global--color--brand--default);
+
+  &.m-negative {
+    background-color: var(--pf-t--global--color--status--danger--default);
+  }
 }
 
 /* Model information description list */
@@ -168,19 +172,19 @@
   }
 
   .automl-print-header {
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #000;
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
 
     h1 {
-      font-size: 24px;
+      font-size: var(--pf-t--global--font--size--2xl);
       margin: 0;
     }
 
     p {
-      font-size: 14px;
-      color: #555;
-      margin: 4px 0 0;
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
     }
   }
 
@@ -196,10 +200,10 @@
   }
 
   .automl-print-page h2 {
-    font-size: 20px;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #ccc;
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
   }
 }
 

@@ -56,21 +56,25 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
   const maxImportance =
     importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
 
+  const hasFeatureData = allEntries.length > 0;
+
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <SearchInput
-              placeholder="Search feature names"
-              value={searchValue}
-              onChange={(_e, value) => setSearchValue(value)}
-              onClear={() => setSearchValue('')}
-              data-testid="feature-search"
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
+      {hasFeatureData && (
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <SearchInput
+                placeholder="Search feature names"
+                value={searchValue}
+                onChange={(_e, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+                data-testid="feature-search"
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      )}
       <Table aria-label="Feature importance" variant="compact">
         <Thead>
           <Tr>
@@ -116,7 +120,8 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
                 <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
                 <Td>
                   <div
-                    className="automl-feature-importance-bar"
+                    className={`automl-feature-importance-bar${importance < 0 ? ' m-negative' : ''}`}
+                    data-testid={`feature-importance-bar-${name}`}
                     style={{
                       width: `${maxImportance > 0 ? (Math.abs(importance) / maxImportance) * 100 : 0}%`,
                     }}
