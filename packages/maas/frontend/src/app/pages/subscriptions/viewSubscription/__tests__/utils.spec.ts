@@ -1,5 +1,5 @@
 import { ModelSubscriptionRef } from '~/app/types/subscriptions';
-import { formatTokenLimits } from '../utils';
+import { formatTokenLimits } from '~/app/pages/subscriptions/viewSubscription/utils';
 
 const Namespace = 'test-namespace';
 

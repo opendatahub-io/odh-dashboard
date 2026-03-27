@@ -1,6 +1,6 @@
 import * as modArchCore from 'mod-arch-core';
 import { SubscriptionInfoResponse } from '~/app/types/subscriptions';
-import { getSubscriptionInfo, listSubscriptions } from '../subscriptions';
+import { getSubscriptionInfo, listSubscriptions } from '~/app/api/subscriptions';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),

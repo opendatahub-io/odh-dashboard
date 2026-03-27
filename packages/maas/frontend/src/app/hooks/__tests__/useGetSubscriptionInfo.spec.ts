@@ -1,7 +1,7 @@
 import * as subscriptionsApi from '~/app/api/subscriptions';
 import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
 import { SubscriptionInfoResponse } from '~/app/types/subscriptions';
-import { useGetSubscriptionInfo } from '../useGetSubscriptionInfo';
+import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 
 jest.mock('~/app/api/subscriptions', () => ({
   ...jest.requireActual('~/app/api/subscriptions'),

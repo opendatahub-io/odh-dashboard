@@ -6,8 +6,8 @@ import {
   type FetchState,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { getSubscriptionInfo } from '../api/subscriptions';
-import { SubscriptionInfoResponse } from '../types/subscriptions';
+import { getSubscriptionInfo } from '~/app/api/subscriptions';
+import { SubscriptionInfoResponse } from '~/app/types/subscriptions';
 
 export const useGetSubscriptionInfo = (
   name: string,
