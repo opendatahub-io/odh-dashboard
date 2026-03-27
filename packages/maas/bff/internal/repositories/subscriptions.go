@@ -440,7 +440,6 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	policy := &models.MaaSAuthPolicy{
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
-		Kind:      obj.GetKind(),
 	}
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")

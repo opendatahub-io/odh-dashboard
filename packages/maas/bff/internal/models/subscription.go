@@ -68,7 +68,6 @@ type ModelRef struct {
 type MaaSAuthPolicy struct {
 	Name             string         `json:"name"`
 	Namespace        string         `json:"namespace"`
-	Kind             string         `json:"kind,omitempty"`
 	Phase            string         `json:"phase,omitempty"`
 	ModelRefs        []ModelRef     `json:"modelRefs"`
 	Subjects         SubjectSpec    `json:"subjects"`

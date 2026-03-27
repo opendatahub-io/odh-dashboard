@@ -79,7 +79,6 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 		{
 			Name:      "premium-team-sub-policy",
 			Namespace: "maas-system",
-			Kind:      "MaaSAuthPolicy",
 			Phase:     "Active",
 			ModelRefs: []models.ModelRef{
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
@@ -98,7 +97,6 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 		{
 			Name:      "basic-team-sub-policy",
 			Namespace: "maas-system",
-			Kind:      "MaaSAuthPolicy",
 			Phase:     "Active",
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},

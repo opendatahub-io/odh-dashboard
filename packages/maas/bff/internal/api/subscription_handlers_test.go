@@ -246,10 +246,6 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 			// Auth policies may be empty if not created with the subscription
 			Expect(actual.AuthPolicies).NotTo(BeNil())
-			// Kind is always populated from the GVR when a policy exists
-			for _, policy := range actual.AuthPolicies {
-				Expect(policy.Kind).To(Equal("MaaSAuthPolicy"))
-			}
 		})
 
 		It("returns 404 for non-existent subscription", func() {

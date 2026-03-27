@@ -587,7 +587,6 @@ paths:
                 authPolicies:
                   - name: premium-team-sub-policy
                     namespace: maas-system
-                    kind: MaaSAuthPolicy
                     phase: Active
                     modelRefs:
                       - name: llama-2-7b-chat
@@ -1485,10 +1484,6 @@ components:
           type: string
           description: Namespace of the MaaSAuthPolicy resource
           example: maas-system
-        kind:
-          type: string
-          description: Kubernetes resource kind (from object metadata)
-          example: MaaSAuthPolicy
         phase:
           type: string
           enum: [Pending, Active, Failed]
