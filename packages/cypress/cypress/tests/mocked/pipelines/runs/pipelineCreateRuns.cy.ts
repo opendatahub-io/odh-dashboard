@@ -130,7 +130,10 @@ describe('Pipeline create runs', () => {
   describe('Runs', () => {
     describe('MLflow integration', () => {
       beforeEach(() => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+        cy.interceptOdh(
+          'GET /api/config',
+          mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+        );
         pipelineRunsGlobal.visit(projectName);
 
         createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -985,7 +988,10 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates a schedule with MLflow plugin payload', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
       pipelineRunsGlobal.visit(projectName);
       pipelineRunsGlobal.findSchedulesTab().click();
 

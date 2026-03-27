@@ -179,7 +179,10 @@ describe('Compare runs', () => {
     });
 
     it('shows the MLflow experiment column when MLflow is enabled', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
       compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
         mockRun.run_id,
         mockRun2.run_id,
@@ -209,7 +212,10 @@ describe('Compare runs', () => {
         },
       });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {
