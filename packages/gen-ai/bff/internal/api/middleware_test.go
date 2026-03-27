@@ -51,7 +51,7 @@ var _ = Describe("AttachLlamaStackClient", func() {
 			assert.NotNil(t, client)
 			mockClient := client.(*lsmocks.MockLlamaStackClient)
 			models, _ := mockClient.ListModels(r.Context())
-			assert.Len(t, models, 4)
+			assert.Len(t, models, 6)
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 

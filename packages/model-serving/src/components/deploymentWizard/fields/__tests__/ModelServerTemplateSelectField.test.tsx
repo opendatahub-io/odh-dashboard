@@ -39,9 +39,7 @@ describe('ModelServerTemplateSelectField', () => {
   describe('radio state (non-editing mode)', () => {
     it('should disable radio 1 and show the dropdown when there is no suggestion', () => {
       render(
-        <ModelServerTemplateSelectField
-          modelServerState={makeModelServerState({ data: { suggestion: null } })}
-        />,
+        <ModelServerTemplateSelectField modelServerState={makeModelServerState({ data: {} })} />,
       );
       const [radio1, radio2] = screen.getAllByRole('radio');
       expect(radio1).toBeDisabled();
@@ -166,7 +164,7 @@ describe('ModelServerTemplateSelectField', () => {
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({
-            data: { autoSelect: false, selection: null },
+            data: { autoSelect: false },
             options: [optionWithVersion],
           })}
         />,
@@ -186,7 +184,7 @@ describe('ModelServerTemplateSelectField', () => {
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({
-            data: { autoSelect: false, selection: null },
+            data: { autoSelect: false },
             options: [compatibleOption],
           })}
         />,
@@ -205,7 +203,7 @@ describe('ModelServerTemplateSelectField', () => {
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({
-            data: { autoSelect: false, selection: null },
+            data: { autoSelect: false },
             options: [optionWithoutTemplate],
           })}
         />,
@@ -236,7 +234,7 @@ describe('ModelServerTemplateSelectField', () => {
       );
     });
 
-    it('should call setData with autoSelect false and null selection when radio 2 is clicked', async () => {
+    it('should call setData with autoSelect false and undefined selection when radio 2 is clicked', async () => {
       const mockSetData = jest.fn();
       render(
         <ModelServerTemplateSelectField
@@ -250,7 +248,7 @@ describe('ModelServerTemplateSelectField', () => {
         fireEvent.click(screen.getAllByRole('radio')[1]);
       });
       expect(mockSetData).toHaveBeenCalledWith(
-        expect.objectContaining({ autoSelect: false, selection: null }),
+        expect.objectContaining({ autoSelect: false, selection: undefined }),
       );
     });
   });
@@ -275,7 +273,7 @@ describe('ModelServerTemplateSelectField', () => {
     it('should show placeholder text when editing with no existing selection', () => {
       render(
         <ModelServerTemplateSelectField
-          modelServerState={makeModelServerState({ data: { selection: null } })}
+          modelServerState={makeModelServerState({ data: {} })}
           isEditing
         />,
       );
