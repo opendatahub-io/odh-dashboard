@@ -57,6 +57,7 @@
     "prepare": "husky",
     "validate:ports": "node scripts/validate-module-ports.js",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",

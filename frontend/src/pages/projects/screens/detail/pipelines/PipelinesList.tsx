@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Button, ButtonVariant, Spinner, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
 import PipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import IndentSection from '#~/pages/projects/components/IndentSection';
@@ -21,7 +21,6 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     [{ items: pipelines, totalSize }, loaded, loadError, refresh],
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable(TABLE_CONTENT_LIMIT);
-  const navigate = useNavigate();
 
   const isPipelinesEmpty = pipelines.length === 0;
 
@@ -63,7 +62,12 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
       {totalSize > TABLE_CONTENT_LIMIT && (
         <StackItem>
           <IndentSection>
-            <Button variant="link" onClick={() => navigate(pipelinesBaseRoute(namespace))}>
+            <Button
+              variant="link"
+              component={(props: React.ComponentProps<'a'>) => (
+                <Link {...props} to={pipelinesBaseRoute(namespace)} />
+              )}
+            >
               View all pipelines
             </Button>
           </IndentSection>

@@ -5,8 +5,8 @@ import {
   restGET,
   restDELETE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '../utilities/const';
-import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '../types/subscriptions';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
@@ -14,8 +14,8 @@ const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  Array.isArray(v.tokenRateLimits) &&
-  v.tokenRateLimits.every(isTokenRateLimit) &&
+  (v.tokenRateLimits === undefined ||
+    (Array.isArray(v.tokenRateLimits) && v.tokenRateLimits.every(isTokenRateLimit))) &&
   (v.tokenRateLimitRef === undefined || typeof v.tokenRateLimitRef === 'string') &&
   (v.billingRate === undefined || typeof v.billingRate === 'object');
 
@@ -23,13 +23,13 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  typeof v.phase === 'string' &&
+  (v.phase === undefined || typeof v.phase === 'string') &&
   (v.priority === undefined || typeof v.priority === 'number') &&
   typeof v.owner === 'object' &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
-  typeof v.creationTimestamp === 'string';
+  (v.creationTimestamp === undefined || typeof v.creationTimestamp === 'string');
 const isTokenRateLimit = (v: unknown): v is TokenRateLimit =>
   isRecord(v) && typeof v.limit === 'number' && typeof v.window === 'string';
 

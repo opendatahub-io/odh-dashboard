@@ -34,3 +34,16 @@ export const FindAdministratorOptions = [
   'Someone in your IT department or help desk',
   'A project manager or developer',
 ];
+
+// Task types
+export const TASK_TYPE_BINARY = 'binary';
+export const TASK_TYPE_MULTICLASS = 'multiclass';
+export const TASK_TYPE_REGRESSION = 'regression';
+export const TASK_TYPE_TIMESERIES = 'timeseries';
+
+export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
+  [TASK_TYPE_BINARY]: 'accuracy',
+  [TASK_TYPE_MULTICLASS]: 'accuracy',
+  [TASK_TYPE_REGRESSION]: 'r2',
+  [TASK_TYPE_TIMESERIES]: 'mase',
+};
