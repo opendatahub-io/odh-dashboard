@@ -56,9 +56,12 @@ const listRunGroupExperiments = async (
   return experiments || [];
 };
 
-const getPreferredRunGroupExperiment = (experiments: ExperimentKF[]): ExperimentKF | undefined =>
-  experiments.find((experiment) => experiment.storage_state !== StorageStateKF.ARCHIVED) ??
-  experiments[0];
+const getPreferredRunGroupExperiment = (experiments: ExperimentKF[]): ExperimentKF | undefined => {
+  const active = experiments
+    .filter((experiment) => experiment.storage_state !== StorageStateKF.ARCHIVED)
+    .toSorted((a, b) => a.experiment_id.localeCompare(b.experiment_id));
+  return active[0] ?? experiments[0];
+};
 
 const findOrCreateRunGroupExperiment = async (
   runGroupName: string,

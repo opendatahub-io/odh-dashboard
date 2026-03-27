@@ -117,21 +117,22 @@ const useUpdateDuplicateData = (
     if (!initialData) {
       return;
     }
-    if (duplicateExperiment) {
-      setFunction('runGroup', duplicateExperiment.display_name);
-    }
+    setFunction('runGroup', duplicateExperiment?.display_name ?? '');
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
     setFunction('versionToUse', PipelineVersionToUse.PROVIDED);
 
     const mlflowExperimentName = getMlflowExperimentNameFromRun(initialData);
-    if (mlflowExperimentName) {
-      setFunction('mlflow', {
-        isExperimentTrackingEnabled: true,
-        mode: MlflowExperimentMode.EXISTING,
-        existingExperimentName: mlflowExperimentName,
-      });
-    }
+    setFunction(
+      'mlflow',
+      mlflowExperimentName
+        ? {
+            isExperimentTrackingEnabled: true,
+            mode: MlflowExperimentMode.EXISTING,
+            existingExperimentName: mlflowExperimentName,
+          }
+        : getDefaultMlflowFormData(),
+    );
   }, [
     setFunction,
     initialData,

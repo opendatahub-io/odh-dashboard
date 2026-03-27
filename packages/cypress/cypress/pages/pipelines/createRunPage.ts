@@ -295,14 +295,16 @@ export class CreateRunPage {
     workspace: string,
     experiments: Array<{ id: string; name: string; lastUpdateTime?: string }>,
   ): Cypress.Chainable<null> {
-    return cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
-      expect(req.query.workspace).to.equal(workspace);
-      req.reply({
-        data: {
-          experiments,
-        },
-      });
-    });
+    return cy
+      .intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+        expect(req.query.workspace).to.equal(workspace);
+        req.reply({
+          data: {
+            experiments,
+          },
+        });
+      })
+      .as('getMlflowExperiments');
   }
 
   mockGetPipelines(namespace: string, pipelines: PipelineKF[]): Cypress.Chainable<null> {
