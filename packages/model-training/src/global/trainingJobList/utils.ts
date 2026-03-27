@@ -817,6 +817,82 @@ export const getSectionStatusesFromJobsStatus = (
   };
 };
 
+/**
+ * Get status alert config for the RayJob status modal.
+ * Sources (checked in priority order):
+ *   1. RayJob CR  — job.status.reason / job.status.message (KubeRay controller output)
+ *   2. Workload conditions — workloadConditions from the Kueue Workload
+ */
+export const getRayJobStatusAlert = (
+  status: JobDisplayState,
+  job: RayJobKind,
+  workloadConditions?: WorkloadCondition[],
+): {
+  title: string;
+  description?: string;
+  variant: AlertVariant;
+} | null => {
+  const statusInfo = getStatusInfo(status);
+
+  const crMessage = job.status?.message;
+  const crReason = job.status?.reason;
+
+  const workloadConditionsMap = workloadConditions
+    ? extractWorkloadConditions(workloadConditions)
+    : undefined;
+
+  const mergeWithWorkload = (
+    wlCondition: WorkloadCondition | undefined,
+    fallbackTitle: string,
+  ): { title: string; description?: string } => {
+    const wl = wlCondition ? extractTitleAndDescription(wlCondition, fallbackTitle) : undefined;
+    return {
+      title: crReason || wl?.title || fallbackTitle,
+      description: crMessage || wl?.description,
+    };
+  };
+
+  if (status === RayJobState.FAILED || status === TrainingJobState.FAILED) {
+    const { title, description } = mergeWithWorkload(
+      workloadConditionsMap?.Failed,
+      statusInfo.alertTitle || 'Job Failed',
+    );
+    return { title, description, variant: AlertVariant.danger };
+  }
+
+  if (status === RayJobState.INADMISSIBLE || status === TrainingJobState.INADMISSIBLE) {
+    const { title, description } = mergeWithWorkload(
+      workloadConditionsMap?.Inadmissible,
+      statusInfo.alertTitle || statusInfo.label,
+    );
+    return { title, description, variant: AlertVariant.warning };
+  }
+
+  if (status === RayJobState.PREEMPTED || status === TrainingJobState.PREEMPTED) {
+    const { title, description } = mergeWithWorkload(
+      workloadConditionsMap?.Evicted || workloadConditionsMap?.Preempted,
+      statusInfo.alertTitle || statusInfo.label,
+    );
+    return { title, description, variant: AlertVariant.warning };
+  }
+
+  if (
+    (status === RayJobState.QUEUED ||
+      status === TrainingJobState.QUEUED ||
+      status === RayJobState.PENDING ||
+      status === TrainingJobState.PENDING) &&
+    crMessage
+  ) {
+    return {
+      title: crReason || statusInfo.label,
+      description: crMessage,
+      variant: AlertVariant.info,
+    };
+  }
+
+  return null;
+};
+
 export const handlePauseResume = async (
   job: TrainJobKind,
   isPaused: boolean,

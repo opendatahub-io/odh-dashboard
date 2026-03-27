@@ -16,6 +16,7 @@ import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type { z } from 'zod';
 import type {
   ModelServerOption,
+  ModelServerSelectFieldData,
   useModelServerSelectField,
 } from './fields/ModelServerTemplateSelectField';
 import type { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -123,7 +124,7 @@ export type InitialWizardFormData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerSelectFieldData;
+  modelServer?: { data: ModelServerSelectFieldData };
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;
@@ -177,7 +178,6 @@ export type TokenAuthenticationFieldData = WizardFormData['state']['tokenAuthent
 export type NumReplicasFieldData = WizardFormData['state']['numReplicas']['data'];
 export type RuntimeArgsFieldData = WizardFormData['state']['runtimeArgs']['data'];
 export type EnvironmentVariablesFieldData = WizardFormData['state']['environmentVariables']['data'];
-export type ModelServerSelectFieldData = WizardFormData['state']['modelServer']['data'];
 export type CreateConnectionFieldData = WizardFormData['state']['createConnectionData']['data'];
 export type HardwareProfileConfigFieldData =
   WizardFormData['state']['hardwareProfileConfig']['formData'];

@@ -32,6 +32,5 @@ export * from './mockStorageClasses';
 export * from './mockRoleK8sResource';
 export * from './mockRoleBindingK8sResource';
 export * from './mockConfigMapSecrets';
-export * from './mockLMEvaluation';
 export * from './mockClusterRoleK8sResource';
 export * from './mockRoleBindingSubject';

@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import SecretSelector, { SecretSelection } from '../common/SecretSelector';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 
 function AutoragCreate(): React.JSX.Element {
   const { namespace } = useParams();

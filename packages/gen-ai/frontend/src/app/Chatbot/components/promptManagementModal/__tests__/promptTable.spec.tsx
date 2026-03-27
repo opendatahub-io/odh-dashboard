@@ -51,6 +51,10 @@ describe('PromptTable', () => {
   const defaultProps = {
     onClickLoad: jest.fn(),
     onClose: jest.fn(),
+    displayText: {
+      title: 'Load prompt',
+      description: 'Select a prompt to load into the playground.',
+    },
   };
 
   beforeEach(() => {

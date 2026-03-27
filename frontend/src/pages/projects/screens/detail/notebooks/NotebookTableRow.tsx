@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
@@ -50,7 +50,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   showOutOfDateElyraInfo,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const navigate = useNavigate();
+  const editWorkbenchHref = `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`;
   const [isExpanded, setExpanded] = React.useState(false);
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
 
@@ -111,8 +111,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       notebookImage.latestImageVersion
     ) {
       setIsModalOpen(true);
-    } else {
-      navigate(`/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`);
     }
   };
 
@@ -167,6 +165,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 loaded={loaded}
                 loadError={loadError}
                 isExpanded
+                updateImageHref={editWorkbenchHref}
                 onUpdateImageClick={onUpdateImageClick}
                 isUpdating={isUpdating}
                 setIsUpdating={setIsUpdating}
@@ -181,11 +180,9 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   bodyContent="The selected image version does not support the latest pipeline version. To use Elyra for pipelines, update the image to the latest version by editing the workbench."
                   footerContent={
                     <Button
-                      onClick={() => {
-                        navigate(
-                          `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
-                        );
-                      }}
+                      component={(props: React.ComponentProps<'a'>) => (
+                        <Link {...props} to={editWorkbenchHref} />
+                      )}
                     >
                       Edit workbench
                     </Button>

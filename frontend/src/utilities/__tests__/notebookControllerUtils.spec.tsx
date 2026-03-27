@@ -4,7 +4,11 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
 import { Notebook } from '#~/types';
-import { useNotebookRedirectLink, usernameTranslate } from '#~/utilities/notebookControllerUtils';
+import {
+  getNotebookControllerUserState,
+  useNotebookRedirectLink,
+  usernameTranslate,
+} from '#~/utilities/notebookControllerUtils';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
 
@@ -181,5 +185,76 @@ describe('useNotebookRedirectLink', () => {
     expect(await renderResult.result.current()).toBe(
       `/notebook/${mockNotebook.metadata.namespace}/${mockNotebook.metadata.name}`,
     );
+  });
+});
+
+describe('getNotebookControllerUserState', () => {
+  it('should return null for a null notebook', () => {
+    expect(getNotebookControllerUserState(null, 'test-user')).toBeNull();
+  });
+
+  it('should resolve user from opendatahub.io/username annotation', () => {
+    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const result = getNotebookControllerUserState(notebook, 'test-user');
+    expect(result).not.toBeNull();
+    expect(result?.user).toBe('test-user');
+  });
+
+  it('should fall back to opendatahub.io/user annotation when username annotation is missing', () => {
+    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/username'];
+    // Set the translated username as it would appear in a real cluster
+    (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/user'] =
+      usernameTranslate('test-user');
+    const result = getNotebookControllerUserState(notebook, 'test-user');
+    expect(result).not.toBeNull();
+    expect(result?.user).toBe('test-user');
+  });
+
+  it('should fall back to opendatahub.io/user label for older workbenches', () => {
+    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    // Remove both user annotations to simulate an older workbench with only the label
+    delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/username'];
+    delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/user'];
+    // Ensure the label is set (simulating pre-migration workbench)
+    notebook.metadata.labels = {
+      ...notebook.metadata.labels,
+      'opendatahub.io/user': usernameTranslate('test-user'),
+    };
+    const result = getNotebookControllerUserState(notebook, 'test-user');
+    expect(result).not.toBeNull();
+    expect(result?.user).toBe('test-user');
+  });
+
+  it('should handle workbenches with no annotations at all (label-only fallback)', () => {
+    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    notebook.metadata.annotations = undefined;
+    notebook.metadata.labels = {
+      ...notebook.metadata.labels,
+      'opendatahub.io/user': usernameTranslate('test-user'),
+    };
+    const result = getNotebookControllerUserState(notebook, 'test-user');
+    expect(result).not.toBeNull();
+    expect(result?.user).toBe('test-user');
+  });
+
+  it('should return null when user cannot be resolved from any source', () => {
+    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    notebook.metadata.annotations = {};
+    notebook.metadata.labels = {};
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const result = getNotebookControllerUserState(notebook, 'test-user');
+    expect(result).toBeNull();
+    consoleSpy.mockRestore();
+  });
+
+  it('should handle long OIDC usernames (>63 chars) in annotation', () => {
+    const longUsername =
+      'https://keycloak-keycloak.apps.rosa.1234567890.c8l6.p3.openshiftapps.com/realms/master#someuser';
+    const notebook = mockNotebookK8sResource({ user: longUsername }) as Notebook;
+    const result = getNotebookControllerUserState(notebook, longUsername);
+    expect(result).not.toBeNull();
+    expect(result?.user).toBe(longUsername);
+    expect(longUsername.length).toBeGreaterThan(63);
   });
 });

@@ -98,14 +98,18 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 			app.badRequestResponse(w, r, err)
 			return nil, false
 		}
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving S3 credentials: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return nil, false
 	}
 
 	// Resolve bucket.
-	// On the DSPA path the configured bucket always wins; any caller-supplied override
-	// is ignored to prevent bucket substitution and oracle-enumeration attacks.
-	// On the explicit secretName path use the override or fall back to AWS_S3_BUCKET.
+	// SECURITY MODEL:
+	//   - DSPA path: The DSPA-configured bucket always wins. Caller-supplied override
+	//     is IGNORED to prevent bucket substitution and oracle-enumeration attacks.
+	//   - secretName path: Caller-supplied bucketOverride IS ACCEPTED to allow flexible
+	//     bucket access. The secret's IAM credentials determine authorization scope.
+	//     Administrators MUST configure secrets with least-privilege IAM policies scoped
+	//     to specific buckets to prevent unauthorized access.
 	var bucket string
 	if dspaStorage != nil {
 		if dspaStorage.Bucket == "" {
@@ -177,7 +181,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving file from S3: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -247,7 +251,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 			return
 		}
 
-		app.serverErrorResponseWithMessage(w, r, err, fmt.Sprintf("error retrieving CSV schema from S3: %s", err.Error()))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

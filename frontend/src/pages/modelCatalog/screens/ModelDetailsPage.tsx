@@ -74,6 +74,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   );
   const isOciModel = isOciModelUri(model?.artifacts?.map((artifact) => artifact.uri)[0]);
   const deployButtonState = useDeployButtonState(isOciModel);
+  const registerModelHref = getRegisterCatalogModelRoute(decodedParams);
 
   const registerModelButton = () => {
     if (modelRegistryServicesLoadError) {
@@ -106,9 +107,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       <Button
         data-testid="register-model-button"
         variant={!deployButtonState.visible ? 'primary' : 'secondary'}
-        onClick={() => {
-          navigate(getRegisterCatalogModelRoute(decodedParams));
-        }}
+        component={(props: React.ComponentProps<'a'>) => <Link {...props} to={registerModelHref} />}
       >
         Register model
       </Button>
@@ -151,7 +150,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
           <ActionListGroup>
             <ActionListItem>{registerModelButton()}</ActionListItem>
             <ActionListItem>
-              <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
+              <Button
+                variant="link"
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to={modelCustomizationRootPath} />
+                )}
+              >
                 Learn more about model customization
               </Button>
             </ActionListItem>

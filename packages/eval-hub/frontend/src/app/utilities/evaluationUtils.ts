@@ -1,4 +1,5 @@
 import { EvaluationJob } from '~/app/types';
+import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
@@ -6,7 +7,10 @@ export const getEvaluationName = (job: EvaluationJob): string =>
 export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> =>
   job.benchmarks ?? job.collection?.benchmarks ?? [];
 
-export const getBenchmarkName = (job: EvaluationJob): string => {
+export const getBenchmarkName = (
+  job: EvaluationJob,
+  collectionNameMap?: CollectionNameMap,
+): string => {
   const benchmarks = getJobBenchmarks(job);
   if (benchmarks.length > 0) {
     const first = benchmarks[0].id;
@@ -16,7 +20,7 @@ export const getBenchmarkName = (job: EvaluationJob): string => {
     return `${first} +${benchmarks.length - 1} more`;
   }
   if (job.collection?.id) {
-    return job.collection.id;
+    return collectionNameMap?.[job.collection.id] ?? job.collection.id;
   }
   return '-';
 };
