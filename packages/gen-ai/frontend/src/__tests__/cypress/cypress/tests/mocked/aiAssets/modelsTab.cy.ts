@@ -220,7 +220,7 @@ describe('AI Assets - Models Tab (Empty State)', () => {
       modelsTabPage.findTable().should('not.exist');
 
       cy.step('Verify "Go to Deployments" action button exists');
-      cy.findByRole('button', { name: /Go to Deployments/i }).should('be.visible');
+      cy.findByTestId('empty-state-action-button').should('be.visible');
     },
   );
 });
