@@ -124,8 +124,7 @@ export const handleUpdateLogic =
           changedData.k8sName = {
             value: k8sValue,
             state: {
-              invalidCharacters:
-                k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
+              invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
               invalidLength: k8sValue.length > maxLength,
             },
           };
