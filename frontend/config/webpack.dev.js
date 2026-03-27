@@ -113,9 +113,10 @@ module.exports = smp.wrap(
                       console.info('Token refreshed (oc user may have switched)');
                       cachedToken = newToken;
                     }
-                    lastTokenFetch = now;
                   } catch (e) {
                     console.warn('Failed to refresh oc token, using cached token');
+                  } finally {
+                    lastTokenFetch = now;
                   }
                 }
                 return cachedToken;
