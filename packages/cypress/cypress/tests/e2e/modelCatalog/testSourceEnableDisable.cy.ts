@@ -5,8 +5,9 @@ import { modelCatalog } from '../../../pages/modelCatalog/modelCatalog';
 import {
   verifyModelCatalogSourceEnabled,
   waitForModelCatalogCards,
-  waitForModelCatalogEmptyState,
+  waitForModelCatalogAfterDisable,
   enableModelCatalogSource,
+  ensureModelCatalogSourceEnabled,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
@@ -19,6 +20,10 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
+      })
+      .then(() => {
+        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
+        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId2);
       });
   });
 
@@ -56,20 +61,20 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       cy.step(`Disable the ${testData.sourceName} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
 
+      cy.step('Verify first source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+
       cy.step(`Disable the ${testData.sourceName2} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
 
-      cy.step('Verify configmap shows source as disabled');
-      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+      cy.step('Verify second source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
 
       cy.step('Navigate to catalog');
       modelCatalog.visit();
 
-      cy.step('Wait for model catalog to show empty state');
-      waitForModelCatalogEmptyState();
-
-      cy.step('Verify model catalog shows empty state');
-      modelCatalog.findModelCatalogEmptyState().should('exist');
+      cy.step('Wait for catalog to reflect disabled sources');
+      waitForModelCatalogAfterDisable([testData.redhatAiSourceId, testData.redhatAiSourceId2]);
     },
   );
 });
