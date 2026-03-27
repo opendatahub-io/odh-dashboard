@@ -223,29 +223,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     connectionKeyRef.current = null;
   }, []);
 
-  const navigateTo = useCallback(
-    (path: string, perPage: number) => {
-      setCurrentPath(path);
-      setFoldersToRender(getBreadcrumbTrail(path));
-      setSearchQuery('');
-      setPageToRender(1);
-      continuationTokensRef.current = new Map();
-      fetchPath(path, perPage, 1);
-    },
-    [fetchPath],
-  );
-
-  // Effects ------------------------------------------------------------------>
-
-  // Reset state when the modal is closed
-  const prevIsOpenRef = useRef(isOpen);
-  useEffect(() => {
-    if (prevIsOpenRef.current && !isOpen) {
-      resetState();
-    }
-    prevIsOpenRef.current = isOpen;
-  }, [isOpen, resetState]);
-
   const fetchPath = useCallback(
     (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
       if (!secretName) {
@@ -301,6 +278,29 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     },
     [namespace, secretName, bucket],
   );
+
+  const navigateTo = useCallback(
+    (path: string, perPage: number) => {
+      setCurrentPath(path);
+      setFoldersToRender(getBreadcrumbTrail(path));
+      setSearchQuery('');
+      setPageToRender(1);
+      continuationTokensRef.current = new Map();
+      fetchPath(path, perPage, 1);
+    },
+    [fetchPath],
+  );
+
+  // Effects ------------------------------------------------------------------>
+
+  // Reset state when the modal is closed
+  const prevIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevIsOpenRef.current && !isOpen) {
+      resetState();
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, resetState]);
 
   // Initial fetch on mount / when connection changes / when modal reopens after reset
   useEffect(() => {
