@@ -89,6 +89,7 @@ function ConfigureTimeseriesForm({
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for target column"
+              hasNoPadding
             />
           </Popover>
         </div>
@@ -172,6 +173,7 @@ function ConfigureTimeseriesForm({
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for timestamp column"
+              hasNoPadding
             />
           </Popover>
         </div>
@@ -251,6 +253,7 @@ function ConfigureTimeseriesForm({
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for ID column"
+              hasNoPadding
             />
           </Popover>
         </div>
@@ -324,6 +327,7 @@ function ConfigureTimeseriesForm({
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for known covariates"
+              hasNoPadding
             />
           </Popover>
         </div>
@@ -413,6 +417,7 @@ function ConfigureTimeseriesForm({
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for prediction length"
+              hasNoPadding
             />
           </Popover>
         </div>

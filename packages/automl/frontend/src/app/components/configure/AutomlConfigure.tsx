@@ -408,6 +408,7 @@ function AutomlConfigure(): React.JSX.Element {
                         <DashboardPopupIconButton
                           icon={<OutlinedQuestionCircleIcon />}
                           aria-label="More info for top models to consider"
+                          hasNoPadding
                         />
                       </Popover>
                     </div>

@@ -56,6 +56,7 @@ function ConfigureTabularForm({
           <DashboardPopupIconButton
             icon={<OutlinedQuestionCircleIcon />}
             aria-label="More info for label column"
+            hasNoPadding
           />
         </Popover>
       </div>
