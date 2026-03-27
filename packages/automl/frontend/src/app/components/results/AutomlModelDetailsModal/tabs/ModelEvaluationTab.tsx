@@ -2,12 +2,18 @@ import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
-import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue as formatValue,
+  toNumericMetric,
+  isErrorMetric,
+} from '~/app/utilities/utils';
 
 /** Format a metric value for display. Only apply Math.abs() for error metrics (lower-is-better). */
 function formatMetricValue(key: string, value: unknown): string {
   const rawMetricValue = toNumericMetric(value);
-  return (isErrorMetric(key) ? Math.abs(rawMetricValue) : rawMetricValue).toFixed(3);
+  const absoluteValue = isErrorMetric(key) ? Math.abs(rawMetricValue) : rawMetricValue;
+  return formatValue(absoluteValue);
 }
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {

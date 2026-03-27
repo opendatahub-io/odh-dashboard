@@ -45,5 +45,5 @@ export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
   [TASK_TYPE_BINARY]: 'accuracy',
   [TASK_TYPE_MULTICLASS]: 'accuracy',
   [TASK_TYPE_REGRESSION]: 'r2',
-  [TASK_TYPE_TIMESERIES]: 'smape',
+  [TASK_TYPE_TIMESERIES]: 'mase',
 };

@@ -9,7 +9,12 @@ import {
 } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import { formatMetricName, toNumericMetric, isErrorMetric } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  toNumericMetric,
+  isErrorMetric,
+} from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
@@ -26,10 +31,17 @@ type AutomlModelDetailsModalHeaderProps = {
 function getOptimizedMetric(model: AutomlModel): { name: string; value: number } | undefined {
   const evalMetric = model.model_config.eval_metric;
   const metrics = model.metrics.test_data ?? {};
-  if (!(evalMetric in metrics)) {
+
+  // Case-insensitive metric lookup
+  const metricKey = Object.keys(metrics).find(
+    (key) => key.toLowerCase() === evalMetric.toLowerCase(),
+  );
+
+  if (!metricKey) {
     return undefined;
   }
-  const numericMetricValue = toNumericMetric(metrics[evalMetric]);
+
+  const numericMetricValue = toNumericMetric(metrics[metricKey]);
   return {
     name: evalMetric,
     value: isErrorMetric(evalMetric) ? Math.abs(numericMetricValue) : numericMetricValue,
@@ -102,7 +114,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
             </span>
             <span className="automl-model-details-header-value">
               {optimizedMetric ? (
-                optimizedMetric.value.toFixed(3)
+                formatMetricValue(optimizedMetric.value)
               ) : (
                 <Tooltip
                   position="right"

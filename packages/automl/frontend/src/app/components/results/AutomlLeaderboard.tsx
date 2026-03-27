@@ -22,7 +22,11 @@ import {
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
-import { getOptimizedMetricForTask } from '~/app/utilities/utils';
+import {
+  getOptimizedMetricForTask,
+  formatMetricValue,
+  formatMetricName,
+} from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
 import './AutomlLeaderboard.scss';
@@ -32,47 +36,6 @@ type LeaderboardEntry = {
   model: string;
   metrics: Record<string, number | string>;
   optimizedMetricValue: number | string;
-};
-
-// Helper function to format metric names for display
-const formatMetricName = (metricKey: string): string => {
-  // Special cases for common acronyms
-  /* eslint-disable camelcase */
-  const specialCases: Record<string, string> = {
-    roc_auc: 'ROC AUC',
-    mcc: 'MCC',
-    f1: 'F1',
-    r2: 'R²',
-    mae: 'MAE',
-    mse: 'MSE',
-    rmse: 'RMSE',
-    mape: 'MAPE',
-    smape: 'SMAPE',
-  };
-  /* eslint-enable camelcase */
-
-  if (specialCases[metricKey]) {
-    return specialCases[metricKey];
-  }
-
-  // Convert snake_case to Title Case
-  return metricKey
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-// Helper function to format metric values for display
-const formatMetricValue = (value: number | string): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  // If the value would round to 0.000, use scientific notation
-  const fixed = value.toFixed(3);
-  if (fixed === '0.000' || fixed === '-0.000') {
-    return value.toExponential(3);
-  }
-  return fixed;
 };
 
 type AutomlLeaderboardProps = {
@@ -146,7 +109,13 @@ function AutomlLeaderboard({
           !Array.isArray(model.metrics.test_data)
             ? model.metrics.test_data
             : {};
-        const value = testData[metricName];
+
+        // Case-insensitive metric lookup
+        const metricKey = Object.keys(testData).find(
+          (key) => key.toLowerCase() === metricName.toLowerCase(),
+        );
+        const value = metricKey ? testData[metricKey] : undefined;
+
         if (typeof value === 'number' && Number.isFinite(value)) {
           return value;
         }
@@ -180,8 +149,8 @@ function AutomlLeaderboard({
     });
 
     // Initial ranking by optimized metric value
-    // Error metrics (smape, mse, mae, etc.) where lower is better
-    const errorMetrics = ['smape', 'mse', 'mae', 'rmse', 'mape'];
+    // Error metrics (mase, mse, mae, etc.) where lower is better
+    const errorMetrics = ['mase', 'mse', 'mae', 'rmse', 'mape'];
     const isErrorMetric = errorMetrics.includes(optimizedMetric.toLowerCase());
 
     const sortedByMetric = entries.toSorted((a, b) => {
@@ -368,7 +337,7 @@ function AutomlLeaderboard({
                 data-testid={`metric-header-${metricKey}`}
               >
                 {formatMetricName(metricKey)}
-                {metricKey === optimizedMetric ? (
+                {metricKey.toLowerCase() === optimizedMetric.toLowerCase() ? (
                   <span data-testid="optimized-indicator"> (optimized)</span>
                 ) : (
                   ''

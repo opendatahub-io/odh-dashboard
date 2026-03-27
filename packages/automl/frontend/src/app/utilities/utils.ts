@@ -49,7 +49,7 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   mse: 'MSE',
   rmse: 'RMSE',
   mape: 'MAPE',
-  smape: 'SMAPE',
+  mase: 'MASE',
 };
 /* eslint-enable camelcase */
 
@@ -61,6 +61,22 @@ export function formatMetricName(key: string): string {
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+/**
+ * Format metric values for display.
+ * Uses scientific notation for non-zero values that would round to 0.000.
+ */
+export function formatMetricValue(value: number | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  // If the value would round to 0.000 but is actually non-zero, use scientific notation
+  const fixed = value.toFixed(3);
+  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
+    return value.toExponential(3);
+  }
+  return fixed;
 }
 
 /**
@@ -91,14 +107,14 @@ export function getOptimizedMetricForTask(taskType: string): string | undefined 
     case TASK_TYPE_REGRESSION:
       return 'r2';
     case TASK_TYPE_TIMESERIES:
-      return 'smape';
+      return 'mase';
     default:
       return undefined;
   }
 }
 
 /** Metrics where lower values indicate better performance. */
-const ERROR_METRICS = new Set(['smape', 'mse', 'mae', 'rmse', 'mape']);
+const ERROR_METRICS = new Set(['mase', 'mse', 'mae', 'rmse', 'mape']);
 
 /**
  * Check whether a metric is an error metric (lower-is-better).

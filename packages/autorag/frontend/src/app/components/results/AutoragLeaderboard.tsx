@@ -23,7 +23,7 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getOptimizedMetricForRAG } from '~/app/utilities/utils';
+import { getOptimizedMetricForRAG, formatMetricValue } from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
@@ -67,19 +67,6 @@ const formatMetricName = (metricKey: string): string => {
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
-};
-
-// Helper function to format metric values for display
-const formatMetricValue = (value: number | string): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  // If the value would round to 0.000, use scientific notation
-  const fixed = value.toFixed(3);
-  if (fixed === '0.000' || fixed === '-0.000') {
-    return value.toExponential(3);
-  }
-  return fixed;
 };
 
 // Helper function to extract the last segment of a model ID

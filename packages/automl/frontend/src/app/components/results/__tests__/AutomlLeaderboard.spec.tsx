@@ -101,21 +101,21 @@ const mockRegressionModels: Record<string, AutomlModel> = {
 // Timeseries models
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('ARIMA', {
-    smape: 0.15,
+    mase: 0.15,
     mape: 0.18,
     mae: 5.2,
     mse: 45.3,
     rmse: 6.73,
   }),
   'model-2': createMockModel('Prophet', {
-    smape: 0.12,
+    mase: 0.12,
     mape: 0.14,
     mae: 4.1,
     mse: 32.1,
     rmse: 5.67,
   }),
   'model-3': createMockModel('LSTM', {
-    smape: 0.09,
+    mase: 0.09,
     mape: 0.11,
     mae: 3.5,
     mse: 25.6,
@@ -246,7 +246,7 @@ describe('AutomlLeaderboard utility functions', () => {
             mse: 10.2,
             rmse: 3.19,
             mape: 0.15,
-            smape: 0.12,
+            mase: 0.12,
           }),
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
@@ -261,7 +261,7 @@ describe('AutomlLeaderboard utility functions', () => {
       expect(screen.getByText('MSE')).toBeInTheDocument();
       expect(screen.getByText('RMSE')).toBeInTheDocument();
       expect(screen.getByText('MAPE')).toBeInTheDocument();
-      expect(screen.getByText('SMAPE')).toBeInTheDocument();
+      expect(screen.getByText('MASE')).toBeInTheDocument();
       // For binary classification, accuracy is the optimized metric
       const accuracyHeader = screen.getByTestId('metric-header-accuracy');
       expect(accuracyHeader).toBeInTheDocument();
@@ -552,13 +552,13 @@ describe('AutomlLeaderboard component', () => {
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
     });
 
-    it('should rank models correctly for timeseries (lower SMAPE is better)', () => {
+    it('should rank models correctly for timeseries (lower MASE is better)', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      // LSTM has lowest SMAPE (0.09), should be rank 1
+      // LSTM has lowest MASE (0.09), should be rank 1
       const rank1Row = screen.getByTestId('leaderboard-row-1');
       expect(within(rank1Row).getByText('LSTM')).toBeInTheDocument();
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
@@ -604,14 +604,14 @@ describe('AutomlLeaderboard component', () => {
       expect(within(r2Header).getByTestId('optimized-indicator')).toHaveTextContent('(optimized)');
     });
 
-    it('should use smape as optimized metric for timeseries', () => {
+    it('should use mase as optimized metric for timeseries', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      const smapeHeader = screen.getByTestId('metric-header-smape');
-      expect(within(smapeHeader).getByTestId('optimized-indicator')).toHaveTextContent(
+      const maseHeader = screen.getByTestId('metric-header-mase');
+      expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
     });
@@ -622,9 +622,9 @@ describe('AutomlLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
       });
 
-      // Should still show SMAPE as optimized (timeseries default)
-      const smapeHeader = screen.getByTestId('metric-header-smape');
-      expect(within(smapeHeader).getByTestId('optimized-indicator')).toHaveTextContent(
+      // Should still show MASE as optimized (timeseries default)
+      const maseHeader = screen.getByTestId('metric-header-mase');
+      expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
     });

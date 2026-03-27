@@ -208,11 +208,11 @@ const buildTimeseriesLocation = (
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   TemporalFusionTransformer: {
     display_name: 'TemporalFusionTransformer',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'TemporalFusionTransformer'),
     metrics: {
       test_data: {
-        smape: 0.082,
+        mase: 0.082,
         mape: 0.091,
         mse: 12.45,
         rmse: 3.528,
@@ -222,11 +222,11 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
   },
   DeepAR: {
     display_name: 'DeepAR',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'DeepAR'),
     metrics: {
       test_data: {
-        smape: 0.105,
+        mase: 0.105,
         mape: 0.118,
         mse: 18.72,
         rmse: 4.327,
@@ -236,11 +236,11 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
   },
   AutoETS: {
     display_name: 'AutoETS',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'AutoETS'),
     metrics: {
       test_data: {
-        smape: 0.134,
+        mase: 0.134,
         mape: 0.152,
         mse: 24.31,
         rmse: 4.931,

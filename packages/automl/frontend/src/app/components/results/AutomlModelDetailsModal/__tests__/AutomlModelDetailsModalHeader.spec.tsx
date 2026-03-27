@@ -63,8 +63,8 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByText('-0.123')).toBeInTheDocument();
   });
 
-  it('should use absolute value for error metrics like smape', () => {
-    const errorModel = buildModel('Model', 'smape', { smape: -0.082 });
+  it('should use absolute value for error metrics like mase', () => {
+    const errorModel = buildModel('Model', 'mase', { mase: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}

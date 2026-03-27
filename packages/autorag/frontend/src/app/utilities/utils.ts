@@ -33,3 +33,19 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
   }
   return 'faithfulness';
 }
+
+/**
+ * Format metric values for display.
+ * Uses scientific notation for non-zero values that would round to 0.000.
+ */
+export function formatMetricValue(value: number | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  // If the value would round to 0.000 but is actually non-zero, use scientific notation
+  const fixed = value.toFixed(3);
+  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
+    return value.toExponential(3);
+  }
+  return fixed;
+}
