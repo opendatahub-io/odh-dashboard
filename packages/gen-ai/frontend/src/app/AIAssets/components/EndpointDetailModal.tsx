@@ -263,8 +263,11 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                       isOpen={isSubscriptionSelectOpen}
                       selected={selectedSubscription}
                       onSelect={(_event, value) => {
-                        if (typeof value === 'string') {
+                        if (typeof value === 'string' && value !== selectedSubscription) {
                           setSelectedSubscription(value);
+                          resetToken();
+                          setIsKeyVisible(false);
+                          setIsKeyCopied(false);
                         }
                         setIsSubscriptionSelectOpen(false);
                       }}

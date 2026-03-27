@@ -331,6 +331,39 @@ describe('EndpointDetailModal', () => {
         expect(selectButton).toHaveTextContent('Premium Subscription');
       });
 
+      it('should reset token when subscription is changed', () => {
+        mockUseGenerateMaaSToken = jest.fn(() => ({
+          isGenerating: false,
+          tokenData: { key: 'existing-key', expiresAt: '2026-12-31T00:00:00Z' },
+          error: null,
+          generateToken: mockGenerateToken,
+          resetToken: mockResetToken,
+        }));
+
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+            {
+              name: 'premium-subscription',
+              displayName: 'Premium Subscription',
+              description: 'Premium tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        fireEvent.click(screen.getByTestId('endpoint-modal-subscription-select'));
+        fireEvent.click(screen.getByText('Premium Subscription'));
+
+        expect(mockResetToken).toHaveBeenCalled();
+      });
+
       it('should pass changed subscription to generateToken', () => {
         const model = createMockModel({
           model_source_type: 'maas',
