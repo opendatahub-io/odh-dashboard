@@ -1,3 +1,5 @@
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import {
   Alert,
   Bullseye,
@@ -8,15 +10,13 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-import { automlCreatePathname } from '~/app/utilities/routes';
+import { automlConfigurePathname } from '~/app/utilities/routes';
 
 /**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
@@ -60,7 +60,7 @@ function AutomlExperiments(): React.JSX.Element {
   const loadError = defsError || runsError;
 
   const handleCreateClick = React.useCallback(() => {
-    navigate(`${automlCreatePathname}/${effectiveNamespace}`);
+    navigate(`${automlConfigurePathname}/${effectiveNamespace}`);
   }, [navigate, effectiveNamespace]);
 
   const createButton = (
@@ -104,7 +104,7 @@ function AutomlExperiments(): React.JSX.Element {
   if (!hasExperiments) {
     return (
       <EmptyExperimentsState
-        createExperimentRoute={`${automlCreatePathname}/${effectiveNamespace}`}
+        createExperimentRoute={`${automlConfigurePathname}/${effectiveNamespace}`}
         dataTestId="empty-experiments-state"
       />
     );

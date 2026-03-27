@@ -1,11 +1,14 @@
 import '@testing-library/jest-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useFilesQuery } from '~/app/hooks/queries';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -106,24 +109,46 @@ const mockUseFilesQuery = jest.mocked(useFilesQuery);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
-const MOCK_COLUMNS = ['approval_status', 'credit_score', 'income', 'loan_amount', 'risk_category'];
+const MOCK_COLUMNS = [
+  { name: 'approval_status', type: 'string' },
+  { name: 'credit_score', type: 'int64' },
+  { name: 'income', type: 'float64' },
+  { name: 'loan_amount', type: 'float64' },
+  { name: 'risk_category', type: 'string' },
+];
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
+const configureSchema = createConfigureSchema();
+
+const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
+  });
+  return <FormProvider {...form}>{children}</FormProvider>;
+};
+
+// Create a QueryClient for tests
+const createTestQueryClient = () =>
+  new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
       },
     },
   });
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+
+// Wrapper component that provides QueryClient and Form context
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <FormWrapper>{component}</FormWrapper>
+    </QueryClientProvider>,
   );
-  Wrapper.displayName = 'TestQueryClientProvider';
-  return Wrapper;
 };
 
-const renderComponent = () => render(<AutomlConfigure />, { wrapper: createWrapper() });
+const renderComponent = () => renderWithQueryClient(<AutomlConfigure />);
 
 describe('AutomlConfigure', () => {
   beforeEach(() => {
@@ -138,19 +163,19 @@ describe('AutomlConfigure', () => {
 
   describe('initial state - no secret selected', () => {
     it('should NOT display the "Selected connection" section when no secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       expect(screen.queryByText('Selected connection')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Selected files" section when no secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
     });
 
     it('should NOT display the "Select files" button when no secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       expect(screen.queryByText('Select files')).not.toBeInTheDocument();
     });
@@ -158,7 +183,7 @@ describe('AutomlConfigure', () => {
 
   describe('secret selection', () => {
     it('should display "Selected connection" section when a secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -169,7 +194,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display the selected secret name as a Label when a secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -180,7 +205,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display "Selected files" section when a secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -191,7 +216,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display the "Select files" button when a secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -202,7 +227,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should display different secret name when selecting a different secret', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select first secret
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -217,7 +242,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should extract bucket name from secret data when a secret is selected', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select first secret with bucket data
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -240,7 +265,7 @@ describe('AutomlConfigure', () => {
 
   describe('clearing selected secret', () => {
     it('should clear the selected secret when clicking the X on the Label', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -267,7 +292,7 @@ describe('AutomlConfigure', () => {
     });
 
     it('should hide the selected connection and files sections after clearing', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -291,7 +316,7 @@ describe('AutomlConfigure', () => {
 
   describe('invalid secret selection', () => {
     it('should disable "Select files" button when selected secret is invalid', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -302,20 +327,8 @@ describe('AutomlConfigure', () => {
       expect(selectFilesButton).toBeDisabled();
     });
 
-    it('should disable "Run experiment" button when selected secret is invalid', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Verify the "Run experiment" button is disabled
-      const runExperimentButton = screen.getByRole('button', { name: 'Run experiment' });
-      expect(runExperimentButton).toBeDisabled();
-    });
-
     it('should enable "Select files" button when selected secret is valid', () => {
-      render(<AutomlConfigure />, { wrapper: createWrapper() });
+      renderComponent();
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -520,25 +533,6 @@ describe('AutomlConfigure', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Minimum number of top models is 1')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Run experiment button', () => {
-    it('should be disabled by default when form is invalid', () => {
-      renderComponent();
-      const button = screen.getByRole('button', { name: 'Run experiment' });
-      expect(button).toBeDisabled();
-    });
-
-    it('should be disabled when top N has a validation error', async () => {
-      renderComponent();
-      const input = screen.getByTestId('top-n-input').querySelector('input')!;
-      fireEvent.change(input, { target: { value: '6' } });
-
-      await waitFor(() => {
-        const button = screen.getByRole('button', { name: 'Run experiment' });
-        expect(button).toBeDisabled();
       });
     });
   });
