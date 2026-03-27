@@ -1,4 +1,5 @@
 import { KubeFastifyInstance } from '../../../../types';
+import { getNamespaces } from '../../../../utils/notebookUtils';
 import { registerProxy } from '../../../../utils/proxy';
 
 /**
@@ -20,6 +21,8 @@ import { registerProxy } from '../../../../utils/proxy';
  * ```
  */
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
+  const { dashboardNamespace } = getNamespaces(fastify);
+
   await registerProxy(fastify, {
     prefix: '/',
     rewritePrefix: '/',
@@ -27,7 +30,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     tls: true,
     service: {
       name: 'model-serving-api',
-      namespace: 'opendatahub',
+      namespace: dashboardNamespace,
       port: 443,
     },
     local: {
