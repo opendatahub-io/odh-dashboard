@@ -36,7 +36,7 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({
         {' '}
         <Label
           variant="outline"
-          color="green"
+          status="success"
           isCompact={isCompact}
           data-testid="model-registered-label"
         >
