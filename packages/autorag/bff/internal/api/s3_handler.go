@@ -101,9 +101,13 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	}
 
 	// Resolve bucket.
-	// On the DSPA path the DSPA-configured bucket always wins; the caller-supplied override
-	// is ignored to prevent bucket substitution and oracle-enumeration attacks.
-	// On the explicit secretName path use the override or fall back to AWS_S3_BUCKET in the secret.
+	// SECURITY MODEL:
+	//   - DSPA path: The DSPA-configured bucket always wins. Caller-supplied override
+	//     is IGNORED to prevent bucket substitution and oracle-enumeration attacks.
+	//   - secretName path: Caller-supplied bucketOverride IS ACCEPTED to allow flexible
+	//     bucket access. The secret's IAM credentials determine authorization scope.
+	//     Administrators MUST configure secrets with least-privilege IAM policies scoped
+	//     to specific buckets to prevent unauthorized access.
 	var bucket string
 	if dspaStorage != nil {
 		if dspaStorage.Bucket == "" {
