@@ -64,7 +64,9 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       : '',
   );
 
-  const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings();
+  const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings(
+    storageClass.provisioner,
+  );
 
   const [accessModeSettings, setAccessModeSettings] = React.useState(() => {
     const settings = storageClassConfig?.accessModeSettings;
