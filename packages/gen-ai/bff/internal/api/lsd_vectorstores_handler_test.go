@@ -64,15 +64,26 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// TEMPORARY: Handler now returns user-specific vectorstore (auto-provisioned if needed)
+		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 1)
+		assert.Len(t, vectorStores, 3)
 
-		firstStore := vectorStores[0].(map[string]interface{})
-		assert.NotEmpty(t, firstStore["id"])
-		// Name should be hashed username (32 char hex from SHA256)
-		assert.Len(t, firstStore["name"].(string), 32)
-		assert.Contains(t, []string{"completed", "in_progress"}, firstStore["status"])
+		// Find the auto-provisioned user store by contract metadata marker
+		var userStore map[string]interface{}
+		for _, vs := range vectorStores {
+			store := vs.(map[string]interface{})
+			metadata, ok := store["metadata"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if createdBy, ok := metadata["created_by"].(string); ok && createdBy == "auto-provisioning" {
+				userStore = store
+				break
+			}
+		}
+		require.NotNil(t, userStore, "expected auto-provisioned user store")
+		assert.NotEmpty(t, userStore["id"])
+		assert.Contains(t, []string{"completed", "in_progress"}, userStore["status"])
 	})
 
 	It("should list vector stores with limit parameter", func() {
@@ -99,8 +110,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
+		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 1) // Mock always returns 1
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should list vector stores with order parameter", func() {
@@ -127,8 +139,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
+		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 1)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should list vector stores with both limit and order parameters", func() {
@@ -155,8 +168,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
+		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 1)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should ignore invalid limit parameter", func() {

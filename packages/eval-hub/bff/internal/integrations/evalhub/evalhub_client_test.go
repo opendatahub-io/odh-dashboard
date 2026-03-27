@@ -171,7 +171,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background(), "test-namespace")
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: "test-namespace"})
 
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
@@ -190,7 +190,7 @@ func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background(), "test-ns")
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: "test-ns"})
 
 	require.NoError(t, err)
 	assert.NotNil(t, result.Items, "Items should be an empty slice, not nil")
@@ -199,7 +199,7 @@ func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 
 func TestEvalHubClient_ListCollections_EmptyNamespace(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background(), "")
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: ""})
 
 	require.Error(t, err)
 	var ehErr *EvalHubError
@@ -220,7 +220,7 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background(), "test-ns")
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: "test-ns"})
 
 	require.Error(t, err)
 	var ehErr *EvalHubError

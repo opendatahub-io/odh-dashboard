@@ -26,6 +26,7 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             job={job}
             rowIndex={rowIndex}
             namespace="test-ns"
+            collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
           />
         </Tbody>
@@ -82,6 +83,7 @@ describe('EvaluationsTableRow', () => {
               job={job}
               rowIndex={0}
               namespace="test-ns"
+              collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
             />
           </Tbody>

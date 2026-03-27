@@ -215,12 +215,12 @@ export const assembleNotebook = async (
       labels: {
         app: name,
         'opendatahub.io/odh-managed': 'true',
-        'opendatahub.io/user': translatedUsername,
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
+        'opendatahub.io/user': translatedUsername,
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',

@@ -248,7 +248,14 @@ describe('Archiving version', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          additionalLabels: {
+            [KnownLabels.REGISTERED_MODEL_ID]: '1',
+            [KnownLabels.MODEL_VERSION_ID]: '3',
+          },
+        }),
+      ]),
     );
     initIntercepts({});
 

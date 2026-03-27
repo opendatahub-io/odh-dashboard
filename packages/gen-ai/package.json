@@ -38,7 +38,9 @@
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9102 PROXY_PORT=8080 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102"
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102",
+    "lint": "cd frontend && npm run lint",
+    "lint:fix": "cd frontend && npm run lint:fix"
   },
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts"

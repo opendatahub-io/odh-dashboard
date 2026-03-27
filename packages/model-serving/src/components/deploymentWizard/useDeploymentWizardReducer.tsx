@@ -104,35 +104,29 @@ export type UseDeploymentWizardReducerResult = {
  * Hook that manages dynamic wizard field state from extensions.
  *
  * The state flow is:
- * - `baseFormState` (from legacy hooks) is merged with `reducerState` (dynamic fields)
- * - `activeFields` is computed from the merged state
+ * - `fields` is computed from the merged `formState` and returns the `isActive` fields
  * - External data is loaded for active fields (via ExternalDataLoader)
  *   - Mounts a dynamic hook via HookNotify
- * - Field's initial values are separated from the field values (to avoid dirty detection)
- *   - If only initial value exist, it's not dirty. If field value exists, it's dirty.
- *   - Initial value calculated by its dependencies (`getFieldDependencies`) or external data (`externalDataMap[field.id]`)
+ * - When field is initialized, initFieldData calculates the initial value based on its dependencies and external data
+ * - When a field's dependencies change, initFieldData is called again to recalculate the initial value
+ *   - This is done with a prevRef to the formState to compare dependencies
+ * - When a field is removed from the form, clearFieldData is called to remove the field's state
  *
- * @param baseFormState - State from the legacy individual field hooks
- * @param initialData - Initial data for pre-populating fields (e.g., when editing)
+ * @param formState - Reducer state + field hooks state
+ * @param dispatch - Dispatch function from the reducer
+ * @param initialData - Initial data for pre-populating fields (e.g., when editing an existing deployment)
  * @param externalDataMap - External data loaded by ExternalDataLoader
  */
 export const useDeploymentWizardReducer = (
-  baseFormState: WizardFormState,
+  formState: WizardFormState,
+  dispatch: React.Dispatch<WizardFormAction>,
   initialData?: InitialWizardFormData,
   externalDataMap: ExternalDataMap = {},
 ): UseDeploymentWizardReducerResult => {
-  const [reducerState, dispatch] = React.useReducer(wizardFormReducer, {
-    fieldValues: {},
-    initialValues: {},
-  });
-  const mergedState: WizardFormState = React.useMemo(
-    () => ({ ...baseFormState, ...reducerState.initialValues, ...reducerState.fieldValues }),
-    [baseFormState, reducerState.initialValues, reducerState.fieldValues],
-  );
-  const mergedStateRef = React.useRef(mergedState);
-  mergedStateRef.current = mergedState;
+  const mergedStateRef = React.useRef(formState);
+  mergedStateRef.current = formState;
 
-  const activeFields = useActiveFields(mergedState);
+  const activeFields = useActiveFields(formState);
 
   // Makes it easier for callers to use init dispatch without needing entire merged state
   const enhancedDispatch: React.Dispatch<WizardFormAction> = React.useCallback(
@@ -156,13 +150,13 @@ export const useDeploymentWizardReducer = (
   );
 
   const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);
-  const prevMergedState = React.useRef<WizardFormState>(mergedState);
+  const prevMergedState = React.useRef<WizardFormState>(formState);
 
   React.useEffect(() => {
     for (const field of activeFields) {
       const isNew = !prevActiveFields.current.some((f) => f.id === field.id);
 
-      const dependencies = getFieldDependencies(field, mergedState);
+      const dependencies = getFieldDependencies(field, formState);
       const prevDependencies = getFieldDependencies(field, prevMergedState.current);
       const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
@@ -187,37 +181,34 @@ export const useDeploymentWizardReducer = (
     }
 
     prevActiveFields.current = activeFields;
-    prevMergedState.current = mergedState;
-  }, [activeFields, dispatch, externalDataMap, initialData, mergedState]);
+    prevMergedState.current = formState;
+  }, [activeFields, dispatch, externalDataMap, initialData, formState]);
 
   const computedOverrides = React.useMemo((): WizardStateOverrides => {
     let overrides: WizardStateOverrides = {};
     for (const field of activeFields) {
-      const storedValue: unknown = mergedState[field.id];
+      const storedValue: unknown = formState[field.id];
       if (storedValue == null) {
         continue;
       }
       const effectiveValue: unknown =
-        field.reducerFunctions.getFieldData?.(storedValue, mergedState) ?? storedValue;
-      const fieldOverrides = field.reducerFunctions.getFieldOverrides?.(
-        effectiveValue,
-        mergedState,
-      );
+        field.reducerFunctions.getFieldData?.(storedValue, formState) ?? storedValue;
+      const fieldOverrides = field.reducerFunctions.getFieldOverrides?.(effectiveValue, formState);
       if (fieldOverrides) {
         overrides = { ...overrides, ...fieldOverrides };
       }
     }
     return overrides;
-  }, [activeFields, mergedState]);
+  }, [activeFields, formState]);
 
   return React.useMemo(
     () => ({
-      state: mergedState,
+      state: formState,
       dispatch: enhancedDispatch,
       fields: activeFields,
       externalDataLoaded: true,
       computedOverrides,
     }),
-    [mergedState, enhancedDispatch, activeFields, computedOverrides],
+    [formState, enhancedDispatch, activeFields, computedOverrides],
   );
 };

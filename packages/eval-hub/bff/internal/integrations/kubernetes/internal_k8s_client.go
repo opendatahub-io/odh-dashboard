@@ -217,7 +217,10 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 }
 
 // CanListEvalHubInstances performs a SubjectAccessReview on behalf of the identified user
-// to check whether they have permission to list EvalHub CRs in the given namespace.
+// to check whether they have permission to access EvalHub evaluations in the given namespace.
+// Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant
+// (via a RoleBinding in each namespace labelled evalhub.trustyai.opendatahub.io/tenant),
+// not the "evalhubs" CRD which is only accessible to cluster-admins.
 func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -227,9 +230,9 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 			User:   identity.UserID,
 			Groups: identity.Groups,
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
+				Verb:      "get",
 				Group:     EvalHubCRDGroup,
-				Resource:  EvalHubCRDResource,
+				Resource:  EvalHubVirtualResource,
 				Namespace: namespace,
 			},
 		},

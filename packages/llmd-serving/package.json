@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent --passWithNoTests",
     "test-unit-coverage": "jest --silent --coverage --passWithNoTests",
     "type-check": "tsc --noEmit",
@@ -13,6 +14,7 @@
   "exports": {
     "./extensions": "./extensions/extensions.ts",
     "./types": "./src/types.ts",
+    "./formUtils": "./src/formUtils.ts",
     "./__tests__/utils": "./src/__tests__/utils.ts"
   },
   "dependencies": {
