@@ -93,13 +93,15 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     window.addEventListener('afterprint', handleAfterPrint);
     // Double rAF ensures the print-only container is painted before
     // triggering print — single rAF fires before paint in Safari/Firefox.
-    const frameId = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    let innerFrameId: number;
+    const outerFrameId = requestAnimationFrame(() => {
+      innerFrameId = requestAnimationFrame(() => {
         window.print();
       });
     });
     return () => {
-      cancelAnimationFrame(frameId);
+      cancelAnimationFrame(outerFrameId);
+      cancelAnimationFrame(innerFrameId);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [isPrinting]);

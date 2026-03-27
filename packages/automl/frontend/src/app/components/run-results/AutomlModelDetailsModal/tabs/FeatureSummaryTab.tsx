@@ -24,7 +24,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
           <Tr>
             <Th>Feature name</Th>
             <Th>Importance</Th>
-            <Th />
+            <Th screenReaderText="Importance bar" />
           </Tr>
         </Thead>
         <Tbody>
@@ -46,12 +46,15 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
     );
   }
 
-  const entries = Object.entries(featureImportance.importance)
-    .toSorted(([, a], [, b]) => b - a)
-    .filter(([name]) => name.toLowerCase().includes(searchValue.toLowerCase()));
+  const allEntries = Object.entries(featureImportance.importance).toSorted(([, a], [, b]) => b - a);
+
+  const entries = allEntries.filter(([name]) =>
+    name.toLowerCase().includes(searchValue.toLowerCase()),
+  );
 
   const importanceValues = Object.values(featureImportance.importance);
-  const maxImportance = importanceValues.length > 0 ? Math.max(...importanceValues) : 0;
+  const maxImportance =
+    importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
 
   return (
     <>
@@ -73,7 +76,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
           <Tr>
             <Th>Feature name</Th>
             <Th>Importance</Th>
-            <Th />
+            <Th screenReaderText="Importance bar" />
           </Tr>
         </Thead>
         <Tbody>
@@ -81,16 +84,28 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
             <Tr>
               <Td colSpan={3}>
                 <Bullseye>
-                  <EmptyState
-                    variant={EmptyStateVariant.sm}
-                    icon={SearchIcon}
-                    titleText="No matching features"
-                    data-testid="feature-search-empty-state"
-                  >
-                    <EmptyStateBody>
-                      No features match your search. Try adjusting your search criteria.
-                    </EmptyStateBody>
-                  </EmptyState>
+                  {searchValue ? (
+                    <EmptyState
+                      variant={EmptyStateVariant.sm}
+                      icon={SearchIcon}
+                      titleText="No matching features"
+                      data-testid="feature-search-empty-state"
+                    >
+                      <EmptyStateBody>
+                        No features match your search. Try adjusting your search criteria.
+                      </EmptyStateBody>
+                    </EmptyState>
+                  ) : (
+                    <EmptyState
+                      variant={EmptyStateVariant.sm}
+                      titleText="No feature data available"
+                      data-testid="feature-no-data-empty-state"
+                    >
+                      <EmptyStateBody>
+                        Feature importance data is not available for this model.
+                      </EmptyStateBody>
+                    </EmptyState>
+                  )}
                 </Bullseye>
               </Td>
             </Tr>
@@ -101,12 +116,9 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
                 <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
                 <Td>
                   <div
+                    className="automl-feature-importance-bar"
                     style={{
-                      width: `${maxImportance > 0 ? (importance / maxImportance) * 100 : 0}%`,
-                      height: 12,
-                      backgroundColor: 'var(--pf-t--global--color--brand--default)',
-                      borderRadius: 2,
-                      minWidth: 4,
+                      width: `${maxImportance > 0 ? (Math.abs(importance) / maxImportance) * 100 : 0}%`,
                     }}
                   />
                 </Td>

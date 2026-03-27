@@ -133,10 +133,43 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('feature_b')).toBeInTheDocument();
 
     // All bars should have 0% width, not NaN%
-    const bars = container.querySelectorAll('[style]');
+    const bars = container.querySelectorAll('.automl-feature-importance-bar');
     bars.forEach((bar) => {
       const style = bar.getAttribute('style') ?? '';
       expect(style).not.toContain('NaN');
+    });
+  });
+
+  it('should show no-data empty state when importance object is empty', () => {
+    const emptyImportance: FeatureImportanceData = {
+      importance: {},
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={emptyImportance} />);
+
+    expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No feature data available')).toBeInTheDocument();
+    expect(screen.queryByTestId('feature-search-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should handle negative importance values', () => {
+    const negativeImportance: FeatureImportanceData = {
+      importance: { feature_positive: 0.5, feature_negative: -0.3 },
+    };
+
+    const { container } = render(
+      <FeatureSummaryTab {...defaultProps} featureImportance={negativeImportance} />,
+    );
+
+    expect(screen.getByText('-30.00%')).toBeInTheDocument();
+    expect(screen.getByText('50.00%')).toBeInTheDocument();
+
+    // Bars should have valid positive widths (using absolute values)
+    const bars = container.querySelectorAll('.automl-feature-importance-bar');
+    bars.forEach((bar) => {
+      const style = bar.getAttribute('style') ?? '';
+      expect(style).toMatch(/width: \d+/);
+      expect(style).not.toContain('-');
     });
   });
 });
