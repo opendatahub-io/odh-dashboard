@@ -39,7 +39,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
               <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
               <Flex>
                 <FlexItem>
-                  Publish as MaaS makes the model deployment endpoint accessible to others as a
+                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
                   service through a gateway API.
                 </FlexItem>
                 <Label isCompact color="yellow" variant="outline">
