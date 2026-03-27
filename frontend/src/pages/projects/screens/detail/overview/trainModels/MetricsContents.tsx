@@ -84,16 +84,7 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
         {createButton ||
           (isButtonDisabled ? (
             <Tooltip content={tooltipContent}>
-              <Button
-                isAriaDisabled
-                variant="link"
-                isInline
-                component={
-                  createHref
-                    ? (props: React.ComponentProps<'a'>) => <Link {...props} to={createHref} />
-                    : 'button'
-                }
-              >
+              <Button isAriaDisabled variant="link" isInline>
                 {createText}
               </Button>
             </Tooltip>

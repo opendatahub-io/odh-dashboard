@@ -74,7 +74,6 @@ export const ModelCatalogCard: React.FC<{
                     content={model.name}
                     position="middle"
                     tooltipPosition="top"
-                    style={{ textDecoration: 'underline' }}
                   />
                 ) : (
                   <span>{model.name}</span>
