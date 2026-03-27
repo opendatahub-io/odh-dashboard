@@ -15,6 +15,6 @@ type CreateMaaSModelRefRequest struct {
 type UpdateMaaSModelRefRequest struct {
 	ModelRef         ModelReference `json:"modelRef"`
 	EndpointOverride string         `json:"endpointOverride,omitempty"`
-	DisplayName      string         `json:"displayName,omitempty"`
-	Description      string         `json:"description,omitempty"`
+	DisplayName      *string        `json:"displayName,omitempty"`
+	Description      *string        `json:"description,omitempty"`
 }

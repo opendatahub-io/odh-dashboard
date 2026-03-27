@@ -87,15 +87,20 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	if request.DisplayName != "" {
-		annotations[displayNameAnnotation] = request.DisplayName
-	} else {
-		delete(annotations, displayNameAnnotation)
+
+	if request.DisplayName != nil {
+		if *request.DisplayName == "" {
+			delete(annotations, displayNameAnnotation)
+		} else {
+			annotations[displayNameAnnotation] = *request.DisplayName
+		}
 	}
-	if request.Description != "" {
-		annotations[descriptionAnnotation] = request.Description
-	} else {
-		delete(annotations, descriptionAnnotation)
+	if request.Description != nil {
+		if *request.Description == "" {
+			delete(annotations, descriptionAnnotation)
+		} else {
+			annotations[descriptionAnnotation] = *request.Description
+		}
 	}
 	existing.SetAnnotations(annotations)
 	existing.Object["spec"] = existingSpec

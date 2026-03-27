@@ -9,7 +9,7 @@ export const mockMaaSModelRef = ({
   },
   displayName = 'Test LLM Inference Service',
   description = 'Test LLM Inference Service Description',
-}: MaaSModelRef): MaaSModelRef => ({
+}: Partial<MaaSModelRef> = {}): MaaSModelRef => ({
   name,
   namespace,
   modelRef,

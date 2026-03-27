@@ -7,12 +7,17 @@ import {
   type Deployment,
 } from '../../../extension-points';
 
+/** A record of a post-deploy extension that failed, including the field it belongs to. */
+export type PostDeployFailure = { fieldId: string; error: Error };
+
 /**
  * Hook that returns an async function to run all active post-deploy extensions after
  * a deployment is saved. Each extension receives the field's current data, the newly
  * saved model resource (which now has a uid), and the original deployment (if editing).
  *
  * Post-deploy extensions are only executed if their associated WizardField2 is active.
+ * Errors thrown by individual extensions are caught and collected as PostDeployFailure
+ * entries; subsequent extensions still run and the returned promise always resolves so these errors don't block submission and closing of the wizard
  *
  * @param wizardState - The current wizard form state at the point of submission
  */
@@ -22,7 +27,7 @@ export const useWizardFieldPostDeploy = (
   runPostDeploy: (
     deployedModel: Deployment['model'],
     existingDeployment?: Deployment,
-  ) => Promise<void>;
+  ) => Promise<PostDeployFailure[]>;
   postDeployExtensionsLoaded: boolean;
   postDeployExtensionErrors: Error[];
 } => {
@@ -47,12 +52,21 @@ export const useWizardFieldPostDeploy = (
   );
 
   const runPostDeploy = React.useCallback(
-    async (deployedModel: Deployment['model'], existingDeployment?: Deployment): Promise<void> => {
+    async (
+      deployedModel: Deployment['model'],
+      existingDeployment?: Deployment,
+    ): Promise<PostDeployFailure[]> => {
+      const failures: PostDeployFailure[] = [];
       for (const ext of activePostDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+        try {
+          await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+        } catch (err) {
+          failures.push({ fieldId, error: err instanceof Error ? err : new Error(String(err)) });
+        }
       }
+      return failures;
     },
     [activePostDeployExtensions, wizardState],
   );

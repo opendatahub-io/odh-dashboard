@@ -6,7 +6,6 @@ import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUti
 
 export type MaaSFieldValue = {
   isChecked: boolean;
-  endpointOverride?: string;
 };
 
 export const maasFieldSchema = z.object({
@@ -16,7 +15,7 @@ export const maasFieldSchema = z.object({
 
 const setMaaSFieldData = (value: MaaSFieldValue): MaaSFieldValue => value;
 const getInitialMaaSFieldData = (value?: MaaSFieldValue): MaaSFieldValue =>
-  value ?? { isChecked: false, endpointOverride: undefined };
+  value ?? { isChecked: false };
 
 type MaaSFieldProps = {
   id: string;
