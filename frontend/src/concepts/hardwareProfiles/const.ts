@@ -3,12 +3,6 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
 
-export enum HardwareProfileBindingState {
-  DISABLED = 'Disabled',
-  DELETED = 'Deleted',
-  UPDATED = 'Updated',
-}
-
 export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
   {
     op: 'remove',
