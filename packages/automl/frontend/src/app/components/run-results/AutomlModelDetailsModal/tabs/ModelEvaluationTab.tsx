@@ -1,7 +1,7 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
+import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import {
   formatMetricName,
   formatMetricValue as formatValue,

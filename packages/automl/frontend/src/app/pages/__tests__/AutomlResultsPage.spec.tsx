@@ -43,7 +43,7 @@ jest.mock('~/app/hooks/useAutomlResults', () => ({
 
 // Mock AutomlResults to capture context
 let capturedContext: unknown = null;
-jest.mock('~/app/components/results/AutomlResults', () => ({
+jest.mock('~/app/components/run-results/AutomlResults', () => ({
   __esModule: true,
   default: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks

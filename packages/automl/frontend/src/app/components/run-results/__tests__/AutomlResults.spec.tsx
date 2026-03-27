@@ -4,7 +4,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import AutomlResults from '~/app/components/results/AutomlResults';
+import AutomlResults from '~/app/components/run-results/AutomlResults';
 import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import * as queries from '~/app/hooks/queries';

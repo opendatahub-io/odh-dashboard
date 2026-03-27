@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import ModelEvaluationTab from '~/app/components/results/AutomlModelDetailsModal/tabs/ModelEvaluationTab';
+import ModelEvaluationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelEvaluationTab';
 
 const buildModel = (metrics: Record<string, unknown>): AutomlModel => ({
   display_name: 'TestModel',

@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import AutomlLeaderboard from '~/app/components/results/AutomlLeaderboard';
+import AutomlLeaderboard from '~/app/components/run-results/AutomlLeaderboard';
 import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';

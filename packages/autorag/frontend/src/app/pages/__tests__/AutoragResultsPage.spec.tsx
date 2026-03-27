@@ -43,7 +43,7 @@ jest.mock('~/app/hooks/useAutoragResults', () => ({
 
 // Mock AutoragResults to capture context
 let capturedContext: unknown = null;
-jest.mock('~/app/components/results/AutoragResults', () => ({
+jest.mock('~/app/components/run-results/AutoragResults', () => ({
   __esModule: true,
   default: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks

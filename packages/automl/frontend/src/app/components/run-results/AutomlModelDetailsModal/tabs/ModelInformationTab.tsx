@@ -6,7 +6,7 @@ import {
   DescriptionListTerm,
   Title,
 } from '@patternfly/react-core';
-import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
+import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName } from '~/app/utilities/utils';
 
 /** Keys excluded from the parameter list (not useful as experiment metadata). */

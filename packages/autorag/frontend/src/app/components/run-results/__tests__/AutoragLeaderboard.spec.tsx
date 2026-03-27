@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import AutoragLeaderboard from '~/app/components/results/AutoragLeaderboard';
+import AutoragLeaderboard from '~/app/components/run-results/AutoragLeaderboard';
 import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';

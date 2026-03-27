@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext';
-import ModelInformationTab from '~/app/components/results/AutomlModelDetailsModal/tabs/ModelInformationTab';
+import ModelInformationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelInformationTab';
 
 const baseModel: AutomlModel = {
   display_name: 'TestModel',

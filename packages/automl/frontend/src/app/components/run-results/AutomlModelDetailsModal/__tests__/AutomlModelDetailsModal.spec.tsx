@@ -10,7 +10,7 @@ import {
   mockTabularFeatureImportances,
   mockTabularConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
-import AutomlModelDetailsModal from '~/app/components/results/AutomlModelDetailsModal/AutomlModelDetailsModal';
+import AutomlModelDetailsModal from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal';
 
 // Mock react-router
 jest.mock('react-router', () => ({

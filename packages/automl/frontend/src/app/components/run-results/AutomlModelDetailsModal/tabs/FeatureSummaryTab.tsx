@@ -7,7 +7,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
+import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
 const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => {
   const [searchValue, setSearchValue] = React.useState('');

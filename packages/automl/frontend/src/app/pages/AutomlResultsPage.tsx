@@ -4,7 +4,7 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
-import AutomlResults from '~/app/components/results/AutomlResults';
+import AutomlResults from '~/app/components/run-results/AutomlResults';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';

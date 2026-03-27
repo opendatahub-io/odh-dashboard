@@ -5,7 +5,7 @@ import React from 'react';
 import { Link, useParams } from 'react-router';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import AutoragResults from '~/app/components/results/AutoragResults';
+import AutoragResults from '~/app/components/run-results/AutoragResults';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';

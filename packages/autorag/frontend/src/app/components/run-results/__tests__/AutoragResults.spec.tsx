@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import AutoragResults from '~/app/components/results/AutoragResults';
+import AutoragResults from '~/app/components/run-results/AutoragResults';
 import {
   AutoragResultsContext,
   type AutoragResultsContextProps,
@@ -19,7 +19,7 @@ jest.mock('~/app/topology/useAutoRAGTaskTopology', () => ({
   useAutoRAGTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
 
-jest.mock('~/app/components/results/AutoragLeaderboard', () => ({
+jest.mock('~/app/components/run-results/AutoragLeaderboard', () => ({
   __esModule: true,
   default: () => <div data-testid="autorag-leaderboard" />,
 }));

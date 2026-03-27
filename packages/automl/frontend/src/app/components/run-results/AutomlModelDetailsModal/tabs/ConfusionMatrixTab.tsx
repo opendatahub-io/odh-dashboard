@@ -1,7 +1,7 @@
 import React from 'react';
 import { Skeleton } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '~/app/components/results/AutomlModelDetailsModal/tabConfig';
+import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
 function getCellStyle(
   rowLabel: string,
