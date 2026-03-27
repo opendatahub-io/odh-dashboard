@@ -193,7 +193,12 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
             </>
           }
         />
-        <Route path="*" element={<Navigate to={singleTab.properties.id} replace />} />
+        <Route
+          path="*"
+          element={
+            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
+          }
+        />
       </Routes>
     );
   }
@@ -213,7 +218,10 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
           />
         }
       />
-      <Route path="*" element={<Navigate to={defaultTab} replace />} />
+      <Route
+        path="*"
+        element={<Navigate to={`${extension.properties.href}/${defaultTab}`} replace />}
+      />
     </Routes>
   );
 };
