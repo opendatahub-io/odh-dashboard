@@ -130,29 +130,6 @@ describe('getSubscriptionInfo', () => {
     );
   });
 
-  it('should accept kind on authPolicy when present and when absent', async () => {
-    const withKind: SubscriptionInfoResponse = {
-      ...validSubscriptionInfoResponse,
-      authPolicies: [
-        {
-          ...validSubscriptionInfoResponse.authPolicies[0],
-          kind: 'MaaSAuthPolicy',
-        },
-      ],
-    };
-    mockRestGET.mockResolvedValue(withKind);
-    const withKindResult = await getSubscriptionInfo('test-sub')({} as never);
-    expect(withKindResult.authPolicies[0].kind).toBe('MaaSAuthPolicy');
-
-    const withoutKind: SubscriptionInfoResponse = {
-      ...validSubscriptionInfoResponse,
-      authPolicies: [{ ...validSubscriptionInfoResponse.authPolicies[0] }],
-    };
-    mockRestGET.mockResolvedValue(withoutKind);
-    const withoutKindResult = await getSubscriptionInfo('test-sub')({} as never);
-    expect(withoutKindResult.authPolicies[0].kind).toBeUndefined();
-  });
-
   it('should accept optional fields (phase, endpoint) being absent on modelRefs', async () => {
     const noOptionals: SubscriptionInfoResponse = {
       ...validSubscriptionInfoResponse,

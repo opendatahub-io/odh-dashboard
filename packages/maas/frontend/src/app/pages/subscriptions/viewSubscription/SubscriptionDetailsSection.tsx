@@ -43,12 +43,16 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
         <DescriptionListGroup>
           <DescriptionListTerm>Date created</DescriptionListTerm>
           <DescriptionListDescription>
-            <Timestamp
-              date={new Date(subscription.creationTimestamp)}
-              dateFormat="long"
-              timeFormat="short"
-              is12Hour
-            />
+            {subscription.creationTimestamp ? (
+              <Timestamp
+                date={new Date(subscription.creationTimestamp)}
+                dateFormat="long"
+                timeFormat="short"
+                is12Hour
+              />
+            ) : (
+              '—'
+            )}
           </DescriptionListDescription>
         </DescriptionListGroup>
       </DescriptionList>

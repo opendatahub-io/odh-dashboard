@@ -17,7 +17,6 @@ import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
 import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSection';
 import SubscriptionModelsSection from './viewSubscription/SubscriptionModelsSection';
-import SubscriptionPoliciesSection from './viewSubscription/SubscriptionPoliciesSection';
 
 type SubscriptionActionsProps = {
   subscription: MaaSSubscription;
@@ -112,9 +111,6 @@ const ViewSubscriptionPage: React.FC = () => {
                 modelRefSummaries={subscriptionInfo.modelRefs}
                 subscriptionModelRefs={subscriptionInfo.subscription.modelRefs}
               />
-            </PageSection>
-            <PageSection hasBodyWrapper={false}>
-              <SubscriptionPoliciesSection authPolicies={subscriptionInfo.authPolicies} />
             </PageSection>
           </Tab>
         </Tabs>

@@ -5,13 +5,12 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
 import { formatTokenLimits } from '~/app/pages/subscriptions/viewSubscription/utils';
 
-type ModelColumnKey = 'name' | 'project' | 'tokenLimits' | 'requestLimits';
+type ModelColumnKey = 'name' | 'project' | 'tokenLimits';
 
 const COLUMNS: { key: ModelColumnKey; label: string; width?: ThProps['width'] }[] = [
-  { key: 'name', label: 'Name', width: 40 },
-  { key: 'project', label: 'Project', width: 20 },
-  { key: 'tokenLimits', label: 'Token limits', width: 20 },
-  { key: 'requestLimits', label: 'Request limits', width: 20 },
+  { key: 'name', label: 'Name', width: 50 },
+  { key: 'project', label: 'Project', width: 25 },
+  { key: 'tokenLimits', label: 'Token limits', width: 25 },
 ];
 
 type SubscriptionModelsSectionProps = {
@@ -85,18 +84,15 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
                   ),
                   tokenLimits: (
                     <Td key="tokenLimits" dataLabel="Token limits">
-                      {formatTokenLimits(subscriptionModelRefs, modelRef.name)}
-                    </Td>
-                  ),
-                  requestLimits: (
-                    <Td key="requestLimits" dataLabel="Request limits">
-                      Unlimited
+                      {formatTokenLimits(subscriptionModelRefs, modelRef.namespace, modelRef.name)}
                     </Td>
                   ),
                 };
 
                 return (
-                  <Tr key={modelRef.name}>{visibleColumns.map((col) => cellRenderers[col.key])}</Tr>
+                  <Tr key={`${modelRef.namespace}/${modelRef.name}`}>
+                    {visibleColumns.map((col) => cellRenderers[col.key])}
+                  </Tr>
                 );
               })}
             </Tbody>

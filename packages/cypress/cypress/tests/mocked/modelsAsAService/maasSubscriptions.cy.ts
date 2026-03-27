@@ -108,15 +108,11 @@ describe('View Subscription Page', () => {
     );
   });
 
-  it('should navigate to view page from the subscription list', () => {
+  it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     subscriptionsPage.visit();
     subscriptionsPage.getRow(subscriptionName).findKebabAction('View details').click();
     cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
-  });
-
-  it('should display the page content with title, breadcrumb, details, groups, and models', () => {
-    viewSubscriptionPage.visit(subscriptionName);
 
     viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
 
