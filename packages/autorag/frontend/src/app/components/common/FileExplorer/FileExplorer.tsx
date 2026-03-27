@@ -115,15 +115,16 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
 
 const defaults = {
   labels: {
-    modalTitle: 'Select documents from connections',
-    modalDescription: (sourceName?: string) =>
-      sourceName ? (
-        <span>
-          Viewing files from: <strong>{sourceName}</strong>
-        </span>
-      ) : (
-        'Select which files to use for your data collection and evaluation sources'
-      ),
+    modalTitle: 'Select file or folder',
+    modalDescription: (selection?: 'radio' | 'checkbox') => {
+      if (selection === 'radio') {
+        return 'Select 1 file or folder from this bucket to use for your data collection and evaluation sources';
+      }
+      if (selection === 'checkbox') {
+        return 'Select which files or folders to use';
+      }
+      return '';
+    },
     modalPrimaryCTA: 'Select files',
     modalSecondaryCTA: 'Cancel',
 
@@ -132,6 +133,11 @@ const defaults = {
     sourceSelector: 'Source Selector',
     sourceCaption: 'Files',
     noSourcesMessage: 'No source of documents provided',
+    sourceViewingFilesFrom: (sourceName?: string) => (
+      <span>
+        Viewing files from: <strong>{sourceName}</strong>
+      </span>
+    ),
 
     searchAriaLabel: 'Search input to find by name',
     searchPlaceholder: (folderName?: string) =>
@@ -936,7 +942,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
-        description={defaults.labels.modalDescription(source?.name)}
+        description={defaults.labels.modalDescription(selection)}
         labelId="FileExplorer-modal-title"
       />
       <ModalBody id="FileExplorer-modal-body">
@@ -944,6 +950,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           {typeof onSelectSource === 'function' && (
             <FlexItem>
               <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
+            </FlexItem>
+          )}
+          {source && (
+            <FlexItem className="pf-v6-u-mb-md">
+              <p>{defaults.labels.sourceViewingFilesFrom(source.name)}</p>
             </FlexItem>
           )}
           <FlexItem className="pf-v6-u-mb-md">
