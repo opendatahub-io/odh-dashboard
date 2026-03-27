@@ -5,8 +5,8 @@ import {
   restGET,
   restDELETE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '../utilities/const';
-import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '../types/subscriptions';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
