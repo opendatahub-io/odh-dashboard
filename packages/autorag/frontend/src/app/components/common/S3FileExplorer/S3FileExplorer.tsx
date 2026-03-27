@@ -1,6 +1,6 @@
 // Modules -------------------------------------------------------------------->
 
-import React, { type ReactNode, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { debounce } from 'es-toolkit';
@@ -11,7 +11,7 @@ import type {
   Folder,
   FileExplorerEmptyStateConfig,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import type { SecretListItem as ConnectionSecret, S3ListObjectsResult } from '~/app/types.ts';
+import type { SecretListItem as ConnectionSecret, S3ListObjectsResponse } from '~/app/types.ts';
 import { getFiles } from '~/app/api/s3.ts';
 
 // Globals -------------------------------------------------------------------->
@@ -27,8 +27,11 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 };
 
-/** Maps an S3ListObjectsResult to FileExplorer-compatible items. */
-const mapResultToItems = (result: S3ListObjectsResult, selectableExtensions?: string[]): Files => {
+/** Maps an S3ListObjectsResponse to FileExplorer-compatible items. */
+const mapResultToItems = (
+  result: S3ListObjectsResponse,
+  selectableExtensions?: string[],
+): Files => {
   const items: Files = [];
 
   if (Array.isArray(result.common_prefixes)) {
@@ -71,7 +74,7 @@ const mapResultToItems = (result: S3ListObjectsResult, selectableExtensions?: st
       const fileName = segments.pop() ?? obj.key;
       const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
 
-      const sizeToRender = obj.size !== undefined ? formatBytes(obj.size) : undefined;
+      const sizeToRender = formatBytes(obj.size);
       const fileTypeToRender = ext.toLocaleUpperCase() || 'File';
 
       items.push({
@@ -95,7 +98,7 @@ const mapResultToItems = (result: S3ListObjectsResult, selectableExtensions?: st
           }),
           // ...(obj.etag && { ETag: obj.etag }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
           // ...(obj.storage_class && { 'Storage Class': obj.storage_class }), // TODO [ Gustavo ] Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
-          ...(obj.size !== undefined && { Size: sizeToRender }),
+          ...{ Size: sizeToRender },
           ...{ Type: fileTypeToRender },
         },
       });
@@ -145,7 +148,7 @@ interface S3FileExplorerProps {
   selectableExtensions?: string[];
 
   /** The reason displayed beside a file that cannot be selected. Example: "Only JSON and HTML files can be selected" */
-  unselectableReason?: ReactNode;
+  unselectableReason?: string;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -177,7 +180,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Track continuation tokens per page for forward/backward navigation
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
-  const lastResultRef = useRef<S3ListObjectsResult | null>(null);
+  const lastResultRef = useRef<S3ListObjectsResponse | null>(null);
   const fetchIdRef = useRef(0);
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;

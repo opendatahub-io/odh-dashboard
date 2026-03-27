@@ -122,6 +122,7 @@ const S3ListObjectsResponseSchema = z.object({
  * Fetches a list of files/folders from S3 storage.
  * This is a utility function that can be used in both hooks and query functions.
  */
+// TODO [ Gustavo ] Merge use of api/s3.ts and this queries/fetchS3Files
 export async function fetchS3Files(
   namespace: string,
   path: string,

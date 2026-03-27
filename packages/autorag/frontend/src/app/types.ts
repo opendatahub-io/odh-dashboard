@@ -161,28 +161,7 @@ export type S3ListObjectsResponse = {
   prefix?: string;
 };
 
-export type S3ListObjectsResult = {
-  common_prefixes?: { prefix: string }[];
-  contents?: {
-    key: string;
-    last_modified?: string;
-    etag?: string;
-    size?: number;
-    storage_class?: string;
-  }[];
-  continuation_token?: string;
-  delimiter?: string;
-  is_truncated?: boolean;
-  key_count?: number;
-  max_keys?: number;
-  name?: string;
-  next_continuation_token?: string;
-  prefix?: string;
-};
-
 export type Envelope<M, D> = {
   metadata: M;
   data: D;
 };
-
-export type S3ListObjectsResponseGUSTAVO = Envelope<null, S3ListObjectsResult>;

@@ -1,6 +1,6 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { S3ListObjectsResult } from '~/app/types';
+import { S3ListObjectsResponse } from '~/app/types';
 
 export const getFiles =
   (hostPath: string) =>
@@ -10,7 +10,7 @@ export const getFiles =
     bucket: string,
     options?: { path?: string; search?: string; limit?: number; next?: string },
   ) =>
-  (opts: APIOptions): Promise<S3ListObjectsResult> => {
+  (opts: APIOptions): Promise<S3ListObjectsResponse> => {
     const queryParams: Record<string, string> = {
       namespace,
       secretName,
@@ -31,7 +31,7 @@ export const getFiles =
     return handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files`, queryParams, opts),
     ).then((response) => {
-      if (isModArchResponse<S3ListObjectsResult>(response)) {
+      if (isModArchResponse<S3ListObjectsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
