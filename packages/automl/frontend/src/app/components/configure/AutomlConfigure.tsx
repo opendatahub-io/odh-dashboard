@@ -55,7 +55,7 @@ import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilitie
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { useS3GetFileSchemaQuery, useCreatePipelineRun } from '~/app/hooks/queries';
 import { SecretListItem } from '~/app/types';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureTabularForm from './ConfigureTabularForm';
@@ -537,15 +537,18 @@ function AutomlConfigure(): React.JSX.Element {
           }}
         />
       )}
-      <FileExplorer
-        id="AutoMlConfigure-FileExplorer"
+      <S3FileExplorer
+        id="AutoMLConfigure-S3FileExplorer"
+        namespace={namespace}
+        s3Secret={selectedSecret}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => {
-          if (Array.isArray(files) && files.length > 0) {
-            setValue('train_data_file_key', files[0].name);
-          }
+        onSelectFiles={(files) => {
+          const file = files[0];
+          setValue('train_data_file_key', file.path, { shouldValidate: true });
         }}
+        selectableExtensions={['csv']}
+        unselectableReason="You can only select CSV files"
       />
     </FormProvider>
   );
