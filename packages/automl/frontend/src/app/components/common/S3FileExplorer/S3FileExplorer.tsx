@@ -147,6 +147,9 @@ interface S3FileExplorerProps {
   /** The connection secret that provides S3 credentials and endpoint configuration. */
   s3Secret?: ConnectionSecret;
 
+  /** The S3 bucket name to browse. When omitted, the bucket is resolved from the connection secret itself. */
+  bucket?: string;
+
   /** When provided, only files with these extensions are selectable. Case-insensitive. Example: ["json", "html"] */
   selectableExtensions?: string[];
 
@@ -160,17 +163,20 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   onSelectFiles,
   namespace,
   s3Secret,
+  bucket = '',
   selectableExtensions,
   unselectableReason,
 }) => {
   const secretName = s3Secret?.name;
-  const bucket = '';
 
   // State -------------------------------------------------------------------->
 
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
-  const sourceToRender: Source | undefined = s3Secret ? { name: s3Secret.name, bucket } : undefined;
+  const sourceToRender: Source | undefined = useMemo(
+    () => (s3Secret ? { name: s3Secret.name, bucket } : undefined),
+    [s3Secret, bucket],
+  );
 
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [loadingToRender, setLoadingToRender] = useState(false);
@@ -217,14 +223,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     connectionKeyRef.current = null;
   }, []);
 
-  const navigateTo = (path: string, perPage: number) => {
-    setCurrentPath(path);
-    setFoldersToRender(getBreadcrumbTrail(path));
-    setSearchQuery('');
-    setPageToRender(1);
-    continuationTokensRef.current = new Map();
-    fetchPath(path, perPage, 1);
-  };
+  const navigateTo = useCallback(
+    (path: string, perPage: number) => {
+      setCurrentPath(path);
+      setFoldersToRender(getBreadcrumbTrail(path));
+      setSearchQuery('');
+      setPageToRender(1);
+      continuationTokensRef.current = new Map();
+      fetchPath(path, perPage, 1);
+    },
+    [fetchPath],
+  );
 
   // Effects ------------------------------------------------------------------>
 
@@ -356,10 +365,19 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Rendering ---------------------------------------------------------------->
 
-  // TODO [ Gustavo ] Add an empty state if s3Connection is not passed in
-
   const errorEmptyState: { isEmpty: boolean; emptyStateProps?: FileExplorerEmptyStateConfig } =
     useMemo(() => {
+      if (!s3Secret) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'warning',
+            titleText: 'No connection selected',
+            body: <>Select a connection to browse its files.</>,
+          },
+        };
+      }
+
       if (!fetchError) {
         return { isEmpty: false };
       }
@@ -409,7 +427,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           body: <>An error occurred while retrieving files from connection: {secretNameToRender}</>,
         },
       };
-    }, [fetchError, secretName]);
+    }, [s3Secret, fetchError, secretName]);
 
   const viewingASelectedFoldersChildren =
     selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
@@ -418,6 +436,86 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   if (viewingASelectedFoldersChildren) {
     unselectableReasonToRender = `The ${selectedFolder.name} parent folder has been selected already`;
   }
+
+  // Callbacks ---------------------------------------------------------------->
+
+  const handleSelectFile = useCallback((file: Files[number], selected: boolean) => {
+    if (selected && isFolder(file)) {
+      setSelectedFolder(file);
+    } else {
+      setSelectedFolder(null);
+    }
+  }, []);
+
+  const handleFolderClick = useCallback(
+    (folder: Folder) => {
+      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
+    },
+    [navigateTo, perPageToRender],
+  );
+
+  const handleNavigate = useCallback(
+    (folder: Folder) => {
+      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
+    },
+    [navigateTo, perPageToRender],
+  );
+
+  const handleNavigateRoot = useCallback(() => {
+    navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);
+  }, [navigateTo, perPageToRender]);
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      debouncedSearch(query);
+    },
+    [debouncedSearch],
+  );
+
+  const handleSetPage = useCallback(
+    (newPage: number) => {
+      const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
+      const currentPage = pageToRender ?? 1;
+
+      if (newPage > currentPage) {
+        // Going forward: store the current result's next token for this page transition
+        const nextToken = lastResultRef.current?.next_continuation_token;
+        if (nextToken) {
+          continuationTokensRef.current.set(newPage, nextToken);
+        }
+      }
+
+      setPageToRender(newPage);
+
+      if (newPage === 1) {
+        // First page: no continuation token needed
+        fetchPath(currentPath, perPage, newPage, searchQuery || undefined);
+      } else {
+        const token = continuationTokensRef.current.get(newPage);
+        fetchPath(currentPath, perPage, newPage, searchQuery || undefined, token);
+      }
+    },
+    [perPageToRender, pageToRender, fetchPath, currentPath, searchQuery],
+  );
+
+  const handlePerPageSelect = useCallback(
+    (newPerPage: number) => {
+      setPerPageToRender(newPerPage);
+      setPageToRender(1);
+      continuationTokensRef.current = new Map();
+      fetchPath(currentPath, newPerPage, 1, searchQuery || undefined);
+    },
+    [fetchPath, currentPath, searchQuery],
+  );
+
+  const handlePrimary = useCallback(
+    (files: Files) => {
+      onSelectFiles?.(files);
+    },
+    [onSelectFiles],
+  );
+
   return (
     <FileExplorer
       id={id}
@@ -434,57 +532,14 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       selection={viewingASelectedFoldersChildren ? 'checkbox' : 'radio'}
       isOpen={isOpen}
       onClose={onClose}
-      onSelectFile={(file, selected) => {
-        if (selected && isFolder(file)) {
-          setSelectedFolder(file);
-        } else {
-          setSelectedFolder(null);
-        }
-      }}
-      onFolderClick={(folder) => {
-        navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
-      }}
-      onNavigate={(folder) => {
-        navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
-      }}
-      onNavigateRoot={() => {
-        navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);
-      }}
-      onSearch={(query) => {
-        setSearchQuery(query);
-        debouncedSearch(query);
-      }}
-      onSetPage={(newPage) => {
-        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
-        const currentPage = pageToRender ?? 1;
-
-        if (newPage > currentPage) {
-          // Going forward: store the current result's next token for this page transition
-          const nextToken = lastResultRef.current?.next_continuation_token;
-          if (nextToken) {
-            continuationTokensRef.current.set(newPage, nextToken);
-          }
-        }
-
-        setPageToRender(newPage);
-
-        if (newPage === 1) {
-          // First page: no continuation token needed
-          fetchPath(currentPath, perPage, newPage, searchQuery || undefined);
-        } else {
-          const token = continuationTokensRef.current.get(newPage);
-          fetchPath(currentPath, perPage, newPage, searchQuery || undefined, token);
-        }
-      }}
-      onPerPageSelect={(newPerPage) => {
-        setPerPageToRender(newPerPage);
-        setPageToRender(1);
-        continuationTokensRef.current = new Map();
-        fetchPath(currentPath, newPerPage, 1, searchQuery || undefined);
-      }}
-      onPrimary={(files) => {
-        onSelectFiles?.(files);
-      }}
+      onSelectFile={handleSelectFile}
+      onFolderClick={handleFolderClick}
+      onNavigate={handleNavigate}
+      onNavigateRoot={handleNavigateRoot}
+      onSearch={handleSearch}
+      onSetPage={handleSetPage}
+      onPerPageSelect={handlePerPageSelect}
+      onPrimary={handlePrimary}
     />
   );
 };

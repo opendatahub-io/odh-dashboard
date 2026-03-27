@@ -33,8 +33,19 @@ const getProxyHeaders = () => {
 };
 
 const ENV_TO_INCLUDE = [
+  /**
+   * `AUTORAG_PLAYGROUND_S3_NAMESPACE`: The openshift namespace the playground should make calls against.
+   */
   'AUTORAG_PLAYGROUND_S3_NAMESPACE',
+
+  /**
+   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME`: The odh secret name that should be used when fetching S3 Files (secret should be a valid S3-compatible connection secret).
+   */
   'AUTORAG_PLAYGROUND_S3_SECRET_NAME',
+
+  /**
+   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
+   */
   'AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
 ];
 const ENV_STUB_FALSE = [
