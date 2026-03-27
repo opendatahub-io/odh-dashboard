@@ -12,7 +12,7 @@ import type {
   FileExplorerEmptyStateConfig,
 } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type { SecretListItem as ConnectionSecret, S3ListObjectsResponse } from '~/app/types.ts';
-import { getFiles } from '~/app/api/s3.ts';
+import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
 
 // Globals -------------------------------------------------------------------->
 
@@ -197,28 +197,26 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       setLoadingToRender(true);
 
       // Strip leading slash and ensure trailing slash so S3 treats it as a prefix
-      const apiPath = path === '/' ? undefined : path.replace(/^\//, '').replace(/\/?$/, '/');
-      const opts: { path?: string; search?: string; limit?: number; next?: string } = {
+      const parsedPath = path === '/' ? undefined : path.replace(/^\//, '').replace(/\/?$/, '/');
+      const getFilesOptions: GetFilesOptions = {
+        namespace,
+        secretName,
+        bucket,
         limit: perPage,
       };
-      if (apiPath) {
-        opts.path = apiPath;
+      if (parsedPath) {
+        getFilesOptions.path = parsedPath;
       }
       if (search) {
-        opts.search = search;
+        getFilesOptions.search = search;
       }
       if (continuationToken) {
-        opts.next = continuationToken;
+        getFilesOptions.next = continuationToken;
       }
 
       const requestId = ++fetchIdRef.current;
 
-      getFiles('')(
-        namespace,
-        secretName,
-        bucket,
-        opts,
-      )({ signal: new AbortController().signal })
+      getFiles('', { signal: new AbortController().signal }, getFilesOptions)
         .then((result) => {
           if (fetchIdRef.current !== requestId) {
             return;

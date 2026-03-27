@@ -1,11 +1,12 @@
+// Modules -------------------------------------------------------------------->
+
 import * as z from 'zod';
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { S3ListObjectsResponse } from '~/app/types';
+import type { S3ListObjectsResponse } from '~/app/types';
 
-/**
- * Zod schema to validate S3ListObjectsResponse shape
- */
+// Globals -------------------------------------------------------------------->
+
 /* eslint-disable camelcase */
 const S3ListObjectsResponseSchema = z.object({
   common_prefixes: z.array(
@@ -33,53 +34,60 @@ const S3ListObjectsResponseSchema = z.object({
 });
 /* eslint-enable camelcase */
 
-export const getFiles =
-  (hostPath: string) =>
-  (
-    namespace: string,
-    secretName?: string,
-    bucket?: string,
-    options?: { path?: string; search?: string; limit?: number; next?: string },
-  ) =>
-  async (opts: APIOptions): Promise<S3ListObjectsResponse> => {
-    const queryParams: Record<string, string> = {
-      namespace,
-    };
+// Public --------------------------------------------------------------------->
 
-    if (secretName) {
-      queryParams.secretName = secretName;
-    }
-    if (bucket) {
-      queryParams.bucket = bucket;
-    }
-    if (options?.path) {
-      queryParams.path = options.path;
-    }
-    if (options?.search) {
-      queryParams.search = options.search;
-    }
-    if (options?.limit !== undefined) {
-      queryParams.limit = String(options.limit);
-    }
-    if (options?.next) {
-      queryParams.next = options.next;
-    }
-
-    const response = await handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files`, queryParams, opts),
-    );
-    if (isModArchResponse<S3ListObjectsResponse>(response)) {
-      try {
-        return S3ListObjectsResponseSchema.parse(response.data);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          const issues = error.issues
-            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-            .join(', ');
-          throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
-        }
-        throw error;
-      }
-    }
-    throw new Error('Invalid response format');
+export type GetFilesOptions = {
+  namespace: string;
+  secretName?: string;
+  bucket?: string;
+  path?: string;
+  search?: string;
+  limit?: number;
+  next?: string;
+};
+export async function getFiles(
+  host: string,
+  requestOptions: APIOptions,
+  options: GetFilesOptions,
+): Promise<S3ListObjectsResponse> {
+  const query: Record<string, string> = {
+    namespace: options.namespace,
   };
+
+  if (options.secretName) {
+    query.secretName = options.secretName;
+  }
+  if (options.bucket) {
+    query.bucket = options.bucket;
+  }
+  if (options.path) {
+    query.path = options.path;
+  }
+  if (options.search) {
+    query.search = options.search;
+  }
+  if (options.limit !== undefined) {
+    query.limit = String(options.limit);
+  }
+  if (options.next) {
+    query.next = options.next;
+  }
+
+  const response = await handleRestFailures(
+    restGET(host, `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files`, query, requestOptions),
+  );
+  if (isModArchResponse<S3ListObjectsResponse>(response)) {
+    try {
+      return S3ListObjectsResponseSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const issues = error.issues
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join(', ');
+        throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
+      }
+      throw error;
+    }
+  }
+  throw new Error('Invalid response format');
+}

@@ -99,10 +99,14 @@ export function useS3ListFilesQuery(
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
       }
-      // return fetchS3Files(namespace, path);
-      return getS3Files('')(namespace, undefined, undefined, {
-        path,
-      })({});
+      return getS3Files(
+        '',
+        {},
+        {
+          namespace,
+          path,
+        },
+      );
     },
     enabled: Boolean(namespace && path),
     retry: false,
