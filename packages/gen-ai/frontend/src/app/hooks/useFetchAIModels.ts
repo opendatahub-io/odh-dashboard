@@ -9,9 +9,16 @@ import {
 import { AAModelResponse, AIModel } from '~/app/types';
 import { parseEndpointByPrefix, isClusterLocalURL } from '~/app/utilities/utils';
 import { useGenAiAPI } from './useGenAiAPI';
+import useGenAiDashboardConfig from './useGenAiDashboardConfig';
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const genAiConfig = useGenAiDashboardConfig();
+  const clusterDomains = React.useMemo(
+    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
+    [genAiConfig],
+  );
+
   const fetchAIModels = React.useCallback<FetchStateCallbackPromise<AIModel[]>>(
     async (opts: APIOptions) => {
       if (!apiAvailable) {
@@ -25,7 +32,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         // For custom_endpoint models, compute internal/external based on URL
         if (item.model_source_type === 'custom_endpoint' && item.endpoints.length > 0) {
           const url = item.endpoints[0];
-          const isInternal = isClusterLocalURL(url);
+          const isInternal = isClusterLocalURL(url, clusterDomains);
           return {
             ...item,
             internalEndpoint: isInternal ? url : undefined,
@@ -41,7 +48,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         };
       });
     },
-    [api, apiAvailable],
+    [api, apiAvailable, clusterDomains],
   );
 
   const [data, loaded, error, refresh] = useFetchState(fetchAIModels, [], {

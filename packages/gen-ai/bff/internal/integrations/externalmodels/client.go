@@ -53,6 +53,11 @@ const (
 type ClientOptions struct {
 	// SkipSSRFValidation bypasses SSRF protection (testing only)
 	SkipSSRFValidation bool
+	// AllowHTTP permits HTTP (non-HTTPS) base URLs; SSRF protection still applies
+	AllowHTTP bool
+	// SkipTLSVerification skips TLS certificate verification for cluster-local services
+	// that use self-signed certificates not present in the system CA pool
+	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
 }
@@ -161,7 +166,7 @@ func NewExternalModelsClient(
 	}
 
 	// Basic URL validation (no DNS lookup - SSRF check happens at request time)
-	if err := validateBaseURL(baseURL, opts.SkipSSRFValidation); err != nil {
+	if err := validateBaseURL(baseURL, opts.AllowHTTP || opts.SkipSSRFValidation); err != nil {
 		return nil, err
 	}
 
@@ -178,7 +183,15 @@ func NewExternalModelsClient(
 
 	// Configure HTTP transport
 	var transport http.RoundTripper
-	if rootCAs != nil {
+	if opts.SkipTLSVerification {
+		// Skip TLS verification for cluster-local URLs
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
+				MinVersion:         tls.VersionTLS12,
+			},
+		}
+	} else if rootCAs != nil {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs:    rootCAs,
@@ -253,8 +266,10 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	// Set headers
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens
+	if c.apiKey != "" && req.URL.Scheme == "https" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	// SSRF protection: validate destination at request time (prevents DNS rebinding attacks)

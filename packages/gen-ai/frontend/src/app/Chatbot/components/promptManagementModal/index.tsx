@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Modal, ModalHeader, ModalBody } from '@patternfly/react-core';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
@@ -8,7 +7,8 @@ import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
-  const { setActivePrompt, setIsPromptManagementModalOpen, modalMode } = usePlaygroundStore();
+  const { setActivePrompt, setIsPromptManagementModalOpen, restoreDirtyPromptSnapshot, modalMode } =
+    usePlaygroundStore();
 
   const displayTextLookup = {
     allPrompts: {
@@ -26,6 +26,9 @@ export default function PromptManagementModal(): React.ReactNode {
   };
   const displayText = displayTextLookup[modalMode];
   function handleClose() {
+    if (modalMode === 'create' || modalMode === 'edit') {
+      restoreDirtyPromptSnapshot();
+    }
     setIsPromptManagementModalOpen(false);
   }
 
@@ -38,14 +41,17 @@ export default function PromptManagementModal(): React.ReactNode {
   }
 
   return (
-    <Modal isOpen variant="large" onClose={handleClose}>
-      <ModalHeader title={displayText.title} description={displayText.description} />
-      <ModalBody>
-        {modalMode === 'allPrompts' && (
-          <PromptTable onClose={handleClose} onClickLoad={handleClickLoad} />
-        )}
-        {modalMode === 'create' && <CreatePrompt onClose={handleClose} />}
-      </ModalBody>
-    </Modal>
+    <>
+      {modalMode === 'allPrompts' && (
+        <PromptTable
+          onClose={handleClose}
+          onClickLoad={handleClickLoad}
+          displayText={displayText}
+        />
+      )}
+      {(modalMode === 'create' || modalMode === 'edit') && (
+        <CreatePrompt onClose={handleClose} displayText={displayText} />
+      )}
+    </>
   );
 }

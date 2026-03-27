@@ -1,6 +1,10 @@
 import { checkboxTableColumn, SortableData } from 'mod-arch-shared';
 import { AIModelStatusPopoverContent } from '~/app/AIAssets/components/AIModelsTable';
 import { AIModel } from '~/app/types';
+import {
+  EmbeddingDimensionPopoverContent,
+  MaxTokensPopoverContent,
+} from './ChatbotConfigurationTableRow';
 
 export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
   checkboxTableColumn(),
@@ -26,9 +30,27 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
     width: 30,
   },
   {
+    label: 'Type',
+    field: 'model_type',
+    sortable: false,
+    width: 20,
+  },
+  {
     label: 'Max tokens',
     field: 'max_tokens',
     width: 20,
-    sortable: false, // Not sortable since it's an input field
+    sortable: false,
+    info: {
+      popover: MaxTokensPopoverContent,
+    },
+  },
+  {
+    label: 'Embedding dimension',
+    field: 'embedding_dimension',
+    width: 20,
+    sortable: false,
+    info: {
+      popover: EmbeddingDimensionPopoverContent,
+    },
   },
 ];

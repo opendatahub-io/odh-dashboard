@@ -19,15 +19,14 @@ func NewMaaSModelsRepository() *MaaSModelsRepository {
 
 // ListModels retrieves all available MaaS models and transforms them for BFF use.
 // The MaaS client is expected to be in the context (created by AttachMaaSClient middleware).
-// apiKey must be a valid MaaS API key obtained via IssueToken.
-func (r *MaaSModelsRepository) ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error) {
-	// Get ready-to-use MaaS client from context using helper
+// authToken is a bearer token — either the user's OIDC token (for direct auth) or a MaaS API key.
+func (r *MaaSModelsRepository) ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error) {
 	client, err := helper.GetContextMaaSClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return client.ListModels(ctx, apiKey)
+	return client.ListModels(ctx, authToken)
 }
 
 // IssueToken creates a new ephemeral token with specified TTL.

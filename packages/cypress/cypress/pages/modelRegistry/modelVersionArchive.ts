@@ -70,6 +70,7 @@ class ModelVersionArchive {
     cy.visitWithLogin(
       `/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}/versions/archive/${mvId}`,
     );
+    this.wait();
   }
 
   visitModelVersionList() {

@@ -27,7 +27,17 @@ npx mod-arch-installer -n <your-module-name>
 
 ### 3. Configure the Port
 
-By default, the modular architecture component runs on port `9103`. If you need to use a different port or want to ensure it doesn't conflict with other modules:
+Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
+
+```bash
+npm run validate:ports
+```
+
+This prints a complete list of all current port assignments, sourced directly from the workspace `package.json` files and `federation-configmap.yaml`.
+
+> **Convention**: Frontend federation ports use the 9100–9399 range. BFF ports use the 4000–4099 range. Pick the next available number in the appropriate range.
+
+Pick an unused port and update both `Makefile` and `package.json`:
 
 1. **Update `Makefile`**:
    Open `packages/<your-module-name>/Makefile` and find the `dev-frontend-federated` target. Update the `PORT` variable:
@@ -47,6 +57,15 @@ By default, the modular architecture component runs on port `9103`. If you need 
      }
    }
    ```
+
+3. **Validate uniqueness**:
+   Run the port validation script to confirm there are no conflicts:
+
+   ```bash
+   node scripts/validate-module-ports.js
+   ```
+
+   This check also runs automatically in CI and the pre-commit hook.
 
 ### 4. Add Feature Flag
 

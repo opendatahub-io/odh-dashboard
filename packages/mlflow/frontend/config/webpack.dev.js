@@ -79,12 +79,13 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
-            context: ['/api', '/mlflow/api'],
+            context: ['/api', '/_bff/mlflow/api'],
             target: {
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,
               port: PROXY_PORT,
             },
+            pathRewrite: { '^/_bff/mlflow/api': '/api' },
             changeOrigin: true,
             headers: getProxyHeaders(),
           },

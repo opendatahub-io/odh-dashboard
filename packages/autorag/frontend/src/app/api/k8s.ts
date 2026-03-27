@@ -6,7 +6,12 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { LlamaStackModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
+import {
+  LlamaStackModelsResponse,
+  LlamaStackVectorStoresResponse,
+  NamespaceKind,
+  SecretListItem,
+} from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -63,6 +68,24 @@ export const getLlamaStackModels =
       ),
     ).then((response) => {
       if (isModArchResponse<LlamaStackModelsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getLlamaStackVectorStores =
+  (hostPath: string) =>
+  (namespace: string, secretName: string) =>
+  (opts: APIOptions): Promise<LlamaStackVectorStoresResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/lsd/vector-stores`,
+        { namespace, secretName },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<LlamaStackVectorStoresResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

@@ -196,6 +196,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
           shouldAutoCheck: false,
+          isDisabled: false,
         },
         runtimeArgs: {
           data: undefined,

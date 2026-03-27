@@ -22,9 +22,9 @@ import type {
   ModelLocationData,
   InitialWizardFormData,
   WizardField,
-  ModelServerSelectFieldData,
 } from '../src/components/deploymentWizard/types';
 import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
+import type { ModelServerSelectFieldData } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -180,7 +180,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     >;
     extractModelType?: CodeRef<(deployment: D) => ModelTypeFieldData | null>;
     extractModelServerTemplate: CodeRef<
-      (deployment: D, dashboardNamespace?: string) => ModelServerSelectFieldData | null
+      (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
@@ -298,6 +298,7 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
 export type DeploymentAssemblyFn<D extends Deployment = Deployment> = (deployment: D) => D;
 export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
   model?: D['model'];
+  server?: D['server'];
 };
 
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<

@@ -2,6 +2,7 @@ package ehmocks
 
 import (
 	"context"
+	"strings"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
@@ -17,9 +18,47 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context) (*evalhub.HealthRespo
 	return &evalhub.HealthResponse{Status: "healthy"}, nil
 }
 
-// ListCollections returns all mock benchmark collections.
-func (m *MockEvalHubClient) ListCollections(_ context.Context, _ string) (evalhub.CollectionsResponse, error) {
-	return evalhub.CollectionsResponse{Items: mockCollections()}, nil
+// ListCollections returns mock benchmark collections with optional in-memory filtering and pagination.
+func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	all := mockCollections()
+
+	// Apply filters
+	filtered := make([]evalhub.Collection, 0, len(all))
+	for _, c := range all {
+		if params.Name != "" && !containsCI(c.Name, params.Name) {
+			continue
+		}
+		if params.Category != "" && !strings.EqualFold(c.Category, params.Category) {
+			continue
+		}
+		filtered = append(filtered, c)
+	}
+
+	total := len(filtered)
+
+	// Apply pagination
+	offset := params.Offset
+	if offset > total {
+		offset = total
+	}
+	limit := params.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+
+	return evalhub.CollectionsResponse{
+		TotalCount: total,
+		Limit:      limit,
+		Items:      filtered[offset:end],
+	}, nil
+}
+
+func containsCI(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 // ListProviders returns all mock evaluation providers with their benchmark catalogues.
@@ -447,6 +486,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-001"},
 			Name:        "Open LLM Leaderboard v2",
+			Category:    "General",
 			Description: "Comprehensive evaluation suite for general-purpose language models.",
 			Tags:        []string{"Comprehensive", "Industry Standard"},
 			Benchmarks: []evalhub.CollectionBenchmark{
@@ -461,6 +501,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-002"},
 			Name:        "Safety and Fairness",
+			Category:    "Safety",
 			Description: "Evaluates model safety, bias, and fairness across diverse scenarios.",
 			Tags:        []string{"Bias", "Fairness"},
 			Benchmarks: []evalhub.CollectionBenchmark{
@@ -475,6 +516,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-003"},
 			Name:        "Open-Telco LLM Benchmark",
+			Category:    "Telco",
 			Description: "Specialized benchmarks for telecommunications industry applications.",
 			Tags:        []string{"Industry", "Domain-specific"},
 			Benchmarks: []evalhub.CollectionBenchmark{
@@ -488,6 +530,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-004"},
 			Name:        "Healthcare Evaluation v5",
+			Category:    "Healthcare",
 			Description: "Medical and healthcare domain-specific evaluation suite.",
 			Tags:        []string{"Medical", "Domain-specific"},
 			Benchmarks: []evalhub.CollectionBenchmark{
@@ -502,6 +545,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-005"},
 			Name:        "Finance Evaluation v3",
+			Category:    "Finance",
 			Description: "Financial services and banking domain evaluation suite.",
 			Tags:        []string{"Banking", "Domain-specific"},
 			Benchmarks: []evalhub.CollectionBenchmark{
@@ -516,6 +560,7 @@ func mockCollections() []evalhub.Collection {
 		{
 			Resource:    evalhub.CollectionResource{ID: "collection-006"},
 			Name:        "Software Development v1",
+			Category:    "Code",
 			Description: "Code generation, debugging, and software development tasks.",
 			Tags:        []string{"Software", "Engineering"},
 			Benchmarks: []evalhub.CollectionBenchmark{

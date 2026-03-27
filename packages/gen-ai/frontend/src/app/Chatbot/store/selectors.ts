@@ -22,6 +22,12 @@ export const selectSelectedModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedModel ?? DEFAULT_CONFIGURATION.selectedModel;
 
+export const selectSelectedSubscription =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedSubscription ??
+    DEFAULT_CONFIGURATION.selectedSubscription;
+
 export const selectSelectedMcpServerIds =
   (configId: string) =>
   (state: ChatbotConfigStore): string[] =>
@@ -55,6 +61,17 @@ export const selectRagEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>
     state.configurations[configId]?.isRagEnabled ?? DEFAULT_CONFIGURATION.isRagEnabled;
+
+export const selectKnowledgeMode =
+  (configId: string) =>
+  (state: ChatbotConfigStore): 'inline' | 'external' =>
+    state.configurations[configId]?.knowledgeMode ?? DEFAULT_CONFIGURATION.knowledgeMode;
+
+export const selectSelectedVectorStoreId =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string | null =>
+    state.configurations[configId]?.selectedVectorStoreId ??
+    DEFAULT_CONFIGURATION.selectedVectorStoreId;
 
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

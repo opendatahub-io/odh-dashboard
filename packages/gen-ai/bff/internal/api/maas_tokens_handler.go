@@ -20,7 +20,7 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 	}
-	// If no body, tokenRequest remains empty and the MaaS API will use its defaults
+	// If no body, tokenRequest remains empty; the client enforces ephemeral=true and defaults TTL to 1h
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, tokenRequest)
 	if err != nil {

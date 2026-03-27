@@ -133,3 +133,12 @@ export const initServerToolsErrorIntercept = (serverId: string): void => {
     { statusCode: 500, body: { error: 'Internal server error' } },
   );
 };
+
+const MCP_SERVER_AVAILABLE_PATH = `/model-registry/api/${MODEL_CATALOG_API_VERSION}/mcp_catalog/mcp_server_available`;
+
+export const initMcpServerAvailabilityIntercept = (available: boolean): void => {
+  cy.intercept(
+    { method: 'GET', pathname: MCP_SERVER_AVAILABLE_PATH },
+    mockModArchResponse({ available }),
+  );
+};

@@ -10,6 +10,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
 )
 
 // validPromptName matches alphanumerics, hyphens, underscores, and dots (MLflow naming rules).
@@ -75,6 +76,19 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	if hasMessages && hasTemplate {
 		app.badRequestResponse(w, r, errors.New("cannot specify both messages and template"))
 		return
+	}
+
+	if req.CreateOnly {
+		_, err := app.repositories.MLflowPrompts.LoadPrompt(ctx, req.Name, nil)
+		if err == nil {
+			app.conflictResponse(w, r, fmt.Errorf("a prompt with the name %q already exists", req.Name))
+			return
+		}
+		var apiErr *sdkmlflow.APIError
+		if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
+			app.handleMLflowClientError(w, r, err)
+			return
+		}
 	}
 
 	result, err := app.repositories.MLflowPrompts.RegisterPrompt(ctx, req)

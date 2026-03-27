@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { getBenchmarkDisplayName } from '~/app/utilities/evaluationUtils';
+import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -21,7 +21,7 @@ type BenchmarkResultDetailsProps = {
 
 const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchmarkId, job }) => {
   const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
-  const benchmarkConfig = job.benchmarks?.find((b) => b.id === benchmarkId);
+  const benchmarkConfig = getJobBenchmarks(job).find((b) => b.id === benchmarkId);
 
   if (!result) {
     return null;

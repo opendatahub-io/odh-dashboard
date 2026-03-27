@@ -449,7 +449,7 @@ describe('Compare runs', () => {
       cy.visitWithLogin(
         `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByRole('button', { name: 'Manage runs' }).should('exist');
+      cy.findByRole('link', { name: 'Manage runs' }).should('exist');
       cy.url().should(
         'include',
         `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
@@ -471,7 +471,7 @@ describe('Compare runs', () => {
       cy.visitWithLogin(
         `/pipelineRuns/${projectName}/compareRuns?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByRole('button', { name: 'Manage runs' }).should('exist');
+      cy.findByRole('link', { name: 'Manage runs' }).should('exist');
       cy.url().should(
         'include',
         `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,

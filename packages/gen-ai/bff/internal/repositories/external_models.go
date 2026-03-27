@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strings"
 
@@ -33,18 +35,23 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		return nil, fmt.Errorf("failed to generate provider ID: %w", err)
 	}
 
-	// Create Secret for API key
-	secretName := fmt.Sprintf("endpoint-api-key-%s", providerID)
-	if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
-		return nil, fmt.Errorf("failed to create secret: %w", err)
+	// Create Secret for API key only when a token was provided
+	var secretName string
+	if req.SecretValue != "" {
+		secretName = fmt.Sprintf("endpoint-api-key-%s", providerID)
+		if err := client.CreateExternalModelSecret(ctx, identity, namespace, secretName, req.SecretValue); err != nil {
+			return nil, fmt.Errorf("failed to create secret: %w", err)
+		}
 	}
 
 	// Create or update ConfigMap with the new provider and model
 	if err := client.CreateOrUpdateExternalModelConfigMap(ctx, identity, namespace, providerID, secretName, req); err != nil {
-		// Clean up secret if ConfigMap creation fails
-		if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
-			// Return both the original error and the cleanup error to surface leaked state
-			return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+		// Clean up secret if ConfigMap creation fails (only if one was created)
+		if secretName != "" {
+			if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
+				// Return both the original error and the cleanup error to surface leaked state
+				return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
@@ -78,20 +85,58 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
-// VerifyExternalModel tests an external model endpoint using the external models client
+// isInternalHost reports whether a URL targets a host that is known to be internal
+// (localhost or a Kubernetes in-cluster service). These legitimately resolve to private
+// IPs, so SSRF validation is skipped for them. All other URLs are subject to SSRF checks.
+func isInternalHost(baseURL string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
+	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
+	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
+	ip := net.ParseIP(h)
+	return h == "localhost" ||
+		(ip != nil && ip.IsLoopback()) ||
+		isK8sService
+}
+
+// internalHostRootCAs returns the provided CA pool only when the URL targets an internal
+// host. For external hosts it returns nil so the client falls back to the system CA pool,
+// which contains the public root CAs needed to verify certificates from services like
+// api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
+func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool {
+	if isInternalHost(baseURL) {
+		return rootCAs
+	}
+	return nil
+}
+
+// VerifyExternalModel tests an external model endpoint using the external models client.
+// rootCAs is the application CA pool (nil falls back to system pool for external hosts).
+// insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
 	req models.VerifyExternalModelRequest,
+	rootCAs *x509.CertPool,
+	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	// Create client with SSRF validation disabled for localhost URLs (testing/development)
 	client, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			SkipSSRFValidation: isLocalhost(req.BaseURL),
+			AllowHTTP:          isInternalHost(req.BaseURL),
+			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			// Only supply the cluster CA pool for internal hosts; external hosts
+			// must use the system CA pool to verify public certificates.
+			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL),
+			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
 		},
 	)
 	if err != nil {
@@ -100,14 +145,4 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 
 	// Verify the model using the client (pass embedding dimension for embedding models)
 	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
-}
-
-// isLocalhost checks if a URL points to localhost by parsing the hostname.
-func isLocalhost(baseURL string) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	hostname := u.Hostname()
-	return hostname == "localhost" || hostname == "::1" || strings.HasPrefix(hostname, "127.")
 }
