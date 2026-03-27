@@ -164,10 +164,12 @@ function AutoragConfigurePage(): React.JSX.Element {
             form.handleSubmit(
               async (data: ConfigureSchema) => {
                 try {
+                  let resolvedInputDataKey = data.input_data_key.trim();
+
                   if (
                     data.input_data_source_mode === 'upload' &&
                     pendingInputDataFile &&
-                    !data.input_data_key.trim()
+                    !resolvedInputDataKey
                   ) {
                     try {
                       const uploadResult = await s3UploadMutation.mutateAsync({
@@ -177,7 +179,10 @@ function AutoragConfigurePage(): React.JSX.Element {
                         key: pendingInputDataFile.name,
                         file: pendingInputDataFile,
                       });
-                      form.setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+                      resolvedInputDataKey = uploadResult.key;
+                      form.setValue('input_data_key', resolvedInputDataKey, {
+                        shouldValidate: true,
+                      });
                     } catch (uploadErr) {
                       notification.error(
                         'Failed to upload file',
@@ -201,7 +206,7 @@ function AutoragConfigurePage(): React.JSX.Element {
                     ...stripConfigureUiFieldsForPipeline({
                       ...data,
                       // eslint-disable-next-line camelcase -- BFF pipeline parameter name
-                      input_data_key: form.getValues('input_data_key') ?? '',
+                      input_data_key: resolvedInputDataKey,
                     }),
                   };
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(pipelineRunPayload);
