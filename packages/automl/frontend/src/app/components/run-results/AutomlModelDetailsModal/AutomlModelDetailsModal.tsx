@@ -132,7 +132,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                 }
               : undefined
           }
-          isDownloadDisabled={!featureImportance}
+          isDownloadDisabled={taskType !== TASK_TYPE_TIMESERIES && !featureImportance}
         />
         <Grid hasGutter className="automl-model-details-screen-only">
           <GridItem span={2} className="automl-model-details-sidebar">

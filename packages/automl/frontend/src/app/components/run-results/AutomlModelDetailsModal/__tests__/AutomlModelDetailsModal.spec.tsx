@@ -236,6 +236,17 @@ describe('AutomlModelDetailsModal', () => {
     expect(downloadButton).toBeEnabled();
   });
 
+  it('should enable download button for timeseries without feature importance', () => {
+    render(
+      <AutomlResultsContext.Provider value={mockTimeseriesContext}>
+        <AutomlModelDetailsModal {...defaultProps} modelName="TemporalFusionTransformer" />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const downloadButton = screen.getByTestId('model-details-download');
+    expect(downloadButton).toBeEnabled();
+  });
+
   it('should call onClickSaveNotebook when "Save as notebook" button is clicked', async () => {
     const onClickSaveNotebook = jest.fn();
     const user = userEvent.setup();
