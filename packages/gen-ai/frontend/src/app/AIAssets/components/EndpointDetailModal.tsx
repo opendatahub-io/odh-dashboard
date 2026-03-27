@@ -117,6 +117,10 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
         copyTarget: 'service_token',
       });
       setIsKeyCopied(true);
+      // Clear any existing timeout to prevent multiple timers
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
       copyTimeoutRef.current = setTimeout(() => {
         setIsKeyCopied(false);
       }, 2000);
