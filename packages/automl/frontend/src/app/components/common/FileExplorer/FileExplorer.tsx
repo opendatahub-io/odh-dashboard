@@ -166,12 +166,20 @@ const defaults = {
     emptyStateTitle: 'No files found',
     emptyStateBody: 'No files are available in the current folder.',
 
-    paginationIndeterminateToggleTemplate: (first: number, last: number) => (
+    paginationIndeterminateToggleTemplateMany: (first: number, last: number) => (
       <>
         <strong>
           {first} - {last}
         </strong>{' '}
         of <strong>many</strong>
+      </>
+    ),
+    paginationIndeterminateToggleTemplateCounted: (first: number, last: number, total: number) => (
+      <>
+        <strong>
+          {first} - {last}
+        </strong>{' '}
+        of <strong>{total}</strong>
       </>
     ),
   },
@@ -918,8 +926,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};
   if (isIndeterminate) {
+    const paginationLabelFunction = hasNextPage
+      ? defaults.labels.paginationIndeterminateToggleTemplateMany
+      : defaults.labels.paginationIndeterminateToggleTemplateCounted;
     extraPaginationProps.toggleTemplate = ({ firstIndex = 0, lastIndex = 0 }) =>
-      defaults.labels.paginationIndeterminateToggleTemplate(firstIndex, lastIndex);
+      paginationLabelFunction(firstIndex, lastIndex, lastIndex);
   }
 
   const rowHeight = 47;
