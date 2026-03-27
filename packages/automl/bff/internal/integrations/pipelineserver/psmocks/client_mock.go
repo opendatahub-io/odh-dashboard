@@ -566,6 +566,20 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 	return mockRun, nil
 }
 
+// GetPipelineVersion returns a mock pipeline version with a pipeline_spec for topology visualization
+func (m *MockPipelineServerClient) GetPipelineVersion(_ context.Context, _, _ string) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        "9e3940d5-b275-4b64-be10-b914cd06c58e",
+		PipelineVersionID: "22e57c06-030f-4c63-900d-0a808d577899",
+		DisplayName:       "mock-pipeline-version",
+		PipelineSpec: json.RawMessage(`{"root":{"dag":{"tasks":{
+			"data-preprocessing":{"taskInfo":{"name":"data-preprocessing"},"dependentTasks":[],"componentRef":{"name":""}},
+			"model-training":{"taskInfo":{"name":"model-training"},"dependentTasks":["data-preprocessing"],"componentRef":{"name":""}},
+			"model-evaluation":{"taskInfo":{"name":"model-evaluation"},"dependentTasks":["model-training"],"componentRef":{"name":""}}
+		}}}}`),
+	}, nil
+}
+
 // ListPipelines returns mock pipeline data with namespace-derived IDs.
 // The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
 // When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.

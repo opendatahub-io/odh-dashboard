@@ -31,13 +31,21 @@ jest.mock('mod-arch-core', () => ({
     updatePreferredNamespace: jest.fn(),
     namespacesLoaded: true,
   }),
-  useFetchState: jest.fn().mockReturnValue([null, false, undefined]),
   asEnumMember: jest.fn((val: unknown) => val),
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
   restDELETE: jest.fn(),
   restGET: jest.fn(),
   isModArchResponse: jest.fn(() => true),
+}));
+
+jest.mock('~/app/context/CollectionsContext', () => ({
+  useCollectionsContext: jest.fn().mockReturnValue({
+    response: { items: [] },
+    loaded: true,
+    loadError: undefined,
+    refresh: jest.fn(),
+  }),
 }));
 
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>

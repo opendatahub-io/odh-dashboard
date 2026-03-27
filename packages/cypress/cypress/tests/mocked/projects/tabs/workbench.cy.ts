@@ -623,7 +623,7 @@ describe('Workbench page', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -2024,7 +2024,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });
