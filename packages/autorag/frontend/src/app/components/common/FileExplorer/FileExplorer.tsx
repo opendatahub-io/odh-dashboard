@@ -57,7 +57,7 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
-import { EllipsisVIcon, TimesIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { type ReactNode, useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
@@ -148,6 +148,7 @@ const defaults = {
     tableActionViewDetails: 'View details',
     tableActionRemoveSelection: 'Remove selection',
 
+    detailsViewingDetailsOfThisFile: 'Viewing details',
     detailsPanelTitle: 'Details',
     detailsPanelTitleFiles: 'Selected files',
     detailsPanelName: 'Name',
@@ -241,6 +242,7 @@ interface FilesTableProps {
   selection?: 'radio' | 'checkbox';
   onFolderClick?: (folder: Folder) => void;
   onViewDetails: (file: File) => void;
+  filesToView?: Files;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
   loading?: boolean;
@@ -253,6 +255,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   selection = 'radio',
   onFolderClick,
   onViewDetails,
+  filesToView,
   isEmpty: isEmptyProp,
   emptyStateProps,
   loading,
@@ -353,8 +356,12 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   }
                   const rowIndex = acc.visibleIndex;
                   acc.visibleIndex++;
+                  const isSelected =
+                    Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
+                  const isFileBeingViewed =
+                    Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
                   acc.elements.push(
-                    <Tr key={file.path}>
+                    <Tr key={file.path} isRowSelected={isSelected}>
                       <Td
                         width={columns.select.width}
                         select={{
@@ -376,26 +383,39 @@ const FilesTable: React.FC<FilesTableProps> = ({
                               onViewDetails(file);
                             }
                           },
-                          isSelected:
-                            Array.isArray(selectedFiles) &&
-                            selectedFiles.some((f) => f.path === file.path),
+                          isSelected,
                           isDisabled: false,
                           variant: selection,
                         }}
                       />
                       <Td width={columns.name.width} dataLabel={columns.name.label}>
-                        {/* Should this be a Content/a/href or should it be Button variant link */}
-                        {isFolder(file) && (
-                          <Truncate
-                            href="#"
-                            onClick={(e: React.MouseEvent) => {
-                              e.preventDefault();
-                              onFolderClick?.(file);
-                            }}
-                            content={file.name}
-                          />
-                        )}
-                        {!isFolder(file) && <Truncate content={file.name} />}
+                        <Flex
+                          spaceItems={{ default: 'spaceItemsSm' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          flexWrap={{ default: 'nowrap' }}
+                        >
+                          <FlexItem>
+                            {/* Should this be a Content/a/href or should it be Button variant link */}
+                            {isFolder(file) && (
+                              <Truncate
+                                href="#"
+                                onClick={(e: React.MouseEvent) => {
+                                  e.preventDefault();
+                                  onFolderClick?.(file);
+                                }}
+                                content={file.name}
+                              />
+                            )}
+                            {!isFolder(file) && <Truncate content={file.name} />}
+                          </FlexItem>
+                          {!isSelected && isFileBeingViewed && (
+                            <FlexItem>
+                              <OutlinedEyeIcon
+                                title={defaults.labels.detailsViewingDetailsOfThisFile}
+                              />
+                            </FlexItem>
+                          )}
+                        </Flex>
                       </Td>
                       <Td width={columns.type.width} dataLabel={columns.type.label}>
                         {isFolder(file) ? defaults.labels.folderType : file.type}
@@ -961,6 +981,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   selection={selection}
                   onFolderClick={onFolderClick}
                   onViewDetails={(file) => setFilesToView([file])}
+                  filesToView={filesToView}
                   isEmpty={isEmpty}
                   emptyStateProps={emptyStateProps}
                   loading={loading}
