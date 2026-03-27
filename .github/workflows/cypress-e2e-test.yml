@@ -1097,7 +1097,7 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack with explicit dashboard host (ensures correct proxy target for all tests)
-          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
