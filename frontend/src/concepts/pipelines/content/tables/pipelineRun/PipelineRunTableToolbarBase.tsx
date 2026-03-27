@@ -7,6 +7,8 @@ import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfType
 import DashboardDatePicker from '#~/components/DashboardDatePicker';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -26,6 +28,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { namespace } = usePipelinesAPI();
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState,
@@ -65,13 +68,11 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
           />
         ),
-        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            data-testid="search-for-mlflow-experiment-name"
-            aria-label="Search for an MLflow experiment name"
-            placeholder="Search..."
-            onChange={(_event, value) => onChange(value)}
+        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (
+          <MlflowExperimentSelector
+            workspace={namespace}
+            selection={value}
+            onSelect={(experiment) => onChange(experiment.name)}
           />
         ),
         [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (

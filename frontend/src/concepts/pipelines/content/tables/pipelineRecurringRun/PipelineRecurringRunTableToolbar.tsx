@@ -10,6 +10,8 @@ import {
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -28,6 +30,7 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
   const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { namespace } = usePipelinesAPI();
   const options = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Schedule',
@@ -63,13 +66,11 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            data-testid="search-for-mlflow-experiment-name"
-            aria-label="Search for an MLflow experiment name"
-            placeholder="Search..."
-            onChange={(_event, value) => onChange(value)}
+        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (
+          <MlflowExperimentSelector
+            workspace={namespace}
+            selection={value}
+            onSelect={(mlflowExperiment) => onChange(mlflowExperiment.name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (

@@ -23,8 +23,8 @@ export enum CreateRunPageSections {
   PROJECT = 'run-section-project',
   RUN_DETAILS = 'run-section-details',
   SCHEDULE_DETAILS = 'run-section-schedule-details',
-  MLFLOW_INTEGRATION = 'run-section-mlflow-integration',
   PIPELINE = 'run-section-pipeline',
+  MLFLOW_INTEGRATION = 'run-section-mlflow-integration',
   PARAMS = 'run-section-params',
 }
 
@@ -33,7 +33,7 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.PROJECT]: 'Project',
   [CreateRunPageSections.RUN_DETAILS]: 'Run details',
   [CreateRunPageSections.SCHEDULE_DETAILS]: 'Schedule details',
-  [CreateRunPageSections.MLFLOW_INTEGRATION]: 'MLflow integration',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
+  [CreateRunPageSections.MLFLOW_INTEGRATION]: 'MLflow integration',
   [CreateRunPageSections.PARAMS]: 'Parameters',
 };

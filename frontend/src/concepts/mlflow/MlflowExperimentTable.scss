@@ -1,6 +1,7 @@
 .mlflow-experiment-row {
   &__last-updated {
     position: relative;
+    white-space: nowrap;
 
     &--selected {
       padding-right: 1.5rem;

@@ -15,8 +15,8 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-group-name');
   }
 
-  findMlflowExperimentInput() {
-    return cy.findByTestId('search-for-mlflow-experiment-name');
+  findMlflowExperimentSelect() {
+    return cy.findByTestId('mlflow-experiment-selector-toggle');
   }
 
   findPipelineVersionSelect() {
