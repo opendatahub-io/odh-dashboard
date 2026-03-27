@@ -83,6 +83,108 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedMcpServerIds).toEqual([]);
     });
 
+    it('should update knowledgeMode', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.knowledgeMode).toBe('external');
+    });
+
+    it('should update knowledgeMode back to inline', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+      });
+      act(() => {
+        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.knowledgeMode).toBe('inline');
+    });
+
+    it('should update selectedVectorStoreId', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-abc-123');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId).toBe('vs-abc-123');
+    });
+
+    it('should update selectedVectorStoreId to null', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-abc-123');
+      });
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, null);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId).toBeNull();
+    });
+
+    it('should update selectedSubscription', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('premium-sub');
+    });
+
+    it('should not crash when updating selectedSubscription for non-existent config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedSubscription('non-existent', 'premium-sub');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations['non-existent']).toBeUndefined();
+    });
+
+    it('should clear selectedSubscription when model changes', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
+      });
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedSubscription,
+      ).toBe('premium-sub');
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'new-model');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('new-model');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('');
+    });
+
+    it('should preserve selectedSubscription on no-op model update', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'same-model');
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'same-model');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('same-model');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('premium-sub');
+    });
+
     it('should not update non-existent config', () => {
       act(() => {
         useChatbotConfigStore.getState().updateSystemInstruction('non-existent', 'New instruction');
@@ -488,6 +590,7 @@ describe('useChatbotConfigStore', () => {
       act(() => {
         const store = useChatbotConfigStore.getState();
         store.updateSelectedModel(DEFAULT_CONFIG_ID, 'test-model');
+        store.updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
         store.updateTemperature(DEFAULT_CONFIG_ID, 1.5);
         store.updateStreamingEnabled(DEFAULT_CONFIG_ID, false);
         store.updateRagEnabled(DEFAULT_CONFIG_ID, true);
@@ -502,9 +605,29 @@ describe('useChatbotConfigStore', () => {
       const newConfig = state.configurations[newConfigId];
 
       expect(newConfig?.selectedModel).toBe('test-model');
+      expect(newConfig?.selectedSubscription).toBe('premium-sub');
       expect(newConfig?.temperature).toBe(1.5);
       expect(newConfig?.isStreamingEnabled).toBe(false);
       expect(newConfig?.isRagEnabled).toBe(true);
+    });
+
+    it('should copy knowledgeMode and selectedVectorStoreId from source configuration', () => {
+      act(() => {
+        const store = useChatbotConfigStore.getState();
+        store.updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+        store.updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-weather-kb');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const newConfigId = state.configIds[1];
+      const newConfig = state.configurations[newConfigId];
+
+      expect(newConfig?.knowledgeMode).toBe('external');
+      expect(newConfig?.selectedVectorStoreId).toBe('vs-weather-kb');
     });
 
     it('should create deep copy of MCP server IDs array', () => {
@@ -717,6 +840,41 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations[config2Id!]?.guardrail).toBe('guardrail-2');
       expect(state.configurations[DEFAULT_CONFIG_ID]?.guardrailUserInputEnabled).toBe(true);
       expect(state.configurations[config2Id!]?.guardrailUserInputEnabled).toBe(false);
+    });
+
+    it('should update knowledgeMode independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+        useChatbotConfigStore.getState().updateKnowledgeMode(config2Id!, 'inline');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.knowledgeMode).toBe('external');
+      expect(state.configurations[config2Id!]?.knowledgeMode).toBe('inline');
+    });
+
+    it('should update selectedVectorStoreId independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-weather-kb');
+        useChatbotConfigStore.getState().updateSelectedVectorStoreId(config2Id!, 'vs-product-kb');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId).toBe('vs-weather-kb');
+      expect(state.configurations[config2Id!]?.selectedVectorStoreId).toBe('vs-product-kb');
+    });
+
+    it('should update selectedSubscription independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedSubscription(DEFAULT_CONFIG_ID, 'basic-sub');
+        useChatbotConfigStore.getState().updateSelectedSubscription(config2Id!, 'premium-sub');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedSubscription).toBe('basic-sub');
+      expect(state.configurations[config2Id!]?.selectedSubscription).toBe('premium-sub');
     });
 
     it('should maintain separate MCP tool selections for each config', () => {

@@ -62,6 +62,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         (provider.benchmarks ?? []).map((b) => ({
           ...b,
           providerId: provider.resource.id,
+          providerName: provider.title ?? provider.name,
         })),
       ),
     [providers],

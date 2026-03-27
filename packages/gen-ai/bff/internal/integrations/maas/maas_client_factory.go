@@ -9,7 +9,7 @@ import (
 
 // MaaSClientInterface defines the interface for MaaS (Model as a Service) client operations
 type MaaSClientInterface interface {
-	ListModels(ctx context.Context, apiKey string) ([]models.MaaSModel, error)
+	ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error)
 	IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error)
 	RevokeAllTokens(ctx context.Context) error
 }

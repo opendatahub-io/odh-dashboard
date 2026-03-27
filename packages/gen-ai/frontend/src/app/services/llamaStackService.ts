@@ -251,6 +251,7 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   input_shield_id: r.input_shield_id,
   output_shield_id: r.output_shield_id,
   model_source_type: r.model_source_type,
+  subscription: r.subscription,
 });
 
 const postCreateResponse = (

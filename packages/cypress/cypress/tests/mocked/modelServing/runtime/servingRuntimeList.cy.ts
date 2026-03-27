@@ -187,15 +187,15 @@ const initIntercepts = ({
     mockK8sResourceList(servingRuntimes),
   );
 
-  // Mock hardware profiles
+  // Mock hardware profiles — use distinct aliases so cy.wait() can target each one
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
-  ).as('hardwareProfiles');
+  ).as('globalHardwareProfiles');
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'test-project' },
     mockK8sResourceList(mockProjectScopedHardwareProfiles),
-  ).as('hardwareProfiles');
+  ).as('projectHardwareProfiles');
 
   cy.interceptK8s(
     RouteModel,
