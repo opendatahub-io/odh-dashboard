@@ -161,10 +161,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   selectableExtensions,
   unselectableReason,
 }) => {
-  // State -------------------------------------------------------------------->
-
   const secretName = s3Secret?.name;
   const bucket = '';
+
+  // State -------------------------------------------------------------------->
 
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
@@ -180,6 +180,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
+  // Refs --------------------------------------------------------------------->
+
   // Track continuation tokens per page for forward/backward navigation
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
   const lastResultRef = useRef<S3ListObjectsResponse | null>(null);
@@ -187,7 +189,47 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;
 
+  // Track connection identity to detect when connection changes
+  const connectionKeyRef = useRef<string | null>(null);
+
+  // Helpers ------------------------------------------------------------------>
+
+  const resetState = useCallback(() => {
+    setFilesToRender([]);
+    setFoldersToRender([]);
+    setFetchError(null);
+    setLoadingToRender(false);
+    setHasNextPage(false);
+    setPageToRender(1);
+    setPerPageToRender(DEFAULT_PER_PAGE);
+    setCurrentPath('/');
+    setSearchQuery('');
+    setSelectedFolder(null);
+    continuationTokensRef.current = new Map();
+    lastResultRef.current = null;
+    fetchIdRef.current = 0;
+    connectionKeyRef.current = null;
+  }, []);
+
+  const navigateTo = (path: string, perPage: number) => {
+    setCurrentPath(path);
+    setFoldersToRender(getBreadcrumbTrail(path));
+    setSearchQuery('');
+    setPageToRender(1);
+    continuationTokensRef.current = new Map();
+    fetchPath(path, perPage, 1);
+  };
+
   // Effects ------------------------------------------------------------------>
+
+  // Reset state when the modal is closed
+  const prevIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevIsOpenRef.current && !isOpen) {
+      resetState();
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, resetState]);
 
   const fetchPath = useCallback(
     (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
@@ -242,10 +284,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [namespace, secretName, bucket],
   );
 
-  // Initial fetch on mount / when connection changes
-  const connectionKeyRef = useRef<string | null>(null);
+  // Initial fetch on mount / when connection changes / when modal reopens after reset
   useEffect(() => {
-    if (!secretName) {
+    if (!isOpen || !secretName) {
       return;
     }
 
@@ -265,18 +306,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     lastResultRef.current = null;
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [secretName, namespace, fetchPath]);
-
-  // Helpers ------------------------------------------------------------------>
-
-  const navigateTo = (path: string, perPage: number) => {
-    setCurrentPath(path);
-    setFoldersToRender(getBreadcrumbTrail(path));
-    setSearchQuery('');
-    setPageToRender(1);
-    continuationTokensRef.current = new Map();
-    fetchPath(path, perPage, 1);
-  };
+  }, [isOpen, secretName, namespace, fetchPath]);
 
   const debouncedSearch = useMemo(
     () =>
@@ -288,7 +318,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }, 300),
     [currentPath, perPageToRender, fetchPath],
   );
-
   // Cancel debounce on unmount
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
