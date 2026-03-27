@@ -436,9 +436,10 @@ class ChatbotPage {
     return cy.findByTestId('chatbot-config-switcher');
   }
 
-  // Find a specific config tab in the settings panel switcher (1-based)
-  findConfigTab(chatNumber: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`chatbot-config-tab-${chatNumber}`);
+  // Find the button inside a config tab in the settings panel switcher (1-based)
+  // aria-pressed is on the inner button, not the wrapper div
+  findConfigTab(chatNumber: number): Cypress.Chainable<JQuery<HTMLButtonElement>> {
+    return cy.findByTestId(`chatbot-config-tab-${chatNumber}`).find('button');
   }
 
   // Verify we are in compare mode (two panes visible)
