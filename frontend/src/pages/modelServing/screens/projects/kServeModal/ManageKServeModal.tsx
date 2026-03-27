@@ -13,6 +13,7 @@ import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
+  translateModelServingError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
@@ -332,9 +333,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         watchDeployment();
       })
       .catch((e) => {
+        const normalizedError =
+          e instanceof Error
+            ? e
+            : new Error(typeof e === 'string' ? e : 'An unexpected error occurred.');
+        const translatedError = translateModelServingError(normalizedError);
         props.success = false;
-        props.errorMessage = e;
-        setErrorModal(e);
+        props.errorMessage = translatedError.message;
+        setErrorModal(translatedError);
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };

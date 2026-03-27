@@ -18,6 +18,8 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   createNIMSecret: jest.fn(),
   getSubmitInferenceServiceResourceFn: jest.fn(() => jest.fn()),
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
+  translateModelServingError: jest.requireActual('#~/pages/modelServing/screens/projects/utils')
+    .translateModelServingError,
   useCreateInferenceServiceObject: jest.fn(),
   useCreateServingRuntimeObject: jest.fn(),
 }));
