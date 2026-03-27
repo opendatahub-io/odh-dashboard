@@ -60,7 +60,8 @@
     "test:cypress:e2e": "npx cypress run --project ../packages/cypress --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
     "test:cypress:e2e:open": "npx cypress open --project ../packages/cypress --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9001",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@module-federation/runtime": "^0.15.0",

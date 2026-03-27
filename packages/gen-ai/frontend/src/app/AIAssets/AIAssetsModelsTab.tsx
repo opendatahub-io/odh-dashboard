@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner, Button, Alert } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -13,7 +12,6 @@ import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
 import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpointsEnabled';
 
 const AIAssetsModelsTab: React.FC = () => {
-  const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels();
 
@@ -122,9 +120,7 @@ const AIAssetsModelsTab: React.FC = () => {
         </Content>
       }
       actionButtonText="Deploy a model"
-      handleActionButtonClick={() => {
-        navigate(`/ai-hub/deployments/${namespace?.name}`);
-      }}
+      actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
       secondaryActionButtonText="Create endpoint"
       handleSecondaryActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
     />
@@ -155,9 +151,7 @@ const AIAssetsModelsTab: React.FC = () => {
         </Content>
       }
       actionButtonText="Go to Deployments"
-      handleActionButtonClick={() => {
-        navigate(`/ai-hub/deployments/${namespace?.name}`);
-      }}
+      actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
     />
   );
 

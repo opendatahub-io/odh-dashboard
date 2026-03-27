@@ -11,7 +11,6 @@ describe('MetricsContents', () => {
       { count: 2, text: 'Stopped' },
     ],
     createText: 'Create item',
-    onCreate: jest.fn(),
   };
 
   beforeEach(() => {
@@ -57,7 +56,6 @@ describe('MetricsContents', () => {
 
     const createButton = screen.getByRole('button', { name: /create item/i });
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
-    // The Kueue message should take precedence (tested via tooltip content)
   });
 
   it('should render statistics correctly', () => {

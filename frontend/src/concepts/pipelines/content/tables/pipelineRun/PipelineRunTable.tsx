@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
@@ -60,7 +60,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   setFilter,
   ...tableProps
 }) => {
-  const navigate = useNavigate();
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
@@ -117,6 +116,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
+  const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
+  const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+  const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
@@ -146,19 +148,12 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         key="create-run"
         data-testid="create-run-button"
         variant="primary"
-        onClick={() => navigate(createRunRoute(namespace, experiment?.experiment_id))}
+        component={(props: React.ComponentProps<'a'>) => <Link {...props} to={createRunHref} />}
       >
         Create run
       </Button>
     );
-  }, [
-    runType,
-    isContextExperimentArchived,
-    selectedIds.length,
-    navigate,
-    namespace,
-    experiment?.experiment_id,
-  ]);
+  }, [runType, isContextExperimentArchived, selectedIds.length, createRunHref]);
 
   const compareRunsAction =
     !isContextExperimentArchived && runType === PipelineRunType.ACTIVE ? (
@@ -167,10 +162,12 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           key="compare-runs"
           data-testid="compare-runs-button"
           variant="secondary"
-          isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
-          onClick={() =>
-            navigate(compareRunsRoute(namespace, selectedIds, experiment?.experiment_id))
-          }
+          isAriaDisabled={isCompareDisabled}
+          {...(!isCompareDisabled && {
+            component: (props: React.ComponentProps<'a'>) => (
+              <Link {...props} to={compareRunsHref} />
+            ),
+          })}
         >
           Compare runs
         </Button>
