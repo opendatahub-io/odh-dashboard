@@ -15,6 +15,7 @@ import {
   FormSection,
   Spinner,
 } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
@@ -92,6 +93,17 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     }
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
+
+  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+  const hasModelPlaygroundExtensionFields = React.useMemo(
+    () =>
+      wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
+    [wizardState.fields],
+  );
+  const showModelPlaygroundAvailabilitySection =
+    wizardState.state.modelAvailability.showField &&
+    (isGenAiEnabled || hasModelPlaygroundExtensionFields);
+
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -115,7 +127,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {wizardState.state.modelAvailability.showField && (
+            {showModelPlaygroundAvailabilitySection && (
               <StackItem>
                 <FormGroup
                   label="Model playground availability"
