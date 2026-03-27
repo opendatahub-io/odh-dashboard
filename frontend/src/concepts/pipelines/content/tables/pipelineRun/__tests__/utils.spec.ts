@@ -120,22 +120,27 @@ describe('filterByMlflowExperiment', () => {
     expect(filterByMlflowExperiment(runs, '')).toEqual(runs);
   });
 
-  it('should filter runs by mlflow experiment name substring', () => {
-    const result = filterByMlflowExperiment(runs, 'training');
+  it('should filter runs by exact mlflow experiment name', () => {
+    const result = filterByMlflowExperiment(runs, 'training-exp');
     expect(result).toHaveLength(1);
     expect(result[0].run_id).toBe('a');
   });
 
+  it('should not match partial experiment names', () => {
+    const result = filterByMlflowExperiment(runs, 'training');
+    expect(result).toHaveLength(0);
+  });
+
   it('should match case-insensitively', () => {
-    const result = filterByMlflowExperiment(runs, 'EVAL');
+    const result = filterByMlflowExperiment(runs, 'EVAL-EXP');
     expect(result).toHaveLength(1);
     expect(result[0].run_id).toBe('b');
   });
 
   it('should exclude runs with no mlflow experiment name', () => {
-    const result = filterByMlflowExperiment(runs, 'exp');
-    expect(result).toHaveLength(2);
-    expect(result.map((r) => r.run_id)).toEqual(['a', 'b']);
+    const result = filterByMlflowExperiment(runs, 'training-exp');
+    expect(result).toHaveLength(1);
+    expect(result.map((r) => r.run_id)).toEqual(['a']);
   });
 
   it('should return an empty array when no runs match', () => {
@@ -151,7 +156,7 @@ describe('filterByMlflowExperiment', () => {
       }),
       buildMockRecurringRunKF({ display_name: 'Schedule B', recurring_run_id: 'sb' }),
     ];
-    const result = filterByMlflowExperiment(recurringRuns, 'scheduled');
+    const result = filterByMlflowExperiment(recurringRuns, 'scheduled-exp');
     expect(result).toHaveLength(1);
     expect(result[0].recurring_run_id).toBe('sa');
   });

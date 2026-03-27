@@ -71,8 +71,7 @@ const CompareRunsRunList: React.FC = () => {
       const mlflowExperimentName = getMlflowExperimentNameFromRun(run);
       const mlflowExperimentMatch =
         !mlflowExperimentFilter ||
-        (!!mlflowExperimentName &&
-          mlflowExperimentName.toLowerCase().includes(mlflowExperimentFilter));
+        (!!mlflowExperimentName && mlflowExperimentName.toLowerCase() === mlflowExperimentFilter);
 
       return (
         nameMatch &&

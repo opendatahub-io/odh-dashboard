@@ -107,7 +107,7 @@ describe('PipelineRunTableRowMlflowExperiment', () => {
   });
 
   it('renders a skeleton while experiments are loading', () => {
-    const { container } = render(
+    render(
       <BrowserRouter>
         <PipelineRunTableRowMlflowExperiment
           run={buildMockRunKF({
@@ -124,7 +124,7 @@ describe('PipelineRunTableRowMlflowExperiment', () => {
       </BrowserRouter>,
     );
 
-    expect(container.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+    expect(screen.getByTestId('mlflow-experiment-loading')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

@@ -31,7 +31,7 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
   }
 
   if (!experimentIdFromOutput && !mlflow.loaded) {
-    return <Skeleton />;
+    return <Skeleton data-testid="mlflow-experiment-loading" />;
   }
 
   if (experimentId && typeof experimentId === 'string') {

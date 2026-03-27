@@ -191,29 +191,32 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
           <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
         }
       >
-        <CodeBlock
-          actions={
-            <CodeBlockAction>
-              <ClipboardCopyButton
-                id="mlflow-autolog-copy"
-                aria-label="Copy to clipboard"
-                onClick={() => {
-                  navigator.clipboard
-                    .writeText(MLFLOW_AUTOLOG_SNIPPET)
-                    .then(() => setCopied(true))
-                    .catch(() => undefined);
-                }}
-                exitDelay={copied ? 1500 : 600}
-                variant="plain"
-                onTooltipHidden={() => setCopied(false)}
-              >
-                {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
-              </ClipboardCopyButton>
-            </CodeBlockAction>
-          }
-        >
-          <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
-        </CodeBlock>
+        <div style={isDisabled ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+          <CodeBlock
+            actions={
+              <CodeBlockAction>
+                <ClipboardCopyButton
+                  id="mlflow-autolog-copy"
+                  aria-label="Copy to clipboard"
+                  disabled={isDisabled}
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(MLFLOW_AUTOLOG_SNIPPET)
+                      .then(() => setCopied(true))
+                      .catch(() => undefined);
+                  }}
+                  exitDelay={copied ? 1500 : 600}
+                  variant="plain"
+                  onTooltipHidden={() => setCopied(false)}
+                >
+                  {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+                </ClipboardCopyButton>
+              </CodeBlockAction>
+            }
+          >
+            <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
+          </CodeBlock>
+        </div>
       </FormGroup>
     </FormSection>
   );

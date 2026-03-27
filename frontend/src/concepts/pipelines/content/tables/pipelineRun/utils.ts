@@ -25,7 +25,7 @@ export const filterByMlflowExperiment = <T extends PipelineRunKF | PipelineRecur
   }
   return runs.filter((run) => {
     const name = getMlflowExperimentNameFromRun(run);
-    return !!name && name.toLowerCase().includes(normalized);
+    return !!name && name.toLowerCase().trim() === normalized;
   });
 };
 
