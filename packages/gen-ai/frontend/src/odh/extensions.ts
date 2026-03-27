@@ -49,7 +49,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: PROMPT_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: [PROMPT_MANAGEMENT],
+      featureFlags: [PROMPT_MANAGEMENT],
     },
   },
   {

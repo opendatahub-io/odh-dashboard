@@ -95,6 +95,7 @@ export const blankDashboardCR: DashboardConfig = {
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
       vLLMDeploymentOnMaaS: false,
+      promptManagement: false,
     },
     notebookController: {
       enabled: true,
