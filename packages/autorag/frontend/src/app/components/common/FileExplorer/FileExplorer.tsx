@@ -914,6 +914,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   return (
     <Modal
+      elementToFocus="#FileExplorer-search-input"
       id={id}
       isOpen={isOpen}
       onClose={(e) => {
@@ -949,11 +950,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem grow={{ default: 'grow' }}>
                 <SearchInput
-                  id="FileExplorer-search-input"
+                  searchInputId="FileExplorer-search-input"
                   className="pf-v6-u-w-50"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
-                    folders && folders.length > 0 ? folders[folders.length - 1].name : source?.name,
+                    folders && folders.length > 0
+                      ? folders[folders.length - 1].name
+                      : source
+                        ? `${source.name} (root)`
+                        : undefined,
                   )}
                   value={searchQuery}
                   onChange={(_event, value) => {
