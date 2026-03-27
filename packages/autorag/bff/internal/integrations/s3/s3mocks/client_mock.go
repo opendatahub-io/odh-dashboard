@@ -28,6 +28,20 @@ func (m *MockS3Client) UploadObject(_ context.Context, bucket, key string, body 
 	return err
 }
 
+// ObjectExists reports whether a key exists in the static mock listings.
+func (m *MockS3Client) ObjectExists(_ context.Context, _ string, key string) (bool, error) {
+	allPaths := []string{"", "datasets", "datasets/train", "results"}
+	for _, path := range allPaths {
+		objects, _ := getMockObjectsForPath(path)
+		for _, object := range objects {
+			if object.Key == key {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // ListObjects returns a realistic mock listing of S3 objects.
 // Supports path-based navigation and pagination via options.
 func (m *MockS3Client) ListObjects(_ context.Context, bucket string, options s3client.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {

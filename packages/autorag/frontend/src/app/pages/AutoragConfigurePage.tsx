@@ -17,12 +17,17 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React, { useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
+import { uploadFileToS3 } from '~/app/api/s3';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunsMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
-import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  createConfigureSchema,
+  stripConfigureUiFieldsForPipeline,
+} from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
@@ -59,6 +64,7 @@ function AutoragConfigurePage(): React.JSX.Element {
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+  const [pendingInputDataFile, setPendingInputDataFile] = useState<File | null>(null);
 
   const createActions = (
     <>
@@ -87,6 +93,8 @@ function AutoragConfigurePage(): React.JSX.Element {
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isLoading={form.formState.isSubmitting}
+          spinnerAriaValueText="Submitting"
         >
           Run experiment
         </Button>
@@ -95,6 +103,10 @@ function AutoragConfigurePage(): React.JSX.Element {
         <Button
           variant="link"
           onClick={() => {
+            setPendingInputDataFile(null);
+            form.setValue('input_data_pending_filename', '', { shouldValidate: true });
+            form.setValue('input_data_key', '', { shouldValidate: true });
+            form.setValue('input_data_source_mode', 'select', { shouldValidate: true });
             setStep('create');
           }}
         >
@@ -151,7 +163,57 @@ function AutoragConfigurePage(): React.JSX.Element {
             form.handleSubmit(
               async (data: ConfigureSchema) => {
                 try {
-                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                  let pipelinePayload = stripConfigureUiFieldsForPipeline(data);
+
+                  if (
+                    data.input_data_source_mode === 'upload' &&
+                    pendingInputDataFile &&
+                    !data.input_data_key.trim()
+                  ) {
+                    try {
+                      const uploadResult = await uploadFileToS3(
+                        '',
+                        {
+                          namespace: namespace!,
+                          secretName: data.input_data_secret_name,
+                          bucket: data.input_data_bucket_name,
+                          key: pendingInputDataFile.name,
+                        },
+                        pendingInputDataFile,
+                      );
+                      pipelinePayload = {
+                        ...pipelinePayload,
+                        // eslint-disable-next-line camelcase -- BFF pipeline parameter name
+                        input_data_key: uploadResult.key,
+                      };
+                      form.setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+                    } catch (uploadErr) {
+                      notification.error(
+                        'Failed to upload file',
+                        uploadErr instanceof Error ? uploadErr.message : '',
+                      );
+                      return;
+                    }
+                  } else if (
+                    data.input_data_source_mode === 'upload' &&
+                    data.input_data_pending_filename.trim() &&
+                    !pendingInputDataFile
+                  ) {
+                    notification.error(
+                      'Upload failed',
+                      'The staged file is no longer available. Please choose the file again.',
+                    );
+                    return;
+                  }
+
+                  const pipelineRunPayload: Record<string, unknown> = {
+                    ...pipelinePayload,
+                  };
+                  const pipelineRun = await pipelineRunsMutation.mutateAsync(pipelineRunPayload);
+                  if (data.input_data_source_mode === 'upload') {
+                    setPendingInputDataFile(null);
+                    form.setValue('input_data_pending_filename', '', { shouldValidate: true });
+                  }
                   navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                 } catch (error) {
                   notification.error(
@@ -166,7 +228,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             )();
           }}
         >
-          <StackItem isFilled>
+          <StackItem isFilled style={{ paddingBlockEnd: '5.5rem' }}>
             <PageSection
               className={classNames(
                 'pf-v6-c-form',
@@ -175,10 +237,17 @@ function AutoragConfigurePage(): React.JSX.Element {
               )}
               hasBodyWrapper={false}
             >
-              {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
+              {step === 'create' ? (
+                <AutoragCreate />
+              ) : (
+                <AutoragConfigure
+                  pendingInputDataFile={pendingInputDataFile}
+                  onPendingInputDataFileChange={setPendingInputDataFile}
+                />
+              )}
             </PageSection>
           </StackItem>
-          <StackItem>
+          <StackItem style={{ position: 'absolute', bottom: 0, width: '100%' }}>
             <PageSection hasBodyWrapper={false} hasShadowTop>
               <ActionList>
                 <ActionListGroup>

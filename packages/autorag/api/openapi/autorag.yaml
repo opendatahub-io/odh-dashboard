@@ -1123,11 +1123,18 @@ components:
       description: Response body for successful S3 file upload
       required:
         - uploaded
+        - key
       type: object
       properties:
         uploaded:
           type: boolean
           example: true
+        key:
+          type: string
+          description: >-
+            The actual S3 key used for the uploaded file. When the requested key already exists,
+            the server appends or increments a numeric suffix (for example: file.pdf -> file-1.pdf).
+          example: documents/myfile-1.pdf
 
     S3ListObjectsResult:
       type: object

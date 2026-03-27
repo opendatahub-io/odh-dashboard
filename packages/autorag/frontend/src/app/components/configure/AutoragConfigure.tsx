@@ -12,23 +12,33 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   Grid,
   GridItem,
-  Label,
   List,
   ListItem,
+  MenuToggle,
+  MultipleFileUpload,
+  MultipleFileUploadMain,
   Popover,
   Split,
   SplitItem,
   Stack,
   StackItem,
   Title,
+  ToggleGroup,
+  ToggleGroupItem,
+  type DropEvent,
 } from '@patternfly/react-core';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, InfoCircleIcon, UploadIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
@@ -41,10 +51,34 @@ import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
+import './AutoragConfigure.css';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
-function AutoragConfigure(): React.JSX.Element {
+/** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
+const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'text/markdown': ['.md', '.markdown'],
+  'text/html': ['.html', '.htm'],
+  'text/plain': ['.txt'],
+  'application/json': ['.json'],
+};
+
+const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
+  ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
+].join(',');
+
+export type AutoragConfigureProps = {
+  pendingInputDataFile: File | null;
+  onPendingInputDataFileChange: (file: File | null) => void;
+};
+
+function AutoragConfigure({
+  pendingInputDataFile,
+  onPendingInputDataFileChange,
+}: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -62,6 +96,8 @@ function AutoragConfigure(): React.JSX.Element {
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
+  const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
 
@@ -74,6 +110,7 @@ function AutoragConfigure(): React.JSX.Element {
     inputDataBucketName,
     testDataSecretName,
     testDataBucketName,
+    inputDataSourceMode,
   ] = useWatch({
     control: form.control,
     name: [
@@ -82,6 +119,7 @@ function AutoragConfigure(): React.JSX.Element {
       'input_data_bucket_name',
       'test_data_secret_name',
       'test_data_bucket_name',
+      'input_data_source_mode',
     ],
   });
 
@@ -129,6 +167,13 @@ function AutoragConfigure(): React.JSX.Element {
     }
   }, [inputDataSecretName, setValue]);
 
+  // reset input data key and staged file if document input mode changes
+  useEffect(() => {
+    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_pending_filename', '', { shouldValidate: true });
+    onPendingInputDataFileChange(null);
+  }, [inputDataSourceMode, onPendingInputDataFileChange, setValue]);
+
   // ensure input and test have the same secret and bucket
   useEffect(() => {
     if (inputDataSecretName !== testDataSecretName) {
@@ -142,7 +187,9 @@ function AutoragConfigure(): React.JSX.Element {
   // reset selected file values if input bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
-  }, [inputDataBucketName, setValue]);
+    setValue('input_data_pending_filename', '', { shouldValidate: true });
+    onPendingInputDataFileChange(null);
+  }, [inputDataBucketName, onPendingInputDataFileChange, setValue]);
 
   // reset selected file values if test bucket changes
   useEffect(() => {
@@ -154,6 +201,34 @@ function AutoragConfigure(): React.JSX.Element {
     reset({ ...getValues() });
     setIsExperimentSettingsOpen(true);
   };
+
+  const clearInputDataUpload = useCallback(() => {
+    onPendingInputDataFileChange(null);
+    setIsInputDataDropdownOpen(false);
+    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_pending_filename', '', { shouldValidate: true });
+  }, [onPendingInputDataFileChange, setValue]);
+
+  const stageInputDataFile = useCallback(
+    (file: File) => {
+      if (!selectedSecret?.name) {
+        return;
+      }
+      onPendingInputDataFileChange(file);
+      setIsInputDataDropdownOpen(false);
+      setValue('input_data_pending_filename', file.name, { shouldValidate: true });
+      setValue('input_data_key', '', { shouldValidate: true });
+      // TESTING ONLY
+      // TODO: remove this once we have a real test data key
+      setValue('test_data_key', 'benchmark.json', { shouldValidate: true });
+    },
+    [onPendingInputDataFileChange, selectedSecret?.name, setValue],
+  );
+
+  const openInputDataReplaceFileDialog = useCallback(() => {
+    setIsInputDataDropdownOpen(false);
+    inputDataNativeInputRef.current?.click();
+  }, []);
 
   if (!namespace) {
     return <Navigate to={autoragExperimentsPathname} replace />;
@@ -187,7 +262,8 @@ function AutoragConfigure(): React.JSX.Element {
                               value={selectedSecret?.uuid}
                               onChange={(secret) => {
                                 if (!secret) {
-                                  setValue('input_data_secret_name', '', { shouldValidate: true });
+                                  setSelectedSecret(undefined);
+                                  onChange('');
                                   return;
                                 }
 
@@ -222,36 +298,168 @@ function AutoragConfigure(): React.JSX.Element {
                 </StackItem>
                 {Boolean(selectedSecret?.uuid) && (
                   <>
-                    <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                      Selected connection
+                    <StackItem className="pf-v6-u-mb-md pf-v6-u-mt-md">
+                      <Divider />
                     </StackItem>
-                    <StackItem>
-                      <Label
-                        onClose={() => {
-                          setSelectedSecret(undefined);
-                          setValue('input_data_secret_name', '', { shouldValidate: true });
-                        }}
-                        closeBtnAriaLabel="Clear selected connection"
+                    <StackItem className="pf-v6-u-mt-md">
+                      <ToggleGroup
+                        aria-label="Choose how to add documents"
+                        className="toggle-group-full-width pf-v6-u-mb-md"
                       >
-                        {selectedSecret?.displayName ?? selectedSecret?.name}
-                      </Label>
+                        <ToggleGroupItem
+                          text="Select file or folder"
+                          buttonId="document-input-select"
+                          isSelected={inputDataSourceMode === 'select'}
+                          onChange={() =>
+                            setValue('input_data_source_mode', 'select', { shouldValidate: true })
+                          }
+                        />
+                        <ToggleGroupItem
+                          text="Upload file"
+                          buttonId="document-input-upload"
+                          isSelected={inputDataSourceMode === 'upload'}
+                          onChange={() =>
+                            setValue('input_data_source_mode', 'upload', { shouldValidate: true })
+                          }
+                        />
+                      </ToggleGroup>
                     </StackItem>
 
-                    <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                      Selected files
-                    </StackItem>
-                    <StackItem>
-                      <Button
-                        key="select-files"
-                        variant="secondary"
-                        onClick={() => setIsFileExplorerOpen(true)}
-                        isDisabled={
-                          !selectedSecret || selectedSecret.invalid || form.formState.isSubmitting
-                        }
-                      >
-                        Select files
-                      </Button>
-                    </StackItem>
+                    {inputDataSourceMode === 'select' && (
+                      <>
+                        <StackItem className="pf-v6-u-mb-sm">
+                          <Content component="h4">Select file or folder</Content>
+                        </StackItem>
+                        <StackItem>
+                          <Content component="small">
+                            Select one file or folder from this bucket to use as the knowledge for
+                            your experiment.
+                          </Content>
+                        </StackItem>
+                        <StackItem className="pf-v6-u-mt-md">
+                          <Button
+                            key="select-files"
+                            variant="secondary"
+                            onClick={() => setIsFileExplorerOpen(true)}
+                            isDisabled={
+                              !selectedSecret ||
+                              selectedSecret.invalid ||
+                              form.formState.isSubmitting
+                            }
+                          >
+                            Browse bucket
+                          </Button>
+                        </StackItem>
+                      </>
+                    )}
+
+                    {inputDataSourceMode === 'upload' && (
+                      <>
+                        <StackItem className="pf-v6-u-mb-sm">
+                          <Content component="h4">Upload file</Content>
+                        </StackItem>
+                        <StackItem>
+                          <Content component="small">
+                            Drop a file here or browse to select a file.
+                          </Content>
+                        </StackItem>
+                        <StackItem className="pf-v6-u-mt-md">
+                          <input
+                            ref={inputDataNativeInputRef}
+                            type="file"
+                            hidden
+                            accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
+                            aria-hidden
+                            tabIndex={-1}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                              const input = event.currentTarget;
+                              const file = input.files?.[0];
+                              input.value = '';
+                              if (!file) {
+                                return;
+                              }
+                              stageInputDataFile(file);
+                            }}
+                          />
+                          {!pendingInputDataFile && (
+                            <MultipleFileUpload
+                              onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
+                                const [file] = droppedFiles;
+                                stageInputDataFile(file);
+                              }}
+                              dropzoneProps={{
+                                accept: INPUT_DATA_FILE_ACCEPT,
+                                disabled: form.formState.isSubmitting,
+                                maxFiles: 1,
+                                maxSize: 1024 * 1024 * 1024, // 1GB
+                                multiple: false,
+                              }}
+                            >
+                              <MultipleFileUploadMain
+                                titleIcon={<UploadIcon />}
+                                titleText="Drag and drop files here"
+                                titleTextSeparator="or"
+                                infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text, JSON"
+                                browseButtonText="Upload"
+                              />
+                            </MultipleFileUpload>
+                          )}
+                          {pendingInputDataFile && (
+                            <Table
+                              aria-label="Staged document to upload"
+                              borders
+                              variant="compact"
+                              className="pf-v6-u-w-100"
+                            >
+                              <Thead>
+                                <Tr>
+                                  <Th>File</Th>
+                                  <Th aria-label="Actions" />
+                                </Tr>
+                              </Thead>
+                              <Tbody>
+                                <Tr>
+                                  <Td dataLabel="File">{pendingInputDataFile.name}</Td>
+                                  <Td isActionCell modifier="fitContent">
+                                    <Dropdown
+                                      isOpen={isInputDataDropdownOpen}
+                                      onOpenChange={setIsInputDataDropdownOpen}
+                                      shouldFocusToggleOnSelect
+                                      toggle={(toggleRef) => (
+                                        <MenuToggle
+                                          ref={toggleRef}
+                                          variant="plain"
+                                          aria-label="Staged file actions"
+                                          icon={<EllipsisVIcon />}
+                                          onClick={() =>
+                                            setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
+                                          }
+                                          isExpanded={isInputDataDropdownOpen}
+                                          isDisabled={form.formState.isSubmitting}
+                                        />
+                                      )}
+                                      popperProps={{ position: 'end', preventOverflow: true }}
+                                    >
+                                      <DropdownList>
+                                        <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                          Remove
+                                        </DropdownItem>
+                                        <DropdownItem
+                                          key="replace"
+                                          onClick={openInputDataReplaceFileDialog}
+                                        >
+                                          Replace
+                                        </DropdownItem>
+                                      </DropdownList>
+                                    </Dropdown>
+                                  </Td>
+                                </Tr>
+                              </Tbody>
+                            </Table>
+                          )}
+                        </StackItem>
+                      </>
+                    )}
                   </>
                 )}
               </Stack>
@@ -287,20 +495,28 @@ function AutoragConfigure(): React.JSX.Element {
                           <Watch
                             key="edit-experiment-settings"
                             control={form.control}
-                            name="input_data_key"
-                            render={(inputDataKey) => (
-                              <Button
-                                variant="secondary"
-                                onClick={openExperimentSettings}
-                                isDisabled={
-                                  !inputDataBucketName ||
-                                  !inputDataKey ||
-                                  form.formState.isSubmitting
-                                }
-                              >
-                                Edit
-                              </Button>
-                            )}
+                            name={[
+                              'input_data_key',
+                              'input_data_source_mode',
+                              'input_data_pending_filename',
+                            ]}
+                            render={([inputDataKey, mode, pendingFilename]) => {
+                              const keyTrimmed = inputDataKey.trim();
+                              const pendingTrimmed = pendingFilename.trim();
+                              const hasDocumentInput = Boolean(
+                                inputDataBucketName &&
+                                  (mode === 'select' ? keyTrimmed : keyTrimmed || pendingTrimmed),
+                              );
+                              return (
+                                <Button
+                                  variant="secondary"
+                                  onClick={openExperimentSettings}
+                                  isDisabled={!hasDocumentInput || form.formState.isSubmitting}
+                                >
+                                  Edit
+                                </Button>
+                              );
+                            }}
                           />,
                         ],
                       }}
@@ -420,8 +636,11 @@ function AutoragConfigure(): React.JSX.Element {
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onPrimary={(files) => {
+        onPrimary={() => {
           // TODO: replace with actual logic once implemented
+          onPendingInputDataFileChange(null);
+          setValue('input_data_pending_filename', '', { shouldValidate: true });
+          setValue('input_data_source_mode', 'select', { shouldValidate: true });
           setValue('input_data_key', 'documents', { shouldValidate: true });
           setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
         }}

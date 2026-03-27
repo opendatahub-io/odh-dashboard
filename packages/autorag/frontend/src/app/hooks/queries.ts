@@ -1,7 +1,12 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { getLlamaStackModels, getLlamaStackVectorStores } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import {
+  uploadFileToS3,
+  type UploadFileToS3Params,
+  type UploadFileToS3Response,
+} from '~/app/api/s3';
 import {
   LlamaStackModelsResponse,
   LlamaStackModelType,
@@ -241,6 +246,25 @@ export function usePipelineRunQuery(
         return false;
       }
       return POLL_INTERVAL_MS;
+    },
+  });
+}
+
+export type S3FileUploadMutationVariables = UploadFileToS3Params & {
+  file: File;
+};
+
+/**
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * Uses hostPath '' for same-origin requests by default.
+ */
+export function useS3FileUploadMutation(
+  hostPath = '',
+): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
+  return useMutation({
+    mutationFn: async (variables: S3FileUploadMutationVariables) => {
+      const { file, ...params } = variables;
+      return uploadFileToS3(hostPath, params, file);
     },
   });
 }
