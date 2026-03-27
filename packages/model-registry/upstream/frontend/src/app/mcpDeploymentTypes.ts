@@ -12,6 +12,10 @@ export type McpDeploymentCondition = {
   message?: string;
 };
 
+export type McpDeploymentAddress = {
+  url: string;
+};
+
 export type McpDeployment = {
   name: string;
   namespace: string;
@@ -20,6 +24,7 @@ export type McpDeployment = {
   port: number;
   phase: McpDeploymentPhase;
   conditions?: McpDeploymentCondition[];
+  address?: McpDeploymentAddress;
 };
 
 export type McpDeploymentList = {
