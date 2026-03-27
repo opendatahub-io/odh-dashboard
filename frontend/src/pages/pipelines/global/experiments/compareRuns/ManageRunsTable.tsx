@@ -40,7 +40,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });

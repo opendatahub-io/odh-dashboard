@@ -27,7 +27,7 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const options = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Schedule',

@@ -16,7 +16,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
 
   const defaultFilterOptions = React.useMemo(
     () => ({

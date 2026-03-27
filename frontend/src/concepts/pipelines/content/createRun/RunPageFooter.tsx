@@ -21,7 +21,7 @@ type RunPageFooterProps = {
 const eventName = 'Pipeline Run Triggered';
 const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
   const { api } = usePipelinesAPI();
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const runType = data.runType.type;
   const navigate = useNavigate();
   const [isSubmitting, setSubmitting] = React.useState(false);
