@@ -52,6 +52,10 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	s3PostMaxRequestBodyBytes int64
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -212,6 +216,9 @@ func (app *App) Routes() http.Handler {
 	// secretName (the handler resolves credentials directly in that case).
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
 	// LLamaStack
 	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))

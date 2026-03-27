@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -66,17 +68,32 @@ func (a *accessDeniedS3Client) ListObjects(_ context.Context, _ string, _ s3int.
 	return nil, &accessDeniedError{}
 }
 
+// s3HandlerTestAppOptions configures test-only App fields (e.g. PostS3FileHandler upload caps).
+type s3HandlerTestAppOptions struct {
+	S3PostMaxFilePartBytes    int64
+	S3PostMaxRequestBodyBytes int64
+}
+
 // newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
 // for testing S3 handler logic in isolation.
-func newS3HandlerTestApp(k8Factory kubernetes.KubernetesClientFactory, s3Factory s3int.S3ClientFactory) *App {
+func newS3HandlerTestApp(
+	k8Factory kubernetes.KubernetesClientFactory,
+	s3Factory s3int.S3ClientFactory,
+	opts *s3HandlerTestAppOptions,
+) *App {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return &App{
+	app := &App{
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: k8Factory,
 		s3ClientFactory:         s3Factory,
 		repositories:            repositories.NewRepositories(logger),
 	}
+	if opts != nil {
+		app.s3PostMaxFilePartBytes = opts.S3PostMaxFilePartBytes
+		app.s3PostMaxRequestBodyBytes = opts.S3PostMaxRequestBodyBytes
+	}
+	return app
 }
 
 // setupS3ApiTest creates an App with both K8s and S3 mocks, sends a request through the full
@@ -87,12 +104,36 @@ func setupS3ApiTest(
 	s3Factory s3int.S3ClientFactory,
 	identity *kubernetes.RequestIdentity,
 ) *httptest.ResponseRecorder {
-	req, _ := http.NewRequest(method, requestURL, http.NoBody)
+	return setupS3ApiTestWithBody(method, requestURL, http.NoBody, "", k8Factory, s3Factory, identity, nil, nil)
+}
+
+// setupS3ApiTestWithBody is like setupS3ApiTest but accepts a request body and Content-Type (e.g.
+// multipart/form-data). mutateReq can adjust the built request (e.g. force chunked encoding).
+func setupS3ApiTestWithBody(
+	method, requestURL string,
+	body io.Reader,
+	contentType string,
+	k8Factory kubernetes.KubernetesClientFactory,
+	s3Factory s3int.S3ClientFactory,
+	identity *kubernetes.RequestIdentity,
+	opts *s3HandlerTestAppOptions,
+	mutateReq func(*http.Request),
+) *httptest.ResponseRecorder {
+	req, err := http.NewRequest(method, requestURL, body)
+	if err != nil {
+		panic(err)
+	}
 	if identity != nil && identity.UserID != "" {
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	if mutateReq != nil {
+		mutateReq(req)
+	}
 
-	app := newS3HandlerTestApp(k8Factory, s3Factory)
+	app := newS3HandlerTestApp(k8Factory, s3Factory, opts)
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
@@ -179,6 +220,24 @@ func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"GET",
+		path,
 		nil,
 		factory,
 		identity,
@@ -894,4 +953,448 @@ func TestGetS3FilesHandler_S3Error(t *testing.T) {
 	rr := setupS3ApiTest("GET", uri.String(), k8sFactory, s3Factory, identity)
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+// --- PostS3FileHandler tests ---
+
+func TestPostS3FileHandler_MissingNamespace(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingSecretName(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingBucket(t *testing.T) {
+	// Secret without AWS_S3_BUCKET, and no bucket query param -> 400
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				// No AWS_S3_BUCKET
+			},
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MissingKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
+	res, err := setupApiTestPostMultipart(
+		path,
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_SecretNotFound(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{}}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+func TestPostS3FileHandler_NoFilePart(t *testing.T) {
+	// POST with JSON body instead of multipart -> MultipartReader fails -> 400
+	// Use mock with valid secret so handler gets past credential check and fails on body.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com")},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[integrations.HTTPError](
+		"POST",
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		map[string]string{},
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_MultipartWithoutFilePart(t *testing.T) {
+	// Valid multipart/form-data but no part named "file" -> 400
+	// Use mock with valid secret so handler gets past credential check and fails on missing file part.
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	if err := w.WriteField("other", "value"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		&buf,
+		w.FormDataContentType(),
+		factory,
+		s3mocks.NewMockClientFactory(),
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestPostS3FileHandler_NamespaceNotFound(t *testing.T) {
+	// Create a Kubernetes NotFound error for namespace
+	notFoundErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "namespaces \"non-existent\" not found",
+			Reason:  metav1.StatusReasonNotFound,
+			Code:    http.StatusNotFound,
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{err: notFoundErr}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	res, err := setupApiTestPostMultipart(
+		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		[]byte("test"),
+		"file.pdf",
+		factory,
+		identity,
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+// TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413 uses a small max + upload stub so we do not
+// send ~1 GiB in tests (same MaxBytesReader behavior as production’s 1 GiB cap).
+func TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413(t *testing.T) {
+	t.Parallel()
+	const testMax int64 = 64
+	filePayload := bytes.Repeat([]byte("x"), int(testMax+10))
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	part, err := mw.CreateFormFile("file", "blob.bin")
+	assert.NoError(t, err)
+	_, err = part.Write(filePayload)
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.bin",
+		&buf,
+		mw.FormDataContentType(),
+		factory,
+		s3mocks.NewMockClientFactory(),
+		identity,
+		&s3HandlerTestAppOptions{S3PostMaxFilePartBytes: testMax},
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+}
+
+func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
+	t.Parallel()
+	const testMax int64 = 256
+	filePayload := bytes.Repeat([]byte("y"), 100)
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	part, err := mw.CreateFormFile("file", "small.bin")
+	assert.NoError(t, err)
+	_, err = part.Write(filePayload)
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=small.bin",
+		&buf,
+		mw.FormDataContentType(),
+		factory,
+		s3mocks.NewMockClientFactory(),
+		identity,
+		&s3HandlerTestAppOptions{S3PostMaxFilePartBytes: testMax},
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+}
+
+// TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413 ensures the body-wide MaxBytesReader
+// (same cap as rejectDeclaredOversizedS3Post) stops streaming when discarding a large non-file part
+// under unknown Content-Length (chunked-style), so the scanner cannot read unbounded.
+func TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413(t *testing.T) {
+	t.Parallel()
+	const maxBody int64 = 4096
+
+	mockSecrets := []corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "aws-secret-1",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-1"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+			},
+		},
+	}
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	junk, err := mw.CreateFormField("junk")
+	assert.NoError(t, err)
+	_, err = junk.Write(bytes.Repeat([]byte("z"), 10000))
+	assert.NoError(t, err)
+	fp, err := mw.CreateFormFile("file", "late.bin")
+	assert.NoError(t, err)
+	_, err = fp.Write([]byte("ok"))
+	assert.NoError(t, err)
+	assert.NoError(t, mw.Close())
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=late.bin",
+		bytes.NewReader(buf.Bytes()),
+		mw.FormDataContentType(),
+		factory,
+		s3mocks.NewMockClientFactory(),
+		identity,
+		&s3HandlerTestAppOptions{S3PostMaxRequestBodyBytes: maxBody},
+		func(r *http.Request) {
+			r.ContentLength = -1
+		},
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
+}
+
+func TestSanitizeUploadContentType(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"empty", "", "application/octet-stream"},
+		{"whitespace only", "   ", "application/octet-stream"},
+		{"pdf", "application/pdf", "application/pdf"},
+		{"pdf with charset", "application/pdf; charset=binary", "application/pdf"},
+		{"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+		{"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+		{"markdown text", "text/markdown", "text/markdown"},
+		{"markdown app", "application/markdown", "application/markdown"},
+		{"html", "text/html", "text/html"},
+		{"html charset", "text/html; charset=utf-8", "text/html"},
+		{"plain", "text/plain", "text/plain"},
+		{"json", "application/json", "application/json"},
+		{"json uppercase", "APPLICATION/JSON", "application/json"},
+		{"svg xss vector", "image/svg+xml", "application/octet-stream"},
+		{"arbitrary", "text/html<script>", "application/octet-stream"},
+		{"invalid", "not a mime type", "application/octet-stream"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, sanitizeUploadContentType(tt.in))
+		})
+	}
+}
+
+func TestS3ObjectContentTypeNeedsForcedDownload(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"empty", "", false},
+		{"whitespace", "   ", false},
+		{"html", "text/html", true},
+		{"html charset", "text/html; charset=utf-8", true},
+		{"html upper", "TEXT/HTML; Charset=UTF-8", true},
+		{"xhtml", "application/xhtml+xml", true},
+		{"xhtml with param", "application/xhtml+xml; profile=...", true},
+		{"svg", "image/svg+xml", true},
+		{"svg charset", "image/svg+xml; charset=utf-8", true},
+		{"plain", "text/plain", false},
+		{"pdf", "application/pdf", false},
+		{"json", "application/json", false},
+		{"invalid mime", "not a mime", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isInlineDangerousContentType(tt.in), tt.in)
+		})
+	}
 }
