@@ -70,6 +70,10 @@ describe('AvailableAiAssetsFields', () => {
     });
   });
   describe('useAvailableAiAssetsFields', () => {
+    beforeEach(() => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(true));
+    });
+
     it('should initialize with false by default', () => {
       const { result } = renderHook(() => useModelAvailabilityFields());
       expect(result.current.data.saveAsAiAsset).toBe(false);
@@ -89,6 +93,15 @@ describe('AvailableAiAssetsFields', () => {
       });
       expect(result.current.data.saveAsAiAsset).toBe(true);
       expect(result.current.data.useCase).toBe('test');
+    });
+    it('should force-clear saveAsAiAsset and useCase when Gen AI is disabled', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(false));
+      const { result } = renderHook(() =>
+        useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'chat', saveAsMaaS: true }),
+      );
+      expect(result.current.data.saveAsAiAsset).toBe(false);
+      expect(result.current.data.useCase).toBe('');
+      expect(result.current.data.saveAsMaaS).toBe(true);
     });
   });
   describe('AvailableAiAssetsFieldsComponent', () => {
@@ -177,6 +190,10 @@ describe('AvailableAiAssetsFields', () => {
     });
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {
+    beforeEach(() => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(true));
+    });
+
     it('should show field when model type is generative', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {

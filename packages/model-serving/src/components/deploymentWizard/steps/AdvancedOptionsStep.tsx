@@ -5,6 +5,7 @@ import {
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import {
   Form,
@@ -96,8 +97,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
   const hasModelPlaygroundExtensionFields = React.useMemo(
-    () =>
-      wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
+    () => wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
     [wizardState.fields],
   );
   const showModelPlaygroundAvailabilitySection =
