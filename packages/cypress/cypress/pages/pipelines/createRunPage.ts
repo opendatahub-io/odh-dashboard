@@ -33,8 +33,6 @@ export class CreateRunPage {
 
   private type;
 
-  experimentSelect = new SearchSelector('experiment-selector');
-
   mlflowExperimentSelect = new SearchSelector('mlflow-experiment-selector');
 
   pipelineSelect = new SearchSelector('pipeline-selector');
@@ -228,10 +226,6 @@ export class CreateRunPage {
 
   fillRunGroup(value: string): void {
     this.findRunGroupInput().clear().type(value);
-  }
-
-  selectExperimentByName(name: string): void {
-    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
   }
 
   selectMlflowExperimentByName(name: string): void {
