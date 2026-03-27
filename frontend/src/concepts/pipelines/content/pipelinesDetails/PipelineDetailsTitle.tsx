@@ -48,7 +48,7 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
         )}
         {isRegistered && (
           <SplitItem>
-            <Label variant="outline" color="green">
+            <Label variant="outline" status="success">
               Model registered
             </Label>
           </SplitItem>

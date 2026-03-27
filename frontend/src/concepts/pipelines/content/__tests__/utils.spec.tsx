@@ -85,6 +85,7 @@ describe('computeRunStatus', () => {
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.SUCCEEDED]);
     expect(runStatus.icon).toStrictEqual(<CheckCircleIcon />);
     expect(runStatus.status).toBe('success');
+    expect(runStatus.labelStatus).toBe('success');
   });
 
   it('should check for Failed run status', () => {
@@ -92,6 +93,7 @@ describe('computeRunStatus', () => {
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.FAILED]);
     expect(runStatus.icon).toStrictEqual(<ExclamationCircleIcon />);
     expect(runStatus.status).toBe('danger');
+    expect(runStatus.labelStatus).toBe('danger');
     expect(runStatus.details).toBe(run.error?.message);
   });
 

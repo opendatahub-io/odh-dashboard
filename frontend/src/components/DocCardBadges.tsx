@@ -45,7 +45,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
         </Label>
       ) : null}
       {completionStatus === CompletionStatusEnum.InProgress ? (
-        <Label variant="outline" color="blue" icon={<InProgressIcon />}>
+        <Label variant="outline" status="info" icon={<InProgressIcon />}>
           In Progress
         </Label>
       ) : null}

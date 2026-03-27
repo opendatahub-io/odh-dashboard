@@ -5,60 +5,48 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
-  OutlinedWindowRestoreIcon,
-  PauseCircleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
+import { RunStatus } from '@patternfly/react-topology';
 import { Icon, Tooltip } from '@patternfly/react-core';
-import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
+import { runtimeStateLabels, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 
-const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runStatus }) => {
+const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus }) => {
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
   let label: string;
 
   switch (runStatus) {
-    case runtimeStateLabels[RuntimeStateKF.PENDING]:
-    case runtimeStateLabels[RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]:
+    case RunStatus.Pending:
+    case RunStatus.Idle:
       icon = <PendingIcon />;
       label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
-    case runtimeStateLabels[RuntimeStateKF.RUNNING]:
+    case RunStatus.Running:
+    case RunStatus.InProgress:
       icon = <InProgressIcon />;
       status = 'info';
       label = runtimeStateLabels[RuntimeStateKF.RUNNING];
       break;
-    case runtimeStateLabels[RuntimeStateKF.CACHED]:
-      icon = <OutlinedWindowRestoreIcon />;
-      status = 'success';
-      label = runtimeStateLabels[RuntimeStateKF.CACHED];
-      break;
-    case runtimeStateLabels[RuntimeStateKF.SKIPPED]:
+    case RunStatus.Skipped:
       icon = <AngleDoubleRightIcon />;
       status = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SKIPPED];
       break;
-    case runtimeStateLabels[RuntimeStateKF.SUCCEEDED]:
+    case RunStatus.Succeeded:
       icon = <CheckCircleIcon />;
       status = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
-    case runtimeStateLabels[RuntimeStateKF.FAILED]:
+    case RunStatus.Failed:
+    case RunStatus.FailedToStart:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       break;
-    case runtimeStateLabels[RuntimeStateKF.CANCELING]:
-      icon = <InProgressIcon />;
-      label = runtimeStateLabels[RuntimeStateKF.CANCELING];
-      break;
-    case runtimeStateLabels[RuntimeStateKF.CANCELED]:
+    case RunStatus.Cancelled:
       icon = <BanIcon />;
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
-      break;
-    case runtimeStateLabels[RuntimeStateKF.PAUSED]:
-      icon = <PauseCircleIcon />;
-      label = runtimeStateLabels[RuntimeStateKF.PAUSED];
       break;
     case undefined:
     default:
