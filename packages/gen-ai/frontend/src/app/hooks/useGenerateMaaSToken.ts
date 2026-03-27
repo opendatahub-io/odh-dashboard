@@ -2,14 +2,14 @@ import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { MaaSTokenResponse } from '~/app/types';
+import { MaaSTokenRequest, MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 
 type UseGenerateMaaSTokenReturn = {
   isGenerating: boolean;
   tokenData: MaaSTokenResponse | null;
   error: string | null;
-  generateToken: (expiration?: string) => Promise<void>;
+  generateToken: (expiration?: string, subscription?: string) => Promise<void>;
   resetToken: () => void;
 };
 
@@ -20,7 +20,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
   const { api, apiAvailable } = useGenAiAPI();
 
   const generateToken = React.useCallback(
-    async (expiration?: string) => {
+    async (expiration?: string, subscription?: string) => {
       setIsGenerating(true);
       setError(null);
       setTokenData(null);
@@ -30,7 +30,14 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
       }
 
       try {
-        const response = await api.generateMaaSToken(expiration ? { expiresIn: expiration } : {});
+        const request: MaaSTokenRequest = {};
+        if (expiration) {
+          request.expiresIn = expiration;
+        }
+        if (subscription) {
+          request.subscription = subscription;
+        }
+        const response = await api.generateMaaSToken(request);
         setTokenData(response);
         try {
           fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {

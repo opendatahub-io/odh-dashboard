@@ -51,3 +51,12 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
 
   cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
 };
+
+export const setupTokenIntercept = (
+  response:
+    | { data: { key: string; expiresAt: string } }
+    | { statusCode: number; body: unknown }
+    | { delay: number; body: unknown },
+): void => {
+  cy.interceptGenAi('POST /api/v1/maas/tokens', response);
+};
