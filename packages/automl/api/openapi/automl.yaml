@@ -420,6 +420,47 @@ paths:
         Returns a 400 Bad Request error if the file has fewer than 100 data rows.
 
   # =============================================================================
+  # MODEL REGISTRY ENDPOINTS
+  # =============================================================================
+
+  /api/v1/models/register:
+    summary: Register a model binary in the Model Registry
+    description: >-
+      Registers a model binary by creating a RegisteredModel, ModelVersion, and
+      ModelArtifact in the Model Registry. The model binary remains in S3; the
+      ModelArtifact.uri points to the S3 location.
+      Requires MODEL_REGISTRY_BASE_URL to be configured. Returns 503 when not configured.
+    post:
+      tags:
+        - ModelRegistry
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterModelRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/RegisterModelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: registerModel
+      summary: Register model binary
+      description: >-
+        Creates RegisteredModel, ModelVersion, and ModelArtifact in the Model Registry,
+        linking the artifact to the provided S3 URI. Requires s3_path, model_name, and version_name.
+
+  # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
 
@@ -810,6 +851,65 @@ components:
           not:
             required: [label_column]
 
+    RegisterModelRequest:
+      type: object
+      description: Request body for registering a model binary in the Model Registry
+      required:
+        - s3_path
+        - model_name
+        - version_name
+      properties:
+        s3_path:
+          type: string
+          minLength: 1
+          description: S3 URI where the model binary is stored (e.g., s3://bucket/path/to/model)
+          example: "s3://my-bucket/models/v1/model.bin"
+        model_name:
+          type: string
+          minLength: 1
+          description: Name of the registered model
+          example: "my-model"
+        model_description:
+          type: string
+          description: Optional description of the model
+        version_name:
+          type: string
+          minLength: 1
+          description: Name of the model version (e.g., v1, 1.0.0)
+          example: "v1"
+        version_description:
+          type: string
+          description: Optional description of this version
+        artifact_name:
+          type: string
+          description: Name for the ModelArtifact; defaults to version_name if empty
+        artifact_description:
+          type: string
+          description: Optional description of the artifact
+        model_format_name:
+          type: string
+          description: Optional format (e.g., onnx, pytorch, tensorflow)
+        model_format_version:
+          type: string
+          description: Optional format version (e.g., 1.0)
+
+    ModelArtifact:
+      type: object
+      description: Model artifact created in the Model Registry, pointing to the S3 URI
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the artifact
+        name:
+          type: string
+          description: Artifact name
+        uri:
+          type: string
+          description: S3 URI of the model binary
+        artifactType:
+          type: string
+          description: Type of the artifact (e.g., model-artifact)
+
     CreateAutoMLRunRequest:
       description: >-
         Request body for creating an AutoML pipeline run. The schema varies based on the
@@ -1158,6 +1258,21 @@ components:
                 description: Response metadata
               data:
                 $ref: "#/components/schemas/PipelineRun"
+
+    RegisterModelResponse:
+      description: Registered model artifact
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/ModelArtifact"
 
     BadRequest:
       description: Bad Request

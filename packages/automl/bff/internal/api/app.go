@@ -28,17 +28,18 @@ import (
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/automl"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version            = "1.0.0"
+	PathPrefix         = "/automl"
+	ApiPathPrefix      = "/api/v1"
+	HealthCheckPath    = "/healthcheck"
+	UserPath           = ApiPathPrefix + "/user"
+	NamespacePath      = ApiPathPrefix + "/namespaces"
+	SecretsPath        = ApiPathPrefix + "/secrets"
+	S3FilePath         = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath   = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath        = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath   = ApiPathPrefix + "/pipeline-runs"
+	ModelsRegisterPath = ApiPathPrefix + "/models/register"
 )
 
 type App struct {
@@ -200,6 +201,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
+
+	// Model Registry - register model binary (requires MODEL_REGISTRY_BASE_URL)
+	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
+	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.AttachModelRegistryClient(app.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

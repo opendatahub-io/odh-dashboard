@@ -17,6 +17,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -198,6 +199,67 @@ func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *h
 		logger.Debug("User authorized to access pipeline servers in namespace", "namespace", namespace)
 
 		next(w, r, ps)
+	}
+}
+
+// AttachModelRegistryClient creates an HTTP client for the Model Registry API and attaches it to context.
+// When ModelRegistryBaseURL is configured, the client is created and passed to the handler.
+// When not configured, no client is attached; handlers should return an appropriate error.
+func (app *App) AttachModelRegistryClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		baseURL := strings.TrimSpace(app.config.ModelRegistryBaseURL)
+		if baseURL == "" {
+			helper.GetContextLoggerFromReq(r).Debug("Model Registry: MODEL_REGISTRY_BASE_URL unset, proceeding without client")
+			next(w, r, ps)
+			return
+		}
+
+		// Ensure base URL has no trailing slash for path joining
+		baseURL = strings.TrimSuffix(baseURL, "/")
+
+		logger := helper.GetContextLoggerFromReq(r)
+		headers := http.Header{}
+
+		// Forward authorization header when using user token auth
+		if app.config.AuthMethod == config.AuthMethodUser {
+			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			tokenToForward := ""
+			if ok && identity != nil && identity.Token != "" {
+				tokenToForward = identity.Token
+			}
+			// Fallback: OpenShift oauth tokens (sha256~...) are typically 50+ chars; values like
+			// "Bearer" alone (7) or truncated prefixes suggest the configured header (e.g.
+			// X-Forwarded-Access-Token) may be empty/malformed while Authorization has the real token.
+			// Threshold 20 is heuristic; legitimate short tokens are rare.
+			if len(tokenToForward) < 20 {
+				if authHeaderValue := r.Header.Get("Authorization"); authHeaderValue != "" {
+					fallbackToken := strings.TrimSpace(authHeaderValue)
+					if strings.HasPrefix(fallbackToken, "Bearer ") {
+						fallbackToken = strings.TrimSpace(strings.TrimPrefix(fallbackToken, "Bearer "))
+					}
+					if len(fallbackToken) > len(tokenToForward) {
+						tokenToForward = fallbackToken
+					}
+				}
+			}
+			if tokenToForward != "" {
+				headers.Set("Authorization", "Bearer "+tokenToForward)
+			} else {
+				logger.Warn("Model Registry: no token to forward - identity missing or empty",
+					"auth_method", app.config.AuthMethod,
+					"has_identity", ok && identity != nil,
+					"has_token", ok && identity != nil && identity.Token != "")
+			}
+		}
+
+		client, err := modelregistry.NewHTTPClient(logger, baseURL, headers, app.config.InsecureSkipVerify, app.rootCAs)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to create Model Registry HTTP client: %w", err))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.ModelRegistryHttpClientKey, client)
+		next(w, r.WithContext(ctx), ps)
 	}
 }
 

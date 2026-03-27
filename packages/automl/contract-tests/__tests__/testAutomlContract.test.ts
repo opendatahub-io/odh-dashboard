@@ -736,6 +736,57 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Models Register Endpoint', () => {
+    describe('Error Cases', () => {
+      it('should return 503 when Model Registry is not configured', async () => {
+        const result = await apiClient.post('/api/v1/models/register?namespace=default', {
+          s3_path: 's3://bucket/path/model.bin',
+          model_name: 'test-model',
+          version_name: 'v1',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(503);
+        }
+      });
+
+      it('should return 400 for missing required fields', async () => {
+        const result = await apiClient.post('/api/v1/models/register?namespace=default', {
+          model_name: 'test-model',
+          // Missing s3_path and version_name
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for invalid S3 path', async () => {
+        const result = await apiClient.post('/api/v1/models/register?namespace=default', {
+          s3_path: 'invalid-path',
+          model_name: 'test-model',
+          version_name: 'v1',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when namespace is missing', async () => {
+        const result = await apiClient.post('/api/v1/models/register', {
+          s3_path: 's3://bucket/path/model.bin',
+          model_name: 'test-model',
+          version_name: 'v1',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {
