@@ -1,9 +1,25 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { capitalize, Label } from '@patternfly/react-core';
+import { capitalize, Label, LabelProps } from '@patternfly/react-core';
+import { BanIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { APIKey } from '~/app/types/api-key';
+import { APIKey, APIKeyStatus } from '~/app/types/api-key';
 import { apiKeyColumns } from './columns';
+
+const getApiKeyStatusProps = (
+  status: APIKeyStatus,
+): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {
+  switch (status) {
+    case 'active':
+      return { icon: <CheckCircleIcon />, status: 'success' };
+    case 'expired':
+      return { icon: <ExclamationCircleIcon />, status: 'danger' };
+    case 'revoked':
+      return { icon: <BanIcon />, color: 'grey' };
+    default:
+      return { icon: undefined, color: 'grey' };
+  }
+};
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -29,11 +45,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({ apiKey, onRevokeApiKe
       />
     </Td>
     <Td dataLabel={apiKeyColumns[1].label}>
-      <Label
-        color={
-          apiKey.status === 'active' ? 'green' : apiKey.status === 'expired' ? 'red' : 'purple'
-        }
-      >
+      <Label variant="outline" {...getApiKeyStatusProps(apiKey.status)}>
         {capitalize(apiKey.status)}
       </Label>
     </Td>

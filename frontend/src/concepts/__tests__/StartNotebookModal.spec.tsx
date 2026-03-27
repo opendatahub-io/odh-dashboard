@@ -122,7 +122,7 @@ describe('Start Notebook modal', () => {
 
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
-    expect(header).toHaveTextContent('Workbench statusRunning');
+    expect(header).toHaveTextContent('Workbench statusReady');
 
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
@@ -147,7 +147,7 @@ describe('Start Notebook modal', () => {
 
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
-    expect(header).toHaveTextContent('Workbench statusRunning');
+    expect(header).toHaveTextContent('Workbench statusReady');
 
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
