@@ -273,7 +273,9 @@ describe('Archiving version', () => {
   });
 
   it('Cannot archive model version with deployment from the version detail page', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.interceptK8sList(
       InferenceServiceModel,
       mockK8sResourceList([
@@ -284,9 +286,14 @@ describe('Archiving version', () => {
           },
         }),
       ]),
-    );
+    ).as('getInferenceServices');
     initIntercepts({});
     modelVersionArchive.visitModelVersionDetails();
+
+    // Wait for API calls to complete before interacting with the dropdown
+    cy.wait('@getProjects');
+    cy.wait('@getInferenceServices');
+
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()
       .findDropdownItem('Archive model version')
