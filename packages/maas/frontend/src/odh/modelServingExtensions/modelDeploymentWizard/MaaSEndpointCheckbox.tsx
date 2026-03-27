@@ -10,6 +10,7 @@ export type MaaSFieldValue = {
 
 export const maasFieldSchema = z.object({
   isChecked: z.boolean(),
+  endpointOverride: z.string().optional(),
 });
 
 const setMaaSFieldData = (value: MaaSFieldValue): MaaSFieldValue => value;

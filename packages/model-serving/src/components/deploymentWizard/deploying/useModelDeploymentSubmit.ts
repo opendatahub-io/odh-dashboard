@@ -4,6 +4,7 @@ import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/mod
 import { useDeployMethod } from './useDeployMethod';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
+import { useWizardFieldPostDeploy, type PostDeployFailure } from '../useWizardFieldPostDeploy';
 import { deployModel } from '../utils';
 import { Deployment, DeploymentAssemblyResources } from '../../../../extension-points';
 import { InitialWizardFormData } from '../types';
@@ -31,15 +32,21 @@ export const useModelDeploymentSubmit = (
   isLoading: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
+  submitWarnings: PostDeployFailure[];
+  clearSubmitWarnings: () => void;
 } => {
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
   const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
+  const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Warnings that something went wrong during post-deployment, doesn't block submission and closing of the wizard
+  const [submitWarnings, setSubmitWarnings] = React.useState<PostDeployFailure[]>([]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -62,7 +69,12 @@ export const useModelDeploymentSubmit = (
             'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha1',
           );
         }
-        if (!deployMethodLoaded || !deployMethod || !applyExtensionsLoaded) {
+        if (
+          !deployMethodLoaded ||
+          !deployMethod ||
+          !applyExtensionsLoaded ||
+          !postDeployExtensionsLoaded
+        ) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
@@ -78,7 +90,7 @@ export const useModelDeploymentSubmit = (
             )
           : undefined;
 
-        await deployModel(
+        const deployedDeployment = await deployModel(
           formState,
           connectionSecretName,
           deployMethod.properties,
@@ -90,6 +102,10 @@ export const useModelDeploymentSubmit = (
           initialWizardData,
           applyFieldData,
         );
+        const failures = await runPostDeploy(deployedDeployment.model, existingDeployment);
+        if (failures.length > 0) {
+          setSubmitWarnings(failures);
+        }
         exitWizardOnSubmit();
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));
@@ -103,12 +119,14 @@ export const useModelDeploymentSubmit = (
       deployMethodLoaded,
       deployMethod,
       applyExtensionsLoaded,
+      postDeployExtensionsLoaded,
       formState,
       resources,
       connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyFieldData,
+      runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
     ],
@@ -121,7 +139,9 @@ export const useModelDeploymentSubmit = (
       isLoading,
       submitError,
       clearSubmitError: () => setSubmitError(null),
+      submitWarnings,
+      clearSubmitWarnings: () => setSubmitWarnings([]),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError, submitWarnings],
   );
 };

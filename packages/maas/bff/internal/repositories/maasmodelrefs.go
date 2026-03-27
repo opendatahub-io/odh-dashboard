@@ -8,6 +8,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -39,7 +40,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 
 	kubeClient := client.GetDynamicClient()
 
-	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride)
+	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description)
 	created, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(request.Namespace).Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
@@ -81,6 +82,27 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	if request.EndpointOverride != "" {
 		existingSpec["endpointOverride"] = request.EndpointOverride
 	}
+
+	annotations := existing.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
+	if request.DisplayName != nil {
+		if *request.DisplayName == "" {
+			delete(annotations, displayNameAnnotation)
+		} else {
+			annotations[displayNameAnnotation] = *request.DisplayName
+		}
+	}
+	if request.Description != nil {
+		if *request.Description == "" {
+			delete(annotations, descriptionAnnotation)
+		} else {
+			annotations[descriptionAnnotation] = *request.Description
+		}
+	}
+	existing.SetAnnotations(annotations)
 	existing.Object["spec"] = existingSpec
 
 	updated, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
@@ -112,12 +134,31 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	return nil
 }
 
-func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string) *unstructured.Unstructured {
+func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSModelRef")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+	if uid != "" {
+		obj.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				UID:                types.UID(uid),
+				Name:               name,
+				APIVersion:         "serving.kserve.io/v1alpha1",
+				Kind:               "LLMInferenceService",
+				BlockOwnerDeletion: &[]bool{false}[0],
+			},
+		})
+	}
+	annotations := map[string]string{}
+	if displayName != "" {
+		annotations[displayNameAnnotation] = displayName
+	}
+	if description != "" {
+		annotations[descriptionAnnotation] = description
+	}
+	obj.SetAnnotations(annotations)
 
 	spec := map[string]interface{}{
 		"modelRef": map[string]interface{}{
