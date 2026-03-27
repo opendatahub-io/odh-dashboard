@@ -23,7 +23,7 @@ export type LLMConfigOptionsData = {
   isLlmdSuggested: boolean;
 };
 
-const useLLMConfigOptions = (): {
+export const useLLMConfigOptions = (): {
   data: LLMConfigOptionsData;
   loaded: boolean;
   loadError?: Error;
@@ -42,17 +42,25 @@ const useLLMConfigOptions = (): {
     error,
   } = useFetchLLMInferenceServiceConfigs(dashboardNamespace);
 
+  const llmEnabledConfigs = React.useMemo(
+    () =>
+      llmInferenceServiceConfigs.filter(
+        (config) => config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
+      ),
+    [llmInferenceServiceConfigs],
+  );
+
   return React.useMemo(
     () => ({
       data: {
-        configs: llmInferenceServiceConfigs,
+        configs: llmEnabledConfigs,
         isLlmdSuggested: isLLMdDefault,
       },
       loaded: modelServingClusterSettingsLoaded && loaded,
       loadError: modelServingClusterSettingsError || error,
     }),
     [
-      llmInferenceServiceConfigs,
+      llmEnabledConfigs,
       loaded,
       error,
       isLLMdDefault,
