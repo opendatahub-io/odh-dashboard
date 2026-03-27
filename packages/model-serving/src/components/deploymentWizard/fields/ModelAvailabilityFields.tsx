@@ -44,6 +44,8 @@ export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
 ): ModelAvailabilityFields => {
+  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
@@ -59,8 +61,11 @@ export const useModelAvailabilityFields = (
         useCase: '',
       };
     }
+    if (!isGenAiEnabled) {
+      return { ...data, saveAsAiAsset: false, useCase: '' };
+    }
     return data;
-  }, [data, modelType]);
+  }, [data, modelType, isGenAiEnabled]);
 
   return {
     data: AiAssetData,
