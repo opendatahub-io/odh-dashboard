@@ -197,7 +197,6 @@ export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInf
       {
         name: `${name}-policy`,
         namespace: subscription.namespace,
-        kind: 'MaaSAuthPolicy',
         phase: 'Active',
         modelRefs: subscription.modelRefs.map((ref) => ({
           name: ref.name,

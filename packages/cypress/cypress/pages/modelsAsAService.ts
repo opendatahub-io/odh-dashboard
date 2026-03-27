@@ -700,18 +700,6 @@ class ViewSubscriptionPage {
     return cy.findByTestId('subscription-models-table');
   }
 
-  findPoliciesSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-policies-section');
-  }
-
-  findPoliciesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-policies-table');
-  }
-
-  findPoliciesEmptyMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('policies-empty-message');
-  }
-
   findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('error-empty-state-body');
   }

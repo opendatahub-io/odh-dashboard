@@ -115,30 +115,20 @@ describe('View Subscription Page', () => {
     cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
   });
 
-  it('should display the page title and navigate back via breadcrumb', () => {
+  it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     viewSubscriptionPage.visit(subscriptionName);
-    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
-    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
-    cy.url().should('include', '/maas/subscriptions');
-  });
 
-  it('should display the Details section with name and created date', () => {
-    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
+
     viewSubscriptionPage
       .findDetailsSection()
       .should('contain.text', subscriptionName)
       .and('contain.text', 'Name')
       .and('contain.text', 'Date created');
-  });
 
-  it('should display the Groups section with all group names', () => {
-    viewSubscriptionPage.visit(subscriptionName);
     viewSubscriptionPage.findGroupsSection().should('exist');
     viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
-  });
 
-  it('should display the Models section with display name, raw name, project, and token limits', () => {
-    viewSubscriptionPage.visit(subscriptionName);
     viewSubscriptionPage.findModelsSection().should('exist');
     viewSubscriptionPage
       .findModelsTable()
@@ -146,26 +136,9 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'granite-3-8b-instruct')
       .and('contain.text', 'maas-models')
       .and('contain.text', '100,000');
-  });
 
-  it('should display the Auth Policies section with policy name and groups', () => {
-    viewSubscriptionPage.visit(subscriptionName);
-    viewSubscriptionPage.findPoliciesSection().scrollIntoView().should('exist');
-    viewSubscriptionPage
-      .findPoliciesTable()
-      .should('contain.text', `${subscriptionName}-policy`)
-      .and('contain.text', 'MaaSAuthPolicy');
-  });
-
-  it('should show empty message when there are no policies', () => {
-    cy.interceptOdh(
-      'GET /maas/api/v1/subscription-info/:name',
-      { path: { name: subscriptionName } },
-      { ...mockSubscriptionInfo(subscriptionName), authPolicies: [] },
-    );
-    viewSubscriptionPage.visit(subscriptionName);
-    viewSubscriptionPage.findPoliciesEmptyMessage().should('exist');
-    viewSubscriptionPage.findPoliciesTable().should('not.exist');
+    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
+    cy.url().should('include', '/maas/subscriptions');
   });
 
   it('should show error state when the subscription-info API fails', () => {

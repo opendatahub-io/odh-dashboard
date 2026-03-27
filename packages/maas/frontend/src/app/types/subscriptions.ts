@@ -74,7 +74,6 @@ export type SubjectSpec = {
 export type MaaSAuthPolicy = {
   name: string;
   namespace: string;
-  kind?: string;
   phase?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;

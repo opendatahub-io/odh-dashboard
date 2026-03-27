@@ -59,6 +59,8 @@ const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
+  (v.displayName === undefined || typeof v.displayName === 'string') &&
+  (v.description === undefined || typeof v.description === 'string') &&
   isModelReference(v.modelRef) &&
   (v.phase === undefined || typeof v.phase === 'string') &&
   (v.endpoint === undefined || typeof v.endpoint === 'string');
@@ -72,7 +74,6 @@ const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  (v.kind === undefined || typeof v.kind === 'string') &&
   (v.phase === undefined || typeof v.phase === 'string') &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
