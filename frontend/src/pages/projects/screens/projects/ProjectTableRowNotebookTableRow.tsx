@@ -14,8 +14,7 @@ import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import StateActionToggle from '#~/components/StateActionToggle';
-import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
+import useDeletedHardwareProfilePatches from '#~/concepts/hardwareProfiles/useDeletedHardwareProfilePatches';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -36,7 +35,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = notebook.metadata;
-  const [hardwareProfileBindingState] = useHardwareProfileBindingState(notebook);
+  const deletedHardwareProfilePatches = useDeletedHardwareProfilePatches(notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -45,7 +44,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
       notebook,
       tolerationSettings,
       enablePipelines && !currentlyHasPipelines(notebook),
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState, notebook),
+      deletedHardwareProfilePatches,
     ).then(() => {
       fireNotebookTrackingEvent('started', notebook, podSpecOptionsState);
       refresh().then(() => setInProgress(false));
@@ -56,17 +55,13 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
     enablePipelines,
     notebook,
     refresh,
-    hardwareProfileBindingState,
+    deletedHardwareProfilePatches,
   ]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', notebook, podSpecOptionsState);
     setInProgress(true);
-    stopNotebook(
-      notebookName,
-      notebookNamespace,
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState, notebook),
-    ).then(() => {
+    stopNotebook(notebookName, notebookNamespace, deletedHardwareProfilePatches).then(() => {
       refresh().then(() => setInProgress(false));
     });
   }, [
@@ -75,7 +70,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
     notebookName,
     notebookNamespace,
     refresh,
-    hardwareProfileBindingState,
+    deletedHardwareProfilePatches,
   ]);
 
   const onStop = React.useCallback(() => {
