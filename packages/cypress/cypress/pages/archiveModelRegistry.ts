@@ -9,7 +9,9 @@ class ArchiveModelRegistryTableRow extends TableRow {
 class ArchiveModelRegistry {
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}/registered-models/archive`);
+    cy.visitWithLogin(
+      `/ai-hub/models/registry/${preferredModelRegistry}/registered-models/archive`,
+    );
     this.wait();
   }
 
