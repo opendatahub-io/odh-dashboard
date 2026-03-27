@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { debounce } from 'es-toolkit';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import FileExplorer, { isFolder } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import type {
   Files,
   Source,
@@ -83,6 +83,7 @@ const mapResultToItems = (
         type: fileTypeToRender,
         size: sizeToRender,
         selectable: !selectableExtensions || selectableExtensions.includes(ext),
+        forceShowAsSelected: false,
         details: {
           ...(obj.last_modified && {
             'Last Modified': (
@@ -177,6 +178,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   // Track continuation tokens per page for forward/backward navigation
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
@@ -292,6 +294,21 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Cancel debounce on unmount
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
+  // Derived state -------------------------------------------------------------->
+
+  const filesWithSelection = useMemo(() => {
+    if (!selectedFolder) {
+      return filesToRender;
+    }
+    const folderPrefix = selectedFolder.path.endsWith('/')
+      ? selectedFolder.path
+      : `${selectedFolder.path}/`;
+    return filesToRender.map((file) => {
+      const isChild = file.path.startsWith(folderPrefix);
+      return isChild ? { ...file, forceShowAsSelected: true, selectable: false } : file;
+    });
+  }, [filesToRender, selectedFolder]);
+
   // Rendering ---------------------------------------------------------------->
 
   // TODO [ Gustavo ] Add an empty state if s3Connection is not passed in
@@ -349,10 +366,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       };
     }, [fetchError, secretName]);
 
+  const viewingASelectedFoldersChildren =
+    selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
+
+  let unselectableReasonToRender = unselectableReason;
+  if (viewingASelectedFoldersChildren) {
+    unselectableReasonToRender = `The ${selectedFolder.name} parent folder has been selected already`;
+  }
   return (
     <FileExplorer
       id={id}
-      files={filesToRender}
+      files={filesWithSelection}
       source={sourceToRender}
       folders={foldersToRender}
       isEmpty={errorEmptyState.isEmpty}
@@ -361,10 +385,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       page={pageToRender}
       perPage={perPageToRender}
       hasNextPage={hasNextPage}
-      unselectableReason={unselectableReason}
-      selection="radio"
+      unselectableReason={unselectableReasonToRender}
+      selection={viewingASelectedFoldersChildren ? 'checkbox' : 'radio'}
       isOpen={isOpen}
       onClose={onClose}
+      onSelectFile={(file, selected) => {
+        if (selected && isFolder(file)) {
+          setSelectedFolder(file);
+        } else {
+          setSelectedFolder(null);
+        }
+      }}
       onFolderClick={(folder) => {
         navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
       }}

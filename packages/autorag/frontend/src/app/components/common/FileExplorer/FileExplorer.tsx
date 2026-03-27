@@ -78,6 +78,7 @@ export interface File {
   details?: object;
   hidden?: boolean;
   selectable?: boolean;
+  forceShowAsSelected?: boolean;
 }
 export type Files<T extends File = File> = T[];
 
@@ -85,7 +86,7 @@ export interface Folder extends File {
   type: 'folder';
   items: number;
 }
-const isFolder = (file: File): file is Folder => file.type === 'folder';
+export const isFolder = (file: File): file is Folder => file.type === 'folder';
 
 export type FileExplorerEmptyStateConfig = Pick<
   EmptyStateProps,
@@ -238,6 +239,7 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
 };
 interface FilesTableProps {
   files?: Files;
+  onSelectFile?: (file: File, selected: boolean) => void;
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
@@ -252,6 +254,7 @@ interface FilesTableProps {
 }
 const FilesTable: React.FC<FilesTableProps> = ({
   files,
+  onSelectFile,
   selectedFiles,
   setSelectedFiles,
   selection = 'radio',
@@ -393,8 +396,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             if (isSelecting) {
                               onViewDetails(file);
                             }
+                            onSelectFile?.(file, isSelecting);
                           },
-                          isSelected,
+                          isSelected: Boolean(isSelected || file.forceShowAsSelected),
                           isDisabled: isSelectable,
                           variant: selection,
                         }}
@@ -826,6 +830,10 @@ interface FileExplorerProps {
   /** Callback fired when a source is selected from the source selector. */
   onSelectSource?: (source: Source) => void;
 
+  /** Callback fired when a file is selected from the table
+   * (FileExplorer maintains its own state for selected files; Using this callback is helpful for any side effects needed) */
+  onSelectFile?: (file: File, selected: boolean) => void;
+
   /** Callback fired when a folder row is clicked in the table. */
   onFolderClick?: (folder: Folder) => void;
 
@@ -866,6 +874,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   selection = 'radio',
   unselectableReason,
   onSelectSource,
+  onSelectFile,
   onFolderClick,
   onNavigate,
   onNavigateRoot,
@@ -996,6 +1005,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               >
                 <FilesTable
                   files={files}
+                  onSelectFile={onSelectFile}
                   selectedFiles={selectedFiles}
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
@@ -1019,6 +1029,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     onRemoveSelection={(file) => {
                       setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
                       setFilesToView([]);
+                      onSelectFile?.(file, false);
                     }}
                     onClearDetails={() => setFilesToView([])}
                   />
