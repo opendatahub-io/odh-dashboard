@@ -116,7 +116,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create AutoRAG experiment' : `"${displayName}" configurations`}
+          {step === 'create' ? 'Create RAG optimization run' : `"${displayName}" configurations`}
         </h2>
       }
       description={
