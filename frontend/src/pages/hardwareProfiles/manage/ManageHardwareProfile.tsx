@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -67,10 +67,14 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           if (
             hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']
           ) {
-            const visibleIn = JSON.parse(
+            const visibleIn: string[] = JSON.parse(
               hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
             );
-            setVisibility(visibleIn);
+            setVisibility(
+              visibleIn.filter((v) =>
+                Object.values(HardwareProfileFeatureVisibility).some((ev) => ev === v),
+              ),
+            );
           } else {
             setVisibility([]);
           }
