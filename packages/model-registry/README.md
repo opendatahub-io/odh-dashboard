@@ -101,3 +101,5 @@ The workspace-aware Dockerfile ensures these dependencies are available during t
 4. Building from the workspace context rather than module isolation
 
 For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../docs/workspace-dockerfiles.md).
+
+<!-- CI trigger: validate ModelRegistry e2e after Cypress CI fix -->
