@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 import {
   formatMetricName,
+  formatMetricValue,
   toNumericMetric,
   getOptimizedMetricForTask,
   computeRankMap,
   isErrorMetric,
-} from '../utils';
+} from '~/app/utilities/utils';
 
 describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
@@ -17,7 +18,7 @@ describe('formatMetricName', () => {
     expect(formatMetricName('mse')).toBe('MSE');
     expect(formatMetricName('rmse')).toBe('RMSE');
     expect(formatMetricName('mape')).toBe('MAPE');
-    expect(formatMetricName('smape')).toBe('SMAPE');
+    expect(formatMetricName('mase')).toBe('MASE');
   });
 
   it('should convert snake_case to Title Case', () => {
@@ -32,6 +33,39 @@ describe('formatMetricName', () => {
 
   it('should handle empty string', () => {
     expect(formatMetricName('')).toBe('');
+  });
+});
+
+describe('formatMetricValue', () => {
+  it('should format normal values with 3 decimal places', () => {
+    expect(formatMetricValue(0.12345)).toBe('0.123');
+    expect(formatMetricValue(0.8)).toBe('0.800');
+    expect(formatMetricValue(1.5678)).toBe('1.568');
+  });
+
+  it('should use scientific notation for non-zero values that round to 0.000', () => {
+    expect(formatMetricValue(0.0001)).toBe('1.000e-4');
+    expect(formatMetricValue(0.00001234)).toBe('1.234e-5');
+    expect(formatMetricValue(0.0000001)).toBe('1.000e-7');
+  });
+
+  it('should display zero as 0.000 (not scientific notation)', () => {
+    expect(formatMetricValue(0)).toBe('0.000');
+  });
+
+  it('should use scientific notation for negative non-zero values that round to -0.000', () => {
+    expect(formatMetricValue(-0.0001)).toBe('-1.000e-4');
+    expect(formatMetricValue(-0.00001234)).toBe('-1.234e-5');
+  });
+
+  it('should format negative values normally if they do not round to -0.000', () => {
+    expect(formatMetricValue(-0.123)).toBe('-0.123');
+    expect(formatMetricValue(-1.5678)).toBe('-1.568');
+  });
+
+  it('should return string values as-is', () => {
+    expect(formatMetricValue('N/A')).toBe('N/A');
+    expect(formatMetricValue('invalid')).toBe('invalid');
   });
 });
 
@@ -72,8 +106,8 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('regression')).toBe('r2');
   });
 
-  it('should return smape for timeseries', () => {
-    expect(getOptimizedMetricForTask('timeseries')).toBe('smape');
+  it('should return mase for timeseries', () => {
+    expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
   });
 
   it('should return undefined for unknown task types', () => {
@@ -120,11 +154,11 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models by smape ascending for timeseries (lower is better)', () => {
+  it('should rank models by mase ascending for timeseries (lower is better)', () => {
     const models = {
-      ModelA: buildModel(0.15, 'smape'),
-      ModelB: buildModel(0.05, 'smape'),
-      ModelC: buildModel(0.1, 'smape'),
+      ModelA: buildModel(0.15, 'mase'),
+      ModelB: buildModel(0.05, 'mase'),
+      ModelC: buildModel(0.1, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
@@ -151,10 +185,10 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should use absolute values for error metrics like smape', () => {
+  it('should use absolute values for error metrics like mase', () => {
     const models = {
-      ModelA: buildModel(-0.15, 'smape'),
-      ModelB: buildModel(-0.05, 'smape'),
+      ModelA: buildModel(-0.15, 'mase'),
+      ModelB: buildModel(-0.05, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
@@ -199,9 +233,9 @@ describe('computeRankMap', () => {
 
   it('should rank models with missing metrics last for error metrics', () => {
     const models = {
-      ModelA: buildModel(0.15, 'smape'),
-      ModelB: { metrics: { test_data: {} } }, // missing smape
-      ModelC: buildModel(0.05, 'smape'),
+      ModelA: buildModel(0.15, 'mase'),
+      ModelB: { metrics: { test_data: {} } }, // missing mase
+      ModelC: buildModel(0.05, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
@@ -244,7 +278,7 @@ describe('computeRankMap', () => {
 
 describe('isErrorMetric', () => {
   it('should return true for known error metrics', () => {
-    expect(isErrorMetric('smape')).toBe(true);
+    expect(isErrorMetric('mase')).toBe(true);
     expect(isErrorMetric('mse')).toBe(true);
     expect(isErrorMetric('mae')).toBe(true);
     expect(isErrorMetric('rmse')).toBe(true);
@@ -259,7 +293,7 @@ describe('isErrorMetric', () => {
   });
 
   it('should be case-insensitive', () => {
-    expect(isErrorMetric('SMAPE')).toBe(true);
+    expect(isErrorMetric('MASE')).toBe(true);
     expect(isErrorMetric('MSE')).toBe(true);
   });
 });

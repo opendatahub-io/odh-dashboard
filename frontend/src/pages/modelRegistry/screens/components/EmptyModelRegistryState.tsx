@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
@@ -15,8 +16,10 @@ type EmptyModelRegistryStateType = {
   title: string;
   description: React.ReactNode;
   primaryActionText?: string;
+  primaryActionHref?: string;
   primaryActionOnClick?: () => void;
   secondaryActionText?: string;
+  secondaryActionHref?: string;
   secondaryActionOnClick?: () => void;
   headerIcon?: React.ComponentType;
   customAction?: React.ReactNode;
@@ -27,7 +30,9 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
   title,
   description,
   primaryActionText,
+  primaryActionHref,
   secondaryActionText,
+  secondaryActionHref,
   primaryActionOnClick,
   secondaryActionOnClick,
   headerIcon,
@@ -46,6 +51,11 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           <Button
             data-testid="empty-model-registry-primary-action"
             variant={ButtonVariant.primary}
+            component={
+              primaryActionHref
+                ? (props: React.ComponentProps<'a'>) => <Link {...props} to={primaryActionHref} />
+                : 'button'
+            }
             onClick={primaryActionOnClick}
           >
             {primaryActionText}
@@ -58,6 +68,11 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           <Button
             data-testid="empty-model-registry-secondary-action"
             variant="link"
+            component={
+              secondaryActionHref
+                ? (props: React.ComponentProps<'a'>) => <Link {...props} to={secondaryActionHref} />
+                : 'button'
+            }
             onClick={secondaryActionOnClick}
           >
             {secondaryActionText}
