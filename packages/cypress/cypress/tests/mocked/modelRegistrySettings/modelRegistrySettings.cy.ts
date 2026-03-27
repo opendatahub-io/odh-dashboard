@@ -12,6 +12,7 @@ import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mo
 import {
   DatabaseType,
   FormFieldSelector,
+  MAX_MODEL_REGISTRY_NAME_LENGTH,
   modelRegistrySettings,
 } from '../../../pages/modelRegistrySettings';
 import { pageNotfound } from '../../../pages/pageNotFound';
@@ -336,51 +337,57 @@ describe('CreateModal', () => {
     modelRegistrySettings.shouldHaveAllErrors();
   });
 
-  it('should enforce maxLength of 40 on the name input field', () => {
+  it('should enforce maxLength on the name input field', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings
       .findFormField(FormFieldSelector.NAME)
-      .should('have.attr', 'maxLength', '40');
+      .should('have.attr', 'maxLength', String(MAX_MODEL_REGISTRY_NAME_LENGTH));
   });
 
-  it('should disable submit when resource name exceeds 40 characters', () => {
+  it('should disable submit when resource name exceeds the character limit', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
 
-    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('a'.repeat(40));
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .type('a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH));
     modelRegistrySettings.findSubmitButton().should('be.enabled');
 
     modelRegistrySettings.k8sNameDescription.findResourceEditLink().click();
-    modelRegistrySettings.k8sNameDescription.findResourceNameInput().clear().type('a'.repeat(41));
+    modelRegistrySettings.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH + 1));
     modelRegistrySettings.findSubmitButton().should('be.disabled');
   });
 
-  it('should show character count warning when name approaches 40 limit', () => {
+  it('should show character count warning when name approaches the limit', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();
 
-    const nearLimitName = 'a'.repeat(31);
+    const nearLimitName = 'a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH - 9);
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(nearLimitName);
-    cy.contains('Cannot exceed 40 characters').should('be.visible');
+    cy.contains(`Cannot exceed ${MAX_MODEL_REGISTRY_NAME_LENGTH} characters`).should('be.visible');
     cy.contains('remaining').should('be.visible');
   });
 
-  it('should allow creation with name at exactly 40 characters using default database', () => {
+  it('should allow creation with name at exactly the character limit using default database', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
 
-    const exactName = 'a'.repeat(40);
+    const exactName = 'a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH);
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(exactName);
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.findSubmitButton().click();
 
     cy.wait('@createModelRegistry').then((interception) => {
-      const expectedName = 'a'.repeat(40);
-      expect(interception.request.body.modelRegistry.metadata.name).to.equal(expectedName);
-      expect(interception.request.body.modelRegistry.metadata.name).to.have.length.at.most(40);
+      expect(interception.request.body.modelRegistry.metadata.name).to.equal(exactName);
+      expect(interception.request.body.modelRegistry.metadata.name).to.have.length.at.most(
+        MAX_MODEL_REGISTRY_NAME_LENGTH,
+      );
     });
   });
 
