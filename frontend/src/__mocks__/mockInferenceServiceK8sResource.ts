@@ -27,11 +27,7 @@ type MockResourceConfigType = {
   statusPredictor?: Record<string, string>;
   additionalLabels?: Record<string, string>;
   args?: string[];
-  env?: Array<{
-    name: string;
-    value?: string;
-    valueFrom?: { secretKeyRef: { name: string; key: string } };
-  }>;
+  env?: NonNullable<InferenceServiceKind['spec']['predictor']['model']>['env'];
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   isNonDashboardItem?: boolean;

@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, @odh-dashboard/no-restricted-imports
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
@@ -167,6 +167,8 @@ const extensions: (
         import('./src/deployServer').then((m) => m.extractModelServerTemplate),
       hardwareProfilePaths: () =>
         import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
+      validateExtraction: () =>
+        import('./src/validateExtraction').then((m) => m.validateExtraction),
     },
     flags: {
       required: [SupportedArea.K_SERVE],

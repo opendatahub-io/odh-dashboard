@@ -455,9 +455,24 @@ export type ServingContainer = {
     name: string;
     value?: string;
     valueFrom?: {
+      fieldRef?: {
+        apiVersion?: string;
+        fieldPath: string;
+      };
       secretKeyRef?: {
         name: string;
         key: string;
+        optional?: boolean;
+      };
+      configMapKeyRef?: {
+        name: string;
+        key: string;
+        optional?: boolean;
+      };
+      resourceFieldRef?: {
+        containerName?: string;
+        resource: string;
+        divisor?: string;
       };
     };
   }[];
