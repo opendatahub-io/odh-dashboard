@@ -30,8 +30,14 @@ function AutoragExperimentsPage(): React.JSX.Element {
   const [experimentsListStatus, setExperimentsListStatus] =
     React.useState<AutoragExperimentsListStatus>({ loaded: false, hasExperiments: false });
 
-  // List status comes only from AutoragExperiments; resetting here on namespace ran after the
-  // child's notify and could leave the header create action stuck hidden.
+  // When the route namespace changes, drop prior list status so the header cannot briefly reflect
+  // the previous project. useLayoutEffect runs before paint and before child useEffect; a passive
+  // useEffect here can run after AutoragExperiments has already reported the new namespace and
+  // overwrite correct state (header button stuck hidden).
+
+  React.useLayoutEffect(() => {
+    setExperimentsListStatus({ loaded: false, hasExperiments: false });
+  }, [namespace]);
 
   const showHeaderCreateRunButton =
     !showEmpty &&

@@ -98,7 +98,8 @@ function renderAutoml(ui: React.ReactElement) {
 
 describe('AutomlExperiments', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUseParams.mockReturnValue({ namespace: 'my-namespace' });
     mockUsePipelineDefinitions.mockReturnValue(defaultDefsState);
     mockUsePipelineRuns.mockReturnValue(defaultRunsState);
