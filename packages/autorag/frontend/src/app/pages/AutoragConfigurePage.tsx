@@ -102,6 +102,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="link"
+          isDisabled={form.formState.isSubmitting}
           onClick={() => {
             setPendingInputDataFile(null);
             form.setValue('input_data_pending_filename', '', { shouldValidate: true });

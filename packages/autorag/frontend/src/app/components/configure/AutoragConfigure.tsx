@@ -17,6 +17,9 @@ import {
   DropdownItem,
   DropdownList,
   Flex,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Grid,
   GridItem,
   List,
@@ -70,6 +73,23 @@ const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
+/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+
+/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
+function isAllowedInputDataUploadFile(file: File): boolean {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
+  if (ext) {
+    for (const allowed of Object.values(INPUT_DATA_FILE_ACCEPT).flat()) {
+      if (allowed.toLowerCase() === ext) {
+        return true;
+      }
+    }
+  }
+  return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
+}
+
 export type AutoragConfigureProps = {
   pendingInputDataFile: File | null;
   onPendingInputDataFileChange: (file: File | null) => void;
@@ -102,7 +122,8 @@ function AutoragConfigure({
   const modelsInitialized = useRef(false);
 
   const form = useFormContext<ConfigureSchema>();
-  const { getValues, reset, setValue } = form;
+  const { getValues, reset, setValue, setError, clearErrors, formState } = form;
+  const { errors, isSubmitting } = formState;
 
   const [
     llamaStackSecretName,
@@ -184,17 +205,17 @@ function AutoragConfigure({
     }
   }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
-  // reset selected file values if input bucket changes
+  // reset selected file values if input secret or bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
     setValue('input_data_pending_filename', '', { shouldValidate: true });
     onPendingInputDataFileChange(null);
-  }, [inputDataBucketName, onPendingInputDataFileChange, setValue]);
+  }, [inputDataBucketName, inputDataSecretName, onPendingInputDataFileChange, setValue]);
 
-  // reset selected file values if test bucket changes
+  // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
-  }, [testDataBucketName, setValue]);
+  }, [testDataBucketName, testDataSecretName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -205,15 +226,32 @@ function AutoragConfigure({
   const clearInputDataUpload = useCallback(() => {
     onPendingInputDataFileChange(null);
     setIsInputDataDropdownOpen(false);
+    clearErrors('input_data_pending_filename');
     setValue('input_data_key', '', { shouldValidate: true });
     setValue('input_data_pending_filename', '', { shouldValidate: true });
-  }, [onPendingInputDataFileChange, setValue]);
+  }, [clearErrors, onPendingInputDataFileChange, setValue]);
 
   const stageInputDataFile = useCallback(
     (file: File) => {
       if (!selectedSecret?.name) {
         return;
       }
+      if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
+        setError('input_data_pending_filename', {
+          type: 'manual',
+          message: 'File size must be 1 GiB or less.',
+        });
+        return;
+      }
+      if (!isAllowedInputDataUploadFile(file)) {
+        setError('input_data_pending_filename', {
+          type: 'manual',
+          message:
+            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text, JSON).',
+        });
+        return;
+      }
+      clearErrors('input_data_pending_filename');
       onPendingInputDataFileChange(file);
       setIsInputDataDropdownOpen(false);
       setValue('input_data_pending_filename', file.name, { shouldValidate: true });
@@ -222,7 +260,7 @@ function AutoragConfigure({
       // TODO: remove this once we have a real test data key
       setValue('test_data_key', 'benchmark.json', { shouldValidate: true });
     },
-    [onPendingInputDataFileChange, selectedSecret?.name, setValue],
+    [clearErrors, onPendingInputDataFileChange, selectedSecret?.name, setError, setValue],
   );
 
   const openInputDataReplaceFileDialog = useCallback(() => {
@@ -341,11 +379,7 @@ function AutoragConfigure({
                             key="select-files"
                             variant="secondary"
                             onClick={() => setIsFileExplorerOpen(true)}
-                            isDisabled={
-                              !selectedSecret ||
-                              selectedSecret.invalid ||
-                              form.formState.isSubmitting
-                            }
+                            isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                           >
                             Browse bucket
                           </Button>
@@ -389,9 +423,9 @@ function AutoragConfigure({
                               }}
                               dropzoneProps={{
                                 accept: INPUT_DATA_FILE_ACCEPT,
-                                disabled: form.formState.isSubmitting,
+                                disabled: isSubmitting,
                                 maxFiles: 1,
-                                maxSize: 1024 * 1024 * 1024, // 1GB
+                                maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
                                 multiple: false,
                               }}
                             >
@@ -435,7 +469,7 @@ function AutoragConfigure({
                                             setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
                                           }
                                           isExpanded={isInputDataDropdownOpen}
-                                          isDisabled={form.formState.isSubmitting}
+                                          isDisabled={isSubmitting}
                                         />
                                       )}
                                       popperProps={{ position: 'end', preventOverflow: true }}
@@ -458,6 +492,20 @@ function AutoragConfigure({
                             </Table>
                           )}
                         </StackItem>
+                        {errors.input_data_pending_filename?.message ? (
+                          <StackItem>
+                            <FormHelperText>
+                              <HelperText>
+                                <HelperTextItem
+                                  variant="error"
+                                  data-testid="input-data-upload-error"
+                                >
+                                  {String(errors.input_data_pending_filename.message)}
+                                </HelperTextItem>
+                              </HelperText>
+                            </FormHelperText>
+                          </StackItem>
+                        ) : null}
                       </>
                     )}
                   </>
@@ -511,7 +559,7 @@ function AutoragConfigure({
                                 <Button
                                   variant="secondary"
                                   onClick={openExperimentSettings}
-                                  isDisabled={!hasDocumentInput || form.formState.isSubmitting}
+                                  isDisabled={!hasDocumentInput || isSubmitting}
                                 >
                                   Edit
                                 </Button>

@@ -296,6 +296,58 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
     });
 
+    it('should not stage an oversized file from the native file input and should set a form error', () => {
+      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
+      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+
+      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
+
+      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('input-data-upload-error')).toHaveTextContent(/1 GiB/i);
+    });
+
+    it('should not stage a disallowed file type from the native file input and should set a form error', () => {
+      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [badFile] } });
+
+      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('input-data-upload-error')).toHaveTextContent(/accepted types/i);
+    });
+
+    it('should stage an allowed file from the native file input', () => {
+      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).toHaveBeenCalledWith(
+        goodFile,
+      );
+      expect(screen.queryByTestId('input-data-upload-error')).not.toBeInTheDocument();
+    });
+
     it('should show the newly selected secret name when switching secrets', () => {
       renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
 

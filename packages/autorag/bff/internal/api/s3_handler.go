@@ -380,7 +380,8 @@ func resolveNonCollidingS3Key(
 	stem, ext := splitNameAndExtension(name)
 	stemBase, nextIndex := splitStemAndNextIndex(stem)
 
-	for {
+	const maxCollisionAttempts = 1000
+	for range maxCollisionAttempts {
 		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
 		candidateKey := dir + candidateName
 
@@ -393,6 +394,7 @@ func resolveNonCollidingS3Key(
 		}
 		nextIndex++
 	}
+	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
 }
 
 func splitS3ObjectPath(key string) (dir string, name string) {
