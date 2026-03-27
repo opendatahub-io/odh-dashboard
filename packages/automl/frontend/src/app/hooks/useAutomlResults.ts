@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3File, fetchS3Files } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
+import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { isTabularRun, getOptimizedMetricForTask } from '~/app/utilities/utils';
@@ -80,7 +81,14 @@ export function useAutomlResults(
             if (!namespace) {
               throw new Error('namespace is required');
             }
-            return fetchS3Files(namespace, path);
+            return getS3Files(
+              '',
+              {},
+              {
+                namespace,
+                path,
+              },
+            );
           },
           enabled: Boolean(namespace && s3Files?.common_prefixes),
           retry: false,
