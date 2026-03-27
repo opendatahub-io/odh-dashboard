@@ -587,6 +587,7 @@ export type MaaSTokenRequest = {
   description?: string;
   expiresIn?: string;
   ephemeral?: boolean;
+  subscription?: string;
 };
 export interface MaaSTokenResponse {
   key: string;

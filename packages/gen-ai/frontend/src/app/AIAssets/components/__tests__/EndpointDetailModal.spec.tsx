@@ -128,11 +128,14 @@ describe('EndpointDetailModal', () => {
   });
 
   describe('MaaS models', () => {
+    const defaultSubscriptions = [{ name: 'test-sub', displayName: 'Test Sub' }];
+
     it('should show both endpoints and API key section for MaaS models', () => {
       const model = createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/models/test/v1',
         internalEndpoint: 'http://test-model.ns.svc.cluster.local:8080/v1',
+        subscriptions: defaultSubscriptions,
       });
       renderModal(model);
 
@@ -156,11 +159,12 @@ describe('EndpointDetailModal', () => {
       const model = createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
+        subscriptions: defaultSubscriptions,
       });
       renderModal(model);
 
       fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
-      expect(mockGenerateToken).toHaveBeenCalled();
+      expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'test-sub');
     });
 
     it('should show generated token with alert when token is available', () => {
@@ -175,6 +179,7 @@ describe('EndpointDetailModal', () => {
       const model = createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
+        subscriptions: defaultSubscriptions,
       });
       renderModal(model);
 
@@ -196,6 +201,7 @@ describe('EndpointDetailModal', () => {
       const model = createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
+        subscriptions: defaultSubscriptions,
       });
       renderModal(model);
 
@@ -215,6 +221,7 @@ describe('EndpointDetailModal', () => {
       const model = createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/v1',
+        subscriptions: defaultSubscriptions,
       });
       renderModal(model);
 
@@ -264,7 +271,7 @@ describe('EndpointDetailModal', () => {
         expect(selectButton).toHaveTextContent('Basic Subscription');
       });
 
-      it('should call generateToken without subscription when button is clicked', () => {
+      it('should call generateToken with selected subscription when button is clicked', () => {
         const model = createMockModel({
           model_source_type: 'maas',
           externalEndpoint: 'https://api.example.com/v1',
@@ -279,7 +286,7 @@ describe('EndpointDetailModal', () => {
         renderModal(model);
 
         fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
-        expect(mockGenerateToken).toHaveBeenCalledWith();
+        expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'premium-subscription');
       });
 
       it('should not show subscription dropdown for non-MaaS models', () => {
@@ -322,6 +329,34 @@ describe('EndpointDetailModal', () => {
         fireEvent.click(premiumOption);
 
         expect(selectButton).toHaveTextContent('Premium Subscription');
+      });
+
+      it('should pass changed subscription to generateToken', () => {
+        const model = createMockModel({
+          model_source_type: 'maas',
+          externalEndpoint: 'https://api.example.com/v1',
+          subscriptions: [
+            {
+              name: 'basic-subscription',
+              displayName: 'Basic Subscription',
+              description: 'Basic tier',
+            },
+            {
+              name: 'premium-subscription',
+              displayName: 'Premium Subscription',
+              description: 'Premium tier',
+            },
+          ],
+        });
+        renderModal(model);
+
+        // Change from default (basic) to premium
+        fireEvent.click(screen.getByTestId('endpoint-modal-subscription-select'));
+        fireEvent.click(screen.getByText('Premium Subscription'));
+
+        // Generate with the changed subscription
+        fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
+        expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'premium-subscription');
       });
 
       it('should keep subscription dropdown visible after token is generated', () => {
@@ -367,6 +402,8 @@ describe('EndpointDetailModal', () => {
         expect(
           screen.getByText(/Contact your administrator to request access/),
         ).toBeInTheDocument();
+        expect(screen.queryByText('Authentication')).not.toBeInTheDocument();
+        expect(screen.queryByText('Generate API key')).not.toBeInTheDocument();
       });
     });
   });

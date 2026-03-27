@@ -12,6 +12,7 @@ import {
   FormGroup,
   InputGroup,
   InputGroupItem,
+  Label,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -58,17 +59,22 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
     [isMaaS, model.subscriptions],
   );
 
-  const [selectedSubscription, setSelectedSubscription] = React.useState<string>('');
+  const [selectedSubscription, setSelectedSubscription] = React.useState<string>(
+    subscriptions.length > 0 ? subscriptions[0].name : '',
+  );
   const [isSubscriptionSelectOpen, setIsSubscriptionSelectOpen] = React.useState(false);
   const [isKeyVisible, setIsKeyVisible] = React.useState(false);
   const [isKeyCopied, setIsKeyCopied] = React.useState(false);
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Set the first subscription as default when subscriptions are available
-  React.useEffect(() => {
-    if (subscriptions.length > 0 && !selectedSubscription) {
-      setSelectedSubscription(subscriptions[0].name);
-    }
-  }, [subscriptions, selectedSubscription]);
+  React.useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const selectedSubscriptionObj = subscriptions.find(
     (sub: SubscriptionInfo) => sub.name === selectedSubscription,
@@ -101,7 +107,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
         copyTarget: 'service_token',
       });
       setIsKeyCopied(true);
-      setTimeout(() => {
+      copyTimeoutRef.current = setTimeout(() => {
         setIsKeyCopied(false);
       }, 2000);
     }
@@ -109,15 +115,37 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
 
   return (
     <Modal isOpen onClose={handleClose} variant={ModalVariant.medium} aria-label="Endpoints">
-      <ModalHeader title="Endpoints" />
+      <ModalHeader
+        title={
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>Endpoints</FlexItem>
+            {isMaaS && (
+              <FlexItem>
+                <Label color="blue">Model as a Service</Label>
+              </FlexItem>
+            )}
+          </Flex>
+        }
+      />
       <ModalBody>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-          <FlexItem>
-            <Content component={ContentVariants.p}>
-              Use this endpoint to connect your application to this model. Copy the endpoint URL
-              below along with the authentication details to start making requests.
-            </Content>
-          </FlexItem>
+          {isMaaS && (
+            <FlexItem>
+              <Content component={ContentVariants.p}>
+                The underlying model is managed by a cluster administrator and shared across
+                projects via the API gateway. Use this endpoint to connect your application to this
+                model. Copy the endpoint URL below to start making requests.
+              </Content>
+            </FlexItem>
+          )}
+          {!isMaaS && (
+            <FlexItem>
+              <Content component={ContentVariants.p}>
+                Use this endpoint to connect your application to this model. Copy the endpoint URL
+                below along with the authentication details to start making requests.
+              </Content>
+            </FlexItem>
+          )}
 
           {hasExternal && (
             <FlexItem>
@@ -189,9 +217,9 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
             </FlexItem>
           )}
 
-          {isMaaS && (
+          {isMaaS && subscriptions.length > 0 && (
             <FlexItem>
-              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              <Flex direction={{ default: 'column' }}>
                 <FlexItem>
                   <Content
                     component={ContentVariants.p}
@@ -201,7 +229,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                   </Content>
                 </FlexItem>
                 <FlexItem>
-                  <Content component={ContentVariants.p}>
+                  <Content component={ContentVariants.small}>
                     Select a subscription, then generate a temporary API key to authenticate
                     requests to this model.
                   </Content>
@@ -285,7 +313,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                         data-testid="endpoint-modal-generate-api-key"
                         variant={ButtonVariant.secondary}
                         isDisabled={isGenerating}
-                        onClick={() => generateToken()}
+                        onClick={() => generateToken(undefined, selectedSubscription || undefined)}
                         icon={isGenerating ? <Spinner size="sm" /> : undefined}
                       >
                         Generate API key
@@ -295,7 +323,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     <FlexItem>
                       <Content component={ContentVariants.small}>
                         To create a permanent API key, visit the{' '}
-                        <Link to={maasTokensPath}>API keys</Link> page.
+                        <Link to={maasTokensPath}>API Keys</Link> page.
                       </Content>
                     </FlexItem>
                   </>
@@ -309,7 +337,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                         customIcon={<InfoCircleIcon />}
                       >
                         This key expires in 1 hour and will not appear in your list of API keys. To
-                        create a permanent key, visit the <Link to={maasTokensPath}>API keys</Link>{' '}
+                        create a permanent key, visit the <Link to={maasTokensPath}>API Keys</Link>{' '}
                         page.
                       </Alert>
                     </FlexItem>
@@ -319,7 +347,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                           <TextInput
                             type={isKeyVisible ? 'text' : 'password'}
                             value={tokenData.key}
-                            readOnly
+                            readOnlyVariant="default"
                             aria-label="Generated MaaS API key"
                             data-testid="endpoint-modal-api-key-input"
                           />
