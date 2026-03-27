@@ -35,6 +35,7 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
+  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
   usePipelineRunsMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),

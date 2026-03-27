@@ -17,11 +17,10 @@ import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-sha
 import React, { useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
-import { uploadFileToS3 } from '~/app/api/s3';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { usePipelineRunsMutation, useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
@@ -51,6 +50,7 @@ function AutoragConfigurePage(): React.JSX.Element {
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
   const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
+  const s3UploadMutation = useS3FileUploadMutation('');
 
   const form = useForm({
     mode: 'onChange',
@@ -163,29 +163,19 @@ function AutoragConfigurePage(): React.JSX.Element {
             form.handleSubmit(
               async (data: ConfigureSchema) => {
                 try {
-                  let pipelinePayload = stripConfigureUiFieldsForPipeline(data);
-
                   if (
                     data.input_data_source_mode === 'upload' &&
                     pendingInputDataFile &&
                     !data.input_data_key.trim()
                   ) {
                     try {
-                      const uploadResult = await uploadFileToS3(
-                        '',
-                        {
-                          namespace: namespace!,
-                          secretName: data.input_data_secret_name,
-                          bucket: data.input_data_bucket_name,
-                          key: pendingInputDataFile.name,
-                        },
-                        pendingInputDataFile,
-                      );
-                      pipelinePayload = {
-                        ...pipelinePayload,
-                        // eslint-disable-next-line camelcase -- BFF pipeline parameter name
-                        input_data_key: uploadResult.key,
-                      };
+                      const uploadResult = await s3UploadMutation.mutateAsync({
+                        namespace: namespace!,
+                        secretName: data.input_data_secret_name,
+                        bucket: data.input_data_bucket_name,
+                        key: pendingInputDataFile.name,
+                        file: pendingInputDataFile,
+                      });
                       form.setValue('input_data_key', uploadResult.key, { shouldValidate: true });
                     } catch (uploadErr) {
                       notification.error(
@@ -207,7 +197,11 @@ function AutoragConfigurePage(): React.JSX.Element {
                   }
 
                   const pipelineRunPayload: Record<string, unknown> = {
-                    ...pipelinePayload,
+                    ...stripConfigureUiFieldsForPipeline({
+                      ...data,
+                      // eslint-disable-next-line camelcase -- BFF pipeline parameter name
+                      input_data_key: form.getValues('input_data_key') ?? '',
+                    }),
                   };
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(pipelineRunPayload);
                   if (data.input_data_source_mode === 'upload') {
