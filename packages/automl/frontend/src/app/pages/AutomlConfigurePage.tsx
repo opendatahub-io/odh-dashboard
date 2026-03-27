@@ -20,7 +20,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
@@ -43,7 +43,7 @@ function AutomlConfigurePage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
 
-  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
+  const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
   const form = useForm({
     mode: 'onChange',

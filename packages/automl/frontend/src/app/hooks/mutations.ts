@@ -3,13 +3,18 @@ import { handleRestFailures, isModArchResponse, restCREATE } from 'mod-arch-core
 import * as z from 'zod';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { ConfigureSchema } from '../schemas/configure.schema';
 
-export function usePipelineRunsMutation(
+/**
+ * Creates a new pipeline run via the AutoML BFF API.
+ * @see packages/automl/docs/pipeline-runs-api.md
+ */
+export function useCreatePipelineRunMutation(
   namespace: string,
-): UseMutationResult<PipelineRun, Error, Record<string, unknown>, unknown> {
+): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {
   return useMutation({
     mutationKey: ['automl', 'pipelineRun'],
-    mutationFn: async (payload: Record<string, unknown>) => {
+    mutationFn: async (payload: ConfigureSchema) => {
       const response = await handleRestFailures(
         restCREATE<PipelineRun>(
           '',

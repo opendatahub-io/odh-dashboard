@@ -20,7 +20,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
@@ -45,7 +45,7 @@ function AutoragConfigurePage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
-  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
+  const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
   const form = useForm({
     mode: 'onChange',

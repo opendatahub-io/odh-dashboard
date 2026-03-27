@@ -1,14 +1,6 @@
-import {
-  useQuery,
-  useQueries,
-  useMutation,
-  UseQueryResult,
-  UseMutationResult,
-} from '@tanstack/react-query';
+import { useQueries, useQuery, UseQueryResult } from '@tanstack/react-query';
+import type { ConfusionMatrixData, FeatureImportanceData } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
-import { createPipelineRun } from '~/app/api/pipelines';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -209,21 +201,5 @@ export function useModelEvaluationArtifactsQuery(
       confusionMatrix: results[1].data,
       isLoading: results.some((r) => r.isPending),
     }),
-  });
-}
-
-type CreatePipelineRunVariables = {
-  namespace: string;
-  data: ConfigureSchema;
-};
-
-export function useCreatePipelineRun(): UseMutationResult<
-  PipelineRun,
-  Error,
-  CreatePipelineRunVariables
-> {
-  return useMutation({
-    mutationFn: async ({ namespace, data }: CreatePipelineRunVariables) =>
-      createPipelineRun('', { namespace, data }),
   });
 }
