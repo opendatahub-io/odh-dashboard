@@ -20,11 +20,13 @@ type McpDeploymentCondition struct {
 // mcp.x-k8s.io/v1alpha1 MCPServer CRD for API consumption.
 type McpDeployment struct {
 	Name              string                   `json:"name"`
+	DisplayName       string                   `json:"displayName,omitempty"`
 	Namespace         string                   `json:"namespace"`
 	UID               string                   `json:"uid"`
 	CreationTimestamp string                   `json:"creationTimestamp"`
 	Image             string                   `json:"image"`
 	Port              int32                    `json:"port"`
+	YAML              string                   `json:"yaml,omitempty"`
 	Phase             McpDeploymentPhase       `json:"phase"`
 	Conditions        []McpDeploymentCondition `json:"conditions,omitempty"`
 }
@@ -37,12 +39,16 @@ type McpDeploymentList struct {
 }
 
 type McpDeploymentCreateRequest struct {
-	Name  string `json:"name,omitempty"`
-	Image string `json:"image"`
-	Port  int32  `json:"port,omitempty"`
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Image       string `json:"image"`
+	Port        int32  `json:"port,omitempty"`
+	YAML        string `json:"yaml,omitempty"`
 }
 
 type McpDeploymentUpdateRequest struct {
-	Image *string `json:"image,omitempty"`
-	Port  *int32  `json:"port,omitempty"`
+	DisplayName *string `json:"displayName,omitempty"`
+	Image       *string `json:"image,omitempty"`
+	Port        *int32  `json:"port,omitempty"`
+	YAML        *string `json:"yaml,omitempty"`
 }

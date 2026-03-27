@@ -108,11 +108,13 @@ func (r *McpDeploymentRepository) Create(namespace string, req models.McpDeploym
 
 	deployment := models.McpDeployment{
 		Name:              name,
+		DisplayName:       req.DisplayName,
 		Namespace:         namespace,
 		UID:               uuid.New().String(),
 		CreationTimestamp: time.Now().UTC().Format(time.RFC3339),
 		Image:             req.Image,
 		Port:              port,
+		YAML:              req.YAML,
 		Phase:             models.McpDeploymentPhasePending,
 	}
 
@@ -126,11 +128,17 @@ func (r *McpDeploymentRepository) Update(namespace string, name string, req mode
 
 	for i, d := range r.deployments {
 		if d.Name == name && (namespace == "" || d.Namespace == namespace) {
+			if req.DisplayName != nil {
+				r.deployments[i].DisplayName = *req.DisplayName
+			}
 			if req.Image != nil {
 				r.deployments[i].Image = *req.Image
 			}
 			if req.Port != nil {
 				r.deployments[i].Port = *req.Port
+			}
+			if req.YAML != nil {
+				r.deployments[i].YAML = *req.YAML
 			}
 			return r.deployments[i], nil
 		}
