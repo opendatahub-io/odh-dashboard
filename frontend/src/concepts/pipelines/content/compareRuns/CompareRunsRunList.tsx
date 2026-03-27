@@ -26,7 +26,7 @@ const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const { runs, loaded } = useCompareRuns();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',

@@ -43,7 +43,7 @@ type RunFormProps = {
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
   const { api, namespace } = usePipelinesAPI();
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const [latestVersion, latestVersionLoaded] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);

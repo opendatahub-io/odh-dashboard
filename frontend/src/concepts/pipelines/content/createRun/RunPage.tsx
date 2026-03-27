@@ -55,7 +55,7 @@ const RunPage: React.FC<RunPageProps> = ({
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(

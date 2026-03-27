@@ -69,7 +69,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 }) => {
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
