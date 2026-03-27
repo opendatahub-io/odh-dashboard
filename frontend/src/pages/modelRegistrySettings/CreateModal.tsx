@@ -20,13 +20,17 @@ import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '#~/services/modelRegistrySettingsService';
-import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  isK8sNameDescriptionDataValid,
+  LimitNameResourceType,
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   buildDatabaseSpec,
@@ -68,6 +72,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [error, setError] = React.useState<Error>();
   const { data: nameDesc, onDataChange: setNameDesc } = useK8sNameDescriptionFieldData({
     initialData: mr,
+    limitNameResourceType: LimitNameResourceType.MODEL_REGISTRY,
   });
   const [databaseSource, setDatabaseSource] = React.useState<DatabaseSource>(
     DatabaseSource.DEFAULT,
@@ -231,8 +236,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     setDatabaseType(newType);
   };
 
-  const effectiveK8sName = nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name);
-
   const onSubmit = async () => {
     setIsSubmitting(true);
     setError(undefined);
@@ -322,7 +325,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
         metadata: {
-          name: effectiveK8sName,
+          name: nameDesc.k8sName.value,
           namespace: modelRegistryNamespace,
           annotations: {
             'openshift.io/description': nameDesc.description,
@@ -389,15 +392,12 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const hasContent = (value: string): boolean => !!value.trim().length;
 
   const canSubmit = () => {
-    const isValidName =
-      isValidK8sName(effectiveK8sName) && effectiveK8sName.length <= MAX_MODEL_REGISTRY_NAME_LENGTH;
+    const isValidName = isK8sNameDescriptionDataValid(nameDesc);
 
     if (databaseSource === DatabaseSource.DEFAULT) {
-      // For default database, only name is required
       return !isSubmitting && isValidName;
     }
 
-    // For external database, all connection fields are required
     return (
       !isSubmitting &&
       isValidName &&
