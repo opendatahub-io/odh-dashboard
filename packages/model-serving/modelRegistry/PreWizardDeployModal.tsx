@@ -54,7 +54,10 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
     undefined,
   );
 
-  const [connections, connectionsLoaded] = useServingConnections(selectedProject?.metadata.name);
+  const [connections, connectionsLoaded] = useServingConnections(
+    selectedProject?.metadata.name,
+    true,
+  );
 
   const matchedConnections = useRegistryConnections(
     modelDeployPrefill.data.modelArtifactUri,

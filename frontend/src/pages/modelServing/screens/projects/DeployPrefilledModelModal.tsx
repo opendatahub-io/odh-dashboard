@@ -75,7 +75,7 @@ const DeployPrefilledModelModalContents: React.FC<
     selectedProject,
     servingPlatformStatuses,
   );
-  const [connections] = useServingConnections(selectedProject?.metadata.name);
+  const [connections] = useServingConnections(selectedProject?.metadata.name, true);
   const isOciModel = isOciModelUri(modelDeployPrefillInfo.modelArtifactUri);
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
 
