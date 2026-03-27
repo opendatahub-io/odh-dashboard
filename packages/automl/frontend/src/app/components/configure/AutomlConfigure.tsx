@@ -217,231 +217,238 @@ function AutomlConfigure(): React.JSX.Element {
     <>
       <Grid className="pf-v6-u-h-100" hasGutter>
         <GridItem span={4}>
-          <Card isFullHeight>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <Content className="pf-v6-u-mt-sm">
-                Select or add an S3 connection to upload files or browse existing files.
-              </Content>
-            </CardHeader>
-            <CardBody>
-              <Stack>
-                <StackItem>
-                  <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
-                    <SplitItem style={{ width: '10rem' }} isFilled>
-                      {Boolean(namespace) && (
-                        <Controller
-                          control={control}
-                          name="train_data_secret_name"
-                          render={({ field: { onChange } }) => (
-                            <SecretSelector
-                              namespace={String(namespace)}
-                              type="storage"
-                              additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
-                              value={selectedSecret?.uuid}
-                              onChange={(secret) => {
-                                if (!secret) {
-                                  setValue('train_data_secret_name', '', { shouldValidate: true });
-                                  return;
-                                }
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <CardTitle>Documents</CardTitle>
+                <Content className="pf-v6-u-mt-sm">
+                  Select or add an S3 connection to upload files or browse existing files.
+                </Content>
+              </CardHeader>
+              <CardBody>
+                <Stack>
+                  <StackItem>
+                    <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
+                      <SplitItem style={{ width: '10rem' }} isFilled>
+                        {Boolean(namespace) && (
+                          <Controller
+                            control={control}
+                            name="train_data_secret_name"
+                            render={({ field: { onChange } }) => (
+                              <SecretSelector
+                                namespace={String(namespace)}
+                                type="storage"
+                                additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                value={selectedSecret?.uuid}
+                                onChange={(secret) => {
+                                  if (!secret) {
+                                    setValue('train_data_secret_name', '', {
+                                      shouldValidate: true,
+                                    });
+                                    return;
+                                  }
 
-                                const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                const availableKeys = Object.keys(secret.data ?? {});
-                                const invalid =
-                                  getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-                                setNewConnectionNotLoaded(false);
-                                setSelectedSecret({ ...secret, invalid });
-                                onChange(invalid ? '' : secret.name);
-                              }}
-                              onRefreshReady={(refresh) => {
-                                secretsRefreshRef.current = refresh;
-                              }}
-                              label="S3 connection"
-                              placeholder="Select connection"
-                              toggleWidth="16rem"
-                              dataTestId="aws-secret-selector"
-                            />
-                          )}
-                        />
-                      )}
-                    </SplitItem>
-                    <SplitItem>
-                      <Button
-                        key="add-new-connection"
-                        variant="secondary"
-                        onClick={() => setIsConnectionModalOpen(true)}
-                      >
-                        Add new connection
-                      </Button>
-                    </SplitItem>
-                  </Split>
-                </StackItem>
-                {newConnectionNotLoaded && (
-                  <StackItem className="pf-v6-u-mt-md">
-                    <Alert variant="warning" isInline title="Connection added">
-                      The connection was created but could not be loaded. Please refresh the page to
-                      see it.
-                    </Alert>
+                                  const requiredKeys =
+                                    AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                  const availableKeys = Object.keys(secret.data ?? {});
+                                  const invalid =
+                                    getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+                                  setNewConnectionNotLoaded(false);
+                                  setSelectedSecret({ ...secret, invalid });
+                                  onChange(invalid ? '' : secret.name);
+                                }}
+                                onRefreshReady={(refresh) => {
+                                  secretsRefreshRef.current = refresh;
+                                }}
+                                label="S3 connection"
+                                placeholder="Select connection"
+                                toggleWidth="16rem"
+                                dataTestId="aws-secret-selector"
+                              />
+                            )}
+                          />
+                        )}
+                      </SplitItem>
+                      <SplitItem>
+                        <Button
+                          key="add-new-connection"
+                          variant="secondary"
+                          onClick={() => setIsConnectionModalOpen(true)}
+                        >
+                          Add new connection
+                        </Button>
+                      </SplitItem>
+                    </Split>
                   </StackItem>
-                )}
-                {Boolean(selectedSecret?.uuid) && (
-                  <>
-                    <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                      Selected connection
+                  {newConnectionNotLoaded && (
+                    <StackItem className="pf-v6-u-mt-md">
+                      <Alert variant="warning" isInline title="Connection added">
+                        The connection was created but could not be loaded. Please refresh the page
+                        to see it.
+                      </Alert>
                     </StackItem>
-                    <StackItem>
-                      <Label
-                        onClose={() => {
-                          setSelectedSecret(undefined);
-                          setValue('train_data_secret_name', '', { shouldValidate: true });
-                        }}
-                        closeBtnAriaLabel="Clear selected connection"
-                      >
-                        {selectedSecret?.displayName ?? selectedSecret?.name}
-                      </Label>
-                    </StackItem>
+                  )}
+                  {Boolean(selectedSecret?.uuid) && (
+                    <>
+                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                        Selected connection
+                      </StackItem>
+                      <StackItem>
+                        <Label
+                          onClose={() => {
+                            setSelectedSecret(undefined);
+                            setValue('train_data_secret_name', '', { shouldValidate: true });
+                          }}
+                          closeBtnAriaLabel="Clear selected connection"
+                        >
+                          {selectedSecret?.displayName ?? selectedSecret?.name}
+                        </Label>
+                      </StackItem>
 
-                    <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                      Selected files
-                    </StackItem>
-                    <StackItem>
-                      <Button
-                        key="select-files"
-                        variant="secondary"
-                        onClick={() => setIsFileExplorerOpen(true)}
-                        isDisabled={!canSelectFiles}
-                      >
-                        Select files
-                      </Button>
-                    </StackItem>
-                  </>
-                )}
-              </Stack>
-            </CardBody>
+                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
+                        Selected files
+                      </StackItem>
+                      <StackItem>
+                        <Button
+                          key="select-files"
+                          variant="secondary"
+                          onClick={() => setIsFileExplorerOpen(true)}
+                          isDisabled={!canSelectFiles}
+                        >
+                          Select files
+                        </Button>
+                      </StackItem>
+                    </>
+                  )}
+                </Stack>
+              </CardBody>
+            </div>
           </Card>
         </GridItem>
         <GridItem span={8}>
-          <Card className="pf-v6-u-h-100">
-            <CardTitle>Configure details</CardTitle>
-            <CardBody>
-              <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
-                <StackItem>
-                  <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                    Prediction type
-                    <span className="pf-v6-u-text-color-required" aria-hidden="true">
-                      {' *'}
-                    </span>
-                  </div>
-                  <Controller
-                    control={form.control}
-                    name="task_type"
-                    render={({ field }) => (
-                      <Gallery hasGutter minWidths={{ default: '200px' }}>
-                        {PREDICTION_TYPES.map((type) => (
-                          <Card
-                            key={type.value}
-                            isSelectable
-                            isDisabled={!canSelectLearningType}
-                            isSelected={field.value === type.value}
-                            onClick={() => field.onChange(type.value)}
-                            data-testid={`task-type-card-${type.value}`}
-                          >
-                            <CardHeader
-                              selectableActions={{
-                                selectableActionId: `task-type-${type.value}`,
-                                selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                name: 'task_type',
-                                variant: 'single',
-                                isChecked: field.value === type.value,
-                                onChange: () => field.onChange(type.value),
-                                isHidden: true,
-                              }}
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardTitle>Configure details</CardTitle>
+              <CardBody>
+                <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
+                  <StackItem>
+                    <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+                      Prediction type
+                      <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                        {' *'}
+                      </span>
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="task_type"
+                      render={({ field }) => (
+                        <Gallery hasGutter minWidths={{ default: '200px' }}>
+                          {PREDICTION_TYPES.map((type) => (
+                            <Card
+                              key={type.value}
+                              isSelectable
+                              isDisabled={!canSelectLearningType}
+                              isSelected={field.value === type.value}
+                              onClick={() => field.onChange(type.value)}
+                              data-testid={`task-type-card-${type.value}`}
                             >
-                              <CardTitle id={`task-type-label-${type.value}`}>
-                                {type.label}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardBody>
-                              <Content component="small">{type.description}</Content>
-                            </CardBody>
-                          </Card>
-                        ))}
-                      </Gallery>
-                    )}
-                  />
-                </StackItem>
+                              <CardHeader
+                                selectableActions={{
+                                  selectableActionId: `task-type-${type.value}`,
+                                  selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                  name: 'task_type',
+                                  variant: 'single',
+                                  isChecked: field.value === type.value,
+                                  onChange: () => field.onChange(type.value),
+                                  isHidden: true,
+                                }}
+                              >
+                                <CardTitle id={`task-type-label-${type.value}`}>
+                                  {type.label}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardBody>
+                                <Content component="small">{type.description}</Content>
+                              </CardBody>
+                            </Card>
+                          ))}
+                        </Gallery>
+                      )}
+                    />
+                  </StackItem>
 
-                {isTimeseries ? (
-                  <ConfigureTimeseriesForm
-                    columns={columns}
-                    isLoadingColumns={isLoadingColumns}
-                    isFetchingColumns={isFetchingColumns}
-                    columnsError={columnsError}
-                    isFileSelected={isFileSelected}
-                    formIsSubmitting={formIsSubmitting}
-                  />
-                ) : (
-                  <ConfigureTabularForm
-                    columns={columns}
-                    isLoadingColumns={isLoadingColumns}
-                    isFetchingColumns={isFetchingColumns}
-                    columnsError={columnsError}
-                    isFileSelected={isFileSelected}
-                    formIsSubmitting={formIsSubmitting}
-                  />
-                )}
+                  {isTimeseries ? (
+                    <ConfigureTimeseriesForm
+                      columns={columns}
+                      isLoadingColumns={isLoadingColumns}
+                      isFetchingColumns={isFetchingColumns}
+                      columnsError={columnsError}
+                      isFileSelected={isFileSelected}
+                      formIsSubmitting={formIsSubmitting}
+                    />
+                  ) : (
+                    <ConfigureTabularForm
+                      columns={columns}
+                      isLoadingColumns={isLoadingColumns}
+                      isFetchingColumns={isFetchingColumns}
+                      columnsError={columnsError}
+                      isFileSelected={isFileSelected}
+                      formIsSubmitting={formIsSubmitting}
+                    />
+                  )}
 
-                <StackItem>
-                  <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                    Top models to consider
-                    <Popover
-                      aria-label="Top models to consider help"
-                      headerContent="Top models to consider"
-                      bodyContent="Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training."
-                    >
-                      <DashboardPopupIconButton
-                        icon={<OutlinedQuestionCircleIcon />}
-                        aria-label="More info for top models to consider"
-                      />
-                    </Popover>
-                  </div>
-                  <Controller
-                    control={form.control}
-                    name="top_n"
-                    render={({ field, fieldState }) => (
-                      <>
-                        <NumberInput
-                          id="top-n-input"
-                          value={field.value}
-                          min={MIN_TOP_N}
-                          max={MAX_TOP_N}
-                          isDisabled={formIsSubmitting}
-                          validated={fieldState.error ? 'error' : 'default'}
-                          onMinus={() => field.onChange(Number(field.value) - 1)}
-                          onPlus={() => field.onChange(Number(field.value) + 1)}
-                          onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                            const value = parseInt(event.currentTarget.value, 10);
-                            if (!Number.isNaN(value)) {
-                              field.onChange(value);
-                            }
-                          }}
-                          data-testid="top-n-input"
+                  <StackItem>
+                    <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
+                      Top models to consider
+                      <Popover
+                        aria-label="Top models to consider help"
+                        headerContent="Top models to consider"
+                        bodyContent="Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training."
+                      >
+                        <DashboardPopupIconButton
+                          icon={<OutlinedQuestionCircleIcon />}
+                          aria-label="More info for top models to consider"
                         />
-                        {fieldState.error && (
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem variant="error">
-                                {fieldState.error.message}
-                              </HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </StackItem>
-              </Stack>
-            </CardBody>
+                      </Popover>
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="top_n"
+                      render={({ field, fieldState }) => (
+                        <>
+                          <NumberInput
+                            id="top-n-input"
+                            value={field.value}
+                            min={MIN_TOP_N}
+                            max={MAX_TOP_N}
+                            isDisabled={formIsSubmitting}
+                            validated={fieldState.error ? 'error' : 'default'}
+                            onMinus={() => field.onChange(Number(field.value) - 1)}
+                            onPlus={() => field.onChange(Number(field.value) + 1)}
+                            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                              const value = parseInt(event.currentTarget.value, 10);
+                              if (!Number.isNaN(value)) {
+                                field.onChange(value);
+                              }
+                            }}
+                            data-testid="top-n-input"
+                          />
+                          {fieldState.error && (
+                            <FormHelperText>
+                              <HelperText>
+                                <HelperTextItem variant="error">
+                                  {fieldState.error.message}
+                                </HelperTextItem>
+                              </HelperText>
+                            </FormHelperText>
+                          )}
+                        </>
+                      )}
+                    />
+                  </StackItem>
+                </Stack>
+              </CardBody>
+            </div>
           </Card>
         </GridItem>
       </Grid>

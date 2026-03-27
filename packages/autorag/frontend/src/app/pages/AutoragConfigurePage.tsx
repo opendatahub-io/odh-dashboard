@@ -137,7 +137,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <FormProvider {...form}>
         <Stack
           component="form"
-          className="pf-v6-u-h-100"
+          className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
           hasGutter
           noValidate
           onSubmit={(event) => {
@@ -166,7 +166,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             )();
           }}
         >
-          <StackItem isFilled>
+          <StackItem className="pf-v6-u-h-0" isFilled>
             <PageSection
               className={classNames(
                 'pf-v6-c-form',
