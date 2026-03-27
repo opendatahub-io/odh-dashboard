@@ -469,9 +469,15 @@ class ChatbotPage {
 
   // Open the settings panel via the header Settings button and switch to the given pane (1-based)
   openPaneSettings(chatNumber: number): void {
-    this.findSettingsButton().click();
+    // Only click Settings button if the panel isn't already open
+    cy.get('body').then(($body) => {
+      if (!$body.find('[data-testid="chatbot-config-switcher"]').is(':visible')) {
+        this.findSettingsButton().click();
+      }
+    });
     this.findConfigSwitcher().should('be.visible');
-    this.findConfigTab(chatNumber).click();
+    // Use force:true to avoid detachment during drawer open animation
+    this.findConfigTab(chatNumber).click({ force: true });
   }
 
   // Find settings panel header (single mode only — shows "Configure")
