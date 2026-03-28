@@ -18,6 +18,7 @@ type FeatureStoreFetchState = {
 export type FeatureStoreContextType = {
   // Registry-based discovery
   featureStores: RegistryFeatureStore[];
+  enabledCRDCount: number;
   activeFeatureStore: RegistryFeatureStore | null;
   loaded: FeatureStoreFetchState['loaded'];
   loadError: FeatureStoreFetchState['error'];
@@ -39,6 +40,7 @@ export type FeatureStoreContextType = {
 export const FeatureStoreContext = React.createContext<FeatureStoreContextType>({
   // Registry-based discovery defaults
   featureStores: [],
+  enabledCRDCount: 0,
   activeFeatureStore: null,
   loaded: false,
   loadError: new Error('Not in FeatureStore provider'),
@@ -68,6 +70,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
 }) => {
   const {
     featureStores: registryFeatureStores,
+    enabledCRDCount,
     loaded: registryLoaded,
     error: registryError,
     refresh: refreshRegistry,
@@ -150,6 +153,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     () => ({
       // Registry-based discovery
       featureStores: filteredFeatureStores,
+      enabledCRDCount,
       activeFeatureStore,
       loaded: registryLoaded && featureStoreProjectsLoaded,
       loadError: registryError || featureStoreProjectsError,
@@ -169,6 +173,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     }),
     [
       filteredFeatureStores,
+      enabledCRDCount,
       activeFeatureStore,
       registryLoaded,
       registryError,

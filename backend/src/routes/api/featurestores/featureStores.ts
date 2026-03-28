@@ -21,6 +21,7 @@ import {
 
 interface FeatureStoreResponse {
   featureStores: FeatureStore[];
+  enabledCRDCount: number;
 }
 
 interface FeatureStore {
@@ -45,8 +46,11 @@ interface CustomObjectResponse {
   };
 }
 
-function buildFeatureStoreResponse(featureStores: FeatureStore[]): FeatureStoreResponse {
-  return { featureStores };
+function buildFeatureStoreResponse(
+  featureStores: FeatureStore[],
+  enabledCRDCount: number,
+): FeatureStoreResponse {
+  return { featureStores, enabledCRDCount };
 }
 
 async function fetchFeatureStoreCRDs(
@@ -67,16 +71,6 @@ async function fetchFeatureStoreCRDs(
     handleError(fastify, error, `Error fetching FeatureStore CRDs from namespace ${namespace}`);
     return [];
   }
-}
-
-async function getEnabledProjectNames(
-  fastify: KubeFastifyInstance,
-  namespace: string,
-): Promise<string[]> {
-  const allCrds = await fetchFeatureStoreCRDs(fastify, namespace);
-  const enabledCrds = filterEnabledCRDs(allCrds as FeatureStoreCRD[]);
-
-  return enabledCrds.map((crd) => crd.spec?.feastProject).filter(Boolean);
 }
 
 async function processFeatureStoreConfigs(
@@ -223,13 +217,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       );
 
       if (!feastConfig) {
-        reply.send({ featureStores: [] });
+        reply.send(buildFeatureStoreResponse([], 0));
         return;
       }
 
       if (!feastConfig.data?.namespaces) {
         fastify.log.warn(`No namespaces data found in ConfigMap ${feastConfig.metadata?.name}`);
-        reply.send({ featureStores: [] });
+        reply.send(buildFeatureStoreResponse([], 0));
         return;
       }
 
@@ -241,14 +235,26 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const namespacePromises = Object.entries(namespaces)
         .filter(([, clientConfigs]) => Array.isArray(clientConfigs))
         .map(async ([ns, clientConfigs]) => {
-          const enabledProjectNames = await getEnabledProjectNames(fastify, ns);
-          return processFeatureStoreConfigs(fastify, ns, clientConfigs, enabledProjectNames, token);
+          const allCrds = await fetchFeatureStoreCRDs(fastify, ns);
+          const enabledCrds = filterEnabledCRDs(allCrds as FeatureStoreCRD[]);
+          const enabledProjectNames = enabledCrds
+            .map((crd) => crd.spec?.feastProject)
+            .filter(Boolean);
+          const featureStores = await processFeatureStoreConfigs(
+            fastify,
+            ns,
+            clientConfigs,
+            enabledProjectNames,
+            token,
+          );
+          return { featureStores, enabledCRDCount: enabledCrds.length };
         });
 
       const namespaceResults = await Promise.all(namespacePromises);
-      const allFeatureStores = namespaceResults.flat();
+      const allFeatureStores = namespaceResults.flatMap((r) => r.featureStores);
+      const totalEnabledCRDCount = namespaceResults.reduce((sum, r) => sum + r.enabledCRDCount, 0);
 
-      reply.send(buildFeatureStoreResponse(allFeatureStores));
+      reply.send(buildFeatureStoreResponse(allFeatureStores, totalEnabledCRDCount));
     } catch (error) {
       const errorMessage = handleError(
         fastify,
