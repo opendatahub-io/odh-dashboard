@@ -171,6 +171,16 @@ const initIntercepts = () => {
     },
     buildMockExperimentKF({ experiment_id: 'test-experiment' }),
   );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    {
+      path: { namespace: projectId, serviceName: 'dspa' },
+    },
+    {
+      experiments: [buildMockExperimentKF({ experiment_id: 'test-experiment' })],
+      total_size: 1,
+    },
+  );
   cy.interceptK8s(
     PodModel,
     mockPipelinePodK8sResource({
