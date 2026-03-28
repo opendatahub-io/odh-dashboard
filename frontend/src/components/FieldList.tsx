@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import PasswordInput from '#~/components/PasswordInput';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 export type FieldOptions = {
   key: string;
@@ -39,6 +40,8 @@ export const FieldListField = ({
         value={value}
         placeholder={options.placeholder}
         onChange={(e, newValue) => onChange(options.key, newValue)}
+        onBlur={(e) => trimInputOnBlur(value, (trimmed) => onChange(options.key, trimmed))(e)}
+        onPaste={(e) => trimInputOnPaste(value, (trimmed) => onChange(options.key, trimmed))(e)}
       />
     </FormGroup>
   );
