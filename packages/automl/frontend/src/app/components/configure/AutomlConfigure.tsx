@@ -21,20 +21,18 @@ import {
   HelperTextItem,
   Label,
   NumberInput,
-  Popover,
   Split,
   SplitItem,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
-import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useFilesQuery } from '~/app/hooks/queries';
@@ -220,8 +218,8 @@ function AutomlConfigure(): React.JSX.Element {
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
-                <CardTitle>Documents</CardTitle>
-                <Content className="pf-v6-u-mt-sm">
+                <Content component="h3">Documents</Content>
+                <Content component="p">
                   Select or add an S3 connection to upload files or browse existing files.
                 </Content>
               </CardHeader>
@@ -328,53 +326,51 @@ function AutomlConfigure(): React.JSX.Element {
         <GridItem span={8}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
-              <CardTitle>Configure details</CardTitle>
+              <CardHeader>
+                <Content component="h3">Configure details</Content>
+              </CardHeader>
               <CardBody>
                 <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
                   <StackItem>
-                    <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                      Prediction type
-                      <span className="pf-v6-u-text-color-required" aria-hidden="true">
-                        {' *'}
-                      </span>
-                    </div>
-                    <Controller
-                      control={form.control}
-                      name="task_type"
-                      render={({ field }) => (
-                        <Gallery hasGutter minWidths={{ default: '200px' }}>
-                          {PREDICTION_TYPES.map((type) => (
-                            <Card
-                              key={type.value}
-                              isSelectable
-                              isDisabled={!canSelectLearningType}
-                              isSelected={field.value === type.value}
-                              onClick={() => field.onChange(type.value)}
-                              data-testid={`task-type-card-${type.value}`}
-                            >
-                              <CardHeader
-                                selectableActions={{
-                                  selectableActionId: `task-type-${type.value}`,
-                                  selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                  name: 'task_type',
-                                  variant: 'single',
-                                  isChecked: field.value === type.value,
-                                  onChange: () => field.onChange(type.value),
-                                  isHidden: true,
-                                }}
+                    <ConfigureFormGroup label="Prediction type" isRequired>
+                      <Controller
+                        control={form.control}
+                        name="task_type"
+                        render={({ field }) => (
+                          <Gallery hasGutter minWidths={{ default: '200px' }}>
+                            {PREDICTION_TYPES.map((type) => (
+                              <Card
+                                key={type.value}
+                                isSelectable
+                                isDisabled={!canSelectLearningType}
+                                isSelected={field.value === type.value}
+                                onClick={() => field.onChange(type.value)}
+                                data-testid={`task-type-card-${type.value}`}
                               >
-                                <CardTitle id={`task-type-label-${type.value}`}>
-                                  {type.label}
-                                </CardTitle>
-                              </CardHeader>
-                              <CardBody>
-                                <Content component="small">{type.description}</Content>
-                              </CardBody>
-                            </Card>
-                          ))}
-                        </Gallery>
-                      )}
-                    />
+                                <CardHeader
+                                  selectableActions={{
+                                    selectableActionId: `task-type-${type.value}`,
+                                    selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                    name: 'task_type',
+                                    variant: 'single',
+                                    isChecked: field.value === type.value,
+                                    onChange: () => field.onChange(type.value),
+                                    isHidden: true,
+                                  }}
+                                >
+                                  <CardTitle id={`task-type-label-${type.value}`}>
+                                    {type.label}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardBody>
+                                  <Content component="small">{type.description}</Content>
+                                </CardBody>
+                              </Card>
+                            ))}
+                          </Gallery>
+                        )}
+                      />
+                    </ConfigureFormGroup>
                   </StackItem>
 
                   {isTimeseries ? (
@@ -398,54 +394,48 @@ function AutomlConfigure(): React.JSX.Element {
                   )}
 
                   <StackItem>
-                    <div className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                      Top models to consider
-                      <Popover
-                        aria-label="Top models to consider help"
-                        headerContent="Top models to consider"
-                        bodyContent="Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training."
-                      >
-                        <DashboardPopupIconButton
-                          icon={<OutlinedQuestionCircleIcon />}
-                          aria-label="More info for top models to consider"
-                          hasNoPadding
-                        />
-                      </Popover>
-                    </div>
-                    <Controller
-                      control={form.control}
-                      name="top_n"
-                      render={({ field, fieldState }) => (
-                        <>
-                          <NumberInput
-                            id="top-n-input"
-                            value={field.value}
-                            min={MIN_TOP_N}
-                            max={MAX_TOP_N}
-                            isDisabled={formIsSubmitting}
-                            validated={fieldState.error ? 'error' : 'default'}
-                            onMinus={() => field.onChange(Number(field.value) - 1)}
-                            onPlus={() => field.onChange(Number(field.value) + 1)}
-                            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                              const value = parseInt(event.currentTarget.value, 10);
-                              if (!Number.isNaN(value)) {
-                                field.onChange(value);
-                              }
-                            }}
-                            data-testid="top-n-input"
-                          />
-                          {fieldState.error && (
-                            <FormHelperText>
-                              <HelperText>
-                                <HelperTextItem variant="error">
-                                  {fieldState.error.message}
-                                </HelperTextItem>
-                              </HelperText>
-                            </FormHelperText>
-                          )}
-                        </>
-                      )}
-                    />
+                    <ConfigureFormGroup
+                      label="Top models to consider"
+                      labelHelp={{
+                        header: 'Top models to consider',
+                        body: 'Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training.',
+                      }}
+                    >
+                      <Controller
+                        control={form.control}
+                        name="top_n"
+                        render={({ field, fieldState }) => (
+                          <>
+                            <NumberInput
+                              id="top-n-input"
+                              value={field.value}
+                              min={MIN_TOP_N}
+                              max={MAX_TOP_N}
+                              isDisabled={formIsSubmitting}
+                              validated={fieldState.error ? 'error' : 'default'}
+                              onMinus={() => field.onChange(Number(field.value) - 1)}
+                              onPlus={() => field.onChange(Number(field.value) + 1)}
+                              onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                const value = parseInt(event.currentTarget.value, 10);
+                                if (!Number.isNaN(value)) {
+                                  field.onChange(value);
+                                }
+                              }}
+                              data-testid="top-n-input"
+                            />
+                            {fieldState.error && (
+                              <FormHelperText>
+                                <HelperText>
+                                  <HelperTextItem variant="error">
+                                    {fieldState.error.message}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </FormHelperText>
+                            )}
+                          </>
+                        )}
+                      />
+                    </ConfigureFormGroup>
                   </StackItem>
                 </Stack>
               </CardBody>

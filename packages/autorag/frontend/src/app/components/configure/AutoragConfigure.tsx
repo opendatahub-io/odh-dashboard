@@ -23,7 +23,6 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  Title,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
@@ -41,6 +40,7 @@ import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
+import ConfigureFormGroup from '../common/ConfigureFormGroup';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
@@ -166,9 +166,10 @@ function AutoragConfigure(): React.JSX.Element {
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
-                <Title headingLevel="h3">Documents</Title>
-                <Content className="pf-v6-u-mt-sm">
-                  Select or add an S3 connection to upload files or browse existing files.
+                <Content component="h3">Knowledge setup</Content>
+                <Content component="p">
+                  Select or upload documents to serve as the source of truth for retrieval, and
+                  determine how they should be indexed.
                 </Content>
               </CardHeader>
               <CardBody>
@@ -267,24 +268,34 @@ function AutoragConfigure(): React.JSX.Element {
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
-                <Title headingLevel="h3">Configure Details</Title>
+                <Content component="h3">Configure Details</Content>
               </CardHeader>
               <CardBody>
                 <Stack hasGutter>
-                  <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
-                    Where would you like to index your documents?
-                  </StackItem>
-                  <StackItem>
+                  <ConfigureFormGroup
+                    label="Index"
+                    description="Specify the location for storing the vector index used to retrieve your documents."
+                  >
                     <AutoragVectorStoreSelector />
-                  </StackItem>
+                  </ConfigureFormGroup>
 
-                  <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
-                    Add the data source you would like to use for evaluation.{' '}
-                    <span className="pf-v6-u-text-color-required">*</span>
-                  </StackItem>
-                  <StackItem data-temp-placeholder>
+                  <ConfigureFormGroup
+                    label="Evaluation dataset"
+                    description={
+                      <>
+                        <span>
+                          Select the evaluation dataset that will be used to measure the quality of
+                          the generated responses. Must adhere to the{' '}
+                        </span>
+                        <Button variant="link" isInline component="span" onClick={() => null}>
+                          evaluation dataset template
+                        </Button>
+                        <span>.</span>
+                      </>
+                    }
+                  >
                     Evaluation data source upload component
-                  </StackItem>
+                  </ConfigureFormGroup>
 
                   <StackItem>
                     <Card>
