@@ -1,8 +1,6 @@
 module github.com/opendatahub-io/gen-ai
 
-go 1.24.6
-
-toolchain go1.24.7
+go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
@@ -148,7 +146,7 @@ require (
 	google.golang.org/api v0.226.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/grpc v1.72.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
