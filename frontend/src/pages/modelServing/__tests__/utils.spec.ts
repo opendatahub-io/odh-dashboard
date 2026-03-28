@@ -1,12 +1,16 @@
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
+  getKServeContainer,
+  getKServeContainerArgs,
+  getKServeContainerEnvVarStrs,
   resourcesArePositive,
   setUpTokenAuth,
   isOciModelUri,
   getInferenceServiceStoppedStatus,
   getServingRuntimeVersionStatus,
   getModelServingPVCAnnotations,
+  isModelServerEditInfoChanged,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
@@ -26,6 +30,12 @@ import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import {
+  CreatingServingRuntimeObject,
+  ServingRuntimeEditInfo,
+} from '#~/pages/modelServing/screens/types';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 
 jest.mock('#~/api', () => ({
   ...jest.requireActual('#~/api'),
@@ -322,6 +332,92 @@ describe('getModelServingPVCAnnotations', () => {
     expect(getModelServingPVCAnnotations(pvc)).toEqual({
       modelName: null,
       modelPath: null,
+    });
+  });
+});
+
+describe('spec-less ServingRuntime handling', () => {
+  const speclessRuntime = {
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'ServingRuntime',
+    metadata: { name: 'no-spec', namespace: 'test' },
+  } as unknown as ServingRuntimeKind;
+
+  const emptyContainersRuntime = {
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'ServingRuntime',
+    metadata: { name: 'empty-containers', namespace: 'test' },
+    spec: { containers: [] },
+  } as unknown as ServingRuntimeKind;
+
+  describe('getServingRuntimeOrReturnEmpty', () => {
+    it('should return undefined for a spec-less serving runtime', () => {
+      expect(getServingRuntimeOrReturnEmpty(speclessRuntime)).toBeUndefined();
+    });
+
+    it('should return undefined for a serving runtime with empty containers', () => {
+      expect(getServingRuntimeOrReturnEmpty(emptyContainersRuntime)).toBeUndefined();
+    });
+  });
+
+  describe('getKServeContainer', () => {
+    it('should return undefined for a spec-less serving runtime', () => {
+      expect(getKServeContainer(speclessRuntime)).toBeUndefined();
+    });
+
+    it('should return undefined for a serving runtime with empty containers', () => {
+      expect(getKServeContainer(emptyContainersRuntime)).toBeUndefined();
+    });
+  });
+
+  describe('getKServeContainerArgs', () => {
+    it('should return undefined for a spec-less serving runtime', () => {
+      expect(getKServeContainerArgs(speclessRuntime)).toBeUndefined();
+    });
+  });
+
+  describe('getKServeContainerEnvVarStrs', () => {
+    it('should return undefined for a spec-less serving runtime', () => {
+      expect(getKServeContainerEnvVarStrs(speclessRuntime)).toBeUndefined();
+    });
+  });
+
+  describe('isModelServerEditInfoChanged', () => {
+    const createData: CreatingServingRuntimeObject = {
+      name: 'test',
+      k8sName: 'test',
+      servingRuntimeTemplateName: 'ovms',
+      numReplicas: 1,
+      externalRoute: false,
+      tokenAuth: false,
+      tokens: [],
+    };
+
+    const podSpecOptionsState = {
+      podSpecOptions: {
+        resources: undefined,
+        tolerations: undefined,
+        nodeSelector: undefined,
+      },
+      modelSize: { size: undefined, sizes: [] },
+    } as unknown as ModelServingPodSpecOptionsState;
+
+    it('should not crash when editInfo contains a spec-less serving runtime', () => {
+      const editInfo: ServingRuntimeEditInfo = {
+        servingRuntime: speclessRuntime,
+        secrets: [],
+      };
+      expect(() =>
+        isModelServerEditInfoChanged(createData, podSpecOptionsState, editInfo),
+      ).not.toThrow();
+    });
+
+    it('should return true when editInfo contains a spec-less serving runtime', () => {
+      const editInfo: ServingRuntimeEditInfo = {
+        servingRuntime: speclessRuntime,
+        secrets: [],
+      };
+      expect(isModelServerEditInfoChanged(createData, podSpecOptionsState, editInfo)).toBe(true);
     });
   });
 });

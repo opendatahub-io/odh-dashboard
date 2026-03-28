@@ -16,19 +16,25 @@ type UseNIMCompatiblePVCsState = {
 };
 
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
-  const { containers } = servingRuntime.spec;
+  if (
+    servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] === 'nvidia-nim-runtime'
+  ) {
+    return true;
+  }
 
-  return containers.some(
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const containers = servingRuntime.spec?.containers;
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  return !!containers?.some(
     (container) =>
-      container.image?.includes('nvcr.io/nim/') ||
-      container.image?.includes('nvidia/nim/') ||
-      servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] ===
-        'nvidia-nim-runtime',
+      container.image?.includes('nvcr.io/nim/') || container.image?.includes('nvidia/nim/'),
   );
 };
 
 const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
-  const { volumes } = servingRuntime.spec;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const volumes = servingRuntime.spec?.volumes;
   if (!volumes) {
     return null;
   }
@@ -48,13 +54,16 @@ const parseNimModelFromImage = (image: string): string | null => {
 };
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
-  const supportedFormats = servingRuntime.spec.supportedModelFormats;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const supportedFormats = servingRuntime.spec?.supportedModelFormats;
   if (supportedFormats?.length && supportedFormats[0]?.name) {
     return supportedFormats[0].name;
   }
 
-  const { containers } = servingRuntime.spec;
-  for (const container of containers) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const containers = servingRuntime.spec?.containers;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  for (const container of containers ?? []) {
     const parsed = parseNimModelFromImage(container.image ?? '');
     if (parsed) {
       return parsed;
