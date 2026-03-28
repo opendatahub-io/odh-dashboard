@@ -924,3 +924,37 @@ export const checkModelVersionExistsInDatabase = (
         });
     });
 };
+
+/**
+ * Wait for a model transfer Job to have scheduled at least one Pod.
+ * This is used to validate that backend transfer has started,
+ * without assuming success/failure of the job.
+ *
+ * @param jobName Kubernetes Job name used by the transfer flow
+ * @param namespace Namespace where the Job/Pods are created
+ * @param timeoutSeconds OC wait timeout in seconds
+ */
+export const checkModelTransferJobPodStarted = (
+  jobName: string,
+  namespace: string,
+  timeoutSeconds = 120,
+): Cypress.Chainable<boolean> => {
+  const execTimeoutMs = timeoutSeconds * 1000 + 20000;
+
+  const command = `oc wait -n ${namespace} -l job-name=${jobName} --for=condition=PodScheduled pod --timeout=${timeoutSeconds}s`;
+
+  cy.log(`Waiting for model transfer Job pod to be scheduled (job=${jobName})`);
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: execTimeoutMs })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`oc wait stdout: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`oc wait stderr: ${maskedStderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
+};
