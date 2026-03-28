@@ -51,3 +51,23 @@ export type AutoragPattern = {
   scores: AutoragPatternScores;
   final_score: number;
 };
+
+export type AutoRAGEvaluationAnswerContext = {
+  text: string;
+  document_id: string;
+};
+
+export type AutoRAGEvaluationScores = {
+  answer_correctness: number;
+  faithfulness: number;
+  context_correctness: number;
+};
+
+export type AutoRAGEvaluationResult = {
+  question: string;
+  correct_answers: string[];
+  question_id: string;
+  answer: string;
+  answer_contexts: AutoRAGEvaluationAnswerContext[];
+  scores: AutoRAGEvaluationScores;
+};

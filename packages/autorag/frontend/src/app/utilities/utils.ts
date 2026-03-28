@@ -34,6 +34,28 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
   return 'faithfulness';
 }
 
+export function sanitizeFilename(str: string): string {
+  return (
+    str
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^[.\s]+|[.\s]+$/g, '')
+      .trim() || 'unknown'
+  );
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Format metric values for display.
  * Uses scientific notation for non-zero values that would round to 0.000.

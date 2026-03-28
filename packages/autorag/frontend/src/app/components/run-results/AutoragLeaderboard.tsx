@@ -79,7 +79,15 @@ const getModelIdShortName = (modelId: string): string => {
   return segments[segments.length - 1] || modelId;
 };
 
-function AutoragLeaderboard(): React.JSX.Element | null {
+type AutoragLeaderboardProps = {
+  onViewDetails?: (patternName: string) => void;
+  onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+};
+
+function AutoragLeaderboard({
+  onViewDetails,
+  onSaveNotebook,
+}: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -317,11 +325,8 @@ function AutoragLeaderboard(): React.JSX.Element | null {
     [activeSortIndex, activeSortDirection, handleSort],
   );
 
-  // Handler for viewing pattern details
   const handleViewDetails = (patternName: string) => {
-    // TODO: Implement view details
-    // eslint-disable-next-line no-console
-    console.log('View details for pattern:', patternName);
+    onViewDetails?.(patternName);
   };
 
   // Show empty state when pipeline is still running
@@ -548,10 +553,12 @@ function AutoragLeaderboard(): React.JSX.Element | null {
                       onClick: () => handleViewDetails(entry.pattern),
                     },
                     {
-                      title: 'Save notebook',
-                      onClick: () => {
-                        // TODO: Implement save notebook
-                      },
+                      title: 'Save as indexing notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                    },
+                    {
+                      title: 'Save as inference notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
                     },
                   ]}
                 />
