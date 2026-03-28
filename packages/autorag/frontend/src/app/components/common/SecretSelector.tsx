@@ -1,22 +1,20 @@
-import * as React from 'react';
 import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Skeleton,
-  SelectOptionProps,
-  Form,
-  FormGroup,
   Label,
   LabelGroup,
+  SelectOptionProps,
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
+import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { TypeaheadSelect } from 'mod-arch-shared';
 import type { TypeaheadSelectProps } from 'mod-arch-shared/dist/components/TypeaheadSelect';
+import * as React from 'react';
 import { getSecrets } from '~/app/api/k8s';
 import { SecretListItem } from '~/app/types';
-import { getMissingRequiredKeys, formatMissingKeysMessage } from '~/app/utilities/secretValidation';
+import { formatMissingKeysMessage, getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 
 export interface SecretSelection extends SecretListItem {
   invalid?: boolean;
@@ -63,7 +61,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   type,
   value,
   onChange,
-  label = '',
   placeholder = 'Select a secret',
   isDisabled = false,
   isRequired = false,
@@ -76,7 +73,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   showType = false,
   ...props
 }) => {
-  const uniqueId = React.useId();
   const [validationError, setValidationError] = React.useState<string>('');
 
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
@@ -210,7 +206,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     return <Skeleton width={toggleWidth} />;
   }
 
-  const typeahead = (
+  return (
     <>
       <TypeaheadSelect
         {...props}
@@ -270,16 +266,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         </FormHelperText>
       )}
     </>
-  );
-
-  return label ? (
-    <Form>
-      <FormGroup label={label} isRequired={isRequired} fieldId={uniqueId}>
-        {typeahead}
-      </FormGroup>
-    </Form>
-  ) : (
-    typeahead
   );
 };
 

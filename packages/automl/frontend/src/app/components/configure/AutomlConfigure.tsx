@@ -226,57 +226,63 @@ function AutomlConfigure(): React.JSX.Element {
               <CardBody>
                 <Stack>
                   <StackItem>
-                    <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
-                      <SplitItem style={{ width: '10rem' }} isFilled>
-                        {Boolean(namespace) && (
-                          <Controller
-                            control={control}
-                            name="train_data_secret_name"
-                            render={({ field: { onChange } }) => (
-                              <SecretSelector
-                                namespace={String(namespace)}
-                                type="storage"
-                                additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
-                                value={selectedSecret?.uuid}
-                                onChange={(secret) => {
-                                  if (!secret) {
-                                    setValue('train_data_secret_name', '', {
-                                      shouldValidate: true,
-                                    });
-                                    return;
-                                  }
+                    <ConfigureFormGroup
+                      label="S3 connection"
+                      description="Select the S3 connection that contains your desired documents, or add a new connection."
+                    >
+                      <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
+                        <SplitItem style={{ width: '10rem' }} isFilled>
+                          {Boolean(namespace) && (
+                            <Controller
+                              control={control}
+                              name="train_data_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={String(namespace)}
+                                  type="storage"
+                                  additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  value={selectedSecret?.uuid}
+                                  onChange={(secret) => {
+                                    if (!secret) {
+                                      setValue('train_data_secret_name', '', {
+                                        shouldValidate: true,
+                                      });
+                                      return;
+                                    }
 
-                                  const requiredKeys =
-                                    AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                  const availableKeys = Object.keys(secret.data ?? {});
-                                  const invalid =
-                                    getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-                                  setNewConnectionNotLoaded(false);
-                                  setSelectedSecret({ ...secret, invalid });
-                                  onChange(invalid ? '' : secret.name);
-                                }}
-                                onRefreshReady={(refresh) => {
-                                  secretsRefreshRef.current = refresh;
-                                }}
-                                label="S3 connection"
-                                placeholder="Select connection"
-                                toggleWidth="16rem"
-                                dataTestId="aws-secret-selector"
-                              />
-                            )}
-                          />
-                        )}
-                      </SplitItem>
-                      <SplitItem>
-                        <Button
-                          key="add-new-connection"
-                          variant="secondary"
-                          onClick={() => setIsConnectionModalOpen(true)}
-                        >
-                          Add new connection
-                        </Button>
-                      </SplitItem>
-                    </Split>
+                                    const requiredKeys =
+                                      AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                    const availableKeys = Object.keys(secret.data ?? {});
+                                    const invalid =
+                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
+                                      0;
+                                    setNewConnectionNotLoaded(false);
+                                    setSelectedSecret({ ...secret, invalid });
+                                    onChange(invalid ? '' : secret.name);
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    secretsRefreshRef.current = refresh;
+                                  }}
+                                  label="S3 connection"
+                                  placeholder="Select connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="aws-secret-selector"
+                                />
+                              )}
+                            />
+                          )}
+                        </SplitItem>
+                        <SplitItem>
+                          <Button
+                            key="add-new-connection"
+                            variant="secondary"
+                            onClick={() => setIsConnectionModalOpen(true)}
+                          >
+                            Add new connection
+                          </Button>
+                        </SplitItem>
+                      </Split>
+                    </ConfigureFormGroup>
                   </StackItem>
                   {newConnectionNotLoaded && (
                     <StackItem className="pf-v6-u-mt-md">
