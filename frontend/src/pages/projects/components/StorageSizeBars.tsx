@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
+import { getPvcPercentageUsed, getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
 import { usePVCFreeAmount } from '#~/api';
 import { bytesAsRoundedGiB } from '#~/utilities/number';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
@@ -47,8 +47,10 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   }
 
   const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}GiB`;
-  const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
-  const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
+  const percentage = getPvcPercentageUsed(pvc, inUseInBytes);
+  const progressValue = Number.isNaN(percentage) ? 0 : percentage;
+  const percentageLabel =
+    error || !loaded || Number.isNaN(percentage) ? '' : `Storage is ${percentage.toFixed(2)}% full`;
 
   let inUseRender: React.ReactNode;
   if (error) {
@@ -69,7 +71,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
       contentComponentVariant={ContentVariants.small}
       maxValueLabel={maxValue}
       aria-label={percentageLabel || 'Storage progress bar'}
-      value={Number(percentage)}
+      value={progressValue}
     />
   );
 

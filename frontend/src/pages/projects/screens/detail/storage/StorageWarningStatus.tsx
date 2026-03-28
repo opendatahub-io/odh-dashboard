@@ -7,8 +7,7 @@ import {
 } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { usePVCFreeAmount } from '#~/api';
-import { getPvcTotalSize } from '#~/pages/projects/utils';
-import { bytesAsRoundedGiB } from '#~/utilities/number';
+import { getPvcPercentageUsed } from '#~/pages/projects/utils';
 import { getFullStatusFromPercentage } from './utils';
 import useStorageStatusAlert from './useStorageStatusAlert';
 
@@ -24,11 +23,7 @@ const StorageWarningStatus: React.FC<StorageWarningStatusProps> = ({
   onAddPVC,
 }) => {
   const [inUseInBytes, loaded] = usePVCFreeAmount(obj);
-  const percentage = loaded
-    ? Number(
-        ((bytesAsRoundedGiB(inUseInBytes) / parseFloat(getPvcTotalSize(obj))) * 100).toFixed(2),
-      )
-    : NaN;
+  const percentage = loaded ? getPvcPercentageUsed(obj, inUseInBytes) : NaN;
   useStorageStatusAlert(obj, percentage);
 
   const percentageStatus = getFullStatusFromPercentage(percentage);
