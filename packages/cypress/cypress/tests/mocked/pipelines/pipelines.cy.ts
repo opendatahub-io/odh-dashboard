@@ -700,6 +700,8 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
+    // Mock the duplicate name check for the pipeline import modal
+    pipelinesTable.mockGetPipelines([], projectName);
     pipelinesTable
       .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
       .as('refreshPipelines');
@@ -782,6 +784,8 @@ describe('Pipelines', () => {
 
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
+    // Mock the duplicate name check for the pipeline import modal
+    pipelinesTable.mockGetPipelines([], projectName);
     pipelinesTable
       .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
       .as('refreshPipelines');
@@ -850,6 +854,8 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    // Mock the duplicate name check for the pipeline import modal
+    pipelinesTable.mockGetPipelines([], projectName);
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -868,6 +874,8 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(v1PipelineYamlPath);
+    // Mock the duplicate name check for the pipeline import modal
+    pipelinesTable.mockGetPipelines([], projectName);
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -913,6 +921,8 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.findImportPipelineRadio().check();
     pipelineImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+    // Mock the duplicate name check for the pipeline import modal
+    pipelinesTable.mockGetPipelines([], projectName);
     pipelinesTable
       .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
       .as('refreshPipelines');
@@ -961,6 +971,8 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.fillVersionName('New pipeline version');
     pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
     pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
+    // Mock the duplicate name check for the version import modal
+    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelinesTable
       .mockGetPipelineVersions(
         [initialMockPipelineVersion, uploadedMockPipelineVersion],
@@ -1042,6 +1054,8 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.fillVersionName('New pipeline version');
     pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
     pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
+    // Mock the duplicate name check for the version import modal
+    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelinesTable
       .mockGetPipelineVersions(
         [initialMockPipelineVersion, uploadedMockPipelineVersion],
@@ -1108,6 +1122,8 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.fillVersionName('Argo workflow version');
     pipelineVersionImportModal.fillVersionDescription('Argo workflow version description');
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    // Mock the duplicate name check for the version import modal
+    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelineVersionImportModal.submit();
 
     pipelineVersionImportModal.findImportModalError().should('exist');
@@ -1167,6 +1183,8 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.fillVersionName('New pipeline version');
     pipelineVersionImportModal.findImportPipelineRadio().check();
     pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+    // Mock the duplicate name check for the final version name (no duplicates)
+    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelineVersionImportModal.submit();
 
     // Wait for upload/fetch requests
@@ -1245,8 +1263,6 @@ describe('Pipelines', () => {
     pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
-    pipelineRow.findExpandButton().click();
-
     cy.wait('@refreshVersions').then((interception) => {
       expect(interception.request.query).to.eql({
         sort_by: 'created_at desc',
@@ -1254,6 +1270,9 @@ describe('Pipelines', () => {
         pipeline_id: 'test-pipeline',
       });
     });
+
+    // Collapse the row after versions refresh to avoid DOM timing issues
+    pipelineRow.findExpandButton().click();
     pipelineRow.shouldNotHavePipelineVersion();
   });
 
