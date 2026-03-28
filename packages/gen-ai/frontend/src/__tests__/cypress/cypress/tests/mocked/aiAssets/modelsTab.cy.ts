@@ -43,6 +43,17 @@ describe('AI Assets - Models Tab', () => {
           model_type: 'embedding',
           endpoints: ['http://embedding.cluster.local:8080'],
         },
+        {
+          model_name: 'Llama-7B-Inactive',
+          model_id: 'llama-7b-inactive',
+          display_name: 'Llama 7B Inactive',
+          description: 'Inactive namespace model',
+          usecase: 'text-generation',
+          status: 'Stop',
+          model_source_type: 'namespace',
+          model_type: 'llm',
+          endpoints: [],
+        },
       ],
       maasModels: [
         {
@@ -61,14 +72,18 @@ describe('AI Assets - Models Tab', () => {
   });
 
   it(
-    'should display the models table with correct columns and data',
+    'should display models table with different model types and sources',
     { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
     () => {
+      cy.step('Wait for models API calls to complete');
+      cy.wait('@aaModels');
+      cy.wait('@maasModels');
+
       cy.step('Verify the models table is visible');
       modelsTabPage.findTable().should('be.visible');
 
-      cy.step('Verify the table has 4 rows (3 AI + 1 MaaS)');
-      modelsTabPage.findTableRows().should('have.length', 4);
+      cy.step('Verify the table has 5 rows (4 AI + 1 MaaS)');
+      modelsTabPage.findTableRows().should('have.length', 5);
 
       cy.step('Verify Internal model row');
       const internalRow = modelsTabPage.getRow('Llama 3B Internal');
@@ -92,6 +107,120 @@ describe('AI Assets - Models Tab', () => {
       maasRow.findUseCaseCell().should('contain.text', 'text-generation');
       maasRow.findStatusCell().should('contain.text', 'Ready');
       maasRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
+    },
+  );
+
+  it(
+    'should filter models by name and use case',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Filter by model name');
+      modelsTabPage.filterByName('Llama');
+      modelsTabPage.findActiveFilterChip('name').should('exist');
+      modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
+      modelsTabPage.getRow('Llama 70B MaaS').find().should('exist');
+
+      cy.step('Clear filters');
+      modelsTabPage.clearFilters();
+      modelsTabPage.findTableRows().should('have.length', 5);
+
+      cy.step('Filter by use case');
+      modelsTabPage.filterByUseCase('embedding');
+      modelsTabPage.findActiveFilterChip('useCase').should('exist');
+      modelsTabPage.getRow('Embedding Model').find().should('exist');
+    },
+  );
+
+  it(
+    'should display and interact with model endpoints',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Verify endpoint view button exists');
+      const internalRow = modelsTabPage.getRow('Llama 3B Internal');
+      internalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
+
+      cy.step('Click endpoint view button to open endpoint modal');
+      internalRow.findEndpointCell().findByTestId('endpoint-view-button').click();
+
+      cy.step('Verify endpoint modal opens with copy buttons');
+      cy.findByRole('dialog', { name: 'Endpoints' }).should('exist');
+      cy.findByTestId('endpoint-modal-internal-url').should('exist');
+    },
+  );
+
+  it(
+    'should show add to playground button for active models',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets', '@Playground'] },
+    () => {
+      cy.step('Verify Add to playground button for active model');
+      const activeRow = modelsTabPage.getRow('Llama 3B Internal');
+      activeRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('exist')
+        .and('not.be.disabled');
+
+      cy.step('Verify button is disabled for inactive namespace models');
+      const inactiveRow = modelsTabPage.getRow('Llama 7B Inactive');
+      inactiveRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('be.disabled');
+
+      cy.step('Verify button is enabled for inactive custom endpoint models');
+      const customEndpointRow = modelsTabPage.getRow('Embedding Model');
+      customEndpointRow
+        .findPlaygroundCell()
+        .findByTestId('add-to-playground-button')
+        .should('not.be.disabled');
+    },
+  );
+
+  it(
+    'should display model information popover',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      cy.step('Click "Don\'t see the model you\'re looking for?" button');
+      cy.findByTestId('dont-see-model-button').should('exist');
+      cy.findByTestId('dont-see-model-button').click();
+
+      cy.step('Verify popover opens with information');
+      cy.findByRole('dialog', {
+        name: /Information about making model deployments available/i,
+      }).should('exist');
+
+      cy.step('Verify popover content explains AI assets');
+      cy.findByRole('dialog').should('contain', 'model deployments available as AI assets');
+
+      cy.step('Close the popover');
+      cy.findByTestId('model-info-popover').findByRole('button', { name: /close/i }).click();
+    },
+  );
+});
+
+describe('AI Assets - Models Tab (Empty State)', () => {
+  beforeEach(() => {
+    setupModelsTabIntercepts({
+      namespace: TEST_NAMESPACE,
+      aiModels: [],
+      maasModels: [],
+    });
+
+    aiAssetsPage.visit(TEST_NAMESPACE);
+  });
+
+  it(
+    'should display empty state when no models are available',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets', '@EmptyState'] },
+    () => {
+      cy.step('Verify empty state is displayed with instructional message');
+      cy.findByText('To begin you must deploy a model').should('be.visible');
+
+      cy.step('Verify models table does not exist');
+      modelsTabPage.findTable().should('not.exist');
+
+      cy.step('Verify "Go to Deployments" action button exists');
+      cy.findByTestId('empty-state-action-button').should('be.visible');
     },
   );
 });

@@ -34,7 +34,7 @@ type AIModelsTableProps = {
 };
 
 const dontSeeModelPopoverContent: React.ReactNode = (
-  <Stack hasGutter>
+  <Stack hasGutter data-testid="model-info-popover-content">
     <StackItem>
       <Content component="p">
         This page displays model deployments available as AI assets and MaaS models.
@@ -51,6 +51,7 @@ export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
   modelsVisibleCount,
 }) => (
   <Popover
+    data-testid="model-info-popover"
     position="bottom"
     showClose
     aria-label="Information about making model deployments available"

@@ -19,8 +19,17 @@ class AIAssetsPage {
     cy.findByRole('tabpanel', { timeout: 10000 }).should('be.visible');
   }
 
+  findModelsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('ai-assets-tab-models');
+  }
+
   findMCPServersTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('ai-assets-tab-ai-assets-mcp-servers-tab');
+  }
+
+  switchToModelsTab(): void {
+    this.findModelsTab().click();
+    this.waitForTabLoad();
   }
 
   switchToMCPServersTab(): void {

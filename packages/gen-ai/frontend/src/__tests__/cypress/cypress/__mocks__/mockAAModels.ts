@@ -35,7 +35,7 @@ export const mockAAModel = (overrides?: Partial<AAModelResponse>): AAModelRespon
 });
 
 export const mockAAModels = (models?: Partial<AAModelResponse>[]): AAModelsResponse => {
-  if (!models || models.length === 0) {
+  if (!models) {
     return {
       data: [mockAAModel()],
     };

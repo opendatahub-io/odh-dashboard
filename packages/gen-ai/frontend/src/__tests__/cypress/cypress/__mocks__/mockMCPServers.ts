@@ -1,14 +1,22 @@
 /* eslint-disable camelcase */
-export type MCPServer = {
+
+/**
+ * MCP Server mock that matches the real API structure (MCPServerFromAPI)
+ * Note: Does NOT include 'id' field - that's added by transformMCPServerData in the frontend
+ * Note: Status accepts any string for test flexibility, but defaults to API-compliant values
+ */
+export type MCPServerMock = {
   name: string;
   url: string;
-  status: string;
-  description?: string;
+  transport: 'sse' | 'streamable-http';
+  description: string;
+  logo: string | null;
+  status: string; // In real API: 'healthy' | 'error' | 'unknown', but tests may use other values
 };
 
 export type MCPServersData = {
   total_count: number;
-  servers: MCPServer[];
+  servers: MCPServerMock[];
 };
 
 export type MCPServersResponse = {
@@ -18,27 +26,31 @@ export type MCPServersResponse = {
 export const mockMCPServer = ({
   name = 'Test-MCP-Server',
   url = 'http://test-mcp-server.test.svc.cluster.local:8080/sse',
-  status = 'Ready',
+  transport = 'sse',
   description = 'Test MCP server',
-}: Partial<MCPServer> = {}): MCPServer => ({
+  logo = null,
+  status = 'healthy',
+}: Partial<MCPServerMock> = {}): MCPServerMock => ({
   name,
   url,
-  status,
+  transport,
   description,
+  logo,
+  status,
 });
 
-export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
+export const mockMCPServers = (servers?: MCPServerMock[]): MCPServersResponse => {
   const serverList = servers ?? [
     mockMCPServer({
       name: 'GitHub-MCP-Server',
       url: 'http://github-mcp-server.crimson-show.svc.cluster.local:8080/sse',
-      status: 'Token required',
+      status: 'unknown',
       description: 'MCP server for GitHub integration',
     }),
     mockMCPServer({
       name: 'Kubernetes-MCP-Server',
       url: 'http://kubernetes-mcp-server.crimson-show.svc.cluster.local:8080/sse',
-      status: 'Ready',
+      status: 'healthy',
       description: 'MCP server for Kubernetes cluster access',
     }),
   ];
