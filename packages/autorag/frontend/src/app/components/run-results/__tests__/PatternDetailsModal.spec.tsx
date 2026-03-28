@@ -471,4 +471,45 @@ describe('PatternDetailsModal', () => {
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
     });
   });
+
+  describe('save notebook dropdown', () => {
+    it('should not render save notebook dropdown when onSaveNotebook is not provided', () => {
+      render(<PatternDetailsModal {...defaultProps} />);
+      expect(screen.queryByTestId('pattern-details-save-notebook-toggle')).not.toBeInTheDocument();
+    });
+
+    it('should render save notebook dropdown toggle when onSaveNotebook is provided', () => {
+      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
+      expect(screen.getByTestId('pattern-details-save-notebook-toggle')).toBeInTheDocument();
+    });
+
+    it('should show both notebook options when dropdown is opened', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
+      expect(screen.getByTestId('pattern-details-save-indexing-notebook')).toBeInTheDocument();
+      expect(screen.getByTestId('pattern-details-save-inference-notebook')).toBeInTheDocument();
+    });
+
+    it('should call onSaveNotebook with indexing type when indexing option is clicked', async () => {
+      const user = userEvent.setup();
+      const onSaveNotebook = jest.fn();
+      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
+
+      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
+      await user.click(screen.getByText('Indexing'));
+      expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'indexing');
+    });
+
+    it('should call onSaveNotebook with inference type when inference option is clicked', async () => {
+      const user = userEvent.setup();
+      const onSaveNotebook = jest.fn();
+      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
+
+      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
+      await user.click(screen.getByText('Inference'));
+      expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'inference');
+    });
+  });
 });

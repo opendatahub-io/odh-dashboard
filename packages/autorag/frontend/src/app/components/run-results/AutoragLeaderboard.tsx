@@ -81,9 +81,13 @@ const getModelIdShortName = (modelId: string): string => {
 
 type AutoragLeaderboardProps = {
   onViewDetails?: (patternName: string) => void;
+  onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
 };
 
-function AutoragLeaderboard({ onViewDetails }: AutoragLeaderboardProps): React.JSX.Element | null {
+function AutoragLeaderboard({
+  onViewDetails,
+  onSaveNotebook,
+}: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -549,10 +553,12 @@ function AutoragLeaderboard({ onViewDetails }: AutoragLeaderboardProps): React.J
                       onClick: () => handleViewDetails(entry.pattern),
                     },
                     {
-                      title: 'Save notebook',
-                      onClick: () => {
-                        // TODO: Implement save notebook
-                      },
+                      title: 'Save as indexing notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                    },
+                    {
+                      title: 'Save as inference notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
                     },
                   ]}
                 />
