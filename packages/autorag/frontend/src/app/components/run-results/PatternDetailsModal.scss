@@ -1,0 +1,70 @@
+.autorag-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.autorag-pattern-details-print-only {
+  display: none;
+}
+
+@media print {
+  body > *:not(.pf-v6-c-backdrop) {
+    display: none !important;
+  }
+
+  .pf-v6-c-backdrop {
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  .autorag-pattern-details-modal {
+    position: static !important;
+    max-width: none !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .autorag-pattern-details-screen-only,
+  .pf-v6-c-modal-box__header,
+  .pf-v6-c-modal-box__close {
+    display: none !important;
+  }
+
+  .autorag-pattern-details-print-only {
+    display: block !important;
+  }
+
+  .autorag-print-header {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #000;
+
+    h1 {
+      font-size: 24px;
+      margin: 0;
+    }
+
+    p {
+      font-size: 14px;
+      color: #555;
+      margin: 4px 0 0;
+    }
+  }
+
+  .autorag-print-page {
+    page-break-before: always;
+    padding-top: 16px;
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ccc;
+    }
+  }
+
+  .autorag-print-header + .autorag-print-page {
+    page-break-before: avoid;
+  }
+}

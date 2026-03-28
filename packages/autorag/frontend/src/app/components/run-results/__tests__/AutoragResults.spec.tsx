@@ -8,6 +8,11 @@ import {
 } from '~/app/context/AutoragResultsContext';
 import type { PipelineRun } from '~/app/types';
 
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: () => ({ namespace: 'test-ns' }),
+}));
+
 jest.mock('~/app/topology/PipelineTopology', () => ({
   __esModule: true,
   default: ({ nodes, className }: { nodes: unknown[]; className?: string }) => (
