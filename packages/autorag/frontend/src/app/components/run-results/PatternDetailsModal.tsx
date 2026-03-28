@@ -69,6 +69,7 @@ export type PatternDetailsModalProps = {
   onPatternChange: (index: number) => void;
   namespace?: string;
   ragPatternsBasePath?: string;
+  onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
 };
 
 const OVERVIEW_KEY = 'pattern_information';
@@ -302,10 +303,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onPatternChange,
   namespace,
   ragPatternsBasePath,
+  onSaveNotebook,
 }) => {
   const [activeSection, setActiveSection] = React.useState<string>(OVERVIEW_KEY);
   const [scoreType, setScoreType] = React.useState<ScoreType>('mean');
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
+  const [isNotebookDropdownOpen, setIsNotebookDropdownOpen] = React.useState(false);
 
   const data = patterns[selectedIndex];
 
@@ -492,14 +495,60 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             </Stack>
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
-            <Button
-              variant="secondary"
-              icon={<DownloadIcon />}
-              onClick={() => setIsPrinting(true)}
-              data-testid="pattern-details-download"
-            >
-              Download
-            </Button>
+            <Flex gap={{ default: 'gapSm' }}>
+              <FlexItem>
+                <Button
+                  variant="secondary"
+                  icon={<DownloadIcon />}
+                  onClick={() => setIsPrinting(true)}
+                  data-testid="pattern-details-download"
+                >
+                  Download
+                </Button>
+              </FlexItem>
+              {onSaveNotebook && (
+                <FlexItem>
+                  <Dropdown
+                    isOpen={isNotebookDropdownOpen}
+                    onSelect={(_e, value) => {
+                      setIsNotebookDropdownOpen(false);
+                      if (value === 'indexing' || value === 'inference') {
+                        onSaveNotebook(data.name, value);
+                      }
+                    }}
+                    onOpenChange={setIsNotebookDropdownOpen}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        variant="primary"
+                        onClick={() => setIsNotebookDropdownOpen(!isNotebookDropdownOpen)}
+                        isExpanded={isNotebookDropdownOpen}
+                        data-testid="pattern-details-save-notebook-toggle"
+                      >
+                        Save as notebook
+                      </MenuToggle>
+                    )}
+                  >
+                    <DropdownList>
+                      <DropdownItem
+                        key="indexing"
+                        value="indexing"
+                        data-testid="pattern-details-save-indexing-notebook"
+                      >
+                        Indexing
+                      </DropdownItem>
+                      <DropdownItem
+                        key="inference"
+                        value="inference"
+                        data-testid="pattern-details-save-inference-notebook"
+                      >
+                        Inference
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </FlexItem>
+              )}
+            </Flex>
           </FlexItem>
         </Flex>
         <Divider />
