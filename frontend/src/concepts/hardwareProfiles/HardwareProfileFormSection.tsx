@@ -43,6 +43,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   } = useHardwareProfilesByFeatureVisibility(visibleIn, project);
 
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const existingResources = React.useRef<ContainerResources | undefined>(undefined);
 
   React.useEffect(() => {
     if (initialHardwareProfile && hasValidationErrors) {
@@ -50,20 +51,32 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
     }
   }, [initialHardwareProfile, hasValidationErrors]);
 
+  React.useEffect(() => {
+    if (formData.resources && !existingResources.current) {
+      existingResources.current = formData.resources;
+    }
+  }, [formData.resources]);
+
   const onProfileSelect = (profile?: HardwareProfileKind) => {
-    // if no profile provided, use existing settings
     if (!profile) {
       setFormData('selectedProfile', undefined);
       setFormData('useExistingSettings', true);
+      if (existingResources.current) {
+        setFormData('resources', existingResources.current);
+      }
       return;
     }
 
-    // Reset customization when changing profiles
-    const newResources = getContainerResourcesFromHardwareProfile(profile);
+    if (
+      formData.selectedProfile?.metadata.name === profile.metadata.name &&
+      formData.selectedProfile.metadata.namespace === profile.metadata.namespace
+    ) {
+      return;
+    }
 
     setFormData('selectedProfile', profile);
     setFormData('useExistingSettings', false);
-    setFormData('resources', newResources);
+    setFormData('resources', getContainerResourcesFromHardwareProfile(profile));
   };
 
   return (
@@ -98,7 +111,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
               onChange={onProfileSelect}
-              allowExistingSettings={isEditing && !initialHardwareProfile}
+              allowExistingSettings={isEditing}
               project={project}
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />

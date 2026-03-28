@@ -105,18 +105,8 @@ describe('NotebookServer', () => {
       // Check podSpecOptions exists
       expect(requestBody).to.have.property('podSpecOptions');
 
-      // Check podSpecOptions.resources
-      expect(requestBody.podSpecOptions).to.have.property('resources');
-      expect(requestBody.podSpecOptions.resources).to.have.property('requests');
-      expect(requestBody.podSpecOptions.resources.requests).to.deep.equal({
-        cpu: '1',
-        memory: '2Gi',
-      });
-      expect(requestBody.podSpecOptions.resources).to.have.property('limits');
-      expect(requestBody.podSpecOptions.resources.limits).to.deep.equal({
-        cpu: '1',
-        memory: '2Gi',
-      });
+      // Resources should be omitted when user has not customized them (webhook handles defaults)
+      expect(requestBody.podSpecOptions.resources).to.equal(undefined);
 
       // Check podSpecOptions.tolerations
       expect(requestBody.podSpecOptions).to.have.property('tolerations');

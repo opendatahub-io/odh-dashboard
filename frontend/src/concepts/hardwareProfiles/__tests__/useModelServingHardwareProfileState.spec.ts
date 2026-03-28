@@ -92,10 +92,7 @@ describe('useModelServingHardwareProfileState', () => {
       },
       hardwareProfile: expect.any(Object),
       podSpecOptions: {
-        resources: {
-          requests: {},
-          limits: {},
-        },
+        resources: undefined,
         tolerations: undefined,
         nodeSelector: undefined,
         selectedHardwareProfile: undefined,

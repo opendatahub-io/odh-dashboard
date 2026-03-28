@@ -222,7 +222,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               <HardwareProfileTableColumn
                 namespace={obj.notebook.metadata.namespace}
                 resource={obj.notebook}
-                containerResources={podSpecOptionsState.podSpecOptions.resources}
+                containerResources={podSpecOptionsState.hardwareProfile.formData.resources}
                 isActive={obj.isRunning || obj.isStarting}
                 bindingState={{
                   bindingStateInfo,
@@ -271,7 +271,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td dataLabel="Limits">
           <ExpandableRowContent>
             <NotebookSizeDetails
-              notebookContainerSize={podSpecOptionsState.podSpecOptions.resources}
+              notebookContainerSize={podSpecOptionsState.hardwareProfile.formData.resources}
             />
           </ExpandableRowContent>
         </Td>
