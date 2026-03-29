@@ -12,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   Grid,
   GridItem,
@@ -23,7 +25,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { CubesIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
@@ -262,138 +264,156 @@ function AutoragConfigure(): React.JSX.Element {
                 <Content component="h3">Configure Details</Content>
               </CardHeader>
               <CardBody>
-                <Stack hasGutter>
-                  <ConfigureFormGroup
-                    label="Index"
-                    description="Specify the location for storing the vector index used to retrieve your documents."
+                {!selectedSecret ? (
+                  <EmptyState
+                    variant="xs"
+                    titleText="Select an S3 connection or upload a file to get started"
+                    headingLevel="h4"
+                    icon={CubesIcon}
                   >
-                    <AutoragVectorStoreSelector />
-                  </ConfigureFormGroup>
+                    <EmptyStateBody>
+                      In order to configure details and run an experiment, add a document or
+                      connection in the widget on the left.
+                    </EmptyStateBody>
+                  </EmptyState>
+                ) : (
+                  <Stack hasGutter>
+                    <ConfigureFormGroup
+                      label="Index"
+                      description="Specify the location for storing the vector index used to retrieve your documents."
+                    >
+                      <AutoragVectorStoreSelector />
+                    </ConfigureFormGroup>
 
-                  <ConfigureFormGroup
-                    label="Evaluation dataset"
-                    description={
-                      <>
-                        <span>
-                          Select the evaluation dataset that will be used to measure the quality of
-                          the generated responses. Must adhere to the{' '}
-                        </span>
-                        <Button variant="link" isInline component="span" onClick={() => null}>
-                          evaluation dataset template
-                        </Button>
-                        <span>.</span>
-                      </>
-                    }
-                  >
-                    Evaluation data source upload component
-                  </ConfigureFormGroup>
+                    <ConfigureFormGroup
+                      label="Evaluation dataset"
+                      description={
+                        <>
+                          <span>
+                            Select the evaluation dataset that will be used to measure the quality
+                            of the generated responses. Must adhere to the{' '}
+                          </span>
+                          <Button variant="link" isInline component="span" onClick={() => null}>
+                            evaluation dataset template
+                          </Button>
+                          <span>.</span>
+                        </>
+                      }
+                    >
+                      Evaluation data source upload component
+                    </ConfigureFormGroup>
 
-                  <StackItem>
-                    <Card>
-                      <CardHeader
-                        hasWrap
-                        actions={{
-                          actions: [
-                            <Watch
-                              key="edit-experiment-settings"
-                              control={form.control}
-                              name="input_data_key"
-                              render={(inputDataKey) => (
-                                <Button
-                                  variant="secondary"
-                                  onClick={openExperimentSettings}
-                                  isDisabled={
-                                    !inputDataBucketName ||
-                                    !inputDataKey ||
-                                    form.formState.isSubmitting
-                                  }
-                                >
-                                  Edit
-                                </Button>
-                              )}
-                            />,
-                          ],
-                        }}
-                      >
-                        <CardTitle>Models to consider</CardTitle>
-                      </CardHeader>
-                      <CardBody>
-                        <Stack hasGutter>
-                          <StackItem>
-                            <Watch
-                              control={form.control}
-                              name="generation_models"
-                              render={(generationModels) => (
-                                <Flex
-                                  alignItems={{ default: 'alignItemsCenter' }}
-                                  spacer={{ default: 'spacerNone' }}
-                                  gap={{ default: 'gapSm' }}
-                                >
-                                  <Content>{`${generationModels.length || 'No'} generation models`}</Content>
-                                  {!!generationModels.length && (
-                                    <Popover
-                                      bodyContent={
-                                        <List>
-                                          {generationModels.map((model) => (
-                                            <ListItem key={`generation-${model}`}>{model}</ListItem>
-                                          ))}
-                                        </List>
-                                      }
-                                    >
-                                      <DashboardPopupIconButton
-                                        icon={<InfoCircleIcon />}
-                                        hasNoPadding
-                                      />
-                                    </Popover>
-                                  )}
-                                </Flex>
-                              )}
-                            />
-                          </StackItem>
-                          <StackItem>
-                            <Watch
-                              control={form.control}
-                              name="embeddings_models"
-                              render={(embeddingModels) => (
-                                <Flex
-                                  alignItems={{ default: 'alignItemsCenter' }}
-                                  spacer={{ default: 'spacerNone' }}
-                                  gap={{ default: 'gapSm' }}
-                                >
-                                  <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                  {!!embeddingModels.length && (
-                                    <Popover
-                                      bodyContent={
-                                        <List>
-                                          {embeddingModels.map((model) => (
-                                            <ListItem key={`embedding-${model}`}>{model}</ListItem>
-                                          ))}
-                                        </List>
-                                      }
-                                    >
-                                      <DashboardPopupIconButton
-                                        icon={<InfoCircleIcon />}
-                                        hasNoPadding
-                                      />
-                                    </Popover>
-                                  )}
-                                </Flex>
-                              )}
-                            />
-                          </StackItem>
-                        </Stack>
-                      </CardBody>
-                      <CardTitle>Optimization metric</CardTitle>
-                      <CardBody className="pf-v6-u-mb-sm">
-                        <Watch
-                          control={form.control}
-                          name="optimization_metric"
-                          render={(optimizationMetric) => optimizationMetric}
-                        />
-                      </CardBody>
-                    </Card>
-                  </StackItem>
-                </Stack>
+                    <StackItem>
+                      <Card>
+                        <CardHeader
+                          hasWrap
+                          actions={{
+                            actions: [
+                              <Watch
+                                key="edit-experiment-settings"
+                                control={form.control}
+                                name="input_data_key"
+                                render={(inputDataKey) => (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={openExperimentSettings}
+                                    isDisabled={
+                                      !inputDataBucketName ||
+                                      !inputDataKey ||
+                                      form.formState.isSubmitting
+                                    }
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                              />,
+                            ],
+                          }}
+                        >
+                          <CardTitle>Models to consider</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <Watch
+                                control={form.control}
+                                name="generation_models"
+                                render={(generationModels) => (
+                                  <Flex
+                                    alignItems={{ default: 'alignItemsCenter' }}
+                                    spacer={{ default: 'spacerNone' }}
+                                    gap={{ default: 'gapSm' }}
+                                  >
+                                    <Content>{`${generationModels.length || 'No'} generation models`}</Content>
+                                    {!!generationModels.length && (
+                                      <Popover
+                                        bodyContent={
+                                          <List>
+                                            {generationModels.map((model) => (
+                                              <ListItem key={`generation-${model}`}>
+                                                {model}
+                                              </ListItem>
+                                            ))}
+                                          </List>
+                                        }
+                                      >
+                                        <DashboardPopupIconButton
+                                          icon={<InfoCircleIcon />}
+                                          hasNoPadding
+                                        />
+                                      </Popover>
+                                    )}
+                                  </Flex>
+                                )}
+                              />
+                            </StackItem>
+                            <StackItem>
+                              <Watch
+                                control={form.control}
+                                name="embeddings_models"
+                                render={(embeddingModels) => (
+                                  <Flex
+                                    alignItems={{ default: 'alignItemsCenter' }}
+                                    spacer={{ default: 'spacerNone' }}
+                                    gap={{ default: 'gapSm' }}
+                                  >
+                                    <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                    {!!embeddingModels.length && (
+                                      <Popover
+                                        bodyContent={
+                                          <List>
+                                            {embeddingModels.map((model) => (
+                                              <ListItem key={`embedding-${model}`}>
+                                                {model}
+                                              </ListItem>
+                                            ))}
+                                          </List>
+                                        }
+                                      >
+                                        <DashboardPopupIconButton
+                                          icon={<InfoCircleIcon />}
+                                          hasNoPadding
+                                        />
+                                      </Popover>
+                                    )}
+                                  </Flex>
+                                )}
+                              />
+                            </StackItem>
+                          </Stack>
+                        </CardBody>
+                        <CardTitle>Optimization metric</CardTitle>
+                        <CardBody className="pf-v6-u-mb-sm">
+                          <Watch
+                            control={form.control}
+                            name="optimization_metric"
+                            render={(optimizationMetric) => optimizationMetric}
+                          />
+                        </CardBody>
+                      </Card>
+                    </StackItem>
+                  </Stack>
+                )}
               </CardBody>
             </div>
           </Card>

@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  EmptyState,
+  EmptyStateBody,
   FormHelperText,
   Gallery,
   Grid,
@@ -25,6 +27,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { CubesIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
 import React, { useEffect, useRef, useState } from 'react';
@@ -321,114 +324,128 @@ function AutomlConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
-                  <StackItem>
-                    <ConfigureFormGroup label="Prediction type" isRequired>
-                      <Controller
-                        control={form.control}
-                        name="task_type"
-                        render={({ field }) => (
-                          <Gallery hasGutter minWidths={{ default: '200px' }}>
-                            {PREDICTION_TYPES.map((type) => (
-                              <Card
-                                key={type.value}
-                                isSelectable
-                                isDisabled={!canSelectLearningType}
-                                isSelected={field.value === type.value}
-                                onClick={() => field.onChange(type.value)}
-                                data-testid={`task-type-card-${type.value}`}
-                              >
-                                <CardHeader
-                                  selectableActions={{
-                                    selectableActionId: `task-type-${type.value}`,
-                                    selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                    name: 'task_type',
-                                    variant: 'single',
-                                    isChecked: field.value === type.value,
-                                    onChange: () => field.onChange(type.value),
-                                    isHidden: true,
-                                  }}
+                {!selectedSecret ? (
+                  <EmptyState
+                    variant="xs"
+                    titleText="Select an S3 connection or upload a file to get started"
+                    headingLevel="h4"
+                    icon={CubesIcon}
+                  >
+                    <EmptyStateBody>
+                      In order to configure details and run an experiment, add a document or
+                      connection in the widget on the left.
+                    </EmptyStateBody>
+                  </EmptyState>
+                ) : (
+                  <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
+                    <StackItem>
+                      <ConfigureFormGroup label="Prediction type" isRequired>
+                        <Controller
+                          control={form.control}
+                          name="task_type"
+                          render={({ field }) => (
+                            <Gallery hasGutter minWidths={{ default: '200px' }}>
+                              {PREDICTION_TYPES.map((type) => (
+                                <Card
+                                  key={type.value}
+                                  isSelectable
+                                  isDisabled={!canSelectLearningType}
+                                  isSelected={field.value === type.value}
+                                  onClick={() => field.onChange(type.value)}
+                                  data-testid={`task-type-card-${type.value}`}
                                 >
-                                  <CardTitle id={`task-type-label-${type.value}`}>
-                                    {type.label}
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardBody>
-                                  <Content component="small">{type.description}</Content>
-                                </CardBody>
-                              </Card>
-                            ))}
-                          </Gallery>
-                        )}
-                      />
-                    </ConfigureFormGroup>
-                  </StackItem>
+                                  <CardHeader
+                                    selectableActions={{
+                                      selectableActionId: `task-type-${type.value}`,
+                                      selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                      name: 'task_type',
+                                      variant: 'single',
+                                      isChecked: field.value === type.value,
+                                      onChange: () => field.onChange(type.value),
+                                      isHidden: true,
+                                    }}
+                                  >
+                                    <CardTitle id={`task-type-label-${type.value}`}>
+                                      {type.label}
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardBody>
+                                    <Content component="small">{type.description}</Content>
+                                  </CardBody>
+                                </Card>
+                              ))}
+                            </Gallery>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </StackItem>
 
-                  {isTimeseries ? (
-                    <ConfigureTimeseriesForm
-                      columns={columns}
-                      isLoadingColumns={isLoadingColumns}
-                      isFetchingColumns={isFetchingColumns}
-                      columnsError={columnsError}
-                      isFileSelected={isFileSelected}
-                      formIsSubmitting={formIsSubmitting}
-                    />
-                  ) : (
-                    <ConfigureTabularForm
-                      columns={columns}
-                      isLoadingColumns={isLoadingColumns}
-                      isFetchingColumns={isFetchingColumns}
-                      columnsError={columnsError}
-                      isFileSelected={isFileSelected}
-                      formIsSubmitting={formIsSubmitting}
-                    />
-                  )}
-
-                  <StackItem>
-                    <ConfigureFormGroup
-                      label="Top models to consider"
-                      labelHelp={{
-                        header: 'Top models to consider',
-                        body: 'Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training.',
-                      }}
-                    >
-                      <Controller
-                        control={form.control}
-                        name="top_n"
-                        render={({ field, fieldState }) => (
-                          <>
-                            <NumberInput
-                              id="top-n-input"
-                              value={field.value}
-                              min={MIN_TOP_N}
-                              max={MAX_TOP_N}
-                              isDisabled={formIsSubmitting}
-                              validated={fieldState.error ? 'error' : 'default'}
-                              onMinus={() => field.onChange(Number(field.value) - 1)}
-                              onPlus={() => field.onChange(Number(field.value) + 1)}
-                              onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                                const value = parseInt(event.currentTarget.value, 10);
-                                if (!Number.isNaN(value)) {
-                                  field.onChange(value);
-                                }
-                              }}
-                              data-testid="top-n-input"
-                            />
-                            {fieldState.error && (
-                              <FormHelperText>
-                                <HelperText>
-                                  <HelperTextItem variant="error">
-                                    {fieldState.error.message}
-                                  </HelperTextItem>
-                                </HelperText>
-                              </FormHelperText>
-                            )}
-                          </>
-                        )}
+                    {isTimeseries ? (
+                      <ConfigureTimeseriesForm
+                        columns={columns}
+                        isLoadingColumns={isLoadingColumns}
+                        isFetchingColumns={isFetchingColumns}
+                        columnsError={columnsError}
+                        isFileSelected={isFileSelected}
+                        formIsSubmitting={formIsSubmitting}
                       />
-                    </ConfigureFormGroup>
-                  </StackItem>
-                </Stack>
+                    ) : (
+                      <ConfigureTabularForm
+                        columns={columns}
+                        isLoadingColumns={isLoadingColumns}
+                        isFetchingColumns={isFetchingColumns}
+                        columnsError={columnsError}
+                        isFileSelected={isFileSelected}
+                        formIsSubmitting={formIsSubmitting}
+                      />
+                    )}
+
+                    <StackItem>
+                      <ConfigureFormGroup
+                        label="Top models to consider"
+                        labelHelp={{
+                          header: 'Top models to consider',
+                          body: 'Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training.',
+                        }}
+                      >
+                        <Controller
+                          control={form.control}
+                          name="top_n"
+                          render={({ field, fieldState }) => (
+                            <>
+                              <NumberInput
+                                id="top-n-input"
+                                value={field.value}
+                                min={MIN_TOP_N}
+                                max={MAX_TOP_N}
+                                isDisabled={formIsSubmitting}
+                                validated={fieldState.error ? 'error' : 'default'}
+                                onMinus={() => field.onChange(Number(field.value) - 1)}
+                                onPlus={() => field.onChange(Number(field.value) + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const value = parseInt(event.currentTarget.value, 10);
+                                  if (!Number.isNaN(value)) {
+                                    field.onChange(value);
+                                  }
+                                }}
+                                data-testid="top-n-input"
+                              />
+                              {fieldState.error && (
+                                <FormHelperText>
+                                  <HelperText>
+                                    <HelperTextItem variant="error">
+                                      {fieldState.error.message}
+                                    </HelperTextItem>
+                                  </HelperText>
+                                </FormHelperText>
+                              )}
+                            </>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </StackItem>
+                  </Stack>
+                )}
               </CardBody>
             </div>
           </Card>
