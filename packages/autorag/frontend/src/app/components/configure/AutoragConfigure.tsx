@@ -15,7 +15,6 @@ import {
   Flex,
   Grid,
   GridItem,
-  Label,
   List,
   ListItem,
   Popover,
@@ -31,6 +30,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
@@ -40,7 +40,6 @@ import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
-import ConfigureFormGroup from '../common/ConfigureFormGroup';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
@@ -173,13 +172,13 @@ function AutoragConfigure(): React.JSX.Element {
                 </Content>
               </CardHeader>
               <CardBody>
-                <Stack>
+                <Stack hasGutter>
                   <StackItem>
                     <ConfigureFormGroup
                       label="S3 connection"
                       description="Select the S3 connection that contains your desired documents, or add a new connection."
                     >
-                      <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
+                      <Split hasGutter isWrappable>
                         <SplitItem style={{ width: '10rem' }} isFilled>
                           {Boolean(namespace) && (
                             <Controller
@@ -234,21 +233,6 @@ function AutoragConfigure(): React.JSX.Element {
                   </StackItem>
                   {Boolean(selectedSecret?.uuid) && (
                     <>
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label
-                          onClose={() => {
-                            setSelectedSecret(undefined);
-                            setValue('input_data_secret_name', '', { shouldValidate: true });
-                          }}
-                          closeBtnAriaLabel="Clear selected connection"
-                        >
-                          {selectedSecret?.displayName ?? selectedSecret?.name}
-                        </Label>
-                      </StackItem>
-
                       <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
                         Selected files
                       </StackItem>

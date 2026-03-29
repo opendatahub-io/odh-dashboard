@@ -19,7 +19,6 @@ import {
   GridItem,
   HelperText,
   HelperTextItem,
-  Label,
   NumberInput,
   Split,
   SplitItem,
@@ -220,17 +219,18 @@ function AutomlConfigure(): React.JSX.Element {
               <CardHeader>
                 <Content component="h3">Documents</Content>
                 <Content component="p">
-                  Select or add an S3 connection to upload files or browse existing files.
+                  Select or upload documents to train and build machine learning models for tabular
+                  or timeseries data.
                 </Content>
               </CardHeader>
               <CardBody>
-                <Stack>
+                <Stack hasGutter>
                   <StackItem>
                     <ConfigureFormGroup
                       label="S3 connection"
                       description="Select the S3 connection that contains your desired documents, or add a new connection."
                     >
-                      <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
+                      <Split hasGutter isWrappable>
                         <SplitItem style={{ width: '10rem' }} isFilled>
                           {Boolean(namespace) && (
                             <Controller
@@ -294,21 +294,6 @@ function AutomlConfigure(): React.JSX.Element {
                   )}
                   {Boolean(selectedSecret?.uuid) && (
                     <>
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected connection
-                      </StackItem>
-                      <StackItem>
-                        <Label
-                          onClose={() => {
-                            setSelectedSecret(undefined);
-                            setValue('train_data_secret_name', '', { shouldValidate: true });
-                          }}
-                          closeBtnAriaLabel="Clear selected connection"
-                        >
-                          {selectedSecret?.displayName ?? selectedSecret?.name}
-                        </Label>
-                      </StackItem>
-
                       <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
                         Selected files
                       </StackItem>
