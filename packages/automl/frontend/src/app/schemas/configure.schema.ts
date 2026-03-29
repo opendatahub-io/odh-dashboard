@@ -1,16 +1,17 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
+import {
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+} from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 
 export const MIN_TOP_N = 1;
 export const MAX_TOP_N = 5;
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
-
-export const TASK_TYPE_BINARY = 'binary';
-export const TASK_TYPE_MULTICLASS = 'multiclass';
-export const TASK_TYPE_REGRESSION = 'regression';
-export const TASK_TYPE_TIMESERIES = 'timeseries';
 
 const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
 export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;

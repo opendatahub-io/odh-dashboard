@@ -1,13 +1,13 @@
-import '@testing-library/jest-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
-import { useFilesQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 jest.mock('react-router', () => ({
@@ -105,7 +105,7 @@ jest.mock('mod-arch-shared', () => ({
   DashboardPopupIconButton: () => null,
 }));
 
-const mockUseFilesQuery = jest.mocked(useFilesQuery);
+const mockuseS3GetFileSchemaQuery = jest.mocked(useS3GetFileSchemaQuery);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
@@ -153,10 +153,10 @@ const renderComponent = () => renderWithQueryClient(<AutomlConfigure />);
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseFilesQuery.mockReturnValue({
+    mockuseS3GetFileSchemaQuery.mockReturnValue({
       data: MOCK_COLUMNS,
       isLoading: false,
-    } as unknown as ReturnType<typeof useFilesQuery>);
+    } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
@@ -500,10 +500,10 @@ describe('AutomlConfigure', () => {
     });
 
     it('should be disabled when columns are empty', () => {
-      mockUseFilesQuery.mockReturnValue({
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
         data: [],
         isLoading: false,
-      } as unknown as ReturnType<typeof useFilesQuery>);
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       expect(screen.getByTestId('label_column-select')).toBeDisabled();
     });

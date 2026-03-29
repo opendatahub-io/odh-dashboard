@@ -37,17 +37,15 @@ import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import { useFilesQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
 import {
-  ConfigureSchema,
-  MAX_TOP_N,
-  MIN_TOP_N,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
-} from '~/app/schemas/configure.schema';
-import { SecretListItem } from '~/app/types';
+} from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import ConfigureTabularForm from './ConfigureTabularForm';
@@ -134,7 +132,12 @@ function AutomlConfigure(): React.JSX.Element {
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
-  } = useFilesQuery(namespace ?? '', trainDataSecretName, trainDataBucketName, trainDataFileKey);
+  } = useS3GetFileSchemaQuery(
+    namespace ?? '',
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+  );
 
   // set bucket from selected secret
   useEffect(() => {
@@ -180,6 +183,9 @@ function AutomlConfigure(): React.JSX.Element {
 
   // reset columns query cache and label column when connection data is cleared
   useEffect(() => {
+    if (!namespace) {
+      return;
+    }
     if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
       queryClient.setQueryData(
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],

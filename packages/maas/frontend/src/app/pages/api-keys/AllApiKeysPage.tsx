@@ -27,8 +27,6 @@ const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  // TODO: use this for hiding the username search for non-admins and for allowing admins to see all keys
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isMaasAdmin] = useIsMaasAdmin();
 
   const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
@@ -157,6 +155,7 @@ const AllApiKeysPage: React.FC = () => {
             isFetching={isFetching}
             toolbarContent={
               <ApiKeysToolbar
+                isMaasAdmin={isMaasAdmin}
                 setIsModalOpen={setIsModalOpen}
                 filterData={filterData}
                 localUsername={localUsername}
