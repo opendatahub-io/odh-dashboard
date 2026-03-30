@@ -1,9 +1,10 @@
 class AIAssetsPage {
-  visit(namespace?: string): void {
+  visit(namespace?: string, queryParams?: Record<string, string>): void {
+    const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
     if (namespace) {
-      cy.visit(`/gen-ai-studio/assets/${namespace}`);
+      cy.visit(`/gen-ai-studio/assets/${namespace}${qs}`);
     } else {
-      cy.visit('/gen-ai-studio/assets');
+      cy.visit(`/gen-ai-studio/assets${qs}`);
     }
     this.waitForPageLoad();
   }
