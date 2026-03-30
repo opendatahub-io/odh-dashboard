@@ -34,7 +34,6 @@ describe('ChatbotPaneHeader', () => {
   const defaultProps = {
     selectedModel: 'test-model',
     onModelChange: jest.fn(),
-    onSettingsClick: jest.fn(),
   };
 
   beforeEach(() => {
@@ -45,24 +44,6 @@ describe('ChatbotPaneHeader', () => {
     render(<ChatbotPaneHeader {...defaultProps} />);
 
     expect(screen.getByTestId('mock-model-dropdown')).toHaveTextContent('test-model');
-  });
-
-  it('renders settings button', () => {
-    render(<ChatbotPaneHeader {...defaultProps} />);
-
-    const settingsButton = screen.getByRole('button', { name: /open settings panel/i });
-    expect(settingsButton).toBeInTheDocument();
-  });
-
-  it('calls onSettingsClick when settings button is clicked', async () => {
-    const user = userEvent.setup();
-    const mockOnSettingsClick = jest.fn();
-    render(<ChatbotPaneHeader {...defaultProps} onSettingsClick={mockOnSettingsClick} />);
-
-    const settingsButton = screen.getByRole('button', { name: /open settings panel/i });
-    await user.click(settingsButton);
-
-    expect(mockOnSettingsClick).toHaveBeenCalledTimes(1);
   });
 
   it('renders label when provided', () => {
@@ -114,12 +95,6 @@ describe('ChatbotPaneHeader', () => {
     expect(container.querySelector('hr')).not.toBeInTheDocument();
   });
 
-  it('uses custom testIdPrefix for settings button', () => {
-    render(<ChatbotPaneHeader {...defaultProps} testIdPrefix="compare-pane" />);
-
-    expect(screen.getByTestId('compare-pane-settings-button')).toBeInTheDocument();
-  });
-
   it('uses custom testIdPrefix for close button', () => {
     render(
       <ChatbotPaneHeader {...defaultProps} testIdPrefix="compare-pane" onCloseClick={jest.fn()} />,
@@ -137,26 +112,6 @@ describe('ChatbotPaneHeader', () => {
     await user.click(dropdown);
 
     expect(mockOnModelChange).toHaveBeenCalledWith('new-model');
-  });
-
-  it('stops event propagation when settings button is clicked', async () => {
-    const user = userEvent.setup();
-    const mockContainerClick = jest.fn();
-    const mockOnSettingsClick = jest.fn();
-
-    render(
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-      <div onClick={mockContainerClick}>
-        <ChatbotPaneHeader {...defaultProps} onSettingsClick={mockOnSettingsClick} />
-      </div>,
-    );
-
-    const settingsButton = screen.getByRole('button', { name: /open settings panel/i });
-    await user.click(settingsButton);
-
-    expect(mockOnSettingsClick).toHaveBeenCalledTimes(1);
-    // The container click should not be triggered due to stopPropagation
-    expect(mockContainerClick).not.toHaveBeenCalled();
   });
 
   it('stops event propagation when close button is clicked', async () => {
