@@ -104,17 +104,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Initialize LlamaStack client factory - clients will be created per request
 	var llamaStackClientFactory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
-		lsState, err := lsmocks.SetupLlamaStack(logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup Llama Stack mock server: %w", err)
-		}
-		cleanupFuncs = append(cleanupFuncs, func() {
-			logger.Info("stopping Llama Stack server...")
-			lsmocks.CleanupLlamaStackState(lsState,
-				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
-				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
-			)
-		})
+		logger.Info("Using mock LlamaStack client factory")
 		llamaStackClientFactory = lsmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
