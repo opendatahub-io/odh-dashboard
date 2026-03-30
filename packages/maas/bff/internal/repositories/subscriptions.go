@@ -15,6 +15,11 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+const (
+	displayNameAnnotation = "openshift.io/display-name"
+	descriptionAnnotation = "openshift.io/description"
+)
+
 // SubscriptionsRepository handles subscription operations via the Kubernetes API.
 type SubscriptionsRepository struct {
 	logger     *slog.Logger
@@ -335,6 +340,10 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		Namespace: obj.GetNamespace(),
 	}
 
+	annotations := obj.GetAnnotations()
+	sub.DisplayName = annotations[displayNameAnnotation]
+	sub.Description = annotations[descriptionAnnotation]
+
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
@@ -489,6 +498,10 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
 	}
+
+	annotations := obj.GetAnnotations()
+	summary.DisplayName = annotations[displayNameAnnotation]
+	summary.Description = annotations[descriptionAnnotation]
 
 	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
 	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")
