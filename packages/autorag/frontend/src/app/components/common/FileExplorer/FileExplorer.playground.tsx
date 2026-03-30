@@ -37,7 +37,7 @@ const createFile = (
   path: string,
   type: string,
   size: string,
-  details?: object,
+  details?: File['details'],
 ): File => ({
   name,
   path,

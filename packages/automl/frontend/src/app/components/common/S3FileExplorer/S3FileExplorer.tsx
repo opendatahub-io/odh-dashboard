@@ -139,7 +139,7 @@ interface S3FileExplorerProps {
   onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
 
   /** Callback fired when the user confirms a file selection via the primary action. */
-  onSelectFiles?: (files: Files) => void;
+  onSelectFiles: (files: Files) => void;
 
   /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
@@ -185,7 +185,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
-  const [, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   // Refs --------------------------------------------------------------------->
@@ -219,7 +218,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
     setCurrentPath('/');
-    setSearchQuery('');
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
@@ -289,7 +287,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     (path: string, perPage: number) => {
       setCurrentPath(path);
       setFoldersToRender(getBreadcrumbTrail(path));
-      setSearchQuery('');
       appliedSearchRef.current = '';
       setPageToRender(1);
       continuationTokensRef.current = new Map();
@@ -329,7 +326,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setLoadingToRender(false);
     setSelectedFolder(null);
     setCurrentPath('/');
-    setSearchQuery('');
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
     continuationTokensRef.current = new Map();
@@ -456,13 +452,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     }
   }, []);
 
-  const handleFolderClick = useCallback(
-    (folder: Folder) => {
-      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
-    },
-    [navigateTo, perPageToRender],
-  );
-
   const handleNavigate = useCallback(
     (folder: Folder) => {
       navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
@@ -476,7 +465,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleSearch = useCallback(
     (query: string) => {
-      setSearchQuery(query);
       debouncedSearch(query);
     },
     [debouncedSearch],
@@ -519,13 +507,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [fetchPath, currentPath],
   );
 
-  const handlePrimary = useCallback(
-    (files: Files) => {
-      onSelectFiles?.(files);
-    },
-    [onSelectFiles],
-  );
-
   return (
     <FileExplorer
       id={id}
@@ -543,13 +524,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       onSelectFile={handleSelectFile}
-      onFolderClick={handleFolderClick}
+      onFolderClick={handleNavigate}
       onNavigate={handleNavigate}
       onNavigateRoot={handleNavigateRoot}
       onSearch={handleSearch}
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
-      onPrimary={handlePrimary}
+      onPrimary={onSelectFiles}
     />
   );
 };

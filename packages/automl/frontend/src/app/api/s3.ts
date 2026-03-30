@@ -45,6 +45,14 @@ export type GetFilesOptions = {
   limit?: number;
   next?: string;
 };
+
+/**
+ * getFiles: Fetch files from the S3 BFF endpoint `GET /api/v1/s3/files`
+ *
+ * @param {string} host - Passed into mod-arch-core's restGET. For typical BFF calls, passed in as ''
+ * @param {APIOptions} requestOptions - Passed into mod-arch-core's restGET. Allows the request behaviour to be configured
+ * @param {GetFilesOptions} options - Request parameters for S3 get files endpoint
+ */
 export async function getFiles(
   host: string,
   requestOptions: APIOptions,

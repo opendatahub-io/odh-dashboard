@@ -94,10 +94,7 @@ export interface File {
   size?: string;
   type: string;
   items?: number;
-  // TODO [ PR-Feedback: AI ] `object` is overly permissive. The details are iterated with Object.entries
-  // and checked with isRenderableDetailValue. Use `Record<string, RenderableDetailValue>` instead.
-  // This would also eliminate the need for the runtime isRenderableDetailValue filter in FileDetails.
-  details?: object;
+  details?: Record<string, RenderableDetailValue>;
   hidden?: boolean;
   selectable?: boolean;
   forceShowAsSelected?: boolean;
@@ -182,8 +179,6 @@ const defaults = {
     detailsPanelTitle: 'Details',
     detailsPanelTitleFiles: 'Selected files',
     detailsPanelName: 'Name',
-    detailsPanelSource: 'Source',
-    detailsPanelBucket: 'Bucket',
 
     emptyStateTitle: 'No files found',
     emptyStateBody: 'No files are available in the current folder.',
@@ -211,11 +206,12 @@ const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
 const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
 
-// TODO [ PR-Feedback: AI ] RENDER_SOURCE_DETAILS_IN_PANEL is hardcoded false, making the source details
-// branch in DetailsPanel dead code. Either remove the guarded code entirely or convert this to a prop
-// so consumers can opt in. The eslint-disable for @typescript-eslint/no-unnecessary-condition in
-// DetailsPanel is a code smell from this constant.
-const RENDER_SOURCE_DETAILS_IN_PANEL = false;
+const ROW_HEIGHT = 47; // Height of each row FileExplorer renders (approximate).
+const HEADER_HEIGHT = 38; // Height of headers FileExplorer renders.
+const NUMBER_OF_ROWS_TO_SHOW = 10;
+/* PF does not have a concept of providing a number of rows to their sticky table.
+ * We get-by by providing a reasonable height to the table to get 10 rows in the modal */
+const STICKY_TABLE_HEIGHT = ROW_HEIGHT * NUMBER_OF_ROWS_TO_SHOW + HEADER_HEIGHT;
 
 const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
 
@@ -269,12 +265,7 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
       <FlexItem>{defaults.labels.sourceSelector}:</FlexItem>
       {sources.map((s) => (
         <FlexItem key={s.name}>
-          {/* TODO [ PR-Feedback: AI ] Inline style={{ cursor: 'pointer' }} - per CSS rules, avoid inline styles.
-              Label with onClick should use isClickable or variant prop if available in PF6,
-              or wrap in a Button variant="plain". */}
-          <Label onClick={() => onSelectSource(s)} style={{ cursor: 'pointer' }}>
-            {sourceLabel(s)}
-          </Label>
+          <Label onClick={() => onSelectSource(s)}>{sourceLabel(s)}</Label>
         </FlexItem>
       ))}
     </Flex>
@@ -347,12 +338,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
   return (
     <OuterScrollContainer>
       <InnerScrollContainer>
-        {/* TODO [ PR-Feedback: AI ] No data-testid attributes anywhere in FileExplorer or its sub-components.
-            Per project conventions, all interactive elements need data-testid for Cypress testing.
-            Key elements needing testids: the table, search input, breadcrumb items, select checkboxes/radios,
-            action buttons (View details, Remove selection), pagination controls, modal primary/secondary buttons,
-            and the details panel. Without these, Cypress tests will require brittle selectors. */}
-        <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders isStickyHeader>
+        <Table
+          aria-label={defaults.labels.tableAriaLabel}
+          data-testid="file-explorer-table"
+          variant="compact"
+          borders
+          isStickyHeader
+        >
           <Thead>
             <Tr>
               {Object.values(columns).map((column) => (
@@ -403,31 +395,41 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {!loading &&
               !isEmpty &&
               Array.isArray(files) &&
-              // TODO [ PR-Feedback: AI ] Using Array.reduce to build JSX elements is an unusual pattern
-              // that's hard to read. The hidden file filtering could be done with a simple .filter()
-              // before the .map(), tracking visibleIndex with a simple counter variable.
-              // e.g.: files.filter(f => !f.hidden).map((file, index) => <Tr key={file.path}>...</Tr>)
-              files.reduce<{ elements: React.ReactNode[]; visibleIndex: number }>(
-                (acc, file) => {
-                  if (file.hidden) {
-                    return acc;
-                  }
-                  const rowIndex = acc.visibleIndex;
-                  acc.visibleIndex++;
+              files
+                .filter((file) => !file.hidden)
+                .map((file, rowIndex) => {
                   const isSelected =
                     Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
                   const isFileBeingViewed =
                     Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
-                  // TODO [ PR-Feedback: AI ] Misleading variable name: `isSelectable` is true when
-                  // file.selectable === false (i.e., it means "is NOT selectable"). This boolean is
-                  // inverted from what the name suggests. Rename to `isDisabled` or `isUnselectable`.
-                  const isSelectable = file.selectable === false;
-                  acc.elements.push(
-                    <Tr key={file.path} isRowSelected={isSelected}>
+                  const isUnselectable = file.selectable === false;
+
+                  const actions: IAction[] = [
+                    {
+                      title: defaults.labels.tableActionViewDetails,
+                      onClick: () => onViewDetails(file),
+                    },
+                  ];
+                  if (isSelected) {
+                    actions.push({
+                      title: defaults.labels.tableActionRemoveSelection,
+                      onClick: () => {
+                        setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
+                        onSelectFile?.(file, false);
+                      },
+                    });
+                  }
+
+                  return (
+                    <Tr
+                      key={file.path}
+                      data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
+                      isRowSelected={isSelected}
+                    >
                       <Td
                         width={columns.select.width}
                         title={
-                          isSelectable &&
+                          isUnselectable &&
                           typeof unselectableReason === 'string' &&
                           unselectableReason
                             ? unselectableReason
@@ -454,7 +456,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             onSelectFile?.(file, isSelecting);
                           },
                           isSelected: Boolean(isSelected || file.forceShowAsSelected),
-                          isDisabled: isSelectable,
+                          isDisabled: isUnselectable,
                           variant: selection,
                         }}
                       />
@@ -465,11 +467,6 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           flexWrap={{ default: 'nowrap' }}
                         >
                           <FlexItem>
-                            {/* TODO [ PR-Feedback: AI ] The comment here asks the right question.
-                                Using Truncate with href="#" is semantically wrong — it's not a link,
-                                it's an action. Per React conventions, use a Button variant="link"
-                                wrapping the Truncate, or use PF's clickable text pattern.
-                                The href="#" also causes scroll-to-top on middle-click. */}
                             {isFolder(file) && (
                               <Truncate
                                 href="#"
@@ -494,37 +491,12 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       <Td width={columns.type.width} dataLabel={columns.type.label}>
                         {isFolder(file) ? defaults.labels.folderType : file.type}
                       </Td>
-                      {/* TODO [ PR-Feedback: AI ] Extract this IIFE to a helper function outside the render.
-                          Building an actions array inside an IIFE in JSX hurts readability.
-                          Create a `getRowActions(file, selectedFiles, ...)` helper and call it cleanly. */}
                       <Td width={columns.actions.width} isActionCell>
-                        {(() => {
-                          const actions: IAction[] = [];
-                          actions.push({
-                            title: defaults.labels.tableActionViewDetails,
-                            onClick: () => onViewDetails(file),
-                          });
-                          if (
-                            Array.isArray(selectedFiles) &&
-                            selectedFiles.some((f) => f.path === file.path)
-                          ) {
-                            actions.push({
-                              title: defaults.labels.tableActionRemoveSelection,
-                              onClick: () => {
-                                setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
-                                onSelectFile?.(file, false);
-                              },
-                            });
-                          }
-                          return <ActionsColumn items={actions} />;
-                        })()}
+                        <ActionsColumn items={actions} />
                       </Td>
-                    </Tr>,
+                    </Tr>
                   );
-                  return acc;
-                },
-                { elements: [], visibleIndex: 0 },
-              ).elements}
+                })}
           </Tbody>
         </Table>
       </InnerScrollContainer>
@@ -578,6 +550,7 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
   return (
     <Breadcrumb>
       <BreadcrumbItem
+        data-testid="file-explorer-breadcrumb-root"
         {...(!isAtRoot && onNavigateRoot
           ? {
               to: '#',
@@ -646,7 +619,11 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
           {dir.name}
         </BreadcrumbItem>
       ))}
-      {currentDir && <BreadcrumbItem isActive>{currentDir.name}</BreadcrumbItem>}
+      {currentDir && (
+        <BreadcrumbItem data-testid="file-explorer-breadcrumb-current" isActive>
+          {currentDir.name}
+        </BreadcrumbItem>
+      )}
     </Breadcrumb>
   );
 };
@@ -694,6 +671,7 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   return (
     <DataList
       aria-label={defaults.labels.detailsPanelTitleFiles}
+      data-testid="file-explorer-selected-files"
       isCompact
       onSelectDataListItem={emptyHandler}
       onSelectableRowChange={emptyHandler}
@@ -769,7 +747,6 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 };
 
 interface DetailsPanelProps {
-  source?: Source;
   selectedFiles?: Files;
   filesToView?: Files;
   onViewDetails: (file: File) => void;
@@ -777,7 +754,6 @@ interface DetailsPanelProps {
   onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
-  source,
   selectedFiles,
   filesToView,
   onViewDetails,
@@ -792,6 +768,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
             <Button
               variant="plain"
               aria-label="Close details"
+              data-testid="file-explorer-close-details-btn"
               key="close"
               icon={<TimesIcon />}
               onClick={() => onClearDetails()}
@@ -803,21 +780,6 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       </CardHeader>
       <CardBody className="pf-v6-u-pt-sm" isFilled={false}>
         <DescriptionList>
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-          {RENDER_SOURCE_DETAILS_IN_PANEL && source && (
-            <>
-              <DescriptionListGroup>
-                <DescriptionListTerm>{defaults.labels.detailsPanelSource}</DescriptionListTerm>
-                <DescriptionListDescription>{source.name}</DescriptionListDescription>
-              </DescriptionListGroup>
-              {source.bucket && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>{defaults.labels.detailsPanelBucket}</DescriptionListTerm>
-                  <DescriptionListDescription>{source.bucket}</DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-            </>
-          )}
           {Array.isArray(filesToView) &&
             filesToView.length > 0 &&
             filesToView.map((fileToView) => (
@@ -832,15 +794,6 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     <Card isPlain isCompact>
       <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
       <CardBody className="pf-v6-u-pt-sm">
-        {/* TODO [ PR-Feedback: AI ] Remove this dead commented-out code block. If it's an alternative
-            rendering approach worth preserving, move it to a doc/comment explaining the intent. */}
-        {/*<DescriptionList>*/}
-        {/*  {Array.isArray(selectedFiles) &&*/}
-        {/*    selectedFiles.length > 0 &&*/}
-        {/*    selectedFiles.map((selectedFile) => (*/}
-        {/*      <FileDetails key={selectedFile.path} file={selectedFile} />*/}
-        {/*    ))}*/}
-        {/*</DescriptionList>*/}
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
@@ -855,7 +808,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   const shouldRender = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
-    <Card isFullHeight isCompact>
+    <Card isFullHeight isCompact data-testid="file-explorer-details-panel">
       {shouldRender.details && detailsSubCard}
       {shouldRender.details && shouldRender.selected && <Divider />}
       {shouldRender.selected && selectedFilesSubCard}
@@ -1007,20 +960,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       paginationLabelFunction(firstIndex, lastIndex, lastIndex);
   }
 
-  // TODO [ PR-Feedback: AI ] Magic numbers for pixel-based layout. These hardcoded pixel values
-  // (47px row, 38px header) are fragile — they'll break if PF updates compact row heights or
-  // if font-size/zoom changes. Consider using CSS max-height with overflow-y: auto instead,
-  // or at minimum extract these as named constants with a comment explaining where the values come from.
-  const rowHeight = 47;
-  const headerHeight = 38;
-  const numberOfRowsToShow = 10;
-  const stickyTableHeight = rowHeight * numberOfRowsToShow + headerHeight;
-
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
     <Modal
-      elementToFocus={`#${rootId}-FileExplorer-search-input`}
+      elementToFocus={`#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`}
       id={id}
       isOpen={isOpen}
       onClose={(e) => {
@@ -1068,6 +1012,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               <FlexItem grow={{ default: 'grow' }}>
                 <SearchInput
                   searchInputId={`${rootId}-FileExplorer-search-input`}
+                  data-testid="file-explorer-search"
                   className="pf-v6-u-w-50"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
@@ -1092,6 +1037,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </FlexItem>
               <FlexItem>
                 <Pagination
+                  data-testid="file-explorer-pagination"
                   widgetId={`${rootId}-FileExplorer-table-pagination`}
                   itemCount={syntheticItemCount}
                   perPage={currentPerPage}
@@ -1109,7 +1055,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <Grid hasGutter>
               <GridItem
                 span={shouldRenderDetails.panel ? 8 : 12}
-                style={{ height: `${stickyTableHeight}px` }}
+                style={{ height: `${STICKY_TABLE_HEIGHT}px` }}
               >
                 <FilesTable
                   files={files}
@@ -1133,7 +1079,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               {shouldRenderDetails.panel && (
                 <GridItem span={4}>
                   <DetailsPanel
-                    source={source}
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
                     onViewDetails={(file) => setFilesToView([file])}
@@ -1153,6 +1098,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       <ModalFooter>
         <Button
           key="select-files"
+          data-testid="file-explorer-select-btn"
           variant="primary"
           isDisabled={loading || isEmpty}
           onClick={(_event) => {
@@ -1165,6 +1111,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         </Button>
         <Button
           key="cancel"
+          data-testid="file-explorer-cancel-btn"
           variant="link"
           onClick={(e) => {
             onClose(e);

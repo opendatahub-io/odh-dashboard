@@ -145,7 +145,7 @@ interface S3FileExplorerProps {
   onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
 
   /** Callback fired when the user confirms a file selection via the primary action. */
-  onSelectFiles?: (files: Files) => void;
+  onSelectFiles: (files: Files) => void;
 
   /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
@@ -177,11 +177,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // State -------------------------------------------------------------------->
 
-  // TODO [ PR-Feedback: AI ] This component manages 10+ useState + 7 useRef + multiple useEffect + useMemo + useCallback.
-  // Consider using useReducer to consolidate the related state (filesToRender, foldersToRender, fetchError,
-  // loadingToRender, hasNextPage, pageToRender, perPageToRender, currentPath, searchQuery, selectedFolder)
-  // into a single reducer. This would make state transitions more predictable and easier to reason about,
-  // especially the "reset" transitions that currently require touching 10+ setState calls.
+  // TODO [ Gustavo ] From self-review:
+  //  This component manages 10+ useState + 7 useRef + multiple useEffect + useMemo + useCallback.
+  //  Consider using useReducer to consolidate the related state (filesToRender, foldersToRender, fetchError,
+  //  loadingToRender, hasNextPage, pageToRender, perPageToRender, currentPath, searchQuery, selectedFolder)
+  //  into a single reducer. This would make state transitions more predictable and easier to reason about,
+  //  especially the "reset" transitions that currently require touching 10+ setState calls.
+  //  This should be done once S3FileExplorer finds a common home.
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
@@ -196,10 +198,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
-  // TODO [ PR-Feedback: AI ] searchQuery is never read (destructured as [, setSearchQuery]).
-  // If it's only used to reset the FileExplorer's internal search state, consider whether you actually
-  // need this state at all, or if the reset can be done differently (e.g., a key prop change on FileExplorer).
-  const [, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   // Refs --------------------------------------------------------------------->
@@ -233,7 +231,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
     setCurrentPath('/');
-    setSearchQuery('');
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
@@ -303,7 +300,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     (path: string, perPage: number) => {
       setCurrentPath(path);
       setFoldersToRender(getBreadcrumbTrail(path));
-      setSearchQuery('');
       appliedSearchRef.current = '';
       setPageToRender(1);
       continuationTokensRef.current = new Map();
@@ -343,7 +339,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setLoadingToRender(false);
     setSelectedFolder(null);
     setCurrentPath('/');
-    setSearchQuery('');
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
     continuationTokensRef.current = new Map();
@@ -468,16 +463,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     }
   }, []);
 
-  // TODO [ PR-Feedback: AI ] handleFolderClick and handleNavigate are identical functions.
-  // They both do: navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE).
-  // Consolidate into a single callback and pass it to both onFolderClick and onNavigate props.
-  const handleFolderClick = useCallback(
-    (folder: Folder) => {
-      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
-    },
-    [navigateTo, perPageToRender],
-  );
-
   const handleNavigate = useCallback(
     (folder: Folder) => {
       navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
@@ -491,7 +476,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleSearch = useCallback(
     (query: string) => {
-      setSearchQuery(query);
       debouncedSearch(query);
     },
     [debouncedSearch],
@@ -534,16 +518,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [fetchPath, currentPath],
   );
 
-  // TODO [ PR-Feedback: AI ] This is a trivial wrapper around onSelectFiles with no additional logic.
-  // Consider passing onSelectFiles directly instead of wrapping it in useCallback.
-  // If onSelectFiles is optional, use a fallback: onPrimary={onSelectFiles ?? (() => {})}
-  const handlePrimary = useCallback(
-    (files: Files) => {
-      onSelectFiles?.(files);
-    },
-    [onSelectFiles],
-  );
-
   return (
     <FileExplorer
       id={id}
@@ -561,13 +535,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       onSelectFile={handleSelectFile}
-      onFolderClick={handleFolderClick}
+      onFolderClick={handleNavigate}
       onNavigate={handleNavigate}
       onNavigateRoot={handleNavigateRoot}
       onSearch={handleSearch}
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
-      onPrimary={handlePrimary}
+      onPrimary={onSelectFiles}
     />
   );
 };
