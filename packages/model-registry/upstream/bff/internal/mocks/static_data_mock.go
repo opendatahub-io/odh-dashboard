@@ -2407,6 +2407,33 @@ func GetMcpServerMocks() []models.McpServer {
 		SourceCode:    stringToPointer("prometheus-community/prometheus-mcp"),
 		RepositoryURL: stringToPointer("https://github.com/prometheus-community/prometheus-mcp"),
 		LastUpdated:   stringToPointer("1706745600000"),
+		RuntimeMetadata: &models.McpRuntimeMetadata{
+			DefaultPort: func() *int32 { p := int32(9090); return &p }(),
+			McpPath:     stringToPointer("/sse"),
+			DefaultArgs: []string{"--config", "/etc/prometheus/config.yaml"},
+			RequiredEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "PROMETHEUS_URL", Description: "Prometheus server URL", Example: stringToPointer("http://prometheus:9090")},
+			},
+			OptionalEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "LOG_LEVEL", Description: "Logging level", DefaultValue: stringToPointer("info")},
+			},
+			Prerequisites: &models.McpPrerequisites{
+				ServiceAccount: &models.McpServiceAccountRequirement{
+					Required:      &trueVal,
+					SuggestedName: stringToPointer("prometheus-mcp-sa"),
+					Hint:          stringToPointer("Needs prometheus-reader ClusterRole binding"),
+				},
+				Secrets: []models.McpSecretRequirement{
+					{
+						Name:        "prometheus-credentials",
+						Description: "Prometheus auth credentials",
+						Keys: []models.McpSecretKey{
+							{Key: "token", Description: "Bearer token for Prometheus API", EnvVarName: stringToPointer("PROM_TOKEN"), Required: &trueVal},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	kubernetesMcp := models.McpServer{

@@ -23,6 +23,17 @@ type ListEvaluationJobsParams struct {
 	Tags      string
 }
 
+// ListCollectionsParams holds optional query parameters for the list collections endpoint.
+type ListCollectionsParams struct {
+	Namespace string
+	Limit     int
+	Offset    int
+	Name      string
+	Category  string
+	Tags      string
+	Scope     string
+}
+
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
@@ -30,7 +41,7 @@ type EvalHubClientInterface interface {
 	GetEvaluationJob(ctx context.Context, id string, namespace string) (*EvaluationJob, error)
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
-	ListCollections(ctx context.Context, namespace string) (CollectionsResponse, error)
+	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 }
 
@@ -171,9 +182,11 @@ type JobBenchmark struct {
 	TestDataRef  *TestDataRef     `json:"test_data_ref,omitempty"`
 }
 
-// CollectionsResponse is the response from the EvalHub API.
+// CollectionsResponse is the paginated response from the EvalHub API.
 type CollectionsResponse struct {
-	Items []Collection `json:"items"`
+	TotalCount int          `json:"total_count"`
+	Limit      int          `json:"limit"`
+	Items      []Collection `json:"items"`
 }
 
 // ProvidersResponse is the paginated response for the providers endpoint.
@@ -262,6 +275,7 @@ type ProviderBenchmarkPassCriteria struct {
 type Collection struct {
 	Resource     CollectionResource      `json:"resource"`
 	Name         string                  `json:"name"`
+	Category     string                  `json:"category,omitempty"`
 	Description  string                  `json:"description,omitempty"`
 	Tags         []string                `json:"tags,omitempty"`
 	Custom       map[string]any          `json:"custom,omitempty"`
@@ -479,14 +493,40 @@ func (c *EvalHubClient) CreateEvaluationJob(ctx context.Context, namespace strin
 	return resp, nil
 }
 
-// ListCollections retrieves all benchmark collections from EvalHub.
-// The namespace is sent as the X-Tenant header.
-func (c *EvalHubClient) ListCollections(ctx context.Context, namespace string) (CollectionsResponse, error) {
-	headers, err := tenantHeaders(namespace)
+// ListCollections retrieves benchmark collections from EvalHub with optional filtering and pagination.
+// Namespace is sent as the X-Tenant header; all other params are forwarded as query strings.
+func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error) {
+	headers, err := tenantHeaders(params.Namespace)
 	if err != nil {
 		return CollectionsResponse{Items: []Collection{}}, err
 	}
-	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections", headers)
+
+	query := url.Values{}
+	if params.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", params.Limit))
+	}
+	if params.Offset > 0 {
+		query.Set("offset", fmt.Sprintf("%d", params.Offset))
+	}
+	if params.Name != "" {
+		query.Set("name", params.Name)
+	}
+	if params.Category != "" {
+		query.Set("category", params.Category)
+	}
+	if params.Tags != "" {
+		query.Set("tags", params.Tags)
+	}
+	if params.Scope != "" {
+		query.Set("scope", params.Scope)
+	}
+
+	path := "/evaluations/collections"
+	if len(query) > 0 {
+		path = path + "?" + query.Encode()
+	}
+
+	resp, err := get[CollectionsResponse](c, ctx, path, headers)
 	if err != nil {
 		return CollectionsResponse{Items: []Collection{}}, wrapClientError(err, "ListCollections")
 	}

@@ -1,4 +1,4 @@
-import { WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { WorkloadCondition, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockRayJobK8sResource } from '../../../__mocks__/mockRayJobK8sResource';
 import { mockTrainJobK8sResource } from '../../../__mocks__/mockTrainJobK8sResource';
 import {
@@ -14,8 +14,22 @@ import {
   getRayJobNodeCount,
   getUnifiedJobNodeCount,
   getUnifiedJobStatusSync,
+  getRayJobStatusAlert,
+  WorkloadConditionType,
+  ConditionStatus,
 } from '../utils';
 import { KUEUE_QUEUE_LABEL } from '../../../const';
+
+const TEST_TIMESTAMP = '2024-01-01T00:00:00Z';
+
+const makeWorkloadCondition = (overrides: Partial<WorkloadCondition>): WorkloadCondition => ({
+  type: WorkloadConditionType.Finished,
+  status: ConditionStatus.True,
+  reason: '',
+  message: '',
+  lastTransitionTime: TEST_TIMESTAMP,
+  ...overrides,
+});
 
 jest.mock('../../../api', () => ({
   getWorkloadForJob: jest.fn(),
@@ -478,5 +492,205 @@ describe('getUnifiedJobStatusSync', () => {
   it('should use getTrainingJobStatusSync for TrainJobs', () => {
     const job = mockTrainJobK8sResource({ status: TrainingJobState.RUNNING });
     expect(getUnifiedJobStatusSync(job)).toBe(TrainingJobState.RUNNING);
+  });
+});
+
+describe('getRayJobStatusAlert', () => {
+  describe('states that return null', () => {
+    it('should return null for RUNNING', () => {
+      const job = mockRayJobK8sResource({});
+      expect(getRayJobStatusAlert(RayJobState.RUNNING, job)).toBeNull();
+    });
+
+    it('should return null for PAUSED', () => {
+      const job = mockRayJobK8sResource({});
+      expect(getRayJobStatusAlert(RayJobState.PAUSED, job)).toBeNull();
+    });
+
+    it('should return null for SUCCEEDED', () => {
+      const job = mockRayJobK8sResource({});
+      expect(getRayJobStatusAlert(RayJobState.SUCCEEDED, job)).toBeNull();
+    });
+
+    it('should return null for QUEUED without CR message', () => {
+      const job = mockRayJobK8sResource({});
+      expect(getRayJobStatusAlert(RayJobState.QUEUED, job)).toBeNull();
+    });
+
+    it('should return null for PENDING without CR message', () => {
+      const job = mockRayJobK8sResource({});
+      expect(getRayJobStatusAlert(RayJobState.PENDING, job)).toBeNull();
+    });
+  });
+
+  describe('FAILED state', () => {
+    it('should return danger alert using CR reason and message as layer 1', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'RuntimeError', message: 'Script crashed at line 42' };
+
+      const result = getRayJobStatusAlert(RayJobState.FAILED, job);
+
+      expect(result).not.toBeNull();
+      expect(result?.variant).toBe('danger');
+      expect(result?.title).toBe('RuntimeError');
+      expect(result?.description).toBe('Script crashed at line 42');
+    });
+
+    it('should fall back to workload Failed condition when CR fields are empty', () => {
+      const job = mockRayJobK8sResource({});
+      const workloadConditions: WorkloadCondition[] = [
+        makeWorkloadCondition({
+          type: WorkloadConditionType.Finished,
+          status: ConditionStatus.True,
+          reason: 'WorkloadFailed',
+          message: 'Job failed due to resource limits',
+        }),
+      ];
+
+      const result = getRayJobStatusAlert(RayJobState.FAILED, job, workloadConditions);
+
+      expect(result?.variant).toBe('danger');
+      expect(result?.title).toBe('WorkloadFailed');
+      expect(result?.description).toBe('Job failed due to resource limits');
+    });
+
+    it('should prioritize CR reason over workload condition', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'CRReason', message: 'CR message' };
+      const workloadConditions: WorkloadCondition[] = [
+        makeWorkloadCondition({
+          type: WorkloadConditionType.Finished,
+          status: ConditionStatus.True,
+          reason: 'WorkloadReason',
+          message: 'Workload message',
+        }),
+      ];
+
+      const result = getRayJobStatusAlert(RayJobState.FAILED, job, workloadConditions);
+
+      expect(result?.title).toBe('CRReason');
+      expect(result?.description).toBe('CR message');
+    });
+
+    it('should use fallback title when CR and workload conditions are both empty', () => {
+      const job = mockRayJobK8sResource({});
+      const result = getRayJobStatusAlert(RayJobState.FAILED, job);
+
+      expect(result?.variant).toBe('danger');
+      expect(result?.title).toBeTruthy();
+    });
+  });
+
+  describe('INADMISSIBLE state', () => {
+    it('should return warning alert using CR reason and message', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'Inadmissible', message: 'Insufficient quota' };
+
+      const result = getRayJobStatusAlert(RayJobState.INADMISSIBLE, job);
+
+      expect(result?.variant).toBe('warning');
+      expect(result?.title).toBe('Inadmissible');
+      expect(result?.description).toBe('Insufficient quota');
+    });
+
+    it('should fall back to workload Inadmissible condition when CR fields are empty', () => {
+      const job = mockRayJobK8sResource({});
+      const workloadConditions: WorkloadCondition[] = [
+        makeWorkloadCondition({
+          type: WorkloadConditionType.QuotaReserved,
+          status: ConditionStatus.False,
+          reason: 'Inadmissible',
+          message: 'ClusterQueue is inactive',
+        }),
+      ];
+
+      const result = getRayJobStatusAlert(RayJobState.INADMISSIBLE, job, workloadConditions);
+
+      expect(result?.variant).toBe('warning');
+      expect(result?.title).toBe('Inadmissible');
+      expect(result?.description).toBe('ClusterQueue is inactive');
+    });
+  });
+
+  describe('PREEMPTED state', () => {
+    it('should return warning alert using CR reason and message', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'Preempted', message: 'Higher priority workload' };
+
+      const result = getRayJobStatusAlert(RayJobState.PREEMPTED, job);
+
+      expect(result?.variant).toBe('warning');
+      expect(result?.title).toBe('Preempted');
+      expect(result?.description).toBe('Higher priority workload');
+    });
+
+    it('should fall back to workload Evicted condition when CR fields are empty', () => {
+      const job = mockRayJobK8sResource({});
+      const workloadConditions: WorkloadCondition[] = [
+        makeWorkloadCondition({
+          type: WorkloadConditionType.Evicted,
+          status: ConditionStatus.True,
+          reason: 'EvictedByPreemption',
+          message: 'Preempted by higher priority job',
+        }),
+      ];
+
+      const result = getRayJobStatusAlert(RayJobState.PREEMPTED, job, workloadConditions);
+
+      expect(result?.variant).toBe('warning');
+      expect(result?.title).toBe('EvictedByPreemption');
+      expect(result?.description).toBe('Preempted by higher priority job');
+    });
+
+    it('should fall back to workload Preempted condition when no Evicted condition', () => {
+      const job = mockRayJobK8sResource({});
+      const workloadConditions: WorkloadCondition[] = [
+        makeWorkloadCondition({
+          type: WorkloadConditionType.Preempted,
+          status: ConditionStatus.True,
+          reason: 'PreemptedByFairSharing',
+          message: 'Workload preempted by fair sharing',
+        }),
+      ];
+
+      const result = getRayJobStatusAlert(RayJobState.PREEMPTED, job, workloadConditions);
+
+      expect(result?.variant).toBe('warning');
+      expect(result?.title).toBe('PreemptedByFairSharing');
+    });
+  });
+
+  describe('QUEUED / PENDING info alerts', () => {
+    it('should return info alert for QUEUED when CR has a message', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'Waiting', message: 'Waiting for quota' };
+
+      const result = getRayJobStatusAlert(RayJobState.QUEUED, job);
+
+      expect(result?.variant).toBe('info');
+      expect(result?.title).toBe('Waiting');
+      expect(result?.description).toBe('Waiting for quota');
+    });
+
+    it('should return info alert for PENDING when CR has a message', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: 'Initializing', message: 'Cluster is initializing' };
+
+      const result = getRayJobStatusAlert(RayJobState.PENDING, job);
+
+      expect(result?.variant).toBe('info');
+      expect(result?.description).toBe('Cluster is initializing');
+    });
+
+    it('should use status label as title when CR has message but no reason', () => {
+      const job = mockRayJobK8sResource({});
+      job.status = { ...job.status, reason: undefined, message: 'Some info message' };
+
+      const result = getRayJobStatusAlert(RayJobState.QUEUED, job);
+
+      expect(result?.variant).toBe('info');
+      expect(result?.title).toBeTruthy();
+      expect(result?.description).toBe('Some info message');
+    });
   });
 });

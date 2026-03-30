@@ -1,20 +1,6 @@
 /* eslint-disable camelcase */
 import type { FeatureImportanceData, ConfusionMatrixData, PipelineRun } from '~/app/types';
-
-export type MockAutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-  };
-  location: {
-    model_directory: string;
-    predictor: string;
-    notebook: string;
-  };
-  metrics: {
-    test_data?: Record<string, unknown>;
-  };
-};
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 
 type TabularParameters = {
   task_type: 'binary' | 'multiclass' | 'regression';
@@ -36,7 +22,7 @@ export type MockAutomlParameters = TabularParameters | TimeseriesParameters;
 export type MockAutomlResultsContext = {
   pipelineRun: PipelineRun;
   pipelineRunLoading: boolean;
-  models: Record<string, MockAutomlModel>;
+  models: Record<string, AutomlModel>;
   modelsLoading: boolean;
   parameters: MockAutomlParameters;
 };
@@ -50,7 +36,7 @@ const buildLocation = (
   runId: string,
   taskId: string,
   modelName: string,
-): MockAutomlModel['location'] => {
+): AutomlModel['location'] => {
   const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
@@ -75,7 +61,7 @@ const mockPipelineRun: PipelineRun = {
     parameters: {
       label_column: 'type',
       task_type: 'multiclass',
-      top_n: '3',
+      top_n: 3,
       train_data_bucket_name: 'my-automl-bucket',
       train_data_file_key: 'creatures_dataset.csv',
       train_data_secret_name: 's3-with-bucket',
@@ -90,7 +76,7 @@ const mockPipelineRun: PipelineRun = {
 const RUN_ID = mockPipelineRun.run_id;
 const TASK_ID = '22ab3456-7890-cdef-1234-567890abcdef';
 
-const mockModels: Record<string, MockAutomlModel> = {
+const mockModels: Record<string, AutomlModel> = {
   CatBoost_BAG_L2_FULL: {
     display_name: 'CatBoost_BAG_L2_FULL',
     model_config: { eval_metric: 'accuracy' },
@@ -186,11 +172,12 @@ const mockTimeseriesPipelineRun: PipelineRun = {
   finished_at: '2026-03-20T15:30:00Z',
   runtime_config: {
     parameters: {
+      task_type: 'timeseries',
       target: 'sales',
       id_column: 'store_id',
       timestamp_column: 'date',
-      prediction_length: '7',
-      top_n: '3',
+      prediction_length: 7,
+      top_n: 3,
       train_data_bucket_name: 'my-automl-bucket',
       train_data_file_key: 'store_sales.csv',
       train_data_secret_name: 's3-with-bucket',
@@ -209,7 +196,7 @@ const buildTimeseriesLocation = (
   runId: string,
   taskId: string,
   modelName: string,
-): MockAutomlModel['location'] => {
+): AutomlModel['location'] => {
   const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
@@ -218,14 +205,14 @@ const buildTimeseriesLocation = (
   };
 };
 
-const mockTimeseriesModels: Record<string, MockAutomlModel> = {
+const mockTimeseriesModels: Record<string, AutomlModel> = {
   TemporalFusionTransformer: {
     display_name: 'TemporalFusionTransformer',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'TemporalFusionTransformer'),
     metrics: {
       test_data: {
-        smape: 0.082,
+        mase: 0.082,
         mape: 0.091,
         mse: 12.45,
         rmse: 3.528,
@@ -235,11 +222,11 @@ const mockTimeseriesModels: Record<string, MockAutomlModel> = {
   },
   DeepAR: {
     display_name: 'DeepAR',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'DeepAR'),
     metrics: {
       test_data: {
-        smape: 0.105,
+        mase: 0.105,
         mape: 0.118,
         mse: 18.72,
         rmse: 4.327,
@@ -249,11 +236,11 @@ const mockTimeseriesModels: Record<string, MockAutomlModel> = {
   },
   AutoETS: {
     display_name: 'AutoETS',
-    model_config: { eval_metric: 'smape' },
+    model_config: { eval_metric: 'mase' },
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'AutoETS'),
     metrics: {
       test_data: {
-        smape: 0.134,
+        mase: 0.134,
         mape: 0.152,
         mse: 24.31,
         rmse: 4.931,

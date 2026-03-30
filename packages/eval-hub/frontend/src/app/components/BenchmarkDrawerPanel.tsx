@@ -13,7 +13,6 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { FlatBenchmark } from '~/app/types';
 import { getCategoryColor } from './benchmarkUtils';
 
@@ -49,15 +48,15 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <Title headingLevel="h2" size="xl">
               {benchmark.name}
             </Title>
-            <Button
-              variant="link"
-              isInline
-              icon={<ExternalLinkAltIcon />}
-              iconPosition="end"
-              style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
+            <Content
+              component="p"
+              style={{
+                marginTop: 'var(--pf-t--global--spacer--xs)',
+                color: 'var(--pf-t--global--text--color--subtle)',
+              }}
             >
               {benchmark.id}
-            </Button>
+            </Content>
           </StackItem>
         </Stack>
         <DrawerActions>
@@ -91,12 +90,33 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               </Stack>
             </StackItem>
           )}
+
+          {benchmark.primary_score && (
+            <StackItem>
+              <Content component="h4">Primary scorer metric</Content>
+              <Content component="p">{benchmark.primary_score.metric}</Content>
+            </StackItem>
+          )}
+
+          {benchmark.pass_criteria && (
+            <StackItem>
+              <Content component="h4">Benchmark threshold</Content>
+              <Content component="p">{benchmark.pass_criteria.threshold}</Content>
+            </StackItem>
+          )}
+
+          {benchmark.providerName && (
+            <StackItem>
+              <Content component="h4">Evaluation framework</Content>
+              <Content component="p">{benchmark.providerName}</Content>
+            </StackItem>
+          )}
         </Stack>
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }}>
         <Button variant="primary" onClick={() => onRunBenchmark(benchmark)}>
-          Run Benchmark
+          Use this benchmark
         </Button>
       </DrawerPanelBody>
     </DrawerPanelContent>

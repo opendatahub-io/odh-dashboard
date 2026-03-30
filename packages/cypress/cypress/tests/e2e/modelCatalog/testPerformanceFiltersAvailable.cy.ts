@@ -10,7 +10,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('Verify Performance Filters are available on RHOAI', () => {
+describe('[Automation Bug: RHOAIENG-55621] Verify Performance Filters are available on RHOAI', () => {
   let testData: ModelCatalogSourceTestData;
   let skipTest = false;
 
@@ -63,7 +63,7 @@ describe('Verify Performance Filters are available on RHOAI', () => {
 
   it(
     'Performance view toggle enables filters and shows benchmark data on validated models',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
     () => {
       if (skipTest) {
         cy.log(

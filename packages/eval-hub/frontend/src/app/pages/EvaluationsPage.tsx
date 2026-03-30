@@ -16,6 +16,7 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
+import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
@@ -30,6 +31,7 @@ const EvaluationsPage: React.FC = () => {
     { namespace },
     !isHealthy,
   );
+  const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
 
   return (
     <ApplicationsPage
@@ -76,6 +78,8 @@ const EvaluationsPage: React.FC = () => {
           evaluations={evaluations}
           loaded={loaded}
           namespace={namespace}
+          collectionNameMap={collectionNameMap}
+          collectionsLoaded={collectionsLoaded}
           onRefresh={refreshEvaluations}
         />
       )}
