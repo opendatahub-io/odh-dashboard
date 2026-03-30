@@ -45,10 +45,6 @@ function AutoragExperimentsPage(): React.JSX.Element {
     experimentsListStatus.loaded &&
     experimentsListStatus.hasExperiments;
 
-  const onExperimentsListStatus = React.useCallback((status: AutoragExperimentsListStatus) => {
-    setExperimentsListStatus(status);
-  }, []);
-
   const headerContent = (
     <Flex
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
@@ -103,7 +99,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoragExperiments onExperimentsListStatus={onExperimentsListStatus} />
+      <AutoragExperiments onExperimentsListStatus={setExperimentsListStatus} />
     </ApplicationsPage>
   );
 }

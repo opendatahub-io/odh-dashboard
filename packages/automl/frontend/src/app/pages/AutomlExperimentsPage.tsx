@@ -30,18 +30,20 @@ function AutomlExperimentsPage(): React.JSX.Element {
   const [experimentsListStatus, setExperimentsListStatus] =
     React.useState<AutomlExperimentsListStatus>({ loaded: false, hasExperiments: false });
 
-  // List status comes only from AutomlExperiments; resetting here on namespace ran after the
-  // child's notify and could leave the header create action stuck hidden.
+  // When the route namespace changes, drop prior list status so the header cannot briefly reflect
+  // the previous project. useLayoutEffect runs before paint and before child useEffect; a passive
+  // useEffect here can run after AutomlExperiments has already reported the new namespace and
+  // overwrite correct state (header button stuck hidden).
+
+  React.useLayoutEffect(() => {
+    setExperimentsListStatus({ loaded: false, hasExperiments: false });
+  }, [namespace]);
 
   const showHeaderCreateExperimentButton =
     !showEmpty &&
     !!namespace &&
     experimentsListStatus.loaded &&
     experimentsListStatus.hasExperiments;
-
-  const onExperimentsListStatus = React.useCallback((status: AutomlExperimentsListStatus) => {
-    setExperimentsListStatus(status);
-  }, []);
 
   const headerContent = (
     <Flex
@@ -92,7 +94,7 @@ function AutomlExperimentsPage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutomlExperiments onExperimentsListStatus={onExperimentsListStatus} />
+      <AutomlExperiments onExperimentsListStatus={setExperimentsListStatus} />
     </ApplicationsPage>
   );
 }
